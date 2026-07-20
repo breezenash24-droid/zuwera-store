@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
 <script>
-/* THEME FLASH PREVENTION — runs before any CSS loads */
+/* THEME FLASH PREVENTION â€” runs before any CSS loads */
 (function(){try{
-  var m=localStorage.getItem('zw_theme_mode');
+  var m=localStorage.getItem('zw_theme_mode')||'super-light';
   var h=document.documentElement;
   if(m==='super-light'||m==='light'){
     var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
@@ -27,16 +27,16 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#09090b">
-  <title>404 — Zuwera</title>
+  <title>404 â€” Zuwera</title>
   <meta name="description" content="Page not found. Head back to Zuwera.">
   <meta name="robots" content="noindex, nofollow">
-  <meta property="og:title" content="404 — Zuwera">
+  <meta property="og:title" content="404 â€” Zuwera">
   <meta property="og:description" content="Page not found. Head back to Zuwera.">
   <meta property="og:url" content="https://zuwera.store">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Zuwera">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="404 — Zuwera">
+  <meta name="twitter:title" content="404 â€” Zuwera">
   <meta name="twitter:description" content="Page not found. Head back to Zuwera.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,12 +52,12 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --font-head: 'Barlow Condensed', sans-serif;
-      --font-body: 'Barlow', sans-serif;
-      --font-mono: 'IBM Plex Mono', monospace;
-      --fw: var(--font-head);
-      --fb: var(--font-body);
-      --fm: var(--font-mono);
+      --font-head: var(--zw-font-head, 'Barlow Condensed', sans-serif);
+      --font-body: var(--zw-font-body, 'Barlow', sans-serif);
+      --font-mono: var(--zw-font-mono, 'IBM Plex Mono', monospace);
+      --fw:var(--zw-font-head, var(--font-head));
+      --fb:var(--zw-font-body, var(--font-body));
+      --fm:var(--zw-font-mono, var(--font-mono));
     }
     body {
       background: var(--black);
@@ -158,7 +158,7 @@
     }
     .nav-logo img {
       display: block;
-      height: 25px;
+      height: 28px;
       width: auto;
       filter: invert(1);
       transition: filter .35s;
@@ -183,12 +183,12 @@
     body.light-mode .btn-secondary { color: rgba(9,9,11,.7); border-color: rgba(9,9,11,.2); }
     body.light-mode .btn-secondary:hover { border-color: rgba(9,9,11,.6); }
     body.light-mode .nav-logo img { filter: none; }  </style>
-<script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
+<script>try{var _t=localStorage.getItem('zw_theme_mode')||'super-light';document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
 <script src="/posthog-init.js?v=c4b554c4"></script>
 <script src="consent.js?v=1" defer></script>
 </head>
 <body>
-<script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+<script>(function(){try{var m=localStorage.getItem('zw_theme_mode')||'super-light';if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
 
   <a href="/" class="nav-logo" aria-label="Back to Zuwera home">
     <img src="images/wordmark-nav.png" srcset="images/wordmark-nav@2x.png 2x" alt="ZUWERA" width="113" height="22" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
@@ -212,11 +212,9 @@
           <a href="drop001.html?category=Sweatpants" class="mobile-nav-link zw-mobile-primary-link">Sweatpants</a>
         <a href="drop001.html?category=Socks" class="mobile-nav-link zw-mobile-primary-link">Socks</a>
           <a href="about.html" class="mobile-nav-link zw-mobile-primary-link">About</a>
+        <a href="journal.html" class="mobile-nav-link zw-mobile-primary-link">Journal</a>
         </div>
         <div class="zw-mobile-menu-secondary">
-          <a href="account.html" class="zw-mobile-secondary-link">Account</a>
-          <a href="account.html#orders" class="zw-mobile-secondary-link">Track Order</a>
-          <a href="mailto:nasirubreeze@zuwera.store" class="zw-mobile-secondary-link">Support</a>
           <a href="bag.html" class="zw-mobile-secondary-link zw-mobile-bag-link" aria-label="Open bag">Bag <span class="zw-mobile-bag-count">0</span></a>
           <a href="sizeguide.html" class="zw-mobile-secondary-link">Size Guide</a>
         </div>
@@ -227,9 +225,9 @@
   <div class="bg-number">404</div>
 
   <div class="content">
-    <p class="label">Zuwera — Page Not Found</p>
+    <p class="label">Zuwera â€” Page Not Found</p>
     <h1>Lost<br>The Trail.</h1>
-    <p>This page doesn't exist or may have moved. The dream is still alive — head back and keep going.</p>
+    <p>This page doesn't exist or may have moved. The dream is still alive â€” head back and keep going.</p>
     <div class="btn-group">
       <a href="index.html" class="btn-primary">Back to Home</a>
       <a href="drop001.html" class="btn-secondary">View Release 001</a>

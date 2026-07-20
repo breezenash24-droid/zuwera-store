@@ -21,9 +21,9 @@ jobs:
     name: Static checks + smoke tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22        # 22 auto-detects ESM in .js (the Functions use import/export)
 
@@ -50,10 +50,15 @@ jobs:
     name: Secret scanning (gitleaks)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0          # full history so gitleaks can scan past commits
+      - uses: actions/checkout@v7
+      # Run the gitleaks CLI directly on the checked-out files instead of the
+      # gitleaks-action's PR mode. That mode calls the GitHub API to enumerate the
+      # PR's commits and was failing hard on transient GitHub API errors ("No server
+      # is currently available…") — a scan that never ran, reported as a leak. The
+      # CLI + our .gitleaks.toml allowlist is equivalent (and more thorough: it scans
+      # the whole tree, not just the diff) with zero GitHub-API dependency.
       - name: gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VER=8.24.3
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" | tar -xz gitleaks
+          ./gitleaks dir . --config .gitleaks.toml --redact --no-banner --exit-code 1

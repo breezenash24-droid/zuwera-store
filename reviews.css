@@ -115,12 +115,30 @@
   border: 1px solid rgba(244,241,235,.08);
   border-top: 2px solid var(--zw-accent);
   position: relative;
-  padding: 3rem 3.2rem 2.6rem;
+  /* Flex column: the header is a fixed row (flex:0) and only .review-mbox-body
+     scrolls — the same fixed-header pattern the size-guide / size-fit modals use.
+     position:sticky was unreliable inside this box and let the header scroll away
+     with the form; this makes it structurally impossible to move. The box keeps
+     its horizontal + bottom padding, so header and body sit inside it. */
+  display: flex;
+  flex-direction: column;
+  padding: 0 3.2rem 2.6rem;
   animation: modalIn .2s ease;
   max-width: 1200px;
   width: min(1200px, 98vw);
   max-height: 96dvh;
   overflow-y: auto;
+}
+/* Fixed header — never scrolls. */
+.review-mbox-hd { flex: 0 0 auto; }
+/* The one scrolling region: the whole form below the header. min-height:0 lets it
+   shrink inside the flex column so its own overflow (not the box's) does the work. */
+.review-mbox-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* Room for the fold-out scrollbar without shifting content sideways. */
+  scrollbar-gutter: stable;
 }
 .review-mbox-hd {
   display: flex;
@@ -131,6 +149,18 @@
   padding-bottom: 1.25rem;
   border-bottom: 1px solid rgba(244,241,235,.08);
 }
+/* Pin the write-a-review header (brand + title + close) to the top of the sheet as the
+   form scrolls, so the close button stays reachable ("moves with the page") instead of
+   scrolling out of view. Opaque bg per theme — same colour as the sheet — covers the
+   form passing beneath it. */
+#review-modal .review-mbox-hd {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: #0f0f0f;
+}
+body.light-mode #review-modal .review-mbox-hd { background: #F0EEE9; }
+body.super-light-mode #review-modal .review-mbox-hd { background: #FFFFFF; }
 .review-mbox-eyebrow {
   display: inline-flex;
   align-items: center;
@@ -369,6 +399,31 @@
     margin-bottom: -44px;      /* = button height, so it fully overlaps the corner */
     z-index: 5;
   }
+  /* Desktop: the write-review sticky header owns the top padding the box gave up
+     (base .review-mbox is now `padding-top:0`), so it sits flush at scroll-top and
+     pins with ZERO slide. Kept desktop-only — the ≤900px bottom-sheet has its own
+     2rem box padding via an !important rule. */
+  #review-modal .review-mbox-hd { padding-top: 3rem; }
+}
+/* Keep the reviews-list close visible even when it (sticky) scrolls over the
+   black "Write a review" bar. The shared .mclose sets a near-transparent
+   background in light themes (rgba(9,9,11,.05)/.08 !important) with a dark
+   glyph, so on black the × vanished. Force a SOLID opaque chip per theme —
+   higher specificity + !important to beat .mclose. */
+.review-list-mbox > .review-list-close {
+  background: #202024 !important;
+  border-color: rgba(244,241,235,0.2) !important;
+  color: #f4f1eb !important;
+}
+body.light-mode .review-list-mbox > .review-list-close {
+  background: #F0EEE9 !important;
+  border-color: rgba(9,9,11,0.2) !important;
+  color: #09090b !important;
+}
+body.super-light-mode .review-list-mbox > .review-list-close {
+  background: #FFFFFF !important;
+  border-color: rgba(9,9,11,0.2) !important;
+  color: #09090b !important;
 }
 .review-list-write-btn { margin-bottom: 1.5rem; }
 .review-list-select {
@@ -582,22 +637,38 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
 
   /* ── Write-a-review modal: bottom sheet ── */
   #review-modal { align-items: flex-end !important; padding: 0 !important; }
-  .review-mbox {
+  /* The desktop modal-skin rule in storefront-cohesion.css (~line 477) applies a
+     square radius, a full border and a downward drop-shadow to .review-mbox, and its
+     4-id :not() chain out-ranks a bare `.review-mbox` selector — so this sheet used to
+     render as a bordered, square-cornered card instead of a rounded bottom sheet like
+     every other modal. Scope this rule to #review-modal with a matching 5-id
+     specificity so the sheet skin wins on mobile. (.review-mbox only ever lives inside
+     #review-modal, so the scoping changes nothing else.) */
+  #review-modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(#all-reviews-modal) > .review-mbox {
     width: 100vw !important;
     max-width: none !important;
-    /* Override the storefront full-height rule */
-    height: auto !important;
+    /* Fill the sheet to the bottom edge like the all-reviews sheet (was height:auto,
+       which left a short form floating with the page showing beneath it). The compose
+       box below grows into the extra space so there's no empty gap. */
+    height: var(--zw-sheet-max) !important;
     min-height: 0 !important;
-    max-height: 92dvh !important;
+    max-height: var(--zw-sheet-max) !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
-    border-radius: var(--zw-radius-modal) var(--zw-radius-modal) 0 0 !important;
+    /* Rounded top like every other bottom sheet (was the tight modal radius). */
+    border-radius: 1.25rem 1.25rem 0 0 !important;
     padding: 2rem 1.4rem calc(2rem + env(safe-area-inset-bottom,0px)) !important;
-    border-top: 2px solid var(--admin-res-text, var(--zw-accent)) !important;
-    border-left: none !important; border-right: none !important; border-bottom: none !important;
+    border: none !important;
+    box-shadow: 0 -8px 40px rgba(0,0,0,.28) !important;
     margin: 0 !important;
     position: relative !important;
   }
+  /* The compose box grows to fill the sheet so a short form still reaches the bottom
+     (the sheet is a fixed height now) — more room to write, no empty gap under it.
+     The body must be a flex column for the textarea's flex:1 to take effect now
+     that the form lives inside .review-mbox-body. */
+  #review-modal .review-mbox-body { display: flex; flex-direction: column; }
+  #review-modal .review-mbox .review-body-field { flex: 1 1 auto !important; }
   /* Drag handle */
   .review-mbox::before {
     content: '';
@@ -608,6 +679,11 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
     border-radius: 2px;
     margin: -1rem auto 1.25rem;
   }
+  /* On the light / super-light sheet the near-white handle above was invisible on the
+     white surface — no pull indicator showed. Use a dark bar there so the sheet reads
+     as draggable in every theme. */
+  body.light-mode .review-mbox::before,
+  body.super-light-mode .review-mbox::before { background: rgba(9,9,11,.22); }
   /* Close btn stays visible — it's inside .review-mbox-hd which is above the fold */
   .review-mbox-hd .mclose { position: static !important; flex-shrink: 0; }
   .review-mbox-hd { display: flex !important; align-items: flex-start !important; justify-content: space-between !important; margin-bottom: 1.25rem !important; }
@@ -618,8 +694,8 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
     padding: 0 !important;
   }
   #all-reviews-modal > .review-list-mbox {
-    height: 92dvh !important;
-    max-height: 92dvh !important;
+    height: var(--zw-sheet-max) !important;
+    max-height: var(--zw-sheet-max) !important;
     width: 100vw !important;
     max-width: none !important;
     border-radius: var(--zw-radius-modal) var(--zw-radius-modal) 0 0 !important;

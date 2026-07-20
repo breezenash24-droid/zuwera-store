@@ -79,6 +79,13 @@ const _authEls = {
 if (_sb) {
   _sb.auth.onAuthStateChange((event, session) => {
     _currentUser = session?.user ?? null;
+    // Keep the login signal fresh, but never clobber the pre-paint's value with a
+    // stray null (e.g. an empty INITIAL_SESSION before the client restores, or a
+    // second client that doesn't hold the session) — only an explicit sign-out
+    // clears it. The bag panel also reads the session from storage directly, so
+    // this is just belt-and-suspenders.
+    if (_currentUser) window.__zwSessionUser = _currentUser;
+    else if (event === 'SIGNED_OUT') window.__zwSessionUser = null;
 
     updateHeaderForAuth();
     if (event === 'PASSWORD_RECOVERY') {
@@ -976,8 +983,13 @@ function refreshHeartButtons() {
   document.querySelectorAll('.heart-btn').forEach(btn => {
     btn.classList.toggle('active', ids.has(btn.dataset.productId));
   });
+  // Publish the saves count so the bag panel can badge "Your saves". This runs
+  // after every favorites change (load / add / remove / logout reset).
+  window.zwFavoritesCount = _userFavorites.length;
+  try { localStorage.setItem('zw_fav_count', String(_userFavorites.length)); } catch (_) {}
+  try { window.dispatchEvent(new CustomEvent('zw-favs-changed', { detail: { count: _userFavorites.length } })); } catch (_) {}
 }
-window.refreshHeartButtons = refreshHeartButtons; // expose globally for products.js
+window.refreshHeartButtons = refreshHeartButtons; // exposed globally for the storefront product grids
 
 function refreshCartFavs() {
   const loggedOut = $('fav-logged-out-msg');
@@ -1015,7 +1027,14 @@ function refreshCartFavs() {
 }
 
 async function toggleFavorite(btn) {
-  if (!_currentUser) { openAuthModal('signin'); return; }
+  if (!_currentUser) {
+    // Open login on the CURRENT page (zwOpenAuth prefers #auth-modal where it
+    // exists, else the on-page zwlg-modal) instead of failing silently on pages
+    // that have no #auth-modal.
+    if (window.zwOpenAuth) window.zwOpenAuth('signin');
+    else openAuthModal('signin');
+    return;
+  }
   const pid     = btn.dataset.productId;
   const pname   = btn.dataset.productName;
   const price   = btn.dataset.price;

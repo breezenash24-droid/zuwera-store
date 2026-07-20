@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#F0EEE9" media="(prefers-color-scheme: light)">
-  <title>Pay with Apple Pay — Zuwera</title>
+  <title>Pay with Apple Pay â€” Zuwera</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=3" id="site-favicon">
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
@@ -32,12 +32,12 @@
       --border: rgba(244,241,235,.08);
       --text: #f4f1eb;
       --sub: rgba(244,241,235,.52);
-      --font-head: 'Barlow Condensed', sans-serif;
-      --font-body: 'Barlow', sans-serif;
-      --font-mono: 'IBM Plex Mono', monospace;
-      --fw: var(--font-head);
-      --fb: var(--font-body);
-      --fm: var(--font-mono);
+      --font-head: var(--zw-font-head, 'Barlow Condensed', sans-serif);
+      --font-body: var(--zw-font-body, 'Barlow', sans-serif);
+      --font-mono: var(--zw-font-mono, 'IBM Plex Mono', monospace);
+      --fw:var(--zw-font-head, var(--font-head));
+      --fb:var(--zw-font-body, var(--font-body));
+      --fm:var(--zw-font-mono, var(--font-mono));
     }
     html, body {
       height: 100%;
@@ -340,7 +340,7 @@
   </style>
 </head>
 <body>
-<script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+<script>(function(){try{var m=localStorage.getItem('zw_theme_mode')||'super-light';if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
 
   <header class="mc-header">
     <a href="https://zuwera.store" class="mc-logo" aria-label="Back to Zuwera home">
@@ -354,7 +354,7 @@
     <div id="state-loading" class="active" role="status" aria-live="polite" aria-label="Loading checkout">
       <div class="mc-spinner">
         <div class="mc-spinner-ring" aria-hidden="true"></div>
-        <span class="mc-spinner-text">Loading checkout…</span>
+        <span class="mc-spinner-text">Loading checkoutâ€¦</span>
       </div>
     </div>
 
@@ -364,10 +364,10 @@
       <ul class="mc-items" id="mc-items-list"></ul>
 
       <div class="mc-totals">
-        <div class="mc-total-row"><span>Subtotal</span><span id="mc-subtotal">—</span></div>
-        <div class="mc-total-row"><span>Shipping</span><span id="mc-shipping">—</span></div>
-        <div class="mc-total-row"><span>Tax (8%)</span><span id="mc-tax">—</span></div>
-        <div class="mc-total-row grand"><span>Total</span><span id="mc-total">—</span></div>
+        <div class="mc-total-row"><span>Subtotal</span><span id="mc-subtotal">â€”</span></div>
+        <div class="mc-total-row"><span>Shipping</span><span id="mc-shipping">â€”</span></div>
+        <div class="mc-total-row"><span>Tax (8%)</span><span id="mc-tax">â€”</span></div>
+        <div class="mc-total-row grand"><span>Total</span><span id="mc-total">â€”</span></div>
       </div>
 
       <div class="mc-pay-section">
@@ -405,7 +405,7 @@
         <p id="unsupported-msg">Apple Pay requires Safari on an iPhone or Mac with Apple Pay configured. Open this link in Safari, or return to the store to check out another way.</p>
         <div class="mc-unsupported-actions">
           <a href="https://zuwera.store" class="primary">Return to Store</a>
-          <a href="https://support.apple.com/en-us/HT204506" target="_blank" rel="noopener noreferrer">How to set up Apple Pay ?</a>
+          <a href="https://support.apple.com/en-us/HT204506" target="_blank" rel="noopener noreferrer">How to set up Apple Pay â†’</a>
         </div>
       </div>
     </div>
@@ -480,12 +480,12 @@
     function renderSummary(items, stateCode = '') {
       const list = document.getElementById('mc-items-list');
       list.innerHTML = items.map(item => {
-        const meta = [item.size, item.colorName].filter(Boolean).join(' · ');
+        const meta = [item.size, item.colorName].filter(Boolean).join(' Â· ');
         const lineTotal = (item.price * (item.quantity || 1)).toFixed(2);
         return `
           <li class="mc-item">
             <div class="mc-item-info">
-              <div class="mc-item-name">${escHtml(item.name)}${item.quantity > 1 ? ` <span style="color:var(--sub);font-weight:400;">×${item.quantity}</span>` : ''}</div>
+              <div class="mc-item-name">${escHtml(item.name)}${item.quantity > 1 ? ` <span style="color:var(--sub);font-weight:400;">Ã—${item.quantity}</span>` : ''}</div>
               ${meta ? `<div class="mc-item-meta">${escHtml(meta)}</div>` : ''}
             </div>
             <div class="mc-item-price">$${lineTotal}</div>

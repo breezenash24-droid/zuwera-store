@@ -57,7 +57,7 @@
     var bar = wrap.querySelector(':scope > .zw-swipe-bar'), thumb;
     if (!bar) { bar = document.createElement('div'); bar.className = 'zw-swipe-bar'; thumb = document.createElement('div'); thumb.className = 'zw-swipe-thumb'; bar.appendChild(thumb); wrap.appendChild(bar); }
     else { thumb = bar.querySelector('.zw-swipe-thumb'); }
-    var sync = function () {
+    var syncNow = function () {
       var sw = grid.scrollWidth, cw = grid.clientWidth, max = sw - cw, scrollable = max > 4;
       wrap.classList.toggle('zw-has-swipe', scrollable);
       if (!scrollable) return;
@@ -65,6 +65,9 @@
       thumb.style.width = tw + '%';
       thumb.style.left = ((max > 0 ? grid.scrollLeft / max : 0) * (100 - tw)) + '%';
     };
+    // Batch the layout-affecting width/left writes to one per frame (mirror of storefront.js).
+    var _syncRaf = null;
+    var sync = function () { if (_syncRaf != null) return; _syncRaf = requestAnimationFrame(function () { _syncRaf = null; syncNow(); }); };
     if (!grid._zwBarBound) {
       grid.addEventListener('scroll', sync, { passive: true });
       window.addEventListener('resize', sync, { passive: true });
@@ -96,7 +99,7 @@
     'anton':"'Anton',sans-serif",'league-gothic':"'League Gothic',sans-serif",'michroma':"'Michroma',sans-serif",
     'montserrat':"'Montserrat',sans-serif",'syne':"'Syne',sans-serif",'archivo-black':"'Archivo Black',sans-serif",
     'teko':"'Teko',sans-serif",'righteous':"'Righteous',display",'playfair-display':"'Playfair Display',serif",
-    'cinzel':"'Cinzel',serif",'futura':'"Futura", "Jost", sans-serif','futura-100-bold':'"Futura 100 Bold", "Futura", "Jost", sans-serif',
+    'cinzel':"'Cinzel',serif",'futura':'"Futura", "Jost", sans-serif','futura-100-demibold':'"Futura 100 Demibold", "Futura", "Jost", sans-serif','futura-100-bold':'"Futura 100 Bold", "Futura", "Jost", sans-serif',
     'futura-100-bold-oblique':'"Futura 100 Bold Oblique", "Futura", "Jost", sans-serif','barlow':"'Barlow',sans-serif",
     'inter':"'Inter',sans-serif",'dm-sans':"'DM Sans',sans-serif",'outfit':"'Outfit',sans-serif",'manrope':"'Manrope',sans-serif",
     'poppins':"'Poppins',sans-serif",'lato':"'Lato',sans-serif",'roboto':"'Roboto',sans-serif",'work-sans':"'Work Sans',sans-serif",'mulish':"'Mulish',sans-serif"
@@ -109,6 +112,7 @@
     'teko':'https://fonts.googleapis.com/css2?family=Teko:wght@600;700&display=swap','righteous':'https://fonts.googleapis.com/css2?family=Righteous&display=swap',
     'playfair-display':'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&display=swap','cinzel':'https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&display=swap',
     'futura':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
+    'futura-100-demibold':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
     'futura-100-bold':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
     'futura-100-bold-oblique':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
     'inter':'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap','dm-sans':'https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap',
@@ -157,7 +161,8 @@
     if (s.pad_top) el.style.paddingTop = s.pad_top + 'px';
     if (s.pad_bot) el.style.paddingBottom = s.pad_bot + 'px';
     if (s.text_color) el.style.setProperty('color', s.text_color, 'important');
-    if (s.heading_size) el.querySelectorAll('h1,h2,[data-builder-heading]').forEach(function (h) { h.style.setProperty('font-size', s.heading_size, 'important'); });
+    if (s.heading_size) el.querySelectorAll('h1,h2,h3,[data-builder-heading]').forEach(function (h) { h.style.setProperty('font-size', s.heading_size, 'important'); });
+    if (s.body_size) el.querySelectorAll('p,[data-builder-body]').forEach(function (p) { p.style.setProperty('font-size', s.body_size, 'important'); });
     var idSel = s.anchor_id || secId;
     if (s.hide_mobile) addHideStyle('zw-lp-mh-' + idSel, '@media(max-width:900px){#' + idSel + '{display:none!important;}}');
     if (s.hide_desktop) addHideStyle('zw-lp-dh-' + idSel, '@media(min-width:901px){#' + idSel + '{display:none!important;}}');
@@ -277,6 +282,74 @@
           (s.subtext ? '<p style="opacity:.65;line-height:1.7;margin-bottom:2rem;font-size:1rem">' + s.subtext + '</p>' : '') +
           (s.btn_text ? '<a href="' + safeUrl(s.btn_url) + '" style="display:inline-block;background:' + (s.btn_style === 'solid' ? 'currentColor' : 'transparent') + ';color:' + (s.btn_style === 'solid' ? (s.sec_bg || s.bg_color || '#09090b') : 'currentColor') + ';border:1px solid currentColor;padding:.75rem 2rem;font-family:var(--fm,var(--fb));font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;text-decoration:none">' + s.btn_text + '</a>' : '') +
           '</div>';
+        return true;
+      }
+      case 'color_block': {
+        el.className = 'builder-color-block-section';
+        var cbBg = s.bg_color || '#1f2937';
+        var cbLight = (function (c) { // small luminance check (mirrors storefront _zwIsLightColor)
+          var m = String(c || '').trim().match(/^#([0-9a-f]{6})$/i);
+          if (!m) return false;
+          var r = parseInt(m[1].slice(0, 2), 16), g = parseInt(m[1].slice(2, 4), 16), b = parseInt(m[1].slice(4, 6), 16);
+          return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 150;
+        })(cbBg);
+        var cbTxt = s.text_color || (cbLight ? '#09090b' : '#f4f1eb');
+        var cbW = s.width || 'full';
+        var cbBlockW = cbW === 'full' ? '100%' : (cbW === 'half' ? '50%' : cbW + 'px');
+        var cbMar = ({ left: '0 auto 0 0', right: '0 0 0 auto' })[s.block_align] || '0 auto';
+        var cbPad = ({ sm: '2.5rem 1.5rem', md: '4rem 2.5rem', lg: '6rem 3rem', xl: '8rem 3.5rem' })[s.inner_pad || 'md'] || '4rem 2.5rem';
+        var cbAlign = s.content_align || 'center';
+        var cbJust = cbAlign === 'left' ? 'flex-start' : (cbAlign === 'right' ? 'flex-end' : 'center');
+        var cbVJust = ({ top: 'flex-start', center: 'center', bottom: 'flex-end' })[s.content_valign] || 'center';
+        var cbBtnA = s.btn_align || cbAlign;
+        var cbBtnJust = cbBtnA === 'left' ? 'flex-start' : (cbBtnA === 'right' ? 'flex-end' : 'center');
+        // Height preset (screen-relative) wins; the px min_height only applies on "auto".
+        var cbMinH = ({ short: '40vh', half: '50vh', tall: '75vh', full: '100vh' })[s.height] || (s.min_height ? parseInt(s.min_height) + 'px' : '');
+        el.style.cssText = 'padding:0 ' + ((cbW === 'full' || cbW === 'half') ? '0' : '2.5rem') + ';margin-top:' + (parseInt(s.gap_top) || 0) + 'px;margin-bottom:' + (parseInt(s.gap_bot) || 0) + 'px';
+        var cbEsc = function (v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+        var cbBtnHtml = (Array.isArray(s.buttons) ? s.buttons : []).filter(function (b) { return b && b.text; }).map(function (b) {
+          var st = b.style || 'solid';
+          var css = 'display:inline-block;padding:.75rem 2rem;font-family:var(--fm,var(--fb));font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;';
+          if (st === 'solid') css += 'background:' + cbTxt + ';color:' + cbBg + ';border:1px solid ' + cbTxt + ';';
+          else if (st === 'outline') css += 'background:transparent;color:inherit;border:1px solid currentColor;';
+          else css += 'background:transparent;color:inherit;border:none;text-decoration:underline;text-underline-offset:4px;';
+          return '<a href="' + cbEsc(safeUrl(b.url)) + '" style="' + css + '">' + cbEsc(b.text) + '</a>';
+        }).join('');
+        // Logos row (each optionally linked); auto-lighten on dark blocks.
+        var cbLogos = (Array.isArray(s.logos) ? s.logos : []).filter(function (l) { return l && l.src; });
+        var cbLogoH = parseInt(s.logo_height) || 34;
+        var cbLogoAdjust = s.logo_adjust || (s.logo_original ? 'original' : 'auto');
+        var cbLogoBlend = (cbLogoAdjust === 'auto' || cbLogoAdjust === 'blend' || cbLogoAdjust === '');
+        var cbLogoImgFx = '';
+        if (cbLogoBlend) cbLogoImgFx = cbLight ? 'mix-blend-mode:multiply;' : 'mix-blend-mode:screen;';
+        else if (cbLogoAdjust === 'recolor') cbLogoImgFx = cbLight ? 'filter:brightness(0);' : 'filter:brightness(0) invert(1);';
+        var cbLogoRowBg = cbLogoBlend ? 'background:' + cbBg + ';' : '';
+        var cbLogosHtml = cbLogos.map(function (l) {
+          var img = '<img src="' + cbEsc(l.src) + '" alt="' + cbEsc(l.alt || '') + '" style="height:' + cbLogoH + 'px;width:auto;' + cbLogoImgFx + '" loading="lazy">';
+          return l.link ? '<a href="' + cbEsc(safeUrl(l.link)) + '" style="display:inline-flex;align-items:center;text-decoration:none">' + img + '</a>' : img;
+        }).join('');
+        var cbPosX = (s.pos_x == null || s.pos_x === '') ? 50 : Math.max(0, Math.min(100, parseFloat(s.pos_x)));
+        var cbVMap = ({ top: 0, center: 50, bottom: 100 })[s.content_valign];
+        var cbPosY = (s.pos_y == null || s.pos_y === '') ? (cbVMap == null ? 50 : cbVMap) : Math.max(0, Math.min(100, parseFloat(s.pos_y)));
+        var cbRad = parseInt(s.radius) || 0;
+        // Give an off-center block room even without an explicit Block Height, so
+        // the position actually shows (mirror of storefront.js).
+        var cbHasCustomPos = (cbPosX !== 50 || cbPosY !== 50);
+        var cbEffH = cbMinH || (cbHasCustomPos ? '60vh' : '');
+        var cbInner =
+          (s.eyebrow ? '<div style="font-family:var(--fm,var(--fb));font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;opacity:.65;margin-bottom:1rem">' + s.eyebrow + '</div>' : '') +
+          (s.heading ? '<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin:0 0 1rem">' + String(s.heading).replace(/\n/g, '<br>') + '</h2>' : '') +
+          (s.body ? '<p style="opacity:.75;line-height:1.75;font-size:1rem;margin:0 0 ' + ((cbBtnHtml || cbLogosHtml) ? '1.8rem' : '0') + ';white-space:pre-line;font-family:var(--fb)">' + s.body + '</p>' : '') +
+          (cbBtnHtml ? '<div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:' + cbBtnJust + '">' + cbBtnHtml + '</div>' : '') +
+          (cbLogosHtml ? '<div style="display:flex;gap:1.5rem 2.5rem;flex-wrap:wrap;align-items:center;justify-content:' + cbBtnJust + ';margin-top:' + (cbBtnHtml ? '1.8rem' : '0') + ';' + cbLogoRowBg + '">' + cbLogosHtml + '</div>' : '');
+        if (cbEffH) {
+          el.innerHTML = '<div style="position:relative;background:' + cbBg + ';color:' + cbTxt + ';max-width:' + cbBlockW + ';margin:' + cbMar + ';border-radius:' + cbRad + 'px;min-height:' + cbEffH + '">' +
+            '<div style="position:absolute;inset:' + cbPad + '">' +
+            '<div style="position:absolute;left:' + cbPosX + '%;top:' + cbPosY + '%;transform:translate(-' + cbPosX + '%,-' + cbPosY + '%);max-width:100%;text-align:' + cbAlign + '">' + cbInner + '</div>' +
+            '</div></div>';
+        } else {
+          el.innerHTML = '<div style="background:' + cbBg + ';color:' + cbTxt + ';max-width:' + cbBlockW + ';margin:' + cbMar + ';padding:' + cbPad + ';border-radius:' + cbRad + 'px;text-align:' + cbAlign + ';display:flex;flex-direction:column;justify-content:center">' + cbInner + '</div>';
+        }
         return true;
       }
       case 'banner': {
@@ -591,19 +664,34 @@
     track.addEventListener('touchend', function (e) { tex = e.changedTouches[0].screenX; var diff = tsx - tex; if (Math.abs(diff) > 50) { isPaused = false; updatePauseIcon(); if (diff > 0) next(); else prev(); startLoop(); } }, { passive: true });
   }
 
+  function ensureCountdownKeyframes() {
+    if (document.getElementById('zw-lp-cd-kf')) return;
+    var st = document.createElement('style'); st.id = 'zw-lp-cd-kf';
+    st.textContent = '@keyframes zwLpCdFlip{0%{opacity:1;transform:translateY(0)}30%{opacity:0;transform:translateY(-6px)}55%{opacity:0;transform:translateY(7px)}100%{opacity:1;transform:translateY(0)}}.cd-n.zw-cd-flip{animation:zwLpCdFlip .2s ease}';
+    document.head.appendChild(st);
+  }
   function startCountdown(el, s, secId) {
     var target = s.launch_date ? new Date(s.launch_date) : null;
     var cdEl = document.getElementById('lp-cd-' + secId);
     if (!target || !cdEl) return;
+    ensureCountdownKeyframes();
     var nums = cdEl.querySelectorAll('.cd-n');
     function pad(n) { return String(n).padStart(2, '0'); }
+    // Flip a digit only when its value actually changes — mirrors the homepage
+    // countdown (index.html setUnit), so seconds flip each tick and larger units
+    // only on rollover instead of re-animating every second.
+    function setNum(node, val) {
+      if (!node || node.textContent === val) return;
+      node.textContent = val;
+      node.classList.remove('zw-cd-flip'); void node.offsetWidth; node.classList.add('zw-cd-flip');
+    }
     function t() {
       var diff = target - Date.now();
-      if (diff <= 0) { nums.forEach(function (n) { n.textContent = '00'; }); return; }
-      if (nums[0]) nums[0].textContent = pad(Math.floor(diff / 864e5));
-      if (nums[1]) nums[1].textContent = pad(Math.floor((diff % 864e5) / 36e5));
-      if (nums[2]) nums[2].textContent = pad(Math.floor((diff % 36e5) / 6e4));
-      if (nums[3]) nums[3].textContent = pad(Math.floor((diff % 6e4) / 1e3));
+      if (diff <= 0) { nums.forEach(function (n) { setNum(n, '00'); }); return; }
+      if (nums[0]) setNum(nums[0], pad(Math.floor(diff / 864e5)));
+      if (nums[1]) setNum(nums[1], pad(Math.floor((diff % 864e5) / 36e5)));
+      if (nums[2]) setNum(nums[2], pad(Math.floor((diff % 36e5) / 6e4)));
+      if (nums[3]) setNum(nums[3], pad(Math.floor((diff % 6e4) / 1e3)));
     }
     t(); setInterval(t, 1000);
   }

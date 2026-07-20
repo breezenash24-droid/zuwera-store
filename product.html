@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
   <base href="/">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
 <script>
 /* THEME FLASH PREVENTION — runs before any CSS loads */
 (function(){try{
-  var m=localStorage.getItem('zw_theme_mode');
+  var m=localStorage.getItem('zw_theme_mode')||'super-light';
   var h=document.documentElement;
   if(m==='super-light'||m==='light'){
     var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
@@ -48,6 +48,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
 <script src="/favicon-utils.js?v=687e90ea" defer></script>
 <script src="/flags.js?v=1" defer></script>
+<script src="/storefront-features.js?v=1" defer></script>
 <script src="/meta-pixel.js?v=71fe06fb" defer></script>
 <script src="/google-tag.js?v=b141b2a1" defer></script>
 <script src="/supabase.min.js?v=3277b334" defer></script>
@@ -67,7 +68,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
 
 <!-- Stylesheets -->
-<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="base.css?v=1">
 <link rel="stylesheet" href="nav.css?v=4ce8ae68">
 <link rel="stylesheet" href="product.css?v=8df2c93f">
 <link rel="stylesheet" href="cart.css?v=a76741b3">
@@ -186,7 +187,7 @@
 .nav-logo-link { text-decoration: none; color: inherit; display: flex; align-items: center; min-height: 30px; }
 .nav-logo-img {
   display: block;
-  height: 41px;
+  height: 50px;
   width: auto;
   filter: none;
   transition: filter .35s;
@@ -199,7 +200,7 @@
   #auth-modal { align-items: flex-end; }
   #auth-modal .mbox {
     width: 100vw;
-    max-height: 92dvh;
+    max-height: var(--zw-sheet-max);
     overflow-y: auto;
     border-radius: var(--zw-radius-modal, 2px) var(--zw-radius-modal, 2px) 0 0;
     padding: 2rem 1.4rem 2.4rem;
@@ -306,6 +307,7 @@ body.super-light-mode #bar {
     position: relative;
     width: 100vw;
     max-width: 100vw;
+    max-height: var(--zw-sheet-max);
     border-radius: var(--zw-radius-modal, 2px) var(--zw-radius-modal, 2px) 0 0;
     border-top: 2px solid var(--zw-accent, #F891A5);
     padding: .6rem .9rem 1.5rem;
@@ -364,8 +366,8 @@ body.super-light-mode #bar {
 .heart-btn svg { width: 14px; height: 14px; pointer-events: none; transform-box: fill-box; transform-origin: center; }
 @keyframes svgHeartPop {
   0%  { transform: scale(1); }
-  35% { transform: scale(1.55); }
-  65% { transform: scale(0.87); }
+  35% { transform: scale(1.42); }
+  65% { transform: scale(0.88); }
   100%{ transform: scale(1); }
 }
 .heart-btn svg.heart-pop { animation: svgHeartPop .35s cubic-bezier(.36,.07,.19,.97); }
@@ -532,8 +534,6 @@ body.light-mode #payment-modal #pay-submit { background: #09090b !important; col
 body.light-mode #payment-modal #pay-error { color: #c0392b !important; }
 body.light-mode #stripe-card-element { background: #f4f1eb !important; border-color: rgba(9,9,11,.36) !important; }
 body.light-mode #stripe-card-element.StripeElement--focus { border-color: rgba(9,9,11,.62) !important; }
-/* ALL modal overlays are fully transparent — content panels handle their own backgrounds */
-.modal{background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
 body.light-mode #payment-modal {
   background: none !important;
   backdrop-filter: none !important;
@@ -720,16 +720,20 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
 
 /* Product page typography alignment with the homepage brand system. */
 :root {
-  --font-head: 'Barlow Condensed', sans-serif;
-  --font-body: 'Barlow', sans-serif;
-  --font-mono: 'IBM Plex Mono', monospace;
-  --font-display: var(--font-head);
-  --fw: var(--font-head);
-  --fb: var(--font-body);
-  --fm: var(--font-mono);
-  --zw-font-head: var(--font-head);
-  --zw-font-body: var(--font-body);
-  --zw-font-mono: var(--font-mono);
+  --font-head: var(--zw-font-head, 'Barlow Condensed', sans-serif);
+  --font-body: var(--zw-font-body, 'Barlow', sans-serif);
+  --font-mono: var(--zw-font-mono, 'IBM Plex Mono', monospace);
+  --font-display:var(--zw-font-head, var(--font-head));
+  --fw:var(--zw-font-head, var(--font-head));
+  --fb:var(--zw-font-body, var(--font-body));
+  --fm:var(--zw-font-mono, var(--font-mono));
+  /* Do NOT redefine --zw-font-* here. Those are the canonical literals from
+     storefront-cohesion.css; pointing them back at --font-head made a var() cycle
+     (--font-head → --zw-font-head → --font-head), which is invalid-at-computed-
+     value-time. With no custom font saved the theme JS never sets inline overrides,
+     so the whole cycle collapsed and .product-title fell back to the UA serif —
+     looking un-bold next to the Barlow Condensed 900 cards. Legacy names alias to
+     the canonical, never the reverse. */
   --review-head-font: var(--font-head);
   --review-body-font: var(--font-body);
   --review-mono-font: var(--font-mono);
@@ -984,13 +988,18 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
     max-width: 11ch;
   }
 }
+/* "More From Release" uses the site's platform grid (.zw-plat-grid + data-lg/md/sm),
+   the SAME system the homepage product strips use: a 3-up grid on desktop and an
+   edge-to-edge horizontal swipe (cards at 82vw, next one peeking) on tablet/mobile.
+   The markup carries the classes/attributes; all the behaviour lives in
+   storefront-cohesion.css so there are no product-page rules to fight it. */
 body.super-light-mode { background: #FFFFFF !important; }
 </style>
 <script src="image-utils.js?v=e6f0ec04" defer></script>
 <script src="mobile-menu.js?v=0b991fea" defer></script>
 
 <!-- PostHog analytics -->
-<script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
+<script>try{var _t=localStorage.getItem('zw_theme_mode')||'super-light';document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
 <script src="/posthog-init.js?v=c4b554c4" defer></script>
 <style>body.super-light-mode{background:#FFFFFF!important}body.super-light-mode .mbox{background:#FFFFFF!important}body.super-light-mode #mobile-menu{background:#FFFFFF!important}body.super-light-mode #payment-modal>div{background:#FFFFFF!important;border-color:rgba(9,9,11,.1)!important}</style>
 <script src="error-reporter.js?v=1" defer></script>
@@ -1008,7 +1017,7 @@ body.super-light-mode { background: #FFFFFF !important; }
   <span class="bar-sep" aria-hidden="true"></span>
 </div>
 <!-- Spacer holds bar's height in document flow; #bar is always position:fixed -->
-<div id="bar-spacer" style="height:0;transition:height .45s ease;flex-shrink:0;pointer-events:none" aria-hidden="true"></div>
+<div id="bar-spacer" style="height:0;transition:height .25s cubic-bezier(.32,.72,0,1);flex-shrink:0;pointer-events:none" aria-hidden="true"></div>
 
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <!-- NAVIGATION BAR                                                   -->
@@ -1035,6 +1044,11 @@ body.super-light-mode { background: #FFFFFF !important; }
     </button>
   </div>
 </nav>
+<script>/* Header auth first-paint: set the login/account buttons from the cached session
+   BEFORE paint, mirroring what auth.js does after its async getSession (~0.5s). Without
+   this the header flashed both the login AND account button (and, signed in, "Account"
+   before the name) until that resolved. auth.js re-applies the same values later. */
+(function(){try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on');if(localStorage.getItem('zw_srch')==='1'){var _nr=document.querySelector('.nav-right'),_ct=_nr&&_nr.querySelector('#cart-btn');if(_nr&&_ct&&!_nr.querySelector('.zwf-search-btn')){var _sb=document.createElement('button');_sb.type='button';_sb.className='nbtn zwf-search-btn';_sb.setAttribute('aria-label','Search');_sb.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';_nr.insertBefore(_sb,_ct);}}}catch(_){}try{var b=null,ck={},j;for(j=0;j<localStorage.length;j++){var kk=localStorage.key(j);if(!kk)continue;var mm=kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/);if(!mm)continue;if(mm[1]===undefined)b=localStorage.getItem(kk);else ck[mm[1]]=localStorage.getItem(kk);}var ord=Object.keys(ck).map(Number).sort(function(a,b){return a-b;});var str=ord.length?ord.map(function(n){return ck[n];}).join(''):b;var u=null;if(str){if(str.indexOf('base64-')===0){var bin=atob(str.slice(7).replace(/-/g,'+').replace(/_/g,'/'));str=new TextDecoder().decode(Uint8Array.from(bin,function(c){return c.charCodeAt(0);}));}var raw=JSON.parse(str);var se=raw&&raw.currentSession?raw.currentSession:raw;if(se&&se.user&&(Number(se.expires_at||0)*1000>Date.now()||se.refresh_token))u=se.user;}var i=!!u;if(i)window.__zwSessionUser=u;var L=document.getElementById('login-btn'),A=document.getElementById('account-btn'),O=document.getElementById('logout-btn');if(L)L.style.display=i?'none':'inline-flex';if(A){A.style.display=i?'inline-flex':'none';if(i){var n=(u.user_metadata&&(u.user_metadata.full_name||u.user_metadata.name))||(u.email||'').split('@')[0]||'';A.textContent=(n||'').split(' ')[0];}}if(O)O.style.display=i?'inline-flex':'none';}catch(_){}})();</script>
 
 <!-- MOBILE MENU MODAL -->
 <div id="mobile-menu" class="modal zw-mobile-menu" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobile-menu-title">
@@ -1051,11 +1065,9 @@ body.super-light-mode { background: #FFFFFF !important; }
         <a href="drop001.html?category=Sweatpants" class="mobile-nav-link zw-mobile-primary-link">Sweatpants</a>
         <a href="drop001.html?category=Socks" class="mobile-nav-link zw-mobile-primary-link">Socks</a>
         <a href="about.html" class="mobile-nav-link zw-mobile-primary-link">About</a>
+        <a href="journal.html" class="mobile-nav-link zw-mobile-primary-link">Journal</a>
       </div>
       <div class="zw-mobile-menu-secondary">
-        <a href="account.html" class="zw-mobile-secondary-link">Account</a>
-        <a href="account.html#orders" class="zw-mobile-secondary-link">Track Order</a>
-        <a href="mailto:nasirubreeze@zuwera.store" class="zw-mobile-secondary-link">Support</a>
         <a href="bag.html" class="zw-mobile-secondary-link zw-mobile-bag-link" aria-label="Open bag">Bag <span class="zw-mobile-bag-count">0</span></a>
         <a href="sizeguide.html" class="zw-mobile-secondary-link">Size Guide</a>
       </div>
@@ -1232,9 +1244,11 @@ body.super-light-mode { background: #FFFFFF !important; }
 
         <!-- SIZE SELECTION -->
         <div class="size-section">
+          <!-- No Size Guide link here: Size & Fit already carries "View Size Guide"
+               and it opens the same modal. Two links to one thing, a few hundred px
+               apart, only make the row above the sizes busier. -->
           <div class="size-header">
             <p class="section-label" id="sizeSectionLabel">Select Size</p>
-            <a href="/sizeguide.html" class="size-guide-link" id="sizeGuideLink" onclick="if(window.openSizeGuideModal){event.preventDefault();window.openSizeGuideModal();}">Size Guide</a>
           </div>
           <div class="size-grid" id="sizeGrid"></div>
           <!-- Back-in-stock capture — shown when a sold-out size is tapped -->
@@ -1330,7 +1344,7 @@ body.super-light-mode { background: #FFFFFF !important; }
     <!-- RELATED PRODUCTS — "More from Release 001", populated by JS -->
     <section id="related-products" style="display:none;max-width:1240px;margin:0 auto;padding:3rem clamp(1.15rem,5vw,3rem) 1rem">
       <p class="section-label" style="margin-bottom:1.4rem">More From Release 001</p>
-      <div class="pgrid" id="related-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem"></div>
+      <div class="pgrid zw-plat-grid" id="related-grid" data-lg="grid" data-md="swipe" data-sm="swipe" style="--col-lg:3"></div>
     </section>
 
   </div>
@@ -1359,6 +1373,7 @@ body.super-light-mode { background: #FFFFFF !important; }
       <button class="mclose" id="review-modal-close" aria-label="Close">&#215;</button>
     </div>
 
+    <div class="review-mbox-body">
     <div class="star-selector" id="star-selector" role="group" aria-label="Star rating">
       <button type="button" data-v="1" aria-label="1 star">&#9733;</button>
       <button type="button" data-v="2" aria-label="2 stars">&#9733;</button>
@@ -1400,6 +1415,7 @@ body.super-light-mode { background: #FFFFFF !important; }
 
     <p id="review-error" class="review-error"></p>
     <button id="review-submit-btn" class="review-submit-btn" onclick="submitReview()">Submit Review</button>
+    </div>
   </div>
 </div>
 
@@ -1462,6 +1478,7 @@ body.super-light-mode { background: #FFFFFF !important; }
       <summary class="zwf-col-head">Company<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
       <div class="zwf-col-links">
         <a href="/about.html">About</a>
+        <a href="/journal.html">Journal</a>
         <a href="/account.html">Account</a>
       </div>
     </details>
@@ -1488,13 +1505,9 @@ body.super-light-mode { background: #FFFFFF !important; }
 <!-- COOKIE CONSENT BANNER                                            -->
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 
-<div class="cookie-consent-banner" id="cookieConsent" style="display:none;">
-  <p>We use cookies to enhance your experience. By continuing, you agree to our use of cookies.</p>
-  <div class="cookie-buttons">
-    <button class="cookie-decline" onclick="handleCookieDecline()">Decline</button>
-    <button class="cookie-accept" onclick="handleCookieAccept()">Accept</button>
-  </div>
-</div>
+<!-- Cookie banner: consent.js injects the shared one (window.zwConsent), which
+     also gates analytics/marketing. This page used to ship its own as well, so
+     two banners appeared. -->
 
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <!-- SCRIPTS                                                          -->
@@ -1516,7 +1529,7 @@ body.super-light-mode { background: #FFFFFF !important; }
     if (meta) meta.setAttribute('content', navBg);
     document.documentElement.style.backgroundColor = navBg;
   }
-  try { var _zm=localStorage.getItem('zw_theme_mode'); if(_zm==='light') document.body.classList.add('light-mode'); else if(_zm==='super-light') document.body.classList.add('light-mode','super-light-mode'); } catch(_) {}
+  try { var _zm=localStorage.getItem('zw_theme_mode')||'super-light'; if(_zm==='light') document.body.classList.add('light-mode'); else if(_zm==='super-light') document.body.classList.add('light-mode','super-light-mode'); } catch(_) {}
   syncThemeColor();
   window.__zwSyncThemeColor = syncThemeColor;
 })();
@@ -1543,6 +1556,34 @@ function teardownAnnouncementBarScroll() {
   if (_productAnnouncementBarScrollHandler) {
     window.removeEventListener('scroll', _productAnnouncementBarScrollHandler);
     _productAnnouncementBarScrollHandler = null;
+  }
+}
+
+// Fold the bar's OWN height so the nav + product push up/down into the reclaimed
+// space (content-push) instead of the bar sliding away as an overlay. Mirrors the
+// homepage helper in storefront.js.
+function zwSetBarFold(barEl, hidden) {
+  if (!barEl) return;
+  if (hidden) {
+    if (!barEl.style.maxHeight || barEl.style.maxHeight === 'none') {
+      barEl.style.maxHeight = barEl.offsetHeight + 'px';
+      void barEl.offsetHeight;
+    }
+    barEl.style.maxHeight = '0px';
+    barEl.style.paddingTop = '0px';
+    barEl.style.paddingBottom = '0px';
+    barEl.style.opacity = '0';
+    barEl.style.pointerEvents = 'none';
+  } else {
+    barEl.style.paddingTop = '';
+    barEl.style.paddingBottom = '';
+    barEl.style.opacity = '1';
+    barEl.style.pointerEvents = '';
+    const wasCollapsed = barEl.style.maxHeight === '0px';
+    barEl.style.maxHeight = 'none';
+    const full = barEl.offsetHeight;
+    if (wasCollapsed) { barEl.style.maxHeight = '0px'; void barEl.offsetHeight; }
+    barEl.style.maxHeight = full + 'px';
   }
 }
 
@@ -1593,6 +1634,9 @@ function applyAnnouncementBar(mode, msgText) {
   barEl.style.transform = 'translateY(0)';
   barEl.style.opacity = '1';
   barEl.style.pointerEvents = '';
+  barEl.style.maxHeight = '';        // clear any leftover fold from a previous mode
+  barEl.style.paddingTop = '';
+  barEl.style.paddingBottom = '';
 
   const textEl = document.getElementById('announcementText');
   const fallbackText = (barEl.dataset.defaultText || (textEl ? textEl.textContent : '') || '').trim();
@@ -1618,7 +1662,7 @@ function applyAnnouncementBar(mode, msgText) {
     barEl.style.transition = 'opacity .25s ease';
     let lastScrollY = window.scrollY;
     let isHidden = false;
-    const scrollActivationAt = Date.now() + 450;
+    const scrollActivationAt = Date.now() + 150;
     const syncAnnouncementState = (hidden) => {
       barEl.style.opacity = hidden ? '0' : '1';
       barEl.style.pointerEvents = hidden ? 'none' : '';
@@ -1643,7 +1687,7 @@ function applyAnnouncementBar(mode, msgText) {
           isHidden = false;
           syncAnnouncementState(false);
         }
-      } else if (currentY > 80 && scrollingDown) {
+      } else if (currentY > 40 && scrollingDown) {
         if (!isHidden) {
           isHidden = true;
           syncAnnouncementState(true);
@@ -1657,15 +1701,17 @@ function applyAnnouncementBar(mode, msgText) {
     return;
   }
 
-  barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease';
+  // Content-push: fold the bar's height while the nav (transition:top) + spacer
+  // collapse in lockstep, so the product pushes up to fill — no overlay slide.
+  // Shared duration/easing across all three; opacity matches so the text never
+  // shows in a half-height bar on reveal. Ease-out so it feels snappy, not laggy.
+  barEl.style.transition = 'max-height 0.25s cubic-bezier(.32,.72,0,1), padding 0.25s cubic-bezier(.32,.72,0,1), opacity 0.25s cubic-bezier(.32,.72,0,1)';
   let lastScrollY = window.scrollY;
   let isHidden = false;
-  const scrollActivationAt = Date.now() + 450;
+  const scrollActivationAt = Date.now() + 150;
   const spacerEl2 = document.getElementById('bar-spacer');
   const syncAnnouncementState = (hidden) => {
-    barEl.style.transform = hidden ? 'translateY(-100%)' : '';
-    barEl.style.opacity = hidden ? '0' : '1';
-    barEl.style.pointerEvents = hidden ? 'none' : '';
+    zwSetBarFold(barEl, hidden);
     if (spacerEl2) spacerEl2.style.height = hidden ? '0' : barEl.offsetHeight + 'px';
     setAnnouncementBarLayout(barEl, navEl, !hidden);
   };
@@ -1685,7 +1731,7 @@ function applyAnnouncementBar(mode, msgText) {
         isHidden = false;
         syncAnnouncementState(false);
       }
-    } else if (currentY > 80 && scrollingDown) {
+    } else if (currentY > 40 && scrollingDown) {
       if (!isHidden) {
         isHidden = true;
         syncAnnouncementState(true);
@@ -1805,6 +1851,36 @@ async function loadSiteSettings() {
 // STATE MANAGEMENT
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 const optimizeImage = window.optimizeImage || ((url) => url);
+
+// Stock/price accuracy: if this page is restored from the back/forward cache
+// (bfcache), the browser shows the fully-rendered page from when it was frozen —
+// including a now-stale stock count. Force a fresh load so "Only N left" always
+// reflects live inventory (e.g. right after an admin stock edit).
+window.addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
+
+// Live stock without a manual refresh: when the visitor returns to this tab (e.g.
+// after you edited stock in the admin in another tab), re-fetch this product's sizes
+// and re-render availability. The fetch is already no-store; this just re-triggers it
+// on tab focus. Throttled, and a no-op if the product changed meanwhile.
+let _zwStockRefreshAt = 0;
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible') return;
+  if (!currentProduct || !currentProduct.id) return;
+  if (Date.now() - _zwStockRefreshAt < 4000) return;
+  _zwStockRefreshAt = Date.now();
+  const pid = String(currentProduct.id);
+  try {
+    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/product_sizes?select=*&product_id=eq.${encodeURIComponent(pid)}`, {
+      headers: { apikey: _PROD_SB_KEY, Authorization: `Bearer ${_PROD_SB_KEY}` },
+      cache: 'no-store'
+    });
+    if (!resp.ok) return;
+    const rows = await resp.json();
+    if (!currentProduct || String(currentProduct.id) !== pid) return; // navigated away meanwhile
+    currentProduct.inventory = (Array.isArray(rows) ? rows : []).filter(r => String(r.product_id) === pid);
+    if (typeof renderSizes === 'function') renderSizes();
+  } catch (_) {}
+});
 
 let currentProduct = null;
 let selectedSize = null;
@@ -2154,7 +2230,8 @@ async function loadProductFavorites() {
 
 document.getElementById('saveProductBtn')?.addEventListener('click', async function() {
   if (!currentUser) {
-    if (typeof openAuthModal === 'function') openAuthModal('signin');
+    if (window.zwOpenAuth) window.zwOpenAuth('signin');
+    else if (typeof openAuthModal === 'function') openAuthModal('signin');
     else window.location.href = 'index.html?auth=signin';
     return;
   }
@@ -2244,8 +2321,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   loadCartCount();
-  initializeCookieConsent();
-
   try {
     // Wait for startWithSb() to run and kick off the product fetch.
     // _sbReady resolves the moment startWithSb sets _productFetchPromise,
@@ -2295,17 +2370,17 @@ async function loadProduct() {
 
   let productData = null;
   if (productId) {
-    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=*&id=eq.${encodeURIComponent(productId)}&limit=1`, { headers });
+    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=*&id=eq.${encodeURIComponent(productId)}&limit=1`, { headers, cache: 'no-store' });
     if (!resp.ok) throw new Error('Product not found');
     const data = await resp.json();
     productData = data ? data[0] : null;
   } else if (sku) {
-    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=*&sku=eq.${encodeURIComponent(sku)}&limit=1`, { headers });
+    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=*&sku=eq.${encodeURIComponent(sku)}&limit=1`, { headers, cache: 'no-store' });
     if (!resp.ok) throw new Error('Product not found');
     const data = await resp.json();
     productData = data ? data[0] : null;
   } else if (slug) {
-    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=*&status=neq.Legacy&status=neq.Draft&order=sort_order.asc`, { headers });
+    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=*&status=neq.Legacy&status=neq.Draft&order=sort_order.asc`, { headers, cache: 'no-store' });
     if (!resp.ok) throw new Error('Product not found');
     const data = await resp.json();
     const products = Array.isArray(data) ? data : [];
@@ -2360,8 +2435,9 @@ async function loadProduct() {
       return [];
     });
   const [colorsResp, sizesResp] = await Promise.all([
-    fetch(`${_PROD_SB_URL}/rest/v1/color_variants?select=*&product_id=eq.${productIdFilter}&order=sort_order.asc`, { headers }),
-    fetch(`${_PROD_SB_URL}/rest/v1/product_sizes?select=*&product_id=eq.${productIdFilter}`, { headers }),
+    // no-store: stock/variant availability must be live — never a cached "previous" value
+    fetch(`${_PROD_SB_URL}/rest/v1/color_variants?select=*&product_id=eq.${productIdFilter}&order=sort_order.asc`, { headers, cache: 'no-store' }),
+    fetch(`${_PROD_SB_URL}/rest/v1/product_sizes?select=*&product_id=eq.${productIdFilter}`, { headers, cache: 'no-store' }),
   ]);
   const colorsData = colorsResp.ok ? await colorsResp.json() : [];
   const sizesData = sizesResp.ok ? await sizesResp.json() : [];
@@ -2385,6 +2461,12 @@ async function loadProduct() {
   currentProduct.colors   = colors;
   currentProduct.inventory = inventory;
   currentProduct.reviews  = [];
+  // Announce the loaded product to opt-in storefront features (storefront-features.js:
+  // recently-viewed + recommendations). Guarded so it never affects the PDP itself.
+  try {
+    window.__zwCurrentProduct = currentProduct;
+    window.dispatchEvent(new CustomEvent('zw-product-loaded', { detail: currentProduct }));
+  } catch (_) {}
   imagesPromise.then((imagesData) => {
     if (!currentProduct || String(currentProduct.id) !== strictProductId) return;
     const seenImageUrls = new Set();
@@ -3136,16 +3218,39 @@ function renderColors() {
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 // RENDER SIZES
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
+// Stock is tracked PER COLOUR. Return the stock for a size in the given colour,
+// preferring exact-colour rows, then falling back to colour-agnostic rows
+// (color_name NULL) for products saved before per-colour stock existed. With no
+// colour, use the NULL rows if present, else sum across colours.
+function sizeStockForColor(sizeLabel, colorName) {
+  const inv = Array.isArray(currentProduct?.inventory) ? currentProduct.inventory : [];
+  const norm = normalizeSizeLabel(sizeLabel);
+  const rows = inv.filter(r => normalizeSizeLabel(r?.size) === norm);
+  if (!rows.length) return 0;
+  const sum = list => list.reduce((s, r) => s + (r?.stock_quantity || 0), 0);
+  if (colorName) {
+    const colorRows = rows.filter(r => r.color_name === colorName);
+    if (colorRows.length) return sum(colorRows);
+    const nullRows = rows.filter(r => !r.color_name);
+    return nullRows.length ? sum(nullRows) : 0;
+  }
+  const nullRows = rows.filter(r => !r.color_name);
+  return nullRows.length ? sum(nullRows) : sum(rows);
+}
+
 function renderSizes() {
   const sizeGrid = document.getElementById('sizeGrid');
   sizeGrid.innerHTML = '';
 
-  // Get unique sizes and their stock
+  // Per-colour stock for the SELECTED colour (falls back to colour-agnostic rows for
+  // legacy products — see sizeStockForColor). renderSizes re-runs when the colour
+  // changes, so availability reflects the chosen colourway.
+  const _selColorName = (selectedColor && selectedColor.color_name) || null;
   const sizeMap = new Map();
   currentProduct.inventory.forEach(inv => {
     const sizeLabel = formatProductSizeLabel(inv?.size);
-    if (!sizeLabel) return;
-    sizeMap.set(sizeLabel, (sizeMap.get(sizeLabel) || 0) + (inv?.stock_quantity || 0));
+    if (!sizeLabel || sizeMap.has(sizeLabel)) return;
+    sizeMap.set(sizeLabel, sizeStockForColor(sizeLabel, _selColorName));
   });
 
   // Standard size order ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â always show these
@@ -3225,9 +3330,7 @@ function updateStockInfo() {
     return;
   }
 
-  const stock = currentProduct.inventory
-    .filter(inv => normalizeSizeLabel(inv?.size) === normalizeSizeLabel(selectedSize))
-    .reduce((sum, inv) => sum + (inv?.stock_quantity || 0), 0);
+  const stock = sizeStockForColor(selectedSize, (selectedColor && selectedColor.color_name) || null);
   const threshold = currentProduct.low_stock_threshold || 10;
 
   if (stock === 0) {
@@ -3505,18 +3608,35 @@ function pulseBagTarget() {
 
 function animateAddToBag(sourceEl, imageSrc) {
   // If the header was scrolled away, pop it back so the shopper sees the bag
-  // update (and the pulse below happens on-screen, not off the top).
-  if (typeof window.zwRevealHeader === 'function') window.zwRevealHeader();
+  // update. When it was hidden, let it finish sliding in (~0.35s) BEFORE the bag
+  // pulse, so the two happen in sequence rather than on top of each other.
+  var wasHidden = (typeof window.zwRevealHeader === 'function') && window.zwRevealHeader();
   // Add-to-bag acknowledgment: the bag icon "drop-in dip" (it dips and
-  // squashes as if the item landed in it). Signature kept so all call sites
-  // stay valid; prefers-reduced-motion is honored in CSS.
-  pulseBagTarget();
+  // squashes as if the item landed in it). prefers-reduced-motion honored in CSS.
+  if (wasHidden) window.setTimeout(pulseBagTarget, 380);
+  else pulseBagTarget();
 }
 
 /* ── Related products ("More From Release 001") ─────────────────── */
 async function loadRelatedProducts() {
   try {
     if (!window.sb || !currentProduct?.id) return;
+    // Honour the Page Builder's Product tab — this block can be switched off or
+    // removed there. Two different "no row" cases have to stay apart:
+    //   config unreadable  -> hiccup, leave it visible (fail open; it's decorative)
+    //   read fine, no row  -> the admin removed the block; it stays gone
+    // Testing `row && row.on === false` treated both as "not configured" and
+    // showed the block, so removing it — including emptying the layout to get a
+    // bare product page — did nothing here. This is the only block product.html
+    // renders itself; the rest come from storefront-features.js, which reads the
+    // same layout literally.
+    try {
+      const cfg = await fetch('/api/product-page-config').then(r => r.ok ? r.json() : null).catch(() => null);
+      if (cfg && Array.isArray(cfg.sections)) {
+        const row = cfg.sections.find(s => s && s.id === 'more_from_release');
+        if (!row || row.on === false) return;
+      }
+    } catch (_) {}
     const { data } = await window.sb
       .from('products')
       .select('id,title,current_price,product_images(image_url,sort_order)')
@@ -3551,6 +3671,13 @@ async function loadRelatedProducts() {
 let _restockSize = null;
 
 function openRestockPanel(size) {
+  // Back-in-stock master switch (Admin → Feature Flags → feature_back_in_stock).
+  // Permissive: only suppressed when EXPLICITLY disabled, so the prompt keeps
+  // working if flags haven't loaded yet or the toggle was never touched.
+  try {
+    const _bis = window.__zwFlags && window.__zwFlags.feature_back_in_stock;
+    if (_bis && _bis.enabled === false) return;
+  } catch (_) {}
   _restockSize = size;
   const panel = document.getElementById('restock-panel');
   const label = document.getElementById('restock-label');
@@ -3633,9 +3760,7 @@ function addToCart() {
   const effectivePrice = getEffectiveProductPrice(currentProduct);
 
   const stockQty = currentProduct.inventory.length
-    ? currentProduct.inventory
-        .filter(inv => normalizeSizeLabel(inv?.size) === normalizeSizeLabel(selectedSize))
-        .reduce((sum, inv) => sum + (inv?.stock_quantity || 0), 0)
+    ? sizeStockForColor(selectedSize, (selectedColor && selectedColor.color_name) || null)
     : null;
 
   const cartItem = {
@@ -4136,24 +4261,7 @@ window.openSizeGuideModal = async function() {
 
 
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
-// COOKIE CONSENT
-// ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
-function initializeCookieConsent() {
-  if(!localStorage.getItem('zw_cookie_consent')){
-    const cb = document.getElementById('cookieConsent');
-    if (cb) cb.style.display = 'flex';
-  }
-}
-
-function handleCookieAccept() {
-  localStorage.setItem('zw_cookie_consent', 'accepted');
-  document.getElementById('cookieConsent').style.display = 'none';
-}
-
-function handleCookieDecline() {
-  localStorage.setItem('zw_cookie_consent', 'declined');
-  document.getElementById('cookieConsent').style.display = 'none';
-}
+// Cookie consent lives in consent.js (window.zwConsent) — one banner, every page.
 
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 // GLOBAL ESCAPE KEY (Close Modals)
@@ -4302,6 +4410,10 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
      existing close button (so all teardown logic runs). */
   function zwAttachSwipeClose(scrollEl, closeBtn){
     if(!scrollEl || !closeBtn) return;
+    // Shared guard with storefront-features.js's global auto-wire so a sheet wired
+    // here isn't wired twice (which would fire the close click twice per swipe).
+    if(scrollEl.__zwSwipeClose) return;
+    scrollEl.__zwSwipeClose = true;
     let startY = 0, tracking = false;
     scrollEl.addEventListener('touchstart', e => {
       if(e.touches.length !== 1){ tracking = false; return; }
@@ -4348,6 +4460,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   // Favorites links (placeholder ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no auth modal on product page)
   document.getElementById('fav-signin-link')?.addEventListener('click', () => {
     document.body.style.overflow = '';
+    if (window.zwOpenAuth) { window.zwOpenAuth('signin'); return; }
     if (typeof openAuthModal === 'function') openAuthModal('signin'); else window.location.href = 'index.html?auth=signin';
   });
 

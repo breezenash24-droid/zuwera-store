@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
 <script>
-/* THEME FLASH PREVENTION — runs before any CSS loads */
+/* THEME FLASH PREVENTION â€” runs before any CSS loads */
 (function(){try{
-  var m=localStorage.getItem('zw_theme_mode');
+  var m=localStorage.getItem('zw_theme_mode')||'super-light';
   var h=document.documentElement;
   if(m==='super-light'||m==='light'){
     var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
@@ -23,7 +23,7 @@
   }
 }catch(_){}})()</script>
 <script>
-/* AUTH PRE-PAINT — decode the Supabase session synchronously (same decoder as
+/* AUTH PRE-PAINT â€” decode the Supabase session synchronously (same decoder as
    bag/index) and reveal the right section before first paint. Without this the
    page is blank until the async getSession() resolves. init() remains the
    authority: if the pre-read guessed wrong it removes #zw-acct-prepaint. */
@@ -54,7 +54,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#09090b">
-  <title>My Account — Zuwera</title>
+  <title>My Account â€” Zuwera</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=3" id="site-favicon">
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
@@ -82,12 +82,12 @@
     :root {
       --ink: #09090b;
       --paper: #f4f1eb;
-      --font-head: 'Barlow Condensed', sans-serif;
-      --font-body: 'Barlow', sans-serif;
-      --font-mono: 'IBM Plex Mono', monospace;
-      --fw: var(--font-head);
-      --fb: var(--font-body);
-      --fm: var(--font-mono);
+      --font-head: var(--zw-font-head, 'Barlow Condensed', sans-serif);
+      --font-body: var(--zw-font-body, 'Barlow', sans-serif);
+      --font-mono: var(--zw-font-mono, 'IBM Plex Mono', monospace);
+      --fw:var(--zw-font-head, var(--font-head));
+      --fb:var(--zw-font-body, var(--font-body));
+      --fm:var(--zw-font-mono, var(--font-mono));
       --a-border: rgba(244,241,235,.08);
       --a-border-soft: rgba(244,241,235,.06);
       --a-border-mid: rgba(244,241,235,.15);
@@ -138,7 +138,7 @@
     body.super-light-mode .zw-nav { background: #FFFFFF; }
     .zw-nav-logo { font-family: var(--fw); font-size: 1.35rem; letter-spacing: .18em; opacity: .85; transition: opacity .2s; }
     .zw-nav-logo:hover { opacity: 1; }
-    .zw-nav-logo img { height: 25px; width: auto; transition: filter .35s; filter: invert(1); }
+    .zw-nav-logo img { height: 28px; width: auto; transition: filter .35s; filter: invert(1); }
     body.light-mode .zw-nav-logo img { filter: none; }
     .zw-nav-back {
       font-family: var(--fm); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
@@ -158,7 +158,7 @@
     /* Login + Bag header styles are shared via storefront-cohesion.css
        (.zw-hdr-group / .zw-hdr-action / .zw-hdr-bag / .zw-hdr-bag-count). */
 
-    /* -- PAGE LAYOUT — two-pane dashboard: sticky identity+nav rail beside a
+    /* -- PAGE LAYOUT â€” two-pane dashboard: sticky identity+nav rail beside a
           wide content column (was an 860px single column adrift in margins) -- */
     .page-wrap {
       flex: 1; max-width: 1200px; margin: 0 auto; width: 100%; padding: 3rem 2.5rem 5rem;
@@ -184,7 +184,39 @@
     }
     body.light-mode .page-hd-meta { color: rgba(9,9,11,.45); }
 
-    /* -- TABS — vertical nav in the rail -- */
+    /* -- REWARDS (loyalty points) -- */
+    .rw-card { border: 1px solid rgba(244,241,235,.14); border-radius: 12px; padding: 26px 22px; text-align: center; max-width: 420px; }
+    body.light-mode .rw-card { border-color: rgba(9,9,11,.14); }
+    .rw-balance { font-family: var(--fw); font-size: 3.2rem; font-weight: 800; line-height: 1; }
+    .rw-balance-label { font-size: .68rem; letter-spacing: .18em; text-transform: uppercase; opacity: .5; margin-top: 4px; }
+    .rw-bar { height: 6px; border-radius: 99px; background: rgba(244,241,235,.12); margin: 18px 0 12px; overflow: hidden; }
+    body.light-mode .rw-bar { background: rgba(9,9,11,.1); }
+    .rw-bar-fill { height: 100%; background: currentColor; opacity: .8; transition: width .4s ease; }
+    .rw-hint { font-size: .88rem; opacity: .75; margin: 0 0 16px; line-height: 1.5; }
+    .rw-tiers { display: flex; flex-direction: column; gap: 8px; }
+    .rw-tier { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; width: 100%;
+      padding: 13px 15px; border: 1px solid rgba(244,241,235,.2); border-radius: 6px; background: none;
+      color: inherit; cursor: pointer; text-align: left; transition: border-color .15s, background .15s; }
+    body.light-mode .rw-tier { border-color: rgba(9,9,11,.2); }
+    .rw-tier:not([disabled]):hover { border-color: currentColor; background: rgba(244,241,235,.05); }
+    body.light-mode .rw-tier:not([disabled]):hover { background: rgba(9,9,11,.04); }
+    .rw-tier[disabled] { opacity: .32; cursor: not-allowed; }
+    .rw-tier.busy { opacity: .5; }
+    .rw-tier-val { font-weight: 800; font-size: 1rem; }
+    .rw-tier-pts { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; opacity: .6; }
+    .rw-code-box { margin-top: 14px; padding: 14px; border: 1px dashed currentColor; border-radius: 8px; font-size: .8rem; line-height: 1.7; }
+    .rw-code-box strong { font-size: 1.3rem; letter-spacing: .16em; }
+    .rw-code-box span { display: block; opacity: .6; font-size: .74rem; margin-top: 6px; }
+    .rw-earn { font-size: .74rem; opacity: .5; margin: 14px 0 0; }
+    .rw-history { margin-top: 26px; max-width: 420px; }
+    .rw-history-title { font-size: .7rem; letter-spacing: .16em; text-transform: uppercase; opacity: .5; margin: 0 0 8px; }
+    .rw-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid rgba(244,241,235,.1); font-size: .84rem; }
+    body.light-mode .rw-row { border-top-color: rgba(9,9,11,.1); }
+    .rw-pts { font-weight: 700; }
+    .rw-pts.pos { color: #3fb950; }
+    .rw-pts.neg { opacity: .55; }
+
+    /* -- TABS â€” vertical nav in the rail -- */
     .acct-tabs {
       display: flex; flex-direction: column; gap: .1rem;
     }
@@ -469,7 +501,7 @@
     body.light-mode .order-item-meta { color: rgba(9,9,11,.45); }
     body.light-mode .order-item-more { color: rgba(9,9,11,.35); }
 
-    /* -- FAVS — product-card grid (uses the panel width instead of one
+    /* -- FAVS â€” product-card grid (uses the panel width instead of one
            thin full-width strip per item) -- */
     #saved-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 1.1rem; }
     .fav-card {
@@ -677,13 +709,13 @@
   body.super-light-mode #toast { background:#FFFFFF; color:#09090b; }
 </style>
 <script src="mobile-menu.js?v=0b991fea" defer></script>
-<script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
+<script>try{var _t=localStorage.getItem('zw_theme_mode')||'super-light';document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
 <script src="/posthog-init.js?v=c4b554c4" defer></script>
 <style>body.super-light-mode{background:#FFFFFF!important}</style>
 <script src="consent.js?v=1" defer></script>
 </head>
 <body>
-<script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+<script>(function(){try{var m=localStorage.getItem('zw_theme_mode')||'super-light';if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
 <div id="toast"></div>
 
 <!-- NAV -->
@@ -732,11 +764,9 @@
         <a href="drop001.html?category=Sweatpants" class="mobile-nav-link zw-mobile-primary-link">Sweatpants</a>
         <a href="drop001.html?category=Socks" class="mobile-nav-link zw-mobile-primary-link">Socks</a>
         <a href="about.html" class="mobile-nav-link zw-mobile-primary-link">About</a>
+        <a href="journal.html" class="mobile-nav-link zw-mobile-primary-link">Journal</a>
       </div>
       <div class="zw-mobile-menu-secondary">
-        <a href="account.html" class="zw-mobile-secondary-link">Account</a>
-        <a href="account.html#orders" class="zw-mobile-secondary-link">Track Order</a>
-        <a href="mailto:nasirubreeze@zuwera.store" class="zw-mobile-secondary-link">Support</a>
         <a href="bag.html" class="zw-mobile-secondary-link zw-mobile-bag-link" aria-label="Open bag">Bag <span class="zw-mobile-bag-count">0</span></a>
         <a href="sizeguide.html" class="zw-mobile-secondary-link">Size Guide</a>
       </div>
@@ -769,7 +799,7 @@
         </div>
       </div>
     <script>
-    /* Greeting prefill from the pre-paint session — avoids the "My Account" ?
+    /* Greeting prefill from the pre-paint session â€” avoids the "My Account" ?
        "Hey, Name." swap once init() resolves. init() re-sets these anyway. */
     (function(){try{
       var u=window.__zwSessionUser;if(!u)return;
@@ -779,7 +809,7 @@
       var h1=document.querySelector('.page-hd h1');
       if(h1&&first)h1.textContent='Hey, '+first+'.';
       var em=document.getElementById('acct-email-display');
-      if(em)em.textContent=name?name+' · '+(u.email||''):(u.email||'');
+      if(em)em.textContent=name?name+' Â· '+(u.email||''):(u.email||'');
     }catch(_){}})()
     </script>
 
@@ -788,6 +818,7 @@
       <button class="acct-tab active" data-tab="orders">Orders</button>
       <button class="acct-tab" data-tab="saved">Saved Items</button>
       <button class="acct-tab" data-tab="returns">Returns</button>
+      <button class="acct-tab" data-tab="rewards" id="acct-tab-rewards" style="display:none">Rewards</button>
       <button class="acct-tab" data-tab="profile">Profile</button>
     </nav>
 
@@ -801,13 +832,13 @@
 
     <!-- ORDERS -->
     <div class="acct-panel active" id="panel-orders">
-      <div class="zw-loading" id="orders-loading" role="status" aria-live="polite">Loading your orders…</div>
+      <div class="zw-loading" id="orders-loading" role="status" aria-live="polite">Loading your ordersâ€¦</div>
       <div id="orders-empty" style="display:none">
         <div class="empty-state">
-          <div class="empty-state-dash">—</div>
+          <div class="empty-state-dash">â€”</div>
           <div class="empty-state-title">No Orders Yet</div>
           <div class="empty-state-desc">When you place your first order it'll appear here with real-time tracking.</div>
-          <a href="/drop001.html" class="empty-state-link">Browse Release 001 ?</a>
+          <a href="/drop001.html" class="empty-state-link">Browse Release 001 â†’</a>
         </div>
       </div>
       <div id="orders-list"></div>
@@ -815,13 +846,13 @@
 
     <!-- SAVED ITEMS -->
     <div class="acct-panel" id="panel-saved">
-      <div class="zw-loading" id="saved-loading" role="status" aria-live="polite">Loading saved items…</div>
+      <div class="zw-loading" id="saved-loading" role="status" aria-live="polite">Loading saved itemsâ€¦</div>
       <div id="saved-empty" style="display:none">
         <div class="empty-state">
-          <div class="empty-state-dash">—</div>
+          <div class="empty-state-dash">â€”</div>
           <div class="empty-state-title">Nothing Saved Yet</div>
           <div class="empty-state-desc">Tap the heart on any product to save it here for later.</div>
-          <a href="/drop001.html" class="empty-state-link">Browse Release 001 ?</a>
+          <a href="/drop001.html" class="empty-state-link">Browse Release 001 â†’</a>
         </div>
       </div>
       <div id="saved-list"></div>
@@ -829,13 +860,19 @@
 
     <!-- RETURNS -->
     <div class="acct-panel" id="panel-returns">
-      <div class="zw-loading" id="returns-loading" role="status" aria-live="polite">Loading returns portal…</div>
+      <div class="zw-loading" id="returns-loading" role="status" aria-live="polite">Loading returns portalâ€¦</div>
       <div id="returns-content"></div>
+    </div>
+
+    <!-- REWARDS -->
+    <div class="acct-panel" id="panel-rewards">
+      <div class="zw-loading" id="rewards-loading" role="status" aria-live="polite">Loading your rewardsâ€¦</div>
+      <div id="rewards-content"></div>
     </div>
 
     <!-- PROFILE -->
     <div class="acct-panel" id="panel-profile">
-      <div class="zw-loading" id="profile-loading" role="status" aria-live="polite">Loading your profile…</div>
+      <div class="zw-loading" id="profile-loading" role="status" aria-live="polite">Loading your profileâ€¦</div>
       <div id="profile-content"></div>
     </div>
 
@@ -867,6 +904,7 @@
       <summary class="zwf-col-head">Company<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
       <div class="zwf-col-links">
         <a href="/about.html">About</a>
+        <a href="/journal.html">Journal</a>
         <a href="/account.html">Account</a>
       </div>
     </details>
@@ -929,7 +967,7 @@ function itemMetaHtml(size, colorName, qty) {
   if (size) parts.push(escHtml(size));
   if (colorName) parts.push(colorSwatch(colorName) + escHtml(colorName));
   if (qty > 1) parts.push(`Qty ${qty}`);
-  return parts.join(' · ');
+  return parts.join(' Â· ');
 }
 
 function orderNextSteps(order) {
@@ -937,7 +975,7 @@ function orderNextSteps(order) {
   const status = String(order?.status || '').toLowerCase();
   const s = fulfillment || status;
   const hasTracking = Boolean(order?.commerce?.trackingNumber || order?.tracking_number);
-  if (/cancel/.test(s)) return { title: 'Cancelled', body: 'This order has been cancelled. Any charge will be refunded within 5–10 business days.' };
+  if (/cancel/.test(s)) return { title: 'Cancelled', body: 'This order has been cancelled. Any charge will be refunded within 5â€“10 business days.' };
   if (/delivered|completed/.test(s) || order?.delivered_at || order?.commerce?.deliveredAt) return { title: 'Delivered', body: 'Your order was delivered. We hope you love it. If anything isn\'t right, hit <em>Start a Return</em> below.' };
   if (hasTracking || /shipped|fulfil/.test(s)) return { title: 'On Its Way', body: 'Your order has shipped. Use the tracking link below to follow it in real time.' };
   if (/pack|process/.test(s)) return { title: 'Being Packed', body: 'Your order is being packed and will ship very soon. A tracking number will be emailed to you when it leaves our hands.' };
@@ -1019,7 +1057,154 @@ function switchTab(tab) {
   if (tab === 'orders') loadOrders();
   if (tab === 'saved') loadSaved();
   if (tab === 'returns') loadReturns();
+  if (tab === 'rewards') loadRewards();
   if (tab === 'profile') loadProfile();
+}
+
+/* -- REWARDS (loyalty points) -- */
+let _rewards = null;
+async function fetchRewards() {
+  const { data } = await _sb.auth.getSession();
+  const token = data && data.session && data.session.access_token;
+  if (!token) return null;
+  return fetch('/api/loyalty', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accessToken: token, action: 'balance' })
+  }).then(r => r.json()).catch(() => null);
+}
+// Only surface the tab when the shop actually runs a rewards programme.
+async function initRewardsTab() {
+  const r = await fetchRewards();
+  _rewards = r;
+  if (r && r.ok && r.enabled) {
+    const t = document.getElementById('acct-tab-rewards');
+    if (t) t.style.display = '';
+  }
+}
+function rewardsReasonLabel(row) {
+  if (row.reason === 'redeem') return 'Redeemed' + (row.promo_code ? ' â€” code ' + row.promo_code : '');
+  if (row.reason === 'purchase') return 'Earned on an order';
+  return row.reason || 'Adjustment';
+}
+async function loadRewards() {
+  const loading = document.getElementById('rewards-loading');
+  const host = document.getElementById('rewards-content');
+  if (!host) return;
+  if (loading) loading.style.display = '';
+  host.innerHTML = '';
+  const r = _rewards && _rewards.ok ? _rewards : await fetchRewards();
+  _rewards = r;
+  if (loading) loading.style.display = 'none';
+  if (!r || !r.ok || !r.enabled) { host.innerHTML = '<p class="acct-empty">Rewards aren\'t available right now.</p>'; return; }
+
+  const tiers = r.tiers || [];
+  const label = r.pointsLabel || 'points';
+  // Progress is measured against the next reward they can't afford yet.
+  const next = tiers.find(t => !t.canRedeem) || tiers[tiers.length - 1] || { points: 1 };
+  const pct = Math.max(0, Math.min(100, Math.round((r.balance / next.points) * 100)));
+  const toGo = Math.max(0, next.points - r.balance);
+
+  host.innerHTML = `
+    <div class="rw-card">
+      <div class="rw-balance">${r.balance}</div>
+      <div class="rw-balance-label">${escHtml(label)}</div>
+      <div class="rw-bar"><div class="rw-bar-fill" style="width:${pct}%"></div></div>
+      <p class="rw-hint">${toGo > 0
+        ? `Earn <strong>${toGo}</strong> more to unlock <strong>$${next.value} off</strong>.`
+        : `You've unlocked every reward â€” nice.`}</p>
+      <div class="rw-tiers">
+        ${tiers.map(t => `
+          <button class="rw-tier" data-points="${t.points}" ${t.canRedeem ? '' : 'disabled'}>
+            <span class="rw-tier-val">$${t.value} off</span>
+            <span class="rw-tier-pts">${t.points} ${escHtml(label)}</span>
+          </button>`).join('')}
+      </div>
+      <div id="rw-code"></div>
+      <p class="rw-earn">You earn ${r.pointsPerDollar} ${escHtml(label)} per $1 spent when you're signed in.${
+        r.minOrderToEarn > 0 ? ` Orders under $${r.minOrderToEarn} don't earn.` : ''}${
+        r.rewardMinSubtotal > 0 ? ` Rewards need a $${r.rewardMinSubtotal} order to use.` : ''}</p>
+    </div>
+    <div id="rw-referral"></div>
+    ${(r.history && r.history.length) ? `<div class="rw-history"><h3 class="rw-history-title">History</h3>${r.history.map(h => `
+      <div class="rw-row">
+        <span>${escHtml(rewardsReasonLabel(h))}</span>
+        <span class="rw-pts ${h.points < 0 ? 'neg' : 'pos'}">${h.points > 0 ? '+' : ''}${h.points}</span>
+      </div>`).join('')}</div>` : ''}`;
+
+  host.querySelectorAll('.rw-tier:not([disabled])').forEach(b => {
+    b.addEventListener('click', () => redeemRewards(Number(b.dataset.points), b));
+  });
+  loadReferral(label);
+}
+
+/* -- REFER A FRIEND -- */
+async function loadReferral(pointsLabel) {
+  const host = document.getElementById('rw-referral');
+  if (!host) return;
+  let r = null;
+  try {
+    const { data } = await _sb.auth.getSession();
+    const token = data && data.session && data.session.access_token;
+    if (!token) return;
+    r = await fetch('/api/referral', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken: token, action: 'get' })
+    }).then(x => x.json());
+  } catch (_) { return; }
+  if (!r || !r.ok || !r.enabled || !r.code) return;
+
+  const off = r.friendType === 'fixed' ? `$${r.friendValue} off` : `${r.friendValue}% off`;
+  host.innerHTML = `
+    <div class="rw-card" style="margin-top:22px">
+      <h3 class="rw-history-title" style="text-align:center">Refer a friend</h3>
+      <p class="rw-hint">Give a friend <strong>${escHtml(off)}</strong>${r.friendMinSubtotal > 0 ? ` on orders over $${r.friendMinSubtotal}` : ''} â€” you get <strong>${r.referrerPoints} ${escHtml(pointsLabel)}</strong> when they order.</p>
+      <div class="rw-code-box" style="margin-top:0">Your code<br><strong>${escHtml(r.code)}</strong></div>
+      <button class="rw-tier" id="rw-copy" style="margin-top:10px;justify-content:center">
+        <span class="rw-tier-val" style="font-size:.74rem;letter-spacing:.14em;text-transform:uppercase">Copy your link</span>
+      </button>
+      ${r.referrals > 0 ? `<p class="rw-earn">${r.referrals} friend${r.referrals === 1 ? '' : 's'} ordered Â· ${r.pointsEarned} ${escHtml(pointsLabel)} earned</p>` : ''}
+    </div>`;
+
+  const copy = document.getElementById('rw-copy');
+  if (copy) copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(r.link);
+      copy.querySelector('.rw-tier-val').textContent = 'Copied âœ“';
+      setTimeout(() => { const el = copy.querySelector('.rw-tier-val'); if (el) el.textContent = 'Copy your link'; }, 1800);
+    } catch (_) {
+      if (typeof showToast === 'function') showToast(r.link);
+    }
+  });
+}
+async function redeemRewards(points, btn) {
+  const tiersEl = document.querySelector('.rw-tiers');
+  if (tiersEl) tiersEl.querySelectorAll('.rw-tier').forEach(b => { b.disabled = true; });
+  if (btn) btn.classList.add('busy');
+  try {
+    const { data } = await _sb.auth.getSession();
+    const token = data && data.session && data.session.access_token;
+    const j = await fetch('/api/loyalty', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken: token, action: 'redeem', points })
+    }).then(r => r.json());
+    if (j && j.ok) {
+      const bits = [`Enter it at checkout for $${j.value} off. It works once.`];
+      if (j.minSubtotal > 0) bits.push(`Needs a $${j.minSubtotal} order.`);
+      if (j.expiresOn) bits.push(`Expires ${j.expiresOn}.`);
+      document.getElementById('rw-code').innerHTML =
+        `<div class="rw-code-box">Your code<br><strong>${escHtml(j.code)}</strong><span>${escHtml(bits.join(' '))}</span></div>`;
+      if (tiersEl) tiersEl.style.display = 'none';
+      _rewards = null; // force a refresh next time in
+    } else {
+      if (btn) btn.classList.remove('busy');
+      if (tiersEl) tiersEl.querySelectorAll('.rw-tier').forEach(b => { b.disabled = false; });
+      if (typeof showToast === 'function') showToast((j && j.error) || 'Could not redeem.', 'error');
+    }
+  } catch (_) {
+    if (btn) btn.classList.remove('busy');
+    if (tiersEl) tiersEl.querySelectorAll('.rw-tier').forEach(b => { b.disabled = false; });
+    if (typeof showToast === 'function') showToast('Could not redeem.', 'error');
+  }
 }
 
 document.querySelectorAll('.acct-tab').forEach(b => {
@@ -1102,7 +1287,7 @@ async function loadOrders() {
         : /cancel|refund|return/.test(statusStr) ? ' status-cancelled'
         : '';
 
-      // Items — full detail rows
+      // Items â€” full detail rows
       let itemsHtml = '';
       let itemCount = 0;
       try {
@@ -1147,8 +1332,8 @@ async function loadOrders() {
         || buildTrackingUrl(carrier, tracking);
       const trackRow = (tracking || safeTrackUrl) ? `
         <div class="order-track-row">
-          ${tracking ? `<span class="order-track-num">${escHtml(carrier ? carrier + ' · ' + tracking : tracking)}</span>` : ''}
-          ${safeTrackUrl ? `<a href="${escHtml(safeTrackUrl)}" target="_blank" rel="noopener" class="order-track-btn">Track Shipment ?</a>` : ''}
+          ${tracking ? `<span class="order-track-num">${escHtml(carrier ? carrier + ' Â· ' + tracking : tracking)}</span>` : ''}
+          ${safeTrackUrl ? `<a href="${escHtml(safeTrackUrl)}" target="_blank" rel="noopener" class="order-track-btn">Track Shipment â†’</a>` : ''}
         </div>` : '';
 
       // Next steps
@@ -1171,7 +1356,7 @@ async function loadOrders() {
       const hasReturn = returnRequests.some(r => String(r.orderId || r.order_id || '') === String(o.id || ''));
       const returnAction = hasReturn
         ? `<span class="order-track-num">Return requested</span>`
-        : `<button class="order-return-link" onclick="switchTab('returns')">Start a Return ?</button>`;
+        : `<button class="order-return-link" onclick="switchTab('returns')">Start a Return â†’</button>`;
       const footer = `<div class="order-footer">${addrHtml}<div style="padding-bottom:.05rem">${returnAction}</div></div>`;
 
       return `
@@ -1179,7 +1364,7 @@ async function loadOrders() {
           <div class="order-card-head">
             <div>
               <div class="order-id">Order #${escHtml(String(o.id||'').slice(-8).toUpperCase())}</div>
-              <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}${itemCount ? ` · ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}</div>
+              <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}${itemCount ? ` Â· ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}</div>
             </div>
             <div class="order-card-head-right">
               <span class="order-status${statusColorClass}">${escHtml(statusLabel)}</span>
@@ -1245,7 +1430,7 @@ async function loadSaved() {
           <div class="fav-card-actions">
             <button class="zw-btn primary" style="font-size:.55rem;padding:.55rem 1rem;" onclick="acctAddToBag('${pid}', this)">Add to Bag</button>
             <div class="fav-card-secondary">
-              <a href="${href}" class="zw-btn" style="font-size:.52rem;padding:.45rem .8rem;">View ?</a>
+              <a href="${href}" class="zw-btn" style="font-size:.52rem;padding:.45rem .8rem;">View â†’</a>
               <button class="fav-rm" onclick="removeFav('${pid}')" title="Remove from saved">Remove</button>
             </div>
           </div>
@@ -1258,7 +1443,7 @@ async function loadSaved() {
 
 let _savedRows = {};
 
-/* Open the shared Quick-Add modal (size/color/images) for a saved item —
+/* Open the shared Quick-Add modal (size/color/images) for a saved item â€”
    same experience as the bag page. quick-add-modal.js provides
    window.quickAddToCart; on =900px it routes to the product page instead. */
 function acctAddToBag(productId, btn) {
@@ -1347,8 +1532,8 @@ function retResolutionLabel(r) {
 function retNextSteps(r, userEmail) {
   const s = String(r.status || '').toLowerCase();
   const email = r.customerEmail || userEmail || 'your email';
-  if (/request/.test(s)) return { title: 'Under Review', body: 'We\'ve received your request and will respond within 1–3 business days.' };
-  if (/approv/.test(s)) return { title: 'Approved', body: 'Your return is approved. We\'re preparing your prepaid shipping label — you\'ll receive an email shortly.' };
+  if (/request/.test(s)) return { title: 'Under Review', body: 'We\'ve received your request and will respond within 1â€“3 business days.' };
+  if (/approv/.test(s)) return { title: 'Approved', body: 'Your return is approved. We\'re preparing your prepaid shipping label â€” you\'ll receive an email shortly.' };
   if (/label/.test(s)) return { title: 'Label Ready', body: `Your prepaid return label was sent to <strong style="font-style:normal">${escHtml(email)}</strong>. Print it, attach it to your package, and drop off at any ${escHtml(r.carrier || 'carrier')} location.` };
   if (/complet/.test(s)) return { title: 'Complete', body: 'Your return has been received and processed. Thank you.' };
   if (/deny|denied|reject/.test(s)) return { title: 'Not Approved', body: 'Unfortunately this return request wasn\'t approved. Contact us if you have questions.' };
@@ -1398,7 +1583,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     const dt = new Date(o.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     let itemCount = 0;
     try { itemCount = JSON.parse(o.items || '[]').length; } catch(_) {}
-    const label = `#${id.slice(-8).toUpperCase()} — ${dt}${itemCount ? ` · ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}`;
+    const label = `#${id.slice(-8).toUpperCase()} â€” ${dt}${itemCount ? ` Â· ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}`;
     return `<option value="${escHtml(id)}">${escHtml(label)}</option>`;
   }).join('');
 
@@ -1421,8 +1606,8 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     const trackingRow = (r.trackingNumber || safeLabel || safeTrack) ? `
       <div class="ret-tracking-row">
         ${r.trackingNumber ? `<span class="ret-track-num">${escHtml(r.carrier || '')} ${escHtml(r.trackingNumber)}</span>` : ''}
-        ${safeLabel ? `<a href="${escHtml(safeLabel)}" target="_blank" rel="noopener" class="ret-track-btn">Download Label ?</a>` : ''}
-        ${safeTrack ? `<a href="${escHtml(safeTrack)}" target="_blank" rel="noopener" class="ret-track-btn">Track Return ?</a>` : ''}
+        ${safeLabel ? `<a href="${escHtml(safeLabel)}" target="_blank" rel="noopener" class="ret-track-btn">Download Label â†’</a>` : ''}
+        ${safeTrack ? `<a href="${escHtml(safeTrack)}" target="_blank" rel="noopener" class="ret-track-btn">Track Return â†’</a>` : ''}
       </div>` : '';
 
     const nextHtml = next ? `
@@ -1436,7 +1621,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
         <div class="ret-card-head">
           <div>
             <div class="ret-id">${escHtml(r.orderLabel || '#' + String(r.orderId || '').slice(-8).toUpperCase())}</div>
-            <div class="ret-meta">${escHtml(resLbl)} · ${escHtml(r.reason || '')} · ${escHtml(dt)}</div>
+            <div class="ret-meta">${escHtml(resLbl)} Â· ${escHtml(r.reason || '')} Â· ${escHtml(dt)}</div>
           </div>
           <div class="ret-card-head-right">
             <span class="ret-status ${statusCls}">${escHtml(statusLbl)}</span>
@@ -1452,7 +1637,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     <div class="ret-form-stack">
       <div class="zw-card">
         <div class="zw-card-title">Start a Return or Exchange</div>
-        <div class="zw-card-meta">Submit a request — your team will review and process within 1–3 business days.</div>
+        <div class="zw-card-meta">Submit a request â€” your team will review and process within 1â€“3 business days.</div>
       </div>
       <div class="zw-card">
         <div class="zw-field">
@@ -1471,7 +1656,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
           </div>
           <div class="zw-field">
             <label>Reason</label>
-            <input id="ret-reason" type="text" placeholder="Wrong size, damaged item…">
+            <input id="ret-reason" type="text" placeholder="Wrong size, damaged itemâ€¦">
           </div>
         </div>
         <div class="zw-field">
@@ -1490,7 +1675,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     </div>
   `;
 
-  // Item selection state for the new return form — Map<idx, {...item, returnQty}>
+  // Item selection state for the new return form â€” Map<idx, {...item, returnQty}>
   let _retSelectedItems = new Map();
 
   function showItemPicker(orderId) {
@@ -1504,7 +1689,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
 
     picker.style.display = 'block';
     picker.innerHTML = `
-      <div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.35);margin-bottom:.5rem;font-family:var(--fm);">Items in this order — select which to return</div>
+      <div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.35);margin-bottom:.5rem;font-family:var(--fm);">Items in this order â€” select which to return</div>
       <div style="display:flex;flex-direction:column;gap:.4rem;" id="ret-item-list">
         ${items.map((item, idx) => {
           const name = escHtml((item.name || item.title || 'Item').trim());
@@ -1583,7 +1768,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     const picker = document.getElementById('ret-item-picker');
     const allItems = (picker?._items || []).map(it => ({...it, returnQty: it.quantity || 1}));
     const returnItems = _retSelectedItems.size > 0 ? Array.from(_retSelectedItems.values()) : allItems;
-    if (statusEl) statusEl.textContent = 'Submitting…';
+    if (statusEl) statusEl.textContent = 'Submittingâ€¦';
     try {
       const selOrderEl = document.getElementById('ret-order');
       await postHub('submit_return', {
@@ -1730,7 +1915,7 @@ async function saveProfile() {
   if (btn?.disabled) return;
   if (btn) btn.disabled = true;
   const statusEl = document.getElementById('prof-status');
-  if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = ''; }
+  if (statusEl) { statusEl.textContent = 'Savingâ€¦'; statusEl.style.color = ''; }
 
   /* -- Save -- */
   try {
@@ -1776,7 +1961,7 @@ async function saveProfile() {
   if (statusEl) { statusEl.textContent = 'Saved!'; statusEl.style.color = '#22c55e'; }
   if (btn) btn.disabled = false;
 
-  /* -- Targeted in-place update — no full re-render, no second API call -- */
+  /* -- Targeted in-place update â€” no full re-render, no second API call -- */
   const savedAddrs = Array.isArray(_hubPayload?.profile?.savedAddresses) ? _hubPayload.profile.savedAddresses : [];
   const addrList = document.getElementById('prof-addresses-list');
   if (addrList) {
@@ -1812,7 +1997,7 @@ async function deleteAddress(idx) {
 async function deleteAllProfileData() {
   if (!confirm('Permanently delete all your saved addresses and preferences? This cannot be undone.')) return;
   const statusEl = document.getElementById('prof-delete-status');
-  if (statusEl) statusEl.textContent = 'Deleting…';
+  if (statusEl) statusEl.textContent = 'Deletingâ€¦';
   try {
     await postHub('delete_profile_data', {});
     _hubPayload = null;
@@ -1848,6 +2033,8 @@ async function init() {
 
     // Show account content
     document.getElementById('acct-content').style.display = 'block';
+    // Reveals the Rewards tab only if a rewards programme is switched on.
+    try { initRewardsTab(); } catch (_) {}
     const navSO = document.getElementById('nav-signout-btn');
     if (navSO) navSO.style.display = '';
 
@@ -1858,7 +2045,7 @@ async function init() {
     const h1 = document.querySelector('.page-hd h1');
     if (h1) h1.textContent = firstName ? `Hey, ${firstName}.` : 'My Account';
     const emailEl = document.getElementById('acct-email-display');
-    if (emailEl) emailEl.textContent = name ? `${name} · ${email}` : email;
+    if (emailEl) emailEl.textContent = name ? `${name} Â· ${email}` : email;
     const signedInEl = document.getElementById('acct-signed-in-as');
     if (signedInEl) signedInEl.textContent = `Signed in as ${email}`;
 
@@ -1899,5 +2086,10 @@ document.addEventListener('DOMContentLoaded', function() { _sb = window.sb; init
 <script src="lang.js?v=756ddb26" defer></script>
 <script src="zw-login.js?v=8ffae84d" defer></script>
 <script src="/nav-menu.js?v=2abb3b12" defer></script>
+<script src="/storefront-features.js?v=1" defer></script>
+<!-- The shared scroll lock. storefront-features.js used to carry its own copy;
+     with that removed this is what freezes the page behind the search/bag
+     panels here, exactly as it does for every other modal. -->
+<script src="modal-lock.js?v=1" defer></script>
 </body>
 </html>

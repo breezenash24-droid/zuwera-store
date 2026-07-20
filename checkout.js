@@ -134,6 +134,87 @@ async function getCheckoutAuthPayload() {
   };
 }
 
+// ===================== LIVE CATALOG REPRICE =====================
+// Cart items snapshot their price at add-to-bag time, so an admin price change
+// left stale numbers in already-filled bags. Display-only inconsistency — the
+// server always re-prices from the catalog at payment time — but the bag and
+// the charge could disagree. On page load, pull the CURRENT catalog prices for
+// everything in the cart, update the stored cart, and re-render whichever page
+// (bag or checkout) we're on. Fails soft: any error leaves the cart untouched.
+(function refreshCartCatalogPrices() {
+  const SB_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+  const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+
+  function isLoggedIn() {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        if (/^sb-.*-auth-token$/.test(localStorage.key(i))) return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  async function run() {
+    let cart;
+    try { cart = JSON.parse(localStorage.getItem('cart') || '[]'); } catch (_) { return; }
+    if (!Array.isArray(cart) || !cart.length) return;
+
+    const ids = [...new Set(cart.map((i) => String(i.productId || '').trim())
+      .filter((v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)))];
+    const skus = [...new Set(cart.map((i) => String(i.sku || '').trim())
+      .filter((v) => v && /^[\w-]+$/.test(v)))];
+    if (!ids.length && !skus.length) return;
+
+    const H = { apikey: SB_ANON, Authorization: 'Bearer ' + SB_ANON };
+    const sel = 'select=id,sku,current_price,member_price';   // products has no bare `price` column
+    const fetches = [];
+    if (ids.length)  fetches.push(fetch(`${SB_URL}/rest/v1/products?${sel}&id=in.(${ids.join(',')})`, { headers: H }).then((r) => r.ok ? r.json() : []).catch(() => []));
+    if (skus.length) fetches.push(fetch(`${SB_URL}/rest/v1/products?${sel}&sku=in.(${skus.join(',')})`, { headers: H }).then((r) => r.ok ? r.json() : []).catch(() => []));
+    const rows = (await Promise.all(fetches)).flat();
+    if (!rows.length) return;
+
+    const byId  = new Map(rows.map((p) => [String(p.id), p]));
+    const bySku = new Map(rows.filter((p) => p.sku).map((p) => [String(p.sku), p]));
+    const member = isLoggedIn();
+
+    let changed = false;
+    for (const item of cart) {
+      const p = byId.get(String(item.productId || '')) || bySku.get(String(item.sku || ''));
+      if (!p) continue;   // product deleted — server rejects it at payment; leave display as-is
+      const regular = parseFloat(p.current_price);
+      const memberPrice = parseFloat(p.member_price);
+      if (!(regular > 0)) continue;
+      const next = (member && memberPrice > 0 && memberPrice < regular) ? memberPrice : regular;
+      if (parseFloat(item.regularPrice) !== regular) { item.regularPrice = regular; changed = true; }
+      if (memberPrice > 0 && parseFloat(item.memberPrice) !== memberPrice) { item.memberPrice = memberPrice; changed = true; }
+      if (parseFloat(item.price) !== next) { item.price = String(next); changed = true; }
+    }
+    if (!changed) return;
+
+    try { localStorage.setItem('cart', JSON.stringify(cart)); } catch (_) {}
+    // Sync the in-memory array the pages render from (same objects the payment
+    // call sends — mutate matching entries, don't swap the array).
+    if (Array.isArray(window.cartItems)) {
+      window.cartItems.forEach((it) => {
+        const src = cart.find((c) =>
+          String(c.productId || '') === String(it.productId || '') &&
+          String(c.size || '') === String(it.size || '') &&
+          String(c.colorName || '') === String(it.colorName || ''));
+        if (src) { it.price = src.price; it.regularPrice = src.regularPrice; it.memberPrice = src.memberPrice; }
+      });
+    }
+    // Re-render whichever page hosts us + downstream totals.
+    try { if (typeof renderCart === 'function') renderCart(); } catch (_) {}
+    try { if (typeof window._zwRenderCheckoutSummary === 'function') window._zwRenderCheckoutSummary(); } catch (_) {}
+    try { if (typeof refreshTaxDisplay === 'function') refreshTaxDisplay(); } catch (_) {}
+    try { if (typeof window.zwPromoUpdateSummaryTotals === 'function') window.zwPromoUpdateSummaryTotals(); } catch (_) {}
+    try { if (typeof window.zwSyncWalletTotal === 'function') window.zwSyncWalletTotal(); } catch (_) {}
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { run().catch(() => {}); });
+  else run().catch(() => {});
+})();
+
 // ── Cache payment DOM refs once ───────────────────────────────────
 const _pay = {
   errEl:     document.getElementById('pay-error'),
@@ -197,8 +278,9 @@ function initPaymentRequest(subtotalCents) {
           zip: addr.postalCode, country: addr.country,
         },
       });
-      // Silently store the cheapest rate for fulfillment — customer pays $0 shipping.
-      if (data.rates?.length) selectedShippingRate = data.rates[0];
+      // Silently store the curated rate for fulfillment — customer pays $0
+      // shipping. (Not raw rates[0]: that can be a restricted service.)
+      if (data.rates?.length) selectedShippingRate = pickShippingRate(data.rates) || data.rates[0];
       prTaxCents = window.ZWCheckoutTax ? window.ZWCheckoutTax.taxCents(prSubtotalCents, addr.region || '', addr.postalCode || '') : 0;
       ev.updateWith({
         status: 'success',
@@ -272,7 +354,9 @@ function initPaymentRequest(subtotalCents) {
 
   prButtonEl = elements.create('paymentRequestButton', {
     paymentRequest,
-    style: { paymentRequestButton: { type: 'buy', theme: 'light', height: '48px' } },
+    // theme follows the page so the button always contrasts: on the light/super-light
+    // checkout a 'light' button was white-on-white and invisible.
+    style: { paymentRequestButton: { type: 'buy', theme: document.body.classList.contains('light-mode') ? 'dark' : 'light', height: '48px' } },
   });
   paymentRequest.canMakePayment().then(result => {
     if (result) {
@@ -304,13 +388,87 @@ async function doFetchRates(zip, state) {
   const qualifiesFree = policy.enabled && subtotal >= policy.threshold;
 
   if (data.rates?.length) {
-    selectedShippingRate = data.rates[0];
-    updateCartSummaryShipping(qualifiesFree ? 0 : parseFloat(data.rates[0].amount));
-  } else {
-    if (data.error) console.error('Shippo rates error:', data.error);
-    // Show standard fallback rate so the customer knows what they'll pay
-    if (!qualifiesFree) updateCartSummaryShipping(policy.standardRate || 8);
+    // Keep the rate stored even during hand-delivery (harmless — the server
+    // ignores it for eligible hand-delivery orders, and it's ready if the
+    // shopper switches back to mail). Use the curated pick, NOT raw rates[0]
+    // — the raw cheapest can be a restricted service (Media Mail).
+    selectedShippingRate = pickShippingRate(data.rates) || data.rates[0];
+  } else if (data.error) {
+    console.error('Shippo rates error:', data.error);
   }
+
+  // RACE GUARD: this fetch was debounced ~600ms + network, so the shopper may
+  // have picked "Campus hand-delivery — Free" while it was in flight. A late
+  // resolution must never overwrite the $0 summary with a mail rate (it made
+  // hand-delivery orders DISPLAY a shipping charge).
+  if (_deliveryMethod === 'hand_delivery') { updateCartSummaryShipping(0); return; }
+
+  if (data.rates?.length) {
+    // A picker appears ONLY when the admin pinned multiple services (the
+    // server flags that with pinned:true). Auto/cheapest mode and single pins
+    // stay a silent single option. Free-shipping orders never show it — the
+    // customer pays $0 either way, and an open picker would let them choose an
+    // expensive express label the store eats.
+    const usableRates = usableShippingRates(data.rates);
+    if (data.pinned && usableRates.length > 1 && !qualifiesFree) {
+      // Default = the first pinned option (admin's order), matching the
+      // pre-checked radio — not the USPS-first pick used in silent mode.
+      selectedShippingRate = usableRates[0];
+      renderPinnedRateChoices(usableRates);
+    } else if (_pay.ratesField) {
+      _pay.ratesField.style.display = 'none';
+    }
+    updateCartSummaryShipping(qualifiesFree ? 0 : parseFloat(selectedShippingRate.amount));
+  } else if (!qualifiesFree) {
+    // Show standard fallback rate so the customer knows what they'll pay
+    updateCartSummaryShipping(policy.standardRate || 8);
+  }
+}
+
+// ── Shipping options ───────────────────────────────────────────────
+// The admin Shipping page decides what checkout offers
+// (site_settings.shipping_preferred_service, enforced server-side): automatic
+// cheapest (single, silent), one pinned service (single, silent), or several
+// pinned services (radio choice, first = default). The restricted-service
+// exclusion stays as belt-and-suspenders: apparel can't ship on printed-matter
+// services, and "tender to carrier" rates need a facility drop-off.
+function usableShippingRates(rates) {
+  return (rates || []).filter((r) => !/media mail|bound printed|library mail|tender to/i.test(String(r.servicelevel || '')));
+}
+function pickShippingRate(rates) {
+  const usable = usableShippingRates(rates);
+  const usps = usable.filter((r) => String(r.provider || '').toUpperCase() === 'USPS');
+  const pool = usps.length ? usps : usable;  // safety: never lose checkout if USPS is missing
+  return pool[0] || null;                    // server sorts USPS-first, then cheapest
+}
+function _escRate(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function renderPinnedRateChoices(options) {
+  if (!_pay.ratesField || !_pay.ratesList) return;
+  _pay.ratesList.innerHTML = options.map((r, i) => {
+    // ETA only when the provider returned one (Veeqo quotes often don't).
+    const eta = r.days ? ` · ${Number(r.days) === 1 ? 'next day' : r.days + ' days'}` : '';
+    const carrier = String(r.provider || '');
+    let service = String(r.servicelevel || 'Shipping');
+    if (!service.toUpperCase().startsWith(carrier.toUpperCase())) service = (carrier + ' ' + service).trim();
+    return `
+      <label class="zw-rate-opt" style="display:flex;align-items:center;gap:.6rem;padding:.62rem .8rem;border:1px solid rgba(128,128,128,.35);cursor:pointer;font-size:.85rem;${i > 0 ? 'border-top:none;' : ''}">
+        <input type="radio" name="shipping-rate-choice" value="${i}" ${i === 0 ? 'checked' : ''} style="margin:0;flex-shrink:0;">
+        <span style="flex:1;min-width:0;">${_escRate(service)}<span style="opacity:.55;">${eta}</span></span>
+        <span style="font-weight:700;white-space:nowrap;">$${parseFloat(r.amount).toFixed(2)}</span>
+      </label>`;
+  }).join('');
+  _pay.ratesField.style.display = 'block';
+
+  _pay.ratesList.querySelectorAll('input[name="shipping-rate-choice"]').forEach((radio) => {
+    radio.addEventListener('change', () => {
+      const rate = options[parseInt(radio.value, 10)];
+      if (!rate) return;
+      selectedShippingRate = rate;
+      if (_deliveryMethod !== 'hand_delivery') updateCartSummaryShipping(parseFloat(rate.amount));
+    });
+  });
 }
 
 // 'ship' (mail, default) or 'hand_delivery' (free in-person campus delivery).
@@ -330,12 +488,16 @@ function maybeLoadRates() {
     // No loading text — the rate fetch is sub-second; just show nothing until it resolves.
     ratesFetchPromise = doFetchRates(zip, state).catch(err => {
       console.error('Rate fetch error:', err);
+      // Same race guard as the success path: never overwrite a hand-delivery $0.
+      if (_deliveryMethod === 'hand_delivery') { updateCartSummaryShipping(0); return; }
       // Show fallback rate so user isn't stuck with no shipping option
       const fallback = (window._shippingPolicy?.standardRate) || 8;
       updateCartSummaryShipping(fallback);
-      if (_pay.ratesField) {
+      // Write into the inner list, NOT the field — replacing the field's HTML
+      // would destroy the #shipping-rates-list node the picker renders into.
+      if (_pay.ratesField && _pay.ratesList) {
         _pay.ratesField.style.display = 'block';
-        _pay.ratesField.innerHTML = `<p style="font-size:.78rem;color:rgba(244,241,235,.5);margin:.4rem 0">Standard shipping: $${fallback.toFixed(2)}</p>`;
+        _pay.ratesList.innerHTML = `<p style="font-size:.78rem;color:rgba(244,241,235,.5);margin:.4rem 0">Standard shipping: $${fallback.toFixed(2)}</p>`;
       }
     }).finally(() => {
       if (_pay.ratesLoading) _pay.ratesLoading.style.display = 'none';
@@ -452,6 +614,7 @@ function _onDeliveryMethodChange(e) {
       note.textContent = cfg.instructions || "You'll be contacted to arrange a campus drop-off. No package will be mailed.";
       note.style.display = 'block';
     }
+    if (_pay.ratesField) _pay.ratesField.style.display = 'none';  // no mail options needed
     updateCartSummaryShipping(0);                     // free
   } else {
     if (note) note.style.display = 'none';
@@ -612,3 +775,32 @@ async function homeNotifyMe() {
   document.querySelector('.notify-note').style.display = 'none';
   document.getElementById('home-notify-success').style.display = 'block';
 }
+
+/* ── Abandoned-cart capture ──────────────────────────────────────────────────
+   When the shopper enters their email at checkout, remember their email + cart so
+   /api/abandoned-cart can trigger a recovery email if they don't complete. Purely
+   additive + fire-and-forget — it never touches or blocks the payment flow. */
+(function () {
+  function attach() {
+    var el = document.getElementById('pay-email');
+    if (!el || el.dataset.zwAcHooked) return;
+    el.dataset.zwAcHooked = '1';
+    var last = '';
+    el.addEventListener('blur', function () {
+      var email = (el.value || '').trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+      var cart; try { cart = JSON.parse(localStorage.getItem('cart') || '[]'); } catch (_) { cart = []; }
+      if (!Array.isArray(cart) || !cart.length) return;
+      var sig = email + '|' + cart.length;
+      if (sig === last) return; last = sig;
+      try {
+        fetch('/api/abandoned-cart', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+          body: JSON.stringify({ email: email, cart: cart })
+        }).catch(function () {});
+      } catch (_) {}
+    });
+  }
+  if (document.readyState !== 'loading') attach();
+  else document.addEventListener('DOMContentLoaded', attach);
+})();

@@ -14,8 +14,21 @@
 useDefault = true
 
 [allowlist]
-description = "Public client-side-safe keys (Supabase anon JWT + PostHog public project key)"
+description = "Public client-side-safe keys + local build artifacts"
+# Skip local build/dev output that isn't part of the repo (gitignored; absent in a
+# fresh CI checkout, but this keeps `gitleaks dir` clean when run locally too).
+paths = [
+  '''\.wrangler/''',
+  '''(^|/)dist/''',
+  '''(^|/)node_modules/''',
+]
 regexes = [
+  # Supabase ANON key (a JWT; access gated by Row Level Security)
   '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3Nx''',
+  # PostHog PUBLIC project key (phc_…) — designed for client use
   '''phc_mCL2GmGPncq5Twg7vK6FesuQHQZVTojTxHTpc4Bwp9yT''',
+  # Stripe PUBLISHABLE keys (pk_test / pk_live) — public by design, embedded in
+  # client JS as fallbacks in functions/api/stripe-config.js. The SECRET key (sk_)
+  # is never committed — it lives only in Cloudflare env vars.
+  '''pk_(test|live)_51T8ct20oFp4PJGit[A-Za-z0-9]+''',
 ]

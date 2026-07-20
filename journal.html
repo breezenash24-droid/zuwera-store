@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
+<script>
+/* THEME FLASH PREVENTION — runs before any CSS loads */
+(function(){try{
+  var m=localStorage.getItem('zw_theme_mode')||'super-light';
+  var h=document.documentElement;
+  if(m==='super-light'||m==='light'){
+    var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
+    h.style.background=bg;h.style.colorScheme='light';
+    var st=document.createElement('style');
+    st.textContent='body{background:'+bg+'!important}html::before{background:'+bg+'!important}';
+    document.head.appendChild(st);
+  }
+  var f=localStorage.getItem('zw_fonts');
+  if(f){f=JSON.parse(f);
+    if(f.vars)Object.keys(f.vars).forEach(function(k){h.style.setProperty(k,f.vars[k])});
+    if(f.urls)f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});
+    if(f.css){var s=document.createElement('style');s.textContent=f.css;document.head.appendChild(s);}
+  }
+}catch(_){}})()</script>
+<script>
+/* AUTH PRE-READ — synchronous session decode so the header can show the
+   signed-in name instead of "Login" on first paint (same as account/bag). */
+(function(){try{
+  var _b=null,_ck={},_i;
+  for(_i=0;_i<localStorage.length;_i++){
+    var _k=localStorage.key(_i);if(!_k)continue;
+    var _m=_k.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/);if(!_m)continue;
+    if(_m[1]===undefined)_b=localStorage.getItem(_k);else _ck[_m[1]]=localStorage.getItem(_k);
+  }
+  var _ord=Object.keys(_ck).map(Number).sort(function(a,b){return a-b;});
+  var _str=_ord.length?_ord.map(function(n){return _ck[n];}).join(""):_b;
+  if(_str&&_str.indexOf("base64-")===0){
+    var _bb=_str.slice(7).replace(/-/g,"+").replace(/_/g,"/");
+    _str=new TextDecoder().decode(Uint8Array.from(atob(_bb),function(c){return c.charCodeAt(0);}));
+  }
+  var _raw=_str?JSON.parse(_str):null;
+  var _se=_raw&&_raw.currentSession?_raw.currentSession:_raw;
+  if(_se&&_se.user&&(Number(_se.expires_at||0)*1000>Date.now()||_se.refresh_token))window.__zwSessionUser=_se.user;
+}catch(_){}})()</script>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#09090b">
+  <title>Journal — Zuwera</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=3" id="site-favicon">
+  <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="canonical" href="https://zuwera.store/journal.html">
+  <script src="/favicon-utils.js?v=687e90ea" defer></script>
+  <script src="/meta-pixel.js?v=71fe06fb" defer></script>
+  <script src="/google-tag.js?v=b141b2a1" defer></script>
+  <script src="/supabase.min.js?v=3277b334" defer></script>
+  <script src="/supabase-client.js?v=b28896db" defer></script>
+  <meta name="description" content="The Zuwera Journal — stories, drops, and the thinking behind the brand. Sportswear built for the relentless.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button { cursor: pointer; background: none; border: none; color: inherit; font-family: inherit; }
+    a { text-decoration: none; color: inherit; }
+
+    :root {
+      /* Page-local TEXT tokens. Do NOT use --ink/--paper here: cohesion.css
+         redefines those as BACKGROUND tokens (inverted per theme). */
+      --abt-text: #f4f1eb;
+      --abt-text-inv: #09090b;
+      --bg: #09090b;
+      --fw: var(--zw-font-head, 'Barlow Condensed', sans-serif);
+      --fb: var(--zw-font-body, 'Barlow', sans-serif);
+      --fm: var(--zw-font-mono, 'IBM Plex Mono', monospace);
+      --border: rgba(244,241,235,.18);
+      --muted: rgba(244,241,235,.55);
+      --subtle: rgba(244,241,235,.06);
+      --surface: rgba(244,241,235,.04);
+    }
+    body.light-mode {
+      --abt-text: #09090b;
+      --abt-text-inv: #f4f1eb;
+      --bg: #F0EEE9;
+      --border: rgba(9,9,11,.14);
+      --muted: rgba(9,9,11,.55);
+      --subtle: rgba(9,9,11,.06);
+      --surface: white;
+    }
+    body.super-light-mode { --bg: #FFFFFF; }
+
+    body {
+      background: var(--bg);
+      color: var(--abt-text);
+      font-family: var(--fb);
+      font-weight: 300;
+      min-height: 100vh;
+      overflow-x: hidden;   /* fallback for old Safari */
+      overflow-x: clip;     /* clip horizontal overflow WITHOUT making <body> a scroll container (keeps window scroll → header auto-hide works) */
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── NAV (shared header via storefront-cohesion.css) ── */
+    .zw-nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.5rem 2.5rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(8px);
+    }
+    .zw-nav-logo img { height: 28px; width: auto; transition: opacity .2s; filter: invert(1); }
+    body.light-mode .zw-nav-logo img { filter: none; }
+    .zw-nav-logo { font-family: var(--fw); font-size: 1.35rem; letter-spacing: .18em; opacity: .9; transition: opacity .2s; }
+    .zw-nav-logo:hover { opacity: 1; }
+    .zw-nav-right { display: flex; align-items: center; justify-content: flex-end; gap: 1rem; }
+
+    /* ── PAGE ── */
+    .page { flex: 1; }
+
+    /* ── HERO ── */
+    .about-hero {
+      max-width: 1100px; margin: 0 auto;
+      padding: 5.5rem 2rem 3rem;
+    }
+    .about-label {
+      font-family: var(--fm);
+      font-size: .62rem; letter-spacing: .26em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 1.4rem;
+      display: flex; align-items: center; gap: .8rem;
+    }
+    .about-label::before { content: ''; width: 28px; height: 1px; background: currentColor; opacity: .7; }
+    .about-h1 {
+      font-family: var(--fw); font-weight: 900;
+      font-size: clamp(3rem, 9vw, 6.5rem);
+      line-height: .92; letter-spacing: .01em;
+      text-transform: uppercase;
+      margin-bottom: 2.2rem;
+    }
+    .about-h1 em { font-style: italic; }
+
+    .about-grid {
+      display: grid; grid-template-columns: 1.1fr .9fr; gap: 3.5rem;
+      align-items: start;
+      border-top: 1px solid var(--border);
+      padding-top: 2.6rem;
+    }
+    .about-body p {
+      font-size: 1rem; font-weight: 300;
+      line-height: 1.95;
+      color: color-mix(in srgb, var(--abt-text) 82%, transparent);
+      margin-bottom: 1.3rem; max-width: 46ch;
+    }
+    .about-body p:last-child { margin-bottom: 0; }
+
+    .about-side {
+      position: sticky; top: 6rem;
+    }
+    .about-cta {
+      display: inline-flex; align-items: center; gap: .6rem;
+      background: var(--abt-text); color: var(--abt-text-inv);
+      font-family: var(--fm);
+      padding: .9rem 1.8rem;
+      font-size: .62rem; letter-spacing: .16em; text-transform: uppercase; font-weight: 500;
+      border: 1px solid var(--abt-text);
+      transition: opacity .2s; margin-bottom: 2.4rem;
+    }
+    .about-cta:hover { opacity: .85; }
+    .about-cta svg { width: 13px; height: 13px; }
+
+    /* ── STATS ── (auto-fit so any number of admin-added stats wraps cleanly) */
+    .about-stats {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 1px; background: var(--border);
+      border: 1px solid var(--border);
+    }
+    .about-stat {
+      background: var(--bg);
+      padding: 1.6rem 1.2rem;
+      text-align: left;
+    }
+    .stat-n {
+      font-family: var(--fw); font-weight: 700;
+      font-size: 2.4rem; line-height: 1; letter-spacing: .02em;
+      margin-bottom: .45rem;
+    }
+    .stat-l {
+      font-family: var(--fm);
+      font-size: .55rem; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── CLOSING STRIP ── */
+    .about-closing {
+      border-top: 1px solid var(--border);
+      max-width: 1100px; margin: 4rem auto 0;
+      padding: 3.5rem 2rem 5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 2rem; flex-wrap: wrap;
+    }
+    .about-closing h2 {
+      font-family: var(--fw); font-weight: 700;
+      font-size: clamp(1.6rem, 4vw, 2.6rem); letter-spacing: .03em;
+      text-transform: uppercase; line-height: 1.05;
+    }
+    .about-closing p { font-size: .82rem; color: var(--muted); margin-top: .5rem; line-height: 1.6; }
+
+    @media (max-width: 820px) {
+      .about-grid { grid-template-columns: 1fr; gap: 2.4rem; }
+      .about-side { position: static; }
+      .about-hero { padding: 3.5rem 1.3rem 2.5rem; }
+    }
+    @media (max-width: 600px) {
+      .zw-nav { padding: calc(0.55rem + env(safe-area-inset-top, 0px)) 1.2rem 0.8rem; }
+      .about-stats { grid-template-columns: 1fr; }
+      .about-stat { padding: 1.2rem 1.3rem; display: flex; align-items: baseline; gap: 1rem; }
+      .stat-n { margin-bottom: 0; font-size: 2rem; }
+      .about-closing { padding: 2.6rem 1.3rem 3.5rem; }
+    }
+
+    /* ── FOOTER ── */
+    footer { margin-top: auto; }
+
+    /* Hero entrance — above-fold blocks fade up in sequence on load (scroll-reveal
+       handles the below-fold closing band). Reduced-motion shows them at rest. */
+    @keyframes aboutFadeUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+    .about-hero .about-label,
+    .about-hero .about-h1,
+    .about-hero .about-body,
+    .about-hero .about-side > * {
+      animation: aboutFadeUp .8s cubic-bezier(.22,.61,.36,1) both;
+    }
+    .about-hero .about-label    { animation-delay: .05s; }
+    .about-hero .about-h1       { animation-delay: .15s; }
+    .about-hero .about-body     { animation-delay: .25s; }
+    .about-hero .about-side > * { animation-delay: .35s; }
+    @media (prefers-reduced-motion: reduce) {
+      .about-hero .about-label,
+      .about-hero .about-h1,
+      .about-hero .about-body,
+      .about-hero .about-side > * { animation: none !important; }
+    }
+  </style>
+<link rel="stylesheet" href="storefront-cohesion.css?v=ba58e0a4">
+<script src="header-scroll.js?v=4a734678" defer></script>
+<script src="mobile-menu.js?v=251b10fb" defer></script>
+<script src="lang.js?v=5a87b132" defer></script>
+<script src="zw-login.js?v=d30a7000" defer></script>
+<script src="scroll-reveal.js?v=7896153c" defer></script>
+<script>try{var _t=localStorage.getItem('zw_theme_mode')||'super-light';document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
+<script src="/posthog-init.js?v=6ebbeafc" defer></script>
+<style>body.super-light-mode{background:#FFFFFF!important;--bg:#FFFFFF}</style>
+<script src="consent.js?v=1" defer></script>
+<!-- Applies Admin → Typography (site_settings.fonts). Without it this page
+     ignored every font setting on the site — it was the only content page
+     that never loaded the applier. -->
+<script src="storefront-theme.js?v=1" defer></script>
+<script>/* JOURNAL CONFIG FLASH PREVENTION - applies last-known label/title/fonts before paint */try{var _jc=JSON.parse(localStorage.getItem('zw_journal_cfg')||'null');if(_jc){window.__zwJournalCfg=_jc;var _h=document.head;function _jl(u){if(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;_h.appendChild(l);}}_jl(_jc.hu);_jl(_jc.bu);var _css='';if(_jc.hf)_css+='.jr-h1,.jr-post-title,.jr-card-title{font-family:'+_jc.hf+' !important;font-style:normal}';if(_jc.bf)_css+='.jr-label,.jr-sub,.jr-card-excerpt,.jr-card-date,.jr-post-body,.jr-post-date,.jr-back{font-family:'+_jc.bf+' !important}';if(_jc.ar){_css+=(_jc.ar==='natural'?'.jr-card-img{aspect-ratio:auto}.jr-card-img img{height:auto}.jr-post-cover{aspect-ratio:auto;height:auto}':'.jr-card-img,.jr-post-cover{aspect-ratio:'+_jc.ar+'}');}if(_css){var _s=document.createElement('style');_s.textContent=_css;_h.appendChild(_s);}}}catch(_){}</script>
+</head>
+<body>
+<script>(function(){try{var m=localStorage.getItem('zw_theme_mode')||'super-light';if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+
+<!-- NAV -->
+<nav class="zw-nav">
+  <a href="/" class="zw-nav-logo">
+    <img src="images/wordmark-nav.png" srcset="images/wordmark-nav@2x.png 2x" alt="ZUWERA" width="113" height="22" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
+  </a>
+  <div class="zw-nav-right">
+    <span class="zw-hdr-group">
+      <a href="/?auth=signin&next=/about.html" class="zw-hdr-action" id="hdr-login">Login</a>
+      <a href="bag.html" class="zw-hdr-bag" aria-label="Bag">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 01-8 0"></path></svg>
+        <span class="zw-hdr-bag-count cart-count" id="hdr-bag-count">0</span>
+      </a>
+    </span>
+    <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="8" x2="21" y2="8"></line><line x1="3" y1="16" x2="21" y2="16"></line></svg>
+    </button>
+  </div>
+  <script>
+  (function(){
+    try {
+      var a = document.getElementById('hdr-login');
+      if (a && window.__zwSessionUser) { var _u = window.__zwSessionUser; a.textContent = String(((_u.user_metadata && _u.user_metadata.full_name) || (_u.email || '').split('@')[0] || 'Account')).split(' ')[0]; a.href = 'account.html'; }
+      var cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      var n = Array.isArray(cart) ? cart.reduce(function(s, it){ return s + (Number(it && (it.qty || it.quantity || it.q)) || 1); }, 0) : 0;
+      document.querySelectorAll('#hdr-bag-count, .zw-mobile-bag-count').forEach(function(el){ el.textContent = n; });
+    } catch (_) {}
+  })();
+  </script>
+</nav>
+
+<!-- MOBILE MENU MODAL -->
+<div id="mobile-menu" class="modal zw-mobile-menu" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobile-menu-title">
+  <div class="mbox zw-mobile-menu-panel">
+    <div class="zw-mobile-menu-top">
+      <p class="zw-mobile-menu-kicker">Zuwera Navigation</p>
+      <button id="mobile-menu-close" class="mclose zw-mobile-menu-close" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;" aria-label="Close menu">Close</button>
+    </div>
+    <nav class="zw-mobile-menu-nav" aria-label="Mobile navigation">
+      <h2 id="mobile-menu-title" class="zw-mobile-menu-title">Menu</h2>
+      <div id="mobile-category-links" class="mobile-nav-links zw-mobile-menu-primary">
+        <a href="drop001.html?category=Jackets" class="mobile-nav-link zw-mobile-primary-link">Jackets</a>
+        <a href="drop001.html?category=T-Shirts" class="mobile-nav-link zw-mobile-primary-link">T-Shirts</a>
+        <a href="drop001.html?category=Sweatpants" class="mobile-nav-link zw-mobile-primary-link">Sweatpants</a>
+        <a href="drop001.html?category=Socks" class="mobile-nav-link zw-mobile-primary-link">Socks</a>
+        <a href="about.html" class="mobile-nav-link zw-mobile-primary-link">About</a>
+        <a href="journal.html" class="mobile-nav-link zw-mobile-primary-link">Journal</a>
+      </div>
+      <div class="zw-mobile-menu-secondary">
+        <a href="bag.html" class="zw-mobile-secondary-link zw-mobile-bag-link" aria-label="Open bag">Bag <span class="zw-mobile-bag-count">0</span></a>
+        <a href="sizeguide.html" class="zw-mobile-secondary-link">Size Guide</a>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- MAIN -->
+<style>
+  .zw-journal{max-width:1100px;margin:0 auto;padding:clamp(2rem,6vw,5rem) clamp(1rem,4vw,2.5rem)}
+  .jr-hero{text-align:center;margin-bottom:clamp(2rem,5vw,3.5rem)}
+  .jr-label{font-family:var(--fm,monospace);font-size:.7rem;letter-spacing:.28em;text-transform:uppercase;opacity:.55;margin:0 0 1rem}
+  .jr-h1{font-family:var(--fw);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.02em;font-size:clamp(2.4rem,7vw,4rem);line-height:.95;margin:0 0 .8rem}
+  .jr-sub{font-family:var(--fb);opacity:.65;max-width:46ch;margin:0 auto;line-height:1.6}
+  .jr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2.2rem}
+  .jr-card{display:block;text-decoration:none;color:inherit}
+  .jr-card--text{border-top:1px solid var(--border,rgba(128,128,128,.25));padding-top:1.15rem}
+  .jr-card-img{aspect-ratio:16/10;background:rgba(128,128,128,.12);border-radius:6px;overflow:hidden;margin-bottom:1rem}
+  .jr-card-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.7,.2,1)}
+  .jr-card:hover .jr-card-img img{transform:scale(1.04)}
+  .jr-card-title{font-family:var(--fw);font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:1.4rem;line-height:1.1;margin:0 0 .4rem}
+  .jr-card-excerpt{font-family:var(--fb);opacity:.65;font-size:.92rem;line-height:1.55;margin:0 0 .5rem}
+  .jr-card-date{font-family:var(--fm,monospace);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;opacity:.45}
+  .jr-post{max-width:760px;margin:0 auto}
+  .jr-back{display:inline-block;font-family:var(--fm,monospace);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;opacity:.6;text-decoration:none;color:inherit;margin-bottom:1.6rem}
+  .jr-back:hover{opacity:1}
+  .jr-post-cover{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px;margin-bottom:1.8rem;display:block}
+  .jr-post-title{font-family:var(--fw);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.02em;font-size:clamp(2rem,5vw,3rem);line-height:1;margin:0 0 .6rem}
+  .jr-post-date{font-family:var(--fm,monospace);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;opacity:.45;margin:0 0 2rem}
+  .jr-post-body{font-family:var(--fb);font-size:1.05rem;line-height:1.8;opacity:.9}
+  .jr-post-body p{margin:0 0 1.3rem}
+  .jr-empty{text-align:center;opacity:.5;font-family:var(--fb);padding:3rem 0}
+</style>
+<main class="page zw-journal">
+  <section class="jr-hero" data-reveal>
+    <p class="jr-label" id="jr-label">The Journal</p>
+    <h1 class="jr-h1" id="jr-h1">Field Notes</h1>
+    <p class="jr-sub" id="jr-sub">Stories, drops, and the thinking behind Zuwera.</p>
+  </section>
+  <script>try{var _c=window.__zwJournalCfg;if(_c){var _L=document.getElementById('jr-label'),_T=document.getElementById('jr-h1'),_S=document.getElementById('jr-sub');if(_L){if(_c.l&&(''+_c.l).trim()){_L.textContent=_c.l;}else{_L.style.display='none';}}if(_T&&_c.t&&(''+_c.t).trim())_T.textContent=_c.t;if(_S){if(_c.s&&(''+_c.s).trim()){_S.textContent=_c.s;}else{_S.style.display='none';}}}}catch(_){}</script>
+  <div id="jr-list" class="jr-grid"></div>
+  <article id="jr-post" class="jr-post" style="display:none"></article>
+  <p id="jr-empty" class="jr-empty" style="display:none">No stories yet — check back soon.</p>
+</main>
+
+<!-- FOOTER -->
+<footer class="zw-footer">
+  <div class="zwf-cols">
+    <details class="zwf-col">
+      <summary class="zwf-col-head">Shop<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <div class="zwf-col-links">
+        <a href="/drop001.html">Release 001</a>
+        <a href="/sizeguide.html">Size Guide</a>
+      </div>
+    </details>
+    <details class="zwf-col">
+      <summary class="zwf-col-head">Help<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <div class="zwf-col-links">
+        <a href="/returns.html">Returns</a>
+        <a href="/policies.html">Policies</a>
+        <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
+      </div>
+    </details>
+    <details class="zwf-col">
+      <summary class="zwf-col-head">Company<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <div class="zwf-col-links">
+        <a href="/about.html">About</a>
+        <a href="/journal.html">Journal</a>
+        <a href="/account.html">Account</a>
+      </div>
+    </details>
+  </div>
+  <div class="zwf-bottom">
+    <div class="zwf-bottom-left">
+      <div class="zwf-logo">
+        <img src="images/wordmark-footer.png" srcset="images/wordmark-footer@2x.png 2x" alt="ZUWERA" width="175" height="34" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
+      </div>
+      <p class="zwf-copy">&copy; 2026 Zuwera. All rights reserved.</p>
+    </div>
+    <div class="zwf-bottom-right">
+      <div class="zwf-social">
+        <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener" aria-label="Instagram on Zuwera">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+        </a>
+      </div>
+      <div class="zw-footer-right"></div>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ── Journal: lists published posts from journal_posts (RLS: only 'published'
+   rows are readable by anon). Shows a single post when ?slug=… is present. Also
+   applies the saved theme + brand favicon, like the other content pages. */
+(function () {
+  var SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+  var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+  function esc(v){ return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function fmtDate(s){ try { return new Date(s).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}); } catch(_){ return ''; } }
+  function paras(body){ return String(body||'').replace(/\r\n/g,'\n').split(/\n{2,}/).map(function(p){return p.trim();}).filter(Boolean).map(function(p){ return '<p>'+esc(p).replace(/\n/g,'<br>')+'</p>'; }).join(''); }
+  function api(path){ return fetch(SUPABASE_URL + '/rest/v1/' + path, { headers: { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON } }).then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; }); }
+
+  var JR_FONTS={
+    '':{family:"'Barlow Condensed'",url:null},
+    'anton':{family:"'Anton'",url:'https://fonts.googleapis.com/css2?family=Anton&display=swap'},
+    'bebas':{family:"'Bebas Neue'",url:'https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap'},
+    'oswald':{family:"'Oswald'",url:'https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&display=swap'},
+    'archivo':{family:"'Archivo Black'",url:'https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap'},
+    'playfair':{family:"'Playfair Display'",url:'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900&display=swap'},
+    'space':{family:"'Space Grotesk'",url:'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap'},
+    'syne':{family:"'Syne'",url:'https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap'},
+    'unbounded':{family:"'Unbounded'",url:'https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&display=swap'}
+  };
+  function applyHeadingFont(key){
+    var m=JR_FONTS[key]; if(!m||!m.url) return;
+    var l=document.createElement('link'); l.rel='stylesheet'; l.href=m.url; document.head.appendChild(l);
+    var st=document.createElement('style'); st.textContent='.jr-h1,.jr-post-title,.jr-card-title{font-family:'+m.family+' !important;font-style:normal}'; document.head.appendChild(st);
+  }
+  var JR_BODY_FONTS={
+    '':{family:null,url:null},
+    'inter':{family:"'Inter'",url:'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap'},
+    'work':{family:"'Work Sans'",url:'https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600&display=swap'},
+    'dmsans':{family:"'DM Sans'",url:'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap'},
+    'manrope':{family:"'Manrope'",url:'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600&display=swap'},
+    'nunito':{family:"'Nunito Sans'",url:'https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600&display=swap'},
+    'lora':{family:"'Lora'",url:'https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap'},
+    'sourceserif':{family:"'Source Serif 4'",url:'https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@300;400;600&display=swap'},
+    'ibmplex':{family:"'IBM Plex Sans'",url:'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&display=swap'}
+  };
+  function applyBodyFont(key){
+    var m=JR_BODY_FONTS[key]; if(!m||!m.url) return;
+    var l=document.createElement('link'); l.rel='stylesheet'; l.href=m.url; document.head.appendChild(l);
+    var st=document.createElement('style'); st.textContent='.jr-label,.jr-sub,.jr-card-excerpt,.jr-card-date,.jr-post-body,.jr-post-date,.jr-back{font-family:'+m.family+' !important}'; document.head.appendChild(st);
+  }
+  function applyAspect(ar){
+    if(!ar) return;
+    var css = ar==='natural' ? '.jr-card-img{aspect-ratio:auto}.jr-card-img img{height:auto}.jr-post-cover{aspect-ratio:auto;height:auto}' : '.jr-card-img,.jr-post-cover{aspect-ratio:'+ar+'}';
+    var st=document.createElement('style'); st.textContent=css; document.head.appendChild(st);
+  }
+  function applyJournalConfig(cfg){
+    if(!cfg) return;
+    var lab=document.getElementById('jr-label'), h1=document.getElementById('jr-h1'), sub=document.getElementById('jr-sub');
+    if(lab){ if(cfg.label&&String(cfg.label).trim()){ lab.textContent=cfg.label; lab.style.display=''; } else lab.style.display='none'; }
+    if(h1&&cfg.title&&String(cfg.title).trim()) h1.textContent=cfg.title;
+    if(sub){ if(cfg.subtitle&&String(cfg.subtitle).trim()){ sub.textContent=cfg.subtitle; sub.style.display=''; } else sub.style.display='none'; }
+    applyHeadingFont(cfg.heading_font);
+    applyBodyFont(cfg.body_font);
+    applyAspect(cfg.aspect);
+    try{var _hm=JR_FONTS[cfg.heading_font]||{},_bm=JR_BODY_FONTS[cfg.body_font]||{};localStorage.setItem('zw_journal_cfg',JSON.stringify({l:cfg.label,t:cfg.title,s:cfg.subtitle,hf:_hm.url?_hm.family:'',hu:_hm.url||'',bf:_bm.url?_bm.family:'',bu:_bm.url||'',ar:cfg.aspect||'',fl:cfg.show_footer_link!==false}));}catch(_){}
+  }
+  function renderList(posts){
+    if (!posts.length){ document.getElementById('jr-empty').style.display='block'; return; }
+    document.getElementById('jr-list').innerHTML = posts.map(function(p){
+      var date = fmtDate(p.published_at || p.created_at);
+      return '<a class="jr-card' + (p.cover_image ? '' : ' jr-card--text') + '" href="/journal.html?slug=' + encodeURIComponent(p.slug) + '">'
+        + (p.cover_image ? '<div class="jr-card-img"><img src="'+esc(p.cover_image)+'" alt="'+esc(p.title)+'" loading="lazy"></div>' : '')
+        + '<h2 class="jr-card-title">' + esc(p.title) + '</h2>'
+        + (p.excerpt ? '<p class="jr-card-excerpt">' + esc(p.excerpt) + '</p>' : '')
+        + (date ? '<p class="jr-card-date">' + date + '</p>' : '')
+        + '</a>';
+    }).join('');
+  }
+  function renderPost(p){
+    document.getElementById('jr-list').style.display='none';
+    var hero = document.querySelector('.jr-hero'); if (hero) hero.style.display='none';
+    var el = document.getElementById('jr-post'); el.style.display='block';
+    var date = fmtDate(p.published_at || p.created_at);
+    el.innerHTML = '<a class="jr-back" href="/journal.html">&larr; All stories</a>'
+      + (p.cover_image ? '<img class="jr-post-cover" src="'+esc(p.cover_image)+'" alt="'+esc(p.title)+'">' : '')
+      + '<h1 class="jr-post-title">' + esc(p.title) + '</h1>'
+      + (date ? '<p class="jr-post-date">' + date + '</p>' : '')
+      + '<div class="jr-post-body">' + paras(p.body) + '</div>';
+    try { document.title = p.title + ' — Zuwera'; } catch(_){}
+  }
+  async function loadJournal(){
+    var cfgP = fetch('/api/journal-config', { cache:'no-store' }).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
+    try {
+      var s = await api('site_settings?select=key,value&key=in.(theme,brand)');
+      (s||[]).forEach(function(row){
+        var v = (typeof row.value==='string') ? (function(){try{return JSON.parse(row.value);}catch(_){return row.value;}})() : row.value;
+        if (row.key==='theme'){ var mode = v && v.mode==='light'?'light':v && v.mode==='super-light'?'super-light':'dark'; if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode); }
+        else if (row.key==='brand' && v && v.favicon){ if (window.__zwApplyFavicon) window.__zwApplyFavicon(v.favicon); }
+      });
+    } catch(_){}
+    try { applyJournalConfig(await cfgP); } catch(_){}
+    var slug = new URLSearchParams(location.search).get('slug');
+    if (slug) {
+      var rows = await api('journal_posts?select=*&status=eq.published&slug=eq.' + encodeURIComponent(slug) + '&limit=1');
+      if (rows && rows[0]) renderPost(rows[0]);
+      else { var e=document.getElementById('jr-empty'); e.textContent='Story not found.'; e.style.display='block'; document.getElementById('jr-list').style.display='none'; var h=document.querySelector('.jr-hero'); if(h) h.style.display='none'; }
+    } else {
+      var posts = await api('journal_posts?select=id,title,slug,excerpt,cover_image,published_at,created_at&status=eq.published&order=published_at.desc.nullslast&limit=50');
+      renderList(posts || []);
+    }
+  }
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', loadJournal); else loadJournal();
+})();
+</script>
+<script src="/nav-menu.js?v=2abb3b12" defer></script>
+<script src="/storefront-features.js?v=1" defer></script>
+<!-- The shared scroll lock. storefront-features.js used to carry its own copy;
+     with that removed this is what freezes the page behind the search/bag
+     panels here, exactly as it does for every other modal. -->
+<script src="modal-lock.js?v=1" defer></script>
+</body>
+</html>

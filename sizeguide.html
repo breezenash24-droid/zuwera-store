@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
 <script>
-/* AUTH PRE-READ � synchronous session decode (same as account/bag/returns) so
+/* AUTH PRE-READ — synchronous session decode (same as account/bag/returns) so
    the header can show Account instead of Login without a flash. */
 (function(){try{
   var _b=null,_ck={},_i;
@@ -25,9 +25,9 @@
 }catch(_){}})()
 </script>
 <script>
-/* THEME FLASH PREVENTION � runs before any CSS loads */
+/* THEME FLASH PREVENTION — runs before any CSS loads */
 (function(){try{
-  var m=localStorage.getItem('zw_theme_mode');
+  var m=localStorage.getItem('zw_theme_mode')||'super-light';
   var h=document.documentElement;
   if(m==='super-light'||m==='light'){
     var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
@@ -74,7 +74,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Render-blocking on purpose (same as bag/checkout): woff2 files are cached
-       immutable, so on refresh � and inside the product-page modal iframe � the
+       immutable, so on refresh — and inside the product-page modal iframe — the
        headings paint in the real font with no swap. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
   <link rel="stylesheet" href="storefront-cohesion.css?v=1ddba8e7">
@@ -91,12 +91,12 @@
       --bg: #09090b;
       --text: #f4f1eb;
       --accent: #F891A5;
-      --font-head: 'Barlow Condensed', sans-serif;
-      --font-body: 'Barlow', sans-serif;
-      --font-mono: 'IBM Plex Mono', monospace;
-      --fw: var(--font-head);
-      --fb: var(--font-body);
-      --fm: var(--font-mono);
+      --font-head: var(--zw-font-head, 'Barlow Condensed', sans-serif);
+      --font-body: var(--zw-font-body, 'Barlow', sans-serif);
+      --font-mono: var(--zw-font-mono, 'IBM Plex Mono', monospace);
+      --fw:var(--zw-font-head, var(--font-head));
+      --fb:var(--zw-font-body, var(--font-body));
+      --fm:var(--zw-font-mono, var(--font-mono));
       --muted: rgba(244, 241, 235, 0.6);
       --border: rgba(244, 241, 235, 0.15);
       --hover: rgba(244, 241, 235, 0.08);
@@ -135,7 +135,7 @@
       text-decoration: none; cursor: pointer;
     }
     .nav-logo-img {
-      height: 25px;
+      height: 28px;
       width: auto;
       transition: filter .35s;
       filter: invert(1);
@@ -201,7 +201,7 @@
       margin-bottom: 0;
     }
     /* Lay the finder's fields out two-up on desktop so the card stays compact
-       and balances the title block � otherwise the revealed measurement inputs
+       and balances the title block — otherwise the revealed measurement inputs
        (men/women/kids show 4-6) stack into a tower beside a short title. */
     @media (min-width: 981px) {
       .guide-hero .calc-grid {
@@ -227,8 +227,7 @@
     }
 
     body.embed-mode .nav,
-    body.embed-mode footer,
-    body.embed-mode .cookie-consent {
+    body.embed-mode footer {
       display: none !important;
     }
 
@@ -267,7 +266,7 @@
     }
     /* The focused-guide note is intentionally kept hidden (the modal title
        already names the guide). It is never populated, so don't force it
-       visible � doing so rendered an empty bordered box above "Find My Size". */
+       visible — doing so rendered an empty bordered box above "Find My Size". */
     body.embed-mode.embed-focused .focused-guide-note[hidden] {
       display: none;
     }
@@ -697,66 +696,6 @@
 
     footer{margin-top:4rem}
 
-    /* ------ COOKIE CONSENT ------ */
-    .cookie-consent {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(9, 9, 11, 0.95);
-      border-top: 1px solid var(--border);
-      padding: 1.2rem 2.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1.5rem;
-      z-index: 99;
-      max-width: 100%;
-      transform: translateY(100%);
-      transition: transform 0.3s ease;
-      flex-wrap: wrap;
-    }
-    .cookie-consent.visible {
-      transform: translateY(0);
-    }
-    .cookie-text {
-      font-size: 0.85rem;
-      color: var(--muted);
-      line-height: 1.5;
-      max-width: 500px;
-    }
-    .cookie-buttons {
-      display: flex;
-      gap: 0.8rem;
-      flex-wrap: wrap;
-    }
-    .cookie-btn {
-      background: none;
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 0.5rem 1.2rem;
-      font-family:var(--font-body);
-      font-size: 0.75rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      cursor: pointer;
-      border-radius: 2px;
-      transition: all 0.2s;
-      font-weight: 500;
-    }
-    .cookie-btn:hover {
-      border-color: var(--text);
-      color: var(--text);
-    }
-    .cookie-btn.accept {
-      background: var(--accent);
-      color: #09090b;
-      border-color: var(--accent);
-    }
-    .cookie-btn.accept:hover {
-      background: #f0758a;
-    }
-
     /* ------ RESPONSIVE ------ */
     @media (max-width: 760px) {
       .nav { padding: 0.8rem 1.2rem; padding-top: calc(0.55rem + env(safe-area-inset-top)); }
@@ -766,7 +705,6 @@
       .calculator { padding: 1.5rem; }
       .calc-grid { grid-template-columns: 1fr; }
       .measure-grid { grid-template-columns: 1fr; }
-      .cookie-consent { flex-direction: column; align-items: flex-start; padding-bottom: calc(1.2rem + env(safe-area-inset-bottom)); }
       footer { padding: 1.5rem 1.2rem; padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); }
       .tabs-nav { gap: 0; scroll-padding-left: 1.2rem; }
       .tab-btn { padding: 0.8rem 1rem; font-size: 0.75rem; }
@@ -786,10 +724,6 @@
       .calc-button { width: 100%; }
       .measure-grid { grid-template-columns: 1fr; }
       .highlight-grid { grid-template-columns: 1fr 1fr; }
-      .cookie-consent { padding: 1rem; gap: 1rem; }
-      .cookie-text { font-size: 0.78rem; max-width: 100%; }
-      .cookie-buttons { flex-direction: column; width: 100%; }
-      .cookie-btn { flex: 1; }
     }
 
     @media (max-width: 760px) {
@@ -847,7 +781,6 @@
     body.light-mode .measure-letter { color: rgba(9,9,11,0.15); }
     body.light-mode .sizing-notes { background: rgba(9,9,11,0.03); }
     body.light-mode .tech-card { background: rgba(9,9,11,0.02); }
-    body.light-mode .cookie-consent { background: rgba(232,227,220,0.95); }
     /* Replace pink accent with black in light mode */
     body.light-mode { --accent: #09090b; }
     body.light-mode .tab-btn.active {
@@ -875,7 +808,7 @@
     body.light-mode .calc-button { background: #09090b; color: #E8E3DC; }
     body.light-mode .tabs-nav { border-bottom-color: rgba(9,9,11,0.1); }
   </style>
-<script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
+<script>try{var _t=localStorage.getItem('zw_theme_mode')||'super-light';document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
 <script src="/posthog-init.js?v=c4b554c4" defer></script>
 <style>body.super-light-mode{--bg:#FFFFFF;}</style>
 <!-- Suppress nav/hamburger when loaded inside the product-page iframe modal -->
@@ -884,7 +817,7 @@
 <script src="consent.js?v=1" defer></script>
 </head>
 <body>
-<script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+<script>(function(){try{var m=localStorage.getItem('zw_theme_mode')||'super-light';if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
 
   <script>
     // Load a neutral theme immediately; admin settings become the source of truth once fetched.
@@ -901,7 +834,7 @@
       if (window.__ZW_SIZEGUIDE_EMBED__ === true) {
         document.body.classList.add('embed-mode');
       }
-      try { applyThemeMode(localStorage.getItem('zw_theme_mode') || 'dark'); } catch(_) { applyThemeMode('dark'); }
+      try { applyThemeMode(localStorage.getItem('zw_theme_mode') || 'super-light'); } catch(_) { applyThemeMode('super-light'); }
       window.__zwApplyAdminTheme = applyThemeMode;
       window.__zwSyncThemeColor = function() {
         var m = document.body.classList.contains('super-light-mode') ? 'super-light'
@@ -955,11 +888,9 @@
           <a href="drop001.html?category=Sweatpants" class="mobile-nav-link zw-mobile-primary-link">Sweatpants</a>
         <a href="drop001.html?category=Socks" class="mobile-nav-link zw-mobile-primary-link">Socks</a>
           <a href="about.html" class="mobile-nav-link zw-mobile-primary-link">About</a>
+        <a href="journal.html" class="mobile-nav-link zw-mobile-primary-link">Journal</a>
         </div>
         <div class="zw-mobile-menu-secondary">
-          <a href="account.html" class="zw-mobile-secondary-link">Account</a>
-          <a href="account.html#orders" class="zw-mobile-secondary-link">Track Order</a>
-          <a href="mailto:nasirubreeze@zuwera.store" class="zw-mobile-secondary-link">Support</a>
           <a href="bag.html" class="zw-mobile-secondary-link zw-mobile-bag-link" aria-label="Open bag">Bag <span class="zw-mobile-bag-count">0</span></a>
           <a href="sizeguide.html" class="zw-mobile-secondary-link">Size Guide</a>
         </div>
@@ -974,7 +905,7 @@
       <div class="guide-hero-intro">
         <h1 class="page-title">Size &<br>Fit Guide</h1>
         <p class="page-subtitle">Find your perfect fit</p>
-        <p class="guide-lede">Enter your measurements for an instant size recommendation � or browse the full charts by category below.</p>
+        <p class="guide-lede">Enter your measurements for an instant size recommendation — or browse the full charts by category below.</p>
         <div id="focused-guide-note" class="focused-guide-note" hidden></div>
       </div>
 
@@ -1134,7 +1065,7 @@
 
       <div class="table-section mb-section" data-guide-cat="bottoms">
         <h2>Men's Bottoms Size Chart</h2>
-        <p class="mb-note">Body measurements � not garment dimensions. Find your size below; on a phone, swipe the table sideways to see every column.</p>
+        <p class="mb-note">Body measurements — not garment dimensions. Find your size below; on a phone, swipe the table sideways to see every column.</p>
         <div class="table-wrap">
           <table id="table-mens-bottoms">
             <thead>
@@ -1205,7 +1136,7 @@
 
       <div class="table-section mb-section" data-guide-cat="bottoms">
         <h2>Women's Bottoms Size Chart</h2>
-        <p class="mb-note">Body measurements � not garment dimensions. Use the IN / CM switch above to change units.</p>
+        <p class="mb-note">Body measurements — not garment dimensions. Use the IN / CM switch above to change units.</p>
         <p class="mb-subcap">Sizes XXS&ndash;XXL</p>
         <div class="table-wrap">
           <table id="table-womens-bottoms">
@@ -1400,6 +1331,7 @@
       <summary class="zwf-col-head">Company<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
       <div class="zwf-col-links">
         <a href="/about.html">About</a>
+        <a href="/journal.html">Journal</a>
         <a href="/account.html">Account</a>
       </div>
     </details>
@@ -1422,16 +1354,9 @@
   </div>
 </footer>
 
-  <!-- COOKIE CONSENT -->
-  <div class="cookie-consent" id="cookieConsent">
-    <div class="cookie-text">
-      We use cookies to improve your experience. By continuing to use this site, you consent to our use of cookies stored in your browser.
-    </div>
-    <div class="cookie-buttons">
-      <button class="cookie-btn" id="cookieDecline">Decline</button>
-      <button class="cookie-btn accept" id="cookieAccept">Accept</button>
-    </div>
-  </div>
+  <!-- Cookie consent is owned entirely by consent.js (the shared banner), and it is
+       suppressed inside an iframe — so the size guide, embedded on the product page,
+       shows no banner at all. The page's own leftover banner markup was removed. -->
 
   <script>
     // ------ SUPABASE CONFIG ------
@@ -1543,12 +1468,12 @@
         { size_label: 'L/XL', head_circ_in: '23.5-24.75', head_circ_cm: '60-63' }
       ],
       socks: [
-        { size_label: 'XS',  us_mens: null,       us_womens: null,        us_kids: '13C � 3Y', uk: null,          eu: '31 � 35' },
-        { size_label: 'S',   us_mens: null,       us_womens: '4 � 6',    us_kids: '3Y � 5Y',  uk: '2 � 5',       eu: '34 � 38' },
-        { size_label: 'M',   us_mens: '6 � 8',   us_womens: '6 � 10',   us_kids: '5Y � 7Y',  uk: '5 � 8',       eu: '38 � 42' },
-        { size_label: 'L',   us_mens: '8 � 12',  us_womens: '10 � 13',  us_kids: null,        uk: '8 � 11',      eu: '42 � 46' },
-        { size_label: 'XL',  us_mens: '12 � 15', us_womens: null,        us_kids: null,        uk: '11 � 14.5',   eu: '46 � 50' },
-        { size_label: '2XL', us_mens: '15 � 18', us_womens: null,        us_kids: null,        uk: '14.5 � 17',   eu: '50 � 53' }
+        { size_label: 'XS',  us_mens: null,       us_womens: null,        us_kids: '13C – 3Y', uk: null,          eu: '31 – 35' },
+        { size_label: 'S',   us_mens: null,       us_womens: '4 – 6',    us_kids: '3Y – 5Y',  uk: '2 – 5',       eu: '34 – 38' },
+        { size_label: 'M',   us_mens: '6 – 8',   us_womens: '6 – 10',   us_kids: '5Y – 7Y',  uk: '5 – 8',       eu: '38 – 42' },
+        { size_label: 'L',   us_mens: '8 – 12',  us_womens: '10 – 13',  us_kids: null,        uk: '8 – 11',      eu: '42 – 46' },
+        { size_label: 'XL',  us_mens: '12 – 15', us_womens: null,        us_kids: null,        uk: '11 – 14.5',   eu: '46 – 50' },
+        { size_label: '2XL', us_mens: '15 – 18', us_womens: null,        us_kids: null,        uk: '14.5 – 17',   eu: '50 – 53' }
       ]
     };
 
@@ -1560,38 +1485,19 @@
     
     // Default fallback technologies just in case Supabase errors out
     const fallbackTechDict = {
-      "Aero-PRO�": { focus: "Sweat evaporation and breathability.", level: "Standard Performance.", opt: "Light to moderate sweat output.", best: "Daily physical activity, gym sessions, and steady-state training.", desc: "High-wicking capillary fibers designed to pull moisture away from the skin for consistent dryness and comfort." },
-      "Aero-ULTRA�": { focus: "Sweat evaporation and breathability.", level: "Pinnacle Performance.", opt: "Heavy to extreme sweat output.", best: "High-intensity racing, elite competition, and maximum exertion.", desc: "A near-zero moisture retention weave with accelerated evaporation tech to keep the garment featherweight during peak output." },
-      "Hydro-PRO�": { focus: "Rain, mist, and liquid deflection.", level: "Variable Protection.", opt: "Light rain, mist, and road spray.", best: "Unpredictable weather, morning runs, and outdoor commuting.", desc: "A durable water-repellent (DWR) shield that causes liquid to bead off the surface while maintaining fabric softness." },
-      "Hydro-ULTRA�": { focus: "Rain, mist, and liquid deflection.", level: "Absolute Protection.", opt: "Heavy downpours and high-velocity exposure.", best: "Storm conditions, extreme trail hiking, and all-day outdoor exposure.", desc: "100% waterproof, seam-sealed membrane technology that blocks external water while allowing internal vapor to escape." },
-      "Thermo-PRO�": { focus: "Heat retention and cold-weather insulation.", level: "Active Insulation.", opt: "Cool to cold temperatures (40�F � 60�F).", best: "Layering, outdoor winter training, and warm-ups.", desc: "Breathable thermal micro-fibers that trap body heat during movement without causing overheating." },
-      "Thermo-ULTRA�": { focus: "Heat retention and cold-weather insulation.", level: "Extreme Insulation.", opt: "Sub-zero and freezing temperatures (Below 32�F).", best: "Static warmth, winter expeditions, and extreme cold-weather protection.", desc: "High-density heat-lock technology designed to maintain core temperature in the harshest environments." },
-      "Storm-PRO�": { focus: "Wind-blocking and heavy elemental resistance.", level: "Wind Resistance.", opt: "Moderate wind and transitional weather.", best: "Cycling, running in gusty conditions, and everyday outerwear.", desc: "High-density weave engineered to deflect wind chill while remaining flexible and quiet." },
-      "Storm-ULTRA�": { focus: "Wind-blocking and heavy elemental resistance.", level: "Total Element Block.", opt: "Gale-force winds and brutal mountain conditions.", best: "Summiting, heavy winter storms, and high-altitude performance.", desc: "An impenetrable technical barrier that creates a zero-permeability micro-climate for the athlete." }
+      "Aero-PRO™": { focus: "Sweat evaporation and breathability.", level: "Standard Performance.", opt: "Light to moderate sweat output.", best: "Daily physical activity, gym sessions, and steady-state training.", desc: "High-wicking capillary fibers designed to pull moisture away from the skin for consistent dryness and comfort." },
+      "Aero-ULTRA™": { focus: "Sweat evaporation and breathability.", level: "Pinnacle Performance.", opt: "Heavy to extreme sweat output.", best: "High-intensity racing, elite competition, and maximum exertion.", desc: "A near-zero moisture retention weave with accelerated evaporation tech to keep the garment featherweight during peak output." },
+      "Hydro-PRO™": { focus: "Rain, mist, and liquid deflection.", level: "Variable Protection.", opt: "Light rain, mist, and road spray.", best: "Unpredictable weather, morning runs, and outdoor commuting.", desc: "A durable water-repellent (DWR) shield that causes liquid to bead off the surface while maintaining fabric softness." },
+      "Hydro-ULTRA™": { focus: "Rain, mist, and liquid deflection.", level: "Absolute Protection.", opt: "Heavy downpours and high-velocity exposure.", best: "Storm conditions, extreme trail hiking, and all-day outdoor exposure.", desc: "100% waterproof, seam-sealed membrane technology that blocks external water while allowing internal vapor to escape." },
+      "Thermo-PRO™": { focus: "Heat retention and cold-weather insulation.", level: "Active Insulation.", opt: "Cool to cold temperatures (40°F – 60°F).", best: "Layering, outdoor winter training, and warm-ups.", desc: "Breathable thermal micro-fibers that trap body heat during movement without causing overheating." },
+      "Thermo-ULTRA™": { focus: "Heat retention and cold-weather insulation.", level: "Extreme Insulation.", opt: "Sub-zero and freezing temperatures (Below 32°F).", best: "Static warmth, winter expeditions, and extreme cold-weather protection.", desc: "High-density heat-lock technology designed to maintain core temperature in the harshest environments." },
+      "Storm-PRO™": { focus: "Wind-blocking and heavy elemental resistance.", level: "Wind Resistance.", opt: "Moderate wind and transitional weather.", best: "Cycling, running in gusty conditions, and everyday outerwear.", desc: "High-density weave engineered to deflect wind chill while remaining flexible and quiet." },
+      "Storm-ULTRA™": { focus: "Wind-blocking and heavy elemental resistance.", level: "Total Element Block.", opt: "Gale-force winds and brutal mountain conditions.", best: "Summiting, heavy winter storms, and high-altitude performance.", desc: "An impenetrable technical barrier that creates a zero-permeability micro-climate for the athlete." }
     };
     let siteTechs = null;
 
-    // ------ COOKIE CONSENT ------
-    function initCookieConsent() {
-      const cookieConsent = document.getElementById('cookieConsent');
-      const cookieAccept = document.getElementById('cookieAccept');
-      const cookieDecline = document.getElementById('cookieDecline');
-
-      const consentGiven = localStorage.getItem('zw_cookie_consent');
-      if (!consentGiven) {
-        cookieConsent.classList.add('visible');
-      }
-
-      cookieAccept.addEventListener('click', () => {
-        localStorage.setItem('zw_cookie_consent', 'accepted');
-        cookieConsent.classList.remove('visible');
-      });
-
-      cookieDecline.addEventListener('click', () => {
-        localStorage.setItem('zw_cookie_consent', 'declined');
-        cookieConsent.classList.remove('visible');
-      });
-    }
+    // Cookie consent lives in consent.js (window.zwConsent) — one banner, every
+    // page. This page shipped its own as well, so two appeared.
 
     // ------ FETCH SIZE CHARTS ------
     async function fetchSizeCharts() {
@@ -1732,15 +1638,15 @@
       );
       headerRow.innerHTML = '<th>Size</th>' + sizes.map(s => `<th>${s.size_label}</th>`).join('');
       const metrics = [
-        { label: 'US � Men\'s',   field: 'us_mens' },
-        { label: 'US � Women\'s', field: 'us_womens' },
-        { label: 'US � Kids',     field: 'us_kids' },
+        { label: 'US – Men\'s',   field: 'us_mens' },
+        { label: 'US – Women\'s', field: 'us_womens' },
+        { label: 'US – Kids',     field: 'us_kids' },
         { label: 'UK',            field: 'uk' },
         { label: 'EU',            field: 'eu' }
       ];
       tbody.innerHTML = metrics.map(m =>
         `<tr><td style="font-weight:500;white-space:nowrap;">${m.label}</td>${
-          sizes.map(s => `<td>${s[m.field] || '�'}</td>`).join('')
+          sizes.map(s => `<td>${s[m.field] || '—'}</td>`).join('')
         }</tr>`
       ).join('');
     }
@@ -1758,7 +1664,7 @@
 
         columns.forEach((col, idx) => {
           const td = document.createElement('td');
-          td.textContent = unitCell(row, col) || '�';
+          td.textContent = unitCell(row, col) || '—';
           tr.appendChild(td);
         });
 
@@ -1788,7 +1694,7 @@
         th.textContent = th.dataset.unitLabel + ' (' + chartUnit + ')';
       });
     }
-    // The IN/CM switch only applies to tabs with convertible measurements � hide
+    // The IN/CM switch only applies to tabs with convertible measurements — hide
     // it on Socks (shoe sizes), Sports Bras (band/cup) and Fabric Tech.
     function updateUnitBarVisibility(){
       const bar = document.querySelector('.unit-bar');
@@ -1804,7 +1710,7 @@
       const data = sizeChartData.men_bottoms || [];
       tbody.innerHTML = data.map(row => {
         const hl = (recommendedSize && sizeLabelsMatch(row.size_label, recommendedSize) && currentTab === 'mens') ? ' class="highlighted"' : '';
-        return `<tr${hl}><td>${row.size_label}</td><td>${unitCell(row,'waist_in')||'�'}</td><td>${unitCell(row,'hip_in')||'�'}</td><td>${unitCell(row,'height_in')||'�'}</td></tr>`;
+        return `<tr${hl}><td>${row.size_label}</td><td>${unitCell(row,'waist_in')||'—'}</td><td>${unitCell(row,'hip_in')||'—'}</td><td>${unitCell(row,'height_in')||'—'}</td></tr>`;
       }).join('');
     }
     function setupChartUnitToggle() {
@@ -1855,7 +1761,7 @@
           tr.classList.add('highlighted');
         }
         const circ = chartUnit === 'cm' ? row.head_circ_cm : row.head_circ_in;
-        tr.innerHTML = `<td>${row.size_label}</td><td>${circ || '�'}</td>`;
+        tr.innerHTML = `<td>${row.size_label}</td><td>${circ || '—'}</td>`;
         tbody.appendChild(tr);
       });
     }
@@ -2441,7 +2347,7 @@
       const focusedHeading = getFocusedGuideHeading(context);
       const lockSingleTab = context.hasExplicitGender || ['kids', 'sports_bras', 'hats'].includes(context.tabId);
 
-      // Streamline: show only the chart that matches the product's category � a
+      // Streamline: show only the chart that matches the product's category — a
       // sweatpant (bottoms) shows just the Bottoms chart, not Tops + Underwear too.
       const wantCat = ({ bottoms: 'bottoms', underwear: 'underwear', tops: 'tops' })[context.calcCategory];
       let matchedSection = null;
@@ -2459,14 +2365,14 @@
       }
 
       // The modal's own title already names the guide (e.g. "Sweatpant Size
-      // Guide"), so the "Focused on �" box just repeated it � keep it hidden.
+      // Guide"), so the "Focused on …" box just repeated it — keep it hidden.
       if (note) note.hidden = true;
 
       if (tabsNav) {
         tabsNav.classList.toggle('tabs-nav--hidden', lockSingleTab);
       }
 
-      // Calculator title stays the generic "Find My Size" � the modal title
+      // Calculator title stays the generic "Find My Size" — the modal title
       // already says which product's guide this is.
 
       if (genderField && (context.hasExplicitGender || ['kids', 'sports_bras', 'hats'].includes(context.tabId))) {
@@ -2511,7 +2417,7 @@
       if (typeof updateCalculatorFields === 'function') updateCalculatorFields();
     }
 
-    // Re-apply only the recommended-size highlight, no reload � called by the
+    // Re-apply only the recommended-size highlight, no reload — called by the
     // parent page when the (warm) size guide modal is reused with a new size.
     window.__zwApplyGuideSize = function(size) {
       try {
@@ -2534,7 +2440,6 @@
 
     // ------ INIT ------
     function init() {
-      if (!isEmbedMode()) initCookieConsent();
       fetchSizeCharts();
       fetchSiteSettings();
       setupCalculator();
@@ -2553,5 +2458,6 @@
 <script src="/supabase-client.js?v=b28896db" defer></script>
 <script src="zw-login.js?v=8ffae84d" defer></script>
 <script src="/nav-menu.js?v=2abb3b12" defer></script>
+<script src="/storefront-features.js?v=1" defer></script>
 </body>
 </html>

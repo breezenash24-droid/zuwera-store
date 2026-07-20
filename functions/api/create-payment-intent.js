@@ -282,6 +282,10 @@ async function verifySignedRateToken(rate, address, env, expectedParcelWeight = 
   if (String(payload.zip || '').trim() !== String(address?.zip || '').trim()) return null;
   if (String(payload.country || 'US').toUpperCase() !== String(address?.country || 'US').toUpperCase()) return null;
   if (payload.parcelWeight && expectedParcelWeight && String(payload.parcelWeight) !== String(expectedParcelWeight)) return null;
+  // Provider + Veeqo booking id must match what was signed, so the webhook buys
+  // the label from the right carrier and a rate can't be swapped between sources.
+  if (String(payload.source || 'shippo') !== String(rate.source || 'shippo')) return null;
+  if (String(payload.remoteShipmentId || '') !== String(rate.remoteShipmentId || '')) return null;
 
   return payload;
 }
@@ -305,13 +309,21 @@ async function fetchProductByFilter(env, filterKey, filterValue) {
 async function fetchSizeStockQty(env, productId, size, colorName) {
   const headers = catalogHeaders(env);
   if (!headers || !productId || !size) return null;
-  let url = `${env.SUPABASE_URL}/rest/v1/product_sizes?select=stock_quantity&product_id=eq.${encodeURIComponent(productId)}&size=eq.${encodeURIComponent(size)}`;
-  if (colorName) url += `&color_name=eq.${encodeURIComponent(colorName)}`;
-  url += '&limit=1';
-  const resp = await fetch(url, { headers }).catch(() => null);
-  if (!resp || !resp.ok) return null;
-  const rows = await resp.json().catch(() => []);
-  if (!Array.isArray(rows) || !rows.length) return null;
+  const base = `${env.SUPABASE_URL}/rest/v1/product_sizes?select=stock_quantity&product_id=eq.${encodeURIComponent(productId)}&size=eq.${encodeURIComponent(size)}`;
+  const q = async (url) => {
+    const resp = await fetch(url, { headers, cache: 'no-store' }).catch(() => null);
+    if (!resp || !resp.ok) return null;
+    const rows = await resp.json().catch(() => []);
+    return Array.isArray(rows) && rows.length ? rows : null;
+  };
+  // Try an exact colour match first; if none exists, fall back to the product+size
+  // row regardless of colour. Stock is saved color-agnostically (color_name NULL),
+  // so without this fallback the colour filter matches nothing → returns null →
+  // the stock guard is skipped and a sold-out item can be oversold. Mirrors the
+  // decrement_stock RPC's fallback so availability and decrement stay consistent.
+  let rows = colorName ? await q(`${base}&color_name=eq.${encodeURIComponent(colorName)}&limit=1`) : null;
+  if (!rows) rows = await q(`${base}&order=created_at.asc&limit=1`);
+  if (!rows) return null;
   const qty = rows[0]?.stock_quantity;
   return typeof qty === 'number' ? qty : null;
 }
@@ -445,7 +457,7 @@ async function resolveShipping({ shippingRate, address, subtotalCents, catalogIt
     const ld = await getLocalDeliveryConfig(env);
     const zip = String(address?.zip || '').trim().slice(0, 5);
     if (ld.enabled && Array.isArray(ld.zips) && ld.zips.includes(zip)) {
-      return { qualifiesFree, handDelivery: true, signedRate: null, actualShippingCents: 0, shippingCents: 0, provider: '', servicelevel: '', rateObjectId: '' };
+      return { qualifiesFree, handDelivery: true, signedRate: null, actualShippingCents: 0, shippingCents: 0, provider: '', servicelevel: '', rateObjectId: '', source: '', remoteShipmentId: '' };
     }
     // Not eligible → fall through and charge normal shipping (ignore the flag).
   }
@@ -478,6 +490,8 @@ async function resolveShipping({ shippingRate, address, subtotalCents, catalogIt
     provider: signedRate?.provider || shippingRate?.provider || '',
     servicelevel: signedRate?.servicelevel || shippingRate?.servicelevel || '',
     rateObjectId: signedRate?.rateId || shippingRate?.objectId || '',
+    source: signedRate?.source || shippingRate?.source || 'shippo',
+    remoteShipmentId: signedRate?.remoteShipmentId || shippingRate?.remoteShipmentId || '',
   };
 }
 
@@ -595,6 +609,8 @@ export async function onRequestPost({ request, env }) {
           shipping_provider: shipping.provider,
           shipping_service: shipping.servicelevel,
           shipping_rate_object_id: shipping.rateObjectId,
+          shipping_source: shipping.source || 'shippo',
+          veeqo_remote_shipment_id: shipping.remoteShipmentId || '',
           actual_shipping_cost_cents: String(shipping.actualShippingCents),
           charged_shipping_cents: String(shipping.shippingCents),
           free_shipping: String(shipping.qualifiesFree || shipping.handDelivery),

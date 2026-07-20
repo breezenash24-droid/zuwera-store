@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
 <script>
-/* AUTH PRE-READ � synchronous session decode (same as account/bag/returns) so
+/* AUTH PRE-READ — synchronous session decode (same as account/bag/returns) so
    the header can show Account instead of Login without a flash. */
 (function(){try{
   var _b=null,_ck={},_i;
@@ -25,9 +25,9 @@
 }catch(_){}})()
 </script>
 <script>
-/* THEME FLASH PREVENTION � runs before any CSS loads */
+/* THEME FLASH PREVENTION — runs before any CSS loads */
 (function(){try{
-  var m=localStorage.getItem('zw_theme_mode');
+  var m=localStorage.getItem('zw_theme_mode')||'super-light';
   var h=document.documentElement;
   if(m==='super-light'||m==='light'){
     var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
@@ -49,7 +49,7 @@
   }
 }catch(_){}})()</script>
 <script>
-/* COLLECTION TITLE FLASH PREVENTION � hide the hero/section titles until their
+/* COLLECTION TITLE FLASH PREVENTION — hide the hero/section titles until their
    real words are set (from the URL, below) AND the fonts are ready, so they
    don't flash the hardcoded "Jackets"/"Collection" text or a fallback font. */
 document.documentElement.classList.add('zw-collflash');
@@ -61,7 +61,7 @@ document.documentElement.classList.add('zw-collflash');
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#09090b" id="zw-theme-meta">
-  <title>Release 001 Collection � Athletic Sportswear | ZUWERA</title>
+  <title>Release 001 Collection — Athletic Sportswear | ZUWERA</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=3" id="site-favicon">
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
@@ -69,11 +69,12 @@ document.documentElement.classList.add('zw-collflash');
   <link rel="canonical" href="https://zuwera.store/drop001.html">
   <script src="/favicon-utils.js?v=687e90ea" defer></script>
   <script src="/flags.js?v=1" defer></script>
+  <script src="/storefront-features.js?v=1" defer></script>
   <script src="/meta-pixel.js?v=71fe06fb" defer></script>
   <script src="/google-tag.js?v=b141b2a1" defer></script>
   <script src="/supabase.min.js?v=3277b334" defer></script>
   <script src="/supabase-client.js?v=b28896db" defer></script>
-  <meta name="description" content="Shop Zuwera Release 001 � jackets, t-shirts, sweatpants and socks. Bold athletic sportswear launching September 20, 2026. Sign up for early access.">
+  <meta name="description" content="Shop Zuwera Release 001 — jackets, t-shirts, sweatpants and socks. Bold athletic sportswear launching September 20, 2026. Sign up for early access.">
   <meta name="robots" content="index, follow">
   <meta property="og:title" content="Collection - Zuwera">
   <meta property="og:description" content="Shop Zuwera by category. Browse the latest collection pieces and sign up to be notified when they go live.">
@@ -111,12 +112,12 @@ document.documentElement.classList.add('zw-collflash');
     :root {
       --black: #09090b;
       --white: #f4f1eb;
-      --font-head: 'Barlow Condensed', sans-serif;
-      --font-body: 'Barlow', sans-serif;
-      --font-mono: 'IBM Plex Mono', monospace;
-      --fw: var(--font-head);
-      --fb: var(--font-body);
-      --fm: var(--font-mono);
+      --font-head: var(--zw-font-head, 'Barlow Condensed', sans-serif);
+      --font-body: var(--zw-font-body, 'Barlow', sans-serif);
+      --font-mono: var(--zw-font-mono, 'IBM Plex Mono', monospace);
+      --fw:var(--zw-font-head, var(--font-head));
+      --fb:var(--zw-font-body, var(--font-body));
+      --fm:var(--zw-font-mono, var(--font-mono));
       --muted: rgba(244,241,235,0.5);
       --border: rgba(244,241,235,0.1);
     }
@@ -150,7 +151,7 @@ document.documentElement.classList.add('zw-collflash');
     }
     .nav-logo-link img {
       display: block;
-      height: 41px;
+      height: 50px;
       width: auto;
       filter: none;
       transition: filter .35s;
@@ -238,7 +239,11 @@ document.documentElement.classList.add('zw-collflash');
       font-size: clamp(2.5rem, 6vw, 4rem);
       letter-spacing: 0.05em;
       line-height: 1;
+      will-change: transform, opacity;
     }
+    /* Digit flip on value change — mirrors the homepage hero countdown. */
+    @keyframes cdFlip{0%{opacity:1;transform:translateY(0)}30%{opacity:0;transform:translateY(-6px)}55%{opacity:0;transform:translateY(7px)}100%{opacity:1;transform:translateY(0)}}
+    .countdown-num.flip{animation:cdFlip .2s ease}
     .countdown-label {
       font-size: 0.62rem;
       letter-spacing: 0.2em;
@@ -370,7 +375,7 @@ document.documentElement.classList.add('zw-collflash');
     .plp-fm-grab{ width:38px; height:4px; border-radius:99px; background:var(--white); opacity:.3; margin:.55rem auto .1rem; flex-shrink:0; }
     .plp-fm-head{ display:flex; align-items:center; justify-content:space-between; padding:1.1rem 1.3rem; border-bottom:1px solid var(--border); flex-shrink:0; }
     .plp-fm-title{ font-family:var(--font-head); font-size:1.5rem; font-weight:900; font-style:italic; letter-spacing:.03em; text-transform:uppercase; line-height:1; }
-    /* Square close button � matches the shared .mclose family on the other modals. */
+    /* Square close button — matches the shared .mclose family on the other modals. */
     .plp-fm-x{ width:36px; height:36px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:rgba(244,241,235,.06); border:1.5px solid rgba(244,241,235,.25); border-radius:0; color:inherit; font-size:1.25rem; line-height:1; cursor:pointer; padding:0; }
     body.light-mode .plp-fm-x, body.super-light-mode .plp-fm-x{ background:rgba(9,9,11,.04); border-color:rgba(9,9,11,.18); }
     .plp-fm-body{ overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 1.3rem; flex:1; }
@@ -468,8 +473,8 @@ document.documentElement.classList.add('zw-collflash');
     }
     @keyframes svgHeartPop {
       0%  { transform: scale(1); }
-      35% { transform: scale(1.55); }
-      65% { transform: scale(0.87); }
+      35% { transform: scale(1.42); }
+      65% { transform: scale(0.88); }
       100%{ transform: scale(1); }
     }
     .heart-btn svg.heart-pop {
@@ -968,7 +973,7 @@ document.documentElement.classList.add('zw-collflash');
     body.light-mode .product-notify {
       border-bottom-color: rgba(10,10,10,0.3);
     }
-    /* Quick-view gallery video thumb � adapt to mode */
+    /* Quick-view gallery video thumb — adapt to mode */
     body.light-mode .collection-thumb [style*="background:#09090b"] {
       background: rgba(9,9,11,.08) !important;
     }
@@ -993,14 +998,14 @@ document.documentElement.classList.add('zw-collflash');
   <script src="mobile-menu.js?v=0b991fea" defer></script>
   <script src="storefront-theme.js?v=76af5324" defer></script>
   <!-- supabase.min.js now loaded deferred from <head> -->
-<script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
+<script>try{var _t=localStorage.getItem('zw_theme_mode')||'super-light';document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
 <style>body.super-light-mode{background:#FFFFFF!important;--black:#FFFFFF}body.super-light-mode .nav{background:#FFFFFF!important;}body.super-light-mode .nav-logo-link img{filter:invert(1)!important;}</style>
 <script src="error-reporter.js?v=1" defer></script>
 <script src="consent.js?v=1" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
-<script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+<script>(function(){try{var m=localStorage.getItem('zw_theme_mode')||'super-light';if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
 <script>
 // Load a neutral theme immediately; admin settings become the source of truth once fetched.
 (function() {
@@ -1014,7 +1019,7 @@ document.documentElement.classList.add('zw-collflash');
     document.documentElement.style.backgroundColor = color;
     document.documentElement.style.setProperty('--zw-notch-bar', color);
   }
-  try { applyThemeMode(localStorage.getItem('zw_theme_mode') || 'dark'); } catch(_) { applyThemeMode('dark'); }
+  try { applyThemeMode(localStorage.getItem('zw_theme_mode') || 'super-light'); } catch(_) { applyThemeMode('super-light'); }
   window.__zwApplyAdminTheme = applyThemeMode;
 
   // Product-card CTA mode (Add-to-Bag button vs Nike-style color swatches).
@@ -1077,11 +1082,9 @@ document.documentElement.classList.add('zw-collflash');
           <a href="drop001.html?category=Sweatpants" class="mobile-nav-link zw-mobile-primary-link">Sweatpants</a>
         <a href="drop001.html?category=Socks" class="mobile-nav-link zw-mobile-primary-link">Socks</a>
           <a href="about.html" class="mobile-nav-link zw-mobile-primary-link">About</a>
+        <a href="journal.html" class="mobile-nav-link zw-mobile-primary-link">Journal</a>
         </div>
         <div class="zw-mobile-menu-secondary">
-          <a href="account.html" class="zw-mobile-secondary-link">Account</a>
-          <a href="account.html#orders" class="zw-mobile-secondary-link">Track Order</a>
-          <a href="mailto:nasirubreeze@zuwera.store" class="zw-mobile-secondary-link">Support</a>
           <a href="bag.html" class="zw-mobile-secondary-link zw-mobile-bag-link" aria-label="Open bag">Bag <span class="zw-mobile-bag-count">0</span></a>
           <a href="sizeguide.html" class="zw-mobile-secondary-link">Size Guide</a>
         </div>
@@ -1091,7 +1094,7 @@ document.documentElement.classList.add('zw-collflash');
 
   <!-- DROP HERO -->
   <section class="drop-hero">
-    <p class="drop-label">Zuwera � Release 001</p>
+    <p class="drop-label">Zuwera — Release 001</p>
     <h1 class="drop-title" id="collection-title">
       Collection
       <span id="collection-category">All Products</span>
@@ -1127,13 +1130,13 @@ document.documentElement.classList.add('zw-collflash');
       <button onclick="notifyMe()">Notify Me</button>
     </div>
     <p class="notify-note">Be first to know when Release 001 goes live. No spam, ever.</p>
-    <p class="notify-success" id="notify-success">? You're on the list.</p>
+    <p class="notify-success" id="notify-success">✓ You're on the list.</p>
   </section>
 
   <!-- PRODUCTS GRID -->
   <section class="products-section" id="main-content">
     <div class="section-header" data-reveal>
-      <h2>Release 001 � Jackets</h2>
+      <h2>Release 001 — Jackets</h2>
       <span>Releasing 09 / 20 / 2026</span>
     </div>
     <script>
@@ -1144,7 +1147,7 @@ document.documentElement.classList.add('zw-collflash');
       var g=(p.get('gender')||'').trim();
       var c=(p.get('category')||'').trim().replace(/\s+/g,' ');
       var t=(p.get('tag')||'').trim();
-      var cl=[g,c].filter(Boolean).join(' � ')||t||'';
+      var cl=[g,c].filter(Boolean).join(' · ')||t||'';
       var label=cl||'All Products';
       var catEl=document.getElementById('collection-category');
       var secEl=document.querySelector('.section-header h2');
@@ -1158,7 +1161,7 @@ document.documentElement.classList.add('zw-collflash');
     }catch(_){document.documentElement.classList.remove('zw-collflash');}})();
     </script>
     <script>
-    /* SCROLL POSITION RESTORE � on refresh, return to where you were. The product
+    /* SCROLL POSITION RESTORE — on refresh, return to where you were. The product
        grid renders async, so the browser's own restoration lands at the top; we
        save the position and restore it once the grid is painted. */
     (function(){
@@ -1178,7 +1181,7 @@ document.documentElement.classList.add('zw-collflash');
     })();
     </script>
     <script>
-    /* STICKY TOOLBAR ? HEADER � mirror the header's hidden state to <html> and
+    /* STICKY TOOLBAR ? HEADER — mirror the header's hidden state to <html> and
        measure the header + toolbar heights, so the sticky .plp-bar sits just under
        the header and slides to the very top as the header auto-hides. */
     (function(){
@@ -1265,6 +1268,7 @@ document.documentElement.classList.add('zw-collflash');
       <summary class="zwf-col-head">Company<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
       <div class="zwf-col-links">
         <a href="/about.html">About</a>
+        <a href="/journal.html">Journal</a>
         <a href="/account.html">Account</a>
       </div>
     </details>
@@ -1330,6 +1334,21 @@ function productMatchesTag(p, want) {
   return tags.some(function (t) { return String(t || '').trim().toLowerCase() === want.toLowerCase(); });
 }
 
+// ?q= — where the header search sends you on Enter. Every token has to appear
+// somewhere, so "black jacket" narrows instead of widening. NB: `subtitle` is the
+// human label ("Jackets"); the `category` column holds internal codes like MOT.
+function getRequestedQuery() {
+  return (new URLSearchParams(window.location.search).get('q') || '').trim();
+}
+function productMatchesQuery(p, want) {
+  if (!want) return true;
+  var hay = [p && p.title, p && p.subtitle, p && p.category, p && p.colorway, p && p.gender,
+    (p && Array.isArray(p.tags)) ? p.tags.join(' ') : '']
+    .filter(Boolean).join(' ').toLowerCase();
+  return want.toLowerCase().split(/\s+/).filter(Boolean)
+    .every(function (t) { return hay.indexOf(t) !== -1; });
+}
+
 function updateCollectionMeta(categoryLabel) {
   const label = categoryLabel || 'All Products';
   const title = categoryLabel ? `${label} - Zuwera` : 'Collection - Zuwera';
@@ -1378,10 +1397,13 @@ function updateCountdown() {
       const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const mins  = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const secs  = Math.floor((diff % (1000 * 60)) / 1000);
-      document.getElementById('cd-days').textContent  = String(days).padStart(2,'0');
-      document.getElementById('cd-hours').textContent = String(hours).padStart(2,'0');
-      document.getElementById('cd-mins').textContent  = String(mins).padStart(2,'0');
-      document.getElementById('cd-secs').textContent  = String(secs).padStart(2,'0');
+      // Flip a digit only when its value changes (mirrors the homepage countdown).
+      const setCd = (id, n) => {
+        const node = document.getElementById(id); if (!node) return;
+        const val = String(n).padStart(2, '0'); if (node.textContent === val) return;
+        node.textContent = val; node.classList.remove('flip'); void node.offsetWidth; node.classList.add('flip');
+      };
+      setCd('cd-days', days); setCd('cd-hours', hours); setCd('cd-mins', mins); setCd('cd-secs', secs);
     }
 
     updateCountdown();
@@ -1419,7 +1441,7 @@ function updateCountdown() {
 
     // Load products from Supabase
     // Uses window.sb if available (set by supabase-client.js deferred),
-    // otherwise creates a local client � ensures products always load.
+    // otherwise creates a local client — ensures products always load.
     (async function() {
       const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
       const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
@@ -1440,8 +1462,8 @@ function updateCountdown() {
       let collectionUser = null;
       let collectionFavoriteIds = new Set();
 
-      // -- Paint the (already FILTERED) collection from cache IMMEDIATELY � before
-      //    the auth + settings network round-trips below � so the correct products
+      // -- Paint the (already FILTERED) collection from cache IMMEDIATELY — before
+      //    the auth + settings network round-trips below — so the correct products
       //    show right away and the previous page doesn't linger (which looked like
       //    an all-products flash). renderProducts() applies the category/gender/tag
       //    filter, so this paints only the right items.
@@ -1449,7 +1471,8 @@ function updateCountdown() {
       const requestedCategory = getRequestedCategory();
       const requestedGender = getRequestedGender();
       const requestedTag = getRequestedTag();
-      const requestedLabel = [requestedGender, requestedCategory].filter(Boolean).join(' � ') || requestedTag || '';
+      const requestedQuery = getRequestedQuery();
+      const requestedLabel = [requestedGender, requestedCategory].filter(Boolean).join(' · ') || requestedTag || '';
       updateCollectionMeta(requestedLabel);
 
       // -- PLP filter/sort state (client-side; sidebar + sort + count) ----------
@@ -1546,7 +1569,7 @@ function updateCountdown() {
         function move(e){
           if (!active) return;
           var t = e.touches ? e.touches[0] : e, d = t.clientY - startY;
-          if (d <= 0 && !dragging) return;                       // swiping up � let it scroll
+          if (d <= 0 && !dragging) return;                       // swiping up — let it scroll
           if (!onHandle && scroller && scroller.scrollTop > 0){ active = false; return; }
           if (d < 0) d = 0;
           dy = d; dragging = true;
@@ -1668,13 +1691,15 @@ function updateCountdown() {
         const productId = btn?.dataset?.productId;
         if (!productId) return;
         if (!collectionUser) {
+          // Open the login modal on THIS page instead of bouncing to the homepage.
+          if (window.zwOpenAuth) { window.zwOpenAuth('signin'); return; }
           window.location.href = 'index.html?auth=signin';
           return;
         }
 
         const isActive = collectionFavoriteIds.has(productId);
 
-        // Optimistic visual update � fires before DB round-trip
+        // Optimistic visual update — fires before DB round-trip
         if (!isActive) {
           collectionFavoriteIds.add(productId);
           applyHeartFill(btn, true);
@@ -1766,7 +1791,7 @@ function updateCountdown() {
         const [productsResp, imagesResp, sizesResp, colorsResp] = await Promise.all([
           fetch(`${SUPABASE_URL}/rest/v1/products?select=*&order=sort_order.asc`, { headers }),
           fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&order=sort_order.asc`, { headers }),
-          fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=product_id,stock_quantity`, { headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=product_id,stock_quantity`, { headers, cache: 'no-store' }),
           fetch(`${SUPABASE_URL}/rest/v1/color_variants?select=*&order=sort_order.asc`, { headers })
         ]);
         if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
@@ -1824,6 +1849,7 @@ function updateCountdown() {
           const status = (p.status || '').toLowerCase();
           if (status === 'legacy' || status === 'archived' || status === 'draft') return false;
           if (activeCategory && categoryLabelFromProduct(p).toLowerCase() !== activeCategory.toLowerCase()) return false;
+          if (!productMatchesQuery(p, requestedQuery)) return false;
           return productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag);
         });
 
@@ -1835,10 +1861,14 @@ function updateCountdown() {
           return (a.sort_order || 0) - (b.sort_order || 0);
         });
 
-        const curLabel = [requestedGender, activeCategory].filter(Boolean).join(' � ') || requestedTag || '';
+        // Say what's being shown — landing on a filtered grid with no explanation
+        // reads like the catalogue lost half its products.
+        const curLabel = requestedQuery
+          ? '“' + requestedQuery + '”'
+          : ([requestedGender, activeCategory].filter(Boolean).join(' · ') || requestedTag || '');
         updateCollectionMeta(curLabel || (filteredProducts.length === 1 ? categoryLabelFromProduct(filteredProducts[0]) : ''));
         const _countEl = document.getElementById('plp-count');
-        if (_countEl) _countEl.textContent = (curLabel ? curLabel + ' � ' : '') + filteredProducts.length + (filteredProducts.length === 1 ? ' Product' : ' Products');
+        if (_countEl) _countEl.textContent = (curLabel ? curLabel + ' · ' : '') + filteredProducts.length + (filteredProducts.length === 1 ? ' Product' : ' Products');
 
         if (!filteredProducts.length) {
           grid.classList.remove('single-item', 'two-items');
@@ -1847,7 +1877,7 @@ function updateCountdown() {
         }
 
         let renderList = filteredProducts;
-        // A lone product is normally split into one card per image � but NOT when it
+        // A lone product is normally split into one card per image — but NOT when it
         // has color variants, or that split would strip the per-color images the
         // swatch hover needs (and break the swatches).
         if (filteredProducts.length === 1 && filteredProducts[0].product_images && filteredProducts[0].product_images.length > 1
@@ -1879,7 +1909,7 @@ function updateCountdown() {
           const MAX = 5;
           if (!colors.length) {
             // Single-image product: one thumbnail of the main image (keeps cards
-            // consistent � no out-of-place Add-to-Bag button).
+            // consistent — no out-of-place Add-to-Bag button).
             let src = fallbackImg || '';
             if (src && typeof optimizeImage === 'function') src = optimizeImage(src, 600);
             if (!src) return '';
@@ -1965,7 +1995,7 @@ function updateCountdown() {
                   <p class="product-price">${productPrice ? '$' + Number(productPrice).toFixed(2) : 'Price TBA'}</p>
                   ${isLowStock ? `<span class="stock-badge-low">Low Stock</span>` : ''}
                   ${!isLive
-                    ? `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live ?</span>`
+                    ? `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>`
                     : isSoldOut
                       ? `<span class="product-notify" style="opacity:.55">Sold Out</span>`
                       : (hasSwatches ? zwColSwatchRow(p, quickAddPayload, originalImg) : '')
@@ -2034,7 +2064,7 @@ function updateCountdown() {
     t._toastTimer = setTimeout(function(){ t.classList.remove('on'); }, 2600);
   }
 
-  // --- Quick Add to Bag � two-step Colorway ? Size (collection page) ---------
+  // --- Quick Add to Bag — two-step Colorway ? Size (collection page) ---------
   const _colSB_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
   const _colSB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
@@ -2077,7 +2107,7 @@ function updateCountdown() {
       var encodedId = encodeURIComponent(productId);
       var results = await Promise.all([
         fetch(_colSB_URL + '/rest/v1/color_variants?select=id,color_name,hex_color,variant_sku&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers }),
-        fetch(_colSB_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodedId + '&order=created_at.asc', { headers: headers }),
+        fetch(_colSB_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodedId + '&order=created_at.asc', { headers: headers, cache: 'no-store' }),
         fetch(_colSB_URL + '/rest/v1/product_images?select=image_url,alt_text,sort_order,color_variant_id,media_type&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers })
       ]);
       var colors = results[0].ok ? await results[0].json() : [];
@@ -2165,7 +2195,7 @@ function updateCountdown() {
     var sw = e.target.closest('.zw-card-swatch'); if (!sw) return;
     e.preventDefault(); e.stopPropagation();
     if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
-    // Mobile: a thumbnail tap just previews that colorway on the card � no bag
+    // Mobile: a thumbnail tap just previews that colorway on the card — no bag
     // modal. To view/buy, tap the product itself (the card links to the page).
     if (window.matchMedia && window.matchMedia('(max-width:760px)').matches) {
       if (!sw.classList.contains('zw-swatch-more')) {

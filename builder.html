@@ -195,11 +195,29 @@ body{display:flex;flex-direction:column}
 .sc-nm{font-size:.62rem;font-weight:600;letter-spacing:.02em;margin-bottom:.14rem}
 .sc-ds{font-size:.54rem;color:var(--mu);line-height:1.4}
 .sc-cat{grid-column:1/-1;font-family:'IBM Plex Mono',monospace;font-size:.48rem;letter-spacing:.17em;text-transform:uppercase;color:var(--mu);padding:.45rem .18rem .18rem;border-bottom:1px solid var(--bd);margin-bottom:.18rem}
-.media-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;padding:.75rem}
-.media-thumb{position:relative;aspect-ratio:1;background:var(--sf2);border:1px solid var(--bd);border-radius:2px;overflow:hidden;cursor:pointer;transition:border-color .1s}
-.media-thumb:hover{border-color:var(--ac)}
-.media-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.media-thumb-lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);font-family:'IBM Plex Mono',monospace;font-size:.42rem;color:rgba(255,255,255,.75);padding:.2rem .3rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Media Library modal: big, with a header + footer that stay put while only the
+   grid scrolls. Scoped to #mediaModal so other .mbox modals are unaffected. */
+#mediaModal .mbox{width:min(1200px,96vw);height:92vh;max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+#mediaModal #mediaGrid{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+#mediaModal .media-foot{flex:0 0 auto}
+.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.55rem;padding:.85rem 1rem;align-content:start}
+/* Fixed tile height (grid-auto-rows) + absolutely-positioned media, so a
+   lazy-loading image can never leak its natural size and overlap other tiles
+   (the aspect-ratio approach let images push their row when height was still
+   resolving). */
+.media-thumb{position:relative;height:150px;background:var(--sf2);border:1px solid var(--bd);border-radius:3px;overflow:hidden;cursor:pointer;transition:border-color .1s,transform .1s}
+.media-thumb:hover{border-color:var(--ac);transform:translateY(-1px)}
+.media-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:var(--sf2)}
+.media-thumb-lbl{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.8));font-family:'IBM Plex Mono',monospace;font-size:.42rem;color:rgba(255,255,255,.85);padding:.5rem .3rem .2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Group header + states in the media grid (full-width rows) */
+.media-cat{grid-column:1/-1;display:flex;align-items:center;gap:.5rem;font-family:'IBM Plex Mono',monospace;font-size:.48rem;letter-spacing:.17em;text-transform:uppercase;color:var(--mu);padding:.55rem .18rem .12rem}
+.media-cat::after{content:'';flex:1;height:1px;background:var(--bd)}
+.media-cat:first-child{padding-top:.1rem}
+.media-empty{grid-column:1/-1;color:var(--mu);font-size:.6rem;padding:.4rem .2rem .6rem;opacity:.7}
+/* Video tiles render as a light placeholder — no media loaded (keeps the grid fast) */
+.media-thumb.media-vid{display:flex;align-items:center;justify-content:center;background:#0c0c0e}
+.media-vplay{font-size:1.3rem;color:rgba(255,255,255,.55)}
+.media-vbadge{position:absolute;top:3px;right:4px;font-size:.46rem;background:rgba(0,0,0,.6);color:#fff;padding:1px 4px;border-radius:2px;pointer-events:none;letter-spacing:.05em}
 .sched-wrap{display:flex;gap:.4rem;align-items:flex-end}
 /* Image previews — click to enlarge (lightbox) */
 .field > img,.field img[data-preview]{cursor:zoom-in}
@@ -222,6 +240,12 @@ body{display:flex;flex-direction:column}
 .kb-row{display:grid;grid-template-columns:1fr 1fr;gap:.3rem .8rem;margin-bottom:.3rem}
 .kb-key{font-family:'IBM Plex Mono',monospace;font-size:.56rem;background:var(--sf2);border:1px solid var(--bd);border-radius:2px;padding:.2rem .45rem;display:inline-block}
 .kb-desc{font-size:.62rem;color:var(--mu);align-self:center}
+/* Reduced-motion: the builder is a standalone tool that doesn't load
+   storefront-cohesion.css, so the sitewide guard never reaches it — honor the OS
+   preference here too (mirrors storefront-cohesion.css:3399). */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
+}
 </style>
 </head>
 <body>
@@ -239,6 +263,7 @@ body{display:flex;flex-direction:column}
   <div class="tsep"></div>
   <button class="tbtn tbtn-ghost" onclick="undo()" title="Undo (Ctrl+Z)">↩ Undo</button>
   <button class="tbtn tbtn-ghost" onclick="redo()" title="Redo (Ctrl+Y)">↪ Redo</button>
+  <button class="tbtn tbtn-ghost" id="lyBtn" onclick="openLayouts()" title="Saved page layouts — edit inactive designs & choose which is live">🗂 Layouts</button>
   <button class="tbtn tbtn-ghost" onclick="saveDraft()" title="Save a private draft">💾 Save Draft</button>
   <button class="tbtn tbtn-solid" onclick="publishPage()" title="Make your changes live">🚀 Publish</button>
   <div class="more-wrap">
@@ -254,6 +279,7 @@ body{display:flex;flex-direction:column}
       <button class="more-item" onclick="window.open('/','_blank')">🌐 View live site</button>
       <button class="more-item" onclick="copyHomepageDraftLink()">🔗 Copy homepage draft link</button>
       <button class="more-item" onclick="showQrModal()">📱 Preview on phone (QR)</button>
+      <button class="more-item" onclick="openLayouts()">🗂 Page layouts…</button>
       <button class="more-item" onclick="lpTab('history')">🕘 Version history</button>
       <button class="more-item" onclick="lpTab('templates')">🗂 Templates</button>
       <button class="more-item" onclick="openSchedulePublish()">⏰ Schedule publish…</button>
@@ -282,6 +308,7 @@ body{display:flex;flex-direction:column}
   <div class="lp-tabs">
     <button class="lp-tab on" onclick="lpTab('content')" id="tab-content" title="Homepage sections">Content</button>
     <button class="lp-tab" onclick="lpTab('pages')"   id="tab-pages" title="Men / Women landing pages">Pages</button>
+    <button class="lp-tab" onclick="lpTab('product')" id="tab-product" title="What shows under a product">Product</button>
     <button class="lp-tab" onclick="lpTab('design')"  id="tab-design" title="Theme & navigation">Design</button>
     <button class="lp-tab" onclick="lpTab('settings')" id="tab-settings" title="SEO & metadata">Settings</button>
   </div>
@@ -309,11 +336,13 @@ body{display:flex;flex-direction:column}
     <span>Preview</span>
     <span style="font-size:.45rem;opacity:.4" id="autoLbl">auto-updating</span>
     <button id="selModeBtn" class="lp-float-btn" onclick="toggleSelectMode()" style="margin-left:.5rem;background:var(--sf2);border-color:rgba(255,255,255,.25);color:#f4f1eb" title="On: click a section in the preview to edit it. Off: links and buttons work normally.">🎯 Click to select: Off</button>
+    <button id="textEditBtn" class="lp-float-btn" onclick="toggleTextEdit()" style="margin-left:.4rem;background:var(--sf2);border-color:rgba(255,255,255,.25);color:#f4f1eb" title="On: click any text in the preview to edit it in place and change its font. Off: preview behaves normally.">✏️ Edit text: Off</button>
+    <button id="moveModeBtn" class="lp-float-btn" onclick="toggleMoveMode()" style="margin-left:.4rem;background:var(--sf2);border-color:rgba(255,255,255,.25);color:#f4f1eb" title="On: drag a color block's content around inside the block (snaps to center). Off: preview behaves normally.">✥ Move: Off</button>
     <span id="pvDims" style="margin-left:auto">—</span>
   </div>
   <div class="pv-wrap">
     <div class="pv-frame desk" id="pvFrame">
-      <iframe id="pvIframe" src="/index.html?builder=1" title="Preview" onload="sendSelectMode();schedSend()" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+      <iframe id="pvIframe" src="/index.html?builder=1" title="Preview" onload="sendSelectMode();sendTextEditMode();sendMoveMode();schedSend()" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
     </div>
   </div>
 </div>
@@ -332,13 +361,13 @@ body{display:flex;flex-direction:column}
 
 <!-- MEDIA LIBRARY -->
 <div class="mover" id="mediaModal">
-  <div class="mbox" style="width:min(580px,93vw)">
-    <div class="mbox-hd">
+  <div class="mbox">
+    <div class="mbox-hd media-foot">
       <div><h3>Media Library</h3><p>Click an item to use it (images &amp; videos)</p></div>
       <button class="mx" onclick="document.getElementById('mediaModal').classList.remove('open')">×</button>
     </div>
     <div id="mediaGrid" class="media-grid"></div>
-    <div style="padding:.5rem .75rem .75rem;border-top:1px solid var(--bd);display:flex;gap:.4rem">
+    <div class="media-foot" style="padding:.6rem 1rem;border-top:1px solid var(--bd);display:flex;gap:.4rem">
       <input id="mediaUrlInput" type="url" placeholder="Or paste any URL…" style="flex:1;background:var(--sf2);border:1px solid var(--bd);color:#f4f1eb;font-size:.68rem;padding:.32rem .5rem;border-radius:2px;outline:none">
       <button onclick="applyMediaUrl(document.getElementById('mediaUrlInput').value)" style="background:#f4f1eb;color:#0f0f11;border:none;font-family:'IBM Plex Mono',monospace;font-size:.52rem;letter-spacing:.09em;text-transform:uppercase;padding:.32rem .65rem;cursor:pointer;border-radius:2px;font-weight:600">Use URL</button>
       <label style="background:transparent;border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.52rem;letter-spacing:.09em;text-transform:uppercase;padding:.32rem .65rem;cursor:pointer;border-radius:2px;transition:.12s" onmouseover="this.style.borderColor='rgba(255,255,255,.22)'" onmouseout="this.style.borderColor='var(--bd)'">⬆ Upload<input type="file" accept="image/*,video/*" style="display:none" onchange="uploadFromMedia(this)"></label>
@@ -425,6 +454,24 @@ async function getAccessToken(){
   return null;
 }
 
+// Read a site_settings key WITH the admin token attached. The getSb() client
+// usually has no session of its own (the builder is authorized via the
+// zw_builder_token handed over from admin.html), so sb.from() reads run as
+// anon and RLS's public-read key whitelist hides admin-only keys like
+// builder_layouts / builder_history — they saved fine (service-key API) but
+// silently read back as empty. Returns the value, null if the row doesn't
+// exist, or undefined when the read itself failed (auth/network).
+async function fetchSettingAuthed(key){
+  try{
+    const token=await getAccessToken();
+    const r=await fetch(`${SUPA_URL}/rest/v1/site_settings?key=eq.${encodeURIComponent(key)}&select=value&limit=1`,
+      {headers:{apikey:SUPA_ANON,Authorization:'Bearer '+(token||SUPA_ANON)}});
+    if(!r.ok)return undefined;
+    const rows=await r.json();
+    return (Array.isArray(rows)&&rows[0])?rows[0].value:null;
+  }catch(_){return undefined;}
+}
+
 // ── AUTH ──────────────────────────────────────────────────────────────────
 (async function authCheck(){
   document.querySelector('.layout').style.display='none';
@@ -481,6 +528,7 @@ const TYPES={
   about:{icon:'ℹ️',cat:'store',desc:'Brand story with stats'},
   release:{icon:'🚀',cat:'store',desc:'Drop countdown + notify form'},
   products:{icon:'👕',cat:'store',desc:'Products grid from collection'},
+  recently_viewed:{icon:'🕘',cat:'store',desc:'Recently viewed — each visitor\'s last-viewed products, auto-filled'},
   split:{icon:'◧',cat:'marketing',desc:'Image + text side by side'},
   cta:{icon:'📣',cat:'marketing',desc:'Centered call-to-action banner'},
   features:{icon:'⊞',cat:'marketing',desc:'Feature / icon grid'},
@@ -494,6 +542,7 @@ const TYPES={
   faq:{icon:'❓',cat:'marketing',desc:'FAQ accordion'},
   email_capture:{icon:'✉️',cat:'marketing',desc:'Dedicated email / waitlist signup'},
   logos:{icon:'🏷️',cat:'marketing',desc:'Partner or press logo strip'},
+  color_block:{icon:'🎨',cat:'layout',desc:'Solid color block — full/half width, text & buttons'},
   spacer:{icon:'↕️',cat:'layout',desc:'Empty vertical space'},
   text:{icon:'✍️',cat:'layout',desc:'Heading + body + optional CTA'},
   img_cta:{icon:'🖼',cat:'layout',desc:'Image with overlay button'},
@@ -510,6 +559,7 @@ const SECT_DEFS={
   about:{label:'About Zuwera',heading:'Built For\nMovement.',body:'Bold, athletic, and designed for those who dream big.\n\nRelease 001 is the beginning.',stats:[{value:'001',label:'First Release'},{value:'2026',label:'Launching'},{value:'3',label:'Styles'}],pad_top:0,pad_bot:0},
   release:{eyebrow:'Zuwera Release 001',title:'Release\n001',notify_on:true,notify_label:'Get Early Access',launch_date:'2026-09-20',pad_top:0,pad_bot:0},
   products:{title:'Release 001',subtitle:'Releasing 09 / 20 / 2026',columns:2,lay_lg:'grid',col_lg:3,lay_md:'swipe',col_md:2,lay_sm:'swipe',col_sm:2,pad_top:0,pad_bot:0},
+  recently_viewed:{heading:'Recently Viewed',count:5,show_time:false,pad_top:0,pad_bot:0},
   split:{image:'',image_side:'left',image_height:'500',label:'',heading:'',body:'',cta_text:'',cta_url:'',bg_color:'',pad_top:0,pad_bot:0},
   cta:{heading:'Ready to Move?',subtext:'Discover the first drop from Zuwera.',btn_text:'Shop Now',btn_url:'/drop001.html',btn_style:'solid',bg_color:'#09090b',text_color:'#f4f1eb',align:'center',pad_top:0,pad_bot:0},
   features:{heading:'Why Zuwera',items:[{icon:'⚡',title:'Performance',desc:'Built for movement.'},{icon:'🎯',title:'Precision',desc:'Every stitch placed with purpose.'},{icon:'🌍',title:'For Everyone',desc:'Sizes for all.'}],pad_top:0,pad_bot:0},
@@ -523,6 +573,7 @@ const SECT_DEFS={
   faq:{heading:'Questions, Answered',items:[{q:'When does Release 001 drop?',a:'September 20, 2026.'},{q:'What sizes are available?',a:'XS through 3XL.'},{q:'Do you ship internationally?',a:'Yes — worldwide.'}],pad_top:0,pad_bot:0},
   email_capture:{heading:'Be First To Know',subtext:'Join the waitlist for exclusive early access.',placeholder:'your@email.com',btn_text:'Join Waitlist',bg_color:'',pad_top:0,pad_bot:0},
   logos:{heading:'',items:[{name:'Nike',src:'',alt:'',link:''},{name:'Adidas',src:'',alt:'',link:''},{name:'Puma',src:'',alt:'',link:''}],logo_original:false,logo_height:28,pad_top:0,pad_bot:0},
+  color_block:{bg_color:'#1f2937',width:'full',height:'auto',block_align:'center',radius:0,min_height:'',inner_pad:'md',gap_top:0,gap_bot:0,content_align:'center',content_valign:'center',pos_x:50,pos_y:50,eyebrow:'',heading:'Your Headline',body:'',buttons:[{text:'Shop Now',url:'/drop001.html',style:'solid'}],btn_align:'',logos:[],logo_height:34,logo_original:false,logo_adjust:'auto',pad_top:0,pad_bot:0},
   spacer:{height:'md'},
   text:{heading:'',heading_size:'2rem',body:'',cta_text:'',cta_url:'',align:'left',pad_top:0,pad_bot:0},
   img_cta:{image:'',alt:'',btn_on:true,btn_text:'Shop Now',btn_url:'/drop001.html',btn_position:'center',pad_top:0,pad_bot:0},
@@ -539,6 +590,11 @@ const DEFAULT_SECTIONS=['hero','marquee','about','release','products'].map((t,i)
 let sections=[],themeSettings={},navSettings={links:[]},seoSettings={},lastSaved=null;
 let landingPages={},landingSlug='men',landingProducts=null,landingProductsLoading=false;
 let undoStack=[],redoStack=[],versionHistory=[],templates=[];
+// Saved page layouts: independent full-page saves. `activeId` = the one that's
+// live on the site; `currentId` = the one open in the editor. Editing a
+// non-active layout never touches page_builder_published until Set Live/Publish.
+let layouts={list:[],activeId:null,currentId:null};
+let _lyReadFailed=false; // init couldn't read builder_layouts — merge before any overwrite
 let selId=null,pvMode='desk',pvTheme='dark',dirty=false,curTab='content';
 let _imgKey=null,_tt,_sendT,_autosaveT;
 
@@ -554,7 +610,10 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
     const sb=getSb();
     if(sb){
       // Load all builder settings with a 5s timeout per query group
-      const[pd,th,nv,hist,tmpl,pub,lpDraft,lpPub]=await withTimeout(Promise.all([
+      // Admin-only keys (builder_history/templates/layouts) are NOT in the RLS
+      // public-read whitelist, so they're fetched with the admin token instead
+      // of the (anon) sb client — see fetchSettingAuthed.
+      const[pd,th,nv,hist,tmpl,pub,lpDraft,lpPub,histV,tmplV,lyV,pdV]=await withTimeout(Promise.all([
         sb.from('site_settings').select('value').eq('key','page_builder').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','builder_theme').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','builder_nav').maybeSingle(),
@@ -563,13 +622,24 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
         sb.from('site_settings').select('value').eq('key','page_builder_published').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','landing_pages').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','landing_pages_published').maybeSingle(),
+        fetchSettingAuthed('builder_history'),
+        fetchSettingAuthed('builder_templates'),
+        fetchSettingAuthed('builder_layouts'),
+        fetchSettingAuthed('page_builder'),
       ]), 5000);
+      { // Saved layouts (multiple homepage designs; one live, others inactive)
+        if(lyV===undefined)_lyReadFailed=true; // couldn't read — persistLayouts will re-check before overwriting
+        if(lyV&&Array.isArray(lyV.list))layouts={list:lyV.list,activeId:lyV.activeId||null,currentId:lyV.currentId||null};
+      }
       { // Landing pages: prefer draft, fall back to published; strip save-meta keys
         const lpRaw = (lpDraft?.data?.value) || (lpPub?.data?.value) || {};
         const lpClean = {...lpRaw}; delete lpClean.updated_at; delete lpClean.published;
         landingPages = lpClean;
       }
-      const activeData = pd?.data?.value || pub?.data?.value;
+      // Draft first (authed read — the draft key is RLS-hidden from anon, so the
+      // old anon read silently fell back to the published page on every refresh),
+      // then anon draft (if ever whitelisted), then published.
+      const activeData = pdV || pd?.data?.value || pub?.data?.value;
       if(activeData?.sections){
         sections=activeData.sections.map(s=>({...s,settings:{...SECT_DEFS[s.type],...(s.settings||{})}}));
       } else {
@@ -595,8 +665,12 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
       if(activeData?.seoSettings){
         seoSettings=activeData.seoSettings;
       }
-      if(hist?.data?.value?.versions)versionHistory=hist.data.value.versions;
-      if(tmpl?.data?.value?.list)templates=tmpl.data.value.list;
+      // Prefer the authed reads; keep the old anon reads as fallback in case the
+      // keys are ever added to the public whitelist.
+      if(histV?.versions)versionHistory=histV.versions;
+      else if(hist?.data?.value?.versions)versionHistory=hist.data.value.versions;
+      if(tmplV?.list)templates=tmplV.list;
+      else if(tmpl?.data?.value?.list)templates=tmpl.data.value.list;
       status('Loaded · '+new Date().toLocaleTimeString());
     }else throw new Error('no client');
   }catch(e){
@@ -607,6 +681,7 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
   }
   lastSaved=clone(sections);
   renderLP();  // always called — sections will show even if DB was unavailable
+  updateLyBtn();  // show which saved layout (if any) is open in the editor
   setPvMode('desk');
   document.getElementById('pvIframe').addEventListener('load',sendCfg);
   setInterval(()=>{if(dirty)saveDraft(true);},60000);
@@ -674,6 +749,183 @@ function lpTab(name){
   syncPreviewFrame();
 }
 
+/* ── PRODUCT TAB ────────────────────────────────────────────────────────────
+   The stack of blocks under a product (related products, recently viewed,
+   recommendations, Q&A…) had no controls — it was whatever happened to be
+   switched on, in a fixed order. This makes it a list you can reorder and hide,
+   saved to site_settings.product_page and read via /api/product-page-config.
+
+   Deliberately mirrors the Content tab: .sec-item rows, drag to reorder, eye to
+   hide — so it reads as the same tool rather than a bolted-on form.
+
+   Each block also has a global feature flag (Admin → Feature Flags), and the flag
+   wins — so a block whose flag is off says so here instead of looking enabled and
+   never appearing. more_from_release is rendered by the product page itself, so it
+   always sits first and can only be hidden. */
+const PDP_BLOCK_META = {
+  more_from_release: { label:'More from this release', tp:'always first',    icon:'🧺', flag:null, fixed:true, desc:'Other pieces from the same drop' },
+  bundle:            { label:'Complete the set',       tp:'bundle',          icon:'🎁', flag:'feature_bundles', desc:'The other pieces in a bundle this product is part of' },
+  recently_viewed:   { label:'Recently viewed',        tp:'recently_viewed', icon:'🕘', flag:'feature_recently_viewed', desc:'What this shopper looked at before' },
+  recommendations:   { label:'You may also like',      tp:'recommendations', icon:'✨', flag:'feature_recommendations', desc:'Similar products' },
+  qa:                { label:'Questions & answers',    tp:'q_and_a',         icon:'❓', flag:'feature_qa', desc:'Customer questions you have answered' },
+  // Optional extras: gallery-only, so shipping a new one never makes it appear
+  // on a live store uninvited. No feature flag — being in the layout IS the switch.
+  new_arrivals:      { label:'New arrivals',           tp:'new_arrivals',    icon:'🆕', flag:null, desc:'Your newest products' },
+  journal:           { label:'From the journal',       tp:'journal',         icon:'📓', flag:null, desc:'Latest published journal posts' },
+  newsletter:        { label:'Newsletter signup',      tp:'newsletter',      icon:'✉️', flag:null, desc:'“Stay in the loop” — signups land in Subscribers' },
+};
+// What a store shows before anyone touches this tab.
+const PDP_ORDER_DEFAULT = ['more_from_release','bundle','recently_viewed','recommendations','qa'];
+let pdpCfg = null, pdpFlags = null;
+
+// A saved layout is taken literally so REMOVALS STICK. This used to append any
+// missing block, which made delete impossible — it came straight back on reload.
+// No saved layout at all → the default five.
+function pdpNormalize(v){
+  const saved = (v && Array.isArray(v.sections)) ? v.sections : null;
+  if(!saved) return PDP_ORDER_DEFAULT.map(id=>({ id, on:true }));
+  const out = [], seen = [];
+  saved.forEach(s=>{
+    const id = s && String(s.id||'');
+    if(!PDP_BLOCK_META[id] || seen.includes(id)) return;
+    seen.push(id); out.push({ id, on: s.on !== false });
+  });
+  return out;
+}
+
+async function renderProductTab(container){
+  container.innerHTML = '<div class="tab-pane"><div class="tab-hd">Under the product</div><div style="font-size:.6rem;color:var(--mu)">Loading…</div></div>';
+  if(!pdpCfg){
+    try{
+      const [cfgRes, flagRes] = await Promise.all([
+        sb.from('site_settings').select('value').eq('key','product_page').maybeSingle(),
+        sb.from('site_settings').select('value').eq('key','feature_flags').maybeSingle(),
+      ]);
+      let v = cfgRes && cfgRes.data && cfgRes.data.value;
+      if(typeof v==='string'){ try{ v=JSON.parse(v); }catch(_){ v=null; } }
+      pdpCfg = pdpNormalize(v);
+      let fl = flagRes && flagRes.data && flagRes.data.value;
+      if(typeof fl==='string'){ try{ fl=JSON.parse(fl); }catch(_){ fl=null; } }
+      pdpFlags = fl || {};
+    }catch(_){ pdpCfg = pdpNormalize(null); pdpFlags = {}; }
+  }
+  paintProductTab(container);
+}
+
+function paintProductTab(container){
+  const inLayout = pdpCfg.map(s=>s.id);
+  const available = Object.keys(PDP_BLOCK_META).filter(id=>inLayout.indexOf(id)<0);
+  container.innerHTML = `<div class="tab-pane">
+    <div class="tab-hd">Under the product</div>
+    <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">Everything that stacks below a product page. Eye hides a block, ✕ removes it, drag to reorder. Fewer blocks = a calmer page.</div>
+    <div class="sec-list" id="pdpList" style="padding:0;overflow:visible"></div>
+    ${available.length ? `<div class="tab-hd" style="margin-top:.4rem">Add a block</div>
+      <div class="sec-list" id="pdpLib" style="padding:0;overflow:visible"></div>` : ''}
+    <button onclick="pdpSave()" class="apply-btn" id="pdpSaveBtn">💾 Save Product Layout</button>
+    <div id="pdpMsg" style="font-size:.58rem;color:var(--mu);min-height:1em"></div>
+    <button onclick="pdpReset()" class="tbtn tbtn-ghost" style="align-self:flex-start">Reset to default</button>
+  </div>`;
+  const list = container.querySelector('#pdpList');
+  if(!pdpCfg.length){
+    list.innerHTML = '<div style="font-size:.6rem;color:var(--mu);padding:.6rem;border:1px dashed var(--bd);border-radius:3px">Nothing under the product. Add a block below.</div>';
+  }
+  pdpCfg.forEach(s=>{
+    const m = PDP_BLOCK_META[s.id] || { label:s.id, tp:s.id, icon:'📦' };
+    const flagOff = m.flag && !(pdpFlags[m.flag] && pdpFlags[m.flag].enabled);
+    const d = document.createElement('div');
+    d.className = 'sec-item' + (s.on ? '' : ' hidden-sec');
+    d.dataset.id = s.id;
+    d.draggable = !m.fixed;
+    d.innerHTML = `<span class="drag-h" title="${m.fixed?'Always first':'Drag to reorder'}" style="cursor:${m.fixed?'default':'grab'}">${m.fixed?'│':'⠿'}</span>
+      <span class="sec-ico">${m.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div class="sec-nm">${m.label}</div>
+        <div class="sec-tp"${flagOff?' style="color:#f0a020"':''}>${flagOff?'off in feature flags':m.tp}</div>
+      </div>
+      <div class="sec-acts"><button class="sec-act danger" data-action="del" title="Remove from the page">✕</button></div>
+      <button class="vis-btn" data-action="vis" title="${s.on?'Hide':'Show'}" style="opacity:${s.on?.75:.3}">${s.on?'👁':'🙈'}</button>`;
+    d.querySelector('[data-action="vis"]').addEventListener('click',e=>{
+      e.stopPropagation(); s.on = !s.on; paintProductTab(container); syncPreviewFrame();
+    });
+    d.querySelector('[data-action="del"]').addEventListener('click',e=>{
+      e.stopPropagation(); pdpRemove(s.id);
+    });
+    // Click the row → jump the preview to that block, like selecting a section does.
+    d.addEventListener('click',e=>{
+      if(e.target.closest('[data-action]')||e.target.closest('.drag-h')) return;
+      scrollPreviewToPdp(s.id);
+    });
+    d.style.cursor='pointer';
+    if(!m.fixed){
+      d.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/plain', s.id); d.style.opacity='.4'; });
+      d.addEventListener('dragend',()=>{ d.style.opacity=''; });
+      d.addEventListener('dragover',e=>{ e.preventDefault(); d.classList.add('drag-over'); });
+      d.addEventListener('dragleave',()=>d.classList.remove('drag-over'));
+      d.addEventListener('drop',e=>{ e.preventDefault(); d.classList.remove('drag-over'); pdpReorder(e.dataTransfer.getData('text/plain'), s.id); });
+    }
+    list.appendChild(d);
+  });
+
+  // Gallery of blocks not currently on the page — same row vocabulary, plus a +.
+  const lib = container.querySelector('#pdpLib');
+  if(lib) available.forEach(id=>{
+    const m = PDP_BLOCK_META[id];
+    const d = document.createElement('div');
+    d.className = 'sec-item';
+    d.style.cursor = 'pointer';
+    d.title = m.desc || '';
+    d.innerHTML = `<span class="drag-h" style="cursor:pointer">+</span>
+      <span class="sec-ico">${m.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div class="sec-nm">${m.label}</div>
+        <div class="sec-tp">${m.desc||m.tp}</div>
+      </div>`;
+    d.addEventListener('click',()=>pdpAdd(id));
+    lib.appendChild(d);
+  });
+}
+
+function pdpAdd(id){
+  if(!PDP_BLOCK_META[id] || pdpCfg.some(s=>s.id===id)) return;
+  // more_from_release is rendered first by the page itself — keep that true.
+  if(id==='more_from_release') pdpCfg.unshift({ id, on:true });
+  else pdpCfg.push({ id, on:true });
+  paintProductTab(document.getElementById('lpContent'));
+  scrollPreviewToPdp(id);
+}
+function pdpRemove(id){
+  pdpCfg = pdpCfg.filter(s=>s.id!==id);
+  paintProductTab(document.getElementById('lpContent'));
+  syncPreviewFrame();
+}
+
+// 'More from this release' is rendered by the product page itself, so it can't be
+// moved out of first place — refuse rather than pretend.
+function pdpReorder(fromId, toId){
+  if(fromId===toId) return;
+  if((PDP_BLOCK_META[fromId]||{}).fixed || (PDP_BLOCK_META[toId]||{}).fixed) return;
+  const fi = pdpCfg.findIndex(x=>x.id===fromId), ti = pdpCfg.findIndex(x=>x.id===toId);
+  if(fi<0||ti<0) return;
+  const it = pdpCfg.splice(fi,1)[0];
+  pdpCfg.splice(ti,0,it);
+  paintProductTab(document.getElementById('lpContent'));
+}
+function pdpReset(){ pdpCfg = pdpNormalize(null); paintProductTab(document.getElementById('lpContent')); }
+async function pdpSave(){
+  const btn=document.getElementById('pdpSaveBtn'), msg=document.getElementById('pdpMsg');
+  if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
+  try{
+    const token=await getAccessToken(); if(!token) throw new Error('Session expired — sign in again.');
+    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({accessToken:token,key:'product_page',value:{sections:pdpCfg}})});
+    const j=await res.json().catch(()=>({}));
+    if(!res.ok||j.error) throw new Error(j.error||'Save failed');
+    if(msg) msg.textContent='Saved — live on product pages.';
+    reloadProductPreview();   // show what was just saved, not what loaded first
+  }catch(e){ if(msg) msg.textContent=e.message||'Save failed'; if(typeof showErr==='function') showErr(e.message); }
+  if(btn){ btn.disabled=false; btn.textContent='💾 Save Product Layout'; }
+}
+
 function renderDesignTab(container){
   container.innerHTML='<div class="design-subtabs"><button class="dsub'+(designSub==='theme'?' on':'')+'" onclick="setDesignSub(\'theme\')">Appearance</button><button class="dsub'+(designSub==='nav'?' on':'')+'" onclick="setDesignSub(\'nav\')">Navigation</button></div><div id="designSub"></div>';
   const sub=container.querySelector('#designSub');
@@ -708,6 +960,7 @@ function renderLP(){
   else if(curTab==='design'){renderDesignTab(el);}
   else if(curTab==='settings'){renderSeoTab(el);}
   else if(curTab==='pages'){renderPagesTab(el);}
+  else if(curTab==='product'){renderProductTab(el);}
   else if(curTab==='theme'){renderThemeTab(el);}
   else if(curTab==='nav'){renderNavTab(el);}
   else if(curTab==='seo'){renderSeoTab(el);}
@@ -760,11 +1013,18 @@ function renderThemeTab(container){
     ${colorF2('page_bg','Page Background',g.page_bg||'#09090b')}
     ${colorF2('surface_color','Card / Section Background',g.surface_color||'#111113')}
     <div class="fdiv"></div>
+    <!-- Typography is READ-ONLY here on purpose. It used to be editable in this panel
+         AND in Admin → Typography, both writing the same CSS variables — but this one
+         is applied by storefront.js, which only index.html loads. So these controls
+         reached the homepage and nothing else, while the panel labelled "Global Theme"
+         implied otherwise, and choosing a font meant visiting two places.
+         Kept visible because the preview beside it is the point: you can see the type
+         in situ. Editing happens in one place. -->
     <div class="tab-hd" style="margin-top:.2rem">Typography</div>
-    ${sel2('heading_font','Heading Font',g.heading_font||'barlow-condensed',[['barlow-condensed','Barlow Condensed (default)'],['oswald','Oswald — Bold & Geometric'],['bebas-neue','Bebas Neue — All-Caps Display'],['anton','Anton — Heavy Impact'],['league-gothic','League Gothic — Condensed'],['michroma','Michroma — Technical'],['montserrat','Montserrat — Bold & Premium'],['syne','Syne — Edgy & Modern'],['archivo-black','Archivo Black — Heavy'],['teko','Teko — Tall & Industrial'],['righteous','Righteous — Retro & Groovy'],['playfair-display','Playfair Display — High Fashion Serif'],['cinzel','Cinzel — Cinematic Serif'],['futura','Futura — Classic Geometric'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']])}
-    ${sel2('body_font','Body Font',g.body_font||'barlow',[['barlow','Barlow (default)'],['inter','Inter — Clean & Modern'],['dm-sans','DM Sans — Geometric'],['outfit','Outfit — Rounded'],['manrope','Manrope — Contemporary'],['poppins','Poppins — Friendly & Round'],['lato','Lato — Classic sans-serif'],['roboto','Roboto — Standard'],['work-sans','Work Sans — Clean'],['mulish','Mulish — Minimalist'],['futura','Futura — Classic Geometric'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']])}
-    ${sel2('heading_weight','Heading Weight',g.heading_weight||'900',[['600','Demibold (600)'],['700','Bold (700)'],['800','Extra Bold (800)'],['900','Black (900, default)']])}
-    ${sel2('heading_style','Heading Style',g.heading_style||'italic',[['italic','Italic / Oblique (default)'],['normal','Upright']])}
+    <div id="typoMirror" style="border:1px solid var(--bd);border-radius:3px;padding:.6rem .7rem;font-size:.62rem;line-height:1.9">
+      <div style="opacity:.55">Loading…</div>
+    </div>
+    <a href="/admin.html#fonts" target="_blank" rel="noopener" class="apply-btn" style="display:block;text-align:center;margin-top:.4rem;text-decoration:none">Edit in Admin → Typography</a>
     <div class="fdiv"></div>
     <div class="tab-hd" style="margin-top:.2rem">Layout</div>
     ${sel2('content_width','Content Max Width',g.content_width||'1100',[['900','Narrow (900px)'],['1100','Standard (1100px)'],['1200','Wide (1200px)'],['1400','Full Width (1400px)']])}
@@ -780,12 +1040,39 @@ function renderThemeTab(container){
     <div class="field"><label>Additional CSS (applied site-wide)</label><textarea id="custom_css" rows="6" style="font-family:'IBM Plex Mono',monospace;font-size:.6rem" placeholder="/* your CSS */">${he(g.custom_css||'')}</textarea></div>
     <button onclick="saveTheme()" class="apply-btn" style="margin-top:.3rem">💾 Save Theme Settings</button>
   </div>`;
+  renderTypoMirror();   // fills the read-only Typography block from site_settings.fonts
   // wire events — update themeSettings and auto-preview on every change/input
   container.querySelectorAll('input,select,textarea').forEach(el=>{
     const sync=()=>{const k=el.dataset.k||el.id;if(k)themeSettings[k]=el.type==='checkbox'?el.checked:el.value;schedSend();};
     el.addEventListener('change',sync);
     el.addEventListener('input',sync);
   });
+}
+
+/* Show what Admin → Typography currently says, right next to the live preview.
+   Reads the same site_settings.fonts row the storefront reads, so it can never drift
+   from what the page actually renders — which is exactly what went wrong when this
+   panel had its own copy of these settings. */
+async function renderTypoMirror(){
+  const el=document.getElementById('typoMirror');
+  if(!el) return;
+  try{
+    const {data}=await sb.from('site_settings').select('value').eq('key','fonts').maybeSingle();
+    const v=(data&&data.value)||{};
+    const r=v.roles||{};
+    const row=(label,val)=>'<div style="display:flex;justify-content:space-between;gap:.6rem"><span style="opacity:.55">'+label+'</span><span style="text-align:right">'+he(val||'—')+'</span></div>';
+    const secs=Object.keys(v.sections||{}).filter(k=>v.sections[k]&&v.sections[k].stack).length;
+    el.innerHTML=
+      row('Heading',(r.head&&r.head.name)||'Barlow Condensed')
+      +row('Body',(r.body&&r.body.name)||'Barlow')
+      +row('Labels / Mono',(r.mono&&r.mono.name)||'IBM Plex Mono')
+      +row('Heading weight',v.headingWeight||'900')
+      +row('Heading style',v.headingStyle||'italic')
+      +(secs?row('Section overrides',secs+' set'):'')
+      +((v.presets||[]).length?row('Combinations',(v.presets||[]).length+' saved'):'');
+  }catch(e){
+    el.innerHTML='<div style="opacity:.55">Couldn’t load — check Admin → Typography.</div>';
+  }
 }
 
 async function saveTheme(){
@@ -1094,12 +1381,51 @@ async function copyLandingDraftLink(){
 // the saved DRAFT (preview=1), so it refreshes after each "Save Draft".
 function landingPreviewUrl(){ var s=landingSlug||'men'; if(s.indexOf('tag:')===0) return '/landing.html?tag='+encodeURIComponent(s.slice(4))+'&preview=1'; return '/landing.html?page='+encodeURIComponent(s)+'&preview=1'; }
 function reloadLandingPreview(){ const f=document.getElementById('pvIframe'); if(!f)return; f.onload=function(){ setTimeout(sendLandingCfg,120); }; f.src=landingPreviewUrl()+'&_cb='+Date.now(); }
+// The Product tab edits what stacks under a PRODUCT, so preview a real product
+// page rather than leaving the homepage up — you can't judge (or scroll to) a
+// block you can't see. Any live product will do; first by sort order.
+let pdpPreviewUrl=null;
+async function productPreviewUrl(){
+  if(pdpPreviewUrl) return pdpPreviewUrl;
+  try{
+    const {data}=await sb.from('products').select('id,title').eq('status','Live').order('sort_order',{ascending:true}).limit(1);
+    const p=data&&data[0];
+    if(p){
+      // mirrors product.html's slugOf()
+      const slug=String(p.title||'').replace(/^zuwera\s+/i,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'product';
+      pdpPreviewUrl='/product/'+slug+'?id='+encodeURIComponent(p.id)+'&builder=1';
+    }
+  }catch(_){}
+  return pdpPreviewUrl;
+}
+// The preview reads the SAVED layout from /api/product-page-config, and
+// syncPreviewFrame() deliberately leaves an iframe alone once it's on a product
+// page (so switching tabs doesn't reload it). Together that meant the preview
+// never moved after a save — you changed the blocks and the page looked
+// identical. Mirrors reloadLandingPreview(), cache-buster included.
+function reloadProductPreview(){
+  const f=document.getElementById('pvIframe'); if(!f) return;
+  productPreviewUrl().then(u=>{ if(!u) return; f.src=u+'&_cb='+Date.now(); });
+}
 function syncPreviewFrame(){
   const f=document.getElementById('pvIframe'); if(!f) return;
-  if(curTab==='pages'){ reloadLandingPreview(); }
-  else {
-    try{ const cur=new URL(f.src,location.origin); if(cur.pathname.indexOf('landing')!==-1) f.src='/index.html?builder=1'; }catch(_){ f.src='/index.html?builder=1'; }
+  if(curTab==='pages'){ reloadLandingPreview(); return; }
+  if(curTab==='product'){
+    productPreviewUrl().then(u=>{
+      if(!u) return;
+      try{ if(new URL(f.src,location.origin).pathname.indexOf('/product/')===0) return; }catch(_){}
+      f.src=u;
+    });
+    return;
   }
+  // leaving pages/product → put the homepage back
+  try{
+    const cur=new URL(f.src,location.origin);
+    if(cur.pathname.indexOf('landing')!==-1||cur.pathname.indexOf('/product/')===0) f.src='/index.html?builder=1';
+  }catch(_){ f.src='/index.html?builder=1'; }
+}
+function scrollPreviewToPdp(id){
+  try{document.getElementById('pvIframe').contentWindow.postMessage({type:'ZW_SCROLL_TO_PDP_BLOCK',blockId:id},location.origin);}catch(e){}
 }
 
 // ── SEO TAB ───────────────────────────────────────────────────────────────
@@ -1228,11 +1554,80 @@ function toggleSelectMode(){
   if(typeof toast==='function') toast(selectMode?'Click a section in the preview to edit it':'Preview links are clickable again');
 }
 
+// ── Inline text editing on the canvas ─────────────────────────────────────
+// When ON, clicking any text in the preview makes it editable in place and
+// shows a font picker. The preview posts the old→new text; we find the section
+// setting that held that text and update it (works for every section type).
+let textEditMode=false;
+function sendTextEditMode(){ try{ document.getElementById('pvIframe').contentWindow.postMessage({type:'ZW_TEXT_EDIT_MODE',on:textEditMode}, location.origin); }catch(_){} }
+function _styleModeBtn(b,on){ if(!b)return; b.classList.toggle('on',on); b.style.background=on?'var(--ac)':'var(--sf2)'; b.style.color=on?'#0f0f11':'#f4f1eb'; b.style.borderColor=on?'var(--ac)':'rgba(255,255,255,.25)'; b.style.fontWeight=on?'600':''; }
+function toggleTextEdit(){
+  textEditMode=!textEditMode;
+  // Only one canvas-click mode at a time.
+  if(textEditMode){
+    if(selectMode){ selectMode=false; const sb=document.getElementById('selModeBtn'); if(sb)sb.textContent='🎯 Click to select: Off'; _styleModeBtn(sb,false); sendSelectMode(); }
+    if(moveMode){ moveMode=false; const mb=document.getElementById('moveModeBtn'); if(mb)mb.textContent='✥ Move: Off'; _styleModeBtn(mb,false); sendMoveMode(); }
+  }
+  const b=document.getElementById('textEditBtn');
+  if(b){ b.textContent='✏️ Edit text: '+(textEditMode?'On':'Off'); _styleModeBtn(b,textEditMode); }
+  sendTextEditMode();
+  if(typeof toast==='function') toast(textEditMode?'Click any text in the preview to edit it':'Text editing off');
+}
+// Keep the select toggle from leaving text-edit on (mutual exclusion both ways).
+(function(){ const _origToggleSel=window.toggleSelectMode; window.toggleSelectMode=function(){ if(!selectMode){ if(textEditMode){ textEditMode=false; const b=document.getElementById('textEditBtn'); if(b){b.textContent='✏️ Edit text: Off';_styleModeBtn(b,false);} sendTextEditMode(); } if(moveMode){ moveMode=false; const mb=document.getElementById('moveModeBtn'); if(mb){mb.textContent='✥ Move: Off';_styleModeBtn(mb,false);} sendMoveMode(); } } return _origToggleSel.apply(this,arguments); }; })();
+
+function _zwNormText(s){ return String(s==null?'':s).replace(/\r\n/g,'\n').replace(/ /g,' ').trim(); }
+function applyInlineText(secId,oldText,newText){
+  const s=curSections().find(x=>x.id===secId); if(!s||!s.settings)return;
+  const target=_zwNormText(oldText); if(!target)return;
+  const g=s.settings; let done=false;
+  // 1) top-level string fields
+  for(const k of Object.keys(g)){ if(typeof g[k]==='string'&&_zwNormText(g[k])===target){ g[k]=newText; done=true; break; } }
+  // 2) string props inside arrays of objects (buttons, items, stats, slides, cards…)
+  if(!done){ for(const k of Object.keys(g)){ if(Array.isArray(g[k])){ for(const it of g[k]){ if(it&&typeof it==='object'){ for(const kk of Object.keys(it)){ if(typeof it[kk]==='string'&&_zwNormText(it[kk])===target){ it[kk]=newText; done=true; break; } } } if(done)break; } } if(done)break; } }
+  if(!done)return;            // couldn't map the text back to a field — ignore
+  curApply(); curDirty();
+  if(selId===secId){ const cur=curSections().find(x=>x.id===secId); if(cur)openEditor(cur); }
+}
+function applyInlineFont(secId,which,value){
+  const s=curSections().find(x=>x.id===secId); if(!s||!s.settings)return;
+  s.settings[which==='head'?'font_head_override':'font_body_override']=value||'';
+  curApply(); curDirty();
+  if(selId===secId){ const cur=curSections().find(x=>x.id===secId); if(cur)openEditor(cur); }
+  if(typeof toast==='function') toast('Font updated','ok');
+}
+
+// ── Drag-to-position color block content on the canvas ────────────────────
+let moveMode=false;
+function sendMoveMode(){ try{ document.getElementById('pvIframe').contentWindow.postMessage({type:'ZW_MOVE_MODE',on:moveMode}, location.origin); }catch(_){} }
+function toggleMoveMode(){
+  moveMode=!moveMode;
+  // Only one canvas-click mode at a time.
+  if(moveMode){
+    if(selectMode){ selectMode=false; const sb=document.getElementById('selModeBtn'); if(sb)sb.textContent='🎯 Click to select: Off'; _styleModeBtn(sb,false); sendSelectMode(); }
+    if(textEditMode){ textEditMode=false; const tb=document.getElementById('textEditBtn'); if(tb)tb.textContent='✏️ Edit text: Off'; _styleModeBtn(tb,false); sendTextEditMode(); }
+  }
+  const b=document.getElementById('moveModeBtn');
+  if(b){ b.textContent='✥ Move: '+(moveMode?'On':'Off'); _styleModeBtn(b,moveMode); }
+  sendMoveMode();
+  if(typeof toast==='function') toast(moveMode?'Drag a color block’s content to move it (snaps to center)':'Move mode off','ok');
+}
+function applyMovePos(secId,posX,posY){
+  const s=curSections().find(x=>x.id===secId); if(!s||!s.settings)return;
+  s.settings.pos_x=Math.max(0,Math.min(100,Math.round(posX)));
+  s.settings.pos_y=Math.max(0,Math.min(100,Math.round(posY)));
+  curApply(); curDirty();
+  if(selId===secId){ const cur=curSections().find(x=>x.id===secId); if(cur)openEditor(cur); }
+}
+
 // On-canvas WYSIWYG: the preview iframe posts ZW_SECTION_CLICKED when a section
 // is clicked in the canvas — select + open its editor here. Same-origin gated.
 window.addEventListener('message',function(e){
   if(e.origin!==location.origin)return;
   const d=e.data||{};
+  if(d.type==='ZW_MOVE_POS'&&d.sectionId){ applyMovePos(d.sectionId,d.pos_x,d.pos_y); return; }
+  if(d.type==='ZW_INLINE_TEXT'&&d.sectionId){ applyInlineText(d.sectionId,d.oldText,d.newText); return; }
+  if(d.type==='ZW_INLINE_FONT'&&d.sectionId){ applyInlineFont(d.sectionId,d.which,d.value); return; }
   if(d.type==='ZW_SECTION_CLICKED'&&d.sectionId){
     if(typeof secStore!=='undefined'&&secStore)return;      // homepage sections only
     if(!curSections().some(x=>x.id===d.sectionId))return;
@@ -1335,8 +1730,8 @@ const rangeF=(k,l,v,min,max,unit='')=>`<div class="field"><label>${l}</label><di
 // heading field, bfont after a body field) instead of a separate "Typography
 // Override" block. padF is kept as a no-op so the existing `+padF(g)` tails
 // don't need touching. Section-level keys: font_head_override / font_body_override.
-const FOPT_HEAD=[['','Use Global Theme (default)'],['barlow-condensed','Barlow Condensed'],['oswald','Oswald'],['bebas-neue','Bebas Neue'],['anton','Anton'],['league-gothic','League Gothic'],['michroma','Michroma'],['montserrat','Montserrat'],['syne','Syne'],['archivo-black','Archivo Black'],['teko','Teko'],['righteous','Righteous'],['playfair-display','Playfair Display'],['cinzel','Cinzel'],['futura','Futura'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']];
-const FOPT_BODY=[['','Use Global Theme (default)'],['barlow','Barlow'],['inter','Inter'],['dm-sans','DM Sans'],['outfit','Outfit'],['manrope','Manrope'],['poppins','Poppins'],['lato','Lato'],['roboto','Roboto'],['work-sans','Work Sans'],['mulish','Mulish'],['futura','Futura'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']];
+const FOPT_HEAD=[['','Use Global Theme (default)'],['barlow-condensed','Barlow Condensed'],['oswald','Oswald'],['bebas-neue','Bebas Neue'],['anton','Anton'],['league-gothic','League Gothic'],['michroma','Michroma'],['montserrat','Montserrat'],['syne','Syne'],['archivo-black','Archivo Black'],['teko','Teko'],['righteous','Righteous'],['playfair-display','Playfair Display'],['cinzel','Cinzel'],['futura','Futura'],['futura-100-demibold','Futura 100 Demibold'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']];
+const FOPT_BODY=[['','Use Global Theme (default)'],['barlow','Barlow'],['inter','Inter'],['dm-sans','DM Sans'],['outfit','Outfit'],['manrope','Manrope'],['poppins','Poppins'],['lato','Lato'],['roboto','Roboto'],['work-sans','Work Sans'],['mulish','Mulish'],['futura','Futura'],['futura-100-demibold','Futura 100 Demibold'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']];
 const fontSelInline=(k,l,v,opts)=>`<div class="field" style="margin:-.15rem 0 .1rem .9rem"><label style="opacity:.7">↳ ${l}</label><select data-f="${k}">${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select></div>`;
 const hfont=g=>fontSelInline('font_head_override','Font for this heading',g.font_head_override||'',FOPT_HEAD);
 const bfont=g=>fontSelInline('font_body_override','Font for this text',g.font_body_override||'',FOPT_BODY);
@@ -1418,6 +1813,7 @@ function buildForm(s){
     case 'about': h+=f('label','Eyebrow Label',g.label)+ta('heading','Heading',g.heading)+ta('body','Body (↵↵=paragraph)',g.body)+fdiv()+fhd('Stats')+arrField('stats','Stat',g.stats||[],[['value','Number','text'],['label','Label','text']])+padF(g);break;
     case 'release': h+=f('eyebrow','Eyebrow',g.eyebrow)+ta('title','Title (↵=line break)',g.title)+f('launch_date','Launch Date',g.launch_date,'date')+fdiv()+tog2('notify_on','Show Notify Form',g.notify_on)+f('notify_label','Form Label',g.notify_label)+padF(g);break;
     case 'products': h+=f('title','Section Title',g.title)+f('subtitle','Subtitle',g.subtitle)+fdiv()+platFields(g,'grid','swipe','swipe')+padF(g);break;
+    case 'recently_viewed': h+=f('heading','Section Title',g.heading)+rangeF('count','How many products to show',g.count??5,1,12,'')+tog2('show_time','Show time each product was viewed',g.show_time)+`<div class="fhint">Auto-fills with each visitor's most recently viewed products. Hidden for anyone who hasn't viewed at least 2.</div>`+padF(g);break;
     case 'split': h+=imgField('image','Image',g.image)+sel('image_side','Image Side',g.image_side||'left',[['left','Image Left'],['right','Image Right']])+sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])+f('image_height','Image Height (px)',g.image_height,'number')+fdiv()+f('label','Eyebrow',g.label)+ta('heading','Heading',g.heading)+ta('body','Body',g.body)+fdiv()+f('cta_text','Button Text',g.cta_text)+f('cta_url','Button URL',g.cta_url)+padF(g);break;
     case 'cta': h+=ta('heading','Heading',g.heading)+ta('subtext','Subtext',g.subtext)+fdiv()+f('btn_text','Button Text',g.btn_text)+f('btn_url','Button URL',g.btn_url)+sel('btn_style','Button Style',g.btn_style||'solid',[['solid','Solid'],['outline','Outlined'],['ghost','Ghost']])+sel('align','Alignment',g.align||'center',[['center','Center'],['left','Left'],['right','Right']])+padF(g);break;
     case 'features': h+=f('heading','Section Heading',g.heading)+fdiv()+arrField('items','Feature',g.items||[],[['icon','Icon/Emoji','text'],['title','Title','text'],['desc','Description','textarea']])+padF(g);break;
@@ -1426,6 +1822,46 @@ function buildForm(s){
     case 'gallery': h+=f('heading','Section Heading',g.heading)+sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])+sel('aspect','Aspect Ratio',g.aspect||'square',[['square','Square'],['portrait','Portrait 3:4'],['wide','Wide 16:9']])+fdiv()+platFields(g,'grid','grid','swipe')+fdiv()+arrField('images','Image',g.images||[],[['src','Image (upload or URL)','image'],['alt','Alt Text','text'],['link','Link (optional)','text']])+padF(g);break;
     case 'video': h+=`<div class="field"><label>Video URL</label><input data-f="url" value="${he(g.url)}" placeholder="YouTube or Vimeo URL"><span class="fhint">Paste a YouTube or Vimeo URL</span></div>`+f('caption','Caption (optional)',g.caption)+tog2('controls','Show Controls',g.controls!==false)+tog2('autoplay','Autoplay',g.autoplay)+tog2('muted','Muted',g.muted!==false)+padF(g);break;
     case 'countdown': h+=f('heading','Heading',g.heading)+`<div class="field"><label>Launch Date & Time</label><input type="datetime-local" data-f="launch_date" value="${he(g.launch_date)}"></div>`+sel('align','Alignment',g.align||'center',[['center','Center'],['left','Left']])+tog2('show_labels','Show Unit Labels',g.show_labels!==false)+padF(g);break;
+    case 'color_block': {
+      h+=fhd('Color & Shape')
+        +colorF('bg_color','Block Color',g.bg_color||'#1f2937')
+        +sel('width','Block Width',g.width||'full',[['full','Full Width (edge to edge)'],['half','Half Width (50%)'],['1400','Contained — Wide (1400px)'],['1200','Contained — Standard (1200px)'],['1000','Contained — Narrow (1000px)'],['800','Contained — Slim (800px)'],['600','Contained — Extra Slim (600px)']])
+        +sel('block_align','Block Placement (when not full width)',g.block_align||'center',[['left','Left'],['center','Center'],['right','Right']])
+        +f('radius','Corner Rounding (px)',g.radius||0,'number')
+        +sel('height','Block Height',g.height||'auto',[['auto','Auto (fits content)'],['short','Short (40% of screen)'],['half','Half Screen (50%)'],['tall','Tall (75% of screen)'],['full','Full Page (100% of screen)']])
+        +f('min_height','Minimum Height (px, optional)',g.min_height,'number')
+        +`<div class="fhint">Block Height presets size the block against the screen; the px value below only applies on “Auto”.</div>`
+        +fdiv()+fhd('Spacing')
+        +`<div class="frow"><div class="field"><label>Space Above (px)</label><input type="number" data-f="gap_top" value="${g.gap_top||''}" placeholder="0" min="0"></div><div class="field"><label>Space Below (px)</label><input type="number" data-f="gap_bot" value="${g.gap_bot||''}" placeholder="0" min="0"></div></div>`
+        +`<div class="fhint">Distance from the sections above/below — set this on each color block to control how close blocks sit to each other (0 = touching).</div>`
+        +sel('inner_pad','Inside Padding',g.inner_pad||'md',[['sm','Compact'],['md','Standard'],['lg','Roomy'],['xl','Extra Roomy']])
+        +fdiv()+fhd('Text')
+        +f('eyebrow','Eyebrow (small label, optional)',g.eyebrow)
+        +ta('heading','Heading (↵=line break)',g.heading)
+        +ta('body','Body Text (↵↵=paragraph)',g.body)
+        +sel('content_align','Text Alignment (how lines of text align)',g.content_align||'center',[['left','Left'],['center','Center'],['right','Right']])
+        +fdiv()+fhd('Content Position — move the text &amp; logo')
+        +rangeF('pos_x','Left ↔ Right',g.pos_x??50,0,100,'%')
+        +rangeF('pos_y','Up ↕ Down',g.pos_y??50,0,100,'%')
+        +`<div class="fhint">Move the block’s text &amp; logo anywhere: drag them with your mouse (turn on <b>✥ Move</b> in the preview bar — it snaps to the middle so it won’t end up off-center), or use these sliders for exact placement (50% = centered). Moving off-center gives the block room automatically; set a <b>Block Height</b> above for more space to work with.</div>`
+        +fdiv()+fhd('Buttons')
+        +sel('btn_align','Button Position',g.btn_align||'',[['','Follow text alignment'],['left','Left'],['center','Center'],['right','Right']]);
+      const cbBtns=g.buttons||[];
+      h+=`<div class="flist" data-arr="buttons">${cbBtns.map((b,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:.55rem .6rem;margin-bottom:.4rem">
+        <div class="flist-item-hd"><span class="flist-item-lbl">Button ${i+1}</span><span class="flist-acts"><button class="flist-mv" onclick="moveArrItem(this,-1)" title="Move up">↑</button><button class="flist-mv" onclick="moveArrItem(this,1)" title="Move down">↓</button><button class="flist-mv" onclick="dupArrItem(this)" title="Duplicate">⎘</button><button class="flist-rm" onclick="removeArrItem(this,'buttons')">✕</button></span></div>
+        <div class="field" style="margin-top:.3rem"><label>Text</label><input type="text" data-f="text" value="${he(b.text)}" placeholder="Shop Now"></div>
+        <div class="field"><label>Leads To (URL / #anchor)</label><input type="text" data-f="url" value="${he(b.url)}" placeholder="/drop001.html or #notify"></div>
+        <div class="field"><label>Style</label><select data-f="style"><option value="solid"${(b.style||'solid')==='solid'?' selected':''}>Solid</option><option value="outline"${b.style==='outline'?' selected':''}>Outlined</option><option value="ghost"${b.style==='ghost'?' selected':''}>Ghost (underline link)</option></select></div>
+      </div>`).join('')}</div>
+      <button class="add-item-btn" onclick="addArrItem('buttons')">+ Add Button</button>`;
+      h+=fdiv()+fhd('Logos')
+        +f('logo_height','Logo Height (px)',g.logo_height||34,'number')
+        +sel('logo_adjust','Logo Color Handling',(g.logo_adjust==='blend'?'auto':g.logo_adjust)||(g.logo_original?'original':'auto'),[['auto','Auto — fit logo to the block (recommended)'],['recolor','Force to one flat color (simple transparent logos)'],['original','Keep original colors']])
+        +arrField('logos','Logo',g.logos||[],[['src','Logo Image (upload or URL)','image'],['alt','Alt Text','text'],['link','Link → product / page (optional)','text']])
+        +`<div class="fhint"><b>Auto</b> (recommended): blends the logo onto the block — it drops a solid <b>black or white</b> background (like a white wordmark on black) and suits transparent logos too. <b>Force to one flat color</b>: paints a simple transparent logo a single contrasting color. <b>Keep original</b>: no change. Add a Link to any logo to make it clickable.</div>`;
+      h+=padF(g);
+      break;
+    }
     case 'spacer': h+=sel('height','Height',g.height||'md',[['xs','XS (1rem)'],['sm','SM (2rem)'],['md','MD (4rem)'],['lg','LG (8rem)'],['xl','XL (12rem)']]);break;
     case 'text': h+=f('heading','Heading (optional)',g.heading)+ta('body','Body',g.body)+sel('align','Alignment',g.align||'left',[['left','Left'],['center','Center'],['right','Right']])+fdiv()+f('cta_text','Button Text (optional)',g.cta_text)+f('cta_url','Button URL',g.cta_url)+padF(g);break;
     case 'img_cta': h+=imgField('image','Image',g.image)+f('alt','Alt Text',g.alt)+fdiv()+tog2('btn_on','Show Button',g.btn_on)+f('btn_text','Button Text',g.btn_text)+f('btn_url','Button URL',g.btn_url)+sel('btn_position','Button Position',g.btn_position||'center',[['center','Center'],['bottom-left','Bottom Left'],['bottom-right','Bottom Right'],['top-right','Top Right']])+padF(g);break;
@@ -1524,11 +1960,13 @@ function buildForm(s){
   // ── Universal Section Style controls (appended to every section editor)
   h+=`<div class="fdiv"></div>
 <div class="tab-hd" style="margin-top:.2rem;font-size:.55rem;">Section Style</div>
-${colorF('sec_bg','Background',g.sec_bg||g.bg_color||'')}
+${colorF('sec_bg','Background',g.sec_bg||(s.type==='color_block'?'':g.bg_color)||'')}
 <div class="fhint" style="margin-top:-.3rem">Leave blank for default background</div>
 ${colorF('text_color','Text Color',g.text_color||'')}
 <div class="fhint" style="margin-top:-.3rem">Leave blank to inherit the page text color</div>
 <div class="field"><label>Heading Size</label><input type="text" data-f="heading_size" value="${he(g.heading_size||'')}" placeholder="blank = default · e.g. 2.5rem, 48px, clamp(2rem,5vw,3rem)"></div>
+<div class="field"><label>Body Text Size</label><input type="text" data-f="body_size" value="${he(g.body_size||'')}" placeholder="blank = default · e.g. 1.1rem, 18px"></div>
+<div class="fhint" style="margin-top:-.3rem">Sizes the heading and body/paragraph text of this section (works on every section, incl. the color block). Use rem, px, or a clamp().</div>
 <div class="frow">
   <div class="field"><label>Top Padding (px)</label><input type="number" data-f="pad_top" value="${g.pad_top||''}" placeholder="0" min="0"></div>
   <div class="field"><label>Bottom Padding (px)</label><input type="number" data-f="pad_bot" value="${g.pad_bot||''}" placeholder="0" min="0"></div>
@@ -1550,37 +1988,47 @@ function manualApply(){const s=curSections().find(x=>x.id===selId);if(!s)return;
 // ── MEDIA LIBRARY ─────────────────────────────────────────────────────────
 const SITE_IMGS=[{label:'Hero',src:'/images/hero.jpg?v=2'},{label:'Hero Mobile',src:'/images/hero-mobile.jpg'},{label:'OG Image',src:'/images/og-image.jpg'},{label:'Logo',src:'/images/logo.png?v=2'},{label:'Wordmark',src:'/images/wordmark.png'}];
 
+const _reVid=/\.(mp4|webm|mov|m4v|ogv|ogg)$/i;
+let _mediaCache=null;   // session cache of the uploaded-files list (avoids refetch on reopen)
+
+// One tile. Images lazy-load (only fetched when scrolled into view); videos are
+// a lightweight placeholder — no media element, so 50 videos don't all load.
+function _mediaTile(src,label){
+  const s=String(src).replace(/'/g,"\\'");
+  if(_reVid.test(label)||_reVid.test(src)){
+    return `<div class="media-thumb media-vid" title="${he(label)}" onclick="applyMedia('${s}')"><span class="media-vplay">▶</span><span class="media-vbadge">video</span><div class="media-thumb-lbl">${he(label)}</div></div>`;
+  }
+  return `<div class="media-thumb" title="${he(label)}" onclick="applyMedia('${s}')"><img src="${he(src)}" alt="${he(label)}" loading="lazy" decoding="async" onerror="this.parentElement.style.display='none'"><div class="media-thumb-lbl">${he(label)}</div></div>`;
+}
+function _uploadsHtml(files){
+  if(!files||!files.length) return `<div class="media-cat">Your uploads</div><div class="media-empty">No uploads yet — use ⬆ Upload below to add images or videos.</div>`;
+  return `<div class="media-cat">Your uploads · ${files.length}</div>`+files.map(f=>{
+    const url=SUPA_URL+'/storage/v1/object/public/product-images/builder/'+f.name;
+    return _mediaTile(url,f.name);
+  }).join('');
+}
+
 async function openMedia(fieldKey){
   _imgKey=fieldKey;
-  const modal=document.getElementById('mediaModal');
-  modal.classList.add('open');
+  document.getElementById('mediaModal').classList.add('open');
   const grid=document.getElementById('mediaGrid');
-  // Start with known site images
-  grid.innerHTML=SITE_IMGS.map(img=>`<div class="media-thumb" onclick="applyMedia('${img.src}')"><img src="${img.src}" alt="${img.label}" onerror="this.parentElement.style.display='none'"><div class="media-thumb-lbl">${img.label}</div></div>`).join('');
-  // Load from Supabase storage (listing needs the admin token — anon is blocked by RLS)
+  grid.scrollTop=0;
+  const siteHtml=`<div class="media-cat">Site images</div>`+SITE_IMGS.map(img=>_mediaTile(img.src,img.label)).join('');
+  // Reopen is instant when the uploads list is already cached this session.
+  if(_mediaCache){ grid.innerHTML=siteHtml+_uploadsHtml(_mediaCache); return; }
+  grid.innerHTML=siteHtml+`<div class="media-cat">Your uploads</div><div class="media-empty">Loading…</div>`;
+  // Listing needs the admin token — anon is blocked by RLS.
   try{
     const token=await getAccessToken();
     const listRes=await fetch(SUPA_URL+'/storage/v1/object/list/product-images',{
       method:'POST',
       headers:{ apikey:SUPA_ANON, Authorization:'Bearer '+(token||SUPA_ANON), 'Content-Type':'application/json' },
-      body:JSON.stringify({prefix:'builder/',limit:50,sortBy:{column:'created_at',order:'desc'}})
+      body:JSON.stringify({prefix:'builder/',limit:100,sortBy:{column:'created_at',order:'desc'}})
     });
     const data=listRes.ok?await listRes.json():null;
-    if(Array.isArray(data)){
-      data.forEach(file=>{
-        if(!file||!file.name)return;
-        const publicUrl=SUPA_URL+'/storage/v1/object/public/product-images/builder/'+file.name;
-        const isVid=/\.(mp4|webm|mov|m4v|ogv|ogg)$/i.test(file.name);
-        const d=document.createElement('div');d.className='media-thumb';d.onclick=()=>applyMedia(publicUrl);
-        d.innerHTML=(isVid
-            ? `<video src="${publicUrl}" muted playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></video><span style="position:absolute;top:3px;right:4px;font-size:.5rem;background:rgba(0,0,0,.6);color:#fff;padding:1px 4px;border-radius:2px;pointer-events:none">▶ video</span>`
-            : `<img src="${publicUrl}" alt="${file.name}" onerror="this.parentElement.style.display='none'">`)
-          +`<div class="media-thumb-lbl">${file.name}</div>`;
-        d.style.position='relative';
-        grid.appendChild(d);
-      });
-    }
-  }catch(e){}
+    _mediaCache=Array.isArray(data)?data.filter(f=>f&&f.name):[];
+    if(document.getElementById('mediaModal').classList.contains('open')) grid.innerHTML=siteHtml+_uploadsHtml(_mediaCache);
+  }catch(e){ grid.innerHTML=siteHtml+`<div class="media-cat">Your uploads</div><div class="media-empty">Couldn’t load uploads — check your connection and reopen.</div>`; }
 }
 
 function applyMedia(src){
@@ -1661,6 +2109,7 @@ async function uploadFromMedia(input){
     const res=await fetch('/api/upload-image',{method:'POST',body:fd});
     let out={}; try{ out=await res.json(); }catch(_){}
     if(!res.ok||!out.url)throw new Error(out.error||('HTTP '+res.status));
+    _mediaCache=null;   // new file — refetch the uploads list next time the library opens
     applyMedia(out.url);
     toast(didShrink ? ('Compressed '+(origSize/1048576).toFixed(1)+'MB → '+Math.round(file.size/1024)+'KB') : 'Uploaded','ok');
   }catch(e){
@@ -1675,7 +2124,7 @@ async function uploadFromMedia(input){
 // stay hidden from the Pages-tab palette. `hero` IS allowed: a hero section is
 // how you place a hero below the products (turn off the auto hero if you don't
 // want it at the top too).
-const HOMEPAGE_ONLY_TYPES=['products','release'];
+const HOMEPAGE_ONLY_TYPES=['products','release','recently_viewed'];
 function openLib(){
   const cats={store:'Store Sections',marketing:'Marketing & Content',layout:'Layout Blocks'};
   let html='';
@@ -1790,7 +2239,7 @@ async function saveDraft(auto=false){
   if(!auto && curTab==='pages'){ await saveLandingPages(false); return; }
   status('Saving…');dotCls('y');
   const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},false);
-  if(ok){lastSaved=clone(sections);status('Saved · '+new Date().toLocaleTimeString());dotCls('g');if(!auto)toast('Draft saved','ok');}
+  if(ok){lastSaved=clone(sections);status('Saved · '+new Date().toLocaleTimeString());dotCls('g');if(!auto)toast('Draft saved','ok');lyStashCurrent();}
   else{dotCls('r');if(!auto)toast('Save failed','err');}
   setTimeout(()=>dotCls(''),3000);
 }
@@ -1859,10 +2308,17 @@ async function cancelScheduledPublish(){
   }catch(e){showErr(e.message);}
 }
 
-async function publishPage(){
+async function publishPage(skipLayoutGuard){
   // On the Pages tab the top Publish publishes the LANDING page you're viewing
   // (not the homepage) — otherwise landing edits silently never go live.
   if(curTab==='pages'){ await saveLandingPages(true); return; }
+  // Layout guard: publishing while editing a NON-live layout replaces the live
+  // homepage with this design — make sure that's intentional. (Set Live in the
+  // Layouts modal already confirmed, so it passes skipLayoutGuard=true.)
+  if(skipLayoutGuard!==true&&layouts.currentId&&layouts.activeId&&layouts.currentId!==layouts.activeId){
+    const cur=layouts.list.find(x=>x.id===layouts.currentId),act=layouts.list.find(x=>x.id===layouts.activeId);
+    if(!confirm(`You're editing “${cur?cur.name:'this layout'}”, but “${act?act.name:'another layout'}” is currently live.\n\nPublishing will REPLACE the live homepage with this design and make it the active layout. Continue?`))return;
+  }
   status('Publishing…');dotCls('y');
   const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},true);
   if(ok){lastSaved=clone(sections);dirty=false;status('Published ✓');dotCls('g');toast('Published! Changes are live.','ok');
@@ -1877,6 +2333,8 @@ async function publishPage(){
       localStorage.setItem('zw_hide_static_hero',_hero?'':'1');
       localStorage.setItem('zw_pb_active','1');
     }catch(_){}
+    // The published design becomes the ACTIVE layout (if one is open).
+    if(layouts.currentId){lyStashCurrent(true);layouts.activeId=layouts.currentId;persistLayouts();}
     // save snapshot on publish
     versionHistory.push({ts:new Date().toISOString(),label:'Published',sections:clone(sections)});
     if(versionHistory.length>15)versionHistory.shift();
@@ -1894,6 +2352,171 @@ async function saveToSupa(key,extra,pub){
     if(!res.ok){const j=await res.json().catch(()=>({}));throw new Error(j.error||'HTTP '+res.status);}
     dirty=false;return true;
   }catch(e){showErr(e.message);return false;}
+}
+
+// ── SAVED PAGE LAYOUTS ────────────────────────────────────────────────────
+// Multiple independent full-page saves (sections + theme + nav + SEO). One is
+// "active" (live on the site); the rest are inactive drafts you can open and
+// edit freely — the live homepage only changes on Publish / Set Live.
+function layoutsSnapshot(){return {sections:clone(sections),theme:pvTheme,themeSettings:clone(themeSettings||{}),navSettings:clone(navSettings||{links:[]}),seoSettings:clone(seoSettings||{})};}
+async function persistLayouts(){
+  try{
+    // If startup couldn't read the saved layouts, re-read now and merge before
+    // writing — otherwise a fresh empty list would overwrite (destroy) the
+    // layouts already stored in the DB.
+    if(_lyReadFailed){
+      const v=await fetchSettingAuthed('builder_layouts');
+      if(v===undefined)throw new Error('can\'t reach saved layouts — not overwriting them');
+      if(v&&Array.isArray(v.list)){
+        const have=new Set(layouts.list.map(x=>x.id));
+        v.list.forEach(l=>{if(l&&!have.has(l.id))layouts.list.push(l);});
+        if(!layouts.activeId&&v.activeId)layouts.activeId=v.activeId;
+        renderLayouts();
+      }
+      _lyReadFailed=false;
+    }
+    const token=await getAccessToken();if(!token)throw new Error('Session expired — re-open the builder from admin');
+    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'builder_layouts',value:layouts})});
+    if(!res.ok){const j=await res.json().catch(()=>({}));throw new Error(j.error||('HTTP '+res.status));}
+    return true;
+  }catch(e){toast('Layouts didn\'t save: '+e.message,'err');return false;}
+}
+// Snapshot the editor into the layout that's open, so its slot never goes stale.
+function lyStashCurrent(skipPersist){
+  if(!layouts.currentId)return;
+  const cur=layouts.list.find(x=>x.id===layouts.currentId);
+  if(!cur){layouts.currentId=null;return;}
+  cur.data=layoutsSnapshot();cur.updated_at=new Date().toISOString();
+  if(!skipPersist)persistLayouts();
+}
+function updateLyBtn(){
+  const b=document.getElementById('lyBtn');if(!b)return;
+  const cur=layouts.list.find(x=>x.id===layouts.currentId);
+  b.textContent=cur?('🗂 '+(cur.name.length>18?cur.name.slice(0,17)+'…':cur.name)):'🗂 Layouts';
+}
+function openLayouts(){
+  try{closeMore();}catch(_){}
+  const old=document.getElementById('lyOverlay');if(old)old.remove();
+  const ov=document.createElement('div');ov.id='lyOverlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:1rem';
+  ov.innerHTML=`<div style="background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:1.2rem;max-width:460px;width:100%;color:#f4f1eb;max-height:82vh;display:flex;flex-direction:column">
+    <div style="font-family:'Barlow Condensed';font-weight:900;font-style:italic;text-transform:uppercase;font-size:1.1rem;letter-spacing:.04em;margin-bottom:.3rem">Page Layouts</div>
+    <div style="font-size:.7rem;opacity:.7;margin-bottom:.8rem;line-height:1.5">Save several complete homepage designs and switch between them. Only the <b style="color:#7ee29a">● Live</b> one shows on the site — open any other layout to redesign the whole page without shoppers seeing a thing, then <b>Set Live</b> when it's ready.</div>
+    <div id="lyList" style="overflow-y:auto;flex:1;margin:0 -.25rem;padding:0 .25rem"></div>
+    <div style="display:flex;gap:.5rem;margin-top:.9rem;flex-wrap:wrap">
+      <button onclick="lyNew(true)" style="flex:1;background:#f4f1eb;color:#09090b;border:none;border-radius:5px;padding:.5rem .7rem;cursor:pointer;font-weight:600;font-size:.68rem;white-space:nowrap">＋ Save current design as layout</button>
+      <button onclick="lyNew(false)" style="background:none;border:1px solid var(--bd);color:#f4f1eb;border-radius:5px;padding:.5rem .7rem;cursor:pointer;font-size:.68rem;white-space:nowrap" title="Start a blank page and build it with + Add Section">＋ New (blank)</button>
+      <button onclick="document.getElementById('lyOverlay').remove()" style="background:none;border:1px solid var(--bd);color:#f4f1eb;border-radius:5px;padding:.5rem .7rem;cursor:pointer;font-size:.68rem">Close</button>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+  renderLayouts();
+}
+function renderLayouts(){
+  const host=document.getElementById('lyList');if(!host)return;
+  if(!layouts.list.length){
+    host.innerHTML='<div style="border:1px dashed var(--bd);border-radius:6px;padding:1rem;text-align:center;font-size:.7rem;opacity:.55">No saved layouts yet.<br>Start by saving your current design as the first layout.</div>';
+    return;
+  }
+  host.innerHTML=layouts.list.map(l=>{
+    const isLive=l.id===layouts.activeId, isCur=l.id===layouts.currentId;
+    const badges=(isLive?'<span style="color:#7ee29a;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;margin-left:.45rem">● Live</span>':'')
+      +(isCur?'<span style="color:#8ab4f8;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;margin-left:.45rem">✎ Editing</span>':'');
+    const when=l.updated_at?new Date(l.updated_at).toLocaleString():'';
+    const btn='background:none;border:1px solid var(--bd);color:#f4f1eb;border-radius:4px;padding:.28rem .55rem;cursor:pointer;font-size:.62rem;white-space:nowrap';
+    return `<div style="border:1px solid ${isLive?'rgba(126,226,154,.45)':'var(--bd)'};border-radius:6px;padding:.6rem .65rem;margin-bottom:.45rem;background:${isCur?'rgba(138,180,248,.07)':'var(--bg)'}">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:.5rem">
+        <div style="min-width:0"><b style="font-size:.78rem">${he(l.name)}</b>${badges}<div style="font-size:.58rem;opacity:.45;margin-top:.15rem">Updated ${when}</div></div>
+      </div>
+      <div style="display:flex;gap:.35rem;margin-top:.5rem;flex-wrap:wrap">
+        ${isCur?'':`<button style="${btn}" onclick="lyOpen('${l.id}')">Open &amp; edit</button>`}
+        ${isLive?'':`<button style="${btn};border-color:rgba(126,226,154,.5);color:#7ee29a" onclick="lySetLive('${l.id}')">Set Live</button>`}
+        <button style="${btn}" onclick="lyRename('${l.id}')" title="Rename">✎</button>
+        <button style="${btn}" onclick="lyDup('${l.id}')" title="Duplicate">⎘</button>
+        <button style="${btn};color:#e07060" onclick="lyDelete('${l.id}')" title="Delete">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function lyNew(fromCurrent){
+  const name=prompt('Name this layout:',fromCurrent?'My design':'New layout');
+  if(!name||!name.trim())return;
+  const id='ly'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  const now=new Date().toISOString();
+  // A brand-new layout starts BLANK (just header/footer) — build it up with
+  // "+ Add Section". (It used to seed the default sample homepage sections.)
+  const data=fromCurrent?layoutsSnapshot():{sections:[],theme:pvTheme,themeSettings:clone(themeSettings||{}),navSettings:clone(navSettings||{links:[]}),seoSettings:{}};
+  layouts.list.push({id,name:name.trim(),created_at:now,updated_at:now,data});
+  // "Save current design as layout" works like Save As: the NEW layout becomes
+  // the one you're editing, so further edits/autosaves flow into IT. (It used
+  // to keep the previously open layout as current — later saves silently
+  // overwrote that old layout while the new one stayed frozen at its creation
+  // snapshot, i.e. "my second layout isn't saving".)
+  if(fromCurrent)layouts.currentId=id;
+  const ok=await persistLayouts();
+  renderLayouts();updateLyBtn();
+  if(ok)toast('Layout “'+name.trim()+'” saved'+(fromCurrent?' — you\'re now editing it':' — blank page, use + Add Section'),'ok');
+  // A new blank layout opens right away (like a new document), so edits go
+  // into it instead of the previously open layout. lyOpen keeps its own
+  // safety confirm when there are unsaved edits not stored in any layout.
+  if(!fromCurrent)await lyOpen(id);
+}
+async function lyOpen(id,force){
+  const l=layouts.list.find(x=>x.id===id);if(!l)return;
+  if(layouts.currentId===id){if(!force)toast('Already editing this layout');return;}
+  if(layouts.currentId){
+    lyStashCurrent(true); // keep the layout you're leaving up to date — no edits lost
+  }else if(dirty&&!force&&!confirm('Your current edits aren\'t stored in any layout.\n\nOpening a layout will replace them in the editor. Cancel and use “Save current design as layout” first if you want to keep them.')){
+    return;
+  }
+  const d=l.data||{};
+  sections=(Array.isArray(d.sections)?d.sections:clone(DEFAULT_SECTIONS)).map(s=>({...s,settings:{...SECT_DEFS[s.type],...(s.settings||{})}}));
+  themeSettings=clone(d.themeSettings||{});
+  navSettings=clone(d.navSettings||{links:[]});
+  seoSettings=clone(d.seoSettings||{});
+  if(d.theme)setTheme(d.theme);
+  layouts.currentId=id;
+  undoStack=[];redoStack=[];selId=null;closeEd();
+  lastSaved=clone(sections);
+  renderLP();sendCfg();
+  // Sync the working draft so a reload re-opens this layout (live site untouched).
+  dirty=true;await saveDraft(true);
+  await persistLayouts();
+  renderLayouts();updateLyBtn();
+  toast('Now editing “'+l.name+'”'+(id===layouts.activeId?' (live layout)':' — inactive, the site won\'t change until you publish'),'ok');
+}
+async function lySetLive(id){
+  const l=layouts.list.find(x=>x.id===id);if(!l)return;
+  if(!confirm('Make “'+l.name+'” the LIVE homepage?\n\nShoppers will see this design immediately.'))return;
+  if(layouts.currentId!==id)await lyOpen(id,true);
+  await publishPage(true); // sets activeId + stores the snapshot (see publishPage)
+  renderLayouts();updateLyBtn();
+}
+async function lyRename(id){
+  const l=layouts.list.find(x=>x.id===id);if(!l)return;
+  const name=prompt('Rename layout:',l.name);
+  if(!name||!name.trim())return;
+  l.name=name.trim();l.updated_at=new Date().toISOString();
+  await persistLayouts();renderLayouts();updateLyBtn();
+}
+async function lyDup(id){
+  const l=layouts.list.find(x=>x.id===id);if(!l)return;
+  const now=new Date().toISOString();
+  const copy={id:'ly'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:l.name+' copy',created_at:now,updated_at:now,data:clone(l.data||{})};
+  layouts.list.splice(layouts.list.indexOf(l)+1,0,copy);
+  await persistLayouts();renderLayouts();
+  toast('Layout duplicated','ok');
+}
+async function lyDelete(id){
+  const l=layouts.list.find(x=>x.id===id);if(!l)return;
+  const extra=id===layouts.activeId?'\n\nThis layout is LIVE — deleting the save won\'t change the live site, but you\'ll lose the ability to re-edit it as a layout.':'';
+  if(!confirm('Delete layout “'+l.name+'”? This can\'t be undone.'+extra))return;
+  layouts.list=layouts.list.filter(x=>x.id!==id);
+  if(layouts.activeId===id)layouts.activeId=null;
+  if(layouts.currentId===id)layouts.currentId=null;
+  await persistLayouts();renderLayouts();updateLyBtn();
+  toast('Layout deleted','ok');
 }
 
 function revertChanges(){

@@ -7,6 +7,10 @@
   color: var(--black);
   text-align: center;
   padding: 0.55rem 3rem;
+  /* Lets the bar FOLD (collapse its own height) on scroll-hide so the nav + page
+     push up into the reclaimed space — a content-push, not an overlay slide.
+     JS animates max-height/padding; overflow clips the text as it folds. */
+  overflow: hidden;
   font-family: var(--font-body);
   font-size: 0.72rem;
   font-weight: 500;
@@ -44,7 +48,7 @@
   isolation: isolate;
   border-bottom: 1px solid var(--c08);
   box-shadow: 0 1px 12px rgba(0,0,0,0.3);
-  transition: top .45s ease, background .35s ease, box-shadow .35s ease;
+  transition: top .25s cubic-bezier(.32,.72,0,1), background .35s ease, box-shadow .35s ease;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }

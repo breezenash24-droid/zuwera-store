@@ -61,6 +61,18 @@ a,button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:t
    an identical header. Spacing lives in .zw-hdr-group so it never depends on
    each page's own nav container gap. !important guards against page-level
    `a {}` / nav-anchor resets. Colours are mode-aware via --paper/--ink. */
+/* When the bag-panel header is on, the old login/account buttons are replaced by the
+   search + bag header, so hide them. storefront-features.js also injects this at runtime,
+   but having it here (render-blocking) lets the header pre-paint add body.zwf-bagpanel-on
+   from the cached feature state and hide #account-btn ("Nash") on the FIRST frame — before
+   that deferred script loads — instead of flashing the old button for ~0.5s. */
+html body.zwf-bagpanel-on :is(#login-btn,#account-btn,#hdr-login){display:none !important}
+/* Search magnifier launcher — base style at first paint so the header pre-paint can
+   render it (before storefront-features.js's runtime styles load) without it looking
+   like the .nbtn text button it borrows its class from. */
+.zwf-search-btn{background:none !important;border:none !important;cursor:pointer;display:inline-flex !important;align-items:center;justify-content:center;padding:.35rem !important;min-width:0 !important;width:auto !important;height:auto !important;font-size:0 !important;color:inherit}
+.zwf-search-btn svg{width:20px;height:20px;display:block}
+.zwf-search-btn::before{content:none !important;display:none !important}
 .zw-hdr-group{display:inline-flex;align-items:center;gap:.4rem}
 .zw-hdr-action{font-family:var(--zw-font-mono) !important;font-size:.6rem !important;letter-spacing:.18em !important;text-transform:uppercase !important;color:rgba(244,241,235,.55) !important;text-decoration:none !important;padding:.55rem .9rem !important;transition:color .2s !important;display:inline-flex;align-items:center;line-height:1}
 .zw-hdr-action:hover{color:var(--paper) !important}
@@ -89,11 +101,39 @@ body.light-mode .zw-hdr-bag:hover,body.super-light-mode .zw-hdr-bag:hover{border
   --zw-line-light:rgba(9,9,11,.1);
   --zw-muted-dark:rgba(244,241,235,.5);
   --zw-muted-light:rgba(9,9,11,.5);
-  /* ── Font families ── */
-  --zw-font-head:'Barlow Condensed',sans-serif;
-  --zw-font-body:'Barlow',sans-serif;
-  --zw-font-mono:'IBM Plex Mono',monospace;
-  /* --font-* and --fw/fb/fm canonical variables are defined in base.css */
+  /* ── Font families ──
+     These are the FIRST-PAINT defaults, used before storefront-theme.js applies the
+     admin fonts from site_settings.fonts (~0.5s after load). They are kept in sync
+     with the live admin config by scripts/stamp-config-defaults.js at build time, so
+     an uncached first load already paints the current brand fonts instead of the old
+     Barlow/IBM-Plex defaults and then swapping (the "old header words" flash).
+     --font-* / --fw/fb/fm in base.css read these names, so aligning here is enough. */
+  --zw-font-head:"Futura 100 Demibold", "Futura", "Jost", sans-serif;   /* zw:font-head */
+  --zw-font-body:"Futura 100 Demibold", "Futura", "Jost", sans-serif;   /* zw:font-body */
+  --zw-font-mono:"Futura 100 Demibold", "Futura", "Jost", sans-serif;   /* zw:font-mono */
+  /* Heading treatment first-paint defaults (also stamped from the admin config). */
+  --zw-fst-head:normal;        /* zw:fst-head */
+  --zw-head-tracking:normal;   /* zw:head-tracking */
+  --zw-head-case:uppercase;    /* zw:head-case */
+
+  /* ── Motion & radius tokens ──
+     The two easings that do the site's real work, named. Everything else was a
+     scatter of near-identical one-offs (audit). Migrate to these over time; new
+     work should reference the tokens, not raw cubic-beziers.
+       standard — UI, hovers, header (was var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)), 23 uses)
+       sheet    — panels, drawers, modals (was var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1)), 19 uses) */
+  --zw-ease-standard:cubic-bezier(.22,.61,.36,1);
+  --zw-ease-sheet:cubic-bezier(.32,.72,0,1);
+  /* One pill token replaces 99px / 100px / 999px — all render identically on the
+     short elements they're used on (buttons, badges, chips). */
+  --zw-radius-pill:999px;
+  /* Bottom-sheet height cap. Every mobile sheet uses this ONE value so none rises
+     behind the fixed header: it's the full viewport minus a header's-worth of top
+     inset (padding + the 36px drag handle + the notch safe-area). max-height means
+     short sheets still hug their content — this only caps the tall ones. It matches
+     what the bag/search/fit-finder sheets already used; login, reviews and the
+     quick-add sheet were the odd ones at a flat 92–96dvh that overshot the header. */
+  --zw-sheet-max:calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem);
 
   /* ── Type scale ── */
   --zw-text-hero:clamp(3.5rem,8vw,6rem);    /* hero headlines */
@@ -132,7 +172,7 @@ body.light-mode .zw-hdr-bag:hover,body.super-light-mode .zw-hdr-bag:hover{border
      --zw-ease = standard (Material), --zw-ease-out = decelerate/entrances,
      --zw-ease-spring = the slight overshoot on pops. */
   --zw-ease:cubic-bezier(.4,0,.2,1);
-  --zw-ease-out:cubic-bezier(.22,.61,.36,1);
+  --zw-ease-out:var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1));
   --zw-ease-spring:cubic-bezier(.34,1.3,.5,1);
   --zw-space-page:clamp(1.2rem,4vw,2.5rem);
   --zw-panel-width:clamp(24rem,34vw,34rem);
@@ -192,7 +232,16 @@ select:focus-visible{
 }
 
 /* Shared utility/action typography. */
-:is(.nbtn,.nav-back,.zw-nav-back,.cart-back,.ret-back,.nav-link,.mobile-nav-link,.acct-tab,.tab-btn,.calc-tab,.calc-toggle-btn,.section-label,.size-guide-link,.stock-info,.product-subtitle,.flinks a,.fig,.fcopy,.zw-footer-links a,.zw-footer-ig,.zw-footer-copy){
+/* .nav-link is deliberately NOT in this list. It's a nav category, not a utility
+   label — and being here it inherited .6rem/400/.14em, i.e. footer sizing, for the
+   header.
+   The trap: :is() takes the specificity of its MOST specific argument, and
+   `.flinks a` / `.zw-footer-links a` are class+element = (0,1,1). That lifts the
+   whole list to (0,1,1), so it silently outranked .nav-link's own (0,1,0) rules —
+   both cohesion's :3511 and index.html's — which have always said 1.7rem/900 and
+   never once applied. Adding a descendant selector here re-breaks every class in
+   the list, so keep the arguments to bare classes. */
+:is(.nbtn,.nav-back,.zw-nav-back,.cart-back,.ret-back,.mobile-nav-link,.acct-tab,.tab-btn,.calc-tab,.calc-toggle-btn,.section-label,.size-guide-link,.stock-info,.product-subtitle,.flinks a,.fig,.fcopy,.zw-footer-links a,.zw-footer-ig,.zw-footer-copy){
   font-family:var(--zw-font-mono) !important;
   font-size:.6rem;
   font-weight:400;
@@ -207,7 +256,7 @@ select:focus-visible{
 }
 
 :is(.rs-recommend-pill,.review-card-badge,.wallet-chip){
-  border-radius:999px !important;
+  border-radius:var(--zw-radius-pill, 999px) !important;
 }
 
 .zw-saved-item-actions{
@@ -404,8 +453,31 @@ body.light-mode #zw-lang-modal{
   pointer-events:auto;
   transition:opacity var(--zw-motion-modal) ease;
 }
+
+/* THE BACKDROP RULE, and it lives here — once.
+   Every modal overlay is fully transparent; the panel inside carries its own
+   background and shadow. The page behind is never dimmed or blurred.
+
+   This was previously written out per page (index.html, product.html) and so
+   applied on two pages only, while bag.html quietly did the opposite
+   (body.light-mode .modal{background:rgba(240,238,233,.65)}) — a 65% cream dim on
+   the one page that redefined it. Same class, three different answers depending on
+   which file you opened. Sitting with the rest of the .modal base means every page
+   gets it, including ones with no local .modal CSS at all (account, journal).
+
+   #zw-lang-modal is excluded from the base block above for its bespoke motion, so
+   it needs saying separately.
+
+   ONE exception, deliberate: reviews.js's .rvp-lightbox keeps rgba(0,0,0,.9). It's
+   a photo viewer — the dark surround is the point, and it isn't a .modal. */
+.modal,
+#zw-lang-modal{
+  background:transparent !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
 .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog,.cbox){
-  transition:transform var(--zw-motion-modal) cubic-bezier(.32,.72,0,1),
+  transition:transform var(--zw-motion-modal) var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1)),
              opacity var(--zw-motion-modal) ease;
 }
 /* Closed box: fade out + slide down 14px + ease back to 98% scale, so the
@@ -999,12 +1071,20 @@ body.light-mode :is(.pcard-cat,.product-category){
 
 :is(.pcard-name,.product-name){
   font-family:var(--zw-font-head) !important;
-  font-style:italic !important;        /* match the product-page title (ZUWERA VOGUE) */
-  font-weight:900 !important;
+  /* Weight/style follow the theme's heading settings (storefront.js sets these
+     from the admin), like .zw-hc-heading and .zw-mg-heading already do. The
+     fallbacks are the previous hardcoded values, so nothing moves until someone
+     actually changes the setting — and product pages, which never load
+     storefront.js, keep the italic 900 that matches the product title. */
+  font-style:var(--zw-fst-head, italic) !important;   /* match the product-page title (ZUWERA VOGUE) */
+  font-weight:var(--zw-fw-head, 900) !important;
   font-size:1.2rem !important;
-  letter-spacing:.02em !important;
+  /* letter-spacing/text-transform follow Admin → Typography's heading treatment,
+     like weight/style above. Fallbacks are the previous fixed values, so an older
+     saved row renders unchanged. */
+  letter-spacing:var(--zw-head-tracking, .02em) !important;
   line-height:1.05 !important;
-  text-transform:uppercase !important;
+  text-transform:var(--zw-head-case, uppercase) !important;
   margin-bottom:.28rem !important;
 }
 
@@ -1129,7 +1209,7 @@ body.light-mode .heart-btn{
      bottom edge (and back down on close) instead of a small nudge + scale.
      The shared box transition above carries the transform in both directions. */
   .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
-    transition:transform .35s cubic-bezier(.22,.61,.36,1), opacity .2s ease !important;
+    transition:transform .35s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)), opacity .2s ease !important;
     }
   .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(.open) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
     transform:translateY(100%) !important;
@@ -1250,7 +1330,7 @@ body.light-mode .heart-btn{
   #size-fit-modal > .review-dialog{
     width:100% !important;
     max-width:100% !important;
-    max-height:calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem) !important;
+    max-height:var(--zw-sheet-max) !important;
     margin:0 !important;
     border:none !important;
     border-radius:1.25rem 1.25rem 0 0 !important;
@@ -2154,7 +2234,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel::befor
 }
 
 #mobile-menu.zw-mobile-menu.open > .zw-mobile-menu-panel{
-  animation:zwMenuPanelIn .45s cubic-bezier(.32,.72,0,1) both !important;
+  animation:zwMenuPanelIn .45s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1)) both !important;
 }
 
 /* Keep visible and non-interactive during exit animation */
@@ -2162,8 +2242,12 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel::befor
   display:flex !important;
   pointer-events:none !important;
 }
+/* Exit is the mirror of the entrance (zwDrawerIn): same .28s, same easing, reversed
+   motion — fade out with a small rise. It used to be zwMenuPanelOut, a .35s slide-off
+   to the right left over from the drawer era, so opening (quick fade-rise) and closing
+   (slower sideways slide) felt like two different animations. */
 #mobile-menu.zw-mobile-menu.closing > .zw-mobile-menu-panel{
-  animation:zwMenuPanelOut .35s cubic-bezier(.4,0,.6,1) both !important;
+  animation:zwDrawerOut .35s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1)) both !important;
   pointer-events:none !important;
 }
 
@@ -2421,8 +2505,12 @@ body.super-light-mode #mobile-menu .zw-mobile-primary-link:last-child{
 
 #mobile-menu .zw-mobile-primary-link:hover,
 #mobile-menu .zw-mobile-primary-link:focus-visible{
+  /* Colour only — NO padding change. The base is padding:.7rem 1.25rem, and this
+     rule used to drop padding-left to 0, which slid the text left. On desktop that
+     was a hover animation; on touch a tap fires :hover instantly, so MEN/WOMEN/NEW
+     visibly jumped left when pressed. Tapping should just dim/highlight, not move —
+     the colour shift here plus the :active background is the whole feedback. */
   color:var(--zw-accent) !important;
-  padding-left:0 !important;
 }
 
 #mobile-menu .zw-mobile-menu-secondary{
@@ -2443,16 +2531,23 @@ body.super-light-mode #mobile-menu .zw-mobile-menu-secondary{
 }
 
 #mobile-menu .zw-mobile-secondary-link{
+  /* Match the bag panel's links (var(--fb)) — was mono, which read as a different
+     typeface from the rest of the menu. Body font keeps the two modals cohesive. */
+  font-family:var(--zw-font-body, 'Barlow', sans-serif) !important;
   min-height:48px !important;
   padding:.8rem .85rem !important;
+  text-decoration:none !important;   /* same <a> default underline, off */
   display:flex !important;
   align-items:center !important;
-  justify-content:space-between !important;
+  /* Icon + label sit together on the left, like the bag panel's Sign in / Support.
+     Was space-between (which paired with the now-removed chevron); the bag count,
+     when present, is pushed back to the right with margin-left:auto below. */
+  justify-content:flex-start !important;
+  gap:.7rem !important;
   border:0 !important;
   border-right:1px solid var(--zw-line-dark) !important;
   border-bottom:1px solid var(--zw-line-dark) !important;
   background:rgba(244,241,235,.018) !important;
-  text-decoration:none !important;
 }
 
 body.light-mode #mobile-menu .zw-mobile-secondary-link{
@@ -2760,10 +2855,15 @@ body.light-mode .zw-lang-trigger:hover{
 }
 
 /* Panel: partial width, slides in from the RIGHT */
+/* Full-screen panel. This was width:84%/max-width:360px — a right-drawer that left
+   a strip of the page showing on the left. A menu with this much content reads
+   better full-screen (matches Apple), so it now fills the viewport: no width cap,
+   no left border or side shadow, edge to edge. */
 #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
   position:relative!important;
-  width:84%!important;
-  max-width:360px!important;
+  width:100%!important;
+  width:100dvw!important;
+  max-width:100%!important;
   min-width:0!important;
   min-height:100dvh!important;
   height:100dvh!important;
@@ -2775,10 +2875,10 @@ body.light-mode .zw-lang-trigger:hover{
   flex-direction:column!important;
   gap:0!important;
   background:var(--zw-ink,#09090b)!important;
-  border-left:1px solid rgba(244,241,235,.09)!important;
+  border-left:none!important;
   border-right:none!important;
   border-radius:0!important;
-  box-shadow:-16px 0 40px rgba(0,0,0,.35)!important;
+  box-shadow:none!important;
   overflow-y:auto!important;
   overflow-x:hidden!important;
   overscroll-behavior:contain!important;
@@ -2796,12 +2896,24 @@ body.super-light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
 }
 
 /* Panel open animation: smoother slide from the RIGHT */
+/* Full-screen entrance: a quick fade with a small rise, not a slide from the right.
+   On a full-width panel a translateX slide reads as the whole page swiping across;
+   a fade is what a full-screen menu (Apple's included) uses. */
 #mobile-menu.zw-mobile-menu.open>.zw-mobile-menu-panel{
-  animation:zwDrawerIn .3s cubic-bezier(.25,.46,.45,.94) both!important;
+  animation:zwDrawerIn .35s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1)) both!important;
 }
 @keyframes zwDrawerIn{
-  from{transform:translateX(100%);opacity:.85}
-  to{transform:translateX(0);opacity:1}
+  from{transform:translateY(-8px);opacity:0}
+  to{transform:translateY(0);opacity:1}
+}
+/* Exact reverse of zwDrawerIn so open and close are symmetric. */
+@keyframes zwDrawerOut{
+  from{transform:translateY(0);opacity:1}
+  to{transform:translateY(-8px);opacity:0}
+}
+@media (prefers-reduced-motion:reduce){
+  #mobile-menu.zw-mobile-menu.open>.zw-mobile-menu-panel,
+  #mobile-menu.zw-mobile-menu.closing>.zw-mobile-menu-panel{ animation:none!important; }
 }
 
 /* ── Header row ── */
@@ -2831,15 +2943,18 @@ body.light-mode .zw-mobile-menu-top{border-bottom-color:rgba(9,9,11,.08)!importa
 }
 body.light-mode .zw-mobile-menu-kicker{color:rgba(9,9,11,.35)!important;}
 
-/* Close button: visible, top-right of panel */
+/* Close button: matches .mclose — the 44px square, bordered, tinted close every
+   other modal uses — so the menu's X reads as the same control as the rest of the
+   site rather than a smaller one-off. Was 36px transparent; now 44px with the same
+   faint fill .mclose carries. */
 #mobile-menu .zw-mobile-menu-close{
   display:flex!important;
   position:relative!important;
   top:auto!important; right:auto!important;
-  width:36px!important; height:36px!important;
-  min-height:36px!important;
-  border:1px solid rgba(244,241,235,.14)!important;
-  background:transparent!important;
+  width:44px!important; height:44px!important;
+  min-height:44px!important;
+  border:1px solid rgba(244,241,235,.1)!important;
+  background:rgba(9,9,11,.7)!important;
   border-radius:0!important;
   color:rgba(244,241,235,.55)!important;
   flex-shrink:0!important;
@@ -2850,8 +2965,13 @@ body.light-mode .zw-mobile-menu-kicker{color:rgba(9,9,11,.35)!important;}
   width:16px!important;
   height:1.5px!important;
 }
-body.light-mode #mobile-menu .zw-mobile-menu-close{
+body.light-mode #mobile-menu .zw-mobile-menu-close,
+body.super-light-mode #mobile-menu .zw-mobile-menu-close{
+  /* Light-theme fill for the 44px close, matching .mclose. Must live AFTER the base
+     rule above (which sets the dark rgba fill) or the dark box would show on the
+     white menu. */
   border-color:rgba(9,9,11,.12)!important;
+  background:rgba(9,9,11,.05)!important;
   color:rgba(9,9,11,.5)!important;
 }
 
@@ -2887,10 +3007,17 @@ body.light-mode #mobile-menu :is(#mobile-category-links,.mobile-nav-links){
   display:flex!important;
   align-items:center!important;
   justify-content:space-between!important;
-  min-height:52px!important;
-  padding:.7rem 1.25rem!important;
+  /* A touch more vertical air (min-height 52 -> 60, padding-block .7 -> 1rem) for
+     the cleaner, roomier rhythm — categories can breathe on a full-screen menu.
+     padding-LEFT stays 1.25rem across every state so a tap never shifts the text
+     sideways. */
+  min-height:60px!important;
+  padding:1rem 1.25rem!important;
+  /* <a> defaults to underline; nothing set text-decoration, so MEN/WOMEN/NEW showed
+     an underline under each. Off — the row is clearly tappable without it. */
+  text-decoration:none!important;
   font-family:var(--zw-font-head,'Barlow Condensed',sans-serif)!important;
-  font-size:1.35rem!important;
+  font-size:1.5rem!important;
   font-weight:700!important;
   font-style:normal!important;
   line-height:1!important;
@@ -2910,16 +3037,12 @@ body.light-mode #mobile-menu :is(#mobile-category-links,.mobile-nav-links){
 }
 
 /* Chevron replacing the old arrow */
+/* No chevron. MEN/WOMEN/NEW link straight to a page (drop001.html?category=…),
+   they don't open a submenu — so a › implied an expansion that never happens.
+   Dropped, matching Apple's menu where tapping goes straight through. */
 #mobile-menu .zw-mobile-primary-link::after{
-  content:'›'!important;
-  font-family:inherit!important;
-  font-size:1.5rem!important;
-  font-style:normal!important;
-  font-weight:300!important;
-  color:rgba(244,241,235,.3)!important;
-  margin-left:auto!important;
-  flex-shrink:0!important;
-  transition:transform .15s,color .15s!important;
+  content:none!important;
+  display:none!important;
 }
 #mobile-menu .zw-mobile-primary-link:hover::after{
   color:rgba(244,241,235,.6)!important;
@@ -2951,34 +3074,74 @@ body.light-mode .zw-mobile-menu-secondary{
   border-bottom-color:rgba(9,9,11,.07)!important;
 }
 
+/* Utility links styled to match the bag panel's Sign in / Support: body font,
+   sentence case, icon on the left. Was mono / uppercase / tiny (.58rem) with no
+   icon — a different language from the bag. Now the two read as one system. */
 #mobile-menu .zw-mobile-secondary-link{
   display:flex!important;
   align-items:center!important;
-  justify-content:space-between!important;
-  min-height:42px!important;
-  padding:.45rem 1.25rem!important;
-  font-family:var(--zw-font-mono,'IBM Plex Mono',monospace)!important;
-  font-size:.58rem!important;
+  justify-content:flex-start!important;
+  gap:.7rem!important;
+  min-height:46px!important;
+  padding:.6rem 1.25rem!important;
+  font-family:var(--zw-font-body,'Barlow',sans-serif)!important;
+  font-size:.95rem!important;
   font-weight:400!important;
-  line-height:1.2!important;
-  letter-spacing:.16em!important;
-  text-transform:uppercase!important;
-  color:rgba(244,241,235,.38)!important;
+  line-height:1.3!important;
+  letter-spacing:normal!important;
+  text-transform:none!important;
+  color:rgba(244,241,235,.6)!important;
   background:transparent!important;
   border:none!important;
   transition:color .15s,background .15s!important;
+}
+/* Icon, keyed by href, reusing the bag panel's exact SVGs as masks — one place,
+   every page, no per-page HTML edits. currentColor fills the mask so the icon
+   follows the link's colour in all three themes. */
+#mobile-menu .zw-mobile-secondary-link::before{
+  content:''!important;
+  width:19px!important; height:19px!important;
+  flex-shrink:0!important;
+  background:currentColor!important;
+  -webkit-mask-repeat:no-repeat!important; mask-repeat:no-repeat!important;
+  -webkit-mask-position:center!important; mask-position:center!important;
+  -webkit-mask-size:contain!important; mask-size:contain!important;
+}
+#mobile-menu .zw-mobile-secondary-link[href="account.html"]::before{
+  -webkit-mask-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M6.7 19a5.5 5.5 0 0 1 10.6 0"/></svg>');
+  mask-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M6.7 19a5.5 5.5 0 0 1 10.6 0"/></svg>');
+}
+#mobile-menu .zw-mobile-secondary-link[href="account.html#orders"]::before{
+  -webkit-mask-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>');
+  mask-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>');
+}
+#mobile-menu .zw-mobile-secondary-link[href^="mailto:"]::before{
+  -webkit-mask-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 1 1 4 2.8c-.7.3-1.1 1-1.1 1.7v.5"/><line x1="12" y1="17.5" x2="12" y2="17.5"/></svg>');
+  mask-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 1 1 4 2.8c-.7.3-1.1 1-1.1 1.7v.5"/><line x1="12" y1="17.5" x2="12" y2="17.5"/></svg>');
+}
+#mobile-menu .zw-mobile-secondary-link[href="bag.html"]::before{
+  -webkit-mask-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>');
+  mask-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>');
+}
+#mobile-menu .zw-mobile-secondary-link[href="sizeguide.html"]::before{
+  -webkit-mask-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6"><rect x="2.5" y="8" width="19" height="8" rx="1"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/></svg>');
+  mask-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6"><rect x="2.5" y="8" width="19" height="8" rx="1"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/></svg>');
+}
+/* The bag link's count sits at the far right, not next to the icon. */
+#mobile-menu .zw-mobile-secondary-link .zw-mobile-bag-count{
+  margin-left:auto!important;
 }
 #mobile-menu .zw-mobile-secondary-link:hover{
   color:rgba(244,241,235,.7)!important;
   background:rgba(244,241,235,.03)!important;
 }
 #mobile-menu .zw-mobile-secondary-link:active{color:rgba(244,241,235,.7)!important;}
+/* No chevron on the utility links either. Account / Track order / Support / Bag /
+   Size guide all go straight to a page, same as the categories — so for a uniform,
+   clean menu the › is dropped here too, not just on the primary links. */
 #mobile-menu .zw-mobile-secondary-link::after{
-  content:'›'!important;
-  font-size:.85rem!important;
-  font-weight:300!important;
-  opacity:.28!important;
-  flex-shrink:0!important;
+  content:none!important;
+  display:none!important;
 }
 body.light-mode #mobile-menu .zw-mobile-secondary-link{
   color:rgba(9,9,11,.38)!important;
@@ -3100,7 +3263,7 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
     min-height:0 !important;
     height:auto !important;
     /* max-height matches overlay padding-top so modal never goes behind nav */
-    max-height:calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem) !important;
+    max-height:var(--zw-sheet-max) !important;
     border-radius:1.25rem 1.25rem 0 0 !important;
     border-top:none !important;
     border-left:none !important;
@@ -3116,7 +3279,7 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
      (overrides the base 14px nudge + scale used on desktop). One timing/easing
      shared by all sheets — quick-add, size guide, size & fit, login, reviews. */
   .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal) > :is(.mbox,.review-mbox,.review-list-mbox,.review-dialog){
-    transition:transform .42s cubic-bezier(.32,.72,0,1), opacity .25s ease !important;
+    transition:transform .42s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1)), opacity .25s ease !important;
   }
   .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal):not(.open) > :is(.mbox,.review-mbox,.review-list-mbox,.review-dialog){
     transform:translateY(100%) !important;
@@ -3127,7 +3290,7 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
   .quick-add-review-modal > .mbox.quick-add-product-box{
     min-height:0 !important;
     height:auto !important;
-    max-height:92dvh !important;
+    max-height:var(--zw-sheet-max) !important;
     border-radius:1.25rem 1.25rem 0 0 !important;
     border-top:none !important;
     overflow-y:auto !important;
@@ -3141,6 +3304,17 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
     justify-content:center !important;
     /* padding-top = nav height formula, so modal can never extend behind nav */
     padding:calc(1.6rem + 36px + env(safe-area-inset-top,0px)) 0 0 !important;
+  }
+
+  /* The review modals (write + all-reviews) were the one bottom-sheet exception:
+     reviews.css animates .review-mbox / .review-list-mbox with `modalIn` — a centred
+     fade — and a CSS animation overrides a transition, so it beat the sheet's
+     transform-based slide-up. The box ended up bottom-anchored (from the rule above)
+     but animating like a centred modal, which read as "not a bottom sheet" and,
+     mid-animation, as an overlay that didn't settle. Drop the competing animation so
+     the shared sheet motion (translateY(100%) -> 0) takes over like every other sheet. */
+  .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal) > :is(.review-mbox,.review-list-mbox){
+    animation:none !important;
   }
 
   /* ── Drag handle: a consistent grab-bar at the top of every bottom sheet.
@@ -3270,6 +3444,29 @@ body.light-mode .zwf-col, body.super-light-mode .zwf-col{ border-top-color:rgba(
 .zwf-col-head::-webkit-details-marker{ display:none; }
 .zwf-chev{ width:16px; height:16px; flex-shrink:0; stroke:currentColor; fill:none; stroke-width:2; transition:transform .25s ease; opacity:.7; }
 .zwf-col[open] .zwf-chev{ transform:rotate(180deg); }
+
+/* Ease the panel open, like the product page's accordions. The chevron above has
+   always eased; the links snapped, which is the mismatch.
+
+   These are native <details>, so product.html's toggleAccordion() trick (pin the
+   live max-height, reflow, collapse) can't apply — a closed <details> doesn't
+   render its content, so there's no height to animate from. ::details-content is
+   the only handle on that box, and interpolate-size unlocks animating to auto.
+
+   Progressive on purpose: where these aren't supported the column still opens,
+   just without the ease — which is exactly today's behaviour, so this can only
+   improve things. Timing matches the bottom sheets and the chevron. */
+.zwf-col{ interpolate-size:allow-keywords; }
+.zwf-col::details-content{
+  block-size:0;
+  overflow:hidden;
+  transition:block-size .32s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1)), content-visibility .32s allow-discrete;
+}
+.zwf-col[open]::details-content{ block-size:auto; }
+
+@media(prefers-reduced-motion:reduce){
+  .zwf-col::details-content{ transition:none; }
+}
 .zwf-col-links{ display:flex; flex-direction:column; gap:.9rem; padding:.1rem 0 1.3rem; }
 .zwf-col-links a{ font-family:inherit; font-size:.85rem; color:rgba(244,241,235,.5); text-decoration:none; transition:color .2s; width:fit-content; }
 body.light-mode .zwf-col-links a, body.super-light-mode .zwf-col-links a{ color:rgba(9,9,11,.5); }
@@ -3409,7 +3606,7 @@ body.light-mode .quick-add-gallery-arrow{background:rgba(9,9,11,.55);border-colo
    load (above-fold content is never hidden, so no LCP hit / no flash), then
    .zw-revealed when they enter the viewport. No-JS or reduced-motion → content
    is just visible (the script no-ops, and the guard below forces it shown). */
-.zw-reveal{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.22,.61,.36,1),transform .7s cubic-bezier(.22,.61,.36,1);will-change:opacity,transform;}
+.zw-reveal{opacity:0;transform:translateY(26px);transition:opacity .7s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)),transform .7s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1));will-change:opacity,transform;}
 .zw-revealed{opacity:1;transform:none;}
 .zw-reveal[data-reveal-delay="1"]{transition-delay:.08s}
 .zw-reveal[data-reveal-delay="2"]{transition-delay:.15s}
@@ -3437,7 +3634,7 @@ body.light-mode .quick-add-gallery-arrow{background:rgba(9,9,11,.55);border-colo
    container and stops a sticky `top` toggle from re-evaluating). Reduced-motion
    keeps the header shown. */
 nav#nav, header.nav, nav.nav, nav.zw-nav{
-  transition: transform .35s cubic-bezier(.22,.61,.36,1), background .35s, border-color .35s, box-shadow .35s, padding .35s !important;
+  transition: transform .35s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)), background .35s, border-color .35s, box-shadow .35s, padding .35s !important;
 }
 nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-nav.zw-nav-hidden{
   transform: translateY(-110%) !important;
@@ -3492,8 +3689,20 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
    lack it (product/collection/about/etc.) so MEN/WOMEN/NEW show everywhere.
    index/landing keep their own inline .nav-center (their later inline rule wins);
    this flex-centers the injected one. Hidden on mobile (hamburger handles nav). */
-.nav-center{ flex:1 1 auto; min-width:0; display:flex; align-items:center; justify-content:center; gap:2.2rem; }
-.nav-link{ font-family:var(--zw-font-head,'Barlow Condensed',sans-serif); font-size:1.7rem; font-weight:900; letter-spacing:.02em; text-transform:uppercase; line-height:1; color:inherit; text-decoration:none; opacity:.92; white-space:nowrap; background:none; border:none; cursor:pointer; display:inline-flex; align-items:center; padding:.6rem .7rem; margin:-.6rem 0; }
+/* Nav links are centred on the PAGE, not in the gap between the logo and the
+   action icons. `flex:1` centred them in whatever space was left over, so the
+   links only looked centred while the logo and the icon cluster happened to be
+   the same width — add or drop one icon and they drift. Absolute + auto margins
+   pins them to the real centre on every header (all of which are fixed/sticky,
+   so they're valid containing blocks, and all justify-content:space-between, so
+   the logo and icons still hold the edges without this in the flow).
+   No transform, deliberately: a transform would make this a containing block for
+   the fixed mega-menu and trap it at this width instead of full-bleed. Matches
+   what index/landing already did locally. */
+.nav-center{ position:absolute; left:0; right:0; margin:0 auto; width:fit-content; display:flex; align-items:center; justify-content:center; gap:2.4rem; }
+/* Matches .zw-mega-col a exactly (1.05rem/600/.02em) so the header categories and
+   the mega-menu subcategories read as one system — they are the same nav. */
+.nav-link{ font-family:var(--zw-font-head,'Barlow Condensed',sans-serif); font-size:1.05rem; font-weight:600; font-style:normal; letter-spacing:.02em; text-transform:uppercase; line-height:1; color:inherit; text-decoration:none; opacity:.92; white-space:nowrap; background:none; border:none; cursor:pointer; display:inline-flex; align-items:center; padding:.6rem .7rem; margin:-.6rem 0; }
 .nav-link:hover{ opacity:1; }
 @media (max-width:900px){ .nav-center{ display:none !important; } }
 
@@ -3612,7 +3821,7 @@ body.super-light-mode .zw-navitem > .zw-mega > .zw-mega-col:first-child > a{ col
   flex:0 0 auto; white-space:nowrap; font-family:var(--zw-font-mono, monospace);
   font-size:.6rem; letter-spacing:.13em; text-transform:uppercase;
   padding:.5rem .85rem; border:1px solid var(--zw-line-dark, rgba(244,241,235,.18));
-  border-radius:999px; color:inherit; text-decoration:none; opacity:.82;
+  border-radius:var(--zw-radius-pill, 999px); color:inherit; text-decoration:none; opacity:.82;
 }
 .zw-mnav-cat:hover, .zw-mnav-cat:active{ opacity:1; border-color:var(--zw-accent, #F891A5); }
 body.light-mode .zw-mnav-group{ border-top-color:rgba(9,9,11,.12); }
@@ -3658,7 +3867,7 @@ video.zw-hc-media, picture.zw-hc-media img { object-position: var(--zwh-pos, cen
 .zw-hc-content { transition: opacity .3s ease; }
 .zw-hc-slide.zw-hc-await .zw-hc-content { opacity: 0; transition: none; }
 .zw-hc-eyebrow { font-family:var(--fw); font-size:clamp(.9rem,2vw,1.3rem); font-weight:900; font-style:italic; letter-spacing:.12em; margin-bottom:.5rem; text-shadow:0 2px 8px rgba(0,0,0,.3); }
-.zw-hc-heading { font-family:var(--fw); font-size:clamp(2.5rem,8vw,5.5rem); font-weight:var(--zw-fw-head, 900); font-style:var(--zw-fst-head, italic); text-transform:uppercase; line-height:.95; letter-spacing:.04em; margin-bottom:1rem; text-shadow:0 2px 8px rgba(0,0,0,.3); }
+.zw-hc-heading { font-family:var(--fw); font-size:clamp(2.5rem,8vw,5.5rem); font-weight:var(--zw-fw-head, 900); font-style:var(--zw-fst-head, italic); text-transform:var(--zw-head-case, uppercase); line-height:.95; letter-spacing:var(--zw-head-tracking, .04em); margin-bottom:1rem; text-shadow:0 2px 8px rgba(0,0,0,.3); }
 .zw-hc-subtext { font-family:var(--fb); font-size:clamp(.95rem,2vw,1.1rem); opacity:.85; max-width:600px; margin-bottom:2rem; line-height:1.6; text-shadow:0 1px 4px rgba(0,0,0,.3); }
 .zw-hc-cta { display:inline-block; padding:.85rem 2.2rem; font-family:var(--fm); font-size:.7rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; transition:all .2s; border-radius:var(--zw-radius-control, 0); }
 .zw-hc-cta.btn-solid { background:var(--paper); color:var(--ink); border:1px solid var(--paper); }
@@ -3669,7 +3878,7 @@ video.zw-hc-media, picture.zw-hc-media img { object-position: var(--zwh-pos, cen
 
 .zw-hc-controls { position:absolute; bottom:2.5rem; left:2.5rem; right:2.5rem; display:grid; grid-template-columns: 1fr auto 1fr; align-items:center; z-index:5; pointer-events:none; }
 .zw-hc-controls > * { pointer-events:auto; }
-.zw-hc-dots { display:flex; gap:.4rem; background:#ffffff; padding:.45rem .8rem; border-radius:999px; box-shadow:0 4px 12px rgba(0,0,0,.15); justify-self:center; }
+.zw-hc-dots { display:flex; gap:.4rem; background:#ffffff; padding:.45rem .8rem; border-radius:var(--zw-radius-pill, 999px); box-shadow:0 4px 12px rgba(0,0,0,.15); justify-self:center; }
 .zw-hc-dot { width:6px; height:6px; border-radius:50%; border:none; background:#a0a0a0; cursor:pointer; transition:all .3s ease; padding:0; }
 .zw-hc-dot:hover { background:#666; }
 .zw-hc-dot.active { background:#111; transform:scale(1.2); }
@@ -3723,7 +3932,7 @@ video.zw-hc-media, picture.zw-hc-media img { object-position: var(--zwh-pos, cen
    BUILDER: MEDIA GRID
 ────────────────────────────────────────────────────────────────────────── */
 .builder-media-grid-section { position:relative; }
-.zw-mg-heading { font-family:var(--fw); font-size:clamp(1.6rem,4vw,2.4rem); letter-spacing:.08em; text-transform:uppercase; font-weight:var(--zw-fw-head, 900); font-style:var(--zw-fst-head, italic); margin-bottom:2rem; }
+.zw-mg-heading { font-family:var(--fw); font-size:clamp(1.6rem,4vw,2.4rem); letter-spacing:var(--zw-head-tracking, .08em); text-transform:var(--zw-head-case, uppercase); font-weight:var(--zw-fw-head, 900); font-style:var(--zw-fst-head, italic); margin-bottom:2rem; }
 .zw-mg-media-wrap { position:relative; overflow:hidden; }
 .zw-mg-media { display:block; width:100%; object-fit:cover; transition:transform .5s ease; }
 .zw-mg-card:hover .zw-mg-media { transform:scale(var(--zw-zoom-media, 1.03)); }
@@ -3878,7 +4087,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
    JS never adds .zw-has-swipe and the bar stays hidden. Wrapped in .zw-swipe-wrap. */
 .zw-swipe-wrap{ position:relative; }
 .zw-swipe-bar{
-  display:none; position:relative; height:4px; border-radius:99px; cursor:pointer;
+  display:none; position:relative; height:4px; border-radius:var(--zw-radius-pill, 999px); cursor:pointer;
   width:min(760px, 92%); margin:1.5rem auto 0; touch-action:none;
   background:rgba(244,241,235,.16);
 }
@@ -3892,7 +4101,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
   .zw-swipe-wrap.zw-has-swipe.zw-bar-hover:focus-within > .zw-swipe-bar{ opacity:1; }
 }
 .zw-swipe-thumb{
-  position:absolute; top:-3px; left:0; height:10px; min-width:26px; border-radius:99px;
+  position:absolute; top:-3px; left:0; height:10px; min-width:26px; border-radius:var(--zw-radius-pill, 999px);
   background:rgba(244,241,235,.6); cursor:grab; transition:background .2s ease;
 }
 .zw-swipe-thumb:hover{ background:rgba(244,241,235,.85); }
@@ -3982,11 +4191,13 @@ body.super-light-mode img[src*="wordmark-nav"]{ filter:none !important; }
   color:#09090b !important;
 }
 
-@media (max-width: 900px) {
-  :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link) img,
-  :is(nav#nav,.nav,header.nav) .nav-logo-img,
-  .co-logo-wrap img, .mc-logo img, .brand img { height: 48.4px !important; }
-  :is(nav#nav,.nav,header.nav) img[src*="wordmark"],
-  .zw-nav-logo img { height: 30.8px !important; }
-  .brand img { width: 167.2px !important; }
+
+/* Header logos differ by page (tall square emblem on browse/checkout, shorter
+   wide wordmark on info/account pages). Pin the logo cell to a consistent
+   height and center the image so every header BAR is the same height, whatever
+   logo it holds. Emblem = 46px fills it; wordmark = 28px centers in it. */
+.nav-logo, .nav-logo-link, .zw-nav-logo {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
 }

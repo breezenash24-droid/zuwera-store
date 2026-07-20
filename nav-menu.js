@@ -172,10 +172,16 @@
 
   // The full-width mega panel drops from just under the header — measure where
   // that is (varies with the announcement bar / nav height) into --zw-megatop.
+  var _megaTopVal = '';
   function setMegaTop() {
     try {
       var nav = document.querySelector('nav#nav, header.nav, nav.nav, nav.zw-nav');
-      if (nav) document.documentElement.style.setProperty('--zw-megatop', Math.max(0, Math.round(nav.getBoundingClientRect().bottom)) + 'px');
+      if (!nav) return;
+      // floor, not round: a fractional header bottom must never round UP past the
+      // real edge (the panel sits below the header in z, so a sub-pixel overlap is
+      // invisible but a sub-pixel gap shows a hairline of the page behind).
+      var v = Math.max(0, Math.floor(nav.getBoundingClientRect().bottom)) + 'px';
+      if (v !== _megaTopVal) { _megaTopVal = v; document.documentElement.style.setProperty('--zw-megatop', v); }
     } catch (_) {}
   }
 
@@ -224,10 +230,24 @@
     function _onMt() { if (_mt) return; _mt = (window.requestAnimationFrame || setTimeout)(function () { _mt = 0; setMegaTop(); }); }
     window.addEventListener('resize', _onMt, { passive: true });
     window.addEventListener('scroll', _onMt, { passive: true, capture: true });
-    // Re-measure right as a nav item is hovered, so the mega panel always drops
-    // from the CURRENT header bottom (the homepage shifts the nav down once the
-    // announcement bar lays out — a stale value let the panel overlap the header).
-    document.addEventListener('mouseover', function (e) { if (e.target.closest && e.target.closest('.zw-navitem')) setMegaTop(); }, { passive: true });
+    // While a nav item (or its open panel) is hovered/focused, keep --zw-megatop
+    // glued to the header EVERY FRAME. A one-shot measure at hover/scroll time
+    // goes stale: the header keeps animating for ~350ms after the last scroll
+    // event (.scrolled padding shrink, announcement-bar offset, auto-hide slide),
+    // so a wheel scroll with the mouse resting on the item left the open panel
+    // floating a few px below the header — a sliver of the page showed through.
+    var _glue = 0;
+    function _glueLoop() {
+      setMegaTop();
+      var open = false;
+      try { open = !!document.querySelector('.zw-navitem:hover, .zw-navitem:focus-within'); } catch (_) {}
+      _glue = open ? (window.requestAnimationFrame || setTimeout)(_glueLoop) : 0;
+    }
+    function _glueStart(e) {
+      if (e.target.closest && e.target.closest('.zw-navitem') && !_glue) _glue = (window.requestAnimationFrame || setTimeout)(_glueLoop);
+    }
+    document.addEventListener('mouseover', _glueStart, { passive: true });
+    document.addEventListener('focusin', _glueStart);
     setTimeout(setMegaTop, 450); setTimeout(setMegaTop, 1300);
     // Refresh nav config + product taxonomy from the server.
     try {
@@ -254,4 +274,54 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
+})();
+
+/* ── Referral link capture ───────────────────────────────────────────────────
+   A friend's link looks like /?ref=CODE. Remember the code so checkout can
+   prefill it in the promo box (commerce-checkout.js). Purely a convenience —
+   the code is still validated server-side like any other promo. */
+(function () {
+  try {
+    var ref = new URLSearchParams(location.search).get('ref');
+    if (!ref) return;
+    ref = String(ref).trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 20);
+    if (ref) localStorage.setItem('zw_ref', ref);
+  } catch (_) {}
+})();
+
+/* ── Journal footer link toggle ──────────────────────────────────────────────
+   Hides the footer + mobile "Journal" link when the admin turns it off
+   (site_settings.journal_settings.show_footer_link, exposed via
+   /api/journal-config). Applies instantly from the shared cache, then refreshes
+   from the server so first-time visitors and changes are picked up. Only exact
+   /journal.html links are touched, so content links (…?slug=) are unaffected. */
+(function () {
+  function apply(show) {
+    var links = document.querySelectorAll('a[href="/journal.html"], a[href="journal.html"]');
+    for (var i = 0; i < links.length; i++) links[i].style.display = (show === false) ? 'none' : '';
+  }
+  function run() {
+    // Instant from the shared cache (no flash for returning visitors).
+    try {
+      var c = JSON.parse(localStorage.getItem('zw_journal_cfg') || 'null');
+      if (c && typeof c.fl === 'boolean') apply(c.fl);
+    } catch (_) {}
+    // Authoritative refresh — no-store so a stale HTTP-cached response can't
+    // re-show a link the admin just hid.
+    fetch('/api/journal-config', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (cfg) {
+        if (!cfg) return;
+        var show = cfg.show_footer_link !== false;
+        try {
+          var o = JSON.parse(localStorage.getItem('zw_journal_cfg') || '{}') || {};
+          o.fl = show;
+          localStorage.setItem('zw_journal_cfg', JSON.stringify(o));
+        } catch (_) {}
+        apply(show);
+      })
+      .catch(function () {});
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
 })();

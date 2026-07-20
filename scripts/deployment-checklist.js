@@ -19,13 +19,13 @@ const files = {
   admin: read('admin.html'),
   cohesion: read('storefront-cohesion.css'),
   mobileMenu: read('mobile-menu.js'),
+  storefrontTheme: read('storefront-theme.js'),
   lang: read('lang.js'),
   imageUtils: read('image-utils.js'),
   imageConfig: read('functions/api/image-config.js'),
   uploadProductImage: read('functions/api/upload-product-image.js'),
   deleteProductImages: read('functions/api/delete-product-images.js'),
   checkout: read('checkout.js'),
-  cart: read('cart.js'),
   auth: read('auth.js'),
   sizeguide: read('sizeguide.html'),
 };
@@ -53,17 +53,19 @@ function hasDuplicateIds(html) {
 
 const checks = [
   {
-    name: 'Mobile hamburger menu opens as full-screen overlay',
-    pass: () => /#mobile-menu\s*\{[\s\S]*height:100dvh/.test(files.cohesion)
+    // The menu is a full-screen overlay (the top-panel experiment in #192 was
+    // reverted — a menu with this much content reads better full-screen, matching
+    // Apple). Primary links go straight to pages, so the chevron was dropped
+    // (content:none). Asserts full-screen + no chevron + the wiring/theme checks.
+    name: 'Mobile hamburger menu opens as a full-screen overlay',
+    pass: () => /#mobile-menu\.zw-mobile-menu\{[\s\S]*height:100dvh/.test(files.cohesion)
+      && /#mobile-menu \.zw-mobile-primary-link::after\{[\s\S]*content:none/.test(files.cohesion)
+      && /#mobile-menu\.zw-mobile-menu\{[\s\S]*background:var\(--zw-ink/.test(files.cohesion)
       && /ZUWERA technical mobile hamburger menu/.test(files.cohesion)
-      && /#mobile-menu\.zw-mobile-menu/.test(files.cohesion)
       && /zw-mobile-primary-link/.test(files.index + files.product + files.drop)
       && /zw-mobile-secondary-link/.test(files.index + files.product + files.drop)
       && /zw-mobile-bag-count/.test(files.index + files.product + files.drop)
-      && /#mobile-menu\.zw-mobile-menu\{[\s\S]*background:var\(--zw-ink/.test(files.cohesion)
-      && /#mobile-menu\.zw-mobile-menu > \.zw-mobile-menu-panel\{[\s\S]*background:var\(--zw-ink/.test(files.cohesion)
       && /body\.light-mode #mobile-menu\.zw-mobile-menu > \.zw-mobile-menu-panel\{[\s\S]*background:var\(--zw-paper/.test(files.cohesion)
-      && /#mobile-menu \.zw-mobile-menu-close\{[\s\S]*position:fixed/.test(files.cohesion)
       && /zw-mobile-menu-open/.test(files.mobileMenu)
       && /cartCount\(\)/.test(files.mobileMenu)
       && /\.modal:not\(#cart-modal\):not\(#mobile-menu\)/.test(files.cohesion)
@@ -93,9 +95,91 @@ const checks = [
       && !/id="footer-size-guide-link"[^>]*openSizeGuideModal/.test(files.index),
   },
   {
+    // The Typography panel's selectors live twice: admin.html's SECTION_DEFS (drives
+    // the admin preview) and storefront-theme.js's SECTION_SELECTORS (the only one
+    // that reaches the page). They drifted silently — 'nav' listed .nav-link in the
+    // admin and not on the storefront, so styling the header categories saved a
+    // setting that did nothing. Nobody could see that by reading either file alone.
+    // _headers serves .js/.css as `immutable, max-age=31536000`, so a reference with
+    // no ?v= can never be updated — the browser keeps its copy for a year. Seven
+    // pages shipped `src="/storefront-features.js"` bare and were pinned to a build
+    // old enough to still have the removed search Close button. bump-cache-version
+    // now stamps unversioned refs too; this fails the build if one ever ships that
+    // the stamper wouldn't catch.
+    // .nav-link sizing lives once, in storefront-cohesion.css (1.05rem/600). Twice a
+    // page has shipped its own copy at the old 1.7rem/900 — index (fixed #175),
+    // landing (fixed later) — so MEN/WOMEN/NEW rendered a different size there than
+    // everywhere else. A page-local .nav-link may set colour/padding, never font-size
+    // or font-weight; those come from cohesion so every header matches.
+    name: 'No page defines its own .nav-link font-size / font-weight',
+    pass: () => {
+      const fs2 = require('fs');
+      const root2 = path.resolve(__dirname, '..');
+      return fs2.readdirSync(root2).filter((f) => f.endsWith('.html')).every((f) => {
+        const s = fs2.readFileSync(path.join(root2, f), 'utf8');
+        const rules = s.match(/\.nav-link\s*\{[^}]*\}/g) || [];
+        return rules.every((r) => !/font-size|font-weight/.test(r));
+      });
+    },
+  },
+  {
+    // Font vars collapsed to one source: --zw-font-* (storefront-cohesion.css) holds
+    // the literals; every legacy name (--fw/--fb/--fm, --font-head/body/mono/display)
+    // is defined as an alias `var(--zw-font-*, …)`. A legacy definition with a bare
+    // literal re-splits the systems and reintroduces the "font setting didn't apply"
+    // class of bug, so it fails the build. (Uses like var(--fw) are fine — only
+    // DEFINITIONS are checked, and only the canonical may hold a literal.)
+    name: 'Legacy font vars alias --zw-font-* (single source of truth)',
+    pass: () => {
+      const fs2 = require('fs');
+      const root2 = path.resolve(__dirname, '..');
+      const legacy = /(?:^|[\s;{])(--(?:fw|fb|fm|font-head|font-body|font-mono|font-display))\s*:\s*([^;}]+)/g;
+      const targets = fs2.readdirSync(root2).filter((f) => /\.(css|html)$/.test(f));
+      return targets.every((f) => {
+        const s = fs2.readFileSync(path.join(root2, f), 'utf8');
+        let m;
+        while ((m = legacy.exec(s))) {
+          if (!/^var\(--zw-font-/.test(m[2].trim())) return false;  // a bare literal snuck in
+        }
+        return true;
+      });
+    },
+  },
+  {
+    name: 'Every local js/css reference is cache-bustable (has ?v=)',
+    pass: () => {
+      const fs2 = require('fs');
+      const root2 = path.resolve(__dirname, '..');
+      const pages = fs2.readdirSync(root2).filter((f) => f.endsWith('.html'));
+      return pages.every((f) => {
+        const s = fs2.readFileSync(path.join(root2, f), 'utf8');
+        const bare = [...s.matchAll(/(?:src|href)="(\/?[\w.-]+\.(?:js|css))"/gi)]
+          .map((m) => m[1].replace(/^\//, ''))
+          .filter((u) => !/^https?:/.test(u) && fs2.existsSync(path.join(root2, u)));
+        return bare.length === 0;
+      });
+    },
+  },
+  {
+    name: 'Typography selector maps agree (admin SECTION_DEFS === storefront SECTION_SELECTORS)',
+    pass: () => {
+      const store = {};
+      const block = (files.storefrontTheme.match(/var SECTION_SELECTORS = \{([\s\S]*?)\};/) || [])[1];
+      if (!block) return false;
+      block.replace(/'([a-z-]+)':\s*'([^']*)'/g, (m, k, v) => { store[k] = v.replace(/\s+/g, ' ').trim(); return ''; });
+      const admin = {};
+      files.admin.replace(/id:\s*'([a-z-]+)',[^}]*?cssSel:\s*'([^']*)'/g, (m, k, v) => { admin[k] = v.replace(/\s+/g, ' ').trim(); return ''; });
+      const ids = Object.keys(store);
+      if (!ids.length) return false;
+      return ids.every((id) => admin[id] === store[id]);
+    },
+  },
+  {
     name: 'Product page Size Guide opens modal',
-    pass: () => /id="sizeGuideLink"[^>]*openSizeGuideModal/.test(files.product)
-      && /id="viewSizeGuideBtn"[^>]*openSizeGuideModal/.test(files.product),
+    // The Select Size row used to carry a second link to the same modal; it was
+    // removed as a duplicate. The guard stands — the surviving entry point must
+    // still open the modal rather than navigating away to sizeguide.html.
+    pass: () => /id="viewSizeGuideBtn"[^>]*openSizeGuideModal/.test(files.product),
   },
   {
     name: 'Product controls render before media and reviews finish loading',
@@ -110,7 +194,13 @@ const checks = [
   {
     name: 'Mobile hamburger menu has stable footer utilities',
     pass: () => /#mobile-menu\.zw-mobile-menu\.open\{[\s\S]*animation:none/.test(files.cohesion)
-      && /#mobile-menu \.zw-mobile-primary-link:hover[\s\S]*padding-left:0/.test(files.cohesion)
+      // The hover rule must NOT change padding — that caused MEN/WOMEN/NEW to slide
+      // left on a touch tap (a tap fires :hover). Tapping dims via colour only. This
+      // guard used to REQUIRE padding-left:0 on hover, which was the bug's source.
+      // Comments stripped first, and matched only up to the rule's own closing brace,
+      // so an explanatory comment mentioning padding can't trip it.
+      && !/#mobile-menu \.zw-mobile-primary-link:hover,[^{}]*\{[^}]*padding/.test(
+           files.cohesion.replace(/\/\*[\s\S]*?\*\//g, ''))
       && /#mobile-menu\.zw-mobile-menu\{[\s\S]*width:100dvw/.test(files.cohesion)
       && /#mobile-menu\.zw-mobile-menu\{[\s\S]*overscroll-behavior:none/.test(files.cohesion)
       && /#mobile-menu\.zw-mobile-menu > \.zw-mobile-menu-panel\{[\s\S]*overflow-x:hidden/.test(files.cohesion)
@@ -135,7 +225,7 @@ const checks = [
     name: 'Cart shell and empty-bag button are wired',
     pass: () => /id="cart-modal"/.test(files.index)
       && /id="cart-btn"/.test(files.index)
-      && /renderCart|cartItems|cart-count/.test(files.cart + files.index),
+      && /renderCart|cartItems|cart-count/.test(files.index),
   },
   {
     name: 'Storefront login modal is wired to separated customer auth storage',
@@ -222,6 +312,23 @@ const checks = [
         process.stderr.write(result.stderr || '');
       }
       return result.status === 0;
+    },
+  },
+  {
+    // The header pre-paint (product/index) renders the search magnifier BEFORE
+    // storefront-features.js does, so the two must draw the identical icon — otherwise
+    // the pre-rendered one would visibly swap to a different glyph when the script runs.
+    // Pin the pre-paint's SVG to features.js's SEARCH_SVG so a change to one without the
+    // other is caught here instead of shipping as a flash.
+    name: 'Header pre-paint search icon matches storefront-features.js SEARCH_SVG',
+    pass: () => {
+      const m = read('storefront-features.js').match(/var SEARCH_SVG\s*=\s*'([^']+)'/);
+      if (!m) return true; // can't locate the source icon — nothing to pin against
+      const svg = m[1];
+      return ['product.html', 'index.html'].every((f) => {
+        const s = read(f);
+        return !s.includes('zwf-search-btn') || s.includes(svg);
+      });
     },
   },
 ];

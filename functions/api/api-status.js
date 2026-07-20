@@ -16,9 +16,13 @@
  */
 
 import { fetchSiteSettings, resolveSetting, maskKey, ALLOWED_KEYS } from './_settings.js';
+import { getShippoMonthlyCount, shippoFreeLimit, shippoMonthKey } from './_shipping-usage.js';
+import { veeqoKey, veeqoDiagnose } from './_veeqo.js';
+import { verifyAdmin } from './_commerce.js';
 
-function json(body) {
+function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
+    status,
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
   });
 }
@@ -214,12 +218,74 @@ async function checkShippo(env, cache) {
     if (shipResp.ok) {
       try { const d = await shipResp.json(); totalShipments = d.count ?? null; } catch (_) {}
     }
+    // Free-tier usage this month (labels bought via Shippo) + how many are left
+    // before checkout switches to Veeqo.
+    const limit = shippoFreeLimit(env, cache);
+    const used  = await getShippoMonthlyCount(env);
     return {
       ok: true,
       keyActive: true,
       plan: 'Starter (pay-per-label)',
       totalShipments,
-      note: 'Shippo Starter is free — you only pay when a label is purchased. No monthly quota limits.',
+      freeTier: {
+        month: shippoMonthKey(),
+        limit,
+        used,
+        remaining: Math.max(0, limit - used),
+        exhausted: used >= limit,
+      },
+      note: `Free-tier labels this month: ${used}/${limit}. ${used >= limit ? 'Exhausted — checkout is using Veeqo.' : `${Math.max(0, limit - used)} left before switching to Veeqo.`}`,
+    };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+async function checkVeeqo(env, cache) {
+  const key = veeqoKey(env, cache);
+  if (!key) return { ok: false, configured: false, optional: true, error: 'VEEQO_API_KEY not set' };
+  try {
+    // Lightweight auth check against the Veeqo API. Only a 401/403 means a bad
+    // key; other statuses (e.g. endpoint differences) still count as reachable
+    // so we don't show a false "invalid" — real validation happens at checkout.
+    const resp = await withTimeout(fetch('https://api.veeqo.com/current_user', { headers: { 'x-api-key': key } }));
+    if (resp.status === 401 || resp.status === 403) return { ok: false, keyActive: false, error: `HTTP ${resp.status} — key may be invalid` };
+
+    // A valid key does NOT mean the rate feed works: Veeqo only returns quotes
+    // once Amazon Shipping (Buy Shipping V2) is connected as a carrier with a
+    // ship-from location. Probe with a real quote request (store address to
+    // itself, 1 lb parcel — quotes are free, nothing is booked) so the admin
+    // card can show whether checkout would actually get Veeqo rates.
+    let rateFeed = null;
+    const from = {
+      name:    resolveSetting('SHIPPO_FROM_NAME', env, cache) || 'Zuwera',
+      street1: resolveSetting('SHIPPO_FROM_STREET1', env, cache),
+      city:    resolveSetting('SHIPPO_FROM_CITY', env, cache),
+      state:   resolveSetting('SHIPPO_FROM_STATE', env, cache),
+      zip:     resolveSetting('SHIPPO_FROM_ZIP', env, cache),
+      country: resolveSetting('SHIPPO_FROM_COUNTRY', env, cache) || 'US',
+      phone:   resolveSetting('SHIPPO_FROM_PHONE', env, cache),
+    };
+    if (from.street1 && from.city && from.zip) {
+      try {
+        const diag = await withTimeout(veeqoDiagnose({
+          env,
+          from,
+          to: { name: from.name, line1: from.street1, city: from.city, state: from.state, zip: from.zip, country: from.country },
+          parcel: { weight: '1', mass_unit: 'lb', length: '12', width: '10', height: '4', distance_unit: 'in' },
+          settingsCache: cache,
+        }), 8000);
+        rateFeed = { quotes: diag.quotesReturned || 0, live: (diag.quotesReturned || 0) > 0, diag };
+      } catch (e) {
+        rateFeed = { quotes: 0, live: false, error: e.message };
+      }
+    } else {
+      rateFeed = { quotes: 0, live: false, error: 'SHIPPO_FROM_* address incomplete — probe skipped' };
+    }
+
+    return {
+      ok: true,
+      keyActive: true,
+      rateFeed,
+      note: 'Veeqo (Amazon-owned, free) provides USPS rates via Amazon Shipping V2. Used to rate-shop against Shippo and as the fallback once Shippo’s free tier is used up. Requires Amazon Shipping V2 enabled in Veeqo.',
     };
   } catch (e) { return { ok: false, error: e.message }; }
 }
@@ -331,13 +397,21 @@ async function checkCloudflare(env, cache) {
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
-export async function onRequestGet({ env }) {
+export async function onRequestGet({ request, env }) {
+  // Admin-only: this response includes masked previews of every API key and the
+  // full service inventory — useful recon for an attacker, so it requires the
+  // same Supabase admin bearer token as the other admin endpoints.
+  const authHeader = request.headers.get('Authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const admin = token ? await verifyAdmin(env, token) : null;
+  if (!admin) return json({ ok: false, error: 'Admin authorization required' }, 401);
+
   // Fetch Supabase overrides first (one round-trip, all keys at once)
   const cacheKeys = [...ALLOWED_KEYS];
   const cache     = await fetchSiteSettings(cacheKeys, env);
 
   // Run all service checks in parallel
-  const [cloudinary, resend, brevo, supabase, stripe, shippo, cloudflare, deepl, loops, twilio, posthog] =
+  const [cloudinary, resend, brevo, supabase, stripe, shippo, veeqo, cloudflare, deepl, loops, twilio, posthog] =
     await Promise.allSettled([
       checkCloudinary(env, cache),
       checkResend(env, cache),
@@ -345,6 +419,7 @@ export async function onRequestGet({ env }) {
       checkSupabase(env),          // always uses env for bootstrap keys
       checkStripe(env, cache),
       checkShippo(env, cache),
+      checkVeeqo(env, cache),
       checkCloudflare(env, cache),
       checkDeepL(env, cache),
       checkLoops(env, cache),
@@ -373,6 +448,7 @@ export async function onRequestGet({ env }) {
       supabase:   unwrap(supabase),
       stripe:     unwrap(stripe),
       shippo:     unwrap(shippo),
+      veeqo:      unwrap(veeqo),
       cloudflare: unwrap(cloudflare),
       deepl:      unwrap(deepl),
       loops:      unwrap(loops),

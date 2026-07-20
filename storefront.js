@@ -102,6 +102,7 @@ function showToast(msg) {
     'playfair-display':"'Playfair Display',serif",
     'cinzel':"'Cinzel',serif",
     'futura':'"Futura", "Jost", sans-serif',
+    'futura-100-demibold':'"Futura 100 Demibold", "Futura", "Jost", sans-serif',
     'futura-100-bold':'"Futura 100 Bold", "Futura", "Jost", sans-serif',
     'futura-100-bold-oblique':'"Futura 100 Bold Oblique", "Futura", "Jost", sans-serif',
     'barlow':"'Barlow',sans-serif",
@@ -129,6 +130,7 @@ function showToast(msg) {
     'playfair-display':'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&display=swap',
     'cinzel':'https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&display=swap',
     'futura':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
+    'futura-100-demibold':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
     'futura-100-bold':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
     'futura-100-bold-oblique':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
     'inter':'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
@@ -214,7 +216,7 @@ function showToast(msg) {
       thumb = document.createElement('div'); thumb.className = 'zw-swipe-thumb';
       bar.appendChild(thumb); wrap.appendChild(bar);
     } else { thumb = bar.querySelector('.zw-swipe-thumb'); }
-    const sync = () => {
+    const syncNow = () => {
       const sw = grid.scrollWidth, cw = grid.clientWidth, max = sw - cw;
       const scrollable = max > 4;
       wrap.classList.toggle('zw-has-swipe', scrollable);
@@ -223,6 +225,10 @@ function showToast(msg) {
       thumb.style.width = tw + '%';
       thumb.style.left = ((max > 0 ? grid.scrollLeft / max : 0) * (100 - tw)) + '%';
     };
+    // Batch the width/left writes to one per frame: they're layout-affecting, and
+    // a fast horizontal scroll fires far more than 60 scroll events/sec.
+    let _syncRaf = null;
+    const sync = () => { if (_syncRaf != null) return; _syncRaf = requestAnimationFrame(() => { _syncRaf = null; syncNow(); }); };
     if (!grid._zwBarBound) {
       grid.addEventListener('scroll', sync, { passive: true });
       window.addEventListener('resize', sync, { passive: true });
@@ -350,6 +356,42 @@ function showToast(msg) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', zwAutoThemeAllLogos);
   else zwAutoThemeAllLogos();
 
+  // Pad the layout's top section (tagged data-zw-top-offset) down just enough that
+  // the fixed header no longer overlaps it. Measures the ACTUAL overlap — header
+  // bottom minus the section's own natural top — rather than the header's raw
+  // height: #bar-spacer already reserves space in normal flow for the announcement
+  // bar, so blindly padding by the header's full viewport height double-counts the
+  // bar and leaves a visible gap. Reset any prior padding first so the "natural
+  // top" measurement isn't inflated by padding from an earlier call.
+  function zwApplyTopOffset() {
+    const el = document.querySelector('[data-zw-top-offset]');
+    if (!el) return;
+    el.style.paddingTop = '';
+    let headerBottom = 0;
+    const nav = document.getElementById('nav');
+    const bar = document.getElementById('bar');
+    if (nav) { const r = nav.getBoundingClientRect(); if (r.height) headerBottom = Math.max(headerBottom, r.bottom); }
+    if (bar && bar.offsetParent !== null) { const r = bar.getBoundingClientRect(); if (r.height) headerBottom = Math.max(headerBottom, r.bottom); }
+    const gap = headerBottom - el.getBoundingClientRect().top;
+    if (gap > 0) el.style.paddingTop = Math.ceil(gap) + 'px';
+  }
+  window.__zwApplyTopOffset = zwApplyTopOffset;
+  window.addEventListener('resize', () => { try { zwApplyTopOffset(); } catch (_) {} }, { passive: true });
+  window.addEventListener('load', () => { try { zwApplyTopOffset(); } catch (_) {} });
+  // The header (nav#nav) auto-hides on scroll via an animated CSS transform
+  // (header-scroll.js toggles .zw-nav-hidden, storefront-cohesion.css transitions
+  // it over .35s), and the announcement bar's OWN scroll-hide can fire on the same
+  // scroll tick — so a re-measure triggered mid-transition can read nav's IN-FLIGHT
+  // position and freeze a wrong (too-large or too-small) padding that then sticks
+  // once the animation settles, e.g. showing a gap after scrolling back up. Re-sync
+  // once each relevant transition actually finishes so the padding always matches
+  // the header's final, settled position.
+  window.addEventListener('transitionend', (e) => {
+    if (e.target && e.target.id && (e.target.id === 'nav' || e.target.id === 'bar' || e.target.id === 'bar-spacer')) {
+      try { zwApplyTopOffset(); } catch (_) {}
+    }
+  }, true);
+
   function applyBuilderConfig(cfg) {
     if (!cfg || !cfg.sections) return;
 
@@ -389,6 +431,15 @@ function showToast(msg) {
     } else {
       document.body.classList.remove('light-mode','super-light-mode');
     }
+    // Re-sync the status bar. syncThemeColor() runs once at boot and reads the body
+    // classes, which at that point come only from localStorage — so a first-time
+    // visitor (or anyone in incognito) has none, it resolves to #09090b, and
+    // <meta name="theme-color"> stays black. The classes above are the REAL theme
+    // arriving; without this the page turns super-light while iOS keeps painting the
+    // status bar black, forever, because nothing else touches that meta on index.
+    // product.html:1761 and storefront-theme.js:318 already do this after applying a
+    // theme — this path was the one that didn't.
+    if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
 
     // Apply navigation settings
     if (cfg.navSettings) {
@@ -436,33 +487,19 @@ function showToast(msg) {
         document.documentElement.style.setProperty('--zw-paper', cfg.themeSettings.surface_color);
       }
 
-      if (cfg.themeSettings.heading_font) {
-        const stack = _FONT_STACKS[cfg.themeSettings.heading_font];
-        if (stack) {
-          document.documentElement.style.setProperty('--fw', stack);
-          document.documentElement.style.setProperty('--zw-font-head', stack);
-        }
-        _loadBuilderFont(cfg.themeSettings.heading_font);
-      }
-      if (cfg.themeSettings.body_font) {
-        const stack = _FONT_STACKS[cfg.themeSettings.body_font];
-        if (stack) {
-          document.documentElement.style.setProperty('--fb', stack);
-          document.documentElement.style.setProperty('--zw-font-body', stack);
-        }
-        _loadBuilderFont(cfg.themeSettings.body_font);
-      }
-      if (cfg.themeSettings.heading_weight) {
-        document.documentElement.style.setProperty('--zw-fw-head', cfg.themeSettings.heading_weight);
-      } else {
-        document.documentElement.style.setProperty('--zw-fw-head', '900');
-      }
-      if (cfg.themeSettings.heading_style) {
-        document.documentElement.style.setProperty('--zw-fst-head', cfg.themeSettings.heading_style);
-        document.querySelectorAll('.hero-h1, .about-h2').forEach(el => el.style.fontStyle = cfg.themeSettings.heading_style);
-      } else {
-        document.documentElement.style.setProperty('--zw-fst-head', 'italic');
-      }
+      // Type is NOT applied here any more — Admin → Typography owns it
+      // (site_settings.fonts) and storefront-theme.js applies it on every page.
+      //
+      // This block wrote the same --fw / --zw-font-head / --zw-fw-head / --zw-fst-head
+      // variables that the Typography panel writes, but only ever ran on index.html —
+      // the sole page that loads storefront.js. So the two systems raced on the
+      // homepage (both async, last one wins) and this one reached nowhere else, which
+      // is why the builder's "Global Theme" fonts appeared to do nothing everywhere
+      // but the homepage, and why setting a font meant using two panels.
+      //
+      // Safe to drop: heading_font / body_font / heading_weight / heading_style are
+      // all unset in the published config, and no section carries a font override.
+      // The builder still shows type against the live preview — it just reads now.
       if (cfg.themeSettings.content_width) {
         document.documentElement.style.setProperty('--zw-max-w', cfg.themeSettings.content_width + 'px');
       }
@@ -522,12 +559,43 @@ function showToast(msg) {
       products:document.querySelector('.products-section')
     };
 
-    // Hide all default sections first
-    Object.values(sectionMap).forEach(el => {
-      if (el) el.style.display = 'none';
+    // Hide all default sections first. A default whose type is NOT in this layout
+    // is hidden with !important so a stray CSS rule or reflow can't re-show it; a
+    // default whose type IS in the layout gets a plain hide and is re-shown by the
+    // render loop below. setProperty(...,'') also clears any !important left from a
+    // previous apply (builder preview re-runs this on every edit).
+    const _cfgTypes = new Set(sorted.map(s => s.type));  // entries are non-null (sorted by s.order above)
+    Object.entries(sectionMap).forEach(([type, el]) => {
+      if (!el) return;
+      el.style.setProperty('display', 'none', _cfgTypes.has(type) ? '' : 'important');
     });
-    // Hide all previously added dynamic builder sections
-    document.querySelectorAll('.builder-spacer, .builder-text-section, .builder-image-cta-section, .builder-custom-section').forEach(el => {
+    // The REAL guard for the stray-product bug: loadProducts() runs on every
+    // homepage visit and does `productsSection.style.display = ''` whenever the DB
+    // has products — a plain assignment that wipes the inline hide above (priority
+    // and all). Record whether this layout actually wants the products grid so
+    // loadProducts leaves it hidden when the layout doesn't include one.
+    window.__zwLayoutHasProducts = _cfgTypes.has('products');
+    // Flash prevention for the OTHER static default sections (marquee/about/
+    // release/products) — mirrors the hero's zw-hide-static-hero. Cache which ones
+    // this layout omits (and toggle the class now, authoritatively) so the
+    // synchronous <head> script hides them BEFORE first paint on the next load;
+    // otherwise they flash in (e.g. the products grid) before this JS runs.
+    {
+      const _defs = ['marquee', 'about', 'release', 'products'];
+      const _absent = _defs.filter(t => !_cfgTypes.has(t));
+      _defs.forEach(t => document.documentElement.classList.toggle('zw-hs-' + t, _absent.includes(t)));
+      if (!window.__ZW_BUILDER_PREVIEW__) {
+        try { localStorage.setItem('zw_pb_hidden_defaults', _absent.join(',')); } catch (e) {}
+      }
+    }
+    // Hide ALL previously added dynamic builder sections. Every dynamic section
+    // gets a "builder-…" class (builder-cta-section, builder-hero-carousel-section,
+    // builder-media-grid-section, …), so match the prefix generically — the old
+    // hand-kept 4-class list missed newer types, leaving sections from the
+    // previous config on screen when the new config no longer contains them
+    // (e.g. a blank layout still showed the old carousel/media grid).
+    // (div-scoped: <body> carries a 'builder-preview' class and must not match.)
+    document.querySelectorAll('div[class^="builder-"], div[class*=" builder-"]').forEach(el => {
       el.style.display = 'none';
     });
 
@@ -541,7 +609,7 @@ function showToast(msg) {
         // Dynamically instantiate builder sections if they don't exist
         if (['spacer', 'text', 'img_cta', 'image_cta', 'custom', 'html', 'header',
              'numbers', 'press', 'faq', 'email_capture', 'logos', 'richtext',
-             'split', 'cta', 'features', 'testimonials', 'banner', 'gallery', 'video', 'countdown', 'hero_carousel', 'media_grid'].includes(sec.type)) {
+             'split', 'cta', 'features', 'testimonials', 'banner', 'gallery', 'video', 'countdown', 'hero_carousel', 'media_grid', 'color_block', 'recently_viewed'].includes(sec.type)) {
           el = document.createElement('div');
           el.id = sec.id;
           if (sec.type === 'spacer') {
@@ -566,7 +634,7 @@ function showToast(msg) {
           } else if (sec.type === 'custom' || sec.type === 'html') {
             el.className = 'builder-custom-section';
           } else if (['numbers','press','faq','email_capture','logos','richtext','header',
-                      'split','cta','features','testimonials','banner','gallery','video','countdown','hero_carousel','media_grid'].includes(sec.type)) {
+                      'split','cta','features','testimonials','banner','gallery','video','countdown','hero_carousel','media_grid','color_block','recently_viewed'].includes(sec.type)) {
             el.className = 'builder-' + sec.type.replace(/_/g,'-') + '-section';
           }
         }
@@ -898,6 +966,91 @@ function showToast(msg) {
           el.innerHTML = `<div style="display:flex;flex-wrap:wrap;align-items:center;min-height:${s.image_height||500}px;padding:0 ${px};max-width:${mw};margin:0 auto;${!isFull && (s.sec_bg||s.bg_color) ? 'border-radius:12px;overflow:hidden;' : ''}">${innerHTML}</div>`;
           break;
         }
+        case 'color_block': {
+          el.className = 'builder-color-block-section';
+          const cbBg = s.bg_color || '#1f2937';
+          // Auto-contrast: explicit text_color wins; otherwise pick dark/light
+          // text from the block color so text never disappears into it.
+          const cbTxt = s.text_color || (_zwIsLightColor(cbBg) ? '#09090b' : '#f4f1eb');
+          const cbW = s.width || 'full';
+          const cbBlockW = cbW === 'full' ? '100%' : (cbW === 'half' ? '50%' : cbW + 'px');
+          const cbMar = ({left:'0 auto 0 0', right:'0 0 0 auto'})[s.block_align] || '0 auto';
+          const cbPad = ({sm:'2.5rem 1.5rem', md:'4rem 2.5rem', lg:'6rem 3rem', xl:'8rem 3.5rem'})[s.inner_pad || 'md'] || '4rem 2.5rem';
+          const cbAlign = s.content_align || 'center';
+          const cbJust = cbAlign === 'left' ? 'flex-start' : (cbAlign === 'right' ? 'flex-end' : 'center');
+          // Vertical position of the content within a tall block (top/center/bottom).
+          const cbVJust = ({top:'flex-start', center:'center', bottom:'flex-end'})[s.content_valign] || 'center';
+          // Button row alignment — independent of text (so left text can host a
+          // centered button). Falls back to following the text alignment.
+          const cbBtnA = s.btn_align || cbAlign;
+          const cbBtnJust = cbBtnA === 'left' ? 'flex-start' : (cbBtnA === 'right' ? 'flex-end' : 'center');
+          // Height preset (screen-relative) wins; the px min_height only applies on "auto".
+          const cbMinH = ({short:'40vh', half:'50vh', tall:'75vh', full:'100vh'})[s.height] || (s.min_height ? parseInt(s.min_height) + 'px' : '');
+          // gap_top/gap_bot = the space between this block and its neighbors.
+          el.style.cssText = `padding:0 ${(cbW === 'full' || cbW === 'half') ? '0' : '2.5rem'};margin-top:${parseInt(s.gap_top) || 0}px;margin-bottom:${parseInt(s.gap_bot) || 0}px`;
+          const cbBtns = (Array.isArray(s.buttons) ? s.buttons : []).filter(b => b && b.text);
+          const cbBtnHtml = cbBtns.map(b => {
+            const st = b.style || 'solid';
+            let css = 'display:inline-block;padding:.75rem 2rem;font-family:var(--fm,var(--fb));font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;';
+            if (st === 'solid') css += `background:${cbTxt};color:${cbBg};border:1px solid ${cbTxt};`;
+            else if (st === 'outline') css += 'background:transparent;color:inherit;border:1px solid currentColor;';
+            else css += 'background:transparent;color:inherit;border:none;text-decoration:underline;text-underline-offset:4px;';
+            return `<a href="${escapeHomeFavoriteHtml(zwSafeUrl(b.url))}" style="${css}">${escapeHomeFavoriteHtml(b.text)}</a>`;
+          }).join('');
+          // Logos row (each optionally linked). On a dark block, auto-lighten to
+          // white; on a light block, darken — unless "keep original colors".
+          const cbLogos = (Array.isArray(s.logos) ? s.logos : []).filter(l => l && l.src);
+          const cbLogoH = parseInt(s.logo_height) || 34;
+          const cbBlockLight = _zwIsLightColor(cbBg);
+          // Logo color handling. Default "auto" BLENDS the logo onto the block
+          // (screen drops a black background on dark blocks, multiply drops a white
+          // one on light blocks) — this handles both transparent logos AND logos
+          // exported with a solid black/white background (the common "white wordmark
+          // on black" file) without turning them into a solid box. "recolor" is the
+          // old force-to-one-color filter; "original" leaves them untouched. ('blend'
+          // is kept as an alias for auto, for anything saved under the old name.)
+          const cbLogoAdjust = s.logo_adjust || (s.logo_original ? 'original' : 'auto');
+          const cbLogoBlend = (cbLogoAdjust === 'auto' || cbLogoAdjust === 'blend' || cbLogoAdjust === '');
+          let cbLogoImgFx = '';
+          if (cbLogoBlend) cbLogoImgFx = cbBlockLight ? 'mix-blend-mode:multiply;' : 'mix-blend-mode:screen;';
+          else if (cbLogoAdjust === 'recolor') cbLogoImgFx = cbBlockLight ? 'filter:brightness(0);' : 'filter:brightness(0) invert(1);';
+          // For blend, paint the row with the block color so the blend's backdrop is
+          // guaranteed (works even inside the positioned/transformed content wrapper).
+          const cbLogoRowBg = cbLogoBlend ? `background:${cbBg};` : '';
+          const cbLogosHtml = cbLogos.map(l => {
+            const img = `<img src="${escapeHomeFavoriteHtml(l.src)}" alt="${escapeHomeFavoriteHtml(l.alt || '')}" style="height:${cbLogoH}px;width:auto;${cbLogoImgFx}" loading="lazy">`;
+            return l.link ? `<a href="${escapeHomeFavoriteHtml(zwSafeUrl(l.link))}" style="display:inline-flex;align-items:center;text-decoration:none">${img}</a>` : img;
+          }).join('');
+          // Free X/Y position of the content (0–100%). Falls back to the legacy
+          // content_valign preset for pos_y on older blocks; x defaults to center.
+          const cbPosX = (s.pos_x == null || s.pos_x === '') ? 50 : Math.max(0, Math.min(100, parseFloat(s.pos_x)));
+          const cbPosY = (s.pos_y == null || s.pos_y === '') ? (({top:0, center:50, bottom:100})[s.content_valign] ?? 50) : Math.max(0, Math.min(100, parseFloat(s.pos_y)));
+          const cbRad = parseInt(s.radius) || 0;
+          // Free positioning (drag / X-Y sliders) needs the block to be taller than
+          // its content. If the admin moved the content off-center but didn't set a
+          // Block Height, give it a sensible default so the move actually shows —
+          // otherwise the sliders/drag appear to do nothing on an Auto block.
+          const cbHasCustomPos = (cbPosX !== 50 || cbPosY !== 50);
+          const cbEffH = cbMinH || (cbHasCustomPos ? '60vh' : '');
+          const cbInner =
+            `${s.eyebrow ? `<div style="font-family:var(--fm,var(--fb));font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;opacity:.65;margin-bottom:1rem">${s.eyebrow}</div>` : ''}`
+          + `${s.heading ? `<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin:0 0 1rem">${(s.heading || '').replace(/\n/g,'<br>')}</h2>` : ''}`
+          + `${s.body ? `<p style="opacity:.75;line-height:1.75;font-size:1rem;margin:0 0 ${(cbBtnHtml || cbLogosHtml) ? '1.8rem' : '0'};white-space:pre-line;font-family:var(--fb)">${s.body}</p>` : ''}`
+          + `${cbBtnHtml ? `<div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:${cbBtnJust}">${cbBtnHtml}</div>` : ''}`
+          + `${cbLogosHtml ? `<div style="display:flex;gap:1.5rem 2.5rem;flex-wrap:wrap;align-items:center;justify-content:${cbBtnJust};margin-top:${cbBtnHtml ? '1.8rem' : '0'};${cbLogoRowBg}">${cbLogosHtml}</div>` : ''}`;
+          if (cbEffH) {
+            // Tall block: content is absolutely placed so it can be dragged / offset
+            // anywhere. data-cb-content is the drag handle (builder preview only).
+            el.innerHTML = `<div style="position:relative;background:${cbBg};color:${cbTxt};max-width:${cbBlockW};margin:${cbMar};border-radius:${cbRad}px;min-height:${cbEffH}">`
+              + `<div style="position:absolute;inset:${cbPad}">`
+              + `<div data-cb-content style="position:absolute;left:${cbPosX}%;top:${cbPosY}%;transform:translate(-${cbPosX}%,-${cbPosY}%);max-width:100%;text-align:${cbAlign}">${cbInner}</div>`
+              + `</div></div>`;
+          } else {
+            // Auto height: block hugs its content — normal flow, no free positioning.
+            el.innerHTML = `<div style="background:${cbBg};color:${cbTxt};max-width:${cbBlockW};margin:${cbMar};padding:${cbPad};border-radius:${cbRad}px;text-align:${cbAlign};display:flex;flex-direction:column;justify-content:center">${cbInner}</div>`;
+          }
+          break;
+        }
         case 'cta': {
           el.className = 'builder-cta-section';
           const ctaAlign = s.align||'center';
@@ -935,6 +1088,25 @@ function showToast(msg) {
           el.className = 'builder-banner-section';
           el.style.cssText = `padding:1.5rem 2.5rem;text-align:center;background:${s.bg_color||s.sec_bg||'#09090b'};color:${s.text_color||'#f4f1eb'}`;
           el.innerHTML = `<span style="font-family:var(--fm,var(--fb));font-size:.8rem;letter-spacing:.12em;text-transform:uppercase">${s.text||''}</span>${s.link_text?` <a href="${escapeHomeFavoriteHtml(zwSafeUrl(s.link_url))}" style="color:inherit;margin-left:.75rem;text-decoration:underline;font-family:var(--fm,var(--fb));font-size:.8rem;letter-spacing:.12em;text-transform:uppercase">${s.link_text}</a>`:''}`;
+          break;
+        }
+        case 'recently_viewed': {
+          // The data + card rendering live in storefront-features.js (per-visitor
+          // localStorage history). Here we just place the container where the admin
+          // positioned it and hand it the settings. In the builder preview there's no
+          // real visitor history, so show a labelled placeholder instead.
+          el.className = 'builder-recently-viewed-section';
+          el.style.cssText = `padding-top:${parseInt(s.pad_top) || 0}px;padding-bottom:${parseInt(s.pad_bot) || 0}px`;
+          const _rvN = Math.max(1, Math.min(12, parseInt(s.count) || 5));
+          if (window.__ZW_BUILDER_PREVIEW__) {
+            el.innerHTML = `<div style="max-width:1400px;margin:0 auto;padding:2rem clamp(1rem,4vw,2.5rem)">`
+              + `<h2 style="font-family:var(--fw);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.06em;font-size:clamp(1.1rem,3vw,1.6rem);margin:0 0 1rem">${escapeHomeFavoriteHtml(s.heading || 'Recently Viewed')}</h2>`
+              + `<div style="border:1px dashed currentColor;opacity:.45;border-radius:8px;padding:2.2rem 1rem;text-align:center;font-family:var(--fm,var(--fb));font-size:.68rem;letter-spacing:.12em;text-transform:uppercase">🕘 Shows each visitor the last ${_rvN} product${_rvN === 1 ? '' : 's'} they viewed${s.show_time ? ' · with time spent' : ''}</div></div>`;
+          } else if (typeof window.zwRenderRecentlyViewed === 'function') {
+            window.zwRenderRecentlyViewed(el, { count: _rvN, show_time: s.show_time === true, heading: s.heading });
+          } else {
+            el.style.display = 'none';
+          }
           break;
         }
         case 'gallery': {
@@ -1441,8 +1613,14 @@ function showToast(msg) {
       // blank, each section's own responsive heading size (re-rendered into the
       // innerHTML on every update) stands, so there's nothing to clear.
       if (s.heading_size) {
-        el.querySelectorAll('h1,h2,[data-builder-heading]').forEach(function (hEl) {
+        el.querySelectorAll('h1,h2,h3,[data-builder-heading]').forEach(function (hEl) {
           hEl.style.setProperty('font-size', s.heading_size, 'important');
+        });
+      }
+      // Universal body/paragraph-size override (opt-in), mirrors heading_size.
+      if (s.body_size) {
+        el.querySelectorAll('p,[data-builder-body]').forEach(function (pEl) {
+          pEl.style.setProperty('font-size', s.body_size, 'important');
         });
       }
 
@@ -1467,6 +1645,38 @@ function showToast(msg) {
        try { console.warn('[storefront] section render failed — skipped:', sec && sec.type, sec && sec.id, _secErr); } catch (_) {}
      }
     });
+
+    // Header offset: the header is position:fixed. hero / hero_carousel are designed
+    // to sit full-bleed UNDER it, so they're never offset. Every other first section
+    // is padded down so the header doesn't cover its top content — the header stays a
+    // clean bar with the section beginning right at its bottom edge.
+    //
+    // A color_block's outer wrapper is transparent (its colour lives on an inner div),
+    // so the offset padding could expose a strip of white page background if the header
+    // height is ever momentarily over-measured (e.g. the announcement bar counted while
+    // it's mid-hide). To make that impossible for a full-width block, we paint the
+    // wrapper with the block's own colour: the padded strip then reads as the block
+    // colour (and is covered by the opaque header anyway) — never white. banner already
+    // sets its own background, so it's safe without extra handling.
+    try {
+      document.querySelectorAll('[data-zw-top-offset]').forEach(el => { el.style.removeProperty('padding-top'); el.removeAttribute('data-zw-top-offset'); });
+      const _noOffset = ['hero', 'hero_carousel'];
+      const _firstVis = sorted.find(s => s.visible !== false && (window.__ZW_BUILDER_PREVIEW__ || window.zwSecInWindow(s.settings || {})));
+      if (_firstVis && !_noOffset.includes(_firstVis.type)) {
+        const _topEl = sectionMap[_firstVis.type] || document.getElementById(_firstVis.id);
+        if (_topEl) {
+          if (_firstVis.type === 'color_block') {
+            const _g = _firstVis.settings || {};
+            const _cbFull = !_g.width || _g.width === 'full';
+            _topEl.style.background = _cbFull ? (_g.bg_color || '#1f2937') : '';
+          }
+          _topEl.setAttribute('data-zw-top-offset', '');
+          zwApplyTopOffset();
+          requestAnimationFrame(zwApplyTopOffset);
+          setTimeout(zwApplyTopOffset, 600);
+        }
+      }
+    } catch (_) {}
 
     // Layout is now positioned. Cache that a builder layout is active so the next
     // reload can hold a boot cover over the content while it reflows, then reveal
@@ -1529,6 +1739,16 @@ function showToast(msg) {
             .forEach(x => x.classList.remove('zw-hover-sec', 'zw-sel-sec'));
         }
       }
+      if (e.data && e.data.type === 'ZW_TEXT_EDIT_MODE') {
+        window.__zwTextEditMode = !!e.data.on;
+        document.body.classList.toggle('zw-text-edit', window.__zwTextEditMode);
+        if (!window.__zwTextEditMode && window.__zwCancelInlineEdit) window.__zwCancelInlineEdit();
+      }
+      if (e.data && e.data.type === 'ZW_MOVE_MODE') {
+        window.__zwMoveMode = !!e.data.on;
+        document.body.classList.toggle('zw-move-mode', window.__zwMoveMode);
+        if (!window.__zwMoveMode && window.__zwHideMoveGuides) window.__zwHideMoveGuides();
+      }
       if (e.data && e.data.type === 'ZW_SCROLL_TO_SECTION') {
         const secId = e.data.sectionId;
         const sectionMap = {
@@ -1577,6 +1797,182 @@ function showToast(msg) {
       }, true);
     })();
 
+    // ── On-canvas inline TEXT editing (WYSIWYG) ──────────────────────────────
+    // In builder preview + text-edit mode, click any text to edit it in place and
+    // change its font. On commit we post the old→new text to the builder, which
+    // maps it back to the section-settings field that held it (no per-renderer
+    // tagging needed). Gated to preview mode; the live store is untouched.
+    window.__zwTextEditMode = false;
+    (function initInlineTextEdit() {
+      var EDITABLE = /^(H[1-6]|P|SPAN|A|LI|BLOCKQUOTE|SUMMARY|STRONG|EM|DIV|BUTTON)$/;
+      var FONTS_HEAD = [['','Default font'],['barlow-condensed','Barlow Condensed'],['oswald','Oswald'],['bebas-neue','Bebas Neue'],['anton','Anton'],['league-gothic','League Gothic'],['michroma','Michroma'],['montserrat','Montserrat'],['syne','Syne'],['archivo-black','Archivo Black'],['teko','Teko'],['righteous','Righteous'],['playfair-display','Playfair Display'],['cinzel','Cinzel'],['futura','Futura'],['futura-100-demibold','Futura 100 Demibold']];
+      var FONTS_BODY = [['','Default font'],['barlow','Barlow'],['inter','Inter'],['dm-sans','DM Sans'],['outfit','Outfit'],['manrope','Manrope'],['poppins','Poppins'],['lato','Lato'],['roboto','Roboto'],['work-sans','Work Sans'],['mulish','Mulish'],['futura','Futura']];
+      var st = document.createElement('style');
+      st.textContent =
+        'body.zw-text-edit [data-zw-sec] :is(h1,h2,h3,h4,h5,h6,p,span,a,li,blockquote,summary){cursor:text}'
+      + 'body.zw-text-edit .zw-ite-hi{outline:2px dashed rgba(248,145,165,.7);outline-offset:2px;border-radius:2px}'
+      + 'body.zw-text-edit [contenteditable="true"]{outline:2px solid rgba(248,145,165,.95);outline-offset:2px;border-radius:2px;cursor:text}'
+      + '#zw-ite-bar{position:fixed;z-index:2147483000;background:#141416;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:.4rem .5rem;display:flex;gap:.45rem;align-items:center;box-shadow:0 8px 26px rgba(0,0,0,.55);font-family:system-ui,-apple-system,sans-serif}'
+      + '#zw-ite-bar label{color:#9a9a9a;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase}'
+      + '#zw-ite-bar select{background:#000;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:5px;font-size:.72rem;padding:.28rem .4rem;max-width:160px}'
+      + '#zw-ite-bar button{background:#f4f1eb;color:#111;border:none;border-radius:5px;font-size:.7rem;font-weight:600;padding:.32rem .62rem;cursor:pointer}';
+      document.head.appendChild(st);
+
+      var editing = null, origText = '', secOf = '', bar = null, hovered = null;
+      function opts(list, cur){ return list.map(function(o){ return '<option value="'+o[0]+'"'+(o[0]===cur?' selected':'')+'>'+o[1]+'</option>'; }).join(''); }
+      // Reverse-map the section's current --zw-font-* CSS var back to a font key
+      // so the dropdown opens showing the font that's actually applied.
+      function currentFontKey(el, head){
+        var secEl = el.closest && el.closest('[data-zw-sec]');
+        var v = secEl ? (secEl.style.getPropertyValue(head ? '--zw-font-head' : '--zw-font-body') || '').trim() : '';
+        if (v) { for (var k in _FONT_STACKS) { if (_FONT_STACKS[k] === v) return k; } }
+        return '';
+      }
+      function isHeading(el){ return /^H[1-6]$/.test(el.tagName); }
+      function txt(el){ return (el.innerText || '').replace(/ /g,' ').replace(/[ \t]+\n/g,'\n').replace(/\s+$/,''); }
+
+      function placeBar(el){
+        if (!bar) return;
+        var r = el.getBoundingClientRect();
+        var top = r.top - bar.offsetHeight - 8; if (top < 6) top = r.bottom + 8;
+        var left = r.left; if (left + bar.offsetWidth > window.innerWidth - 6) left = window.innerWidth - 6 - bar.offsetWidth;
+        bar.style.top = Math.max(6, top) + 'px'; bar.style.left = Math.max(6, left) + 'px';
+      }
+      function showBar(el){
+        hideBar();
+        var head = isHeading(el);
+        bar = document.createElement('div'); bar.id = 'zw-ite-bar';
+        bar.innerHTML = '<label>Font</label><select data-role="font">' + opts(head ? FONTS_HEAD : FONTS_BODY, currentFontKey(el, head)) + '</select><button data-role="done">Done</button>';
+        document.body.appendChild(bar);
+        placeBar(el);
+        // Keep focus in the text field when clicking the toolbar's chrome (label/
+        // empty space), but DON'T preventDefault on the <select>/<button> — doing
+        // so stops the native font dropdown from ever opening (the previous bug).
+        // The blur handler's "focus is inside the bar" guard still prevents a
+        // premature commit while the dropdown is open.
+        bar.addEventListener('mousedown', function(ev){ if (!ev.target.closest('select,button,option,input')) ev.preventDefault(); });
+        bar.querySelector('[data-role="font"]').addEventListener('change', function(ev){
+          try { window.parent.postMessage({ type: 'ZW_INLINE_FONT', sectionId: secOf, which: head ? 'head' : 'body', value: ev.target.value }, location.origin); } catch (_) {}
+        });
+        bar.querySelector('[data-role="done"]').addEventListener('mousedown', function(ev){ ev.preventDefault(); commit(); });
+      }
+      function hideBar(){ if (bar) { bar.remove(); bar = null; } }
+
+      function commit(){
+        if (!editing) return;
+        var el = editing, sec = secOf, nt = txt(el);
+        el.contentEditable = 'false'; editing = null; hideBar();
+        if (nt !== origText && sec) {
+          try { window.parent.postMessage({ type: 'ZW_INLINE_TEXT', sectionId: sec, oldText: origText, newText: nt }, location.origin); } catch (_) {}
+        }
+      }
+      function cancel(){
+        if (!editing) return;
+        editing.innerText = origText; editing.contentEditable = 'false'; editing = null; hideBar();
+      }
+      window.__zwCancelInlineEdit = function(){ cancel(); if (hovered) { hovered.classList.remove('zw-ite-hi'); hovered = null; } };
+
+      document.addEventListener('mousemove', function(e){
+        if (!window.__zwTextEditMode || editing) { if (hovered) { hovered.classList.remove('zw-ite-hi'); hovered = null; } return; }
+        var sec = e.target.closest && e.target.closest('[data-zw-sec]');
+        var el = sec ? e.target : null;
+        var ok = el && EDITABLE.test(el.tagName) && (el.textContent || '').trim() &&
+                 !(el.querySelector && el.querySelector('h1,h2,h3,h4,h5,h6,p,a,button,li,span'));
+        var t = ok ? el : null;
+        if (t === hovered) return;
+        if (hovered) hovered.classList.remove('zw-ite-hi');
+        hovered = t; if (hovered) hovered.classList.add('zw-ite-hi');
+      });
+
+      document.addEventListener('click', function(e){
+        if (!window.__zwTextEditMode) return;
+        var sec = e.target.closest && e.target.closest('[data-zw-sec]');
+        if (!sec) return;
+        e.preventDefault(); e.stopPropagation();
+        var el = e.target;
+        if (editing === el) return;
+        if (editing) commit();
+        if (!EDITABLE.test(el.tagName) || !(el.textContent || '').trim()) return;
+        if (el.querySelector && el.querySelector('h1,h2,h3,h4,h5,h6,p,a,button,li,span')) return; // container, not a leaf
+        if (hovered) { hovered.classList.remove('zw-ite-hi'); hovered = null; }
+        editing = el; secOf = sec.getAttribute('data-zw-sec'); origText = txt(el);
+        el.contentEditable = 'true'; el.focus();
+        showBar(el);
+      }, true);
+
+      document.addEventListener('keydown', function(e){
+        if (!editing) return;
+        if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+        else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commit(); }
+      }, true);
+
+      document.addEventListener('blur', function(e){
+        if (editing && e.target === editing) {
+          setTimeout(function(){ if (editing && document.activeElement !== editing && (!bar || !bar.contains(document.activeElement))) commit(); }, 60);
+        }
+      }, true);
+
+      window.addEventListener('scroll', function(){ if (editing) placeBar(editing); }, { passive: true });
+      window.addEventListener('resize', function(){ if (editing) placeBar(editing); });
+    })();
+
+    // ── Drag-to-position color block content (WYSIWYG) ───────────────────────
+    // In move mode, drag a color block's [data-cb-content] anywhere inside its
+    // padded area. Center snap guides appear so it lands exactly centered. On
+    // drop we post the new pos_x/pos_y % to the builder. Preview-only.
+    window.__zwMoveMode = false;
+    (function initColorBlockDrag() {
+      var SNAP = 3.5; // % within which we snap to a guide line (center/edges)
+      var st = document.createElement('style');
+      st.textContent =
+        'body.zw-move-mode [data-cb-content]{cursor:move;outline:2px dashed rgba(248,145,165,.65);outline-offset:6px;border-radius:3px}'
+      + 'body.zw-move-mode [data-cb-content] a{pointer-events:none}'
+      + '.zw-move-guide{position:fixed;z-index:2147483000;background:rgba(248,145,165,.95);box-shadow:0 0 0 1px rgba(0,0,0,.25);pointer-events:none;display:none}';
+      document.head.appendChild(st);
+      var vg = document.createElement('div'); vg.className = 'zw-move-guide'; // vertical center line
+      var hg = document.createElement('div'); hg.className = 'zw-move-guide'; // horizontal center line
+      document.body.appendChild(vg); document.body.appendChild(hg);
+      window.__zwHideMoveGuides = function(){ vg.style.display = hg.style.display = 'none'; };
+
+      var dragging = null, box = null, secId = '', px = 50, py = 50;
+      function clamp(n){ return Math.max(0, Math.min(100, n)); }
+
+      document.addEventListener('mousedown', function(e){
+        if (!window.__zwMoveMode) return;
+        var content = e.target.closest && e.target.closest('[data-cb-content]');
+        if (!content) return;
+        var sec = content.closest('[data-zw-sec]');
+        if (!sec) return;
+        e.preventDefault(); e.stopPropagation();
+        dragging = content;
+        box = content.parentElement.getBoundingClientRect(); // the padded reference area
+        secId = sec.getAttribute('data-zw-sec');
+        document.body.style.userSelect = 'none';
+      }, true);
+
+      document.addEventListener('mousemove', function(e){
+        if (!dragging || !box) return;
+        px = clamp((e.clientX - box.left) / box.width * 100);
+        py = clamp((e.clientY - box.top) / box.height * 100);
+        // Snap to center (and edges) + show guides.
+        var snapV = Math.abs(px - 50) <= SNAP; if (snapV) px = 50; else if (px <= SNAP) px = 0; else if (px >= 100 - SNAP) px = 100;
+        var snapH = Math.abs(py - 50) <= SNAP; if (snapH) py = 50; else if (py <= SNAP) py = 0; else if (py >= 100 - SNAP) py = 100;
+        dragging.style.left = px + '%'; dragging.style.top = py + '%';
+        dragging.style.transform = 'translate(-' + px + '%,-' + py + '%)';
+        if (snapV) { vg.style.display = 'block'; vg.style.left = (box.left + box.width / 2 - 1) + 'px'; vg.style.top = box.top + 'px'; vg.style.width = '2px'; vg.style.height = box.height + 'px'; }
+        else vg.style.display = 'none';
+        if (snapH) { hg.style.display = 'block'; hg.style.top = (box.top + box.height / 2 - 1) + 'px'; hg.style.left = box.left + 'px'; hg.style.height = '2px'; hg.style.width = box.width + 'px'; }
+        else hg.style.display = 'none';
+      });
+
+      document.addEventListener('mouseup', function(){
+        if (!dragging) return;
+        dragging = null; box = null; document.body.style.userSelect = '';
+        window.__zwHideMoveGuides();
+        try { window.parent.postMessage({ type: 'ZW_MOVE_POS', sectionId: secId, pos_x: px, pos_y: py }, location.origin); } catch (_) {}
+      });
+    })();
+
     // Re-apply after Supabase finishes loading (bar was hidden when first apply ran, now it's visible)
     window.__zwReapplyBuilder = function() {
       try {
@@ -1610,6 +2006,35 @@ function teardownAnnouncementBarScroll() {
   }
 }
 
+// Fold (collapse) or unfold the bar's OWN height so it pushes the nav + page
+// content up/down into the reclaimed space, instead of sliding away as an overlay.
+// max-height (not height:auto) so both directions animate; padding folds with it;
+// the real height is measured each time so the fold matches the bar exactly.
+function zwSetBarFold(barEl, hidden) {
+  if (!barEl) return;
+  if (hidden) {
+    if (!barEl.style.maxHeight || barEl.style.maxHeight === 'none') {
+      barEl.style.maxHeight = barEl.offsetHeight + 'px';
+      void barEl.offsetHeight;                 // commit the start height before collapsing
+    }
+    barEl.style.maxHeight = '0px';
+    barEl.style.paddingTop = '0px';
+    barEl.style.paddingBottom = '0px';
+    barEl.style.opacity = '0';
+    barEl.style.pointerEvents = 'none';
+  } else {
+    barEl.style.paddingTop = '';
+    barEl.style.paddingBottom = '';
+    barEl.style.opacity = '1';
+    barEl.style.pointerEvents = '';
+    const wasCollapsed = barEl.style.maxHeight === '0px';
+    barEl.style.maxHeight = 'none';             // uncap to read the true height
+    const full = barEl.offsetHeight;
+    if (wasCollapsed) { barEl.style.maxHeight = '0px'; void barEl.offsetHeight; }
+    barEl.style.maxHeight = full + 'px';        // animate 0 -> full (or just set on first show)
+  }
+}
+
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   // Mobile: bar top is handled by CSS variable --nav-h, no JS needed
   // Desktop: nav pushed below bar via nav.style.top; spacer holds bar height in flow
@@ -1633,6 +2058,9 @@ function setAnnouncementBarLayout(barEl, navEl, isVisible) {
     if (navEl) navEl.style.top = barH + 'px';
     if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
   }
+  // The header height just changed (bar shown/hidden, nav repositioned) — re-pad
+  // the builder layout's top section so it stays clear of the header.
+  try { if (window.__zwApplyTopOffset) window.__zwApplyTopOffset(); } catch (_) {}
 }
 
 // Keep the mobile bar flush under the nav across resize / orientation changes by
@@ -1657,6 +2085,9 @@ function applyAnnouncementBar(mode, msgText) {
   barEl.style.opacity = '1';
   barEl.style.pointerEvents = '';
   barEl.style.transform = '';
+  barEl.style.maxHeight = '';        // clear any leftover fold from a previous mode
+  barEl.style.paddingTop = '';
+  barEl.style.paddingBottom = '';
   if (navEl) navEl.style.transform = ''; // safety: clear any stale nav transform from earlier versions
 
   const textEl = document.getElementById('announcementText');
@@ -1689,7 +2120,7 @@ function applyAnnouncementBar(mode, msgText) {
   // appearance (0 -> height, once settings load) doesn't animate a push-down.
   requestAnimationFrame(() => requestAnimationFrame(() => {
     const sp = document.getElementById('bar-spacer');
-    if (sp) sp.style.transition = 'height .45s ease';
+    if (sp) sp.style.transition = 'height .25s cubic-bezier(.32,.72,0,1)';
   }));
 
   if (normalizedMode !== 'scroll' && normalizedMode !== 'scrolloff') return;
@@ -1703,7 +2134,7 @@ function applyAnnouncementBar(mode, msgText) {
     barEl.style.transition = 'opacity .3s ease';
     let lastScrollY = window.scrollY;
     let isHidden = false;
-    const scrollActivationAt = Date.now() + 450;
+    const scrollActivationAt = Date.now() + 150;
     const syncAnnouncementState = (hidden) => {
       barEl.style.opacity = hidden ? '0' : '1';
       barEl.style.pointerEvents = hidden ? 'none' : '';
@@ -1718,7 +2149,7 @@ function applyAnnouncementBar(mode, msgText) {
       // 'scroll' reappears at the top / on scroll-up; 'scrolloff' stays gone.
       if (normalizedMode !== 'scrolloff' && (currentY <= 16 || scrollingUp)) {
         if (isHidden) { isHidden = false; syncAnnouncementState(false); }
-      } else if (currentY > 80 && scrollingDown) {
+      } else if (currentY > 40 && scrollingDown) {
         if (!isHidden) {
           isHidden = true; syncAnnouncementState(true);
           if (normalizedMode === 'scrolloff') teardownAnnouncementBarScroll();
@@ -1730,26 +2161,27 @@ function applyAnnouncementBar(mode, msgText) {
     return;
   }
 
-  barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease';
+  // Content-push: the bar FOLDS its height while the nav (transition:top) and the
+  // spacer collapse in lockstep, so the page pushes up to fill — no overlay slide.
+  // All three pieces share this exact duration/easing so they move as one; opacity
+  // matches the fold so the text never shows in a half-height bar on reveal.
+  // Ease-out (fast start, gentle settle) so it feels snappy, not laggy like `ease`.
+  barEl.style.transition = 'max-height 0.25s cubic-bezier(.32,.72,0,1), padding 0.25s cubic-bezier(.32,.72,0,1), opacity 0.25s cubic-bezier(.32,.72,0,1)';
   let lastScrollY = window.scrollY;
   let isHidden = false;
-  const scrollActivationAt = Date.now() + 450;
+  const scrollActivationAt = Date.now() + 150;
   let _barHideTimer = null;
   const spacerEl = document.getElementById('bar-spacer');
   const syncAnnouncementState = (hidden) => {
     clearTimeout(_barHideTimer);
     if (hidden) {
-      barEl.style.transform = 'translateY(-100%)';
-      barEl.style.opacity = '0';
-      barEl.style.pointerEvents = 'none';
+      zwSetBarFold(barEl, true);
       if (spacerEl) spacerEl.style.height = '0';
-      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); }, 460);
+      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); }, 290);
     } else {
       barEl.style.display = 'flex';
       void barEl.offsetHeight;
-      barEl.style.transform = 'translateY(0)';
-      barEl.style.opacity = '1';
-      barEl.style.pointerEvents = '';
+      zwSetBarFold(barEl, false);
       if (spacerEl) spacerEl.style.height = barEl.offsetHeight + 'px';
     }
     setAnnouncementBarLayout(barEl, navEl, !hidden);
@@ -1765,7 +2197,7 @@ function applyAnnouncementBar(mode, msgText) {
     // detaches, so it stays gone until the page is reopened.
     if (normalizedMode !== 'scrolloff' && (currentY <= 16 || scrollingUp)) {
       if (isHidden) { isHidden = false; syncAnnouncementState(false); }
-    } else if (currentY > 80 && scrollingDown) {
+    } else if (currentY > 40 && scrollingDown) {
       if (!isHidden) {
         isHidden = true; syncAnnouncementState(true);
         if (normalizedMode === 'scrolloff') teardownAnnouncementBarScroll();
@@ -1861,6 +2293,13 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
         const themeMode = val.theme === 'light' ? 'light' : val.theme === 'super-light' ? 'super-light' : 'dark';
         try { localStorage.setItem('zw_homepage_theme_mode', themeMode); } catch(e) {}
       }
+    }
+    // No builder layout is active (default homepage, or the layout was reverted):
+    // clear the pre-paint hide cache + classes so stale entries from a previous
+    // layout can't leave the default homepage's sections hidden.
+    if (!window.__ZW_BUILDER_PREVIEW__ && !window.__zwPageBuilderActive) {
+      try { localStorage.removeItem('zw_pb_hidden_defaults'); } catch (e) {}
+      ['marquee', 'about', 'release', 'products'].forEach(t => document.documentElement.classList.remove('zw-hs-' + t));
     }
 
     // 3. theme — site_settings.theme (the admin appearance toggle) is the source
@@ -2293,12 +2732,17 @@ async function _doLoadProducts() {
         const nav = document.getElementById('category-nav');
         if (nav) nav.style.display = 'none';
       } else {
+        // Don't un-hide the products grid when the active page-builder layout
+        // doesn't include a products section (applyBuilderConfig set the flag);
+        // otherwise this un-hides the section it deliberately hid → stray product.
+        const _showProducts = window.__zwLayoutHasProducts !== false;
         const sec = grid.closest('.products-section');
-        if (sec) sec.style.display = '';
+        if (sec && _showProducts) sec.style.display = '';
         const nav = document.getElementById('category-nav');
-        if (nav) nav.style.display = '';
-        renderCategoryNavigation(normalizedProducts);
-        renderProductCards(normalizedProducts, grid);
+        if (nav && _showProducts) nav.style.display = '';
+        renderCategoryNavigation(normalizedProducts); // header category menu — independent of the homepage grid
+        // Skip populating the (force-hidden) grid when the layout has no products section.
+        if (_showProducts) renderProductCards(normalizedProducts, grid);
       }
     }
   } catch(e) {
@@ -2711,12 +3155,21 @@ function togglePwd(id, btn) {
   }
 }
 
+// Nudge the auth modal box on a failed submit — same gesture zw-login.js already
+// uses on the secondary-page login, now shared by the homepage auth modal too
+// (reuses the zwShake keyframe in storefront-cohesion.css; reduced-motion safe).
+function zwShakeAuth() {
+  const box = document.querySelector('#auth-modal .mbox');
+  if (!box) return;
+  box.classList.remove('zw-shake'); void box.offsetWidth; box.classList.add('zw-shake');
+}
+
 document.getElementById('signin-submit').addEventListener('click', async () => {
   const email = document.getElementById('signin-email').value.trim();
   const pass = document.getElementById('signin-password').value;
   const err = document.getElementById('signin-error');
   err.textContent = '';
-  if (!email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
+  if (!email || !pass) { err.textContent = 'Please fill in all fields.'; zwShakeAuth(); return; }
   setDisabled('signin-submit', true, 'Login');
   const runSignIn = async (captchaToken) => {
     if (_sb) {
@@ -2725,6 +3178,7 @@ document.getElementById('signin-submit').addEventListener('click', async () => {
       if (error) {
         err.textContent = error.message === 'Email not confirmed' ? 'Please check your email and verify your account.' : error.message;
         setDisabled('signin-submit', false, 'Login');
+        zwShakeAuth();
         return;
       }
     }
@@ -2744,8 +3198,8 @@ document.getElementById('signup-submit').addEventListener('click', async () => {
   const suc = document.getElementById('signup-success');
   err.textContent = '';
   if (suc) suc.style.display = 'none';
-  if (!name || !email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
-  if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+  if (!name || !email || !pass) { err.textContent = 'Please fill in all fields.'; zwShakeAuth(); return; }
+  if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; zwShakeAuth(); return; }
   setDisabled('signup-submit', true, 'Create Account');
   const runSignUp = async (captchaToken) => {
     if (_sb) {
@@ -2758,6 +3212,7 @@ document.getElementById('signup-submit').addEventListener('click', async () => {
       if (error) {
         err.textContent = error.message;
         setDisabled('signup-submit', false, 'Create Account');
+        zwShakeAuth();
         return;
       }
       if (typeof gtag === 'function') gtag('event', 'sign_up', { method: 'Email' });
@@ -2779,7 +3234,7 @@ document.getElementById('forgot-submit').addEventListener('click', async () => {
   const email = document.getElementById('forgot-email').value.trim();
   const err = document.getElementById('forgot-error'), suc = document.getElementById('forgot-success');
   err.textContent = ''; suc.style.display = 'none';
-  if (!email) { err.textContent = 'Please enter your email.'; return; }
+  if (!email) { err.textContent = 'Please enter your email.'; zwShakeAuth(); return; }
   setDisabled('forgot-submit', true, 'Send Reset Link');
   const runForgot = async (captchaToken) => {
     if (_sb) {
@@ -2789,6 +3244,7 @@ document.getElementById('forgot-submit').addEventListener('click', async () => {
       if (error) {
         err.textContent = error.message;
         setDisabled('forgot-submit', false, 'Send Reset Link');
+        zwShakeAuth();
         return;
       }
     }
@@ -2857,6 +3313,11 @@ function applyHeartFill(btn, active) {
 function refreshHearts() {
   const ids = new Set(_favs.map(f => f.product_id));
   document.querySelectorAll('.heart-btn').forEach(b => applyHeartFill(b, ids.has(b.dataset.productId)));
+  // Publish the saves count (homepage owns favorites here, not auth.js) so the bag
+  // panel can badge "Your saves" and stay in sync cross-page.
+  window.zwFavoritesCount = _favs.length;
+  try { localStorage.setItem('zw_fav_count', String(_favs.length)); } catch (_) {}
+  try { window.dispatchEvent(new CustomEvent('zw-favs-changed', { detail: { count: _favs.length } })); } catch (_) {}
 }
 
 const _homeFavoriteCache = new Map();
@@ -2989,11 +3450,13 @@ async function getHomeFavoriteDetail(productId, favorite) {
   try {
     const headers = { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` };
     const encodedId = encodeURIComponent(normalizedProductId);
+    // no-store on the size fetch: the quick-add panel's sold-out/stock state must be
+    // live so an admin stock edit shows immediately (never a cached "previous" value).
     const [productResp, imagesResp, colorsResp, sizesResp] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/products?select=*&id=eq.${encodedId}&limit=1`, { headers }),
       fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
       fetch(`${SUPABASE_URL}/rest/v1/color_variants?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
-      fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=*&product_id=eq.${encodedId}`, { headers })
+      fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=*&product_id=eq.${encodedId}`, { headers, cache: 'no-store' })
     ]);
     const productRows = productResp.ok ? await productResp.json() : [];
     const product = Array.isArray(productRows) ? productRows[0] : null;
@@ -3192,13 +3655,14 @@ function pulseBagTarget() {
 
 function animateAddToBag(sourceEl, imageSrc) {
   // If the header was scrolled away, pop it back so the shopper sees the bag
-  // update (and the pulse below happens on-screen, not off the top).
-  if (typeof window.zwRevealHeader === 'function') window.zwRevealHeader();
+  // update. When it was hidden, let it finish sliding in (~0.35s) BEFORE the bag
+  // pulse, so the two happen in sequence rather than on top of each other.
+  var wasHidden = (typeof window.zwRevealHeader === 'function') && window.zwRevealHeader();
   // Add-to-bag acknowledgment: the bag icon "drop-in dip" (it dips and
-  // squashes as if the item landed in it) plus the count-badge pop. The
-  // (sourceEl, imageSrc) signature is kept so all call sites stay valid;
+  // squashes as if the item landed in it) plus the count-badge pop.
   // prefers-reduced-motion is honored in CSS.
-  pulseBagTarget();
+  if (wasHidden) window.setTimeout(pulseBagTarget, 380);
+  else pulseBagTarget();
 }
 
 let _cartFavRenderVer = 0;
@@ -3443,23 +3907,11 @@ document.addEventListener('click', function (e) {
 /* Swipe-down-to-close for the bottom-sheet modals (mirrors product.html).
    If the user drags down >80px while the sheet is scrolled to the very top,
    dismiss it by clicking the existing close button so all teardown runs. */
-function zwAttachSwipeClose(scrollEl, closeBtn) {
-  if (!scrollEl || !closeBtn) return;
-  let startY = 0, tracking = false;
-  scrollEl.addEventListener('touchstart', e => {
-    if (e.touches.length !== 1) { tracking = false; return; }
-    startY = e.touches[0].clientY;
-    tracking = scrollEl.scrollTop <= 0;
-  }, { passive: true });
-  scrollEl.addEventListener('touchmove', () => {
-    if (tracking && scrollEl.scrollTop > 0) tracking = false;
-  }, { passive: true });
-  scrollEl.addEventListener('touchend', e => {
-    if (!tracking) return; tracking = false;
-    const dy = e.changedTouches[0].clientY - startY;
-    if (dy > 80 && scrollEl.scrollTop <= 0) closeBtn.click();
-  }, { passive: true });
-}
+/* zwAttachSwipeClose now lives in storefront-features.js — the only file that loads
+   on every page with modals, and before this one (index.html line 74 vs 317). It was
+   defined here, so the fit finder on product pages (no storefront.js) had no
+   pull-to-close at all, and lang.js wrote a third copy. The call below uses the
+   shared global. */
 [
   ['all-reviews-modal', '.review-list-mbox', 'all-reviews-close'],
   ['review-modal', '.review-mbox', 'review-modal-close'],
@@ -4084,11 +4536,19 @@ async function zwHomeNewsletterSubmit() {
   if (input) input.style.borderColor = '';
   const form = document.getElementById('nl-form');
   const success = document.getElementById('nl-success');
+  // Persist server-side (service-role) so it reliably lands in the admin list.
+  try {
+    const resp = await fetch('/api/subscribe', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, source: 'newsletter_footer_home' }),
+    });
+    const j = await resp.json().catch(() => ({}));
+    if (!j || !j.ok) { if (input) input.style.borderColor = '#e07060'; return; }
+  } catch (_) { if (input) input.style.borderColor = '#e07060'; return; }
   if (form) form.style.display = 'none';
   if (success) success.style.display = 'block';
   if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: 'newsletter', source: 'home_footer' });
   if (window.zwPixel) zwPixel.lead('newsletter');
-  if (_sb) { try { await _sb.from('waitlist').upsert({ email, source: 'newsletter_footer_home' }); } catch(_) {} }
 }
 
 /* SCROLL TO NOTIFY */

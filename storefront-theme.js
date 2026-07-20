@@ -35,14 +35,34 @@
   }
 
   // CSS selectors for each section override target (must match SECTION_DEFS in admin.html)
+  // This map is what actually reaches the page. admin.html's SECTION_DEFS carries
+  // a cssSel copy for its own preview, and the two MUST stay identical — they had
+  // drifted: 'nav' listed .nav-link there and not here, so Typography → Header
+  // Categories saved a setting that never touched the header. Anything added to one
+  // has to be added to the other.
+  //
+  // The injected rules are !important, which matters: storefront-cohesion.css:195
+  // locks :is(.nbtn,…,.nav-link,…) to var(--zw-font-mono) !important, and only an
+  // equally-important rule injected later can override it.
   var SECTION_SELECTORS = {
     'logo':         '.flogo, .nav-logo span, .zw-nav-logo span',
-    'nav':          '.nbtn, .mobile-nav-link, .zw-mobile-primary-link',
+    'nav':          '.nav-link, .nbtn, .mobile-nav-link, .zw-mobile-primary-link, .zw-macc-toggle',
+    'subnav':       '.zw-mega-col a, .zw-mega-col h4, .zw-macc-panel a',
+    // The two header panels. Their text is built by storefront-features.js, so it
+    // never inherited any of the page's font settings — these are the only handle.
+    'bag':          '.zwf-bag-hd h2, .zwf-bag-nm, .zwf-bag-meta, .zwf-bag-price, .zwf-bag-review, .zwf-bag-links h3, .zwf-bag-link, .zwf-bag-empty',
+    'search':       '.zwf-search-input, .zwf-search-input::placeholder, .zwf-search-meta, .zwf-sr-nm, .zwf-sr-meta',
     'announce':     '#announcementText',
     'hero-title':   '.hero-h1',
     'hero-sub':     '.hero-sub',
     'sec-head':     '.sec-head h2',
     'product-name': '.pcard-name',
+    // The product PAGE title is .product-title — a different class from the card's
+    // .pcard-name, so "Product Names" never touched it and nothing else did either.
+    'product-title': '.product-title, .product-subtitle',
+    'product-detail': '.accordion-header, .accordion-body, .colorway-section .section-label',
+    // Modals build their own markup, so none of the page's type reached them.
+    'modal':        '.zwf-modal-title, .zwf-modal-sub, .zwf-fit-btn, .zwf-fit-go, .zwf-fit-again, .quick-add-option-head, .quick-add-product-meta, .quick-add-empty-option',
     'price':        '.pcard-price, .pcard-cat',
     'btn':          '.add-to-cart-btn, .pcard-add-btn, #checkout-btn, #pay-submit',
     'footer':       '.fcopy, .flinks a, .fig',
@@ -114,22 +134,43 @@
     if (fonts.roles) {
       var roles = fonts.roles;
 
+      // --zw-font-* is NOT optional. storefront-cohesion.css reads those names in
+      // 14 rules — and they're the !important ones that decide .nav-link, .nbtn,
+      // .pcard-name, .pcard-price, .pcard-cat. Setting only the legacy --fw/--fb/--fm
+      // meant a role change here landed on names those rules never read, so picking
+      // a new font in Admin → Typography visibly did nothing to half the page.
+      // storefront.js's theme path already sets both; this one didn't.
       if (roles.head && roles.head.stack) {
         vars['--font-head'] = roles.head.stack;
         vars['--font-display'] = roles.head.stack;
         vars['--fw'] = roles.head.stack;
+        vars['--zw-font-head'] = roles.head.stack;
         if (roles.head.url) urls.push(roles.head.url);
       }
       if (roles.body && roles.body.stack) {
         vars['--font-body'] = roles.body.stack;
         vars['--fb'] = roles.body.stack;
+        vars['--zw-font-body'] = roles.body.stack;
         if (roles.body.url) urls.push(roles.body.url);
       }
       if (roles.mono && roles.mono.stack) {
         vars['--font-mono'] = roles.mono.stack;
         vars['--fm'] = roles.mono.stack;
+        vars['--zw-font-mono'] = roles.mono.stack;
         if (roles.mono.url) urls.push(roles.mono.url);
       }
+
+      // Heading treatment — now owned by Admin → Typography, and applied here, which
+      // means every page. It used to live only in the builder's "Global Theme" panel,
+      // applied by storefront.js: a file only index.html loads. So heading weight and
+      // style reached the homepage and nothing else, and setting a font meant using
+      // two panels. Fallbacks are the values those rules already hardcoded, so an
+      // older saved row (no headingWeight key) renders exactly as before.
+      vars['--zw-fw-head'] = fonts.headingWeight || '900';
+      vars['--zw-fst-head'] = fonts.headingStyle || 'italic';
+      vars['--zw-head-tracking'] = fonts.headingTracking || 'normal';
+      vars['--zw-head-case'] = fonts.headingCase || 'uppercase';
+      vars['--zw-body-leading'] = fonts.bodyLineHeight || '1.75';
 
       // Custom fonts
       if (Array.isArray(fonts.custom)) {
@@ -157,6 +198,7 @@
         vars['--font-head'] = headStack;
         vars['--font-display'] = headStack;
         vars['--fw'] = headStack;
+        vars['--zw-font-head'] = headStack;   // cohesion's !important rules read this name
         var headUrl = LEGACY_FONT_URLS[fonts.head] || _buildGoogleFontUrl(fonts.head);
         urls.push(headUrl);
       }
@@ -164,6 +206,7 @@
         var bodyStack = LEGACY_FONT_STACKS[fonts.body] || ("'" + fonts.body + "', sans-serif");
         vars['--font-body'] = bodyStack;
         vars['--fb'] = bodyStack;
+        vars['--zw-font-body'] = bodyStack;
         var bodyUrl = LEGACY_FONT_URLS[fonts.body] || _buildGoogleFontUrl(fonts.body);
         urls.push(bodyUrl);
       }
@@ -171,6 +214,7 @@
         var monoStack = LEGACY_FONT_STACKS[fonts.mono] || ("'" + fonts.mono + "', monospace");
         vars['--font-mono'] = monoStack;
         vars['--fm'] = monoStack;
+        vars['--zw-font-mono'] = monoStack;
         var monoUrl = LEGACY_FONT_URLS[fonts.mono] || _buildGoogleFontUrl(fonts.mono);
         urls.push(monoUrl);
       }
@@ -312,8 +356,7 @@
 
   if ('serviceWorker' in navigator) {
     (function clearStaleServiceWorkers() {
-      var hadController = !!navigator.serviceWorker.controller;
-      var clearRegistrations = navigator.serviceWorker.getRegistrations
+      var unregisterAll = navigator.serviceWorker.getRegistrations
         ? navigator.serviceWorker.getRegistrations().then(function(registrations) {
             return Promise.all(registrations.map(function(registration) {
               return registration.unregister();
@@ -326,13 +369,27 @@
           })
         : Promise.resolve();
 
-      Promise.all([clearRegistrations, clearCaches])
+      // No SW is controlling this page → it's already fresh from the network. Just
+      // tidy up any dormant registration/caches and reset the retry counter.
+      if (!navigator.serviceWorker.controller) {
+        unregisterAll; clearCaches;
+        try { sessionStorage.removeItem('zw_sw_clear_tries'); } catch (_) {}
+        return;
+      }
+
+      // A STALE service worker (from an older build of the site — the site no longer
+      // ships one) is controlling this page and can serve old cached HTML over the
+      // fresh one. Unregister it + wipe every cache, then reload so the page re-reads
+      // from the network. Keep retrying until no SW controls the page: a single reload
+      // can race the unregister and still be served stale (which stranded people on the
+      // old layout). Capped so it can never loop forever.
+      var tries = 0;
+      try { tries = parseInt(sessionStorage.getItem('zw_sw_clear_tries') || '0', 10) || 0; } catch (_) {}
+      if (tries >= 4) return;
+
+      Promise.all([unregisterAll, clearCaches])
         .then(function() {
-          if (!hadController) return;
-          try {
-            if (sessionStorage.getItem('zw_sw_clear_reload')) return;
-            sessionStorage.setItem('zw_sw_clear_reload', '1');
-          } catch (_) {}
+          try { sessionStorage.setItem('zw_sw_clear_tries', String(tries + 1)); } catch (_) {}
           window.location.reload();
         })
         .catch(function() {});

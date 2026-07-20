@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
 <script>
 /* AUTH PRE-READ — synchronous session decode (same as drop001/account) so the
    header shows Account instead of Login without a flash. */
@@ -33,7 +33,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
 <script>
 /* THEME FLASH PREVENTION — runs before any CSS loads */
 (function(){try{
-  var m=window.__zwLM();
+  var m=window.__zwLM()||'super-light';
   var h=document.documentElement;
   if(m==='super-light'||m==='light'){
     var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
@@ -73,6 +73,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
   <meta name="robots" content="index, follow">
   <script src="/favicon-utils.js?v=687e90ea" defer></script>
   <script src="/flags.js?v=1" defer></script>
+  <script src="/storefront-features.js?v=1" defer></script>
   <script src="/meta-pixel.js?v=71fe06fb" defer></script>
   <script src="/google-tag.js?v=b141b2a1" defer></script>
   <script src="/supabase.min.js?v=3277b334" defer></script>
@@ -91,10 +92,10 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --black:#09090b; --white:#f4f1eb;
-      --font-head:'Barlow Condensed',sans-serif;
-      --font-body:'Barlow',sans-serif;
-      --font-mono:'IBM Plex Mono',monospace;
-      --fw:var(--font-head); --fb:var(--font-body); --fm:var(--font-mono);
+      --font-head:var(--zw-font-head, 'Barlow Condensed',sans-serif);
+      --font-body:var(--zw-font-body, 'Barlow',sans-serif);
+      --font-mono:var(--zw-font-mono, 'IBM Plex Mono',monospace);
+      --fw: var(--zw-font-head, var(--font-head)); --fb: var(--zw-font-body, var(--font-body)); --fm: var(--zw-font-mono, var(--font-mono));
       --border:rgba(244,241,235,0.1);
     }
     body { background:var(--black); color:var(--white); font-family:var(--font-body); font-weight:300; overflow-x:clip; }
@@ -108,9 +109,14 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
       border-bottom:1px solid rgba(244,241,235,.07);
     }
     .nav-logo{ display:flex; align-items:center; text-decoration:none; }
-    .nav-logo img{ height:41px; width:auto; display:block; transition:filter .35s; filter:none; }
+    .nav-logo img{ height:50px; width:auto; display:block; transition:filter .35s; filter:none; }
     .nav-center{ position:absolute; left:0; right:0; margin:0 auto; width:fit-content; display:flex; align-items:center; gap:2.4rem; }
-    .nav-link{ font-family:var(--fw,'Barlow Condensed',sans-serif); font-size:1.7rem; font-weight:900; font-style:normal; letter-spacing:.02em; text-transform:uppercase; line-height:1; color:#f4f1eb; opacity:.92; text-decoration:none; transition:color .2s,opacity .2s; background:none; border:none; cursor:pointer; display:inline-flex; align-items:center; padding:.6rem .7rem; margin:-.6rem 0; }
+    /* Font/size/weight/style live once, in storefront-cohesion.css's .nav-link
+       (1.05rem/600, unified in #175). This page kept a local copy at the OLD
+       1.7rem/900, so MEN/WOMEN/NEW rendered large-and-bold here while every
+       cohesion-driven page showed the unified size. Only genuinely page-local bits
+       stay: colour and the hitbox padding. */
+    .nav-link{ color:#f4f1eb; opacity:.92; transition:color .2s,opacity .2s; padding:.6rem .7rem; margin:-.6rem 0; }
     .nav-link:hover{ color:var(--white); opacity:1; }
     .nav-right{ display:flex; align-items:center; gap:.4rem; }
     body.light-mode nav#nav{ background:#F0EEE9; }
@@ -219,7 +225,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
-<script>(function(){try{var m=window.__zwLM();if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+<script>(function(){try{var m=window.__zwLM()||'super-light';if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
 <script>
 (function() {
   function applyThemeMode(mode) {
@@ -231,7 +237,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
     if (meta) meta.setAttribute('content', color);
     document.documentElement.style.backgroundColor = color;
   }
-  try { applyThemeMode(window.__zwLM() || 'dark'); } catch(_) { applyThemeMode('dark'); }
+  try { applyThemeMode(window.__zwLM() || 'super-light'); } catch(_) { applyThemeMode('super-light'); }
   window.__zwApplyAdminTheme = applyThemeMode;
   window.__zwSyncThemeColor = function() {
     var m = document.body.classList.contains('super-light-mode') ? 'super-light'
@@ -283,9 +289,6 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
           <a href="drop001.html" class="mobile-nav-link zw-mobile-primary-link">Shop All</a>
         </div>
         <div class="zw-mobile-menu-secondary">
-          <a href="account.html" class="zw-mobile-secondary-link">Account</a>
-          <a href="account.html#orders" class="zw-mobile-secondary-link">Track Order</a>
-          <a href="mailto:nasirubreeze@zuwera.store" class="zw-mobile-secondary-link">Support</a>
           <a href="bag.html" class="zw-mobile-secondary-link zw-mobile-bag-link" aria-label="Open bag">Bag <span class="zw-mobile-bag-count">0</span></a>
           <a href="sizeguide.html" class="zw-mobile-secondary-link">Size Guide</a>
         </div>
@@ -346,6 +349,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
         <summary class="zwf-col-head">Company<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
         <div class="zwf-col-links">
           <a href="/about.html">About</a>
+        <a href="/journal.html">Journal</a>
           <a href="/account.html">Account</a>
         </div>
       </details>

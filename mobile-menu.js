@@ -230,6 +230,16 @@
       event.preventDefault();
       window.closeMobileMenu();
     });
+
+    // Swipe down to dismiss, like every other sheet on the site. zwAttachSwipeClose
+    // (storefront-features.js) fires closeBtn.click() when you drag the scroller down
+    // >80px while it's scrolled to the top — so it never fights a scrolling list. The
+    // panel is the scroller (overflow-y:auto). Guarded: the helper only exists once
+    // storefront-features has loaded, and this runs at DOMContentLoaded after it.
+    var panel = el && el.querySelector('.zw-mobile-menu-panel');
+    if (panel && close && window.zwAttachSwipeClose) {
+      window.zwAttachSwipeClose(panel, close);
+    }
     document.querySelectorAll('[data-history-back]').forEach(function (trigger) {
       trigger.addEventListener('click', goBackOrHome);
     });

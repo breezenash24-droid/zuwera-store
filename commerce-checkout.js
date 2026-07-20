@@ -64,6 +64,17 @@
       <div id="zw-promo-message" style="font-family:var(--fm,inherit);font-size:.62rem;color:rgba(244,241,235,.5);letter-spacing:.03em;min-height:.9rem;"></div>
     `;
 
+    // Arrived from a friend's referral link (?ref=CODE)? Prefill their code so
+    // the shopper doesn't have to remember it. It's still validated server-side
+    // like any other promo — this only saves typing.
+    try {
+      const ref = localStorage.getItem('zw_ref');
+      if (ref) {
+        const input = shell.querySelector('#zw-promo-input');
+        if (input && !input.value) input.value = ref;
+      }
+    } catch (_) {}
+
     const summary = host.closest('.cart-summary') || document.querySelector('.cart-summary');
     const totalRow = host.querySelector('.stotal, .total')
       || summary?.querySelector('.stotal, .summary-row.total, .total');
@@ -181,18 +192,25 @@
   }
 
   function wrapGlobalPost() {
-    const original = window.post;
-    if (typeof original !== 'function' || original.__zwPromoWrapped) return;
-    const wrapped = async function (url, body) {
-      const nextBody = url === '/api/create-payment-intent'
-        ? { ...(body || {}), promoCode: currentPromoCode(),
-            featureFlags: (typeof window.zwActiveFlags === 'function' ? window.zwActiveFlags() : undefined),
-            deliveryMethod: (typeof window.zwDeliveryMethod === 'function' ? window.zwDeliveryMethod() : undefined) }
-        : body;
-      return original.call(this, url, nextBody);
-    };
-    wrapped.__zwPromoWrapped = true;
-    window.post = wrapped;
+    // Wrap BOTH checkout POST helpers: bag.html's inline `post` AND checkout.js's
+    // global `postJSON` (the one that actually sends /api/create-payment-intent).
+    // The original wrapper only covered `post`, which checkout.html doesn't even
+    // define — so promoCode/featureFlags/deliveryMethod were never injected on
+    // the card-payment path and campus hand-delivery charged normal shipping.
+    ['post', 'postJSON'].forEach((name) => {
+      const original = window[name];
+      if (typeof original !== 'function' || original.__zwPromoWrapped) return;
+      const wrapped = async function (url, body) {
+        const nextBody = url === '/api/create-payment-intent'
+          ? { ...(body || {}), promoCode: currentPromoCode(),
+              featureFlags: (typeof window.zwActiveFlags === 'function' ? window.zwActiveFlags() : undefined),
+              deliveryMethod: (typeof window.zwDeliveryMethod === 'function' ? window.zwDeliveryMethod() : undefined) }
+          : body;
+        return original.call(this, url, nextBody);
+      };
+      wrapped.__zwPromoWrapped = true;
+      window[name] = wrapped;
+    });
   }
 
   function wrapWalletHelpers() {

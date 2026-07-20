@@ -15,29 +15,28 @@ const crypto = require('crypto');
 
 const root = path.resolve(__dirname, '..');
 
-const htmlFiles = [
-  '404.html',
-  'account.html',
-  'admin.html',
-  'analytics.html',
-  'bag.html',
-  'builder.html',
-  'checkout.html',
-  'confirm.html',
-  'diagnostic.html',
-  'drop001.html',
-  'index.html',
-  'mobile-checkout.html',
-  'policies.html',
-  'product.html',
-  'returns.html',
-  'sizeguide.html',
-];
+// Every .html file in the repo root. Previously this was a hardcoded list that
+// silently missed pages (landing.html, journal.html, about.html) — those stayed
+// pinned to stale asset hashes, so browsers kept serving cached old JS/CSS on
+// them. Globbing the root means new pages are always covered.
+const htmlFiles = fs
+  .readdirSync(root)
+  .filter((f) => f.endsWith('.html') && fs.statSync(path.join(root, f)).isFile())
+  .sort();
+
+// Global cache-bust salt. Bump this string to force EVERY asset ?v= to change on
+// the next deploy — even for files whose bytes are identical — so every browser
+// refetches all JS/CSS on its next page load. Cloudflare runs this script on each
+// deploy, so committing a new salt here is what actually forces the site-wide
+// refresh (the committed HTML seeds get re-stamped by that same run). The nuclear
+// option for when an update isn't reaching cached visitors; normal deploys don't
+// need it because content-hashing already busts changed files.
+const CACHE_BUST = '2026-07-16.1';
 
 function contentHash(filePath) {
   try {
     const buf = fs.readFileSync(filePath);
-    return crypto.createHash('sha256').update(buf).digest('hex').slice(0, 8);
+    return crypto.createHash('sha256').update(CACHE_BUST).update(buf).digest('hex').slice(0, 8);
   } catch (_) {
     return null;
   }
@@ -52,8 +51,18 @@ for (const entry of fs.readdirSync(root)) {
   }
 }
 
-// Match any `filename.js?v=anything` or `filename.css?v=anything` reference.
-const assetRef = /([\w.-]+\.(?:js|css))\?v=[A-Za-z0-9_-]+/g;
+// Match a local asset reference in src="" / href="", WITH OR WITHOUT an existing
+// ?v=. The `?v=` used to be mandatory, which quietly created permanent staleness:
+// seven pages referenced `src="/storefront-features.js"` with no query at all, so
+// this never matched them, nothing ever stamped them — and _headers serves JS as
+// `immutable, max-age=31536000`. Those pages pinned a year-old copy of the file
+// and could never be updated: the bag and returns pages were still running a build
+// old enough to have the removed search Close button. A missing ?v= must be added,
+// not skipped.
+//
+// Anchoring on src="/href=" keeps external URLs out (https:// can't match the name
+// group), and hashes[name] means only files we actually ship from root are touched.
+const assetRef = /((?:src|href)=")(\/?)([\w.-]+\.(?:js|css))(?:\?v=[A-Za-z0-9_-]+)?(")/g;
 
 let changedFiles = 0;
 for (const file of htmlFiles) {
@@ -61,8 +70,8 @@ for (const file of htmlFiles) {
   if (!fs.existsSync(fp)) continue;
 
   const original = fs.readFileSync(fp, 'utf8');
-  const updated = original.replace(assetRef, (match, name) => {
-    return hashes[name] ? `${name}?v=${hashes[name]}` : match;
+  const updated = original.replace(assetRef, (match, attr, slash, name, close) => {
+    return hashes[name] ? `${attr}${slash}${name}?v=${hashes[name]}${close}` : match;
   });
 
   if (updated !== original) {

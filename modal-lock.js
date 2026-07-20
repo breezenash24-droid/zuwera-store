@@ -127,7 +127,7 @@
     // Exit early if already unlocked and the DOM doesn't have stranded lock styles.
     // This prevents an infinite MutationObserver loop where unlockScroll() mutates
     // styles, triggering the observer, which calls refresh() -> unlockScroll().
-    const needsRescue = root.style.overflow === 'hidden' || body.style.position === 'fixed' || root.dataset.scrollLocked === 'true';
+    const needsRescue = root.style.overflow === 'hidden' || body.style.overflow === 'hidden' || body.style.position === 'fixed' || root.dataset.scrollLocked === 'true';
     if (!locked && !needsRescue) return;
 
     const wasLocked = locked;
@@ -175,7 +175,26 @@
     });
   }
 
+  // Source of truth for "is anything actually open". Overlays declare their open state
+  // with an .open class (removed synchronously on close); payment/QR screens may show
+  // without one, so those are checked by display. This exists because hasActiveOverlay()
+  // infers open/closed from computed visibility/pointer-events, and that inference kept
+  // MISJUDGING a sheet mid-close — leaving the body pinned and the page frozen (the
+  // write-a-review sheet froze the page on close, mobile AND desktop). If nothing is
+  // genuinely open, the page MUST be free; never let the inference hold the lock.
+  function hasOpenOverlay() {
+    if (document.querySelector(
+      '.modal.open, [role="dialog"].open, .zwf-modal.open, .zwf-bag.open, .zwf-search.open,' +
+      '#mobile-menu.open, #zw-lang-modal.open, #payment-success.open, #apple-pay-qr-modal.open'
+    )) return true;
+    return ['payment-success', 'apple-pay-qr-modal'].some(function (id) {
+      var el = document.getElementById(id);
+      return el && window.getComputedStyle(el).display !== 'none';
+    });
+  }
+
   function refresh() {
+    if (!hasOpenOverlay()) { unlockScroll(); return; }
     if (hasActiveOverlay()) {
       lockScroll();
     } else {
@@ -209,7 +228,22 @@
     window.addEventListener('orientationchange', queueRefresh, { passive: true });
   }
 
-  window.ZWModalScrollLock = { refresh };
+  // Force the lock off no matter what state it's in — a safety valve a modal's close
+  // handler can call once it KNOWS nothing should hold the page. It exists because the
+  // open/closed decision above is inferred from computed styles, and if that ever
+  // misjudges (a sheet mid-close, a stranded body.overflow), the page is left frozen.
+  // Reads the pinned offset back from body.style.top so scroll is still restored.
+  function release() {
+    var b = document.body;
+    if (b && b.style.position === 'fixed' && b.style.top) {
+      var y = Math.abs(parseInt(b.style.top, 10));
+      if (!isNaN(y)) lockedScrollY = y;
+    }
+    locked = true; // bypass unlockScroll's already-unlocked early return
+    unlockScroll();
+  }
+
+  window.ZWModalScrollLock = { refresh: refresh, release: release };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init, { once: true });

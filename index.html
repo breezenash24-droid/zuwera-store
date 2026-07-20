@@ -14,7 +14,7 @@
    reused as foreground colors elsewhere, e.g. .pcard-add-btn, and
    overriding them globally made buttons/text invisible.) */
 (function(){try{
-  var m=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode');
+  var m=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode')||'super-light';
   var h=document.documentElement;
   if(m==='super-light'||m==='light'){
     var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
@@ -71,6 +71,7 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   <link rel="manifest" href="/site.webmanifest">
   <script src="/favicon-utils.js?v=687e90ea" defer></script>
   <script src="/flags.js?v=1" defer></script>
+  <script src="/storefront-features.js?v=1" defer></script>
   <script src="/meta-pixel.js?v=71fe06fb" defer></script>
   <script src="/google-tag.js?v=b141b2a1" defer></script>
   <!-- Supabase JS SDK (~180KB) is loaded LAZILY: product data comes from the
@@ -234,6 +235,17 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
 }catch(_){}})();
 </script>
 <script>
+/* Synchronously hide the static default sections (marquee/about/release/products)
+   that the last-rendered builder layout omitted, BEFORE first paint — mirrors the
+   hero's zw-hide-static-hero. storefront.js caches the omitted types; without this
+   they flash in (e.g. the products grid) before storefront.js runs and hides them. */
+(function(){try{
+  var hidden=(localStorage.getItem('zw_pb_hidden_defaults')||'').split(',');
+  var h=document.documentElement;
+  for(var i=0;i<hidden.length;i++){ if(hidden[i]) h.classList.add('zw-hs-'+hidden[i]); }
+}catch(_){}})();
+</script>
+<script>
 (function() {
   // Carousel-led layouts have no static hero. If the last render cached that,
   // hide the baked-in <section class="hero"> synchronously (before first paint)
@@ -336,9 +348,9 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   --gold:#F891A5; /* Pantone 708 C */
   --red:#c0392b;
   --success:#6fcf6f;        /* success/confirm green */
-  --fw: 'Barlow Condensed', sans-serif;
-  --fm: 'IBM Plex Mono', monospace;
-  --fb: 'Barlow', sans-serif;
+  --fw: var(--zw-font-head, 'Barlow Condensed', sans-serif);
+  --fm: var(--zw-font-mono, 'IBM Plex Mono', monospace);
+  --fb: var(--zw-font-body, 'Barlow', sans-serif);
   --mobile-nav-gap:0px;
 }
 html{scroll-behavior:smooth;font-size:16px;background:var(--ink);overscroll-behavior-y:auto}
@@ -410,16 +422,17 @@ nav#nav.scrolled{
   font-size:1.6rem;letter-spacing:.12em;
   color:var(--paper);
 }
-.nav-logo img{height:41px;width:auto;display:block;transition:filter .35s;filter:none}
+.nav-logo img{height:50px;width:auto;display:block;transition:filter .35s;filter:none}
 .nav-center{
   /* centered WITHOUT transform (a transform would trap the fixed mega-menu in a
      narrow containing block instead of letting it go full-width) */
   position:absolute;left:0;right:0;margin:0 auto;width:fit-content;
   display:flex;align-items:center;gap:2.4rem;
 }
+/* Size/weight/tracking live once, in storefront-cohesion.css's .nav-link. They were
+   duplicated here at 1.7rem/900 and, being later in source order, would override it. */
 .nav-link{
-  font-family:var(--fw,'Barlow Condensed',sans-serif);font-size:1.7rem;font-weight:900;font-style:normal;
-  letter-spacing:.02em;text-transform:uppercase;line-height:1;
+  text-transform:uppercase;line-height:1;
   color:#f4f1eb;text-decoration:none;transition:color .2s;opacity:.92;
   /* Bigger click/tap target — padding makes the hitbox extend well beyond the
      glyphs. Negative vertical margin keeps the taller box from growing the nav. */
@@ -428,7 +441,7 @@ nav#nav.scrolled{
 .nav-link:hover{color:var(--paper);opacity:1}
 .nav-right{display:flex;align-items:center;gap:.4rem}
 .nbtn{
-  font-family:var(--fm);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
+font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
   color:rgba(244,241,235,.55);padding:.55rem .9rem;transition:color .2s;
 }
 .nbtn:hover{color:var(--paper)}
@@ -486,6 +499,17 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
 /* Carousel-led layouts: the <head> flag hides the static hero before first
    paint so the old default hero never flashes in ahead of the carousel. */
 html.zw-hide-static-hero .hero{display:none!important}
+/* Pre-paint hide of default sections omitted by the active builder layout (set
+   synchronously in <head> from the zw_pb_hidden_defaults cache; storefront.js
+   re-confirms on load). .products-section is targeted directly so it's hidden
+   whether or not it's still nested in .drop-wrap; .drop-inner hides the release
+   content while keeping a nested products grid that the layout DID want; when
+   BOTH release and products are omitted the whole .drop-wrap goes. */
+html.zw-hs-marquee .marquee{display:none!important}
+html.zw-hs-about .section-about{display:none!important}
+html.zw-hs-products .products-section{display:none!important}
+html.zw-hs-release .drop-inner{display:none!important}
+html.zw-hs-release.zw-hs-products .drop-wrap{display:none!important}
 
 /* Boot cover — themed layer that hides the page-builder reflow on reload. Below
    the fixed nav (z 220) / bar (z 230) so the header stays visible ("loading"),
@@ -559,7 +583,7 @@ html.zw-boot-white #zw-boot{background:#FFFFFF!important}
   font-size:clamp(.9rem,1.5vw,1.1rem);
   color:rgba(244,241,235,.72);
   text-shadow:0 2px 12px rgba(0,0,0,.55);
-  max-width:360px;margin-top:1.8rem;line-height:1.75;
+  max-width:360px;margin-top:1.8rem;line-height:var(--zw-body-leading,1.75);
   opacity:0;animation:up .8s ease .55s forwards;
 }
 .hero-cta-row{
@@ -777,9 +801,22 @@ html.zw-boot-white #zw-boot{background:#FFFFFF!important}
   padding-bottom:1rem;border-bottom:1px solid rgba(244,241,235,.08);
   margin-bottom:2.5rem;
 }
+/* A section heading, like every other section heading. This was the last one
+   reading --fm (the MONO stack) at a hardcoded weight 400 and .68rem, so the
+   homepage showed an 11px mono label above one section and 26px display type above
+   the next — two systems on one page, and Design → Appearance's Heading
+   Font/Weight/Style moved every heading except this one.
+
+   Matches .zwf-strip-title exactly (storefront-features.js) so the strips and the
+   static sections are peers, and all five headings — hero, marquee, strips, card
+   names, this — now answer to the same three dropdowns. */
 .sec-head h2{
-  font-family:var(--fm);font-weight:400;
-  font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;
+  font-family:var(--fw);
+  font-weight:var(--zw-fw-head, 900);
+  font-style:var(--zw-fst-head, italic);
+  font-size:clamp(1.1rem,3vw,1.6rem);
+  letter-spacing:.06em;
+  text-transform:uppercase;
 }
 .sec-head span{
   font-family:var(--fm);font-size:.58rem;letter-spacing:.15em;
@@ -823,7 +860,7 @@ html.zw-boot-white #zw-boot{background:#FFFFFF!important}
   backdrop-filter:blur(8px);
   border:1px solid rgba(244,241,235,.1);
   padding:.35rem .8rem;
-  font-family:var(--fm);font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;
+font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;
   color:var(--gold);
 }
 .heart-btn{
@@ -837,7 +874,7 @@ html.zw-boot-white #zw-boot{background:#FFFFFF!important}
 .heart-btn:hover,.heart-btn.active{color:var(--red);border-color:var(--red)}
 .heart-btn.active svg,.heart-btn.active svg path,.heart-btn.active svg circle{fill:var(--red)!important;stroke:var(--red)!important}
 .heart-btn svg{width:14px;height:14px;pointer-events:none;transform-box:fill-box;transform-origin:center}
-@keyframes svgHeartPop{0%{transform:scale(1)}35%{transform:scale(1.55)}65%{transform:scale(0.87)}100%{transform:scale(1)}}
+@keyframes svgHeartPop{0%{transform:scale(1)}35%{transform:scale(1.42)}65%{transform:scale(0.88)}100%{transform:scale(1)}}
 .heart-btn svg.heart-pop{animation:svgHeartPop .35s cubic-bezier(.36,.07,.19,.97)}
 @media(prefers-reduced-motion:reduce){.heart-btn svg.heart-pop{animation:none}}
 .pcard-info{
@@ -845,14 +882,14 @@ html.zw-boot-white #zw-boot{background:#FFFFFF!important}
   border-top:1px solid rgba(244,241,235,.06);
 }
 .pcard-cat{
-  font-family:var(--fm);font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;font-weight:500;
+font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;font-weight:500;
   color:rgba(244,241,235,.6);margin-bottom:.35rem;
 }
 .pcard-name{
-  font-family:var(--fw);font-weight:700;font-style:italic;
+font-weight:700;font-style:italic;
   font-size:1.4rem;letter-spacing:.03em;margin-bottom:.3rem;
 }
-.pcard-price{font-family:var(--fw);font-size:1.05rem;font-weight:700;letter-spacing:.01em;color:rgba(244,241,235,.95)}
+.pcard-price{font-size:1.05rem;font-weight:700;letter-spacing:.01em;color:rgba(244,241,235,.95)}
 /* Variant photo thumbnails on the home cards (replaces the color dots + Add-to-Bag).
    More-specific than the shared .zw-card-swatch so they show always (incl. mobile),
    as photo tiles, with a clean active border (no haze). Tap previews the colorway. */
@@ -876,7 +913,7 @@ html.zw-boot-white #zw-boot{background:#FFFFFF!important}
   display:block;width:100%;margin-top:1rem;
   background:var(--paper);color:var(--ink);border:none;
   padding:.75rem 1rem;
-  font-family:var(--fm);font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;font-weight:600;
+font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;font-weight:600;
   cursor:pointer;transition:background .2s,transform .15s;
 }
 .pcard-add-btn:hover{background:var(--cream);transform:translateY(-1px)}
@@ -889,7 +926,7 @@ html.zw-boot-white #zw-boot{background:#FFFFFF!important}
   position:absolute;bottom:0;left:0;right:0;
   background:var(--ink);border-top:1px solid rgba(244,241,235,.1);
   padding:1.2rem 1.4rem;
-  transform:translateY(100%);transition:transform .25s cubic-bezier(.32,.72,0,1);
+  transform:translateY(100%);transition:transform .25s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));
   z-index:20;
 }
 .quick-size-panel.open{transform:translateY(0)}
@@ -947,10 +984,8 @@ body.light-mode .quick-color-name{color:rgba(9,9,11,.45)}
 body.light-mode .quick-back-btn{color:rgba(9,9,11,.3)}
 body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
 
-/* ALL modal overlays are fully transparent — content panels handle their own backgrounds */
-.modal{background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
 /* Lang modal overlay — background/alignment enforced here so inline style rewrites can't win */
-#zw-lang-modal{background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;align-items:stretch !important;justify-content:flex-end !important;padding:0 !important;box-shadow:none !important}
+#zw-lang-modal{align-items:stretch !important;justify-content:flex-end !important;padding:0 !important;box-shadow:none !important}
 .quick-add-review-modal{z-index:650}
 .quick-add-review-box{width:min(520px,92vw);padding:0;overflow:hidden}
 .quick-add-product-box{width:min(920px,94vw);max-height:min(760px,92vh);overflow:auto}
@@ -961,9 +996,9 @@ body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
    cream/white strip that goes stark on the dark modal or seams in super-light. */
 .quick-add-review-media{position:relative;background:var(--ink);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y pinch-zoom}
 .quick-add-review-media img{width:100%;height:100%;object-fit:cover;object-position:center center;display:block}
-.quick-add-review-media :is(img,video).zw-img-in{animation:qaImgIn .4s cubic-bezier(.22,.61,.36,1) both}
-.quick-add-review-media :is(img,video).zw-slide-next{animation:qaSlideNext .4s cubic-bezier(.22,.61,.36,1) both}
-.quick-add-review-media :is(img,video).zw-slide-prev{animation:qaSlidePrev .4s cubic-bezier(.22,.61,.36,1) both}
+.quick-add-review-media :is(img,video).zw-img-in{animation:qaImgIn .4s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)) both}
+.quick-add-review-media :is(img,video).zw-slide-next{animation:qaSlideNext .4s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)) both}
+.quick-add-review-media :is(img,video).zw-slide-prev{animation:qaSlidePrev .4s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)) both}
 @keyframes qaImgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:scale(1)}}
 @keyframes qaSlideNext{from{opacity:.3;transform:translateX(32%)}to{opacity:1;transform:translateX(0)}}
 @keyframes qaSlidePrev{from{opacity:.3;transform:translateX(-32%)}to{opacity:1;transform:translateX(0)}}
@@ -1012,7 +1047,7 @@ body.light-mode .quick-add-color-dot{border-color:rgba(9,9,11,.25)}
 .quick-add-empty-option{font-family:var(--fm);font-size:.68rem;color:rgba(244,241,235,.48);margin:0}
 .quick-add-review-message{font-family:var(--fm);font-size:.68rem;letter-spacing:.06em;color:rgba(244,241,235,.5);min-height:1rem;margin:0}
 .quick-add-review-actions{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}
-.quick-add-review-actions button,.quick-add-review-actions a{min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.72);font-family:var(--fm);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease,opacity .2s ease,transform .1s ease}
+.quick-add-review-actions button,.quick-add-review-actions a{min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.72);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease,opacity .2s ease,transform .1s ease}
 .quick-add-review-actions button:hover,.quick-add-review-actions a:hover{background:rgba(244,241,235,.1);color:rgba(244,241,235,.92)}
 .quick-add-review-actions button:active,.quick-add-review-actions a:active{transform:scale(.97);opacity:.82}
 .quick-add-review-actions .quick-add-review-confirm{grid-column:1/-1;background:var(--paper);color:var(--ink);border-color:var(--paper);transition:background .2s ease,color .2s ease,border-color .2s ease,transform .1s ease,opacity .2s ease}
@@ -1163,8 +1198,8 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
 }
 .wallet-chip{
   display:flex;align-items:center;justify-content:center;
-  width:100%;min-height:48px;padding:.8rem 1rem;border:1px solid rgba(244,241,235,.14);border-radius:999px;
-  font-family:var(--fm);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
+  width:100%;min-height:48px;padding:.8rem 1rem;border:1px solid rgba(244,241,235,.14);border-radius:var(--zw-radius-pill, 999px);
+font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
   color:var(--paper);background:rgba(244,241,235,.03);
   gap:.65rem;cursor:pointer;transition:border-color .2s ease, background .2s ease, color .2s ease, opacity .2s ease;
 }
@@ -1334,7 +1369,7 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
 .ferr{color:var(--red);font-family:var(--fm);font-size:.65rem;min-height:.9rem;margin-top:.3rem}
 .auth-submit-btn,.btn-primary{
   width:100%;background:var(--paper);color:var(--ink);border:1px solid transparent;
-  padding:.9rem;font-family:var(--font-body);font-weight:600;
+  padding:.9rem;font-weight:600;
   font-size:.85rem;letter-spacing:.12em;text-transform:uppercase;
   margin-top:1rem;transition:background .2s,color .2s,border-color .2s;
 }
@@ -1374,7 +1409,7 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
 }
 .ret-hd h1{font-family:var(--fw);font-weight:900;font-style:italic;font-size:1.8rem;letter-spacing:.06em}
 .ret-back{
-  font-family:var(--fm);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
+font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
   color:rgba(244,241,235,.35);display:flex;align-items:center;gap:.35rem;transition:color .2s;
 }
 .ret-back:hover{color:var(--paper)}
@@ -1929,7 +1964,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
      add light-mode to <body> from the cached mode BEFORE first paint so the nav,
      hero, sections etc. render in light mode instead of flashing dark until
      deferred storefront.js applies the class. Mirrors what drop001/account do. -->
-<script>(function(){try{var m=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode');if(m==='light')document.body.classList.add('light-mode');else if(m==='super-light')document.body.classList.add('light-mode','super-light-mode');}catch(_){}})()</script>
+<script>(function(){try{var m=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode')||'super-light';if(m==='light')document.body.classList.add('light-mode');else if(m==='super-light')document.body.classList.add('light-mode','super-light-mode');}catch(_){}})()</script>
 <!-- Boot cover: themed layer held over the content on a page-builder reload while
      storefront.js reflows the layout, so the reflow doesn't visibly "jump". Shown
      only when html.zw-pb-pending (set synchronously in <head>); faded out by
@@ -1939,7 +1974,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
      scroll (the nav itself does, which is what bleeds). Themed to match the nav so
      it's seamless, sized to the status-bar strip only — adds no header height. -->
 <div id="zw-notch-cover" style="position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top,0px) - 48px,14px);z-index:2147483647;pointer-events:none;background:#FFFFFF;transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden"></div>
-<script>try{var _nm=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode');document.getElementById('zw-notch-cover').style.background=_nm==='light'?'#F0EEE9':_nm==='super-light'?'#FFFFFF':'#09090b';}catch(_){}</script>
+<script>try{var _nm=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode')||'super-light';document.getElementById('zw-notch-cover').style.background=_nm==='light'?'#F0EEE9':_nm==='super-light'?'#FFFFFF':'#09090b';}catch(_){}</script>
 <a class="skip-link" href="#main-content">Skip to content</a>
 
 
@@ -1983,6 +2018,11 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
     </button>
   </div>
 </nav>
+<script>/* Header auth first-paint: set the login/account buttons from the cached session
+   BEFORE paint, mirroring what auth.js does after its async getSession (~0.5s). Without
+   this the header flashed both the login AND account button (and, signed in, "Account"
+   before the name) until that resolved. auth.js re-applies the same values later. */
+(function(){try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on');if(localStorage.getItem('zw_srch')==='1'){var _nr=document.querySelector('.nav-right'),_ct=_nr&&_nr.querySelector('#cart-btn');if(_nr&&_ct&&!_nr.querySelector('.zwf-search-btn')){var _sb=document.createElement('button');_sb.type='button';_sb.className='nbtn zwf-search-btn';_sb.setAttribute('aria-label','Search');_sb.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';_nr.insertBefore(_sb,_ct);}}}catch(_){}try{var b=null,ck={},j;for(j=0;j<localStorage.length;j++){var kk=localStorage.key(j);if(!kk)continue;var mm=kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/);if(!mm)continue;if(mm[1]===undefined)b=localStorage.getItem(kk);else ck[mm[1]]=localStorage.getItem(kk);}var ord=Object.keys(ck).map(Number).sort(function(a,b){return a-b;});var str=ord.length?ord.map(function(n){return ck[n];}).join(''):b;var u=null;if(str){if(str.indexOf('base64-')===0){var bin=atob(str.slice(7).replace(/-/g,'+').replace(/_/g,'/'));str=new TextDecoder().decode(Uint8Array.from(bin,function(c){return c.charCodeAt(0);}));}var raw=JSON.parse(str);var se=raw&&raw.currentSession?raw.currentSession:raw;if(se&&se.user&&(Number(se.expires_at||0)*1000>Date.now()||se.refresh_token))u=se.user;}var i=!!u;var L=document.getElementById('login-btn'),A=document.getElementById('account-btn'),O=document.getElementById('logout-btn');if(L)L.style.display=i?'none':'inline-flex';if(A){A.style.display=i?'inline-flex':'none';if(i){var n=(u.user_metadata&&(u.user_metadata.full_name||u.user_metadata.name))||(u.email||'').split('@')[0]||'';A.textContent=(n||'').split(' ')[0];}}if(O)O.style.display=i?'inline-flex':'none';}catch(_){}})();</script>
 
 
 <!-- MOBILE MENU MODAL -->
@@ -2000,11 +2040,9 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
         <a href="drop001.html?category=Sweatpants" class="mobile-nav-link zw-mobile-primary-link">Sweatpants</a>
         <a href="drop001.html?category=Socks" class="mobile-nav-link zw-mobile-primary-link">Socks</a>
         <a href="about.html" class="mobile-nav-link zw-mobile-primary-link">About</a>
+        <a href="journal.html" class="mobile-nav-link zw-mobile-primary-link">Journal</a>
       </div>
       <div class="zw-mobile-menu-secondary">
-        <a href="account.html" class="zw-mobile-secondary-link">Account</a>
-        <a href="account.html#orders" class="zw-mobile-secondary-link">Track Order</a>
-        <a href="mailto:nasirubreeze@zuwera.store" class="zw-mobile-secondary-link">Support</a>
         <a href="bag.html" class="zw-mobile-secondary-link zw-mobile-bag-link" aria-label="Open bag">Bag <span class="zw-mobile-bag-count">0</span></a>
         <a href="sizeguide.html" class="zw-mobile-secondary-link">Size Guide</a>
       </div>
@@ -2175,6 +2213,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
       <summary class="zwf-col-head">Company<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
       <div class="zwf-col-links">
         <a href="/about.html">About</a>
+        <a href="/journal.html">Journal</a>
         <a href="/account.html">Account</a>
       </div>
     </details>
@@ -2221,6 +2260,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
       <button class="mclose" id="review-modal-close" aria-label="Close">&#215;</button>
     </div>
 
+    <div class="review-mbox-body">
     <div class="star-selector" id="star-selector" role="group" aria-label="Star rating">
       <button type="button" data-v="1" aria-label="1 star">&#9733;</button>
       <button type="button" data-v="2" aria-label="2 stars">&#9733;</button>
@@ -2262,6 +2302,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
 
     <p id="review-error" class="review-error"></p>
     <button id="review-submit-btn" class="review-submit-btn" onclick="submitReview()">Submit Review</button>
+    </div>
   </div>
 </div>
 

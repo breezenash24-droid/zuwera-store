@@ -12,7 +12,7 @@
  */
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
-import { cors, json, verifyAdmin, getCommerceBundle, setSetting } from './_commerce.js';
+import { cors, json, verifyAdminCan, getCommerceBundle, setSetting } from './_commerce.js';
 
 async function fetchOrder(orderId, env) {
   const url = (env.SUPABASE_URL || '').trim();
@@ -361,8 +361,9 @@ export async function onRequestPost({ request, env }) {
     if (!accessToken) return json({ ok: false, error: 'Missing access token' }, 401);
     if (!returnId) return json({ ok: false, error: 'Missing returnId' }, 400);
 
-    const admin = await verifyAdmin(env, accessToken);
-    if (!admin) return json({ ok: false, error: 'Not authorized' }, 403);
+    // Requires the `returns` page write capability — not just any admin account.
+    const admin = await verifyAdminCan(env, accessToken, 'return_process');
+    if (!admin) return json({ ok: false, error: 'Your role does not have permission to process returns.' }, 403);
 
     const bundle = await getCommerceBundle(env);
     returnsState = bundle.returnsState;

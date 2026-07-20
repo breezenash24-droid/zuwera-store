@@ -80,9 +80,39 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY'
     );
     window._sbDiag = _sbDiag;
-    _sbDiag.auth.getSession().then(({ data: { session } }) => {
-      if (session) document.getElementById('diag-auth-overlay').style.display = 'none';
-    }).catch(() => {});
+    window._diagAdmin = false;
+
+    // A bare session is NOT enough — any customer can sign in. Verify the user is
+    // actually an admin with the same server-side check the dashboard uses
+    // (/api/admin-access validates the access token with the service key). The
+    // diagnostics stay locked until this passes; runAll() also re-checks the flag.
+    async function verifyAdmin() {
+      try {
+        const { data: { session } } = await _sbDiag.auth.getSession();
+        if (!session?.access_token) return false;
+        const resp = await fetch('/api/admin-access', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken: session.access_token })
+        });
+        const payload = await resp.json().catch(() => null);
+        return !!(resp.ok && payload && payload.success
+          && (payload.role === 'admin' || payload.profile?.role === 'admin'));
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function unlockDiag() {
+      window._diagAdmin = true;
+      document.getElementById('diag-auth-overlay').style.display = 'none';
+      const runBtn = document.getElementById('runBtn');
+      if (runBtn) runBtn.disabled = false;
+    }
+
+    // On load: unlock straight away only if an admin session already exists.
+    verifyAdmin().then((ok) => { if (ok) unlockDiag(); }).catch(() => {});
+
     window.diagSignIn = async function() {
       const btn = document.getElementById('diag-auth-submit');
       const errEl = document.getElementById('diag-auth-error');
@@ -93,7 +123,12 @@
       try {
         const { error } = await _sbDiag.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        document.getElementById('diag-auth-overlay').style.display = 'none';
+        if (await verifyAdmin()) {
+          unlockDiag();
+        } else {
+          await _sbDiag.auth.signOut().catch(() => {});
+          throw new Error('This account is not an admin.');
+        }
       } catch(e) {
         errEl.textContent = e.message || 'Sign-in failed.';
       } finally {
@@ -109,7 +144,7 @@
   <p class="subtitle">Run from <strong>zuwera.store/diagnostic.html</strong> for accurate results (same-origin checks require the live domain)</p>
 
   <div>
-    <button class="btn" id="runBtn" onclick="runAll()">Run All Checks</button>
+    <button class="btn" id="runBtn" onclick="runAll()" disabled>Run All Checks</button>
     <button class="btn btn-ghost" onclick="copyReport()">Copy Report</button>
   </div>
 
@@ -686,6 +721,9 @@ function copyReport() {
 }
 
 async function runAll() {
+  // Hard stop: diagnostics only run for a verified admin (set by verifyAdmin()).
+  // Guards the console-callable path, not just the button.
+  if (!window._diagAdmin) { setProgress('Admin access required.'); return; }
   allResults = [];
   totalPass = 0; totalFail = 0; totalWarn = 0;
   $('results').innerHTML = '';

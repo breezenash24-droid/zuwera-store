@@ -3,8 +3,8 @@
  *
  * Requires:
  *  - Supabase client (_sb) already initialised in auth.js
- *  - _openModal() / _closeModal() from cart.js
- *  - showToast() from cart.js
+ *  - showToast() when present (defined by storefront.js on the homepage; every call
+ *    here is guarded with typeof, so pages without it degrade gracefully)
  *
  * Supabase table (run once in the Supabase SQL editor):
  * Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€
@@ -31,6 +31,8 @@ let _reviewProductName = null;
 let _reviewRating      = 0;
 let _reviewIdToEdit    = null;
 let _activeReviewDomId = null;
+let _reviewPhotos      = [];     // photo URLs attached to the review being written
+const MAX_REVIEW_PHOTOS = 4;
 
 // Cache of loaded reviews per product to avoid redundant DB calls
 const _reviewCache = {};
@@ -43,6 +45,10 @@ const REVIEW_META_SEPARATOR = ' \u00b7 ';
 // the "View more" collapse threshold (0 = never collapse).
 let _reviewLimits = { maxUnit: 'characters', maxLength: 1000, previewChars: 320 };
 let _reviewLimitsLoaded = false;
+// Off by default: photos show as soon as they're posted, and the admin can
+// delete anything inappropriate. Turn review_settings.photoApproval on to
+// instead hide photos until an admin approves them.
+let _reviewPhotoApproval = false;
 
 function reviewLen(str) {
   str = String(str || '');
@@ -73,6 +79,7 @@ async function ensureReviewLimits() {
       if (v.maxUnit === 'words' || v.maxUnit === 'characters') _reviewLimits.maxUnit = v.maxUnit;
       if (isFinite(+v.maxLength) && +v.maxLength > 0) _reviewLimits.maxLength = Math.floor(+v.maxLength);
       if (isFinite(+v.previewChars) && +v.previewChars >= 0) _reviewLimits.previewChars = Math.floor(+v.previewChars);
+      _reviewPhotoApproval = v.photoApproval === true;
     }
     _reviewLimitsLoaded = true;
   } catch (_) {}
@@ -382,9 +389,11 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
       ${review.body ? (reviewNeedsCollapse(review.body)
         ? `<p class="review-card-body" data-collapsible="1">${escHtml(reviewShort(review.body))}… </p><button type="button" class="review-more-btn" aria-expanded="false">View more</button>`
         : `<p class="review-card-body">${escHtml(review.body)}</p>`) : ''}
+      ${Array.isArray(review.photos) && review.photos.length && (!_reviewPhotoApproval || review.photos_approved) ? `<div class="review-card-photos">${review.photos.map(u => `<img src="${escHtml(u)}" data-full="${escHtml(u)}" alt="review photo" loading="lazy">`).join('')}</div>` : ''}
       ${adminResponseHtml}
     `;
       list.appendChild(reviewEl);
+      reviewEl.querySelectorAll('.review-card-photos img').forEach((img) => img.addEventListener('click', () => zwReviewLightbox(img.dataset.full)));
       if (reviewNeedsCollapse(review.body)) {
         const _bodyEl = reviewEl.querySelector('.review-card-body[data-collapsible]');
         const _moreBtn = reviewEl.querySelector('.review-more-btn');
@@ -447,6 +456,8 @@ function openReviewForm(pid, pname) {
   if (document.querySelector('input[name="reviewRecommend"][value="yes"]')) document.querySelector('input[name="reviewRecommend"][value="yes"]').checked = true;
 
   setStarSelection(0);
+  _reviewPhotos = [];
+  renderReviewPhotoThumbs();
   syncReviewCharCount();
   const errReset = document.getElementById('review-error');
   if (errReset) errReset.style.color = '';
@@ -457,6 +468,24 @@ function openReviewForm(pid, pname) {
   reviewModal.style.setProperty('background', 'transparent', 'important');
   reviewModal.style.setProperty('backdrop-filter', 'none', 'important');
   reviewModal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+  // Force the bottom-sheet layout inline (highest priority) so it's a real bottom sheet
+  // — anchored to the bottom edge, full sheet height, rounded top — regardless of any
+  // cached/older reviews.css or a higher-specificity rule that would otherwise centre it.
+  // Cleared again in closeReviewModal.
+  if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
+    var _SH = 'var(--zw-sheet-max, calc(100dvh - 7rem))';
+    reviewModal.style.setProperty('align-items', 'flex-end', 'important');
+    reviewModal.style.setProperty('padding', '0', 'important');
+    var _rbox = reviewModal.querySelector('.review-mbox');
+    if (_rbox) {
+      _rbox.style.setProperty('height', _SH, 'important');
+      _rbox.style.setProperty('max-height', _SH, 'important');
+      _rbox.style.setProperty('width', '100vw', 'important');
+      _rbox.style.setProperty('max-width', 'none', 'important');
+      _rbox.style.setProperty('margin', '0', 'important');
+      _rbox.style.setProperty('border-radius', '1.25rem 1.25rem 0 0', 'important');
+    }
+  }
   if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow = 'hidden'; }
   window.requestAnimationFrame(() => {
     try { document.querySelector('#star-selector button')?.focus({ preventScroll: true }); } catch (_) {}
@@ -505,6 +534,8 @@ function openEditReviewForm(id, rating, pid) {
   if (resolvedProductName) _reviewProductName = resolvedProductName;
   _reviewIdToEdit = id;
   _reviewRating = rating;
+  _reviewPhotos = Array.isArray(review && review.photos) ? review.photos.slice() : [];
+  renderReviewPhotoThumbs();
 
   const productLabel = document.getElementById('review-product-label');
   if (productLabel) productLabel.textContent = resolvedProductName;
@@ -541,6 +572,22 @@ function openEditReviewForm(id, rating, pid) {
   editModal.style.setProperty('background', 'transparent', 'important');
   editModal.style.setProperty('backdrop-filter', 'none', 'important');
   editModal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+  // Same forced bottom-sheet layout as openReviewForm (this is a separate entry point,
+  // reachable from a review's Edit button). Cleared in closeReviewModal.
+  if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
+    var _SH = 'var(--zw-sheet-max, calc(100dvh - 7rem))';
+    editModal.style.setProperty('align-items', 'flex-end', 'important');
+    editModal.style.setProperty('padding', '0', 'important');
+    var _ebox = editModal.querySelector('.review-mbox');
+    if (_ebox) {
+      _ebox.style.setProperty('height', _SH, 'important');
+      _ebox.style.setProperty('max-height', _SH, 'important');
+      _ebox.style.setProperty('width', '100vw', 'important');
+      _ebox.style.setProperty('max-width', 'none', 'important');
+      _ebox.style.setProperty('margin', '0', 'important');
+      _ebox.style.setProperty('border-radius', '1.25rem 1.25rem 0 0', 'important');
+    }
+  }
   if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow = 'hidden'; }
 }
 
@@ -613,6 +660,111 @@ document.querySelectorAll('#star-selector button').forEach(btn => {
 });
 
 // -- Submit review ----------------------------------------------------
+// ── Review photos (optional; uploaded via /api/upload-review-photo) ──────────
+function renderReviewPhotoThumbs() {
+  const strip = document.getElementById('review-photo-strip');
+  if (!strip) return;
+  strip.innerHTML = _reviewPhotos.map((url) =>
+    `<div class="rvp-thumb"><img src="${escHtml(url)}" alt="review photo"><button type="button" class="rvp-remove" data-url="${escHtml(url)}" aria-label="Remove photo">&times;</button></div>`
+  ).join('');
+  strip.querySelectorAll('.rvp-remove').forEach((b) => b.addEventListener('click', () => zwReviewPhotoRemove(b.dataset.url)));
+  const addBtn = document.getElementById('review-photo-add');
+  if (addBtn) addBtn.style.display = _reviewPhotos.length >= MAX_REVIEW_PHOTOS ? 'none' : '';
+}
+function zwReviewPhotoRemove(url) {
+  _reviewPhotos = _reviewPhotos.filter((u) => u !== url);
+  renderReviewPhotoThumbs();
+}
+async function zwReviewPhotoUpload(input) {
+  const files = Array.from(input.files || []);
+  input.value = '';
+  if (!files.length) return;
+  let token = null;
+  if (window.sb) { const { data } = await window.sb.auth.getSession(); token = data && data.session && data.session.access_token || null; }
+  const status = document.getElementById('review-photo-status');
+  if (!token) { if (status) status.textContent = 'Please sign in to add photos.'; return; }
+  for (const file of files) {
+    if (_reviewPhotos.length >= MAX_REVIEW_PHOTOS) break;
+    if (status) status.textContent = 'Uploading…';
+    try {
+      const fd = new FormData();
+      fd.append('accessToken', token);
+      fd.append('file', file);
+      const resp = await fetch('/api/upload-review-photo', { method: 'POST', body: fd });
+      const j = await resp.json();
+      if (j && j.url) { _reviewPhotos.push(j.url); renderReviewPhotoThumbs(); if (status) status.textContent = ''; }
+      else if (status) { status.textContent = (j && j.error) || 'Upload failed.'; }
+    } catch (_) { if (status) status.textContent = 'Upload failed.'; }
+  }
+}
+window.zwReviewPhotoUpload = zwReviewPhotoUpload;
+
+function injectReviewPhotoStyles() {
+  if (document.getElementById('review-photo-styles')) return;
+  const s = document.createElement('style');
+  s.id = 'review-photo-styles';
+  s.textContent =
+    '.review-photo-wrap{margin:14px 0}' +
+    '.review-photo-label{display:block;font-size:.8rem;margin-bottom:8px}' +
+    '.review-photo-strip{display:flex;flex-wrap:wrap;gap:8px}' +
+    '.rvp-thumb{position:relative;width:60px;height:60px;border-radius:6px;overflow:hidden}' +
+    '.rvp-thumb img{width:100%;height:100%;object-fit:cover;display:block}' +
+    '.rvp-remove{position:absolute;top:2px;right:2px;width:18px;height:18px;line-height:16px;border:none;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;cursor:pointer;padding:0}' +
+    '.review-photo-add{display:inline-block;margin-top:8px;font-size:.8rem;padding:7px 12px;border:1px dashed currentColor;border-radius:6px;cursor:pointer;opacity:.8}' +
+    '.review-photo-add:hover{opacity:1}' +
+    '.review-photo-status{font-size:.75rem;opacity:.7;margin-top:6px;min-height:1em}' +
+    '.review-card-photos{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 2px}' +
+    '.review-card-photos img{width:64px;height:64px;object-fit:cover;border-radius:6px;cursor:pointer;transition:opacity .15s}' +
+    '.review-card-photos img:hover{opacity:.85}' +
+    '.rvp-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;z-index:100000;cursor:zoom-out}' +
+    '.rvp-lightbox img{max-width:92vw;max-height:92vh;border-radius:6px}';
+  document.head.appendChild(s);
+}
+(function injectReviewPhotoUI() {
+  function inject() {
+    const body = document.getElementById('review-body-input');
+    if (!body || document.getElementById('review-photo-strip')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'review-photo-wrap';
+    wrap.innerHTML =
+      '<label class="review-photo-label">Add photos <span style="opacity:.6;font-weight:400">(optional)</span></label>' +
+      '<div id="review-photo-strip" class="review-photo-strip"></div>' +
+      '<label id="review-photo-add" class="review-photo-add">+ Add photo' +
+      '<input type="file" accept="image/*" multiple style="display:none" onchange="zwReviewPhotoUpload(this)"></label>' +
+      '<div id="review-photo-status" class="review-photo-status"></div>';
+    body.insertAdjacentElement('afterend', wrap);
+    injectReviewPhotoStyles();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inject);
+  else inject();
+})();
+function zwReviewLightbox(url) {
+  const ov = document.createElement('div');
+  ov.className = 'rvp-lightbox';
+  const img = document.createElement('img');
+  img.src = url; img.alt = 'review photo';
+  ov.appendChild(img);
+  ov.addEventListener('click', () => ov.remove());
+  document.body.appendChild(ov);
+}
+window.zwReviewLightbox = zwReviewLightbox;
+
+// Deep link from the review-request email: /product/…?review=1 opens the form.
+(function reviewDeepLink() {
+  try {
+    if (new URLSearchParams(location.search).get('review') !== '1') return;
+    let opened = false;
+    function tryOpen() {
+      if (opened) return;
+      const p = window.__zwCurrentProduct || (typeof currentProduct !== 'undefined' ? currentProduct : null);
+      if (p && p.id && typeof openReviewForm === 'function') { opened = true; openReviewForm(p.id, p.title || p.name || ''); }
+    }
+    window.addEventListener('zw-product-loaded', tryOpen);
+    let tries = 0;
+    const iv = setInterval(() => { tryOpen(); if (opened || ++tries > 24) clearInterval(iv); }, 300);
+  } catch (_) {}
+})();
+
 async function submitReview() {
   const errEl  = document.getElementById('review-error');
   const btn    = document.getElementById('review-submit-btn');
@@ -648,7 +800,7 @@ async function submitReview() {
     errEl.innerHTML = 'Please sign in to post your review — your draft will be kept. ' +
       '<button type="button" id="review-signin-btn" style="background:none;border:none;color:inherit;text-decoration:underline;cursor:pointer;font:inherit;padding:0;">Sign In</button>';
     document.getElementById('review-signin-btn')?.addEventListener('click', () => {
-      const open = window.openAuthModal || window.openAuth || window.__zwOpenAuth;
+      const open = window.zwOpenAuth || window.openAuthModal || window.openAuth || window.__zwOpenAuth;
       if (typeof open === 'function') open('signin');
       else window.location.href = '/account.html';
     });
@@ -665,6 +817,7 @@ async function submitReview() {
     const res = await window.sb.from('reviews').update({
       rating: _reviewRating,
       body:   body || null,
+      photos: _reviewPhotos.slice(),
       fit_rating: fit ? parseInt(fit) : null,
       comfort_rating: comfort ? parseInt(comfort) : null,
       recommend: recommend === 'yes' ? true : (recommend === 'no' ? false : null)
@@ -677,6 +830,7 @@ async function submitReview() {
       rating:        _reviewRating,
       body:          body || null,
       reviewer_name: reviewerName,
+      photos: _reviewPhotos.slice(),
       fit_rating: fit ? parseInt(fit) : null,
       comfort_rating: comfort ? parseInt(comfort) : null,
       recommend: recommend === 'yes' ? true : (recommend === 'no' ? false : null)
@@ -854,7 +1008,29 @@ window.translateReviews = async function(domId) {
     if (!_rm) return;
     _rm.classList.remove('open');
     _rm.setAttribute('aria-hidden', 'true');
-    if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow = ''; }
+    // openReviewForm set an inline background:transparent!important on the container;
+    // clear it so nothing stray lingers after close.
+    _rm.style.removeProperty('background');
+    // Clear the inline bottom-sheet layout forced on open.
+    ['align-items', 'padding'].forEach(function (p) { _rm.style.removeProperty(p); });
+    var _cbox = _rm.querySelector('.review-mbox');
+    if (_cbox) ['height', 'max-height', 'width', 'max-width', 'margin', 'border-radius'].forEach(function (p) { _cbox.style.removeProperty(p); });
+    // FREE THE PAGE FIRST, unconditionally. The review sheet is a top-level modal, so
+    // closing it must release the scroll lock — full stop. The old code inferred
+    // open/closed from computed styles and kept stranding the body pinned (frozen on
+    // both mobile and desktop). Release outright, then re-engage on the next frame ONLY
+    // if some OTHER overlay is genuinely still open.
+    if (window.ZWModalScrollLock && window.ZWModalScrollLock.release) {
+      window.ZWModalScrollLock.release();
+    } else {
+      var b = document.body, h = document.documentElement;
+      b.style.position = ''; b.style.removeProperty('top'); b.style.overflow = ''; h.style.overflow = '';
+    }
+    requestAnimationFrame(function () {
+      if (window.ZWModalScrollLock && document.querySelector(
+        '.modal.open, .zwf-modal.open, .zwf-bag.open, .zwf-search.open, #payment-success.open, #zw-lang-modal.open'
+      )) window.ZWModalScrollLock.refresh();
+    });
   }
   if (_rm) {
     _rm.addEventListener('click', e => { if (e.target === e.currentTarget) closeReviewModal(); });

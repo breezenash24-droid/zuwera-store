@@ -23,6 +23,8 @@ import Stripe from 'stripe';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { loopsFallback } from './_email.js';
 import { buildUserData, sendCapiEvents } from './_capi.js';
+import { veeqoBookShipment } from './_veeqo.js';
+import { incrementShippoMonthlyCount, recordLabelFailure } from './_shipping-usage.js';
 
 // Fallback service-level token map if rate object ID is unavailable
 const SERVICE_TOKEN_MAP = {
@@ -164,7 +166,15 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
       console.log('Label created:', labelData?.tracking_number);
     } catch (e) {
       console.error('Label creation failed:', e.message);
-      // Continue — still save the order and send email without tracking
+      // Surface it on the admin dashboard (a declined card on the Shippo/Veeqo
+      // account would otherwise fail silently), then continue — still save the
+      // order and send the email without tracking.
+      await recordLabelFailure(env, {
+        order: meta.order_number,
+        pi: pi.id,
+        source: meta.shipping_source || 'shippo',
+        error: e.message,
+      });
     }
   }
 
@@ -176,13 +186,30 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
 
   await saveOrderToSupabase(pi, meta, tracking, env);
 
-  const [stripeUpdateResult, emailResult, invResult, promoResult, capiResult] = await Promise.allSettled([
+  // Abandoned-cart: this shopper completed checkout, so mark their saved cart
+  // recovered — no recovery email should go out. Best-effort, never blocks.
+  try {
+    const _svc = getSupabaseServiceKey(env);
+    const _acEmail = String(meta.customer_email || '').trim().toLowerCase();
+    if (_svc && env.SUPABASE_URL && _acEmail) {
+      fetch(`${env.SUPABASE_URL}/rest/v1/abandoned_carts?email=eq.${encodeURIComponent(_acEmail)}`, {
+        method: 'PATCH',
+        headers: { apikey: _svc, Authorization: 'Bearer ' + _svc, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ recovered_at: new Date().toISOString() }),
+      }).catch(() => {});
+    }
+  } catch (_) {}
+
+  const [stripeUpdateResult, emailResult, invResult, promoResult, capiResult, loyaltyResult, referralResult] = await Promise.allSettled([
     tracking.number
       ? stripe.paymentIntents.update(pi.id, {
           metadata: {
             tracking_number: tracking.number,
             tracking_url:    tracking.url,
-            label_url:       tracking.label,
+            // Veeqo labels come back as a large base64 data URL — too big for
+            // Stripe metadata (500-char cap). Only store real hosted URLs here;
+            // the full label is always saved on the order row in Supabase.
+            label_url:       (tracking.label && tracking.label.length <= 480) ? tracking.label : '',
           },
         })
       : Promise.resolve(null),
@@ -198,6 +225,13 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
     // Mirror the browser Purchase pixel server-side (survives ad blockers;
     // deduped against the browser event by event_id = purchase_<pi.id>).
     sendPurchaseEvent(pi, meta, env),
+
+    // Credit loyalty points (signed-in shoppers only). Non-fatal by design —
+    // a points failure must never affect the order.
+    awardLoyaltyPoints(pi, meta, env),
+
+    // If the order used someone's referral code, pay the referrer.
+    creditReferrer(pi, meta, env),
   ]);
 
   if (stripeUpdateResult.status === 'rejected') console.error('Stripe metadata update failed:', stripeUpdateResult.reason);
@@ -205,6 +239,79 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
   if (invResult.status       === 'rejected') console.error('Inventory decrement failed:',     invResult.reason);
   if (promoResult.status     === 'rejected') console.error('Promo usage increment failed:',   promoResult.reason);
   if (capiResult.status      === 'rejected') console.error('CAPI Purchase failed:',           capiResult.reason);
+  if (loyaltyResult.status   === 'rejected') console.error('Loyalty points failed:',          loyaltyResult.reason);
+  if (referralResult.status  === 'rejected') console.error('Referral credit failed:',         referralResult.reason);
+}
+
+// Pay the referrer when an order used their code. Guards: no self-referral, and
+// one credit per order (Stripe can retry a webhook).
+async function creditReferrer(pi, meta, env) {
+  const serviceKey = getSupabaseServiceKey(env);
+  if (!env.SUPABASE_URL || !serviceKey) return;
+  const code = String(meta.discount_code || '').trim();
+  if (!code) return;
+
+  const H = { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey, 'Content-Type': 'application/json' };
+
+  const settingsRows = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.referral_settings&limit=1`, { headers: H })
+    .then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  let s = settingsRows && settingsRows[0] && settingsRows[0].value;
+  if (typeof s === 'string') { try { s = JSON.parse(s); } catch (_) { s = null; } }
+  s = s || {};
+  if (s.enabled !== true) return;
+  const points = Math.floor(Number(s.referrerPoints) > 0 ? Number(s.referrerPoints) : 0);
+  if (points <= 0) return;
+
+  // Is this code somebody's referral code?
+  const owners = await fetch(`${env.SUPABASE_URL}/rest/v1/referral_codes?select=user_id&code=eq.${encodeURIComponent(code)}&limit=1`, { headers: H })
+    .then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  const referrerId = owners && owners[0] && owners[0].user_id;
+  if (!referrerId) return;
+
+  // Don't pay someone for referring themselves.
+  if (String(meta.user_id || '').trim() === String(referrerId)) return;
+
+  // Already credited for this order? (webhook retries)
+  const dupe = await fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger?select=id&user_id=eq.${encodeURIComponent(referrerId)}&reason=eq.referral&order_id=eq.${encodeURIComponent(pi.id)}&limit=1`, { headers: H })
+    .then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  if (dupe && dupe.length) return;
+
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger`, {
+    method: 'POST', headers: { ...H, Prefer: 'return=minimal' },
+    body: JSON.stringify({ user_id: referrerId, points, reason: 'referral', order_id: pi.id, promo_code: code }),
+  });
+  if (!res.ok) throw new Error('referral credit insert failed: ' + (await res.text().catch(() => '')));
+}
+
+// Credit points for a purchase. Guests (no user_id) earn nothing — there's no
+// account to credit. Rules live in site_settings.loyalty_settings.
+async function awardLoyaltyPoints(pi, meta, env) {
+  const serviceKey = getSupabaseServiceKey(env);
+  if (!env.SUPABASE_URL || !serviceKey) return;
+  const userId = String(meta.user_id || '').trim();
+  if (!userId) return;
+
+  const H = { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey, 'Content-Type': 'application/json' };
+  const rows = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.loyalty_settings&limit=1`, { headers: H })
+    .then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  let v = rows && rows[0] && rows[0].value;
+  if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+  v = v || {};
+  if (v.enabled !== true) return;
+
+  const perDollar = Number(v.pointsPerDollar) > 0 ? Number(v.pointsPerDollar) : 1;
+  const minOrder = Number(v.minOrderToEarn) > 0 ? Number(v.minOrderToEarn) : 0;
+  const subtotalCents = parseInt(meta.subtotal_amount_cents || '0', 10) || 0;
+  // Orders under the admin's threshold earn nothing.
+  if (minOrder > 0 && subtotalCents < Math.round(minOrder * 100)) return;
+  const points = Math.floor((subtotalCents / 100) * perDollar);
+  if (points <= 0) return;
+
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger`, {
+    method: 'POST', headers: { ...H, Prefer: 'return=minimal' },
+    body: JSON.stringify({ user_id: userId, points, reason: 'purchase', order_id: pi.id }),
+  });
+  if (!res.ok) throw new Error('loyalty_ledger insert failed: ' + (await res.text().catch(() => '')));
 }
 
 // ─── Meta Conversions API: server-side Purchase ────────────────────────────────
@@ -265,6 +372,17 @@ async function sendPurchaseEvent(pi, meta, env) {
 // ─── Create shipping label ─────────────────────────────────────────────────────
 
 async function createShippingLabel(pi, meta, env) {
+  // Veeqo-sourced rate → book via Veeqo (label returned as a base64 data URL).
+  if (meta.shipping_source === 'veeqo') {
+    const cache = await fetchSiteSettings(['VEEQO_API_KEY'], env);
+    return await veeqoBookShipment({
+      env,
+      rateId: meta.shipping_rate_object_id,
+      remoteShipmentId: meta.veeqo_remote_shipment_id,
+      settingsCache: cache,
+    });
+  }
+
   if (!env.SHIPPO_API_KEY) throw new Error('SHIPPO_API_KEY not set');
 
   const rateObjectId = meta.shipping_rate_object_id;
@@ -335,6 +453,9 @@ async function createShippingLabel(pi, meta, env) {
   if (data.status !== 'SUCCESS') {
     throw new Error('Shippo label failed: ' + JSON.stringify(data.messages || data));
   }
+
+  // Count this Shippo label against the monthly free tier (non-fatal).
+  await incrementShippoMonthlyCount(env);
 
   return data; // { tracking_number, tracking_url_provider, label_url, ... }
 }

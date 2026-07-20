@@ -28,6 +28,9 @@ const ALLOWED_KEYS = new Set([
   'SHIPPO_FROM_EMAIL',
   'SHIPPO_FROM_PHONE',
   'SHIPPO_WEBHOOK_SECRET',
+  // Veeqo (2nd shipping-rate source; alternates with Shippo past its free tier)
+  'VEEQO_API_KEY',
+  'SHIPPO_FREE_LIMIT',
   'DEEPL_API_KEY',
   'CLOUDFLARE_GRAPHQL_TOKEN',
   'CLOUDFLARE_ZONE_ID',

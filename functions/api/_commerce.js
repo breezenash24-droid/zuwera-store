@@ -76,6 +76,70 @@ export async function setSetting(env, key, value) {
   return supabaseUpsertSetting(env, key, value);
 }
 
+// Atomic read-modify-write on one site_settings JSON blob via an optimistic
+// compare-and-swap on the `rev` column (added by supabase-atomic-settings.sql).
+//
+// `mutator(currentValue)` returns the next value. If another writer bumped `rev`
+// between our read and write, the CAS matches zero rows and we re-read + re-apply,
+// so concurrent writers can no longer clobber each other (the lost-update bug that
+// dropped customer profiles, return requests, and freshly-minted promo codes).
+//
+// If the `rev` column isn't deployed yet, PostgREST 400s on the rev filter and we
+// transparently fall back to a plain upsert — identical to the old behaviour — so
+// this is safe to ship before the migration runs.
+export async function mutateSetting(env, key, mutator, { retries = 6 } = {}) {
+  const H = supabaseHeaders(env);
+  const base = `${env.SUPABASE_URL}/rest/v1/site_settings`;
+
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const readResp = await fetch(`${base}?select=value,rev&key=eq.${encodeURIComponent(key)}&limit=1`, {
+      headers: H, cache: 'no-store',
+    });
+    if (!readResp.ok) {
+      if (readResp.status === 400) return fallbackWrite(env, key, mutator); // rev column not deployed
+      throw new Error(`mutateSetting read failed (${readResp.status}) for ${key}`);
+    }
+    const rows = await readResp.json().catch(() => []);
+    const existing = rows && rows[0];
+    const nextValue = await mutator(existing ? existing.value : null);
+
+    if (!existing) {
+      // No row yet — insert with rev=1. A racing insert loses the unique(key)
+      // constraint and 409s; we retry and take the CAS-update path.
+      const ins = await fetch(base, {
+        method: 'POST', headers: { ...H, Prefer: 'return=minimal' },
+        body: JSON.stringify([{ key, value: nextValue, rev: 1 }]),
+      });
+      if (ins.ok) return nextValue;
+      continue;
+    }
+
+    const curRev = Number(existing.rev) || 0;
+    const upd = await fetch(`${base}?key=eq.${encodeURIComponent(key)}&rev=eq.${encodeURIComponent(existing.rev)}`, {
+      method: 'PATCH', headers: { ...H, Prefer: 'return=representation' },
+      body: JSON.stringify({ value: nextValue, rev: curRev + 1 }),
+    });
+    if (!upd.ok) {
+      if (upd.status === 400) return fallbackWrite(env, key, mutator, nextValue); // rev column not deployed
+      continue; // transient — retry
+    }
+    const updated = await upd.json().catch(() => []);
+    if (Array.isArray(updated) && updated.length > 0) return nextValue; // won the CAS
+    // 0 rows changed → another writer bumped rev between our read and write → retry
+  }
+
+  // Exhausted retries under heavy contention — best-effort plain write rather than
+  // failing the request. Extremely rare.
+  return fallbackWrite(env, key, mutator);
+}
+
+async function fallbackWrite(env, key, mutator, precomputed) {
+  const nextValue = precomputed !== undefined
+    ? precomputed
+    : await mutator(await getSetting(env, key, null));
+  return setSetting(env, key, nextValue);
+}
+
 export async function getCommerceBundle(env) {
   const rows = await supabaseSelect(
     env,
@@ -184,6 +248,13 @@ export function sanitizeCommerceConfig(rawConfig = {}) {
         minSubtotal: Number(promo.minSubtotal || 0),
         description: String(promo.description || ''),
         active: promo.active !== false,
+        // Expiry + usage limits are set in Admin → Coupons and are checked by
+        // getPromotionForCode() / validate-promo. They MUST survive sanitising:
+        // dropping them here silently disabled both limits, so a code with
+        // "max uses 3" kept working forever.
+        expirationDate: promo.expirationDate ? String(promo.expirationDate) : '',
+        maxUsage: promo.maxUsage === undefined || promo.maxUsage === null || promo.maxUsage === '' ? null : Number(promo.maxUsage),
+        usageCount: Number(promo.usageCount || 0),
         targetProductIds: Array.isArray(promo.targetProductIds) ? promo.targetProductIds.map(String).filter(Boolean) : [],
         targetCollectionIds: Array.isArray(promo.targetCollectionIds) ? promo.targetCollectionIds.map(String).filter(Boolean) : [],
       })),
