@@ -104,7 +104,7 @@
     }
     .mc-spinner-ring {
       width: 36px;
-      height: 36px;
+      height: 41px;
       border: 2px solid var(--border);
       border-top-color: var(--pink);
       border-radius: 50%;
@@ -335,7 +335,9 @@
     body.light-mode .mc-header { border-bottom-color: rgba(9,9,11,.1); }
     body.light-mode .mc-secure { color: rgba(9,9,11,.28); }
     body.light-mode .mc-success-order { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.1); }
-    body.light-mode .mc-logo img { filter: invert(1); }  </style>
+    body.light-mode .mc-logo img { filter: invert(1); }  
+    @media (max-width: 900px) { .mc-logo img { height: 45.1px !important; } }
+  </style>
 </head>
 <body>
 <script>(function(){try{var m=localStorage.getItem('zw_theme_mode')||'super-light';if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>

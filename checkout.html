@@ -6,7 +6,8 @@
 <script>
 /* THEME FLASH PREVENTION — runs before any CSS loads */
 (function(){try{
-  var m=localStorage.getItem('zw_theme_mode')||'super-light';
+  var m=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode')||'super-light';
+
   var h=document.documentElement;
   if(m==='super-light'||m==='light'){
     var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
@@ -473,6 +474,7 @@
       .co-checkout-h { font-size: 3rem; }
       .co-page-title { margin-bottom: 2.5rem; text-align: left; }
     }
+    @media (max-width: 900px) { .co-logo-wrap img { height: 45.1px !important; } }
   </style>
 <style>body.super-light-mode{background:#FFFFFF!important;--bg:#FFFFFF}body.super-light-mode #toast{background:#FFFFFF!important;color:#09090b!important}</style>
 <script src="error-reporter.js?v=1" defer></script>
