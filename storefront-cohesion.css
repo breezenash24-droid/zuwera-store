@@ -2531,6 +2531,9 @@ body.super-light-mode #mobile-menu .zw-mobile-menu-secondary{
 }
 
 #mobile-menu .zw-mobile-secondary-link{
+  /* Match the bag panel's links (var(--fb)) — was mono, which read as a different
+     typeface from the rest of the menu. Body font keeps the two modals cohesive. */
+  font-family:var(--zw-font-body, 'Barlow', sans-serif) !important;
   min-height:48px !important;
   padding:.8rem .85rem !important;
   text-decoration:none !important;   /* same <a> default underline, off */
