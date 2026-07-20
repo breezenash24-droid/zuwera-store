@@ -46,16 +46,48 @@
 /*.woff
   Cache-Control: public, max-age=31536000, immutable
 
+# Fonts are versioned + never change under a URL → cache hard like js/css.
+/*.ttf
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.otf
+  Cache-Control: public, max-age=31536000, immutable
+
+# Vector/icon assets — small, effectively static; a month's cache, revalidate after.
+/*.svg
+  Cache-Control: public, max-age=2592000
+
+/*.ico
+  Cache-Control: public, max-age=2592000
+
+# Raster images + video — a month's cache. NOT immutable on purpose: image URLs are
+# hand-versioned (?v=N), not auto-hashed like js/css, so a revalidate-after-a-month
+# window means a swapped image can never be stuck stale indefinitely.
 /*.png
   Cache-Control: public, max-age=2592000
 
 /*.jpg
   Cache-Control: public, max-age=2592000
 
+/*.jpeg
+  Cache-Control: public, max-age=2592000
+
 /*.webp
   Cache-Control: public, max-age=2592000
 
+/*.avif
+  Cache-Control: public, max-age=2592000
+
+/*.gif
+  Cache-Control: public, max-age=2592000
+
 /*.mp4
+  Cache-Control: public, max-age=2592000
+
+/*.webm
+  Cache-Control: public, max-age=2592000
+
+/*.mov
   Cache-Control: public, max-age=2592000
 
 # Apple Pay domain verification file (required by Stripe / Apple Pay)

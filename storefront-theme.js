@@ -356,8 +356,7 @@
 
   if ('serviceWorker' in navigator) {
     (function clearStaleServiceWorkers() {
-      var hadController = !!navigator.serviceWorker.controller;
-      var clearRegistrations = navigator.serviceWorker.getRegistrations
+      var unregisterAll = navigator.serviceWorker.getRegistrations
         ? navigator.serviceWorker.getRegistrations().then(function(registrations) {
             return Promise.all(registrations.map(function(registration) {
               return registration.unregister();
@@ -370,13 +369,27 @@
           })
         : Promise.resolve();
 
-      Promise.all([clearRegistrations, clearCaches])
+      // No SW is controlling this page → it's already fresh from the network. Just
+      // tidy up any dormant registration/caches and reset the retry counter.
+      if (!navigator.serviceWorker.controller) {
+        unregisterAll; clearCaches;
+        try { sessionStorage.removeItem('zw_sw_clear_tries'); } catch (_) {}
+        return;
+      }
+
+      // A STALE service worker (from an older build of the site — the site no longer
+      // ships one) is controlling this page and can serve old cached HTML over the
+      // fresh one. Unregister it + wipe every cache, then reload so the page re-reads
+      // from the network. Keep retrying until no SW controls the page: a single reload
+      // can race the unregister and still be served stale (which stranded people on the
+      // old layout). Capped so it can never loop forever.
+      var tries = 0;
+      try { tries = parseInt(sessionStorage.getItem('zw_sw_clear_tries') || '0', 10) || 0; } catch (_) {}
+      if (tries >= 4) return;
+
+      Promise.all([unregisterAll, clearCaches])
         .then(function() {
-          if (!hadController) return;
-          try {
-            if (sessionStorage.getItem('zw_sw_clear_reload')) return;
-            sessionStorage.setItem('zw_sw_clear_reload', '1');
-          } catch (_) {}
+          try { sessionStorage.setItem('zw_sw_clear_tries', String(tries + 1)); } catch (_) {}
           window.location.reload();
         })
         .catch(function() {});
