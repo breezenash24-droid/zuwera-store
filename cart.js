@@ -28,12 +28,14 @@ function _closeModal(id) {
 }
 
 // ===================== TOAST =====================
+let _toastTimer = null;
 function showToast(msg) {
   const t = document.getElementById('toast');
   if (!t) return;
   t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  clearTimeout(_toastTimer);
+  t.classList.add('on');
+  _toastTimer = setTimeout(() => t.classList.remove('on'), 2600);
 }
 
 // ===================== ANNOUNCEMENT BAR =====================

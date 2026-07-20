@@ -136,7 +136,7 @@ function updateHeaderForAuth() {
   if (_authEls.accountBtn) {
     _authEls.accountBtn.style.display = loggedIn ? 'inline-flex' : 'none';
     if (loggedIn) {
-      const name = _currentUser.user_metadata?.full_name || _currentUser.email.split('@')[0];
+      const name = _currentUser.user_metadata?.full_name || (_currentUser.email || '').split('@')[0] || 'Account';
       _authEls.accountBtn.textContent = name.split(' ')[0];
     }
   }

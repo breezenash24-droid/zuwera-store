@@ -2582,7 +2582,7 @@ function updateNav() {
   if (on) { ac.classList.add('show'); }
   else { ac.classList.remove('show'); }
   if (on && _user) {
-    const name = _user.user_metadata?.full_name || _user.email.split('@')[0];
+    const name = _user.user_metadata?.full_name || (_user.email || '').split('@')[0] || 'Account';
     ac.textContent = name.split(' ')[0];
   }
 }

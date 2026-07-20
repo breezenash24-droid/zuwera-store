@@ -263,7 +263,7 @@ function initPaymentRequest(subtotalCents) {
       }
 
       ev.complete('success');
-      showOrderConfirmed(piData.orderNumber, ev.payerEmail);
+      showOrderConfirmed(piData.orderNumber, ev.payerEmail, finalIntent?.id || '');
     } catch (err) {
       ev.complete('fail');
       console.error('Payment request error:', err);
@@ -529,7 +529,7 @@ _pay.btn?.addEventListener('click', async () => {
       return;
     }
 
-    showOrderConfirmed(piData.orderNumber, email);
+    showOrderConfirmed(piData.orderNumber, email, paymentIntent?.id || '');
   } catch (err) {
     _pay.errEl.textContent = 'Something went wrong. Please try again.';
     console.error('Checkout error:', err);
@@ -539,7 +539,7 @@ _pay.btn?.addEventListener('click', async () => {
 });
 
 // ===================== ORDER CONFIRMED =====================
-function showOrderConfirmed(orderNumber, email) {
+function showOrderConfirmed(orderNumber, email, paymentIntentId) {
   document.getElementById('success-order').textContent = orderNumber ? `Order #${orderNumber}` : '';
   document.getElementById('success-msg').textContent =
     `Thank you for your purchase. A confirmation has been sent to ${email || 'your email'}.`;

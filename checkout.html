@@ -6,7 +6,7 @@
 <script>
 /* THEME FLASH PREVENTION � runs before any CSS loads */
 (function(){try{
-  var m=localStorage.getItem('zw_theme_mode');
+  var m=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode');
   var h=document.documentElement;
   if(m==='super-light'||m==='light'){
     var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
