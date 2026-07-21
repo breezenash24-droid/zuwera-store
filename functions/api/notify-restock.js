@@ -136,7 +136,7 @@ export async function onRequestPost({ request, env }) {
     if (!pending.length) return json({ ok: true, notified: 0 }, 200, cors(env));
 
     // 3. Product + email config.
-    const prodRows = await sbSelect(env, key, `products?select=title,image_url&id=eq.${pid}&limit=1`);
+    const prodRows = await sbSelect(env, key, `products?select=title,image_url,product_images(image_url,sort_order)&id=eq.${pid}&limit=1`);
     const product = (prodRows || [])[0] || {};
     const productTitle = product.title || 'Your item';
     const productUrl = `https://zuwera.store/product.html?id=${pid}`;
@@ -157,7 +157,13 @@ export async function onRequestPost({ request, env }) {
     const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'orders@zuwera.store';
     const logoUrl   = resolveSetting('BRAND_LOGO_URL', env, cache) || LOGO_FALLBACK;
     appearance.logo = logoUrl;   // resolveSetting also covers an env-var logo, which the helper can't see
-    const image     = product.image_url || '';
+    // Match the storefront card: prefer the first gallery photo (product_images),
+    // fall back to the main image_url. Using image_url alone can surface a
+    // placeholder/emblem when the real photos live in product_images.
+    const gallery = Array.isArray(product.product_images)
+      ? product.product_images.slice().sort((x, y) => (x.sort_order ?? 0) - (y.sort_order ?? 0))
+      : [];
+    const image = (gallery[0] && gallery[0].image_url) || product.image_url || '';
 
     // 4. Send, collecting the ids that went out so we only delete those.
     const sentIds = [];

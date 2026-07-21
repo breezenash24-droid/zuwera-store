@@ -70,9 +70,11 @@ function buildEmail({ items, url, appearance, content }) {
 
 export async function onRequestPost({ request, env }) {
   try {
-    const expected = env.ABANDONED_CART_TOKEN || '';
     const url = new URL(request.url);
     const provided = request.headers.get('x-cron-token') || url.searchParams.get('token') || '';
+    // Token can be set in Admin → APIs (site_settings, no redeploy) or as a CF env var.
+    const tokenCache = await fetchSiteSettings(['ABANDONED_CART_TOKEN'], env);
+    const expected = resolveSetting('ABANDONED_CART_TOKEN', env, tokenCache);
     if (!expected || provided !== expected) return json({ ok: false, error: 'unauthorized' }, 401);
 
     const key = serviceKey(env);
