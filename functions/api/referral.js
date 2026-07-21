@@ -96,7 +96,7 @@ async function mintReferral(env, H, user, s) {
       promos.push({
         code,
         label: 'Referral',
-        description: `A friend sent you $${s.friendType === 'fixed' ? s.friendValue + ' off' : s.friendValue + '% off'}`,
+        description: s.friendType === 'fixed' ? `A friend sent you $${s.friendValue} off` : `A friend sent you ${s.friendValue}% off`,
         type: s.friendType,
         value: s.friendValue,
         minSubtotal: s.friendMinSubtotal || 0,

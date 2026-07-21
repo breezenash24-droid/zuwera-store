@@ -3,6 +3,8 @@
     config: null,
     promotion: null,
     code: '',
+    autoRef: '',       // referral code from a /?ref= link, auto-applied when the summary is ready
+    autoApplying: false,
   };
 
   function parseMoney(text) {
@@ -71,7 +73,7 @@
       const ref = localStorage.getItem('zw_ref');
       if (ref) {
         const input = shell.querySelector('#zw-promo-input');
-        if (input && !input.value) input.value = ref;
+        if (input && !input.value) { input.value = ref; STATE.autoRef = String(ref).trim().toUpperCase(); }
       }
     } catch (_) {}
 
@@ -174,6 +176,22 @@
     if (nodes.total.textContent !== nextTotalText) nodes.total.textContent = nextTotalText;
   }
 
+  // A friend arriving from /?ref=CODE gets the code prefilled — but prefilling the
+  // input does NOT set STATE.code, so without this the referral discount was never
+  // sent to create-payment-intent and they paid full price (the "link doesn't apply
+  // the discount" bug). Auto-apply it once the summary has a subtotal (findPromotion
+  // needs one to clear the minimum), retrying via the summary observer as the cart
+  // loads. Stops as soon as a promotion is applied or the shopper edits the field.
+  function tryAutoApplyRef() {
+    if (STATE.promotion || STATE.autoApplying || !STATE.autoRef) return;
+    const input = document.getElementById('zw-promo-input');
+    if (!input || String(input.value || '').trim().toUpperCase() !== STATE.autoRef) return;
+    const nodes = getSummaryNodes();
+    if (parseMoney(nodes.subtotal?.textContent || '') <= 0) return; // summary not ready yet
+    STATE.autoApplying = true;
+    applyPromoFromInput().finally(() => { STATE.autoApplying = false; });
+  }
+
   async function applyPromoFromInput() {
     const input = document.getElementById('zw-promo-input');
     const message = document.getElementById('zw-promo-message');
@@ -255,7 +273,7 @@
   function observeSummary() {
     const nodes = getSummaryNodes();
     [nodes.subtotal, nodes.shipping, nodes.tax].filter(Boolean).forEach((node) => {
-      new MutationObserver(() => renderPromoSummary()).observe(node, { childList: true, subtree: true, characterData: true });
+      new MutationObserver(() => { renderPromoSummary(); tryAutoApplyRef(); }).observe(node, { childList: true, subtree: true, characterData: true });
     });
   }
 
@@ -267,9 +285,11 @@
     loadConfig().then(() => {
       ensurePromoUi();
       renderPromoSummary();
+      tryAutoApplyRef();
     }).catch(() => {
       ensurePromoUi(); // fallback: show promo UI even if config fails
       renderPromoSummary();
+      tryAutoApplyRef();
     });
   }
 
