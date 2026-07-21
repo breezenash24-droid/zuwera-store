@@ -13,6 +13,7 @@ const files = [
   'admin.css',
   'admin.html',
   'admin-finance.js',
+  'admin-main.js',
   'admin-orders.js',
   'admin-receipts.js',
   'admin-returns-ui.js',
