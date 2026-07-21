@@ -1039,6 +1039,11 @@
                             <div class="form-group" style="flex:1;min-width:170px"><label class="form-label">Referrer earns (points)</label><input type="number" id="rf-points" class="form-input" min="1" step="1" value="100"></div>
                             <div class="form-group" style="flex:1;min-width:170px"><label class="form-label">Max uses per code <span style="opacity:.55;font-weight:400">(0 = unlimited)</span></label><input type="number" id="rf-max-uses" class="form-input" min="0" step="1" value="25"></div>
                         </div>
+                        <div style="display:flex;gap:14px;flex-wrap:wrap">
+                            <div class="form-group" style="flex:1;min-width:170px"><label class="form-label">Codes expire after (days) <span style="opacity:.55;font-weight:400">(0 = never)</span></label><input type="number" id="rf-expiry" class="form-input" min="0" step="1" value="0"></div>
+                            <div class="form-group" style="flex:1;min-width:170px"><label class="form-label">Code prefix <span style="opacity:.55;font-weight:400">(optional)</span></label><input type="text" id="rf-prefix" class="form-input" maxlength="8" placeholder="uses the shopper's name" style="text-transform:uppercase"></div>
+                        </div>
+                        <div class="form-group"><label class="form-label">Friend's message <span style="opacity:.55;font-weight:400">(optional — use {discount} for the offer)</span></label><input type="text" id="rf-message" class="form-input" maxlength="160" placeholder="A friend sent you {discount}"></div>
                         <p id="rf-preview" style="font-size:.82rem;color:var(--text-secondary);margin:0 0 6px;line-height:1.6"></p>
                         <p style="font-size:.76rem;color:var(--text-secondary);margin:0 0 14px;opacity:.8">Change these any time — saving also updates codes people have already shared, so everyone's on the same terms. Points already paid out aren't clawed back.</p>
                         <button class="btn btn-primary" id="rf-save-btn" onclick="referralSaveSettings()">Save referral settings</button>

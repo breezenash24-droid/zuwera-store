@@ -2740,14 +2740,20 @@
             const min = Number(document.getElementById('rf-min').value) || 0;
             const pts = Number(document.getElementById('rf-points').value) || 0;
             const maxU = Number(document.getElementById('rf-max-uses').value) || 0;
+            const expiry = Number(document.getElementById('rf-expiry').value) || 0;
+            const prefix = String(document.getElementById('rf-prefix').value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+            const message = String(document.getElementById('rf-message').value || '').trim();
             const label = (document.getElementById('ly-label').value || 'points');
             const off = type === 'fixed' ? `$${val} off` : `${val}% off`;
             const bits = [`A friend gets ${off}${min > 0 ? ` on orders over $${min}` : ''}; the referrer earns ${pts} ${label} once that friend's order goes through.`];
             bits.push(maxU > 0 ? `Each code works up to ${maxU} time${maxU === 1 ? '' : 's'}.` : 'Codes have no usage cap — anyone with the code can keep using it.');
+            bits.push(expiry > 0 ? `Codes expire ${expiry} day${expiry === 1 ? '' : 's'} after they're created.` : 'Codes never expire.');
+            if (prefix) bits.push(`Every code starts with "${prefix}".`);
+            bits.push('Friend sees: "' + (message ? message.replace(/\{discount\}/gi, off) : `A friend sent you ${off}`) + '"');
             document.getElementById('rf-preview').textContent = bits.join(' ');
         }
         async function loadReferralSettings() {
-            ['rf-type', 'rf-value', 'rf-min', 'rf-points', 'rf-max-uses'].forEach(id => {
+            ['rf-type', 'rf-value', 'rf-min', 'rf-points', 'rf-max-uses', 'rf-expiry', 'rf-prefix', 'rf-message'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el && !el._rfBound) { el._rfBound = true; el.addEventListener('input', referralPreview); el.addEventListener('change', referralPreview); }
             });
@@ -2762,6 +2768,9 @@
                 document.getElementById('rf-min').value = Number(v.friendMinSubtotal) > 0 ? v.friendMinSubtotal : 0;
                 document.getElementById('rf-points').value = Number(v.referrerPoints) > 0 ? v.referrerPoints : 100;
                 document.getElementById('rf-max-uses').value = Number(v.maxUsesPerCode) >= 0 && v.maxUsesPerCode !== undefined ? v.maxUsesPerCode : 25;
+                document.getElementById('rf-expiry').value = Number(v.codeExpiryDays) > 0 ? v.codeExpiryDays : 0;
+                document.getElementById('rf-prefix').value = v.codePrefix || '';
+                document.getElementById('rf-message').value = v.friendMessage || '';
             } catch (_) {}
             referralPreview();
         }
@@ -2781,7 +2790,9 @@
                 p.value = value.friendValue;
                 p.minSubtotal = value.friendMinSubtotal || 0;
                 p.maxUsage = value.maxUsesPerCode > 0 ? value.maxUsesPerCode : null;
-                p.description = 'A friend sent you ' + (value.friendType === 'fixed' ? '$' + value.friendValue + ' off' : value.friendValue + '% off');
+                const dl = value.friendType === 'fixed' ? `$${value.friendValue} off` : `${value.friendValue}% off`;
+                p.description = String(value.friendMessage || '').trim() ? String(value.friendMessage).trim().replace(/\{discount\}/gi, dl) : `A friend sent you ${dl}`;
+                p.expirationDate = Number(value.codeExpiryDays) > 0 ? new Date(Date.now() + Math.floor(value.codeExpiryDays) * 86400000).toISOString().slice(0, 10) : '';
                 n++;
             });
             if (!n) return 0;
@@ -2803,6 +2814,9 @@
                 friendMinSubtotal: Math.max(0, Number(document.getElementById('rf-min').value) || 0),
                 referrerPoints: Math.max(1, Math.floor(Number(document.getElementById('rf-points').value) || 100)),
                 maxUsesPerCode: Math.max(0, Math.floor(Number(document.getElementById('rf-max-uses').value) || 0)),
+                codeExpiryDays: Math.max(0, Math.floor(Number(document.getElementById('rf-expiry').value) || 0)),
+                codePrefix: String(document.getElementById('rf-prefix').value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8),
+                friendMessage: String(document.getElementById('rf-message').value || '').slice(0, 160),
             };
             const btn = document.getElementById('rf-save-btn'); const label = btn.textContent;
             btn.disabled = true; btn.textContent = 'Saving…';

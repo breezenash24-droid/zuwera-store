@@ -39,7 +39,31 @@ export function parseReferralSettings(v) {
     friendMinSubtotal: nonNeg(v.friendMinSubtotal, 0),
     maxUsesPerCode: Math.floor(nonNeg(v.maxUsesPerCode, 25)), // 0 = unlimited
     referrerPoints: Math.floor(nonNeg(v.referrerPoints, 100)),
+    codeExpiryDays: Math.floor(nonNeg(v.codeExpiryDays, 0)),  // 0 = never expires
+    codePrefix: String(v.codePrefix || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8),
+    friendMessage: String(v.friendMessage || '').slice(0, 160),  // {discount} = "$10 off" / "10% off"
   };
+}
+
+// The discount phrase used in the default message and the {discount} placeholder.
+export function referralDiscountLabel(s) {
+  return s.friendType === 'fixed' ? `$${s.friendValue} off` : `${s.friendValue}% off`;
+}
+
+// The message the friend sees when the code applies. Admin can override it (with an
+// optional {discount} placeholder); otherwise a sensible default is generated.
+export function referralFriendDescription(s) {
+  const dl = referralDiscountLabel(s);
+  const msg = String(s.friendMessage || '').trim();
+  return msg ? msg.replace(/\{discount\}/gi, dl) : `A friend sent you ${dl}`;
+}
+
+// 'YYYY-MM-DD' expiry `codeExpiryDays` from now (matches the promo expirationDate
+// format validate-promo/create-payment-intent parse); '' = never expires.
+export function referralExpiryDate(days) {
+  const d = Math.floor(Number(days) || 0);
+  if (d <= 0) return '';
+  return new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
 }
 
 async function readSetting(env, H, key, parser) {
@@ -50,13 +74,15 @@ async function readSetting(env, H, key, parser) {
   return parser(v);
 }
 
-function makeCode(seed) {
+function makeCode(seed, prefix) {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const buf = new Uint8Array(4);
   crypto.getRandomValues(buf);
   let s = '';
   for (let i = 0; i < 4; i++) s += alphabet[buf[i] % alphabet.length];
-  const base = String(seed || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'FRIEND';
+  // Admin-set prefix wins; otherwise fall back to the shopper's name.
+  const raw = prefix ? String(prefix) : String(seed || '');
+  const base = raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'FRIEND';
   return (base + s).slice(0, 12);
 }
 
@@ -65,7 +91,7 @@ async function mintReferral(env, H, user, s) {
   const seed = (user.user_metadata && user.user_metadata.full_name) || (user.email || '').split('@')[0];
 
   // Reserve the code row first (unique on user_id, so a double-click can't make two).
-  let code = makeCode(seed);
+  let code = makeCode(seed, s.codePrefix);
   let row = null;
   for (let attempt = 0; attempt < 6 && !row; attempt++) {
     const r = await fetch(`${env.SUPABASE_URL}/rest/v1/referral_codes`, {
@@ -81,7 +107,7 @@ async function mintReferral(env, H, user, s) {
       if (ex && ex[0]) return ex[0].code;
     }
     if (!/duplicate|unique/i.test(txt)) throw new Error('Could not create your referral code.');
-    code = makeCode(seed); // code collision — try another
+    code = makeCode(seed, s.codePrefix); // code collision — try another
   }
   if (!row) throw new Error('Could not create your referral code.');
 
@@ -96,12 +122,12 @@ async function mintReferral(env, H, user, s) {
       promos.push({
         code,
         label: 'Referral',
-        description: s.friendType === 'fixed' ? `A friend sent you $${s.friendValue} off` : `A friend sent you ${s.friendValue}% off`,
+        description: referralFriendDescription(s),
         type: s.friendType,
         value: s.friendValue,
         minSubtotal: s.friendMinSubtotal || 0,
         active: true,
-        expirationDate: '',
+        expirationDate: referralExpiryDate(s.codeExpiryDays),
         maxUsage: s.maxUsesPerCode > 0 ? s.maxUsesPerCode : null,
         usageCount: 0,
         targetProductIds: [],
