@@ -2530,6 +2530,39 @@
                             </div>
                         </div>
 
+                        <!-- Bag panel -->
+                        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
+                            <h3 style="margin-bottom:6px;font-size:1.1rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">Bag panel</h3>
+                            <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:16px;line-height:1.5;">The account menu inside the bag slide-out. Set the support email and choose which rows show and what they're called. Leave a label blank to use the default.</p>
+                            <div class="form-group">
+                                <label class="form-label">Support email</label>
+                                <input type="email" id="bp-support-email" class="form-input" placeholder="nasirubreeze@zuwera.store" style="max-width:340px;display:block">
+                                <p style="font-size:.78rem;color:var(--text-secondary);margin-top:6px;">Where the "Support" row's email link goes.</p>
+                            </div>
+                            <label class="form-label" style="display:block;margin-top:8px">Rows <span style="opacity:.55;font-weight:400">— untick to hide; label overrides the default</span></label>
+                            <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;max-width:440px">
+                                <div style="display:flex;align-items:center;gap:12px">
+                                    <input type="checkbox" id="bp-orders-on" checked style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0">
+                                    <input type="text" id="bp-orders-label" class="form-input" placeholder="Orders" style="flex:1;min-width:0">
+                                </div>
+                                <div style="display:flex;align-items:center;gap:12px">
+                                    <input type="checkbox" id="bp-saves-on" checked style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0">
+                                    <input type="text" id="bp-saves-label" class="form-input" placeholder="Your saves" style="flex:1;min-width:0">
+                                </div>
+                                <div style="display:flex;align-items:center;gap:12px">
+                                    <input type="checkbox" id="bp-account-on" checked style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0">
+                                    <input type="text" id="bp-account-label" class="form-input" placeholder="Account" style="flex:1;min-width:0">
+                                </div>
+                                <div style="display:flex;align-items:center;gap:12px">
+                                    <input type="checkbox" id="bp-support-on" checked style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0">
+                                    <input type="text" id="bp-support-label" class="form-input" placeholder="Support" style="flex:1;min-width:0">
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:12px;margin-top:20px">
+                                <button class="btn btn-primary" onclick="saveBagPanel()">Save bag panel</button>
+                            </div>
+                        </div>
+
                         <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
                             <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">Hero Section</h3>
                             <div class="form-group">

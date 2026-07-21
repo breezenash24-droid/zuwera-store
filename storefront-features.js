@@ -1435,6 +1435,44 @@
   // correctly everywhere, so we consult it and re-render the panel when it answers.
   var _bagLiveUser = null;
 
+  // Admin-controlled bag-panel content (support email, per-row label + on/off) —
+  // site_settings.bag_panel, whitelisted for anon read (supabase-bag-panel.sql).
+  // Every field is optional: bagRow/bagSupportEmail fall back to today's hardcoded
+  // values, so the panel is unchanged until an admin saves something.
+  var _bagCfg = null;
+  function bagCfg() {
+    if (_bagCfg) return _bagCfg;
+    try { _bagCfg = JSON.parse(localStorage.getItem('zw_bag_panel') || 'null') || {}; } catch (_) { _bagCfg = {}; }
+    return _bagCfg;
+  }
+  function bagRow(key, def) {
+    var rows = (bagCfg().rows && typeof bagCfg().rows === 'object') ? bagCfg().rows : {};
+    var r = rows[key] || {};
+    var label = (r.label != null && String(r.label).trim()) ? String(r.label).trim() : def;
+    return { enabled: r.enabled !== false, label: label };
+  }
+  function bagSupportEmail() {
+    return String(bagCfg().supportEmail || '').trim() || 'nasirubreeze@zuwera.store';
+  }
+  // Instant apply from cache, then refresh from site_settings and re-render if open.
+  function loadBagCfg() {
+    var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+    try {
+      fetch('https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value&key=eq.bag_panel', { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }, cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (rows) {
+          if (!rows || !rows[0]) return;
+          var cfg = rows[0].value;
+          if (typeof cfg === 'string') { try { cfg = JSON.parse(cfg); } catch (_) {} }
+          if (!cfg || typeof cfg !== 'object') return;
+          _bagCfg = cfg;
+          try { localStorage.setItem('zw_bag_panel', JSON.stringify(cfg)); } catch (_) {}
+          if (_bagPanel) renderBagPanel();
+        })
+        .catch(function () {});
+    } catch (_) {}
+  }
+
   function bagCart() {
     try { return JSON.parse(localStorage.getItem('cart') || '[]') || []; } catch (_) { return []; }
   }
@@ -1582,11 +1620,14 @@
       : (function () { try { return parseInt(localStorage.getItem('zw_fav_count') || '0', 10) || 0; } catch (_) { return 0; } })();
     if (!(favCount > 0)) favCount = 0;
     var savesBadge = favCount ? '<span class="zwf-bag-count">' + (favCount > 99 ? '99+' : favCount) + '</span>' : '';
+    var rOrders = bagRow('orders', 'Orders'), rSaves = bagRow('saves', 'Your saves'), rAccount = bagRow('account', 'Account');
     var links = user
-      ? '<a class="zwf-bag-link" href="/account.html#orders">' + ICON.orders + 'Orders</a>'
-        + '<a class="zwf-bag-link" href="/account.html#saved">' + ICON.saves + 'Your saves' + savesBadge + '</a>'
-        + '<a class="zwf-bag-link" href="/account.html#profile">' + ICON.acct + 'Account</a>'
+      ? (rOrders.enabled ? '<a class="zwf-bag-link" href="/account.html#orders">' + ICON.orders + esc(rOrders.label) + '</a>' : '')
+        + (rSaves.enabled ? '<a class="zwf-bag-link" href="/account.html#saved">' + ICON.saves + esc(rSaves.label) + savesBadge + '</a>' : '')
+        + (rAccount.enabled ? '<a class="zwf-bag-link" href="/account.html#profile">' + ICON.acct + esc(rAccount.label) + '</a>' : '')
       : '<a class="zwf-bag-link" data-zw-login href="/?auth=signin&next=' + encodeURIComponent(location.pathname) + '">' + ICON.acct + 'Sign in</a>';
+    var rSupport = bagRow('support', 'Support');
+    var supportRow = rSupport.enabled ? '<a class="zwf-bag-link" href="mailto:' + esc(bagSupportEmail()) + '">' + ICON.help + esc(rSupport.label) + '</a>' : '';
 
     _bagPanel.innerHTML = '<div class="zwf-bag-hd"><h2>Bag' + (cart.length ? ' · ' + bagMoney(total) : '') + '</h2>'
       // An empty bag has nothing to review — Start shopping goes to the catalogue,
@@ -1595,7 +1636,7 @@
       + items
       + '<div class="zwf-bag-links"><h3>' + (user ? esc(user.name) : 'My profile') + '</h3>'
       + links
-      + '<a class="zwf-bag-link" href="mailto:nasirubreeze@zuwera.store">' + ICON.help + 'Support</a>'
+      + supportRow
       + '</div>';
   }
 
@@ -1633,6 +1674,7 @@
     ensureStyles();
     document.body.classList.add('zwf-bagpanel-on');   // hides the header account button
     bagBootstrapSession();   // resolve the signed-in user from the live client (all pages)
+    loadBagCfg();            // pull admin-controlled labels / support email / row toggles
 
     // The bag is wired three different ways:
     //   index    — inline onclick → window.__zwOpenCart() → location.assign('/bag.html')
