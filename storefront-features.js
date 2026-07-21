@@ -225,7 +225,7 @@
       '.zwf-bag-link{display:flex;align-items:center;gap:.7rem;padding:.5rem 0;text-decoration:none;color:inherit;font-family:var(--fb,inherit);font-size:.95rem}',
       '.zwf-bag-link:hover{opacity:.65}',
       '.zwf-bag-link svg{width:17px;height:17px;opacity:.55;flex-shrink:0}',
-      '.zwf-bag-count{margin-left:auto;min-width:1.35em;height:1.35em;padding:0 .45em;border-radius:1em;background:var(--zw-accent,#F891A5);color:#fff;font-family:var(--fm,var(--fb,inherit));font-size:.68rem;font-weight:600;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}',
+      '.zwf-bag-count{margin-left:auto;min-width:1.35em;height:1.35em;padding:0 .45em;border-radius:1em;background:var(--zw-accent,#F891A5);color:#09090b;font-family:var(--fm,var(--fb,inherit));font-size:.68rem;font-weight:600;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}',
       /* The account button moves INTO this panel, so hide the header one while
          the feature is on (both header systems). */
       'body.zwf-bagpanel-on :is(#login-btn,#account-btn,#hdr-login){display:none!important}',
