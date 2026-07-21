@@ -755,7 +755,7 @@
                 if (!firstAllowed || firstAllowed.id === page) return;
                 page = firstAllowed.id;
             }
-            if (page === 'website') { setTimeout(loadWebsiteSettings, 100); setTimeout(loadFonts, 120); }
+            if (page === 'website') { setTimeout(loadWebsiteSettings, 100); setTimeout(loadFonts, 120); setTimeout(loadEmailSettings, 140); }
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             const pageEl = document.getElementById(page);
             if (!pageEl) { console.warn('navigateTo: no element for page', page); return; }
@@ -8031,6 +8031,59 @@
             try { localStorage.setItem('zw_img_fx', JSON.stringify(value)); } catch (e) {}
             showToast('Image effects saved!', 'success');
         }
+
+        // ── Emails: background theme + per-type editable copy (site_settings.email_theme
+        //    + email_settings). Read server-side by the email functions via _email-theme.js.
+        let _emailCfg = {};
+        let _emailType = 'order_confirmation';
+        const EMAIL_FIELDS = ['subject', 'kicker', 'heading', 'intro', 'footer'];
+        function _emailReadForm() {
+            const clean = {};
+            EMAIL_FIELDS.forEach(f => { const el = document.getElementById('em-' + f); const v = el ? String(el.value || '').trim() : ''; if (v) clean[f] = v.slice(0, 300); });
+            return clean;
+        }
+        function _emailFillForm(cfg) {
+            cfg = cfg || {};
+            EMAIL_FIELDS.forEach(f => { const el = document.getElementById('em-' + f); if (el) el.value = cfg[f] || ''; });
+        }
+        async function loadEmailSettings() {
+            const typeSel = document.getElementById('em-type');
+            if (typeSel && !typeSel._emBound) {
+                typeSel._emBound = true;
+                typeSel.addEventListener('change', () => {
+                    _emailCfg[_emailType] = _emailReadForm();   // stash current edits before switching
+                    _emailType = typeSel.value;
+                    _emailFillForm(_emailCfg[_emailType]);
+                });
+            }
+            try {
+                const { data } = await sb.from('site_settings').select('key,value').in('key', ['email_theme', 'email_settings']);
+                (data || []).forEach(row => {
+                    if (row.key === 'email_theme') {
+                        const t = document.getElementById('em-theme');
+                        const val = (row.value && typeof row.value === 'object') ? row.value.value : row.value;
+                        if (t) t.value = String(val).toLowerCase() === 'light' ? 'light' : 'dark';
+                    } else if (row.key === 'email_settings') {
+                        let v = row.value; if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = {}; } }
+                        _emailCfg = (v && typeof v === 'object') ? v : {};
+                    }
+                });
+            } catch (_) {}
+            _emailType = (typeSel && typeSel.value) || 'order_confirmation';
+            _emailFillForm(_emailCfg[_emailType]);
+        }
+        async function saveEmailSettings() {
+            _emailCfg[_emailType] = _emailReadForm();
+            const theme = (document.getElementById('em-theme') || {}).value === 'light' ? 'light' : 'dark';
+            try {
+                const r1 = await sb.from('site_settings').upsert({ key: 'email_theme', value: theme, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+                const r2 = await sb.from('site_settings').upsert({ key: 'email_settings', value: _emailCfg, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+                if (r1.error || r2.error) throw (r1.error || r2.error);
+                await logAdminAudit('settings.update', 'site_settings', 'email_settings', { theme, types: Object.keys(_emailCfg) });
+                showToast('Email settings saved!', 'success');
+            } catch (e) { showToast('Error saving emails: ' + ((e && e.message) || 'error'), 'error'); }
+        }
+        window.saveEmailSettings = saveEmailSettings;
 
         async function saveBagPanel() {
             const rows = {};
