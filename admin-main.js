@@ -7944,7 +7944,7 @@
 
         // ===== WEBSITE / HERO SETTINGS =====
         async function loadWebsiteSettings() {
-            const { data, error } = await sb.from('site_settings').select('*').in('key', ['hero', 'brand', 'image_effects']);
+            const { data, error } = await sb.from('site_settings').select('*').in('key', ['hero', 'brand', 'image_effects', 'bag_panel']);
             if (error || !data) return;
             data.forEach(row => {
                 if (row.key === 'hero') {
@@ -7993,6 +7993,20 @@
                     if (pEl) pEl.checked = t.product !== false;
                     if (cEl) cEl.checked = t.category !== false;
                     if (mEl) mEl.checked = t.media !== false;
+                } else if (row.key === 'bag_panel') {
+                    let v = row.value;
+                    try { if (typeof v === 'string') v = JSON.parse(v); } catch (e) {}
+                    v = v || {};
+                    const se = document.getElementById('bp-support-email');
+                    if (se) se.value = v.supportEmail || '';
+                    const rws = (v.rows && typeof v.rows === 'object') ? v.rows : {};
+                    ['orders', 'saves', 'account', 'support'].forEach(function (k) {
+                        const r = rws[k] || {};
+                        const on = document.getElementById('bp-' + k + '-on');
+                        const lb = document.getElementById('bp-' + k + '-label');
+                        if (on) on.checked = r.enabled !== false;
+                        if (lb) lb.value = (r.label != null ? String(r.label) : '');
+                    });
                 }
             });
         }
@@ -8016,6 +8030,25 @@
             try { localStorage.setItem('zw_img_fx', JSON.stringify(value)); } catch (e) {}
             showToast('Image effects saved!', 'success');
         }
+
+        async function saveBagPanel() {
+            const rows = {};
+            ['orders', 'saves', 'account', 'support'].forEach(function (k) {
+                const on = document.getElementById('bp-' + k + '-on');
+                const lb = document.getElementById('bp-' + k + '-label');
+                rows[k] = { enabled: on ? on.checked : true, label: (lb && lb.value.trim()) ? lb.value.trim().slice(0, 40) : '' };
+            });
+            const value = {
+                supportEmail: String(document.getElementById('bp-support-email').value || '').trim().slice(0, 120),
+                rows,
+            };
+            const { error } = await sb.from('site_settings').upsert({ key: 'bag_panel', value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+            if (error) { showToast('Error saving bag panel: ' + error.message, 'error'); return; }
+            await logAdminAudit('settings.update', 'site_settings', 'bag_panel', value);
+            try { localStorage.setItem('zw_bag_panel', JSON.stringify(value)); } catch (e) {}
+            showToast('Bag panel saved!', 'success');
+        }
+        window.saveBagPanel = saveBagPanel;
 
         async function saveBrandSettings() {
             const brandData = { 
