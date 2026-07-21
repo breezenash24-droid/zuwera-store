@@ -1086,6 +1086,13 @@
                 label: 'PostHog',
                 keys: [{ name: 'POSTHOG_API_KEY', label: 'Project API Key', type: 'text', placeholder: 'phc_...' }]
             },
+            cron: {
+                label: 'Automated Emails (Cron)',
+                keys: [
+                    { name: 'REVIEW_REQUEST_TOKEN',  label: 'Review-request token', type: 'text', placeholder: 'any long random string', warn: 'Paste the SAME value as an "x-cron-token" header in your cron job (cron-job.org). Saved here → no Cloudflare redeploy needed.' },
+                    { name: 'ABANDONED_CART_TOKEN',  label: 'Abandoned-cart token', type: 'text', placeholder: 'any long random string', warn: 'Paste the SAME value as an "x-cron-token" header in your cron job.' },
+                ]
+            },
         };
 
         // Cached masked key map populated when the page loads
@@ -1217,6 +1224,11 @@
                     renderApiCard('💬', 'Twilio (SMS)',           s.twilio,     buildTwilioRows,       'twilio',      'https://console.twilio.com'),
                     renderApiCard('📊', 'PostHog (Analytics)',    s.posthog,    buildPostHogRows,      'posthog',     'https://app.posthog.com'),
                     renderApiCard('🎨', 'Email Branding',        { ok: true }, () => buildBrandingRows(_maskedKeys), 'branding', '#'),
+                    renderApiCard('⏰', 'Automated Emails (Cron)',
+                        { ok: !!(_maskedKeys['REVIEW_REQUEST_TOKEN'] || _maskedKeys['ABANDONED_CART_TOKEN']),
+                          configured: !!(_maskedKeys['REVIEW_REQUEST_TOKEN'] || _maskedKeys['ABANDONED_CART_TOKEN']),
+                          optional: true },
+                        () => buildCronRows(_maskedKeys), 'cron', 'https://console.cron-job.org'),
                 ];
                 gridEl.innerHTML = cards.join('');
             } catch (e) {
@@ -1509,6 +1521,26 @@
                 ? apiRow('Validation', '<span style="color:var(--success);">✓ Confirmed with PostHog API</span>')
                 : apiRow('Validation', '<span style="color:var(--warning);">Format OK — could not reach PostHog to confirm</span>');
             rows += `<p class="api-note">${s.note || 'PostHog analytics is live on your storefront.'}</p>`;
+            return rows;
+        }
+
+        function buildCronRows(masked) {
+            masked = masked || {};
+            const set = (on) => on
+                ? '<span style="color:#22c55e;font-weight:600">● Set</span>'
+                : '<span style="color:var(--warning);font-weight:600">○ Not set</span>';
+            const ep = (u) => `<code style="font-size:.7rem;word-break:break-all">${u}</code>`;
+            let rows = `<p class="api-note" style="margin-bottom:12px;">These marketing emails send on a schedule from an <strong>external cron</strong> (e.g. <a href="https://console.cron-job.org" target="_blank" style="color:var(--accent)">cron-job.org</a>). Set a token here — <strong>takes effect immediately, no Cloudflare redeploy</strong> — then create a cron job with method <strong>POST</strong> and header <code>x-cron-token</code> = the same token.</p>`;
+            // Review requests
+            rows += apiRow('Review requests', set(!!masked['REVIEW_REQUEST_TOKEN']));
+            rows += apiRow('Endpoint', ep('https://zuwera.store/api/send-review-requests'));
+            rows += apiRow('Schedule', 'Daily · needs the <code>feature_review_requests</code> flag ON');
+            rows += `<hr style="border:none;border-top:1px solid var(--border);margin:10px 0">`;
+            // Abandoned cart
+            rows += apiRow('Abandoned cart', set(!!masked['ABANDONED_CART_TOKEN']));
+            rows += apiRow('Endpoint', ep('https://zuwera.store/api/send-abandoned-cart-emails'));
+            rows += apiRow('Schedule', 'Hourly');
+            rows += `<p class="api-note" style="margin-top:12px;">Test either endpoint from cron-job.org with <strong>Test run</strong>: <code>{"ok":true,"sent":0}</code> = working · <code>401 unauthorized</code> = token mismatch.</p>`;
             return rows;
         }
 
@@ -8046,6 +8078,57 @@
             cfg = cfg || {};
             EMAIL_FIELDS.forEach(f => { const el = document.getElementById('em-' + f); if (el) el.value = cfg[f] || ''; });
         }
+        // Ready-made wording per email type + tone. Picking one fills the fields
+        // (the user can still edit). "default" clears the fields → uses code defaults.
+        const EMAIL_PRESETS = {
+            order_confirmation: {
+                warm:    { subject: 'Thank you, {name} — order {order} is in 💛', kicker: 'Order confirmed', heading: "You're all set", intro: "Thanks so much, {name}! We've got your order and we're packing it with care. We'll email you the moment it ships.", footer: 'Questions? Just reply — a real person reads every message.' },
+                minimal: { subject: 'Order {order} confirmed', kicker: 'Confirmed', heading: 'Order {order}', intro: 'Thank you, {name}. Your order is confirmed and being prepared.', footer: 'Reply to this email with any questions.' },
+                playful: { subject: "It's happening! Order {order} 🎉", kicker: 'Order confirmed', heading: 'Nice pick, {name}', intro: "Your order's locked in and the good stuff is on the way. Sit tight — we'll ping you when it ships.", footer: 'Hit reply if you need anything at all.' },
+            },
+            shipped: {
+                warm:    { subject: 'Good news — your order is on the way 🚚', kicker: 'Shipped', heading: "It's on its way", intro: 'Your Zuwera order just left the building. Track it any time with the link below.', footer: "Can't wait for you to get it." },
+                minimal: { subject: 'Your Zuwera order has shipped', kicker: 'Shipped', heading: 'On its way', intro: 'Your order is in transit. Tracking details are below.', footer: '' },
+                playful: { subject: 'Zoom zoom — your order shipped 🏃', kicker: 'Shipped', heading: 'On the move', intro: 'Your gear is officially in transit. Follow along with the tracking below.', footer: 'Almost there!' },
+            },
+            back_in_stock: {
+                warm:    { subject: "It's back — {product} is in your size 💛", kicker: 'Back in stock', heading: '{product}', intro: 'Good news — the size you wanted ({size}) is available again. We saved you the heads-up, but it may go fast.', footer: 'You asked to be notified when this came back.' },
+                minimal: { subject: 'Back in stock: {product} ({size})', kicker: 'Back in stock', heading: '{product}', intro: '{size} is available again. It may not last long.', footer: "You're receiving this because you asked to be notified." },
+                playful: { subject: "Guess who's back? {product} 👀", kicker: 'Back in stock', heading: '{product}', intro: 'Your size ({size}) just reappeared — grab it before it disappears again.', footer: 'You signed up for this restock alert.' },
+            },
+            return_status: {
+                warm:    { subject: 'An update on your return', kicker: 'Return update', heading: "Here's where things stand", intro: 'We wanted to keep you in the loop on your return. Here is the latest:', footer: 'Questions? Reply any time.' },
+                minimal: { subject: 'Return update', kicker: 'Return update', heading: 'Your return', intro: 'Here is the latest status on your return.', footer: '' },
+                playful: { subject: 'Quick update on your return 📦', kicker: 'Return update', heading: 'Return status', intro: 'Here is the latest on your return — no action needed unless we say so.', footer: 'Reply if anything looks off.' },
+            },
+            review_request: {
+                warm:    { subject: 'How are you liking it, {name}? 💛', kicker: 'Your thoughts', heading: 'How did we do?', intro: "Hi {name} — now that your order's had a few days to settle in, we'd love to hear what you think. A quick review helps other athletes shop with confidence.", footer: 'Thank you for being part of Zuwera.' },
+                minimal: { subject: 'How was your Zuwera order?', kicker: 'Your thoughts', heading: 'How did we do?', intro: '{name}, a quick review — even a line — helps others shop with confidence.', footer: 'Thanks for shopping with us.' },
+                playful: { subject: "Be honest — how'd we do? ⭐", kicker: 'Your thoughts', heading: 'Rate the goods', intro: "Hey {name}! Loved it? Hated it? Tell other shoppers — a line or two goes a long way.", footer: 'Thanks for keeping it real.' },
+            },
+            abandoned_cart: {
+                warm:    { subject: 'You left something behind 💛', kicker: 'Still in your bag', heading: 'Your picks are waiting', intro: "Your bag is still here whenever you're ready. We saved everything for you — but popular sizes don't wait forever.", footer: 'You started a checkout at zuwera.store.' },
+                minimal: { subject: 'You left something in your bag', kicker: 'Still in your bag', heading: 'Your bag is waiting', intro: 'Your items are still saved. They may sell out soon.', footer: 'You started a checkout at zuwera.store.' },
+                playful: { subject: 'Your bag misses you 🛍️', kicker: 'Still in your bag', heading: "Don't leave us hanging", intro: 'The stuff you picked is still in your bag, tapping its foot. Come finish what you started before it sells out.', footer: 'You started a checkout at zuwera.store.' },
+            },
+        };
+        function applyEmailPreset() {
+            const sel  = document.getElementById('em-preset');
+            const tone = sel ? sel.value : '';
+            if (!tone) return;
+            const type = (document.getElementById('em-type') || {}).value || 'order_confirmation';
+            if (tone === 'default') {
+                EMAIL_FIELDS.forEach(f => { const el = document.getElementById('em-' + f); if (el) el.value = ''; });
+                showToast('Fields cleared — this email will use the built-in default wording', 'success');
+            } else {
+                const preset = (EMAIL_PRESETS[type] || {})[tone];
+                if (!preset) { showToast('No preset for this email yet', 'error'); sel.value = ''; return; }
+                EMAIL_FIELDS.forEach(f => { const el = document.getElementById('em-' + f); if (el) el.value = preset[f] || ''; });
+                showToast('Preset loaded — review it, then click “Save emails”', 'success');
+            }
+            sel.value = '';  // reset so the same preset can be re-picked
+        }
+        window.applyEmailPreset = applyEmailPreset;
         async function loadEmailSettings() {
             const typeSel = document.getElementById('em-type');
             if (typeSel && !typeSel._emBound) {
@@ -8054,6 +8137,7 @@
                     _emailCfg[_emailType] = _emailReadForm();   // stash current edits before switching
                     _emailType = typeSel.value;
                     _emailFillForm(_emailCfg[_emailType]);
+                    const ps = document.getElementById('em-preset'); if (ps) ps.value = '';  // presets are per-email
                 });
             }
             try {

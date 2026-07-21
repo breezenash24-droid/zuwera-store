@@ -46,6 +46,9 @@ const ALLOWED_KEYS = new Set([
   'TWILIO_FROM_NUMBER',
   // PostHog (analytics)
   'POSTHOG_API_KEY',
+  // Scheduled-email cron shared secrets (set here → no Cloudflare redeploy needed)
+  'REVIEW_REQUEST_TOKEN',
+  'ABANDONED_CART_TOKEN',
 ]);
 
 export { ALLOWED_KEYS };
