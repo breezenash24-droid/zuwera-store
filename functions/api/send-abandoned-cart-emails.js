@@ -15,6 +15,7 @@ import { json } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { loopsFallback } from './_email.js';
 import { logEmail } from './_email-log.js';
+import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } from './_email-theme.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
 
@@ -46,26 +47,25 @@ async function sendEmail({ to, subject, html, fromEmail, resendKey, brevoKey, en
   throw new Error('No email provider configured.');
 }
 
-function buildEmail({ items, url, logoUrl }) {
+function buildEmail({ items, url, appearance, content }) {
+  const a = appearance;
   const rows = (items || []).slice(0, 8).map((i) => {
     const variant = [i.color, i.size].filter(Boolean).join(' · ');
     const img = i.image
       ? `<td width="64" style="padding:0 12px 0 0"><img src="${esc(i.image)}" width="56" style="width:56px;border-radius:4px;display:block"></td>` : '';
-    return `<tr>${img}<td style="padding:8px 0;font-family:Arial,sans-serif;color:#f4f1eb;font-size:14px;vertical-align:middle">
-        <strong>${esc(i.title)}</strong>${variant ? `<br><span style="color:#9c988f;font-size:12px">${esc(variant)}</span>` : ''}${i.qty > 1 ? ` <span style="color:#9c988f">× ${i.qty}</span>` : ''}
-      </td><td align="right" style="font-family:Arial,sans-serif;color:#cfcbc2;font-size:14px;white-space:nowrap;vertical-align:middle">${money((i.price || 0) * 100)}</td></tr>`;
+    return `<tr>${img}<td style="padding:8px 0;font-family:${a.fontBody};color:${a.text};font-size:14px;vertical-align:middle">
+        <strong>${esc(i.title)}</strong>${variant ? `<br><span style="color:${a.muted};font-size:12px">${esc(variant)}</span>` : ''}${i.qty > 1 ? ` <span style="color:${a.muted}">× ${i.qty}</span>` : ''}
+      </td><td align="right" style="font-family:${a.fontBody};color:${a.muted};font-size:14px;white-space:nowrap;vertical-align:middle">${money((i.price || 0) * 100)}</td></tr>`;
   }).join('');
-  return `<!doctype html><html><body style="margin:0;background:#0b0b0d;font-family:Arial,Helvetica,sans-serif;color:#f4f1eb">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b0b0d"><tr><td align="center" style="padding:32px 16px">
-      <table role="presentation" width="460" cellpadding="0" cellspacing="0" style="max-width:460px;width:100%">
-        <tr><td align="center" style="padding:0 0 26px"><img src="${esc(logoUrl)}" alt="ZUWERA" width="120" style="max-width:120px"></td></tr>
-        <tr><td style="font-size:24px;font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:.02em;text-align:center;padding:0 0 6px">You left something behind</td></tr>
-        <tr><td style="font-size:15px;line-height:1.6;color:#cfcbc2;text-align:center;padding:0 8px 24px">Your bag is still here — grab your picks before they sell out.</td></tr>
-        <tr><td style="padding:0 0 24px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid rgba(244,241,235,.12);border-bottom:1px solid rgba(244,241,235,.12)">${rows}</table></td></tr>
-        <tr><td align="center" style="padding:0 0 30px"><a href="${esc(url)}" style="display:inline-block;background:#f4f1eb;color:#0b0b0d;text-decoration:none;font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;padding:14px 36px;border-radius:3px">Return to your bag</a></td></tr>
-        <tr><td style="font-size:11px;color:#726e66;line-height:1.6;text-align:center;border-top:1px solid rgba(244,241,235,.1);padding:18px 0 0">You're receiving this because you started a checkout at zuwera.store. If this wasn't you, ignore this email.</td></tr>
-      </table>
-    </td></tr></table></body></html>`;
+  const bodyHtml = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${a.border};border-bottom:1px solid ${a.border}">${rows}</table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:26px 0 4px"><a href="${esc(url)}" style="display:inline-block;background:${a.accent};color:#0b0b0d;text-decoration:none;font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;padding:14px 36px;border-radius:3px;font-family:${a.fontMono}">Return to your bag</a></td></tr></table>`;
+  return renderEmailShell(a, {
+    kicker:  content.kicker,
+    heading: content.heading,
+    intro:   content.intro,
+    bodyHtml,
+    footer:  content.footer,
+  });
 }
 
 export async function onRequestPost({ request, env }) {
@@ -97,7 +97,7 @@ export async function onRequestPost({ request, env }) {
       .then((r) => (r.ok ? r.json() : [])).catch(() => []);
     if (!rows.length) return json({ ok: true, sent: 0 }, 200);
 
-    const cache = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL', 'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID'], env);
+    const cache = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL', 'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID', 'fonts', 'brand', 'email_theme', 'email_settings'], env);
     const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
     const brevoKey = resolveSetting('BREVO_API_KEY', env, cache);
     if (!resendKey && !brevoKey && !resolveSetting('LOOPS_API_KEY', env, cache)) {
@@ -105,12 +105,14 @@ export async function onRequestPost({ request, env }) {
     }
     const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'orders@zuwera.store';
     const logoUrl = resolveSetting('BRAND_LOGO_URL', env, cache) || LOGO_FALLBACK;
+    const appearance = getEmailAppearance(cache); appearance.logo = logoUrl;
+    const content = getEmailContent(cache, 'abandoned_cart');
 
-    const SUBJECT = 'You left something in your bag';
+    const SUBJECT = fillTemplate(content.subject, {});
     const sent = [];
     for (const row of rows) {
       try {
-        const html = buildEmail({ items: row.cart || [], url: 'https://zuwera.store/bag.html', logoUrl });
+        const html = buildEmail({ items: row.cart || [], url: 'https://zuwera.store/bag.html', appearance, content });
         const res = await sendEmail({ to: row.email, subject: SUBJECT, html, fromEmail, resendKey, brevoKey, env, cache });
         await logEmail(env, { type: 'abandoned_cart', recipient: row.email, subject: SUBJECT, status: 'sent', provider: res && res.provider, meta: { cart_id: row.id } });
         sent.push(row.id);

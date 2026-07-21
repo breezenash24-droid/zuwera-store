@@ -13,6 +13,7 @@
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { cors, json, verifyAdminCan, getCommerceBundle, setSetting } from './_commerce.js';
+import { getEmailAppearance } from './_email-theme.js';
 
 async function fetchOrder(orderId, env) {
   const url = (env.SUPABASE_URL || '').trim();
@@ -186,6 +187,7 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
   const brevoKey   = resolveSetting('BREVO_API_KEY',   env, cache);
   const fromEmail  = resolveSetting('EMAIL_FROM',      env, cache) || 'orders@zuwera.store';
   const logoUrl    = resolveSetting('BRAND_LOGO_URL',  env, cache) || 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
+  const a          = getEmailAppearance(cache);
   const toEmail    = (order.email || order.customer_email || '').trim();
   const toName     = order.customer_name || 'Customer';
   if (!toEmail) return;
@@ -211,17 +213,17 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
 
   const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f4f1eb;font-family:'Helvetica Neue',Arial,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1eb;padding:40px 0">
+<body style="margin:0;padding:0;background:${a.bg};font-family:${a.fontBody}">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:${a.bg};padding:40px 0">
   <tr><td align="center">
     <table width="100%" style="max-width:560px;background:#09090b;border-collapse:collapse">
       <tr><td style="background:#09090b;padding:24px 36px;text-align:left">
         <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;display:block;border:0"
              onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-        <span style="display:none;font-family:Georgia,serif;font-size:1.5rem;letter-spacing:.12em;color:#f4f1eb;font-weight:normal">ZUWERA</span>
+        <span style="display:none;font-family:${a.fontHead};font-size:1.5rem;letter-spacing:.12em;color:#f4f1eb;font-weight:normal">ZUWERA</span>
       </td></tr>
       <tr><td style="padding:36px 36px 12px;background:#09090b">
-        <p style="margin:0 0 6px;font-family:Georgia,serif;font-size:22px;letter-spacing:.06em;color:#f4f1eb">Your Return Label Is Ready</p>
+        <p style="margin:0 0 6px;font-family:${a.fontHead};font-size:22px;letter-spacing:.06em;color:#f4f1eb">Your Return Label Is Ready</p>
         <p style="margin:0;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,.35)">Order ${orderLabel}</p>
       </td></tr>
       <tr><td style="padding:20px 36px 28px;background:#09090b;font-size:14px;line-height:1.75;color:rgba(244,241,235,.7)">
@@ -243,7 +245,7 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
         </table>
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px">
           <tr><td align="center">
-            <a href="${label.labelUrl}" style="display:inline-block;background:#f4f1eb;color:#09090b;padding:14px 36px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;font-weight:700">Download Label (PDF)</a>
+            <a href="${label.labelUrl}" style="display:inline-block;background:${a.accent};color:#09090b;padding:14px 36px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;font-weight:700">Download Label (PDF)</a>
           </td></tr>
         </table>
         ${label.trackingUrl ? `<p style="margin:0 0 18px">You can <a href="${label.trackingUrl}" style="color:rgba(244,241,235,.6)">track your return</a> once it's been picked up.</p>` : ''}
@@ -412,6 +414,9 @@ export async function onRequestPost({ request, env }) {
         'BREVO_API_KEY',
         'EMAIL_FROM',
         'BRAND_LOGO_URL',
+        'fonts',
+        'brand',
+        'email_theme',
       ],
       env
     );

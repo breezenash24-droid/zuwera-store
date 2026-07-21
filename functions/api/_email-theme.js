@@ -69,12 +69,12 @@ export function getEmailAppearance(cache = {}) {
 // Code defaults for each email type's editable copy. Placeholders like {order}
 // / {product} are filled by fillTemplate at send time.
 const CONTENT_DEFAULTS = {
-  order_confirmation: { subject: 'Your Zuwera order #{order}', kicker: 'Order Confirmed', heading: '#{order}', intro: '', footer: 'Questions about your order? Just reply to this email.' },
+  order_confirmation: { subject: 'Order Confirmed – #{order}', kicker: 'Order Confirmed', heading: '#{order}', intro: 'Thanks, {name}. Your order is confirmed and being prepared.', footer: 'Questions about your order? Just reply to this email.' },
   shipped:            { subject: 'Your Zuwera order has shipped', kicker: 'Shipped', heading: 'On its way', intro: '', footer: '' },
   back_in_stock:      { subject: 'Back in stock: {product} ({size})', kicker: 'Back in stock', heading: '{product}', intro: 'The size you wanted is available again — but it may not last. Grab it before it sells out.', footer: "You're receiving this because you asked to be notified when this item came back." },
   return_status:      { subject: 'An update on your return', kicker: 'Return update', heading: 'Your return', intro: '', footer: '' },
-  review_request:     { subject: 'How was your Zuwera order?', kicker: 'Your thoughts', heading: 'How did we do?', intro: '', footer: '' },
-  abandoned_cart:     { subject: 'You left something in your bag', kicker: 'Still thinking?', heading: 'Your bag is waiting', intro: '', footer: '' },
+  review_request:     { subject: 'How was your Zuwera order?', kicker: 'Your thoughts', heading: 'How did we do?', intro: '{name}your order has had a few days to settle in. A quick review — a line or two, and a photo if you have one — helps other athletes shop with confidence.', footer: "You're receiving this because you ordered from zuwera.store. Thanks for being part of it." },
+  abandoned_cart:     { subject: 'You left something in your bag', kicker: 'Still in your bag', heading: 'You left something behind', intro: 'Your bag is still here — grab your picks before they sell out.', footer: "You're receiving this because you started a checkout at zuwera.store. If this wasn't you, ignore this email." },
 };
 
 export function getEmailContent(cache, type) {

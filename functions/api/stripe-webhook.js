@@ -22,6 +22,7 @@
 import Stripe from 'stripe';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { loopsFallback } from './_email.js';
+import { getEmailAppearance, getEmailContent, fillTemplate } from './_email-theme.js';
 import { buildUserData, sendCapiEvents } from './_capi.js';
 import { veeqoBookShipment } from './_veeqo.js';
 import { incrementShippoMonthlyCount, recordLabelFailure } from './_shipping-usage.js';
@@ -151,7 +152,8 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
   // Pre-fetch email keys + branding from Supabase api_key_overrides (admin overrides take priority)
   const emailKeyCache = await fetchSiteSettings(
     ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL',
-     'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID'], env
+     'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID',
+     'fonts', 'brand', 'email_theme', 'email_settings'], env
   );
 
   // Step 1: Purchase the shipping label → gets tracking number.
@@ -732,6 +734,13 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
   const logoUrl = resolveSetting('BRAND_LOGO_URL', env, emailKeyCache)
     || 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
 
+  // Admin-controlled fonts + editable copy (site_settings, via _email-theme.js).
+  // Layout/colours stay as this order-detail template's tested dark design; the
+  // admin Emails editor drives the fonts, the subject, and the header copy.
+  const a = getEmailAppearance(emailKeyCache);
+  const emailC = getEmailContent(emailKeyCache, 'order_confirmation');
+  const escE = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
   const orderId      = meta.order_number || pi.id.slice(-8).toUpperCase();
   const toName       = meta.customer_name || 'Customer';
   const totalDollars = (pi.amount / 100).toFixed(2);
@@ -784,7 +793,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
           <td style="padding:16px 12px;border-bottom:1px solid rgba(244,241,235,.08);vertical-align:top;">
             <div style="font-weight:600;font-size:15px;color:#f4f1eb;margin-bottom:4px;">${i.name}</div>
             ${variant ? `<div style="font-size:13px;color:rgba(244,241,235,.5);margin-bottom:4px;">${variant}</div>` : ''}
-            ${i.sku ? `<div style="font-size:11px;color:rgba(244,241,235,.3);letter-spacing:.04em;font-family:'IBM Plex Mono',monospace;">SKU: ${i.sku}</div>` : ''}
+            ${i.sku ? `<div style="font-size:11px;color:rgba(244,241,235,.3);letter-spacing:.04em;font-family:${a.fontMono};">SKU: ${i.sku}</div>` : ''}
           </td>
           <td style="padding:16px 0;border-bottom:1px solid rgba(244,241,235,.08);vertical-align:top;text-align:right;white-space:nowrap;">
             <div style="font-size:14px;color:#f4f1eb;font-weight:500;">$${(i.amount / 100).toFixed(2)}</div>
@@ -803,7 +812,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
 
   const addressHtml = addrParts.length ? `
       <tr><td style="padding:0 0 28px;">
-        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;font-family:'IBM Plex Mono',monospace;">Ships To</p>
+        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;font-family:${a.fontMono};">Ships To</p>
         <p style="margin:0;font-size:14px;color:rgba(244,241,235,.7);line-height:1.65;">${toName}<br>${addrParts.join('<br>')}</p>
       </td></tr>` : '';
 
@@ -825,7 +834,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
 
   const carrierHtml = `
       <tr><td style="padding:0 0 32px;">
-        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;font-family:'IBM Plex Mono',monospace;">Delivery</p>
+        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;font-family:${a.fontMono};">Delivery</p>
         <p style="margin:0;font-size:14px;color:rgba(244,241,235,.7);">Ships via ${carrier}</p>
         <p style="margin:4px 0 0;font-size:14px;color:rgba(244,241,235,.5);">Estimated delivery: ${etaText}</p>
         ${tracking.number ? `<p style="margin:6px 0 0;font-size:14px;color:rgba(244,241,235,.7);">Tracking: ${tracking.url ? `<a href="${tracking.url}" style="color:#f4f1eb;text-decoration:underline;">${tracking.number}</a>` : tracking.number}</p>` : ''}
@@ -840,7 +849,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
 <title>Order Confirmed – Zuwera</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
-<body style="margin:0;padding:0;background:#09090b;font-family:'Barlow',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:#f4f1eb;">
+<body style="margin:0;padding:0;background:#09090b;font-family:${a.fontBody};color:#f4f1eb;">
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
     <tr><td align="center" style="padding:40px 20px 56px;">
       <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="max-width:100%;width:100%;">
@@ -852,9 +861,9 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
 
         <!-- Confirmation heading -->
         <tr><td style="border-top:1px solid rgba(244,241,235,.12);padding:28px 0 32px;">
-          <p style="margin:0 0 6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;font-family:'IBM Plex Mono',monospace;">Order Confirmed</p>
-          <h1 style="margin:0 0 10px;font-size:36px;font-weight:700;line-height:1;color:#f4f1eb;font-family:'Barlow Condensed','Barlow',sans-serif;letter-spacing:.01em;">#${orderId}</h1>
-          <p style="margin:0;font-size:14px;color:rgba(244,241,235,.5);line-height:1.6;">Thanks, ${toName}. Your order is confirmed and being prepared.</p>
+          <p style="margin:0 0 6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:${a.accent};font-weight:600;font-family:${a.fontMono};">${escE(emailC.kicker)}</p>
+          <h1 style="margin:0 0 10px;font-size:36px;font-weight:700;line-height:1;color:#f4f1eb;font-family:${a.fontHead};letter-spacing:.01em;">${escE(fillTemplate(emailC.heading, { order: orderId }))}</h1>
+          <p style="margin:0;font-size:14px;color:rgba(244,241,235,.5);line-height:1.6;">${escE(fillTemplate(emailC.intro, { name: toName, order: orderId }))}</p>
         </td></tr>
 
         <!-- Items -->
@@ -924,7 +933,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
       from:     `Zuwera <${fromEmail}>`,
       to:       [toEmail],
       reply_to: 'orders@zuwera.store',
-      subject:  `Order Confirmed – #${orderId}`,
+      subject:  fillTemplate(emailC.subject, { order: orderId }),
       html,
     }),
   });
@@ -954,7 +963,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
       sender:      { name: 'Zuwera', email: fromEmail },
       to:          [{ email: toEmail, name: toName }],
       replyTo:     { email: 'orders@zuwera.store' },
-      subject:     `Order Confirmed – #${orderId}`,
+      subject:     fillTemplate(emailC.subject, { order: orderId }),
       htmlContent: html,
     }),
   });
@@ -963,7 +972,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
     const brevoError = brevoResp.status + ': ' + await brevoResp.text().catch(() => '');
     // ── Third tier: Resend AND Brevo both down — last-resort Loops fallback ──
     const loops = await loopsFallback({
-      env, cache: emailKeyCache, to: toEmail, subject: `Order Confirmed – #${orderId}`, html,
+      env, cache: emailKeyCache, to: toEmail, subject: fillTemplate(emailC.subject, { order: orderId }), html,
       text: `Your Zuwera order #${orderId} is confirmed and being prepared.\n\nView your order: https://zuwera.store/confirm.html?order=${orderId}\n\nQuestions? orders@zuwera.store`,
       dataVariables: { orderId, orderUrl: `https://zuwera.store/confirm.html?order=${orderId}` },
     });

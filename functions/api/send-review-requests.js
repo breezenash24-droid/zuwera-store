@@ -16,6 +16,7 @@ import { json } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { loopsFallback } from './_email.js';
 import { logEmail } from './_email-log.js';
+import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } from './_email-theme.js';
 
 const SITE = 'https://zuwera.store';
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
@@ -57,26 +58,25 @@ async function sendEmail({ to, subject, html, fromEmail, resendKey, brevoKey, en
   throw new Error('No email provider configured.');
 }
 
-function buildEmail({ items, name, logoUrl }) {
+function buildEmail({ items, name, appearance, content }) {
+  const a = appearance;
   const rows = (items || []).slice(0, 8).map((i) => {
     const img = i.image
       ? `<td width="64" style="padding:0 12px 0 0"><img src="${esc(i.image)}" width="56" style="width:56px;border-radius:4px;display:block"></td>`
       : '<td width="64"></td>';
-    return `<tr>${img}<td style="padding:10px 0;font-family:Arial,sans-serif;color:#f4f1eb;font-size:14px;vertical-align:middle">
+    return `<tr>${img}<td style="padding:10px 0;font-family:${a.fontBody};color:${a.text};font-size:14px;vertical-align:middle">
         <strong>${esc(i.name || i.title || 'Your item')}</strong>
-      </td><td align="right" style="vertical-align:middle"><a href="${esc(reviewUrl(i))}" style="display:inline-block;background:#f4f1eb;color:#0b0b0d;text-decoration:none;font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:9px 16px;border-radius:3px;white-space:nowrap">Review</a></td></tr>`;
+      </td><td align="right" style="vertical-align:middle"><a href="${esc(reviewUrl(i))}" style="display:inline-block;background:${a.accent};color:#0b0b0d;text-decoration:none;font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:9px 16px;border-radius:3px;white-space:nowrap;font-family:${a.fontMono}">Review</a></td></tr>`;
   }).join('');
-  const hi = name ? `${esc(String(name).split(' ')[0])}, ` : '';
-  return `<!doctype html><html><body style="margin:0;background:#0b0b0d;font-family:Arial,Helvetica,sans-serif;color:#f4f1eb">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b0b0d"><tr><td align="center" style="padding:32px 16px">
-      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%">
-        <tr><td align="center" style="padding:0 0 26px"><img src="${esc(logoUrl)}" alt="ZUWERA" width="120" style="max-width:120px"></td></tr>
-        <tr><td style="font-size:24px;font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:.02em;text-align:center;padding:0 0 8px">How did we do?</td></tr>
-        <tr><td style="font-size:15px;line-height:1.6;color:#cfcbc2;text-align:center;padding:0 8px 24px">${hi}your order has had a few days to settle in. A quick review (a line or two, and a photo if you've got one) helps other athletes shop with confidence.</td></tr>
-        <tr><td style="padding:0 0 8px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid rgba(244,241,235,.12);border-bottom:1px solid rgba(244,241,235,.12)">${rows}</table></td></tr>
-        <tr><td style="font-size:11px;color:#726e66;line-height:1.6;text-align:center;border-top:1px solid rgba(244,241,235,.1);padding:20px 0 0;margin-top:20px">You're receiving this because you ordered from zuwera.store. Thanks for being part of it.</td></tr>
-      </table>
-    </td></tr></table></body></html>`;
+  const firstName = name ? `${String(name).split(' ')[0]}, ` : '';
+  const bodyHtml = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${a.border};border-bottom:1px solid ${a.border}">${rows}</table>`;
+  return renderEmailShell(a, {
+    kicker:  content.kicker,
+    heading: content.heading,
+    intro:   fillTemplate(content.intro, { name: firstName }),
+    bodyHtml,
+    footer:  content.footer,
+  });
 }
 
 export async function onRequestPost({ request, env }) {
@@ -109,7 +109,7 @@ export async function onRequestPost({ request, env }) {
       .then((r) => (r.ok ? r.json() : [])).catch(() => []);
     if (!rows.length) return json({ ok: true, sent: 0 }, 200);
 
-    const cache = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL', 'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID'], env);
+    const cache = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL', 'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID', 'fonts', 'brand', 'email_theme', 'email_settings'], env);
     const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
     const brevoKey = resolveSetting('BREVO_API_KEY', env, cache);
     if (!resendKey && !brevoKey && !resolveSetting('LOOPS_API_KEY', env, cache)) {
@@ -117,15 +117,17 @@ export async function onRequestPost({ request, env }) {
     }
     const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'orders@zuwera.store';
     const logoUrl = resolveSetting('BRAND_LOGO_URL', env, cache) || LOGO_FALLBACK;
+    const appearance = getEmailAppearance(cache); appearance.logo = logoUrl;
+    const content = getEmailContent(cache, 'review_request');
 
-    const SUBJECT = 'How was your Zuwera order?';
+    const SUBJECT = fillTemplate(content.subject, {});
     const done = [];
     for (const row of rows) {
       try {
         let items = row.items;
         if (typeof items === 'string') { try { items = JSON.parse(items); } catch (_) { items = []; } }
         if (!Array.isArray(items) || !items.length) { done.push(row.id); continue; } // nothing to review, but don't retry
-        const html = buildEmail({ items, name: row.customer_name, logoUrl });
+        const html = buildEmail({ items, name: row.customer_name, appearance, content });
         const res = await sendEmail({ to: row.email, subject: SUBJECT, html, fromEmail, resendKey, brevoKey, env, cache });
         await logEmail(env, { type: 'review_request', recipient: row.email, subject: SUBJECT, status: 'sent', provider: res && res.provider, meta: { order_id: row.id } });
         done.push(row.id);
