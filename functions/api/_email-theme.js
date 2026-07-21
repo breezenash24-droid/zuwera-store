@@ -69,7 +69,7 @@ export function getEmailAppearance(cache = {}) {
 // Code defaults for each email type's editable copy. Placeholders like {order}
 // / {product} are filled by fillTemplate at send time.
 const CONTENT_DEFAULTS = {
-  order_confirmation: { subject: 'Your Zuwera order #{order}', kicker: 'Order Confirmed', heading: '#{order}', intro: '', footer: 'Questions about your order? Just reply to this email.' },
+  order_confirmation: { subject: 'Order Confirmed – #{order}', kicker: 'Order Confirmed', heading: '#{order}', intro: 'Thanks, {name}. Your order is confirmed and being prepared.', footer: 'Questions about your order? Just reply to this email.' },
   shipped:            { subject: 'Your Zuwera order has shipped', kicker: 'Shipped', heading: 'On its way', intro: '', footer: '' },
   back_in_stock:      { subject: 'Back in stock: {product} ({size})', kicker: 'Back in stock', heading: '{product}', intro: 'The size you wanted is available again — but it may not last. Grab it before it sells out.', footer: "You're receiving this because you asked to be notified when this item came back." },
   return_status:      { subject: 'An update on your return', kicker: 'Return update', heading: 'Your return', intro: '', footer: '' },
