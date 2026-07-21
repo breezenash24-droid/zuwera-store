@@ -1540,7 +1540,22 @@
     _bagOverlay.innerHTML = '<div class="zwf-bag-panel"><div class="zwf-bag-inner"></div></div>';
     document.body.appendChild(_bagOverlay);
     _bagPanel = _bagOverlay.querySelector('.zwf-bag-inner');
-    _bagOverlay.addEventListener('click', function (e) { if (e.target === _bagOverlay) closeBag(); });
+    _bagOverlay.addEventListener('click', function (e) {
+      if (e.target === _bagOverlay) { closeBag(); return; }
+      // "Sign in" must open the login modal IN PLACE, not navigate to /?auth=signin
+      // (the homepage). The bag panel hides the header login button and the
+      // hamburger is nav-only (#236), so this link is the PRIMARY login entry on
+      // mobile — bouncing to the homepage is why signing in "didn't work" on every
+      // page except account (which has its own in-place auth wall). Close the bag,
+      // open the shared zwlg modal right here; the href stays as a no-JS fallback.
+      var lg = e.target.closest && e.target.closest('[data-zw-login]');
+      if (lg && typeof window.zwOpenLogin === 'function') {
+        e.preventDefault();
+        e.stopPropagation();
+        closeBag();
+        window.zwOpenLogin('signin');
+      }
+    });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && _bagOverlay.classList.contains('open')) closeBag();
     });
