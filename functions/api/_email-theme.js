@@ -61,10 +61,11 @@ function _mix(c, target, t) { return Math.round(c + (target - c) * t); }
 function _toHex({ r, g, b }) { return '#' + [r, g, b].map((x) => Math.max(0, Math.min(255, x)).toString(16).padStart(2, '0')).join(''); }
 function contrastAccent(hex, light) {
   const rgb = _hexToRgb(hex);
-  if (!rgb) return light ? '#c25a6d' : '#F891A5';
+  if (!rgb) return light ? '#b24d63' : '#F891A5';
   const lum = (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255;
-  if (!light && lum < 0.38) return _toHex({ r: _mix(rgb.r, 255, 0.55), g: _mix(rgb.g, 255, 0.55), b: _mix(rgb.b, 255, 0.55) });
-  if (light && lum > 0.72)  return _toHex({ r: _mix(rgb.r, 0, 0.42),   g: _mix(rgb.g, 0, 0.42),   b: _mix(rgb.b, 0, 0.42) });
+  // The accent is used at small sizes (11px kicker), so it needs strong contrast.
+  if (!light && lum < 0.5) return _toHex({ r: _mix(rgb.r, 255, 0.66), g: _mix(rgb.g, 255, 0.66), b: _mix(rgb.b, 255, 0.66) });
+  if (light && lum > 0.6)  return _toHex({ r: _mix(rgb.r, 0, 0.5),    g: _mix(rgb.g, 0, 0.5),    b: _mix(rgb.b, 0, 0.5) });
   return String(hex).trim();
 }
 
@@ -87,11 +88,14 @@ export function getEmailAppearance(cache = {}) {
     fontMono: `${String(monoStack).replace(/;+$/, '').replace(/,?\s*monospace\s*$/i, '')},'Courier New',monospace`,
     accent,
     logo,
-    bg:     light ? '#F0EEE9' : '#09090b',
-    panel:  light ? '#FFFFFF' : '#151518',
-    text:   light ? '#09090b' : '#f4f1eb',
-    muted:  light ? 'rgba(9,9,11,.6)'  : 'rgba(244,241,235,.66)',
-    border: light ? 'rgba(9,9,11,.12)' : 'rgba(244,241,235,.16)',
+    bg:     light ? '#F0EEE9' : '#0b0b0e',
+    panel:  light ? '#FFFFFF' : '#17171c',
+    text:   light ? '#0b0b0d' : '#f6f3ed',
+    // Solid hex, not low-opacity rgba: rgba composites down to a dim grey over a
+    // dark panel and some clients (Outlook) drop it entirely. These are the
+    // secondary-text colours (intro, meta, footer) — kept clearly legible.
+    muted:  light ? '#575249' : '#cbc7be',
+    border: light ? '#e2ded4' : '#38383f',
     invertLogo: light,  // white wordmark needs inverting on a light ground
   };
 }

@@ -125,7 +125,7 @@ function nextStepsHtml(status, resolution, r, a) {
   if (!steps.length) return '';
   return `
     <div style="margin:20px 0;background:rgba(244,241,235,.04);border:1px solid rgba(244,241,235,.1);border-radius:8px;padding:18px 20px;">
-      <p style="margin:0 0 12px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35);">What Happens Next</p>
+      <p style="margin:0 0 12px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,0.62);">What Happens Next</p>
       ${steps.map((s, i) => `
         <div style="display:flex;gap:12px;align-items:flex-start;${i < steps.length - 1 ? 'margin-bottom:10px;' : ''}">
           <div style="width:20px;height:20px;border-radius:50%;background:${a.accent};color:#000;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">${i + 1}</div>
@@ -142,17 +142,17 @@ function labelSectionHtml(r, a) {
       <table width="100%" style="border:1px solid rgba(244,241,235,.1);border-radius:8px;overflow:hidden;border-collapse:collapse;">
         ${r.labelUrl ? `
         <tr><td style="padding:14px 20px;border-bottom:1px solid rgba(244,241,235,.08);">
-          <p style="margin:0 0 3px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35);">Return Label</p>
+          <p style="margin:0 0 3px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,0.62);">Return Label</p>
           <a href="${r.labelUrl}" style="color:${a.accent};font-size:14px;font-weight:600;text-decoration:underline;">Download Label (PDF)</a>
         </td></tr>` : ''}
         ${r.trackingNumber ? `
         <tr><td style="padding:14px 20px;border-bottom:1px solid rgba(244,241,235,.08);">
-          <p style="margin:0 0 3px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35);">Tracking Number</p>
+          <p style="margin:0 0 3px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,0.62);">Tracking Number</p>
           <p style="margin:0;font-size:14px;color:#f4f1eb;font-family:${a.fontMono};">${r.trackingNumber}</p>
         </td></tr>` : ''}
         ${carrierLabel ? `
         <tr><td style="padding:14px 20px;border-bottom:1px solid rgba(244,241,235,.08);">
-          <p style="margin:0 0 3px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35);">Carrier</p>
+          <p style="margin:0 0 3px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,0.62);">Carrier</p>
           <p style="margin:0;font-size:14px;color:#f4f1eb;">${carrierLabel}</p>
         </td></tr>` : ''}
         ${r.trackingUrl ? `
@@ -190,7 +190,7 @@ function buildEmail({ r, status, resolution, fromFirstName, logoUrl, appearance 
       <!-- Status bar -->
       <tr><td style="padding:0 36px 0;background:#09090b;">
         <div style="border-top:2px solid ${a.accent};padding-top:20px;">
-          <p style="margin:0 0 4px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,.35);">${orderLabel} · ${resolutionDisplay}</p>
+          <p style="margin:0 0 4px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,0.62);">${orderLabel} · ${resolutionDisplay}</p>
           <h2 style="margin:0 0 6px;font-family:${a.fontHead};font-size:22px;letter-spacing:.04em;color:#f4f1eb;">${headline}</h2>
         </div>
       </td></tr>
@@ -205,7 +205,7 @@ function buildEmail({ r, status, resolution, fromFirstName, logoUrl, appearance 
 
         ${adminMsg ? `
         <div style="margin:20px 0;padding:16px 20px;border-left:3px solid ${a.accent};background:rgba(244,241,235,.04);">
-          <p style="margin:0 0 6px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35);">Message from Zuwera</p>
+          <p style="margin:0 0 6px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,0.62);">Message from Zuwera</p>
           <p style="margin:0;font-size:14px;color:rgba(244,241,235,.85);line-height:1.6;">${adminMsg.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'<br>')}</p>
         </div>` : ''}
 
@@ -215,9 +215,9 @@ function buildEmail({ r, status, resolution, fromFirstName, logoUrl, appearance 
       </td></tr>
 
       <!-- Footer -->
-      <tr><td style="padding:18px 36px;background:#0a0a0c;border-top:1px solid rgba(244,241,235,.07);font-size:10px;letter-spacing:.1em;color:rgba(244,241,235,.2);text-transform:uppercase;text-align:center;">
+      <tr><td style="padding:18px 36px;background:#0a0a0c;border-top:1px solid rgba(244,241,235,.07);font-size:10px;letter-spacing:.1em;color:rgba(244,241,235,0.62);text-transform:uppercase;text-align:center;">
         &copy; ${new Date().getFullYear()} Zuwera &middot;
-        <a href="https://zuwera.store" style="color:rgba(244,241,235,.2);text-decoration:none">zuwera.store</a>
+        <a href="https://zuwera.store" style="color:rgba(244,241,235,0.62);text-decoration:none">zuwera.store</a>
       </td></tr>
     </table>
   </td></tr>

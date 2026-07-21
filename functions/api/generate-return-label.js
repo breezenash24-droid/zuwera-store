@@ -224,22 +224,22 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
       </td></tr>
       <tr><td style="padding:36px 36px 12px;background:#09090b">
         <p style="margin:0 0 6px;font-family:${a.fontHead};font-size:22px;letter-spacing:.06em;color:#f4f1eb">Your Return Label Is Ready</p>
-        <p style="margin:0;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,.35)">Order ${orderLabel}</p>
+        <p style="margin:0;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,0.62)">Order ${orderLabel}</p>
       </td></tr>
       <tr><td style="padding:20px 36px 28px;background:#09090b;font-size:14px;line-height:1.75;color:rgba(244,241,235,.7)">
         <p style="margin:0 0 18px">Hi ${toName.split(' ')[0]},</p>
         <p style="margin:0 0 18px">Your return request has been approved. We've generated a prepaid shipping label for you — just print it, attach it to your package, and drop it off at any ${label.carrier} location.</p>
         <table width="100%" style="border:1px solid rgba(244,241,235,.1);margin-bottom:24px">
           <tr><td style="padding:16px 20px">
-            <p style="margin:0 0 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35)">Carrier</p>
+            <p style="margin:0 0 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,0.62)">Carrier</p>
             <p style="margin:0;font-size:14px;color:#f4f1eb">${label.carrier} — ${label.service}</p>
           </td></tr>
           <tr><td style="padding:4px 20px 16px">
-            <p style="margin:0 0 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35)">Tracking</p>
+            <p style="margin:0 0 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,0.62)">Tracking</p>
             <p style="margin:0;font-size:14px;color:#f4f1eb">${label.trackingNumber}</p>
           </td></tr>
           <tr><td style="padding:4px 20px 16px">
-            <p style="margin:0 0 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35)">Return To</p>
+            <p style="margin:0 0 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,0.62)">Return To</p>
             <p style="margin:0;font-size:13px;color:rgba(244,241,235,.65);white-space:pre-line">${storeAddress}</p>
           </td></tr>
         </table>
@@ -248,13 +248,13 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
             <a href="${label.labelUrl}" style="display:inline-block;background:${a.accent};color:#09090b;padding:14px 36px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;font-weight:700">Download Label (PDF)</a>
           </td></tr>
         </table>
-        ${label.trackingUrl ? `<p style="margin:0 0 18px">You can <a href="${label.trackingUrl}" style="color:rgba(244,241,235,.6)">track your return</a> once it's been picked up.</p>` : ''}
+        ${label.trackingUrl ? `<p style="margin:0 0 18px">You can <a href="${label.trackingUrl}" style="color:rgba(244,241,235,0.62)">track your return</a> once it's been picked up.</p>` : ''}
         <p style="margin:0 0 18px">Once we receive your return, we'll process your ${resolutionLabel} within 3–5 business days. We'll send you a confirmation email when it's done.</p>
         <p style="margin:0 0 4px">Thanks,</p>
         <p style="margin:0">The Zuwera Team</p>
       </td></tr>
-      <tr><td style="padding:20px 36px;background:#0a0a0c;border-top:1px solid rgba(244,241,235,.07);font-size:10px;letter-spacing:.1em;color:rgba(244,241,235,.2);text-transform:uppercase;text-align:center">
-        &copy; ${new Date().getFullYear()} Zuwera &middot; <a href="https://zuwera.store" style="color:rgba(244,241,235,.2);text-decoration:none">zuwera.store</a>
+      <tr><td style="padding:20px 36px;background:#0a0a0c;border-top:1px solid rgba(244,241,235,.07);font-size:10px;letter-spacing:.1em;color:rgba(244,241,235,0.62);text-transform:uppercase;text-align:center">
+        &copy; ${new Date().getFullYear()} Zuwera &middot; <a href="https://zuwera.store" style="color:rgba(244,241,235,0.62);text-decoration:none">zuwera.store</a>
       </td></tr>
     </table>
   </td></tr>
