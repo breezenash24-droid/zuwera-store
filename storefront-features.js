@@ -1564,7 +1564,32 @@
     // linecap=round is load-bearing: the dot under the question mark is a
     // zero-length line, which renders nothing under the default butt cap.
     help:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 1 1 4 2.8c-.7.3-1.1 1-1.1 1.7v.5"/><line x1="12" y1="17.5" x2="12" y2="17.5"/></svg>',
+    // ── Extra icons the admin can pick for custom bag rows (all Feather-style,
+    //    round caps so dots render). Keep keys in sync with BAG_ICON_KEYS below. ──
+    heart:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>',
+    gift:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4"/><path d="M5 12v9h14v-9"/><line x1="12" y1="8" x2="12" y2="21"/><path d="M12 8H7.5a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8z"/><path d="M12 8h4.5a2.5 2.5 0 0 0 0-5C13 3 12 8 12 8z"/></svg>',
+    tag:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 12 22l-9-9V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.2" cy="7.2" r="1.1"/></svg>',
+    truck:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="13" height="10"/><path d="M14 9h4l3 3v4h-7z"/><circle cx="5.5" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg>',
+    star:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.1 8.6 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.6"/></svg>',
+    mail:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7 10-7"/></svg>',
+    home:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>',
+    user:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+    box:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><line x1="12" y1="13" x2="12" y2="21"/></svg>',
+    percent:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="7.5" cy="7.5" r="2"/><circle cx="16.5" cy="16.5" r="2"/></svg>',
+    calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="3" x2="8" y2="6"/><line x1="16" y1="3" x2="16" y2="6"/></svg>',
+    link:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>',
+    info:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8"/></svg>',
   };
+  // Icon keys the admin's custom-row picker offers (must exist in ICON above).
+  var BAG_ICON_KEYS = ['link', 'gift', 'tag', 'percent', 'star', 'heart', 'truck', 'box', 'mail', 'calendar', 'info', 'home', 'user', 'orders', 'saves', 'acct', 'help'];
+  function bagIcon(name) { return ICON[name] || ICON.link; }
+  // Only allow safe destinations for custom rows (site paths, http(s), mailto, tel).
+  function bagSafeUrl(u) {
+    var s = String(u || '').trim();
+    if (!s) return '';
+    if (/^(https?:\/\/|mailto:|tel:|\/)/i.test(s)) return s;
+    return '/' + s.replace(/^\/+/, '');
+  }
 
   function buildBagPanel() {
     if (_bagOverlay) return;
@@ -1628,6 +1653,11 @@
       : '<a class="zwf-bag-link" data-zw-login href="/?auth=signin&next=' + encodeURIComponent(location.pathname) + '">' + ICON.acct + 'Sign in</a>';
     var rSupport = bagRow('support', 'Support');
     var supportRow = rSupport.enabled ? '<a class="zwf-bag-link" href="mailto:' + esc(bagSupportEmail()) + '">' + ICON.help + esc(rSupport.label) + '</a>' : '';
+    // Admin-defined custom rows: label + chosen icon + preset link (bag_panel.custom).
+    var customRows = (Array.isArray(bagCfg().custom) ? bagCfg().custom : [])
+      .filter(function (r) { return r && r.enabled !== false && String(r.label || '').trim() && String(r.url || '').trim(); })
+      .map(function (r) { return '<a class="zwf-bag-link" href="' + esc(bagSafeUrl(r.url)) + '">' + bagIcon(r.icon) + esc(String(r.label).trim()) + '</a>'; })
+      .join('');
 
     _bagPanel.innerHTML = '<div class="zwf-bag-hd"><h2>Bag' + (cart.length ? ' · ' + bagMoney(total) : '') + '</h2>'
       // An empty bag has nothing to review — Start shopping goes to the catalogue,
@@ -1636,6 +1666,7 @@
       + items
       + '<div class="zwf-bag-links"><h3>' + (user ? esc(user.name) : 'My profile') + '</h3>'
       + links
+      + customRows
       + supportRow
       + '</div>';
   }
