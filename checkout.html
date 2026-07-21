@@ -611,8 +611,8 @@
         <div class="pm-lines">
           <div class="pm-line"><span>Subtotal</span><span id="pm-subtotal">—</span></div>
           <div class="pm-line"><span>Shipping</span><span id="pm-shipping">—</span></div>
-          <div class="pm-line" id="zw-promo-row" style="display:none"><span>Discount</span><span id="zw-promo-discount" style="color:rgba(110,210,130,.9)">—</span></div>
           <div class="pm-line"><span id="pm-tax-label">Tax</span><span id="pm-tax">—</span></div>
+          <div class="pm-line" id="zw-promo-row" style="display:none"><span>Discount</span><span id="zw-promo-discount" style="color:rgba(110,210,130,.9)">—</span></div>
         </div>
         <div class="pm-total-row"><span>Total</span><span id="pm-total">—</span></div>
       </div>
@@ -973,6 +973,11 @@ document.addEventListener('DOMContentLoaded', function() {
      saw on the bag doesn't silently vanish at checkout. */
   try {
     var carriedPromo = sessionStorage.getItem('zw_promo_code');
+    // Fall back to a referral code captured from a /?ref=CODE link (nav-menu.js →
+    // localStorage.zw_ref). A friend who followed a referral link but never manually
+    // applied the code on the bag page still gets it AUTO-APPLIED here, instead of
+    // it just sitting in the box unused. Same validated Apply path as any promo.
+    if (!carriedPromo) { try { carriedPromo = localStorage.getItem('zw_ref'); } catch (_) {} }
     if (carriedPromo && !window._zwActivePromo && promoInput && promoBtn) {
       promoInput.value = carriedPromo;
       promoBtn.click();

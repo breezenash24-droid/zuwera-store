@@ -21,6 +21,20 @@
     return String(STATE.code || '').trim().toUpperCase();
   }
 
+  // Prefill a friend's referral code (captured to localStorage from /?ref=CODE by
+  // nav-menu.js) into the promo box and arm the auto-apply. MUST run for the STATIC
+  // promo box too (checkout.html / bag.html): those pages ship the box in their
+  // HTML, so ensurePromoUi() takes the early-return branch and never reached the
+  // injected-only prefill — the code never followed the shopper to checkout.
+  function prefillRef(root) {
+    try {
+      const ref = localStorage.getItem('zw_ref');
+      if (!ref) return;
+      const input = (root || document).querySelector('#zw-promo-input');
+      if (input && !input.value) { input.value = ref; STATE.autoRef = String(ref).trim().toUpperCase(); }
+    } catch (_) {}
+  }
+
   function getSummaryNodes() {
     return {
       subtotal: document.getElementById('summary-subtotal'),
@@ -46,6 +60,7 @@
         btn.addEventListener('click', applyPromoFromInput);
         btn.__zwWired = true;
       }
+      prefillRef();   // static promo box (checkout.html/bag.html) — carry the referral code here too
       return;
     }
 
@@ -66,16 +81,10 @@
       <div id="zw-promo-message" style="font-family:var(--fm,inherit);font-size:.62rem;color:rgba(244,241,235,.5);letter-spacing:.03em;min-height:.9rem;"></div>
     `;
 
-    // Arrived from a friend's referral link (?ref=CODE)? Prefill their code so
-    // the shopper doesn't have to remember it. It's still validated server-side
-    // like any other promo — this only saves typing.
-    try {
-      const ref = localStorage.getItem('zw_ref');
-      if (ref) {
-        const input = shell.querySelector('#zw-promo-input');
-        if (input && !input.value) { input.value = ref; STATE.autoRef = String(ref).trim().toUpperCase(); }
-      }
-    } catch (_) {}
+    // Arrived from a friend's referral link (?ref=CODE)? Prefill from the shell we
+    // just built (before it's in the DOM) — still validated server-side like any
+    // other promo; this only saves typing.
+    prefillRef(shell);
 
     const summary = host.closest('.cart-summary') || document.querySelector('.cart-summary');
     const totalRow = host.querySelector('.stotal, .total')
@@ -164,6 +173,17 @@
     if (row && value) {
       row.style.display = discountCents > 0 ? 'flex' : 'none';
       value.textContent = `-${formatMoney(discountCents)}`;
+    }
+    // Bag page has its own visible summary card; the checkout modal's #zw-promo-row
+    // isn't shown there, so a referral/promo discount was a silent total change.
+    // Populate a dedicated bag-card row (labelled with the code) so it's obvious.
+    const bagRow = document.getElementById('bag-discount-row');
+    if (bagRow) {
+      const bagVal = document.getElementById('bag-discount-value');
+      const bagLbl = document.getElementById('bag-discount-label');
+      bagRow.style.display = discountCents > 0 ? '' : 'none';
+      if (bagVal) bagVal.textContent = `-${formatMoney(discountCents)}`;
+      if (bagLbl) bagLbl.textContent = (discountCents > 0 && currentPromoCode()) ? `Discount · ${currentPromoCode()}` : 'Discount';
     }
     if (message) {
       message.textContent = STATE.promotion
