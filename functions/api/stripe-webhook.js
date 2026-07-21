@@ -792,16 +792,16 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
           <td style="padding:16px 0;border-bottom:1px solid rgba(244,241,235,.08);vertical-align:top;width:80px;">${imgCell}</td>
           <td style="padding:16px 12px;border-bottom:1px solid rgba(244,241,235,.08);vertical-align:top;">
             <div style="font-weight:600;font-size:15px;color:#f4f1eb;margin-bottom:4px;">${i.name}</div>
-            ${variant ? `<div style="font-size:13px;color:rgba(244,241,235,.5);margin-bottom:4px;">${variant}</div>` : ''}
-            ${i.sku ? `<div style="font-size:11px;color:rgba(244,241,235,.3);letter-spacing:.04em;font-family:${a.fontMono};">SKU: ${i.sku}</div>` : ''}
+            ${variant ? `<div style="font-size:13px;color:rgba(244,241,235,0.62);margin-bottom:4px;">${variant}</div>` : ''}
+            ${i.sku ? `<div style="font-size:11px;color:rgba(244,241,235,0.62);letter-spacing:.04em;font-family:${a.fontMono};">SKU: ${i.sku}</div>` : ''}
           </td>
           <td style="padding:16px 0;border-bottom:1px solid rgba(244,241,235,.08);vertical-align:top;text-align:right;white-space:nowrap;">
             <div style="font-size:14px;color:#f4f1eb;font-weight:500;">$${(i.amount / 100).toFixed(2)}</div>
-            ${i.quantity > 1 ? `<div style="font-size:12px;color:rgba(244,241,235,.45);margin-top:3px;">× ${i.quantity}</div>` : ''}
+            ${i.quantity > 1 ? `<div style="font-size:12px;color:rgba(244,241,235,0.62);margin-top:3px;">× ${i.quantity}</div>` : ''}
           </td>
         </tr>`;
       }).join('')
-    : '<tr><td colspan="3" style="padding:16px 0;color:rgba(244,241,235,.5);">Your Zuwera order</td></tr>';
+    : '<tr><td colspan="3" style="padding:16px 0;color:rgba(244,241,235,0.62);">Your Zuwera order</td></tr>';
 
   const addrParts = [
     meta.ship_line1,
@@ -812,13 +812,13 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
 
   const addressHtml = addrParts.length ? `
       <tr><td style="padding:0 0 28px;">
-        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;font-family:${a.fontMono};">Ships To</p>
+        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,0.62);font-weight:600;font-family:${a.fontMono};">Ships To</p>
         <p style="margin:0;font-size:14px;color:rgba(244,241,235,.7);line-height:1.65;">${toName}<br>${addrParts.join('<br>')}</p>
       </td></tr>` : '';
 
   const discountRow = discountCode && discountCents > 0 ? `
             <tr>
-              <td style="padding:4px 0;font-size:14px;color:rgba(244,241,235,.55);">Discount (${discountCode})</td>
+              <td style="padding:4px 0;font-size:14px;color:rgba(244,241,235,0.62);">Discount (${discountCode})</td>
               <td style="padding:4px 0;font-size:14px;text-align:right;color:#86c98e;">−$${(discountCents / 100).toFixed(2)}</td>
             </tr>` : '';
 
@@ -834,9 +834,9 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
 
   const carrierHtml = `
       <tr><td style="padding:0 0 32px;">
-        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;font-family:${a.fontMono};">Delivery</p>
+        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,0.62);font-weight:600;font-family:${a.fontMono};">Delivery</p>
         <p style="margin:0;font-size:14px;color:rgba(244,241,235,.7);">Ships via ${carrier}</p>
-        <p style="margin:4px 0 0;font-size:14px;color:rgba(244,241,235,.5);">Estimated delivery: ${etaText}</p>
+        <p style="margin:4px 0 0;font-size:14px;color:rgba(244,241,235,0.62);">Estimated delivery: ${etaText}</p>
         ${tracking.number ? `<p style="margin:6px 0 0;font-size:14px;color:rgba(244,241,235,.7);">Tracking: ${tracking.url ? `<a href="${tracking.url}" style="color:#f4f1eb;text-decoration:underline;">${tracking.number}</a>` : tracking.number}</p>` : ''}
       </td></tr>`;
 
@@ -863,7 +863,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
         <tr><td style="border-top:1px solid rgba(244,241,235,.12);padding:28px 0 32px;">
           <p style="margin:0 0 6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:${a.accent};font-weight:600;font-family:${a.fontMono};">${escE(emailC.kicker)}</p>
           <h1 style="margin:0 0 10px;font-size:36px;font-weight:700;line-height:1;color:#f4f1eb;font-family:${a.fontHead};letter-spacing:.01em;">${escE(fillTemplate(emailC.heading, { order: orderId }))}</h1>
-          <p style="margin:0;font-size:14px;color:rgba(244,241,235,.5);line-height:1.6;">${escE(fillTemplate(emailC.intro, { name: toName, order: orderId }))}</p>
+          <p style="margin:0;font-size:14px;color:rgba(244,241,235,0.62);line-height:1.6;">${escE(fillTemplate(emailC.intro, { name: toName, order: orderId }))}</p>
         </td></tr>
 
         <!-- Items -->
@@ -877,16 +877,16 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
         <tr><td style="padding:20px 0 0;">
           <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
             <tr>
-              <td style="padding:6px 0;font-size:14px;color:rgba(244,241,235,.55);">Subtotal</td>
+              <td style="padding:6px 0;font-size:14px;color:rgba(244,241,235,0.62);">Subtotal</td>
               <td style="padding:6px 0;font-size:14px;text-align:right;color:#f4f1eb;">$${(subtotalCents / 100).toFixed(2)}</td>
             </tr>
             ${discountRow}
             <tr>
-              <td style="padding:6px 0;font-size:14px;color:rgba(244,241,235,.55);">Shipping</td>
+              <td style="padding:6px 0;font-size:14px;color:rgba(244,241,235,0.62);">Shipping</td>
               <td style="padding:6px 0;font-size:14px;text-align:right;color:#f4f1eb;">${shippingDisplay}</td>
             </tr>
             <tr>
-              <td style="padding:6px 0 0;font-size:14px;color:rgba(244,241,235,.55);">Tax</td>
+              <td style="padding:6px 0 0;font-size:14px;color:rgba(244,241,235,0.62);">Tax</td>
               <td style="padding:6px 0 0;font-size:14px;text-align:right;color:#f4f1eb;">$${(taxCents / 100).toFixed(2)}</td>
             </tr>
             <tr>
@@ -907,13 +907,13 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
 
         <!-- Footer -->
         <tr><td style="padding:32px 0 0;border-top:1px solid rgba(244,241,235,.08);">
-          <p style="margin:0 0 6px;font-size:13px;color:rgba(244,241,235,.5);">
+          <p style="margin:0 0 6px;font-size:13px;color:rgba(244,241,235,0.62);">
             <a href="https://zuwera.store/account" style="color:rgba(244,241,235,.75);text-decoration:underline;">View order status</a>
             &nbsp;·&nbsp;
             <a href="https://zuwera.store/returns" style="color:rgba(244,241,235,.75);text-decoration:underline;">30-day free returns</a>
           </p>
-          <p style="margin:0 0 20px;font-size:13px;color:rgba(244,241,235,.35);">Questions? <a href="mailto:orders@zuwera.store" style="color:rgba(244,241,235,.55);text-decoration:underline;">orders@zuwera.store</a></p>
-          <p style="margin:0;font-size:12px;color:rgba(244,241,235,.2);">© ${new Date().getFullYear()} Zuwera. All rights reserved.</p>
+          <p style="margin:0 0 20px;font-size:13px;color:rgba(244,241,235,0.62);">Questions? <a href="mailto:orders@zuwera.store" style="color:rgba(244,241,235,0.62);text-decoration:underline;">orders@zuwera.store</a></p>
+          <p style="margin:0;font-size:12px;color:rgba(244,241,235,0.62);">© ${new Date().getFullYear()} Zuwera. All rights reserved.</p>
         </td></tr>
 
       </table>
