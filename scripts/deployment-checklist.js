@@ -16,7 +16,11 @@ const files = {
   bag: read('bag.html'),
   returns: read('returns.html'),
   notFound: read('404.html'),
-  admin: read('admin.html'),
+  // admin.html's ~550KB of inline JS was extracted to admin-main.js (loaded as a
+  // blocking external script at the same spot, so it's immutable-cached instead of
+  // re-downloaded on every login). The admin checks below grep this combined blob,
+  // so they keep passing wherever the code physically lives.
+  admin: read('admin.html') + '\n' + read('admin-main.js'),
   cohesion: read('storefront-cohesion.css'),
   mobileMenu: read('mobile-menu.js'),
   storefrontTheme: read('storefront-theme.js'),
