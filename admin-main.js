@@ -8007,6 +8007,7 @@
                         if (on) on.checked = r.enabled !== false;
                         if (lb) lb.value = (r.label != null ? String(r.label) : '');
                     });
+                    bagRenderCustomRows(v.custom);
                 }
             });
         }
@@ -8041,6 +8042,7 @@
             const value = {
                 supportEmail: String(document.getElementById('bp-support-email').value || '').trim().slice(0, 120),
                 rows,
+                custom: bagReadCustomRows(),
             };
             const { error } = await sb.from('site_settings').upsert({ key: 'bag_panel', value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
             if (error) { showToast('Error saving bag panel: ' + error.message, 'error'); return; }
@@ -8048,6 +8050,71 @@
             try { localStorage.setItem('zw_bag_panel', JSON.stringify(value)); } catch (e) {}
             showToast('Bag panel saved!', 'success');
         }
+
+        // ── Bag panel custom rows: label + icon + preset link. Icon previews mirror
+        //    the storefront ICON set (storefront-features.js BAG_ICON_KEYS). ──
+        const BAG_ICON_LIST = ['link', 'gift', 'tag', 'percent', 'star', 'heart', 'truck', 'box', 'mail', 'calendar', 'info', 'home', 'user', 'orders', 'saves', 'acct', 'help'];
+        const BAG_ICONS = {
+            link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>',
+            gift: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4"/><path d="M5 12v9h14v-9"/><line x1="12" y1="8" x2="12" y2="21"/><path d="M12 8H7.5a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8z"/><path d="M12 8h4.5a2.5 2.5 0 0 0 0-5C13 3 12 8 12 8z"/></svg>',
+            tag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 12 22l-9-9V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.2" cy="7.2" r="1.1"/></svg>',
+            percent: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="7.5" cy="7.5" r="2"/><circle cx="16.5" cy="16.5" r="2"/></svg>',
+            star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.1 8.6 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.6"/></svg>',
+            heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>',
+            truck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="13" height="10"/><path d="M14 9h4l3 3v4h-7z"/><circle cx="5.5" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg>',
+            box: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><line x1="12" y1="13" x2="12" y2="21"/></svg>',
+            mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7 10-7"/></svg>',
+            calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="3" x2="8" y2="6"/><line x1="16" y1="3" x2="16" y2="6"/></svg>',
+            info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8"/></svg>',
+            home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>',
+            user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+            orders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
+            saves: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+            acct: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M6.7 19a5.5 5.5 0 0 1 10.6 0"/></svg>',
+            help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 1 1 4 2.8c-.7.3-1.1 1-1.1 1.7v.5"/><line x1="12" y1="17.5" x2="12" y2="17.5"/></svg>',
+        };
+        function _bagEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+        function bagAddCustomRow(data) {
+            data = data || {};
+            const wrap = document.getElementById('bp-custom-rows');
+            if (!wrap) return;
+            const row = document.createElement('div');
+            row.className = 'bp-custom-row';
+            row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap';
+            row.innerHTML =
+                '<input type="checkbox" class="bpc-on" ' + (data.enabled !== false ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0" title="Show this row">' +
+                '<span class="bpc-preview" style="width:20px;height:20px;flex-shrink:0;display:inline-flex;align-items:center;color:var(--text-primary)"></span>' +
+                '<select class="bpc-icon form-input" style="width:108px;flex-shrink:0">' + BAG_ICON_LIST.map(k => '<option value="' + k + '"' + (data.icon === k ? ' selected' : '') + '>' + k + '</option>').join('') + '</select>' +
+                '<input type="text" class="bpc-label form-input" placeholder="Label" style="flex:1;min-width:100px" value="' + _bagEsc(data.label) + '">' +
+                '<input type="text" class="bpc-url form-input" placeholder="/gift-cards or https://…" style="flex:1;min-width:130px" value="' + _bagEsc(data.url) + '">' +
+                '<button type="button" class="btn btn-secondary bpc-remove" style="padding:6px 10px;flex-shrink:0" title="Remove row">✕</button>';
+            wrap.appendChild(row);
+            const sel = row.querySelector('.bpc-icon');
+            const prev = row.querySelector('.bpc-preview');
+            const upd = () => { prev.innerHTML = BAG_ICONS[sel.value] || BAG_ICONS.link; };
+            upd(); sel.addEventListener('change', upd);
+            row.querySelector('.bpc-remove').addEventListener('click', () => row.remove());
+        }
+        function bagReadCustomRows() {
+            const out = [];
+            document.querySelectorAll('#bp-custom-rows .bp-custom-row').forEach(function (row) {
+                const label = String((row.querySelector('.bpc-label') || {}).value || '').trim().slice(0, 40);
+                const url = String((row.querySelector('.bpc-url') || {}).value || '').trim().slice(0, 300);
+                if (!label || !url) return;
+                out.push({
+                    label, url,
+                    icon: String((row.querySelector('.bpc-icon') || {}).value || 'link'),
+                    enabled: (row.querySelector('.bpc-on') || {}).checked !== false,
+                });
+            });
+            return out;
+        }
+        function bagRenderCustomRows(arr) {
+            const wrap = document.getElementById('bp-custom-rows');
+            if (wrap) wrap.innerHTML = '';
+            (Array.isArray(arr) ? arr : []).forEach(bagAddCustomRow);
+        }
+        window.bagAddCustomRow = function () { bagAddCustomRow({}); };
         window.saveBagPanel = saveBagPanel;
 
         async function saveBrandSettings() {
