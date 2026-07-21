@@ -973,6 +973,11 @@ document.addEventListener('DOMContentLoaded', function() {
      saw on the bag doesn't silently vanish at checkout. */
   try {
     var carriedPromo = sessionStorage.getItem('zw_promo_code');
+    // Fall back to a referral code captured from a /?ref=CODE link (nav-menu.js →
+    // localStorage.zw_ref). A friend who followed a referral link but never manually
+    // applied the code on the bag page still gets it AUTO-APPLIED here, instead of
+    // it just sitting in the box unused. Same validated Apply path as any promo.
+    if (!carriedPromo) { try { carriedPromo = localStorage.getItem('zw_ref'); } catch (_) {} }
     if (carriedPromo && !window._zwActivePromo && promoInput && promoBtn) {
       promoInput.value = carriedPromo;
       promoBtn.click();
