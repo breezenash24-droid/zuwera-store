@@ -16,6 +16,7 @@ import Stripe from 'stripe';
 import { cors, json, verifyAdmin, getSetting, setSetting, getCommerceBundle } from './_commerce.js';
 import { permsHave } from './_rbac.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { getEmailAppearance } from './_email-theme.js';
 
 const RATE_LIMIT_KEY = 'refund_rate_limit';
 const AUDIT_LOG_KEY  = 'refund_audit_log';
@@ -307,10 +308,11 @@ async function sendLockoutAlert(env, { adminEmail, adminId, orderId, attempts, l
 
 async function sendRefundEmail(env, { customerEmail, customerName, orderNumber, action, orderTotal, stripeRefundAmount, reason, customerNote }) {
   try {
-    const cache     = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM'], env);
+    const cache     = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'fonts', 'brand', 'email_theme'], env);
     const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
     const brevoKey  = resolveSetting('BREVO_API_KEY',  env, cache);
     const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'support@zuwera.store';
+    const a         = getEmailAppearance(cache);
 
     if (!customerEmail || (!resendKey && !brevoKey)) return;
 
@@ -330,14 +332,14 @@ async function sendRefundEmail(env, { customerEmail, customerName, orderNumber, 
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${subject}</title></head>
-<body style="margin:0;padding:0;background:#f4f1eb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<body style="margin:0;padding:0;background:#f4f1eb;font-family:${a.fontBody};">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1eb;padding:40px 16px;">
     <tr><td align="center">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;">
 
         <!-- Header -->
         <tr><td style="padding-bottom:28px;" align="center">
-          <p style="margin:0;font-size:13px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#09090b;">ZUWERA</p>
+          <p style="margin:0;font-size:13px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#09090b;font-family:${a.fontHead};">ZUWERA</p>
         </td></tr>
 
         <!-- Card -->
@@ -347,13 +349,13 @@ async function sendRefundEmail(env, { customerEmail, customerName, orderNumber, 
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td style="background:#09090b;padding:28px 36px 24px;">
               <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.45);">${isPartial ? 'Partial Refund' : 'Refund Confirmed'}</p>
-              <h1 style="margin:0;font-size:26px;font-weight:800;color:#ffffff;line-height:1.2;">Your money is<br>on its way back.</h1>
+              <h1 style="margin:0;font-size:26px;font-weight:800;color:#ffffff;line-height:1.2;font-family:${a.fontHead};">Your money is<br>on its way back.</h1>
             </td></tr>
 
             <!-- Refund amount hero -->
             <tr><td style="background:#f4f1eb;padding:28px 36px;border-bottom:1px solid #e8e4db;">
               <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888;">Amount refunded</p>
-              <p style="margin:0;font-size:42px;font-weight:900;color:#09090b;letter-spacing:-.02em;">${esc(refundAmt)}</p>
+              <p style="margin:0;font-size:42px;font-weight:900;color:#09090b;letter-spacing:-.02em;font-family:${a.fontHead};">${esc(refundAmt)}</p>
               ${isPartial ? `<p style="margin:6px 0 0;font-size:12px;color:#888;">Partial refund · Order total was ${esc(orderAmt)}</p>` : ''}
             </td></tr>
 
