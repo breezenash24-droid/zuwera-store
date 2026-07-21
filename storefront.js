@@ -2998,7 +2998,14 @@ function _initAuth() {
       setTimeout(async () => {
         try {
           const { data, error } = await _sb.auth.getUser();
-          if (error || !data?.user || data.user.id !== expectedUserId) {
+          // Only sign out if we DEFINITIVELY confirm a different user — never on
+          // errors. A transient getUser() network failure must not delete a valid
+          // session: the homepage runs this right after sign-in, and treating a
+          // flaky mobile request as "invalid session" nuked the just-created
+          // session and bounced the user back to logged-out. account.html loads
+          // neither storefront.js nor auth.js, which is why only it "worked".
+          // (auth.js already uses this safe check — storefront.js had drifted.)
+          if (!error && data?.user && data.user.id !== expectedUserId) {
             await _sb.auth.signOut().catch(()=>{});
             localStorage.removeItem('zuwera-auth');
             _user = null;
