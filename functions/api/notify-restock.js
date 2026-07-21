@@ -18,6 +18,7 @@
 import { cors, json, verifyAdminCan } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { loopsFallback } from './_email.js';
+import { getEmailAppearance, getEmailContent, renderEmailShell, fillTemplate } from './_email-theme.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
 
@@ -66,26 +67,26 @@ async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brev
   throw new Error('No email provider configured (RESEND_API_KEY or BREVO_API_KEY required).');
 }
 
-function buildEmail({ productTitle, size, colorName, url, image, logoUrl }) {
+// Themed via the shared shell (fonts/colours/logo/light-dark + editable copy from
+// site_settings), so it matches the site and the admin Emails editor controls it.
+function buildEmail({ productTitle, size, colorName, url, image, appearance, content }) {
+  const a = appearance;
   const variant = [colorName, size].filter(Boolean).join(' · ');
   const imgBlock = image
-    ? `<tr><td style="padding:0 0 24px"><a href="${esc(url)}"><img src="${esc(image)}" alt="${esc(productTitle)}" width="240" style="max-width:240px;width:100%;border-radius:6px;display:block;margin:0 auto"></a></td></tr>`
+    ? `<tr><td style="padding:2px 0 20px"><a href="${esc(url)}"><img src="${esc(image)}" alt="${esc(productTitle)}" width="240" style="max-width:240px;width:100%;border-radius:6px;display:block;margin:0 auto"></a></td></tr>`
     : '';
-  return `<!doctype html><html><body style="margin:0;background:#0b0b0d;font-family:Arial,Helvetica,sans-serif;color:#f4f1eb">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b0b0d">
-    <tr><td align="center" style="padding:32px 16px">
-      <table role="presentation" width="440" cellpadding="0" cellspacing="0" style="max-width:440px;width:100%;text-align:center">
-        <tr><td style="padding:0 0 28px"><img src="${esc(logoUrl)}" alt="ZUWERA" width="120" style="max-width:120px"></td></tr>
-        <tr><td style="font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:#e05252;padding:0 0 8px">Back in stock</td></tr>
-        <tr><td style="font-size:26px;font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:.02em;line-height:1.15;padding:0 0 6px">${esc(productTitle)}</td></tr>
-        ${variant ? `<tr><td style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#9c988f;padding:0 0 22px">${esc(variant)}</td></tr>` : '<tr><td style="height:22px"></td></tr>'}
-        ${imgBlock}
-        <tr><td style="font-size:15px;line-height:1.6;color:#cfcbc2;padding:0 8px 26px">The size you wanted is available again — but it may not last. Grab it before it sells out.</td></tr>
-        <tr><td style="padding:0 0 30px"><a href="${esc(url)}" style="display:inline-block;background:#f4f1eb;color:#0b0b0d;text-decoration:none;font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;padding:14px 34px;border-radius:3px">Shop now</a></td></tr>
-        <tr><td style="font-size:11px;color:#726e66;line-height:1.6;border-top:1px solid rgba(244,241,235,.1);padding:20px 0 0">You're receiving this because you asked to be notified when this item came back in stock. This is a one-time alert — no further action needed.</td></tr>
-      </table>
-    </td></tr>
-  </table></body></html>`;
+  const body = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="text-align:center">
+    ${variant ? `<tr><td style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:${a.muted};padding:0 0 16px">${esc(variant)}</td></tr>` : '<tr><td style="height:4px"></td></tr>'}
+    ${imgBlock}
+    <tr><td style="padding:4px 0 8px"><a href="${esc(url)}" style="display:inline-block;background:${a.text};color:${a.bg};text-decoration:none;font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;padding:14px 34px;border-radius:3px">Shop now</a></td></tr>
+  </table>`;
+  return renderEmailShell(a, {
+    kicker: content.kicker,
+    heading: fillTemplate(content.heading, { product: productTitle }),
+    intro: content.intro,
+    bodyHtml: body,
+    footer: content.footer,
+  });
 }
 
 export async function onRequestOptions({ env }) {
@@ -141,9 +142,12 @@ export async function onRequestPost({ request, env }) {
     const productUrl = `https://zuwera.store/product.html?id=${pid}`;
 
     const cache = await fetchSiteSettings(
-      ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL', 'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID'],
+      ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL', 'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID',
+       'fonts', 'brand', 'email_theme', 'email_settings'],
       env
     );
+    const appearance = getEmailAppearance(cache);
+    const content = getEmailContent(cache, 'back_in_stock');
     const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
     const brevoKey  = resolveSetting('BREVO_API_KEY', env, cache);
     const loopsKey  = resolveSetting('LOOPS_API_KEY', env, cache);
@@ -152,15 +156,16 @@ export async function onRequestPost({ request, env }) {
     }
     const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'orders@zuwera.store';
     const logoUrl   = resolveSetting('BRAND_LOGO_URL', env, cache) || LOGO_FALLBACK;
+    appearance.logo = logoUrl;   // resolveSetting also covers an env-var logo, which the helper can't see
     const image     = product.image_url || '';
 
     // 4. Send, collecting the ids that went out so we only delete those.
     const sentIds = [];
     for (const r of pending) {
       try {
-        const html = buildEmail({ productTitle, size: r.size, colorName: r.color_name, url: productUrl, image, logoUrl });
+        const html = buildEmail({ productTitle, size: r.size, colorName: r.color_name, url: productUrl, image, appearance, content });
         await sendEmail({
-          to: r.email, toName: '', subject: `Back in stock: ${productTitle} (${r.size})`,
+          to: r.email, toName: '', subject: fillTemplate(content.subject, { product: productTitle, size: r.size }),
           html, fromEmail, resendKey, brevoKey, env, cache,
         });
         sentIds.push(r.id);

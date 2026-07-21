@@ -2530,6 +2530,39 @@
                             </div>
                         </div>
 
+                        <!-- Emails -->
+                        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
+                            <h3 style="margin-bottom:6px;font-size:1.1rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">Emails</h3>
+                            <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:16px;line-height:1.5;">Every transactional email shares one branded template. <strong>Fonts, accent colour, and logo follow your Typography + Brand settings automatically</strong> (note: mail apps can't load web fonts like Futura, so they use the closest system fallback). Pick the background below and edit the wording per email.</p>
+                            <div class="form-group">
+                                <label class="form-label">Email background</label>
+                                <select id="em-theme" class="form-input" style="max-width:220px;display:block"><option value="dark">Dark</option><option value="light">Light</option></select>
+                            </div>
+                            <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+                            <div class="form-group">
+                                <label class="form-label">Edit which email</label>
+                                <select id="em-type" class="form-input" style="max-width:280px;display:block">
+                                    <option value="order_confirmation">Order confirmation</option>
+                                    <option value="shipped">Order shipped</option>
+                                    <option value="back_in_stock">Back in stock</option>
+                                    <option value="return_status">Return status update</option>
+                                    <option value="review_request">Review request</option>
+                                    <option value="abandoned_cart">Abandoned cart</option>
+                                </select>
+                                <p style="font-size:.76rem;color:var(--text-secondary);margin-top:6px;opacity:.85">Leave a field blank to use the default. Placeholders: <code>{order}</code>, <code>{product}</code>, <code>{size}</code> where relevant.</p>
+                            </div>
+                            <div class="form-group"><label class="form-label">Subject line</label><input type="text" id="em-subject" class="form-input" placeholder="(default)"></div>
+                            <div style="display:flex;gap:14px;flex-wrap:wrap">
+                                <div class="form-group" style="flex:1;min-width:160px"><label class="form-label">Kicker (small label)</label><input type="text" id="em-kicker" class="form-input" placeholder="(default)"></div>
+                                <div class="form-group" style="flex:1;min-width:160px"><label class="form-label">Heading</label><input type="text" id="em-heading" class="form-input" placeholder="(default)"></div>
+                            </div>
+                            <div class="form-group"><label class="form-label">Intro text</label><textarea id="em-intro" class="form-input" rows="2" placeholder="(default)"></textarea></div>
+                            <div class="form-group"><label class="form-label">Footer note</label><input type="text" id="em-footer" class="form-input" placeholder="(default)"></div>
+                            <div style="display:flex;gap:12px;margin-top:12px">
+                                <button class="btn btn-primary" onclick="saveEmailSettings()">Save emails</button>
+                            </div>
+                        </div>
+
                         <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
                             <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">Hero Section</h3>
                             <div class="form-group">
