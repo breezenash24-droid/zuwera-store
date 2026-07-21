@@ -174,6 +174,17 @@
       row.style.display = discountCents > 0 ? 'flex' : 'none';
       value.textContent = `-${formatMoney(discountCents)}`;
     }
+    // Bag page has its own visible summary card; the checkout modal's #zw-promo-row
+    // isn't shown there, so a referral/promo discount was a silent total change.
+    // Populate a dedicated bag-card row (labelled with the code) so it's obvious.
+    const bagRow = document.getElementById('bag-discount-row');
+    if (bagRow) {
+      const bagVal = document.getElementById('bag-discount-value');
+      const bagLbl = document.getElementById('bag-discount-label');
+      bagRow.style.display = discountCents > 0 ? '' : 'none';
+      if (bagVal) bagVal.textContent = `-${formatMoney(discountCents)}`;
+      if (bagLbl) bagLbl.textContent = (discountCents > 0 && currentPromoCode()) ? `Discount · ${currentPromoCode()}` : 'Discount';
+    }
     if (message) {
       message.textContent = STATE.promotion
         ? `${STATE.promotion.label || STATE.promotion.code} applied.`
