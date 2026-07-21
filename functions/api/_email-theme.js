@@ -30,13 +30,42 @@ function esc(v) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// Web fonts can't load in email — keep the admin's families as a hint, then
-// guarantee a generic + system stack so text is always styled somewhere sane.
-function emailFontStack(adminStack) {
-  const s = String(adminStack || '').trim().replace(/;+$/, '');
-  const base = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-  if (!s) return base;
-  return /sans-serif|serif|monospace/i.test(s) ? s : `${s},${base}`;
+// Web fonts can't load in email. Keep the admin's named families (a device that
+// actually has one — e.g. Futura on Apple — will use it), drop the generic
+// keyword, then append fonts that really exist on the recipient's device so
+// there's always a close match. Headings fall back to a GEOMETRIC face
+// (Century Gothic ≈ Futura/geometric sans, present on Windows + macOS); body
+// falls back to a humanist system stack.
+function emailFontStack(adminStack, role) {
+  const named = String(adminStack || '').trim()
+    .replace(/;+$/, '')
+    .replace(/,?\s*(sans-serif|serif|monospace)\s*$/i, '')
+    .replace(/,+\s*$/, '')
+    .trim();
+  const geo = "'Century Gothic','Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  const hum = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  const base = role === 'head' ? geo : hum;
+  return named ? `${named},${base}` : base;
+}
+
+// Contrast helpers: keep the brand accent, but if it's too dark to read on a
+// dark ground (or too light on a light ground) nudge it toward legibility so
+// the kicker/labels never disappear.
+function _hexToRgb(hex) {
+  const m = String(hex || '').trim().replace(/^#/, '');
+  if (!/^([0-9a-f]{3}|[0-9a-f]{6})$/i.test(m)) return null;
+  const h = m.length === 3 ? m.split('').map((c) => c + c).join('') : m;
+  return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) };
+}
+function _mix(c, target, t) { return Math.round(c + (target - c) * t); }
+function _toHex({ r, g, b }) { return '#' + [r, g, b].map((x) => Math.max(0, Math.min(255, x)).toString(16).padStart(2, '0')).join(''); }
+function contrastAccent(hex, light) {
+  const rgb = _hexToRgb(hex);
+  if (!rgb) return light ? '#c25a6d' : '#F891A5';
+  const lum = (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255;
+  if (!light && lum < 0.38) return _toHex({ r: _mix(rgb.r, 255, 0.55), g: _mix(rgb.g, 255, 0.55), b: _mix(rgb.b, 255, 0.55) });
+  if (light && lum > 0.72)  return _toHex({ r: _mix(rgb.r, 0, 0.42),   g: _mix(rgb.g, 0, 0.42),   b: _mix(rgb.b, 0, 0.42) });
+  return String(hex).trim();
 }
 
 export function getEmailAppearance(cache = {}) {
@@ -47,21 +76,22 @@ export function getEmailAppearance(cache = {}) {
   const bodyStack = (roles.body && roles.body.stack) || fonts.body || "'Barlow'";
   const monoStack = (roles.mono && roles.mono.stack) || fonts.mono || "'IBM Plex Mono'";
   const light = String(cache.email_theme || '').toLowerCase() === 'light';
-  const accent = String(brand.accent || brand.accentColor || '').trim() || '#F891A5';
+  const rawAccent = String(brand.accent || brand.accentColor || '').trim() || '#F891A5';
+  const accent = contrastAccent(rawAccent, light);
   const logo = String(cache.BRAND_LOGO_URL || brand.emailLogo || brand.logo || '').trim()
     || 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
   return {
     light,
-    fontHead: emailFontStack(headStack) + ',sans-serif',
-    fontBody: emailFontStack(bodyStack),
-    fontMono: `${String(monoStack).replace(/;+$/, '')},'Courier New',monospace`,
+    fontHead: emailFontStack(headStack, 'head'),
+    fontBody: emailFontStack(bodyStack, 'body'),
+    fontMono: `${String(monoStack).replace(/;+$/, '').replace(/,?\s*monospace\s*$/i, '')},'Courier New',monospace`,
     accent,
     logo,
     bg:     light ? '#F0EEE9' : '#09090b',
-    panel:  light ? '#FFFFFF' : '#111113',
+    panel:  light ? '#FFFFFF' : '#151518',
     text:   light ? '#09090b' : '#f4f1eb',
-    muted:  light ? 'rgba(9,9,11,.5)'  : 'rgba(244,241,235,.42)',
-    border: light ? 'rgba(9,9,11,.1)'  : 'rgba(244,241,235,.1)',
+    muted:  light ? 'rgba(9,9,11,.6)'  : 'rgba(244,241,235,.66)',
+    border: light ? 'rgba(9,9,11,.12)' : 'rgba(244,241,235,.16)',
     invertLogo: light,  // white wordmark needs inverting on a light ground
   };
 }
