@@ -286,8 +286,15 @@
       font-family:var(--font-head);
       font-size: 1.3rem;
       letter-spacing: 0.1em;
-      margin-bottom: 1.8rem;
+      margin-bottom: 0.4rem;
       color: var(--text);
+    }
+    .calc-subtitle {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.55;
+      margin-bottom: 1.8rem;
+      max-width: 46ch;
     }
     .calc-grid {
       display: grid;
@@ -300,6 +307,10 @@
       flex-direction: column;
       gap: 0.4rem;
     }
+    /* .calc-field sets display:flex, which overrides the [hidden] attribute — so
+       hidden fields (e.g. Gender/Category auto-filled in the product modal) stayed
+       visible. Force them hidden. */
+    .calc-field[hidden] { display: none !important; }
     .calc-label {
       font-size: 0.75rem;
       letter-spacing: 0.12em;
@@ -369,30 +380,34 @@
       background: var(--text);
       color: var(--bg);
       border: none;
-      padding: 0.8rem 2rem;
+      padding: 1rem 3rem;
+      margin-top: 0.5rem;
       font-family:var(--font-body);
-      font-size: 0.7rem;
-      letter-spacing: 0.18em;
+      font-size: 0.72rem;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       cursor: pointer;
       border-radius: 0;
-      transition: all 0.2s;
-      font-weight: 500;
+      transition: transform 0.15s ease, opacity 0.2s ease;
+      font-weight: 600;
     }
     .calc-button:hover {
-      opacity: 0.85;
+      opacity: 0.88;
+      transform: translateY(-1px);
     }
     .calc-button:active {
-      opacity: 0.7;
+      opacity: 0.75;
+      transform: translateY(0);
     }
 
     .calc-result {
-      background: rgba(248, 145, 165, 0.08);
-      border: 1px solid var(--accent);
-      padding: 1.2rem;
-      margin-top: 1.5rem;
-      border-radius: 2px;
+      background: var(--bg);
+      border: 1px solid var(--text);
+      padding: 1.75rem 1.5rem;
+      margin-top: 2rem;
+      border-radius: 0;
       display: none;
+      text-align: center;
       animation: slideDown 0.3s ease;
     }
     .calc-result.visible {
@@ -400,17 +415,54 @@
     }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
+    /* Small caption above the recommended size (id is #calcResultTitle in the DOM). */
     .calc-result-title {
-      font-family:var(--font-head);
-      font-size: 1.2rem;
-      letter-spacing: 0.1em;
-      margin-bottom: 0.8rem;
-      color: var(--accent);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.55rem;
+      color: var(--muted);
+      font-weight: 600;
     }
-    .calc-result-text {
-      font-size: 0.95rem;
+    .calc-result-size {
+      font-family: var(--font-head);
+      font-size: 3.4rem;
+      line-height: 0.95;
+      letter-spacing: 0.03em;
       color: var(--text);
-      line-height: 1.6;
+      margin-bottom: 0.7rem;
+    }
+    .calc-result-size:empty { display: none; }
+    .calc-result-text {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 34ch;
+      margin: 0 auto;
+    }
+
+    /* In the product-page modal the calculator is the whole focus: contain it to a
+       tidy centred column (instead of a wide, sparse panel), pair Height + Weight
+       as two even columns, and let the CTA span the full width. */
+    body.embed-focused .calculator {
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 2.25rem;
+      text-align: center;
+    }
+    body.embed-focused .calc-title,
+    body.embed-focused .calc-subtitle {
+      max-width: none;
+    }
+    body.embed-focused .calc-subtitle { margin-left: auto; margin-right: auto; }
+    body.embed-focused .calc-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      text-align: left;
+    }
+    body.embed-focused .calc-button { width: 100%; }
+    @media (max-width: 560px) {
+      body.embed-focused .calc-grid { grid-template-columns: 1fr; }
     }
 
     /* ------ CATEGORY TABS ------ */
@@ -789,10 +841,10 @@
     }
     body.light-mode .tab-btn:hover { color: #09090b; }
     body.light-mode .calc-result {
-      background: rgba(9,9,11,0.04);
-      border-color: rgba(9,9,11,0.15);
+      background: rgba(9,9,11,0.02);
+      border-color: #09090b;
     }
-    body.light-mode .calc-result-title { color: #09090b; }
+    body.light-mode .calc-result-title { color: rgba(9,9,11,0.55); }
     body.light-mode .highlight-card {
       background: rgba(9,9,11,0.04);
       border-color: rgba(9,9,11,0.15);
@@ -913,6 +965,7 @@
       <!-- CALCULATOR -->
       <section class="calculator">
       <h2 class="calc-title">Find My Size</h2>
+      <p class="calc-subtitle">Enter your details below for a recommended starting size.</p>
 
       <div class="calc-grid">
         <div class="calc-field" id="calcGenderField">
@@ -1011,7 +1064,8 @@
       <button class="calc-button" id="calcSubmit">Find My Size</button>
 
       <div class="calc-result" id="calcResult">
-        <div class="calc-result-title" id="calcResultTitle">Your Recommended Size</div>
+        <div class="calc-result-title" id="calcResultTitle">Your recommended size</div>
+        <div class="calc-result-size" id="calcResultSize"></div>
         <div class="calc-result-text" id="calcResultText"></div>
       </div>
       </section>
@@ -1847,7 +1901,13 @@
       const category = document.getElementById('calcCategory').value;
       const result = document.getElementById('calcResult');
       const resultTitle = document.getElementById('calcResultTitle');
+      const resultSize = document.getElementById('calcResultSize');
       const resultText = document.getElementById('calcResultText');
+
+      // Reset the reveal each run; the caption + big size are set only on success,
+      // so error messages show on their own.
+      resultTitle.textContent = '';
+      if (resultSize) resultSize.textContent = '';
 
       if (!gender || !category) {
         resultText.textContent = 'Please select both gender and category.';
@@ -1914,7 +1974,8 @@
       }
 
       if (recommendedSize) {
-        resultTitle.textContent = `Your Recommended Size: ${recommendedSize}`;
+        resultTitle.textContent = 'Your recommended size';
+        if (resultSize) resultSize.textContent = recommendedSize;
         resultText.textContent = explanation;
         window.recommendedSize = recommendedSize;
         window.currentTab = getTabIdFromGender(gender);
