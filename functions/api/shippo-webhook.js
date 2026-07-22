@@ -155,7 +155,7 @@ async function sendSms({ to, body, accountSid, authToken, fromNumber }) {
 
 // ─── Email templates ───────────────────────────────────────────────────────────
 
-function shippedEmail({ orderId, customerName, carrier, trackingNumber, trackingUrl, eta, logoUrl, appearance }) {
+export function shippedEmail({ orderId, customerName, carrier, trackingNumber, trackingUrl, eta, logoUrl, appearance }) {
   const a = appearance;
   const etaLine = eta
     ? `<p style="margin:12px 0 0;font-size:.85rem;color:#666">Estimated delivery: <strong>${new Date(eta).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</strong></p>`
@@ -197,7 +197,7 @@ function shippedEmail({ orderId, customerName, carrier, trackingNumber, tracking
 </html>`;
 }
 
-function deliveredEmail({ orderId, customerName, logoUrl, appearance }) {
+export function deliveredEmail({ orderId, customerName, logoUrl, appearance }) {
   const a = appearance;
   return `<!DOCTYPE html>
 <html>

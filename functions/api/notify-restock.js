@@ -73,7 +73,7 @@ async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brev
 
 // Themed via the shared shell (fonts/colours/logo/light-dark + editable copy from
 // site_settings), so it matches the site and the admin Emails editor controls it.
-function buildEmail({ productTitle, size, colorName, url, image, appearance, content }) {
+export function buildEmail({ productTitle, size, colorName, url, image, appearance, content }) {
   const a = appearance;
   const variant = [colorName, size].filter(Boolean).join(' · ');
   const imgBlock = image

@@ -58,7 +58,7 @@ async function sendEmail({ to, subject, html, fromEmail, resendKey, brevoKey, en
   throw new Error('No email provider configured.');
 }
 
-function buildEmail({ items, name, appearance, content }) {
+export function buildEmail({ items, name, appearance, content }) {
   const a = appearance;
   const rows = (items || []).slice(0, 8).map((i) => {
     const img = i.image

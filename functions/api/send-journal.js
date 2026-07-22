@@ -54,7 +54,7 @@ async function sendEmail({ to, subject, html, fromEmail, replyTo, resendKey, bre
   throw new Error('No email provider configured.');
 }
 
-function buildJournalEmail({ post, label, logoUrl, unsubUrl, appearance }) {
+export function buildJournalEmail({ post, label, logoUrl, unsubUrl, appearance }) {
   const a = appearance;
   const url = `${SITE}/journal.html?slug=${encodeURIComponent(post.slug)}`;
   const date = (post.published_at || post.created_at)
