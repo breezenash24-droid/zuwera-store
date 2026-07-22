@@ -856,7 +856,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
 
         <!-- Wordmark -->
         <tr><td style="padding-bottom:32px;">
-          <img src="${logoUrl}" alt="ZUWERA" height="28" style="height:28px;width:auto;border:0;display:block;" onerror="this.style.display='none'">
+          <img src="${logoUrl}" alt="ZUWERA" height="28" style="height:28px;width:auto;max-width:70%;border:0;display:block;" onerror="this.style.display='none'">
         </td></tr>
 
         <!-- Confirmation heading -->

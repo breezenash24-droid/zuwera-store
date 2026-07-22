@@ -177,7 +177,7 @@ export function shippedEmail({ orderId, customerName, carrier, trackingNumber, t
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:100%">
         <tr><td style="background:#09090b;padding:24px 36px;text-align:left">
-          <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;display:block;border:0;"
+          <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;max-width:70%;display:block;border:0;"
                onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
           <span style="display:none;font-family:${a.fontHead};font-size:1.5rem;letter-spacing:.12em;color:#f4f1eb;font-weight:normal">ZUWERA</span>
         </td></tr>
@@ -206,7 +206,7 @@ export function deliveredEmail({ orderId, customerName, logoUrl, appearance }) {
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:100%">
         <tr><td style="background:#09090b;padding:24px 36px;text-align:left">
-          <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;display:block;border:0;"
+          <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;max-width:70%;display:block;border:0;"
                onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
           <span style="display:none;font-family:${a.fontHead};font-size:1.5rem;letter-spacing:.12em;color:#f4f1eb;font-weight:normal">ZUWERA</span>
         </td></tr>

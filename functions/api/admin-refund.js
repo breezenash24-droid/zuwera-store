@@ -308,7 +308,7 @@ async function sendLockoutAlert(env, { adminEmail, adminId, orderId, attempts, l
 
 async function sendRefundEmail(env, { customerEmail, customerName, orderNumber, action, orderTotal, stripeRefundAmount, reason, customerNote }) {
   try {
-    const cache     = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'fonts', 'brand', 'email_theme'], env);
+    const cache     = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL', 'fonts', 'brand', 'email_theme'], env);
     const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
     const brevoKey  = resolveSetting('BREVO_API_KEY',  env, cache);
     const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'support@zuwera.store';
@@ -339,7 +339,7 @@ async function sendRefundEmail(env, { customerEmail, customerName, orderNumber, 
 
         <!-- Header -->
         <tr><td style="padding-bottom:28px;" align="center">
-          <p style="margin:0;font-size:13px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#09090b;font-family:${a.fontHead};">ZUWERA</p>
+          <img src="${esc(a.logo)}" alt="ZUWERA" height="26" style="height:26px;width:auto;max-width:70%;display:inline-block;border:0;filter:invert(1)" onerror="this.style.display='none';this.nextElementSibling.style.display='inline';"><span style="display:none;font-size:13px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#09090b;font-family:${a.fontHead};">ZUWERA</span>
         </td></tr>
 
         <!-- Card -->

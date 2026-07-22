@@ -218,7 +218,7 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
   <tr><td align="center">
     <table width="100%" style="max-width:560px;background:#09090b;border-collapse:collapse">
       <tr><td style="background:#09090b;padding:24px 36px;text-align:left">
-        <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;display:block;border:0"
+        <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;max-width:70%;display:block;border:0"
              onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
         <span style="display:none;font-family:${a.fontHead};font-size:1.5rem;letter-spacing:.12em;color:#f4f1eb;font-weight:normal">ZUWERA</span>
       </td></tr>

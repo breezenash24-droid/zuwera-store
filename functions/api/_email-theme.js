@@ -136,7 +136,7 @@ export function renderEmailShell(a, parts = {}) {
   const intro   = parts.intro ? esc(parts.intro) : '';
   const body    = parts.bodyHtml || '';
   const footer  = parts.footerHtml || (parts.footer ? esc(parts.footer) : '');
-  const logoStyle = `height:28px;width:auto;border:0;display:block;margin:0 auto;${a.invertLogo ? 'filter:invert(1);' : ''}`;
+  const logoStyle = `height:28px;width:auto;max-width:70%;border:0;display:block;margin:0 auto;${a.invertLogo ? 'filter:invert(1);' : ''}`;
   return `<!doctype html><html><body style="margin:0;padding:0;background:${a.bg};font-family:${a.fontBody};color:${a.text};-webkit-font-smoothing:antialiased;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${a.bg};">
     <tr><td align="center" style="padding:32px 16px;">
