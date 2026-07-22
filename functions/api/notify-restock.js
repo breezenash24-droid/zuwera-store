@@ -184,7 +184,8 @@ export async function onRequestPost({ request, env }) {
     // Show the photo for the COLOUR the shopper waitlisted (like the storefront):
     // that colour variant's first image → a shared (no-variant) image → the main
     // image_url. Computed per request below, since each may want a different colour.
-    const allImages = Array.isArray(product.product_images) ? product.product_images : [];
+    const isPhoto = (im) => im && im.image_url && !/\.(mp4|webm|mov|m4v|ogv)(\?.*)?$/i.test(im.image_url);
+    const allImages = (Array.isArray(product.product_images) ? product.product_images : []).filter(isPhoto);
     const variants  = Array.isArray(product.color_variants) ? product.color_variants : [];
     const bySort = (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0);
     const imageForColor = (colorName) => {
