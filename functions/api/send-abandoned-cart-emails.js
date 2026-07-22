@@ -47,7 +47,7 @@ async function sendEmail({ to, subject, html, fromEmail, resendKey, brevoKey, en
   throw new Error('No email provider configured.');
 }
 
-function buildEmail({ items, url, appearance, content }) {
+export function buildEmail({ items, url, appearance, content }) {
   const a = appearance;
   const rows = (items || []).slice(0, 8).map((i) => {
     const variant = [i.color, i.size].filter(Boolean).join(' · ');

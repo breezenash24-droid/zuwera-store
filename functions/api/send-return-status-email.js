@@ -163,7 +163,7 @@ function labelSectionHtml(r, a) {
     </div>`;
 }
 
-function buildEmail({ r, status, resolution, fromFirstName, logoUrl, appearance }) {
+export function buildEmail({ r, status, resolution, fromFirstName, logoUrl, appearance }) {
   const a = appearance;
   const headline = statusHeadline(status, resolution);
   const bodyText = statusBody(status, resolution, r);

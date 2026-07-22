@@ -8197,6 +8197,9 @@
             } catch (_) {}
             _emailType = (typeSel && typeSel.value) || 'order_confirmation';
             _emailFillForm(_emailCfg[_emailType]);
+            const themeSel = document.getElementById('em-theme');
+            if (themeSel && !themeSel._emPrevBound) { themeSel._emPrevBound = true; themeSel.addEventListener('change', loadEmailPreview); }
+            loadEmailPreview();
         }
         async function saveEmailSettings() {
             _emailCfg[_emailType] = _emailReadForm();
@@ -8207,9 +8210,37 @@
                 if (r1.error || r2.error) throw (r1.error || r2.error);
                 await logAdminAudit('settings.update', 'site_settings', 'email_settings', { theme, types: Object.keys(_emailCfg) });
                 showToast('Email settings saved!', 'success');
+                loadEmailPreview();
             } catch (e) { showToast('Error saving emails: ' + ((e && e.message) || 'error'), 'error'); }
         }
         window.saveEmailSettings = saveEmailSettings;
+
+        // Live preview of the selected email, rendered by /api/email-preview using the
+        // real senders' builders. Passes the current editor copy/theme so unsaved edits
+        // show (only for the email currently open in the editor).
+        async function loadEmailPreview() {
+            const frame = document.getElementById('em-preview-frame');
+            const typeSel = document.getElementById('em-preview-type');
+            if (!frame || !typeSel) return;
+            const type = typeSel.value;
+            const theme = (document.getElementById('em-theme') || {}).value === 'light' ? 'light' : 'dark';
+            const payload = { type, theme };
+            if (type === _emailType) payload.content = _emailReadForm();  // show unsaved copy for the open email
+            frame.srcdoc = '<p style="font-family:sans-serif;padding:24px;color:#888">Loading preview…</p>';
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const at = session && session.access_token;
+                const resp = await fetch('/api/email-preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...(at ? { Authorization: 'Bearer ' + at } : {}) },
+                    body: JSON.stringify({ ...payload, accessToken: at }),
+                });
+                frame.srcdoc = await resp.text();
+            } catch (e) {
+                frame.srcdoc = '<p style="font-family:sans-serif;padding:24px;color:#b00">Could not load preview: ' + ((e && e.message) || 'error') + '</p>';
+            }
+        }
+        window.loadEmailPreview = loadEmailPreview;
 
         async function saveBagPanel() {
             const rows = {};
