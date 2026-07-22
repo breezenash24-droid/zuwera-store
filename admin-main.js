@@ -1650,7 +1650,14 @@
                 showToast('Logo uploaded — click Save to apply it', 'success');
             } catch (err) {
                 console.error('Logo upload error:', err);
-                showToast('Upload failed: ' + (err.message || err), 'error');
+                const m = String((err && err.message) || err);
+                const configIssue = /R2|not configured|credentials|R2_/i.test(m);
+                showToast(
+                    configIssue
+                        ? 'Image upload needs Cloudflare R2 set up. For now, paste a hosted image URL into the field instead.'
+                        : ('Upload failed: ' + m),
+                    'error'
+                );
             } finally {
                 if (lbl) lbl.textContent = orig || 'Upload';
                 fileInput.value = '';
