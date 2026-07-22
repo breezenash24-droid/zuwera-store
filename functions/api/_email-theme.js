@@ -38,6 +38,7 @@ function esc(v) {
 // falls back to a humanist system stack.
 function emailFontStack(adminStack, role) {
   const named = String(adminStack || '').trim()
+    .replace(/"/g, "'")   // double→single quotes: a double quote would close the style="…" attribute and mangle the element
     .replace(/;+$/, '')
     .replace(/,?\s*(sans-serif|serif|monospace)\s*$/i, '')
     .replace(/,+\s*$/, '')
@@ -85,7 +86,7 @@ export function getEmailAppearance(cache = {}) {
     light,
     fontHead: emailFontStack(headStack, 'head'),
     fontBody: emailFontStack(bodyStack, 'body'),
-    fontMono: `${String(monoStack).replace(/;+$/, '').replace(/,?\s*monospace\s*$/i, '')},'Courier New',monospace`,
+    fontMono: `${String(monoStack).replace(/"/g, "'").replace(/;+$/, '').replace(/,?\s*monospace\s*$/i, '')},'Courier New',monospace`,
     accent,
     logo,
     bg:     light ? '#F0EEE9' : '#0b0b0e',
