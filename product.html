@@ -1245,11 +1245,13 @@ body.super-light-mode { background: #FFFFFF !important; }
 
         <!-- SIZE SELECTION -->
         <div class="size-section">
-          <!-- No Size Guide link here: Size & Fit already carries "View Size Guide"
-               and it opens the same modal. Two links to one thing, a few hundred px
-               apart, only make the row above the sizes busier. -->
           <div class="size-header">
             <p class="section-label" id="sizeSectionLabel">Select Size</p>
+            <!-- Find-my-size link (JS updateSizeGuideLink() sets the href + shows/hides
+                 it; syncSizeGuideVisibility() hides it for one-size products). Opens the
+                 size-guide modal in-page, falling back to /sizeguide.html on no-JS. -->
+            <a id="sizeGuideLink" class="size-guide-link" href="/sizeguide.html"
+               onclick="if(window.openSizeGuideModal){window.openSizeGuideModal();return false;}">Find My Size</a>
           </div>
           <div class="size-grid" id="sizeGrid"></div>
           <!-- Back-in-stock capture — shown when a sold-out size is tapped -->

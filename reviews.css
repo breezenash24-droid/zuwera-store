@@ -591,7 +591,10 @@ body.light-mode .review-mbox .star-selector button.hover { color: rgba(9,9,11,0.
 body.light-mode .review-mbox .review-radio-group label { background: rgba(9,9,11,0.04); border-color: rgba(9,9,11,0.15); color: rgba(9,9,11,0.6); }
 body.light-mode .review-mbox .review-radio-group label:hover { background: rgba(9,9,11,0.08); color: #09090b; }
 body.light-mode .review-mbox .review-radio-group input[type="radio"]:checked + label { border-color: #09090b; background: rgba(9,9,11,0.07); color: #09090b; }
-body.light-mode .review-advanced-legacy { background: #F0EEE9 !important; border-color: rgba(9,9,11,0.08) !important; }
+/* Was #F0EEE9 (the warm panel tint) which read as a dingy beige box inside the
+   white review modal. Use a barely-there neutral grey + a clearer border so the
+   optional-ratings block reads as an intentional grouped card, not a colour mismatch. */
+body.light-mode .review-advanced-legacy { background: rgba(9,9,11,0.02) !important; border-color: rgba(9,9,11,0.12) !important; }
 body.light-mode .review-mbox .review-slider-wrap { color: rgba(9,9,11,0.5); }
 body.light-mode .review-mbox .review-legacy-label,
 body.light-mode .review-fit-toggle-label { color: rgba(9,9,11,0.7); }
