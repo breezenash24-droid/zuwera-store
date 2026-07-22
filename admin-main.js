@@ -3474,31 +3474,49 @@
 
             const rows = await Promise.all(jobs.map(async (j) => {
                 const on = !!(flags[j.flag] && flags[j.flag].enabled);
-                let sent = 0, last = null;
+                let sent = 0, last = null, pingAt = null;
                 try {
                     const { data } = await sb.from('email_log').select('created_at').eq('type', j.type).order('created_at', { ascending: false }).limit(1);
                     if (data && data.length) { last = data[0].created_at; sent = 1; }
                 } catch (_) {}
-                return { ...j, on, sent, last };
+                // A "ping" is recorded by the endpoint on every authenticated cron call,
+                // so we can tell the scheduler is wired up even when nothing was due to send.
+                try {
+                    const { data } = await sb.from('site_settings').select('value').eq('key', 'cron_ping_' + j.type).maybeSingle();
+                    let v = data && data.value; if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                    if (v && v.at) pingAt = v.at;
+                } catch (_) {}
+                // Fresh window per cadence: hourly job → 3h, daily job → 48h.
+                const maxAgeH = j.type === 'abandoned_cart' ? 3 : 48;
+                const running = !!(pingAt && (Date.now() - new Date(pingAt).getTime()) < maxAgeH * 3600 * 1000);
+                return { ...j, on, sent, last, pingAt, running };
             }));
 
-            const stale = rows.filter(r => r.on && !r.sent);
-            if (!stale.length) {
-                host.innerHTML = rows.some(r => r.on)
-                    ? `<div style="border:1px solid rgba(63,185,80,.4);background:rgba(63,185,80,.08);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.84rem">&#10003; Scheduled emails are sending.${rows.filter(r => r.on && r.last).map(r => ` <span style="color:var(--text-secondary)">${escapeHtml(r.name)}: last ${new Date(r.last).toLocaleDateString()}.</span>`).join('')}</div>` : '';
+            // Warn only if it's ON, has never sent, AND the scheduler has never recently reached it.
+            const needsSetup = rows.filter(r => r.on && !r.sent && !r.running);
+            if (!needsSetup.length) {
+                const active = rows.filter(r => r.on);
+                host.innerHTML = active.length
+                    ? `<div style="border:1px solid rgba(63,185,80,.4);background:rgba(63,185,80,.08);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.84rem">&#10003; Scheduled emails are set up.${active.map(r => {
+                        const note = r.last ? `last sent ${new Date(r.last).toLocaleDateString()}`
+                                   : r.running ? `scheduler active, nothing due yet`
+                                   : 'on';
+                        return ` <span style="color:var(--text-secondary)">${escapeHtml(r.name)}: ${note}.</span>`;
+                    }).join('')}</div>`
+                    : '';
                 return;
             }
             host.innerHTML = `<div style="border:1px solid rgba(240,160,32,.45);background:rgba(240,160,32,.08);border-radius:10px;padding:16px 18px;margin-bottom:18px">
-                <div style="font-weight:700;font-size:.9rem;color:#f0a020;margin-bottom:6px">&#9888; ${stale.length === 1 ? 'A scheduled email is' : 'Scheduled emails are'} switched on but ${stale.length === 1 ? 'has' : 'have'} never sent</div>
-                <p style="font-size:.84rem;color:var(--text-secondary);margin:0 0 12px;line-height:1.6">${stale.map(r => escapeHtml(r.name)).join(' and ')} ${stale.length === 1 ? 'is' : 'are'} enabled, but these don't run on their own — something has to call them on a schedule. Until that exists they'll stay on and quietly send nothing.</p>
+                <div style="font-weight:700;font-size:.9rem;color:#f0a020;margin-bottom:6px">&#9888; ${needsSetup.length === 1 ? 'A scheduled email is' : 'Scheduled emails are'} switched on but ${needsSetup.length === 1 ? 'has' : 'have'} never run</div>
+                <p style="font-size:.84rem;color:var(--text-secondary);margin:0 0 12px;line-height:1.6">${needsSetup.map(r => escapeHtml(r.name)).join(' and ')} ${needsSetup.length === 1 ? 'is' : 'are'} enabled, but these don't run on their own — something has to call them on a schedule. Until that exists they'll stay on and quietly send nothing. (This clears automatically once your scheduler first reaches the endpoint.)</p>
                 <p style="font-size:.84rem;color:var(--text-secondary);margin:0 0 10px;line-height:1.6">Free fix (~2 min each): make an account at a scheduler like <strong>cron-job.org</strong>, then add one job per line below.</p>
-                ${stale.map(r => `<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:.78rem;line-height:1.8">
+                ${needsSetup.map(r => `<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:.78rem;line-height:1.8">
                     <strong>${escapeHtml(r.name)}</strong> — run <strong>${escapeHtml(r.every)}</strong><br>
                     <span style="color:var(--text-secondary)">Method</span> <code>POST</code>
                     &nbsp;<span style="color:var(--text-secondary)">URL</span> <code>https://zuwera.store${escapeHtml(r.path)}</code><br>
                     <span style="color:var(--text-secondary)">Header</span> <code>x-cron-token: &lt;your ${escapeHtml(r.token)}&gt;</code>
                 </div>`).join('')}
-                <p style="font-size:.78rem;color:var(--text-secondary);margin:8px 0 0;line-height:1.6">The token is a secret you choose: set it in <strong>Cloudflare → Pages → Settings → Variables</strong> as <strong>${stale.map(r => escapeHtml(r.token)).join('</strong> / <strong>')}</strong>, then use the same value in the cron header. Anything without it is rejected.</p>
+                <p style="font-size:.78rem;color:var(--text-secondary);margin:8px 0 0;line-height:1.6">The token is a secret you choose. Easiest: set it in <strong>Admin → APIs → Automated Emails (Cron)</strong> as <strong>${needsSetup.map(r => escapeHtml(r.token)).join('</strong> / <strong>')}</strong> (takes effect immediately, no redeploy) — or as a Cloudflare Pages variable. Then use the same value in the cron <code>x-cron-token</code> header. Anything without it is rejected.</p>
             </div>`;
         }
 

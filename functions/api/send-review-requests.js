@@ -92,6 +92,13 @@ export async function onRequestPost({ request, env }) {
     if (!env.SUPABASE_URL || !key) return json({ ok: false, error: 'not configured' }, 500);
     const H = { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' };
 
+    // Record that an authenticated cron reached us, so the admin can tell the
+    // scheduler is wired up even when nothing is due to send.
+    await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?on_conflict=key`, {
+      method: 'POST', headers: { ...H, Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ key: 'cron_ping_review_request', value: { at: new Date().toISOString() }, updated_at: new Date().toISOString() }),
+    }).catch(() => {});
+
     // Settings: master flag + admin-set delay (site_settings.email_settings).
     const cfg = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=key,value&key=in.(feature_flags,email_settings)`, { headers: H })
       .then((r) => (r.ok ? r.json() : [])).catch(() => []);
