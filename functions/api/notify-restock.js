@@ -37,12 +37,15 @@ async function sbSelect(env, key, path) {
 }
 
 // Same provider ladder as send-return-status-email.js: Resend → Brevo → Loops.
+// A unique X-Entity-Ref-ID makes Gmail treat each send as its own conversation
+// instead of threading identical "Back in stock: …" subjects together.
 async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brevoKey, env, cache }) {
+  const refId = (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : `zw-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   if (resendKey) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [to], reply_to: 'orders@zuwera.store', subject, html }),
+      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [to], reply_to: 'orders@zuwera.store', subject, html, headers: { 'X-Entity-Ref-ID': refId } }),
     });
     if (r.ok) return { provider: 'resend' };
   }
@@ -55,6 +58,7 @@ async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brev
         to: [{ email: to, name: toName || '' }],
         replyTo: { email: 'orders@zuwera.store' },
         subject, htmlContent: html,
+        headers: { 'X-Entity-Ref-ID': refId },
       }),
     });
     if (r.ok) return { provider: 'brevo' };
@@ -127,7 +131,13 @@ export async function onRequestPost({ request, env }) {
     //    so we must match colour too — not just size — or we'd notify/clear a
     //    waitlist entry for the wrong colourway.
     const normC = (c) => String(c == null ? '' : c).trim().toLowerCase();
-    const normS = (s) => String(s == null ? '' : s).trim().toLowerCase();
+    // Canonicalize sizes so a waitlist "XXL" matches an inventory "2XL" (the
+    // storefront/waitlist use display labels; product_sizes may store 2XL/3XL).
+    const SIZE_ALIASES = { xxxxs: '4xs', xxxs: '3xs', xxs: '2xs', xxxxl: '4xl', xxxl: '3xl', xxl: '2xl' };
+    const normS = (s) => {
+      const c = String(s == null ? '' : s).trim().toLowerCase().replace(/\s+/g, '');
+      return SIZE_ALIASES[c] || c;
+    };
     const sizeRows = await sbSelect(env, key, `product_sizes?select=size,color_name,stock_quantity&product_id=eq.${pid}`);
     const stocked = (sizeRows || []).filter((s) => (Number(s.stock_quantity) || 0) > 0);
     if (!stocked.length) return json({ ok: true, notified: 0, note: 'No sizes in stock' }, 200, cors(env));

@@ -3225,8 +3225,11 @@ function renderColors() {
 // colour, use the NULL rows if present, else sum across colours.
 function sizeStockForColor(sizeLabel, colorName) {
   const inv = Array.isArray(currentProduct?.inventory) ? currentProduct.inventory : [];
-  const norm = normalizeSizeLabel(sizeLabel);
-  const rows = inv.filter(r => normalizeSizeLabel(r?.size) === norm);
+  // Canonicalize the size so equivalent labels match: the size button is built
+  // with formatProductSizeLabel ("2XL" → "XXL") but inventory may store "2XL".
+  // canonicalizeProductSizeToken folds xxl↔2xl, xxxl↔3xl, xxs↔2xs, etc.
+  const norm = canonicalizeProductSizeToken(sizeLabel);
+  const rows = inv.filter(r => canonicalizeProductSizeToken(r?.size) === norm);
   if (!rows.length) return 0;
   const sum = list => list.reduce((s, r) => s + (r?.stock_quantity || 0), 0);
   if (colorName) {
