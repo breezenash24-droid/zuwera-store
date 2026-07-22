@@ -384,6 +384,43 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
   border-top:2px solid #F891A5; padding:2.6rem 2.4rem 2.2rem;
   width:min(420px,92vw); position:relative; animation:modalIn .2s ease;
 }
+
+/* ---- Find My Size quick calculator ---- */
+/* Reset the trigger <button> so it reads as the old size-guide text link. */
+.size-header button.size-guide-link{ background:none; border-top:0; border-left:0; border-right:0; cursor:pointer; font-family:var(--fb); }
+#find-size-modal{ z-index:720; }
+.mbox.fs-box{ width:min(440px,94vw); box-shadow:0 24px 64px -24px rgba(0,0,0,.45); }
+.fs-kicker{ font-family:var(--fm); font-size:.58rem; letter-spacing:.24em; text-transform:uppercase; color:var(--zw-accent,#F891A5); margin:0 0 .5rem; }
+.fs-title{ font-family:var(--font-head); font-size:1.7rem; line-height:1; letter-spacing:.04em; text-transform:uppercase; color:var(--white); margin:0 0 .45rem; }
+.fs-subtitle{ font-size:.82rem; line-height:1.55; color:var(--c65); margin:0 0 1.5rem; }
+.fs-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.3rem; }
+.fs-field{ display:flex; flex-direction:column; gap:.5rem; min-width:0; }
+.fs-label{ display:flex; align-items:center; justify-content:space-between; gap:.4rem; font-family:var(--fm); font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; color:var(--c65); }
+.fs-toggles{ display:flex; gap:.25rem; flex:0 0 auto; }
+.fs-unit{ background:none; border:1px solid rgba(128,128,128,.32); border:1px solid color-mix(in srgb, var(--white) 20%, transparent); color:var(--c65); padding:.18rem .42rem; font-family:var(--fm); font-size:.54rem; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; border-radius:2px; transition:all .18s; }
+.fs-unit.active{ background:var(--white); color:var(--black); border-color:var(--white); }
+.fs-unit:hover:not(.active){ border-color:var(--white); color:var(--white); }
+.fs-input{ width:100%; box-sizing:border-box; background:rgba(128,128,128,.07); background:color-mix(in srgb, var(--white) 5%, transparent); border:1px solid rgba(128,128,128,.32); border:1px solid color-mix(in srgb, var(--white) 20%, transparent); color:var(--white); padding:.8rem .9rem; font-family:var(--fb); font-size:max(16px,.9rem); border-radius:2px; outline:none; transition:border-color .2s, background .2s; -webkit-appearance:none; appearance:none; }
+.fs-input::placeholder{ color:var(--c40); }
+.fs-input:focus{ border-color:var(--white); background:color-mix(in srgb, var(--white) 9%, transparent); }
+.fs-submit{ width:100%; background:var(--white); color:var(--black); border:none; padding:1rem; font-family:var(--fb); font-weight:600; font-size:.72rem; letter-spacing:.2em; text-transform:uppercase; cursor:pointer; transition:transform .15s ease, opacity .2s ease; }
+.fs-submit:hover{ opacity:.88; transform:translateY(-1px); }
+.fs-submit:active{ opacity:.75; transform:none; }
+.fs-error{ margin:.85rem 0 0; min-height:1rem; text-align:center; font-family:var(--fb); font-size:.75rem; color:var(--zw-accent,#F891A5); }
+.fs-error:empty{ margin:0; min-height:0; }
+.fs-result{ margin-top:1.4rem; padding:1.5rem 1rem; text-align:center; border:1px solid var(--white); background:rgba(128,128,128,.05); background:color-mix(in srgb, var(--white) 3%, transparent); animation:modalIn .3s ease; }
+.fs-result[hidden]{ display:none; }
+.fs-result-label{ font-family:var(--fm); font-size:.58rem; letter-spacing:.2em; text-transform:uppercase; color:var(--c65); margin-bottom:.45rem; }
+.fs-result-size{ font-family:var(--font-head); font-size:3.2rem; line-height:.92; letter-spacing:.03em; color:var(--white); margin-bottom:.5rem; }
+.fs-result-text{ font-size:.78rem; line-height:1.5; color:var(--c65); max-width:34ch; margin:0 auto; }
+.fs-full-link{ display:block; text-align:center; margin-top:1.2rem; font-family:var(--fm); font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:var(--c65); text-decoration:none; transition:color .2s; }
+.fs-full-link:hover{ color:var(--white); text-decoration:underline; }
+@media(max-width:600px){
+  #find-size-modal{ align-items:flex-end; }
+  #find-size-modal .mbox.fs-box{ width:100vw; max-width:100vw; max-height:var(--zw-sheet-max); overflow-y:auto; border-radius:var(--zw-radius-modal,2px) var(--zw-radius-modal,2px) 0 0; border-left:none; border-right:none; border-bottom:none; padding:1.4rem 1.3rem 2.2rem; }
+  #find-size-modal .mbox.fs-box::before{ content:''; display:block; width:38px; height:4px; border-radius:2px; background:rgba(128,128,128,.4); background:color-mix(in srgb, var(--white) 24%, transparent); margin:.1rem auto 1.3rem; }
+  .fs-title{ font-size:1.5rem; }
+}
 @keyframes modalIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
 .mclose {
   position:absolute;top:.9rem;right:.9rem; width:30px;height:30px;display:flex;align-items:center;justify-content:center;
@@ -1245,10 +1282,12 @@ body.super-light-mode { background: #FFFFFF !important; }
 
         <!-- SIZE SELECTION -->
         <div class="size-section">
-          <!-- Size guide is reached from the "View Size Guide" button in the
-               Size & Fit accordion below; no inline link here by design. -->
           <div class="size-header">
             <p class="section-label" id="sizeSectionLabel">Select Size</p>
+            <!-- Quick fit calculator — opens a focused height+weight modal
+                 (bottom sheet on mobile). syncSizeGuideVisibility() shows it only
+                 for sized apparel (tops/bottoms). -->
+            <button type="button" class="size-guide-link" id="findSizeTrigger" onclick="openFindSizeModal()">Find My Size</button>
           </div>
           <div class="size-grid" id="sizeGrid"></div>
           <!-- Back-in-stock capture — shown when a sold-out size is tapped -->
@@ -1449,6 +1488,46 @@ body.super-light-mode { background: #FFFFFF !important; }
           <iframe id="size-guide-modal-iframe" src="" title="Size Guide" loading="eager" hidden scrolling="no"></iframe>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Find My Size — quick height+weight calculator (centered dialog on desktop,
+     bottom sheet on mobile). Native, no iframe. -->
+<div id="find-size-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="fs-title" aria-hidden="true"
+     onclick="if(event.target===this) closeFindSizeModal()">
+  <div class="mbox fs-box">
+    <button class="mclose" id="fs-close" type="button" aria-label="Close" onclick="closeFindSizeModal()">&#215;</button>
+    <p class="fs-kicker">Fit Reference</p>
+    <h2 class="fs-title" id="fs-title">Find My Size</h2>
+    <p class="fs-subtitle">Enter your height and weight for a recommended starting size.</p>
+    <div class="fs-grid">
+      <div class="fs-field">
+        <div class="fs-label"><span>Height</span>
+          <span class="fs-toggles" data-field="height">
+            <button type="button" class="fs-unit active" data-unit="in" onclick="fsToggleUnit(this)">IN</button>
+            <button type="button" class="fs-unit" data-unit="cm" onclick="fsToggleUnit(this)">CM</button>
+          </span>
+        </div>
+        <input type="number" id="fs-height" class="fs-input" placeholder="e.g., 70" inputmode="decimal" min="0" step="0.5">
+      </div>
+      <div class="fs-field">
+        <div class="fs-label"><span>Weight</span>
+          <span class="fs-toggles" data-field="weight">
+            <button type="button" class="fs-unit active" data-unit="lbs" onclick="fsToggleUnit(this)">LBS</button>
+            <button type="button" class="fs-unit" data-unit="kg" onclick="fsToggleUnit(this)">KG</button>
+          </span>
+        </div>
+        <input type="number" id="fs-weight" class="fs-input" placeholder="e.g., 180" inputmode="decimal" min="0" step="1">
+      </div>
+    </div>
+    <button type="button" class="fs-submit" id="fs-submit" onclick="runFindSize()">Find My Size</button>
+    <p class="fs-error" id="fs-error" role="alert"></p>
+    <div class="fs-result" id="fs-result" hidden>
+      <div class="fs-result-label">Your recommended size</div>
+      <div class="fs-result-size" id="fs-result-size"></div>
+      <div class="fs-result-text" id="fs-result-text"></div>
+    </div>
+    <a class="fs-full-link" href="/sizeguide.html" id="fs-full-link" onclick="return fsOpenFullGuide()">View full size guide &rarr;</a>
   </div>
 </div>
 
@@ -2092,6 +2171,7 @@ function syncSizeGuideVisibility(sizeLabels = getAvailableProductSizes()) {
   const hideGuide = isSingleOneSizeProduct(sizeLabels) && !keepGuideVisible;
   const headerLink = document.getElementById('sizeGuideLink');
   const accordionBtn = document.getElementById('viewSizeGuideBtn');
+  const findTrigger = document.getElementById('findSizeTrigger');
   const sizeLabel = document.getElementById('sizeSectionLabel');
 
   if (headerLink) {
@@ -2099,6 +2179,11 @@ function syncSizeGuideVisibility(sizeLabels = getAvailableProductSizes()) {
     if (hideGuide) headerLink.removeAttribute('href');
   }
   if (accordionBtn) accordionBtn.style.display = hideGuide ? 'none' : '';
+  // The quick height+weight calculator only makes sense for sized apparel.
+  if (findTrigger) {
+    const isApparel = guideContext?.calcCategory === 'tops' || guideContext?.calcCategory === 'bottoms';
+    findTrigger.style.display = (hideGuide || !isApparel) ? 'none' : '';
+  }
   if (sizeLabel) sizeLabel.textContent = hideGuide ? 'Size' : 'Select Size';
   return hideGuide;
 }
@@ -4220,6 +4305,79 @@ function ensureSizeGuideBooted(iframe, params) {
     return ok;
   })();
   return _sizeGuideBootPromise;
+}
+
+// ---- Find My Size quick calculator (native modal, bottom sheet on mobile) ----
+function fsToggleUnit(btn) {
+  const group = btn.parentElement;
+  if (!group) return;
+  group.querySelectorAll('.fs-unit').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function fsActiveUnit(field) {
+  const btn = document.querySelector('#find-size-modal .fs-toggles[data-field="' + field + '"] .fs-unit.active');
+  return btn ? btn.getAttribute('data-unit') : null;
+}
+// Weight-driven size buckets with a ±1 nudge for a notably tall/short frame —
+// mirrors sizeguide.html's findApparelSizeByHeightWeight so both agree.
+function fsRecommendSize(gender, heightIn, weightLbs) {
+  const scale = gender === 'women'
+    ? [['XXS',105],['XS',120],['S',140],['M',160],['L',185],['XL',215],['2XL',245],['3XL',Infinity]]
+    : [['XS',135],['S',155],['M',180],['L',205],['XL',235],['2XL',265],['3XL',Infinity]];
+  let idx = scale.findIndex(([, mx]) => weightLbs <= mx);
+  if (idx < 0) idx = scale.length - 1;
+  const avg = gender === 'women' ? 65 : 70;
+  if (heightIn >= avg + 5 && idx < scale.length - 1) idx += 1;
+  else if (heightIn <= avg - 5 && idx > 0) idx -= 1;
+  return scale[idx][0];
+}
+function openFindSizeModal() {
+  const m = document.getElementById('find-size-modal');
+  if (!m) return;
+  const err = document.getElementById('fs-error'); if (err) err.textContent = '';
+  const res = document.getElementById('fs-result'); if (res) res.hidden = true;
+  m.classList.add('open');
+  m.setAttribute('aria-hidden', 'false');
+  if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = 'hidden';
+  setTimeout(() => { const h = document.getElementById('fs-height'); if (h) h.focus(); }, 60);
+}
+window.openFindSizeModal = openFindSizeModal;
+function closeFindSizeModal() {
+  const m = document.getElementById('find-size-modal');
+  if (!m) return;
+  m.classList.remove('open');
+  m.setAttribute('aria-hidden', 'true');
+  if (!document.querySelector('.modal.open')) {
+    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = '';
+  }
+}
+window.closeFindSizeModal = closeFindSizeModal;
+function runFindSize() {
+  const err = document.getElementById('fs-error');
+  const res = document.getElementById('fs-result');
+  err.textContent = ''; res.hidden = true;
+  const rawH = parseFloat(document.getElementById('fs-height').value);
+  const rawW = parseFloat(document.getElementById('fs-weight').value);
+  if (!(rawH > 0) || !(rawW > 0)) { err.textContent = 'Please enter a valid height and weight.'; return; }
+  const hUnit = fsActiveUnit('height'), wUnit = fsActiveUnit('weight');
+  const heightIn = hUnit === 'cm' ? rawH / 2.54 : rawH;
+  const weightLbs = wUnit === 'kg' ? rawW * 2.2046 : rawW;
+  if (heightIn < 48 || heightIn > 84) { err.textContent = hUnit === 'cm' ? 'Enter a height between 122 and 213 cm.' : 'Enter a height between 48 and 84 inches.'; return; }
+  if (weightLbs < 70 || weightLbs > 400) { err.textContent = wUnit === 'kg' ? 'Enter a weight between 32 and 181 kg.' : 'Enter a weight between 70 and 400 lb.'; return; }
+  let gender = (typeof getSizeGuideContext === 'function' && getSizeGuideContext() || {}).gender;
+  if (gender !== 'women' && gender !== 'men') gender = 'men';
+  const size = fsRecommendSize(gender, heightIn, weightLbs);
+  const hDisp = hUnit === 'cm' ? rawH + ' cm' : rawH + '"';
+  const wDisp = wUnit === 'kg' ? rawW + ' kg' : rawW + ' lb';
+  document.getElementById('fs-result-size').textContent = size;
+  document.getElementById('fs-result-text').textContent =
+    'Based on height ' + hDisp + ' and weight ' + wDisp + '. A starting point — size up for a looser fit, or check the full chart if you’re between sizes.';
+  res.hidden = false;
+}
+function fsOpenFullGuide() {
+  closeFindSizeModal();
+  if (window.openSizeGuideModal) window.openSizeGuideModal();
+  return false;
 }
 
 window.openSizeGuideModal = async function() {
