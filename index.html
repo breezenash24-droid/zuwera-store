@@ -2424,6 +2424,15 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
         <div class="quick-add-option-block">
           <div class="quick-add-option-head"><span>Size</span><strong id="quick-add-review-size">Choose size</strong></div>
           <div class="quick-add-option-grid quick-add-sizes" id="quick-add-review-sizes"></div>
+          <p class="quick-add-size-hint" id="quick-add-size-hint" style="display:none;font-size:.72rem;opacity:.7;margin:.5rem 0 0">Tap a sold-out size to get notified when it's back.</p>
+        </div>
+        <div class="quick-add-restock" id="quick-add-restock" style="display:none;margin:0 0 14px;padding:14px 16px;border:1px solid rgba(128,128,128,.28);border-radius:6px;background:rgba(128,128,128,.06)">
+          <p id="quick-add-restock-label" style="margin:0 0 10px;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;opacity:.85"></p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="email" id="quick-add-restock-email" placeholder="you@email.com" autocomplete="email" style="flex:1;min-width:170px;background:rgba(128,128,128,.08);border:1px solid rgba(128,128,128,.3);color:inherit;font:inherit;font-size:.95rem;padding:.6rem .7rem;border-radius:4px;outline:none;box-sizing:border-box">
+            <button type="button" id="quick-add-restock-submit" style="background:var(--zw-ink,#09090b);color:var(--zw-page,#f4f1eb);border:none;border-radius:4px;padding:.6rem 1.3rem;font:inherit;font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap">Notify Me</button>
+          </div>
+          <p id="quick-add-restock-msg" style="margin:.6rem 0 0;font-size:.82rem;min-height:1rem"></p>
         </div>
         <p class="quick-add-review-message" id="quick-add-review-message">Choose your options.</p>
         <div class="quick-add-review-actions">
