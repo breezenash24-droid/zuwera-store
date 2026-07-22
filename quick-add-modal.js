@@ -67,7 +67,7 @@
       '<p id="quick-add-restock-label" style="font-family:var(--fm);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem;opacity:.85"></p>' +
       '<div style="display:flex;gap:.5rem">' +
         '<input type="email" id="quick-add-restock-email" placeholder="you@example.com" autocomplete="email" style="flex:1;min-width:0;background:rgba(244,241,235,.04);border:1px solid rgba(244,241,235,.18);color:inherit;padding:.6rem .75rem;font-family:var(--fb);font-size:max(16px,.85rem);outline:none">' +
-        '<button type="button" id="quick-add-restock-submit" style="background:#09090b;color:#f4f1eb;border:none;padding:.6rem 1rem;font-family:var(--fm);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;cursor:pointer;white-space:nowrap">Notify Me</button>' +
+        '<button type="button" id="quick-add-restock-submit" style="background:#09090b !important;color:#f4f1eb !important;border:none;padding:.6rem 1rem;font-family:var(--fm);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;cursor:pointer;white-space:nowrap">Notify Me</button>' +
       '</div>' +
       '<p id="quick-add-restock-msg" style="font-family:var(--fm);font-size:.62rem;margin-top:.5rem;min-height:.9rem;letter-spacing:.04em"></p>' +
     '</div>';
@@ -153,8 +153,16 @@
     var color = panel.dataset.color || null;
     if (!size || !productId) return;
     if (!val || val.indexOf('@') < 0) { if (msg) { msg.textContent = 'Enter a valid email.'; msg.style.color = 'var(--red,#dc2626)'; } return; }
-    if (!window.sb) { if (msg) { msg.textContent = 'Please use the full product page to sign up.'; msg.style.color = 'var(--red,#dc2626)'; } return; }
     if (btn) { btn.disabled = true; btn.textContent = '…'; }
+    // The homepage loads Supabase lazily — make sure the client exists before inserting.
+    if (!window.sb && typeof window.zwEnsureSupabase === 'function') {
+      try { await window.zwEnsureSupabase(); } catch (_) {}
+    }
+    if (!window.sb) {
+      if (msg) { msg.textContent = 'Could not connect — please try again.'; msg.style.color = 'var(--red,#dc2626)'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Notify Me'; }
+      return;
+    }
     try {
       var res = await window.sb.from('restock_requests').insert({ product_id: productId, size: size, color_name: color, email: val });
       if (res.error) {
