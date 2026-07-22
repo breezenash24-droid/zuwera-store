@@ -46,7 +46,9 @@
             '<h2 class="quick-add-review-title" id="quick-add-review-title">Product</h2>' +
             '<div class="quick-add-product-meta"><span id="quick-add-review-price">$0.00</span><span id="quick-add-review-sku">-</span></div>' +
             '<div class="quick-add-option-block"><div class="quick-add-option-head"><span>Color</span><strong id="quick-add-review-color">Standard</strong></div><div class="quick-add-option-grid quick-add-colors" id="quick-add-review-colors"></div></div>' +
-            '<div class="quick-add-option-block"><div class="quick-add-option-head"><span>Size</span><strong id="quick-add-review-size">Choose size</strong></div><div class="quick-add-option-grid quick-add-sizes" id="quick-add-review-sizes"></div></div>' +
+            '<div class="quick-add-option-block"><div class="quick-add-option-head"><span>Size</span><strong id="quick-add-review-size">Choose size</strong></div><div class="quick-add-option-grid quick-add-sizes" id="quick-add-review-sizes"></div>' +
+              '<p class="quick-add-size-hint" id="quick-add-size-hint" style="display:none;font-size:.72rem;opacity:.7;margin:.5rem 0 0">Tap a sold-out size to get notified when it\'s back.</p>' +
+            '</div>' +
             '<div class="quick-add-restock" id="quick-add-restock" style="display:none;margin:0 0 14px;padding:14px 16px;border:1px solid rgba(128,128,128,.28);border-radius:6px;background:rgba(128,128,128,.06)">' +
               '<p id="quick-add-restock-label" style="margin:0 0 10px;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;opacity:.85"></p>' +
               '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
@@ -403,6 +405,14 @@
           quickAddRenderOptions(item);
         });
       });
+      // Nudge shoppers that a sold-out size is tappable for the notify capture.
+      var sizeHint = document.getElementById('quick-add-size-hint');
+      if (sizeHint) {
+        var anySoldOut = sizes.some(function (pair) { return Number(pair[1]) <= 0; });
+        var bisOff = false;
+        try { var ff = window.__zwFlags && window.__zwFlags.feature_back_in_stock; bisOff = !!(ff && ff.enabled === false); } catch (e) {}
+        sizeHint.style.display = (anySoldOut && !bisOff) ? '' : 'none';
+      }
     }
 
     var needsColor = Array.isArray(item.colors) && item.colors.length > 0 && !item.selectedColor;
