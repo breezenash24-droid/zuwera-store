@@ -68,18 +68,53 @@
       '</div>' +
     '</div>';
 
+  // Back-in-stock capture markup — also injected into a STATIC modal (e.g. the
+  // homepage pre-renders #quick-add-review-modal in index.html) that predates it.
+  var RESTOCK_HINT_HTML = '<p class="quick-add-size-hint" id="quick-add-size-hint" style="display:none;font-size:.72rem;opacity:.7;margin:.5rem 0 0">Tap a sold-out size to get notified when it\'s back.</p>';
+  var RESTOCK_PANEL_HTML = '<div class="quick-add-restock" id="quick-add-restock" style="display:none;margin:0 0 14px;padding:14px 16px;border:1px solid rgba(128,128,128,.28);border-radius:6px;background:rgba(128,128,128,.06)">' +
+      '<p id="quick-add-restock-label" style="margin:0 0 10px;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;opacity:.85"></p>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<input type="email" id="quick-add-restock-email" placeholder="you@email.com" autocomplete="email" style="flex:1;min-width:170px;background:rgba(128,128,128,.08);border:1px solid rgba(128,128,128,.3);color:inherit;font:inherit;font-size:.95rem;padding:.6rem .7rem;border-radius:4px;outline:none;box-sizing:border-box">' +
+        '<button type="button" id="quick-add-restock-submit" style="background:var(--zw-ink,#09090b);color:var(--zw-page,#f4f1eb);border:none;border-radius:4px;padding:.6rem 1.3rem;font:inherit;font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap">Notify Me</button>' +
+      '</div>' +
+      '<p id="quick-add-restock-msg" style="margin:.6rem 0 0;font-size:.82rem;min-height:1rem"></p>' +
+    '</div>';
+
+  // Inject the hint + panel if this modal instance doesn't already have them
+  // (a statically pre-rendered modal won't).
+  function ensureRestockUI(el) {
+    if (!el) return;
+    var sizesGrid = el.querySelector('#quick-add-review-sizes');
+    if (!sizesGrid) return;
+    if (!el.querySelector('#quick-add-size-hint')) {
+      var h = document.createElement('div'); h.innerHTML = RESTOCK_HINT_HTML;
+      if (h.firstChild) sizesGrid.insertAdjacentElement('afterend', h.firstChild);
+    }
+    if (!el.querySelector('#quick-add-restock')) {
+      var block = (sizesGrid.closest && sizesGrid.closest('.quick-add-option-block')) || sizesGrid.parentNode;
+      var p = document.createElement('div'); p.innerHTML = RESTOCK_PANEL_HTML;
+      if (p.firstChild && block) block.insertAdjacentElement('afterend', p.firstChild);
+    }
+  }
+
+  // Wire submit (click + Enter) once per element, for both created and static modals.
+  function bindRestock(el) {
+    var rbtn = el.querySelector('#quick-add-restock-submit');
+    if (rbtn && !rbtn._zwBound) { rbtn._zwBound = true; rbtn.addEventListener('click', quickAddSubmitRestock); }
+    var remail = el.querySelector('#quick-add-restock-email');
+    if (remail && !remail._zwBound) { remail._zwBound = true; remail.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); quickAddSubmitRestock(); } }); }
+  }
+
   function ensureModal() {
     var el = document.getElementById('quick-add-review-modal');
-    if (el) return el;
-    var wrap = document.createElement('div');
-    wrap.innerHTML = MODAL_HTML;
-    el = wrap.firstChild;
-    document.body.appendChild(el);
-    // Back-in-stock capture (created once): submit on click or Enter.
-    var rbtn = el.querySelector('#quick-add-restock-submit');
-    if (rbtn) rbtn.addEventListener('click', quickAddSubmitRestock);
-    var remail = el.querySelector('#quick-add-restock-email');
-    if (remail) remail.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); quickAddSubmitRestock(); } });
+    if (!el) {
+      var wrap = document.createElement('div');
+      wrap.innerHTML = MODAL_HTML;
+      el = wrap.firstChild;
+      document.body.appendChild(el);
+    }
+    ensureRestockUI(el);   // self-heal a static modal that lacks the capture
+    bindRestock(el);       // wire the submit handler (runs for the static modal too)
     return el;
   }
 
