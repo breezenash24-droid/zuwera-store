@@ -1957,15 +1957,30 @@
         // Simplified apparel path: height + weight → size.
         const rawHeight = parseFloat(document.getElementById('calcHeight').value);
         const rawWeight = parseFloat(document.getElementById('calcWeight').value);
+        const hCm = activeCalcUnit('heightField') === 'cm';
+        const wKg = activeCalcUnit('weightField') === 'kg';
 
-        if (!rawHeight || !rawWeight) {
-          resultText.textContent = 'Please enter your height and weight.';
+        // `!rawHeight` is false for a negative number, so -4.5 slipped through and
+        // returned a size. Require positive values, then enforce sane bounds.
+        if (!(rawHeight > 0) || !(rawWeight > 0)) {
+          resultText.textContent = 'Please enter a valid height and weight.';
           result.classList.add('visible');
           return;
         }
 
-        const heightIn = activeCalcUnit('heightField') === 'cm' ? rawHeight / 2.54 : rawHeight;
-        const weightLbs = activeCalcUnit('weightField') === 'kg' ? rawWeight * 2.2046 : rawWeight;
+        const heightIn = hCm ? rawHeight / 2.54 : rawHeight;
+        const weightLbs = wKg ? rawWeight * 2.2046 : rawWeight;
+
+        if (heightIn < 48 || heightIn > 84) {
+          resultText.textContent = hCm ? 'Enter a height between 122 and 213 cm.' : 'Enter a height between 48 and 84 inches.';
+          result.classList.add('visible');
+          return;
+        }
+        if (weightLbs < 70 || weightLbs > 400) {
+          resultText.textContent = wKg ? 'Enter a weight between 32 and 181 kg.' : 'Enter a weight between 70 and 400 lb.';
+          result.classList.add('visible');
+          return;
+        }
 
         recommendedSize = findApparelSizeByHeightWeight(gender, heightIn, weightLbs);
         const hDisp = activeCalcUnit('heightField') === 'cm' ? `${rawHeight} cm` : `${rawHeight}"`;
