@@ -46,17 +46,7 @@
             '<h2 class="quick-add-review-title" id="quick-add-review-title">Product</h2>' +
             '<div class="quick-add-product-meta"><span id="quick-add-review-price">$0.00</span><span id="quick-add-review-sku">-</span></div>' +
             '<div class="quick-add-option-block"><div class="quick-add-option-head"><span>Color</span><strong id="quick-add-review-color">Standard</strong></div><div class="quick-add-option-grid quick-add-colors" id="quick-add-review-colors"></div></div>' +
-            '<div class="quick-add-option-block"><div class="quick-add-option-head"><span>Size</span><strong id="quick-add-review-size">Choose size</strong></div><div class="quick-add-option-grid quick-add-sizes" id="quick-add-review-sizes"></div>' +
-              '<p class="quick-add-size-hint" id="quick-add-size-hint" style="display:none;font-size:.72rem;opacity:.7;margin:.5rem 0 0">Tap a sold-out size to get notified when it\'s back.</p>' +
-            '</div>' +
-            '<div class="quick-add-restock" id="quick-add-restock" style="display:none;margin:0 0 14px;padding:14px 16px;border:1px solid rgba(128,128,128,.28);border-radius:6px;background:rgba(128,128,128,.06)">' +
-              '<p id="quick-add-restock-label" style="margin:0 0 10px;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;opacity:.85"></p>' +
-              '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-                '<input type="email" id="quick-add-restock-email" placeholder="you@email.com" autocomplete="email" style="flex:1;min-width:170px;background:rgba(128,128,128,.08);border:1px solid rgba(128,128,128,.3);color:inherit;font:inherit;font-size:.95rem;padding:.6rem .7rem;border-radius:4px;outline:none;box-sizing:border-box">' +
-                '<button type="button" id="quick-add-restock-submit" style="background:var(--zw-ink,#09090b);color:var(--zw-page,#f4f1eb);border:none;border-radius:4px;padding:.6rem 1.3rem;font:inherit;font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap">Notify Me</button>' +
-              '</div>' +
-              '<p id="quick-add-restock-msg" style="margin:.6rem 0 0;font-size:.82rem;min-height:1rem"></p>' +
-            '</div>' +
+            '<div class="quick-add-option-block"><div class="quick-add-option-head"><span>Size</span><strong id="quick-add-review-size">Choose size</strong></div><div class="quick-add-option-grid quick-add-sizes" id="quick-add-review-sizes"></div></div>' +
             '<p class="quick-add-review-message" id="quick-add-review-message">Choose your options.</p>' +
             '<div class="quick-add-review-actions">' +
               '<button type="button" class="quick-add-review-confirm" id="quick-add-review-confirm">Add to Bag</button>' +
@@ -70,14 +60,16 @@
 
   // Back-in-stock capture markup — also injected into a STATIC modal (e.g. the
   // homepage pre-renders #quick-add-review-modal in index.html) that predates it.
-  var RESTOCK_HINT_HTML = '<p class="quick-add-size-hint" id="quick-add-size-hint" style="display:none;font-size:.72rem;opacity:.7;margin:.5rem 0 0">Tap a sold-out size to get notified when it\'s back.</p>';
-  var RESTOCK_PANEL_HTML = '<div class="quick-add-restock" id="quick-add-restock" style="display:none;margin:0 0 14px;padding:14px 16px;border:1px solid rgba(128,128,128,.28);border-radius:6px;background:rgba(128,128,128,.06)">' +
-      '<p id="quick-add-restock-label" style="margin:0 0 10px;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;opacity:.85"></p>' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-        '<input type="email" id="quick-add-restock-email" placeholder="you@email.com" autocomplete="email" style="flex:1;min-width:170px;background:rgba(128,128,128,.08);border:1px solid rgba(128,128,128,.3);color:inherit;font:inherit;font-size:.95rem;padding:.6rem .7rem;border-radius:4px;outline:none;box-sizing:border-box">' +
-        '<button type="button" id="quick-add-restock-submit" style="background:var(--zw-ink,#09090b);color:var(--zw-page,#f4f1eb);border:none;border-radius:4px;padding:.6rem 1.3rem;font:inherit;font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap">Notify Me</button>' +
+  // Styled to match the product page's #restock-panel exactly (pink-tinted box,
+  // --white/--black button so the label reads on any theme).
+  var RESTOCK_HINT_HTML = '<p class="quick-add-size-hint" id="quick-add-size-hint" style="display:none;font-family:var(--fm);font-size:.62rem;letter-spacing:.08em;opacity:.7;margin:.5rem 0 0">Tap a sold-out size to get notified when it\'s back.</p>';
+  var RESTOCK_PANEL_HTML = '<div class="quick-add-restock" id="quick-add-restock" style="display:none;margin-top:.9rem;padding:.95rem 1rem;border:1px solid rgba(248,145,165,.3);background:rgba(248,145,165,.05)">' +
+      '<p id="quick-add-restock-label" style="font-family:var(--fm);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem;opacity:.85"></p>' +
+      '<div style="display:flex;gap:.5rem">' +
+        '<input type="email" id="quick-add-restock-email" placeholder="you@example.com" autocomplete="email" style="flex:1;min-width:0;background:rgba(244,241,235,.04);border:1px solid rgba(244,241,235,.18);color:inherit;padding:.6rem .75rem;font-family:var(--fb);font-size:max(16px,.85rem);outline:none">' +
+        '<button type="button" id="quick-add-restock-submit" style="background:var(--white,#f4f1eb);color:var(--black,#09090b);border:none;padding:.6rem 1rem;font-family:var(--fm);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;cursor:pointer;white-space:nowrap">Notify Me</button>' +
       '</div>' +
-      '<p id="quick-add-restock-msg" style="margin:.6rem 0 0;font-size:.82rem;min-height:1rem"></p>' +
+      '<p id="quick-add-restock-msg" style="font-family:var(--fm);font-size:.62rem;margin-top:.5rem;min-height:.9rem;letter-spacing:.04em"></p>' +
     '</div>';
 
   // Inject the hint + panel if this modal instance doesn't already have them
