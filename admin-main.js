@@ -8222,12 +8222,31 @@
             } catch (_) {}
             _emailType = (typeSel && typeSel.value) || 'order_confirmation';
             _emailFillForm(_emailCfg[_emailType]);
+            // Logo size lives at the top level of email_settings (not per-email).
+            const lhSlider = document.getElementById('em-logo-height');
+            if (lhSlider) {
+                const lh = parseInt(_emailCfg.logoHeight, 10);
+                lhSlider.value = (lh >= 14 && lh <= 90) ? lh : 30;
+                const lhVal = document.getElementById('em-logo-height-val');
+                if (lhVal) lhVal.textContent = lhSlider.value + 'px';
+            }
             const themeSel = document.getElementById('em-theme');
             if (themeSel && !themeSel._emPrevBound) { themeSel._emPrevBound = true; themeSel.addEventListener('change', loadEmailPreview); }
             loadEmailPreview();
         }
+        // Live-update the logo-size readout and debounce a preview refresh as the slider drags.
+        function emLogoHeightChanged() {
+            const s = document.getElementById('em-logo-height');
+            const v = document.getElementById('em-logo-height-val');
+            if (s && v) v.textContent = s.value + 'px';
+            clearTimeout(emLogoHeightChanged._t);
+            emLogoHeightChanged._t = setTimeout(loadEmailPreview, 260);
+        }
+        window.emLogoHeightChanged = emLogoHeightChanged;
         async function saveEmailSettings() {
             _emailCfg[_emailType] = _emailReadForm();
+            const lhSlider = document.getElementById('em-logo-height');
+            if (lhSlider) { const lh = parseInt(lhSlider.value, 10); _emailCfg.logoHeight = (lh >= 14 && lh <= 90) ? lh : 30; }
             const theme = (document.getElementById('em-theme') || {}).value === 'light' ? 'light' : 'dark';
             try {
                 const r1 = await sb.from('site_settings').upsert({ key: 'email_theme', value: theme, updated_at: new Date().toISOString() }, { onConflict: 'key' });
@@ -8250,6 +8269,8 @@
             const type = typeSel.value;
             const theme = (document.getElementById('em-theme') || {}).value === 'light' ? 'light' : 'dark';
             const payload = { type, theme };
+            const lhSlider = document.getElementById('em-logo-height');
+            if (lhSlider) payload.logoHeight = parseInt(lhSlider.value, 10);  // preview the unsaved logo size live
             if (type === _emailType) payload.content = _emailReadForm();  // show unsaved copy for the open email
             frame.srcdoc = '<p style="font-family:sans-serif;padding:24px;color:#888">Loading preview…</p>';
             try {

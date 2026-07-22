@@ -26,7 +26,7 @@
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { loopsFallback } from './_email.js';
-import { getEmailAppearance } from './_email-theme.js';
+import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
 
@@ -158,72 +158,40 @@ async function sendSms({ to, body, accountSid, authToken, fromNumber }) {
 export function shippedEmail({ orderId, customerName, carrier, trackingNumber, trackingUrl, eta, logoUrl, appearance }) {
   const a = appearance;
   const etaLine = eta
-    ? `<p style="margin:12px 0 0;font-size:.85rem;color:#666">Estimated delivery: <strong>${new Date(eta).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</strong></p>`
+    ? `<p style="margin:14px 0 0;font-size:14px;color:${a.muted}">Estimated delivery: <strong style="color:${a.text}">${new Date(eta).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</strong></p>`
     : '';
   const trackingBlock = trackingNumber
-    ? `<div style="margin:20px 0;padding:16px;background:#f4f1eb;border-radius:8px;font-size:.9rem">
-        <div style="font-weight:700;margin-bottom:6px">📦 Track Your Order</div>
-        <div>Carrier: <strong>${carrier}</strong></div>
-        <div style="margin-top:4px">Tracking #: ${trackingUrl
-          ? `<a href="${trackingUrl}" style="color:${a.accent}">${trackingNumber}</a>`
-          : `<strong>${trackingNumber}</strong>`}</div>
+    ? `<div style="padding:16px 18px;border:1px solid ${a.border};border-radius:8px;font-size:14px;color:${a.text}">
+        <div style="font-weight:700;margin-bottom:6px">📦 Track your order</div>
+        <div style="color:${a.muted}">Carrier: <strong style="color:${a.text}">${carrier}</strong></div>
+        <div style="margin-top:4px;color:${a.muted}">Tracking #: ${trackingUrl
+          ? `<a href="${trackingUrl}" style="color:${a.accent};text-decoration:underline">${trackingNumber}</a>`
+          : `<strong style="color:${a.text}">${trackingNumber}</strong>`}</div>
        </div>`
     : '';
 
-  return `<!DOCTYPE html>
-<html>
-<body style="margin:0;padding:0;background:#f4f1eb;font-family:${a.fontBody};color:#09090b">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px">
-    <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:100%">
-        <tr><td style="background:#09090b;padding:24px 36px;text-align:left">
-          <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;max-width:70%;display:block;border:0;"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-          <span style="display:none;font-family:${a.fontHead};font-size:1.5rem;letter-spacing:.12em;color:#f4f1eb;font-weight:normal">ZUWERA</span>
-        </td></tr>
-        <tr><td style="padding:32px 36px">
-          <h2 style="margin:0 0 8px;font-size:1.3rem;font-family:${a.fontHead}">🚀 Your order is on its way!</h2>
-          <p style="margin:0 0 20px;color:#666;font-size:.9rem">Order #${orderId} — Hey ${customerName}, your Zuwera order has shipped!</p>
-          ${trackingBlock}
-          ${etaLine}
-        </td></tr>
-        <tr><td style="background:#f4f1eb;padding:20px 36px;font-size:.78rem;color:#888;text-align:center">
-          Questions? Reply to this email or visit <a href="https://zuwera.store" style="color:${a.accent}">zuwera.store</a>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  return renderEmailShell(a, {
+    kicker:  'Shipped',
+    heading: 'On its way',
+    intro:   `Order #${orderId} — hey ${customerName}, your order just shipped.`,
+    bodyHtml: trackingBlock + etaLine,
+    footer:  'Questions? Just reply to this email.',
+  });
 }
 
 export function deliveredEmail({ orderId, customerName, logoUrl, appearance }) {
   const a = appearance;
-  return `<!DOCTYPE html>
-<html>
-<body style="margin:0;padding:0;background:#f4f1eb;font-family:${a.fontBody};color:#09090b">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px">
-    <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:100%">
-        <tr><td style="background:#09090b;padding:24px 36px;text-align:left">
-          <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;max-width:70%;display:block;border:0;"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-          <span style="display:none;font-family:${a.fontHead};font-size:1.5rem;letter-spacing:.12em;color:#f4f1eb;font-weight:normal">ZUWERA</span>
-        </td></tr>
-        <tr><td style="padding:32px 36px">
-          <h2 style="margin:0 0 8px;font-size:1.3rem;font-family:${a.fontHead}">✅ Delivered!</h2>
-          <p style="margin:0 0 20px;color:#666;font-size:.9rem">Order #${orderId} — Great news, ${customerName}! Your Zuwera order has been delivered.</p>
-          <p style="margin:0 0 24px;font-size:.9rem;color:#444">We hope you love it. If anything is off, we've got you — head to your account to start a return or exchange.</p>
-          <a href="https://zuwera.store/account.html" style="display:inline-block;padding:12px 24px;background:${a.accent};color:#09090b;text-decoration:none;border-radius:6px;font-size:.85rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700">My Account</a>
-        </td></tr>
-        <tr><td style="background:#f4f1eb;padding:20px 36px;font-size:.78rem;color:#888;text-align:center">
-          Loving Zuwera? Leave a review — it means the world to us.
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  const body = `<p style="margin:0 0 22px;font-size:14px;line-height:1.6;color:${a.muted}">We hope you love it. If anything's off, we've got you — head to your account to start a return or exchange.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+      <a href="https://zuwera.store/account.html" style="display:inline-block;padding:14px 34px;background:${a.accent};color:#0b0b0d;text-decoration:none;border-radius:3px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;font-family:${a.fontMono}">My Account</a>
+    </td></tr></table>`;
+  return renderEmailShell(a, {
+    kicker:  'Delivered',
+    heading: "It's here",
+    intro:   `Order #${orderId} — great news, ${customerName}! Your order was delivered.`,
+    bodyHtml: body,
+    footer:  'Loving Zuwera? Leave a review — it means the world to us.',
+  });
 }
 
 // ─── Test handler (GET) ────────────────────────────────────────────────────────

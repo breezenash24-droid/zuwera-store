@@ -13,7 +13,7 @@
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { cors, json, verifyAdminCan, getCommerceBundle, setSetting } from './_commerce.js';
-import { getEmailAppearance } from './_email-theme.js';
+import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
 async function fetchOrder(orderId, env) {
   const url = (env.SUPABASE_URL || '').trim();
@@ -182,12 +182,45 @@ async function createShippoLabel(order, env, cache) {
   };
 }
 
+// Builds the return-label email on the shared shell. Exported so the admin
+// email preview can render it with sample data.
+export function buildReturnLabelEmail({ toName, orderLabel, label, storeAddress, resolutionLabel, appearance }) {
+  const a = appearance;
+  const metaRow = (labelTxt, val, pre) => `
+    <tr><td style="padding:14px 18px;border-bottom:1px solid ${a.border};">
+      <p style="margin:0 0 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${a.muted};">${labelTxt}</p>
+      <p style="margin:0;font-size:14px;color:${a.text};${pre ? 'white-space:pre-line;' : ''}">${val}</p>
+    </td></tr>`;
+  const body = `
+    <p style="margin:0 0 16px;font-size:14px;color:${a.text};line-height:1.75;">Hi ${String(toName || '').split(' ')[0]},</p>
+    <p style="margin:0 0 20px;font-size:14px;color:${a.muted};line-height:1.75;">Your return request has been approved. We've generated a prepaid shipping label for you — just print it, attach it to your package, and drop it off at any ${label.carrier} location.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${a.border};border-radius:6px;overflow:hidden;margin-bottom:24px;">
+      ${metaRow('Carrier', `${label.carrier} — ${label.service}`)}
+      ${metaRow('Tracking', label.trackingNumber)}
+      ${metaRow('Return to', storeAddress, true)}
+    </table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;"><tr><td align="center">
+      <a href="${label.labelUrl}" style="display:inline-block;background:${a.accent};color:#0b0b0d;padding:14px 40px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;font-weight:700;border-radius:4px;font-family:${a.fontMono};">Download label (PDF)</a>
+    </td></tr></table>
+    ${label.trackingUrl ? `<p style="margin:0 0 16px;font-size:14px;color:${a.muted};line-height:1.75;">You can <a href="${label.trackingUrl}" style="color:${a.accent};text-decoration:underline">track your return</a> once it's been picked up.</p>` : ''}
+    <p style="margin:0 0 20px;font-size:14px;color:${a.muted};line-height:1.75;">Once we receive your return, we'll process your ${resolutionLabel} within 3–5 business days. We'll send you a confirmation email when it's done.</p>
+    <p style="margin:0;font-size:14px;color:${a.muted};line-height:1.75;">Thanks,<br>The Zuwera Team</p>`;
+  return renderEmailShell(a, {
+    kicker:  `Order ${orderLabel}`,
+    heading: 'Your return label is ready',
+    intro:   '',
+    bodyHtml: body,
+    footer:  `© ${new Date().getFullYear()} Zuwera · zuwera.store`,
+  });
+}
+
 async function sendLabelEmail(order, label, returnRequest, env, cache) {
   const resendKey  = resolveSetting('RESEND_API_KEY',  env, cache);
   const brevoKey   = resolveSetting('BREVO_API_KEY',   env, cache);
   const fromEmail  = resolveSetting('EMAIL_FROM',      env, cache) || 'orders@zuwera.store';
   const logoUrl    = resolveSetting('BRAND_LOGO_URL',  env, cache) || 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
   const a          = getEmailAppearance(cache);
+  a.logo = logoUrl;   // resolveSetting also covers an env-var logo, which getEmailAppearance can't see
   const toEmail    = (order.email || order.customer_email || '').trim();
   const toName     = order.customer_name || 'Customer';
   if (!toEmail) return;
@@ -211,56 +244,7 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
     storeCountry,
   ].filter(Boolean).join('\n');
 
-  const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:${a.bg};font-family:${a.fontBody}">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:${a.bg};padding:40px 0">
-  <tr><td align="center">
-    <table width="100%" style="max-width:560px;background:#09090b;border-collapse:collapse">
-      <tr><td style="background:#09090b;padding:24px 36px;text-align:left">
-        <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;max-width:70%;display:block;border:0"
-             onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-        <span style="display:none;font-family:${a.fontHead};font-size:1.5rem;letter-spacing:.12em;color:#f4f1eb;font-weight:normal">ZUWERA</span>
-      </td></tr>
-      <tr><td style="padding:36px 36px 12px;background:#09090b">
-        <p style="margin:0 0 6px;font-family:${a.fontHead};font-size:22px;letter-spacing:.06em;color:#f4f1eb">Your Return Label Is Ready</p>
-        <p style="margin:0;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,0.62)">Order ${orderLabel}</p>
-      </td></tr>
-      <tr><td style="padding:20px 36px 28px;background:#09090b;font-size:14px;line-height:1.75;color:rgba(244,241,235,.7)">
-        <p style="margin:0 0 18px">Hi ${toName.split(' ')[0]},</p>
-        <p style="margin:0 0 18px">Your return request has been approved. We've generated a prepaid shipping label for you — just print it, attach it to your package, and drop it off at any ${label.carrier} location.</p>
-        <table width="100%" style="border:1px solid rgba(244,241,235,.1);margin-bottom:24px">
-          <tr><td style="padding:16px 20px">
-            <p style="margin:0 0 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,0.62)">Carrier</p>
-            <p style="margin:0;font-size:14px;color:#f4f1eb">${label.carrier} — ${label.service}</p>
-          </td></tr>
-          <tr><td style="padding:4px 20px 16px">
-            <p style="margin:0 0 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,0.62)">Tracking</p>
-            <p style="margin:0;font-size:14px;color:#f4f1eb">${label.trackingNumber}</p>
-          </td></tr>
-          <tr><td style="padding:4px 20px 16px">
-            <p style="margin:0 0 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,0.62)">Return To</p>
-            <p style="margin:0;font-size:13px;color:rgba(244,241,235,.65);white-space:pre-line">${storeAddress}</p>
-          </td></tr>
-        </table>
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px">
-          <tr><td align="center">
-            <a href="${label.labelUrl}" style="display:inline-block;background:${a.accent};color:#09090b;padding:14px 36px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;font-weight:700">Download Label (PDF)</a>
-          </td></tr>
-        </table>
-        ${label.trackingUrl ? `<p style="margin:0 0 18px">You can <a href="${label.trackingUrl}" style="color:rgba(244,241,235,0.62)">track your return</a> once it's been picked up.</p>` : ''}
-        <p style="margin:0 0 18px">Once we receive your return, we'll process your ${resolutionLabel} within 3–5 business days. We'll send you a confirmation email when it's done.</p>
-        <p style="margin:0 0 4px">Thanks,</p>
-        <p style="margin:0">The Zuwera Team</p>
-      </td></tr>
-      <tr><td style="padding:20px 36px;background:#0a0a0c;border-top:1px solid rgba(244,241,235,.07);font-size:10px;letter-spacing:.1em;color:rgba(244,241,235,0.62);text-transform:uppercase;text-align:center">
-        &copy; ${new Date().getFullYear()} Zuwera &middot; <a href="https://zuwera.store" style="color:rgba(244,241,235,0.62);text-decoration:none">zuwera.store</a>
-      </td></tr>
-    </table>
-  </td></tr>
-</table>
-</body></html>`;
-
+  const html = buildReturnLabelEmail({ toName, orderLabel, label, storeAddress, resolutionLabel, appearance: a });
   const subject = `Your return label for ${orderLabel}`;
 
   // Try Resend first

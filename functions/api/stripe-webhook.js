@@ -22,7 +22,7 @@
 import Stripe from 'stripe';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { loopsFallback } from './_email.js';
-import { getEmailAppearance, getEmailContent, fillTemplate } from './_email-theme.js';
+import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } from './_email-theme.js';
 import { buildUserData, sendCapiEvents } from './_capi.js';
 import { veeqoBookShipment } from './_veeqo.js';
 import { incrementShippoMonthlyCount, recordLabelFailure } from './_shipping-usage.js';
@@ -718,6 +718,64 @@ async function saveOrderToSupabase(pi, meta, tracking, env) {
 
 // ─── Send confirmation email ───────────────────────────────────────────────────
 
+// Assembles the order-confirmation email on the shared shell from pre-built HTML
+// fragments (items/address/carrier). Exported so the admin email preview can
+// render it with sample data — a real order can't be placed just to preview it.
+export function buildOrderConfirmation({ appearance, content, orderId, toName, itemsHtml, subtotalCents, discountRow, shippingDisplay, taxCents, totalDollars, addressHtml, carrierHtml }) {
+  const a = appearance;
+  const emailC = content;
+  const body = `
+        <!-- Items -->
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+          ${itemsHtml}
+        </table>
+
+        <!-- Pricing -->
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-top:20px;">
+          <tr>
+            <td style="padding:6px 0;font-size:14px;color:${a.muted};">Subtotal</td>
+            <td style="padding:6px 0;font-size:14px;text-align:right;color:${a.text};">$${(subtotalCents / 100).toFixed(2)}</td>
+          </tr>
+          ${discountRow}
+          <tr>
+            <td style="padding:6px 0;font-size:14px;color:${a.muted};">Shipping</td>
+            <td style="padding:6px 0;font-size:14px;text-align:right;color:${a.text};">${shippingDisplay}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0 0;font-size:14px;color:${a.muted};">Tax</td>
+            <td style="padding:6px 0 0;font-size:14px;text-align:right;color:${a.text};">$${(taxCents / 100).toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding:0;"><div style="margin:12px 0;border-top:1px solid ${a.border};"></div></td>
+          </tr>
+          <tr>
+            <td style="font-size:16px;font-weight:700;color:${a.text};">Total</td>
+            <td style="font-size:16px;font-weight:700;text-align:right;color:${a.text};">$${totalDollars}</td>
+          </tr>
+        </table>
+
+        <!-- Shipping address + carrier -->
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+          ${addressHtml}
+          ${carrierHtml}
+        </table>`;
+
+  const footerHtml = `
+          <a href="https://zuwera.store/account" style="color:${a.text};text-decoration:underline;">View order status</a>
+          &nbsp;·&nbsp;
+          <a href="https://zuwera.store/returns" style="color:${a.text};text-decoration:underline;">30-day free returns</a><br>
+          <span style="display:inline-block;margin-top:8px;">Questions? <a href="mailto:orders@zuwera.store" style="color:${a.muted};text-decoration:underline;">orders@zuwera.store</a></span><br>
+          <span style="display:inline-block;margin-top:8px;">© ${new Date().getFullYear()} Zuwera. All rights reserved.</span>`;
+
+  return renderEmailShell(a, {
+    kicker:  fillTemplate(emailC.kicker, { name: toName, order: orderId }),
+    heading: fillTemplate(emailC.heading, { order: orderId }),
+    intro:   fillTemplate(emailC.intro, { name: toName, order: orderId }),
+    bodyHtml: body,
+    footerHtml,
+  });
+}
+
 async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}) {
   const resendKey = resolveSetting('RESEND_API_KEY', env, emailKeyCache);
   if (!resendKey) return null;
@@ -738,6 +796,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
   // Layout/colours stay as this order-detail template's tested dark design; the
   // admin Emails editor drives the fonts, the subject, and the header copy.
   const a = getEmailAppearance(emailKeyCache);
+  a.logo = logoUrl;   // resolveSetting also covers an env-var logo, which getEmailAppearance can't see
   const emailC = getEmailContent(emailKeyCache, 'order_confirmation');
   const escE = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -786,22 +845,22 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
                       || '';
         const imgCell = imageUrl
           ? `<img src="${imageUrl}" alt="${i.name}" width="72" height="90" style="width:72px;height:90px;object-fit:cover;border-radius:4px;display:block;">`
-          : `<div style="width:72px;height:90px;background:rgba(244,241,235,.06);border-radius:4px;"></div>`;
+          : `<div style="width:72px;height:90px;background:rgba(128,128,128,.12);border-radius:4px;"></div>`;
         const variant = [i.size, i.color].filter(Boolean).join(' · ');
         return `<tr>
-          <td style="padding:16px 0;border-bottom:1px solid rgba(244,241,235,.08);vertical-align:top;width:80px;">${imgCell}</td>
-          <td style="padding:16px 12px;border-bottom:1px solid rgba(244,241,235,.08);vertical-align:top;">
-            <div style="font-weight:600;font-size:15px;color:#f4f1eb;margin-bottom:4px;">${i.name}</div>
-            ${variant ? `<div style="font-size:13px;color:rgba(244,241,235,0.62);margin-bottom:4px;">${variant}</div>` : ''}
-            ${i.sku ? `<div style="font-size:11px;color:rgba(244,241,235,0.62);letter-spacing:.04em;font-family:${a.fontMono};">SKU: ${i.sku}</div>` : ''}
+          <td style="padding:16px 0;border-bottom:1px solid ${a.border};vertical-align:top;width:80px;">${imgCell}</td>
+          <td style="padding:16px 12px;border-bottom:1px solid ${a.border};vertical-align:top;">
+            <div style="font-weight:600;font-size:15px;color:${a.text};margin-bottom:4px;">${i.name}</div>
+            ${variant ? `<div style="font-size:13px;color:${a.muted};margin-bottom:4px;">${variant}</div>` : ''}
+            ${i.sku ? `<div style="font-size:11px;color:${a.muted};letter-spacing:.04em;font-family:${a.fontMono};">SKU: ${i.sku}</div>` : ''}
           </td>
-          <td style="padding:16px 0;border-bottom:1px solid rgba(244,241,235,.08);vertical-align:top;text-align:right;white-space:nowrap;">
-            <div style="font-size:14px;color:#f4f1eb;font-weight:500;">$${(i.amount / 100).toFixed(2)}</div>
-            ${i.quantity > 1 ? `<div style="font-size:12px;color:rgba(244,241,235,0.62);margin-top:3px;">× ${i.quantity}</div>` : ''}
+          <td style="padding:16px 0;border-bottom:1px solid ${a.border};vertical-align:top;text-align:right;white-space:nowrap;">
+            <div style="font-size:14px;color:${a.text};font-weight:500;">$${(i.amount / 100).toFixed(2)}</div>
+            ${i.quantity > 1 ? `<div style="font-size:12px;color:${a.muted};margin-top:3px;">× ${i.quantity}</div>` : ''}
           </td>
         </tr>`;
       }).join('')
-    : '<tr><td colspan="3" style="padding:16px 0;color:rgba(244,241,235,0.62);">Your Zuwera order</td></tr>';
+    : `<tr><td colspan="3" style="padding:16px 0;color:${a.muted};">Your Zuwera order</td></tr>`;
 
   const addrParts = [
     meta.ship_line1,
@@ -811,15 +870,16 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
   ].filter(Boolean);
 
   const addressHtml = addrParts.length ? `
-      <tr><td style="padding:0 0 28px;">
-        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,0.62);font-weight:600;font-family:${a.fontMono};">Ships To</p>
-        <p style="margin:0;font-size:14px;color:rgba(244,241,235,.7);line-height:1.65;">${toName}<br>${addrParts.join('<br>')}</p>
+      <tr><td style="padding:24px 0 4px;">
+        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:${a.muted};font-weight:600;font-family:${a.fontMono};">Ships to</p>
+        <p style="margin:0;font-size:14px;color:${a.text};line-height:1.65;">${toName}<br>${addrParts.join('<br>')}</p>
       </td></tr>` : '';
 
+  const discountColor = a.light ? '#2e7d43' : '#86c98e';
   const discountRow = discountCode && discountCents > 0 ? `
             <tr>
-              <td style="padding:4px 0;font-size:14px;color:rgba(244,241,235,0.62);">Discount (${discountCode})</td>
-              <td style="padding:4px 0;font-size:14px;text-align:right;color:#86c98e;">−$${(discountCents / 100).toFixed(2)}</td>
+              <td style="padding:4px 0;font-size:14px;color:${a.muted};">Discount (${discountCode})</td>
+              <td style="padding:4px 0;font-size:14px;text-align:right;color:${discountColor};">−$${(discountCents / 100).toFixed(2)}</td>
             </tr>` : '';
 
   const shippingDisplay = meta.free_shipping === 'true' ? 'Free' : `$${(shippingCents / 100).toFixed(2)}`;
@@ -833,94 +893,18 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
   })();
 
   const carrierHtml = `
-      <tr><td style="padding:0 0 32px;">
-        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,0.62);font-weight:600;font-family:${a.fontMono};">Delivery</p>
-        <p style="margin:0;font-size:14px;color:rgba(244,241,235,.7);">Ships via ${carrier}</p>
-        <p style="margin:4px 0 0;font-size:14px;color:rgba(244,241,235,0.62);">Estimated delivery: ${etaText}</p>
-        ${tracking.number ? `<p style="margin:6px 0 0;font-size:14px;color:rgba(244,241,235,.7);">Tracking: ${tracking.url ? `<a href="${tracking.url}" style="color:#f4f1eb;text-decoration:underline;">${tracking.number}</a>` : tracking.number}</p>` : ''}
+      <tr><td style="padding:16px 0 8px;">
+        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:${a.muted};font-weight:600;font-family:${a.fontMono};">Delivery</p>
+        <p style="margin:0;font-size:14px;color:${a.text};">Ships via ${carrier}</p>
+        <p style="margin:4px 0 0;font-size:14px;color:${a.muted};">Estimated delivery: ${etaText}</p>
+        ${tracking.number ? `<p style="margin:6px 0 0;font-size:14px;color:${a.text};">Tracking: ${tracking.url ? `<a href="${tracking.url}" style="color:${a.accent};text-decoration:underline;">${tracking.number}</a>` : tracking.number}</p>` : ''}
       </td></tr>`;
 
-  const html = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Order Confirmed – Zuwera</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-</head>
-<body style="margin:0;padding:0;background:#09090b;font-family:${a.fontBody};color:#f4f1eb;">
-  <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-    <tr><td align="center" style="padding:40px 20px 56px;">
-      <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="max-width:100%;width:100%;">
-
-        <!-- Wordmark -->
-        <tr><td style="padding-bottom:32px;">
-          <img src="${logoUrl}" alt="ZUWERA" height="28" style="height:28px;width:auto;max-width:70%;border:0;display:block;" onerror="this.style.display='none'">
-        </td></tr>
-
-        <!-- Confirmation heading -->
-        <tr><td style="border-top:1px solid rgba(244,241,235,.12);padding:28px 0 32px;">
-          <p style="margin:0 0 6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:${a.accent};font-weight:600;font-family:${a.fontMono};">${escE(emailC.kicker)}</p>
-          <h1 style="margin:0 0 10px;font-size:36px;font-weight:700;line-height:1;color:#f4f1eb;font-family:${a.fontHead};letter-spacing:.01em;">${escE(fillTemplate(emailC.heading, { order: orderId }))}</h1>
-          <p style="margin:0;font-size:14px;color:rgba(244,241,235,0.62);line-height:1.6;">${escE(fillTemplate(emailC.intro, { name: toName, order: orderId }))}</p>
-        </td></tr>
-
-        <!-- Items -->
-        <tr><td>
-          <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-            ${itemsHtml}
-          </table>
-        </td></tr>
-
-        <!-- Pricing -->
-        <tr><td style="padding:20px 0 0;">
-          <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-            <tr>
-              <td style="padding:6px 0;font-size:14px;color:rgba(244,241,235,0.62);">Subtotal</td>
-              <td style="padding:6px 0;font-size:14px;text-align:right;color:#f4f1eb;">$${(subtotalCents / 100).toFixed(2)}</td>
-            </tr>
-            ${discountRow}
-            <tr>
-              <td style="padding:6px 0;font-size:14px;color:rgba(244,241,235,0.62);">Shipping</td>
-              <td style="padding:6px 0;font-size:14px;text-align:right;color:#f4f1eb;">${shippingDisplay}</td>
-            </tr>
-            <tr>
-              <td style="padding:6px 0 0;font-size:14px;color:rgba(244,241,235,0.62);">Tax</td>
-              <td style="padding:6px 0 0;font-size:14px;text-align:right;color:#f4f1eb;">$${(taxCents / 100).toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td colspan="2" style="padding:0;"><div style="margin:12px 0;border-top:1px solid rgba(244,241,235,.12);"></div></td>
-            </tr>
-            <tr>
-              <td style="font-size:16px;font-weight:700;color:#f4f1eb;padding-bottom:24px;">Total</td>
-              <td style="font-size:16px;font-weight:700;text-align:right;color:#f4f1eb;padding-bottom:24px;">$${totalDollars}</td>
-            </tr>
-          </table>
-        </td></tr>
-
-        <!-- Shipping address -->
-        ${addressHtml}
-
-        <!-- Carrier / tracking -->
-        ${carrierHtml}
-
-        <!-- Footer -->
-        <tr><td style="padding:32px 0 0;border-top:1px solid rgba(244,241,235,.08);">
-          <p style="margin:0 0 6px;font-size:13px;color:rgba(244,241,235,0.62);">
-            <a href="https://zuwera.store/account" style="color:rgba(244,241,235,.75);text-decoration:underline;">View order status</a>
-            &nbsp;·&nbsp;
-            <a href="https://zuwera.store/returns" style="color:rgba(244,241,235,.75);text-decoration:underline;">30-day free returns</a>
-          </p>
-          <p style="margin:0 0 20px;font-size:13px;color:rgba(244,241,235,0.62);">Questions? <a href="mailto:orders@zuwera.store" style="color:rgba(244,241,235,0.62);text-decoration:underline;">orders@zuwera.store</a></p>
-          <p style="margin:0;font-size:12px;color:rgba(244,241,235,0.62);">© ${new Date().getFullYear()} Zuwera. All rights reserved.</p>
-        </td></tr>
-
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  const html = buildOrderConfirmation({
+    appearance: a, content: emailC, orderId, toName, itemsHtml,
+    subtotalCents, discountRow, shippingDisplay, taxCents, totalDollars,
+    addressHtml, carrierHtml,
+  });
 
   // ── Try Resend first ────────────────────────────────────────────────
   const resendResp = await fetch('https://api.resend.com/emails', {
