@@ -1834,13 +1834,11 @@
       } else if (category === 'hats') {
         document.getElementById('headCircField').style.display = 'block';
       } else if (gender === 'men' || gender === 'women') {
+        // Simplified apparel calculator: just height + weight → recommended size.
+        // (Chest/waist/hips are intentionally left hidden — the recommendation now
+        // comes from height + weight; measurements still appear in the chart below.)
         document.getElementById('heightField').style.display = 'block';
         document.getElementById('weightField').style.display = 'block';
-        document.getElementById('chestField').style.display = 'block';
-        document.getElementById('waistField').style.display = 'block';
-        if (gender === 'women') {
-          document.getElementById('hipsField').style.display = 'block';
-        }
       }
     }
 
@@ -1896,23 +1894,23 @@
         recommendedSize = findHatSize(headCirc);
         explanation = `Best match for ${headCirc}" head circumference`;
       } else {
-        const chest = parseFloat(document.getElementById('calcChest').value);
-        const waist = parseFloat(document.getElementById('calcWaist').value);
-        const hips = gender === 'women' ? parseFloat(document.getElementById('calcHips').value) : null;
+        // Simplified apparel path: height + weight → size.
+        const rawHeight = parseFloat(document.getElementById('calcHeight').value);
+        const rawWeight = parseFloat(document.getElementById('calcWeight').value);
 
-        if (!chest || !waist || (gender === 'women' && !hips)) {
-          resultText.textContent = 'Please enter all measurements.';
+        if (!rawHeight || !rawWeight) {
+          resultText.textContent = 'Please enter your height and weight.';
           result.classList.add('visible');
           return;
         }
 
-        if (gender === 'men') {
-          recommendedSize = findMenSize(chest, waist);
-          explanation = `Based on chest ${chest}" and waist ${waist}"`;
-        } else if (gender === 'women') {
-          recommendedSize = findWomenSize(chest, waist, hips);
-          explanation = `Based on bust ${chest}", waist ${waist}", and hips ${hips}"`;
-        }
+        const heightIn = activeCalcUnit('heightField') === 'cm' ? rawHeight / 2.54 : rawHeight;
+        const weightLbs = activeCalcUnit('weightField') === 'kg' ? rawWeight * 2.2046 : rawWeight;
+
+        recommendedSize = findApparelSizeByHeightWeight(gender, heightIn, weightLbs);
+        const hDisp = activeCalcUnit('heightField') === 'cm' ? `${rawHeight} cm` : `${rawHeight}"`;
+        const wDisp = activeCalcUnit('weightField') === 'kg' ? `${rawWeight} kg` : `${rawWeight} lb`;
+        explanation = `Based on height ${hDisp} and weight ${wDisp}`;
       }
 
       if (recommendedSize) {
@@ -1930,6 +1928,33 @@
         resultText.textContent = 'Could not determine size. Please check your measurements.';
         result.classList.add('visible');
       }
+    }
+
+    // Which unit toggle (IN/CM or LBS/KG) is active for a given calc field.
+    function activeCalcUnit(fieldId) {
+      const btn = document.querySelector(`#${fieldId} .calc-toggle-btn.active`);
+      return btn ? btn.getAttribute('data-unit') : null;
+    }
+
+    // Recommend an apparel size from height + weight. Weight is the primary driver
+    // (it tracks girth, which sizing keys off of); height nudges ±1 size for a
+    // notably tall or short frame. Buckets are deliberately simple and easy to
+    // tune — each entry is [size, upper weight bound in lb].
+    function findApparelSizeByHeightWeight(gender, heightIn, weightLbs) {
+      const scale = gender === 'women'
+        ? [['XXS', 105], ['XS', 120], ['S', 140], ['M', 160], ['L', 185], ['XL', 215], ['2XL', 245], ['3XL', Infinity]]
+        : [['XS', 135], ['S', 155], ['M', 180], ['L', 205], ['XL', 235], ['2XL', 265], ['3XL', Infinity]];
+
+      let idx = scale.findIndex(([, maxW]) => weightLbs <= maxW);
+      if (idx < 0) idx = scale.length - 1;
+
+      // Height nudge for a notably tall/short frame (weight already covers girth,
+      // so only adjust at the extremes to avoid over-sizing average-tall builds).
+      const avgHeight = gender === 'women' ? 65 : 70;
+      if (heightIn >= avgHeight + 5 && idx < scale.length - 1) idx += 1;
+      else if (heightIn <= avgHeight - 5 && idx > 0) idx -= 1;
+
+      return scale[idx][0];
     }
 
     function findMenSize(chest, waist) {
@@ -2307,12 +2332,18 @@
         else label = 'Apparel';
       }
 
+      // Tops/bottoms use the broad category name (matches the size chart below), so
+      // a jacket reads "Tops Size Guide", not "Jacket Size Guide".
+      let finalLabel = singularizeGuideLabel(label);
+      if (calcCategory === 'tops') finalLabel = 'Tops';
+      else if (calcCategory === 'bottoms') finalLabel = 'Bottoms';
+
       return {
         focused,
         gender,
         calcCategory,
         tabId,
-        label: singularizeGuideLabel(label),
+        label: finalLabel,
         hasExplicitGender: Boolean(gender)
       };
     }

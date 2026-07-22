@@ -1245,13 +1245,10 @@ body.super-light-mode { background: #FFFFFF !important; }
 
         <!-- SIZE SELECTION -->
         <div class="size-section">
+          <!-- Size guide is reached from the "View Size Guide" button in the
+               Size & Fit accordion below; no inline link here by design. -->
           <div class="size-header">
             <p class="section-label" id="sizeSectionLabel">Select Size</p>
-            <!-- Find-my-size link (JS updateSizeGuideLink() sets the href + shows/hides
-                 it; syncSizeGuideVisibility() hides it for one-size products). Opens the
-                 size-guide modal in-page, falling back to /sizeguide.html on no-JS. -->
-            <a id="sizeGuideLink" class="size-guide-link" href="/sizeguide.html"
-               onclick="if(window.openSizeGuideModal){window.openSizeGuideModal();return false;}">Find My Size</a>
           </div>
           <div class="size-grid" id="sizeGrid"></div>
           <!-- Back-in-stock capture — shown when a sold-out size is tapped -->
@@ -2677,7 +2674,12 @@ function getSizeGuideContext(product = currentProduct) {
 }
 
 function getSizeGuideModalMeta(context) {
-  const label = singularizeGuideLabel(context?.categoryLabel);
+  let label = singularizeGuideLabel(context?.categoryLabel);
+  // Tops/bottoms use the broad category name so the title matches the size chart
+  // (a jacket reads "Tops Size Guide", not "Jacket Size Guide"). Others keep their
+  // own name (Hat, Sports Bra, Socks).
+  if (context?.calcCategory === 'tops') label = 'Tops';
+  else if (context?.calcCategory === 'bottoms') label = 'Bottoms';
   if (!label || label.toLowerCase() === 'apparel') {
     return {
       kicker: 'Fit Reference',
