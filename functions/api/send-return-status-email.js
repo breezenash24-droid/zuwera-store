@@ -182,7 +182,7 @@ export function buildEmail({ r, status, resolution, fromFirstName, logoUrl, appe
 
       <!-- Header -->
       <tr><td style="padding:24px 36px;text-align:left;background:#09090b;">
-        <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;display:block;border:0"
+        <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;max-width:70%;display:block;border:0"
              onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
         <span style="display:none;font-family:${a.fontHead};font-size:1.5rem;letter-spacing:.12em;color:#f4f1eb;">ZUWERA</span>
       </td></tr>
