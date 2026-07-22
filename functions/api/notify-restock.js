@@ -204,7 +204,11 @@ export async function onRequestPost({ request, env }) {
     const sentIds = [];
     for (const r of pending) {
       try {
-        const html = buildEmail({ productTitle, size: r.size, colorName: r.color_name, url: productUrl, image: imageForColor(r.color_name), appearance, content });
+        // Deep-link the exact variant so SHOP NOW lands on their colour + size.
+        const variantUrl = productUrl
+          + (r.color_name ? `&color=${encodeURIComponent(r.color_name)}` : '')
+          + (r.size ? `&size=${encodeURIComponent(r.size)}` : '');
+        const html = buildEmail({ productTitle, size: r.size, colorName: r.color_name, url: variantUrl, image: imageForColor(r.color_name), appearance, content });
         await sendEmail({
           to: r.email, toName: '', subject: fillTemplate(content.subject, { product: productTitle, size: r.size }),
           html, fromEmail, resendKey, brevoKey, env, cache,

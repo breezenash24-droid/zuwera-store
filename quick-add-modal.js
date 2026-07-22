@@ -29,7 +29,13 @@
       .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'product';
   }
   function qaProductHref(item) {
-    return '/product/' + qaSlug(item.title) + '?id=' + encodeURIComponent(item.productId);
+    var url = '/product/' + qaSlug(item.title) + '?id=' + encodeURIComponent(item.productId);
+    // Carry the chosen variant so the product page opens on the same colour/size.
+    var color = (item && item.selectedColor && item.selectedColor.color_name)
+      || (item && item.preselectColorName) || '';
+    if (color) url += '&color=' + encodeURIComponent(color);
+    if (item && item.selectedSize) url += '&size=' + encodeURIComponent(item.selectedSize);
+    return url;
   }
 
   // ── Modal markup: inject once if the page doesn't already include it ──
@@ -538,6 +544,7 @@
       sizes: [['One Size', 1]],
       selectedColor: null,
       selectedSize: null,
+      preselectColorName: preselectColorName || '',
       weightLb: parseFloat(productWeightLb) || 0.5,
       quantity: 1
     };
