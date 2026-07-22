@@ -37,12 +37,15 @@ async function sbSelect(env, key, path) {
 }
 
 // Same provider ladder as send-return-status-email.js: Resend → Brevo → Loops.
+// A unique X-Entity-Ref-ID makes Gmail treat each send as its own conversation
+// instead of threading identical "Back in stock: …" subjects together.
 async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brevoKey, env, cache }) {
+  const refId = (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : `zw-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   if (resendKey) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [to], reply_to: 'orders@zuwera.store', subject, html }),
+      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [to], reply_to: 'orders@zuwera.store', subject, html, headers: { 'X-Entity-Ref-ID': refId } }),
     });
     if (r.ok) return { provider: 'resend' };
   }
@@ -55,6 +58,7 @@ async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brev
         to: [{ email: to, name: toName || '' }],
         replyTo: { email: 'orders@zuwera.store' },
         subject, htmlContent: html,
+        headers: { 'X-Entity-Ref-ID': refId },
       }),
     });
     if (r.ok) return { provider: 'brevo' };
