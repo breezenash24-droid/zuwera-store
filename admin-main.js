@@ -4846,6 +4846,7 @@
         };
 
         /* Back-in-stock demand summary — grouped counts per product/size. */
+        let _restockDemandProductIds = [];
         async function loadRestockDemand() {
             try {
                 const { data, error } = await sb.from('restock_requests')
@@ -4854,7 +4855,8 @@
                 const box = document.getElementById('restock-demand');
                 const list = document.getElementById('restock-demand-list');
                 if (!box || !list) return;
-                if (error || !data || !data.length) { box.style.display = 'none'; return; }
+                if (error || !data || !data.length) { _restockDemandProductIds = []; box.style.display = 'none'; return; }
+                _restockDemandProductIds = [...new Set(data.map(r => r.product_id).filter(Boolean))];
                 const groups = {};
                 data.forEach(r => {
                     const key = `${r.products?.title || r.product_id} · ${r.size}${r.color_name ? ' · ' + r.color_name : ''}`;
@@ -4871,6 +4873,46 @@
                 box.style.display = '';
             } catch (_) {}
         }
+
+        /* Manually process the waitlist: calls notify-restock for each product with
+           pending demand. It emails everyone whose size+colour is back in stock and
+           deletes those requests (leaving genuinely still-waiting ones), so the list
+           reflects reality. Idempotent — safe to click anytime. */
+        window.processRestockDemand = async function () {
+            const btn = document.getElementById('restock-notify-btn');
+            const msg = document.getElementById('restock-demand-msg');
+            const ids = Array.isArray(_restockDemandProductIds) ? _restockDemandProductIds.slice() : [];
+            if (!ids.length) return;
+            if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+            if (msg) { msg.style.color = 'var(--text-secondary)'; msg.textContent = 'Checking the waitlist…'; }
+            let notified = 0;
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const at = session && session.access_token;
+                if (!at) throw new Error('Not signed in.');
+                for (const pid of ids) {
+                    try {
+                        const res = await fetch('/api/notify-restock', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ productId: pid, accessToken: at }),
+                        }).then(r => r.json());
+                        if (res && typeof res.notified === 'number') notified += res.notified;
+                    } catch (_) {}
+                }
+                if (msg) {
+                    msg.style.color = notified > 0 ? 'var(--success,#22c55e)' : 'var(--text-secondary)';
+                    msg.textContent = notified > 0
+                        ? `Emailed ${notified} customer${notified === 1 ? '' : 's'} and cleared them. Anyone still shown is waiting on a size that isn't back yet.`
+                        : 'Nobody is fulfillable right now — those sizes are still sold out. Restock the size, then try again.';
+                }
+                await loadRestockDemand();
+            } catch (e) {
+                if (msg) { msg.style.color = 'var(--error,#ef4444)'; msg.textContent = (e && e.message) || 'Could not process the waitlist.'; }
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = '✉ Notify waitlist now'; }
+            }
+        };
 
         async function loadProducts() {
             loadRestockDemand();

@@ -864,8 +864,12 @@
                     </div>
                     <!-- Back-in-stock demand (from sold-out size notify signups) -->
                     <div id="restock-demand" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 20px;margin-bottom:20px;">
-                        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;letter-spacing:.08em;margin-bottom:10px;">📬 Restock Demand</div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+                            <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;letter-spacing:.08em;">📬 Restock Demand</div>
+                            <button type="button" id="restock-notify-btn" class="btn btn-secondary" style="font-size:.72rem;padding:6px 14px;" onclick="processRestockDemand()">✉ Notify waitlist now</button>
+                        </div>
                         <div id="restock-demand-list" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+                        <p id="restock-demand-msg" style="font-size:.75rem;color:var(--text-secondary);margin:10px 0 0;min-height:1rem;"></p>
                     </div>
                     <div class="search-filter">
                         <input type="text" id="productSearch" placeholder="Search by SKU, title, or colorway...">
