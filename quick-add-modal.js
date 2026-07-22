@@ -47,6 +47,14 @@
             '<div class="quick-add-product-meta"><span id="quick-add-review-price">$0.00</span><span id="quick-add-review-sku">-</span></div>' +
             '<div class="quick-add-option-block"><div class="quick-add-option-head"><span>Color</span><strong id="quick-add-review-color">Standard</strong></div><div class="quick-add-option-grid quick-add-colors" id="quick-add-review-colors"></div></div>' +
             '<div class="quick-add-option-block"><div class="quick-add-option-head"><span>Size</span><strong id="quick-add-review-size">Choose size</strong></div><div class="quick-add-option-grid quick-add-sizes" id="quick-add-review-sizes"></div></div>' +
+            '<div class="quick-add-restock" id="quick-add-restock" style="display:none;margin:0 0 14px;padding:14px 16px;border:1px solid rgba(128,128,128,.28);border-radius:6px;background:rgba(128,128,128,.06)">' +
+              '<p id="quick-add-restock-label" style="margin:0 0 10px;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;opacity:.85"></p>' +
+              '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+                '<input type="email" id="quick-add-restock-email" placeholder="you@email.com" autocomplete="email" style="flex:1;min-width:170px;background:rgba(128,128,128,.08);border:1px solid rgba(128,128,128,.3);color:inherit;font:inherit;font-size:.95rem;padding:.6rem .7rem;border-radius:4px;outline:none;box-sizing:border-box">' +
+                '<button type="button" id="quick-add-restock-submit" style="background:var(--zw-ink,#09090b);color:var(--zw-page,#f4f1eb);border:none;border-radius:4px;padding:.6rem 1.3rem;font:inherit;font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap">Notify Me</button>' +
+              '</div>' +
+              '<p id="quick-add-restock-msg" style="margin:.6rem 0 0;font-size:.82rem;min-height:1rem"></p>' +
+            '</div>' +
             '<p class="quick-add-review-message" id="quick-add-review-message">Choose your options.</p>' +
             '<div class="quick-add-review-actions">' +
               '<button type="button" class="quick-add-review-confirm" id="quick-add-review-confirm">Add to Bag</button>' +
@@ -65,7 +73,69 @@
     wrap.innerHTML = MODAL_HTML;
     el = wrap.firstChild;
     document.body.appendChild(el);
+    // Back-in-stock capture (created once): submit on click or Enter.
+    var rbtn = el.querySelector('#quick-add-restock-submit');
+    if (rbtn) rbtn.addEventListener('click', quickAddSubmitRestock);
+    var remail = el.querySelector('#quick-add-restock-email');
+    if (remail) remail.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); quickAddSubmitRestock(); } });
     return el;
+  }
+
+  // ── Back-in-stock capture (mirrors the product page) ──────────────────────
+  function quickAddOpenRestock(item, size) {
+    // Respect the feature flag — permissive: only an explicit false hides it.
+    try { var f = window.__zwFlags && window.__zwFlags.feature_back_in_stock; if (f && f.enabled === false) return; } catch (e) {}
+    var panel = document.getElementById('quick-add-restock');
+    var label = document.getElementById('quick-add-restock-label');
+    var email = document.getElementById('quick-add-restock-email');
+    var msg = document.getElementById('quick-add-restock-msg');
+    if (!panel) return;
+    panel.dataset.size = size;
+    panel.dataset.productId = item.productId || '';
+    panel.dataset.color = (item.selectedColor && item.selectedColor.color_name) || '';
+    if (label) label.textContent = 'Size ' + size + " is sold out — get notified when it's back";
+    if (msg) { msg.textContent = ''; msg.style.color = ''; }
+    if (email && !email.value.trim()) {
+      try {
+        var u = window.__zwSessionUser;
+        if (u && u.email) email.value = u.email;
+        else if (window.sb) window.sb.auth.getSession().then(function (r) {
+          var e = r && r.data && r.data.session && r.data.session.user && r.data.session.user.email;
+          if (e && email && !email.value.trim()) email.value = e;
+        }).catch(function () {});
+      } catch (e2) {}
+    }
+    panel.style.display = 'block';
+    if (email) { try { email.focus({ preventScroll: true }); } catch (e3) { email.focus(); } }
+  }
+  function quickAddHideRestock() {
+    var panel = document.getElementById('quick-add-restock');
+    if (panel) panel.style.display = 'none';
+  }
+  async function quickAddSubmitRestock() {
+    var panel = document.getElementById('quick-add-restock');
+    var email = document.getElementById('quick-add-restock-email');
+    var msg = document.getElementById('quick-add-restock-msg');
+    var btn = document.getElementById('quick-add-restock-submit');
+    if (!panel) return;
+    var val = ((email && email.value) || '').trim();
+    var size = panel.dataset.size;
+    var productId = panel.dataset.productId;
+    var color = panel.dataset.color || null;
+    if (!size || !productId) return;
+    if (!val || val.indexOf('@') < 0) { if (msg) { msg.textContent = 'Enter a valid email.'; msg.style.color = 'var(--red,#dc2626)'; } return; }
+    if (!window.sb) { if (msg) { msg.textContent = 'Please use the full product page to sign up.'; msg.style.color = 'var(--red,#dc2626)'; } return; }
+    if (btn) { btn.disabled = true; btn.textContent = '…'; }
+    try {
+      var res = await window.sb.from('restock_requests').insert({ product_id: productId, size: size, color_name: color, email: val });
+      if (res.error) {
+        if (String(res.error.code) === '23505') { if (msg) { msg.textContent = "You're already on the list for this size."; msg.style.color = ''; } }
+        else throw res.error;
+      } else if (msg) { msg.textContent = "✓ We'll email you when " + size + ' is back.'; msg.style.color = 'rgba(110,210,130,.95)'; }
+    } catch (e) {
+      if (msg) { msg.textContent = (e && e.message) || 'Could not save that — try again.'; msg.style.color = 'var(--red,#dc2626)'; }
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Notify Me'; }
   }
 
   var _quickAddReviewItem = null;
@@ -130,7 +200,8 @@
       var forSize = rows.filter(function (r) { return r && r.size === size; });
       var use;
       if (colorName) {
-        var c = forSize.filter(function (r) { return r.color_name === colorName; });
+        var _nc = String(colorName).trim().toLowerCase();
+        var c = forSize.filter(function (r) { return String(r.color_name || '').trim().toLowerCase() === _nc; });
         var n = forSize.filter(function (r) { return !r.color_name; });
         use = c.length ? c : (n.length ? n : []);
       } else {
@@ -272,6 +343,7 @@
   function quickAddRenderOptions(item) {
     // Per-colour sizes: ensure a colour is chosen, then (re)compute size availability
     // for it. Recomputed each render, so switching colour updates the sold-out states.
+    quickAddHideRestock();  // reset the back-in-stock capture on every re-render (colour/size change)
     if (!item.selectedColor && Array.isArray(item.colors) && item.colors.length) item.selectedColor = item.colors[0];
     if (Array.isArray(item.sizeRows)) {
       item.sizes = quickAddSizeEntries(item.sizeRows, (item.selectedColor && item.selectedColor.color_name) || null);
@@ -320,10 +392,16 @@
         var size = pair[0], stock = pair[1];
         var soldOut = Number(stock) <= 0;
         var active = selectedSize === size ? ' active' : '';
-        return '<button type="button" class="quick-add-size' + active + (soldOut ? ' sold-out' : '') + '" data-size="' + quickAddEscapeAttr(size) + '" ' + (soldOut ? 'disabled' : '') + '>' + quickAddEscapeAttr(size) + (soldOut ? ' - Sold Out' : '') + '</button>';
+        // Sold-out sizes stay clickable (no `disabled`) so they open the
+        // back-in-stock capture instead of being a dead end.
+        return '<button type="button" class="quick-add-size' + active + (soldOut ? ' sold-out' : '') + '" data-size="' + quickAddEscapeAttr(size) + '"' + (soldOut ? ' data-soldout="1" aria-label="' + quickAddEscapeAttr(size) + ' sold out — get notified"' : '') + '>' + quickAddEscapeAttr(size) + (soldOut ? ' - Sold Out' : '') + '</button>';
       }).join('') || '<p class="quick-add-empty-option">One Size</p>';
-      sizeWrap.querySelectorAll('.quick-add-size:not(.sold-out)').forEach(function (button) {
-        button.addEventListener('click', function () { item.selectedSize = button.dataset.size || 'One Size'; quickAddRenderOptions(item); });
+      sizeWrap.querySelectorAll('.quick-add-size').forEach(function (button) {
+        button.addEventListener('click', function () {
+          if (button.dataset.soldout) { quickAddOpenRestock(item, button.dataset.size || 'One Size'); return; }
+          item.selectedSize = button.dataset.size || 'One Size';
+          quickAddRenderOptions(item);
+        });
       });
     }
 
