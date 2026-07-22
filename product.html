@@ -1887,6 +1887,9 @@ let currentProduct = null;
 let selectedSize = null;
 let selectedColor = null;
 let selectedColorSku = null;
+// Deep-link a specific variant (e.g. from a back-in-stock email): ?color=&size=
+let _pendingColor = null;
+let _pendingSize = null;
 let cartCount = 0;
 let currentImageIndex = 0;
 let currentUser = null;
@@ -2354,6 +2357,9 @@ async function loadProduct() {
   const productId = params.get('id');
   const sku = params.get('sku');
   let slug = params.get('slug');
+  // Variant deep-link — preselect this colour/size once the product renders.
+  if (params.get('color')) _pendingColor = params.get('color');
+  if (params.get('size')) _pendingSize = params.get('size');
 
   // Fallback: extract slug from pathname for clean URLs (e.g. /product/vogue)
   if (!productId && !sku && !slug) {
@@ -2416,6 +2422,9 @@ async function loadProduct() {
   const resolvedParams = new URLSearchParams();
   resolvedParams.set('id', productData.id);
   if (productData.sku) resolvedParams.set('sku', productData.sku);
+  // Keep the variant deep-link in the canonical URL so it survives + is shareable.
+  if (_pendingColor) resolvedParams.set('color', _pendingColor);
+  if (_pendingSize) resolvedParams.set('size', _pendingSize);
   const resolvedPath = resolvedSlug ? `/product/${resolvedSlug}` : '/product';
   const resolvedUrl = `${resolvedPath}?${resolvedParams.toString()}`;
   if (`${window.location.pathname}${window.location.search}` !== resolvedUrl) {
@@ -3168,15 +3177,24 @@ function renderColors() {
     return;
   }
 
+  // Prefer a deep-linked colour (?color= from an email/share) over the first swatch.
+  let _initColorIdx = 0;
+  if (_pendingColor) {
+    const _nc = String(_pendingColor).trim().toLowerCase();
+    const _fi = currentProduct.colors.findIndex(c => String(c.color_name || '').trim().toLowerCase() === _nc);
+    if (_fi >= 0) _initColorIdx = _fi;
+  }
+
   currentProduct.colors.forEach((color, idx) => {
     const swatch = document.createElement('button');
     swatch.className = 'color-swatch';
-    if (idx === 0) {
+    if (idx === _initColorIdx) {
       swatch.classList.add('active');
       selectedColor = color;
       selectedColorSku = color.variant_sku;
+      setSelectedColorLabel(color);
       // If images already loaded (colors resolved after images in the parallel fetch race),
-      // re-filter now so the first color's gallery shows immediately without needing a click.
+      // re-filter now so the selected color's gallery shows immediately without needing a click.
       if (currentProduct.allImages) {
         currentProduct.images = getImagesForColor(color.id);
         currentImageIndex = 0;
@@ -3298,9 +3316,18 @@ function renderSizes() {
     sizeGrid.appendChild(btn);
   });
 
-  const preferredSize = oneSizeOnly
-    ? sizes[0]
-    : (previousSelectedSize && sizes.includes(previousSelectedSize) ? previousSelectedSize : null);
+  // A deep-linked size (?size=) wins on first render — consumed once so switching
+  // colour afterwards doesn't keep forcing it. Canonicalized so 2XL/XXL match.
+  let _pendingSizeMatch = null;
+  if (_pendingSize) {
+    const _ps = canonicalizeProductSizeToken(_pendingSize);
+    _pendingSizeMatch = sizes.find((s) => canonicalizeProductSizeToken(s) === _ps) || null;
+    _pendingSize = null;
+  }
+  const preferredSize = _pendingSizeMatch
+    || (oneSizeOnly
+      ? sizes[0]
+      : (previousSelectedSize && sizes.includes(previousSelectedSize) ? previousSelectedSize : null));
 
   if (preferredSize) {
     const preferredButton = Array.from(sizeGrid.querySelectorAll('.size-btn'))
