@@ -795,6 +795,10 @@ body.super-light-mode #zw-lang-box{
     width:calc(50% - 1.2rem);
     vertical-align:top;
     box-sizing:border-box;
+    /* The generic `.review-form-row + .review-form-row{margin-top:1rem}` rule
+       adds a top margin to the 2nd (comfort) box but not the 1st (fit) box, so
+       side-by-side they sit ~1rem out of line. Zero it so both tops align. */
+    margin-top:0;
   }
   #review-modal .review-advanced-legacy > .review-form-row:first-child{
     margin-right:2rem;
@@ -803,6 +807,7 @@ body.super-light-mode #zw-lang-box{
     display:block;
     width:100%;
     margin-right:0;
+    margin-top:1.4rem;   /* re-separate the full-width recommend row from the sliders */
   }
 }
 
