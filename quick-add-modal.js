@@ -67,7 +67,7 @@
       '<p id="quick-add-restock-label" style="font-family:var(--fm);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem;opacity:.85"></p>' +
       '<div style="display:flex;gap:.5rem">' +
         '<input type="email" id="quick-add-restock-email" placeholder="you@example.com" autocomplete="email" style="flex:1;min-width:0;background:rgba(244,241,235,.04);border:1px solid rgba(244,241,235,.18);color:inherit;padding:.6rem .75rem;font-family:var(--fb);font-size:max(16px,.85rem);outline:none">' +
-        '<button type="button" id="quick-add-restock-submit" style="background:var(--white,#f4f1eb);color:var(--black,#09090b);border:none;padding:.6rem 1rem;font-family:var(--fm);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;cursor:pointer;white-space:nowrap">Notify Me</button>' +
+        '<button type="button" id="quick-add-restock-submit" style="background:#09090b;color:#f4f1eb;border:none;padding:.6rem 1rem;font-family:var(--fm);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;cursor:pointer;white-space:nowrap">Notify Me</button>' +
       '</div>' +
       '<p id="quick-add-restock-msg" style="font-family:var(--fm);font-size:.62rem;margin-top:.5rem;min-height:.9rem;letter-spacing:.04em"></p>' +
     '</div>';
