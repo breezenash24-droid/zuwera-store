@@ -12,7 +12,7 @@ import { cors, json, verifyAdmin } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { loopsFallback } from './_email.js';
 import { logEmail } from './_email-log.js';
-import { getEmailAppearance } from './_email-theme.js';
+import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
 const SITE = 'https://zuwera.store';
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
@@ -61,24 +61,21 @@ export function buildJournalEmail({ post, label, logoUrl, unsubUrl, appearance }
     ? new Date(post.published_at || post.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     : '';
   const cover = post.cover_image
-    ? `<tr><td style="padding:0 0 26px"><img src="${esc(post.cover_image)}" alt="" width="520" style="width:100%;max-width:520px;border-radius:6px;display:block"></td></tr>` : '';
-  const logoStyle = `max-width:128px;${a.invertLogo ? 'filter:invert(1);' : ''}`;
-  return `<!doctype html><html><body style="margin:0;background:${a.bg};font-family:${a.fontBody};color:${a.text}">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${a.bg}"><tr><td align="center" style="padding:36px 16px">
-      <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%">
-        <tr><td align="center" style="padding:0 0 28px"><img src="${esc(logoUrl)}" alt="ZUWERA" width="128" style="${logoStyle}"></td></tr>
-        <tr><td align="center" style="font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:${a.accent};font-family:${a.fontMono};padding:0 0 14px">${esc(label || 'The Journal')}</td></tr>
-        ${cover}
-        <tr><td style="font-size:30px;line-height:1.05;font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:.01em;font-family:${a.fontHead};color:${a.text};padding:0 0 8px">${esc(post.title)}</td></tr>
-        ${date ? `<tr><td style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${a.muted};font-family:${a.fontMono};padding:0 0 26px">${esc(date)}</td></tr>` : '<tr><td style="height:18px"></td></tr>'}
-        <tr><td style="padding:0 0 8px">${bodyToParagraphs(post.body, a)}</td></tr>
-        <tr><td align="left" style="padding:16px 0 34px"><a href="${esc(url)}" style="display:inline-block;background:${a.accent};color:#09090b;text-decoration:none;font-weight:700;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-family:${a.fontMono};padding:14px 34px;border-radius:3px">Read on the site</a></td></tr>
-        <tr><td style="font-size:11px;color:${a.muted};line-height:1.7;text-align:center;border-top:1px solid ${a.border};padding:20px 0 0">
-          You're receiving this because you subscribed to the Zuwera journal.<br>
-          <a href="${esc(unsubUrl)}" style="color:${a.muted};text-decoration:underline">Unsubscribe</a>
-        </td></tr>
-      </table>
-    </td></tr></table></body></html>`;
+    ? `<img src="${esc(post.cover_image)}" alt="" width="424" style="width:100%;max-width:424px;border-radius:6px;display:block;margin:0 0 22px">` : '';
+  const body = `
+    ${cover}
+    ${date ? `<p style="margin:0 0 20px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${a.muted};font-family:${a.fontMono};">${esc(date)}</p>` : ''}
+    ${bodyToParagraphs(post.body, a)}
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:14px 0 4px;"><tr><td align="left">
+      <a href="${esc(url)}" style="display:inline-block;background:${a.accent};color:#0b0b0d;text-decoration:none;font-weight:700;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-family:${a.fontMono};padding:14px 34px;border-radius:4px">Read on the site</a>
+    </td></tr></table>`;
+  return renderEmailShell(a, {
+    kicker:  label || 'The Journal',
+    heading: post.title,
+    intro:   '',
+    bodyHtml: body,
+    footerHtml: `You're receiving this because you subscribed to the Zuwera journal.<br><a href="${esc(unsubUrl)}" style="color:${a.muted};text-decoration:underline">Unsubscribe</a>`,
+  });
 }
 
 export async function onRequestOptions({ env }) {

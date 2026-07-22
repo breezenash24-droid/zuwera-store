@@ -2542,6 +2542,14 @@
                                 <label class="form-label">Email background</label>
                                 <select id="em-theme" class="form-input" style="max-width:220px;display:block"><option value="dark">Dark</option><option value="light">Light</option></select>
                             </div>
+                            <div class="form-group">
+                                <label class="form-label">Logo size</label>
+                                <div style="display:flex;align-items:center;gap:12px;max-width:340px">
+                                    <input type="range" id="em-logo-height" min="14" max="90" step="1" value="30" style="flex:1" oninput="emLogoHeightChanged()">
+                                    <span id="em-logo-height-val" style="min-width:52px;font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--text-secondary)">30px</span>
+                                </div>
+                                <p style="font-size:.76rem;color:var(--text-secondary);margin-top:6px;opacity:.85">Height of the logo at the top of every email. Drag to preview live; click <strong>Save emails</strong> to keep it.</p>
+                            </div>
                             <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
                             <div class="form-group">
                                 <label class="form-label">Edit which email</label>
@@ -2579,12 +2587,15 @@
                                 <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;letter-spacing:.06em;">Preview</div>
                                 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
                                     <select id="em-preview-type" class="form-input" style="max-width:220px;display:block" onchange="loadEmailPreview()">
+                                        <option value="order_confirmation">Order confirmation</option>
+                                        <option value="shipped">Order shipped</option>
+                                        <option value="delivered">Order delivered</option>
                                         <option value="back_in_stock">Back in stock</option>
                                         <option value="review_request">Review request</option>
                                         <option value="abandoned_cart">Abandoned cart</option>
-                                        <option value="shipped">Order shipped</option>
-                                        <option value="delivered">Order delivered</option>
                                         <option value="return_status">Return status</option>
+                                        <option value="return_label">Return label</option>
+                                        <option value="refund">Refund</option>
                                         <option value="journal">Journal</option>
                                     </select>
                                     <button type="button" class="btn btn-secondary" style="font-size:.72rem;padding:6px 14px" onclick="loadEmailPreview()">↻ Refresh</button>
