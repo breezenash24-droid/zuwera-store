@@ -127,7 +127,13 @@ export async function onRequestPost({ request, env }) {
     //    so we must match colour too — not just size — or we'd notify/clear a
     //    waitlist entry for the wrong colourway.
     const normC = (c) => String(c == null ? '' : c).trim().toLowerCase();
-    const normS = (s) => String(s == null ? '' : s).trim().toLowerCase();
+    // Canonicalize sizes so a waitlist "XXL" matches an inventory "2XL" (the
+    // storefront/waitlist use display labels; product_sizes may store 2XL/3XL).
+    const SIZE_ALIASES = { xxxxs: '4xs', xxxs: '3xs', xxs: '2xs', xxxxl: '4xl', xxxl: '3xl', xxl: '2xl' };
+    const normS = (s) => {
+      const c = String(s == null ? '' : s).trim().toLowerCase().replace(/\s+/g, '');
+      return SIZE_ALIASES[c] || c;
+    };
     const sizeRows = await sbSelect(env, key, `product_sizes?select=size,color_name,stock_quantity&product_id=eq.${pid}`);
     const stocked = (sizeRows || []).filter((s) => (Number(s.stock_quantity) || 0) > 0);
     if (!stocked.length) return json({ ok: true, notified: 0, note: 'No sizes in stock' }, 200, cors(env));
