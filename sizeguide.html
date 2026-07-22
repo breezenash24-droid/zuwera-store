@@ -312,6 +312,10 @@
        visible. Force them hidden. */
     .calc-field[hidden] { display: none !important; }
     .calc-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
       font-size: 0.75rem;
       letter-spacing: 0.12em;
       text-transform: uppercase;
@@ -350,8 +354,9 @@
     }
     .calc-toggles {
       display: flex;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
+      gap: 0.4rem;
+      margin-top: 0;
+      flex: 0 0 auto;
     }
     .calc-toggle-btn {
       background: none;
@@ -444,11 +449,15 @@
     /* In the product-page modal the calculator is the whole focus: contain it to a
        tidy centred column (instead of a wide, sparse panel), pair Height + Weight
        as two even columns, and let the CTA span the full width. */
+    /* In the product modal the modal chrome is the frame, so drop the nested grey
+       panel and centre a tidy column — same clean, compact feel as the product
+       page's Find My Size sheet. */
     body.embed-focused .calculator {
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-      padding: 2.25rem;
+      max-width: 560px;
+      margin: 0 auto 2.25rem;
+      padding: 0;
+      background: transparent;
+      border: none;
       text-align: center;
     }
     body.embed-focused .calc-title,
@@ -456,13 +465,19 @@
       max-width: none;
     }
     body.embed-focused .calc-subtitle { margin-left: auto; margin-right: auto; }
+    /* Height + Weight stay two-up (with inline unit toggles) at every width, so the
+       calculator never sprawls into a tall single column on mobile. */
     body.embed-focused .calc-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
       text-align: left;
     }
     body.embed-focused .calc-button { width: 100%; }
-    @media (max-width: 560px) {
-      body.embed-focused .calc-grid { grid-template-columns: 1fr; }
+    @media (max-width: 600px) {
+      body.embed-focused .calc-title { font-size: 1.4rem; }
+      body.embed-focused .calc-subtitle { margin-bottom: 1.3rem; }
+      body.embed-focused .calc-grid { gap: 0.7rem; }
+      body.embed-focused .calc-input { padding: 0.7rem 0.75rem; }
     }
 
     /* ------ CATEGORY TABS ------ */
