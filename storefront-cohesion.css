@@ -1192,13 +1192,13 @@ body.light-mode .heart-btn{
     display:flex !important;
   }
 
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal){
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(#find-size-modal){
     align-items:stretch !important;
     justify-content:flex-end !important;
     padding:0 !important;
   }
 
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal) > :is(.mbox,.collection-review-box,.pbox,.review-mbox,.review-list-mbox){
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(#find-size-modal) > :is(.mbox,.collection-review-box,.pbox,.review-mbox,.review-list-mbox){
     width:100% !important;
     max-width:100% !important;
     min-height:100dvh !important;
@@ -1213,10 +1213,10 @@ body.light-mode .heart-btn{
   /* Native-feel bottom sheet: the full-screen mobile modal slides up from the
      bottom edge (and back down on close) instead of a small nudge + scale.
      The shared box transition above carries the transform in both directions. */
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(#find-size-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
     transition:transform .35s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)), opacity .2s ease !important;
     }
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(.open) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(#find-size-modal):not(.open) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
     transform:translateY(100%) !important;
     opacity:1 !important;
     }

@@ -425,10 +425,12 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
 .fs-result-text{ font-size:.78rem; line-height:1.5; color:var(--c65); max-width:34ch; margin:0 auto; }
 .fs-full-link{ display:block; text-align:center; margin-top:1.2rem; font-family:var(--fm); font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:var(--c65); text-decoration:none; transition:color .2s; }
 .fs-full-link:hover{ color:var(--white); text-decoration:underline; }
+/* Mobile bottom-sheet is handled by the SHARED rule in storefront-cohesion.css
+   (rounded top, slides up, --zw-sheet-max) at ≤900px — the same treatment the
+   auth / size-guide / review modals get, now that #find-size-modal is excluded
+   from the older full-screen block. Only tweak what the shared rule doesn't. */
 @media(max-width:600px){
-  #find-size-modal{ align-items:flex-end; }
-  #find-size-modal .mbox.fs-box{ width:100vw; max-width:100vw; max-height:var(--zw-sheet-max); overflow-y:auto; border-radius:var(--zw-radius-modal,2px) var(--zw-radius-modal,2px) 0 0; border-left:none; border-right:none; border-bottom:none; padding:1.4rem 1.3rem 2.2rem; }
-  #find-size-modal .mbox.fs-box::before{ content:''; display:block; width:38px; height:4px; border-radius:2px; background:rgba(128,128,128,.4); background:color-mix(in srgb, var(--white) 24%, transparent); margin:.1rem auto 1.3rem; }
+  #find-size-modal .mbox.fs-box{ padding:1.6rem 1.3rem 2.2rem; }
   .fs-title{ font-size:1.5rem; }
 }
 @keyframes modalIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
