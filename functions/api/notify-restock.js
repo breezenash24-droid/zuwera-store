@@ -123,16 +123,30 @@ export async function onRequestPost({ request, env }) {
 
     const pid = encodeURIComponent(productId);
 
-    // 1. Which sizes are back in stock now?
-    const sizeRows = await sbSelect(env, key, `product_sizes?select=size,stock_quantity&product_id=eq.${pid}`);
-    const inStock = new Set((sizeRows || [])
-      .filter((s) => (Number(s.stock_quantity) || 0) > 0)
-      .map((s) => String(s.size)));
-    if (!inStock.size) return json({ ok: true, notified: 0, note: 'No sizes in stock' }, 200, cors(env));
+    // 1. Which (size, colour) combos are back in stock now? Stock is per-colour,
+    //    so we must match colour too — not just size — or we'd notify/clear a
+    //    waitlist entry for the wrong colourway.
+    const normC = (c) => String(c == null ? '' : c).trim().toLowerCase();
+    const normS = (s) => String(s == null ? '' : s).trim().toLowerCase();
+    const sizeRows = await sbSelect(env, key, `product_sizes?select=size,color_name,stock_quantity&product_id=eq.${pid}`);
+    const stocked = (sizeRows || []).filter((s) => (Number(s.stock_quantity) || 0) > 0);
+    if (!stocked.length) return json({ ok: true, notified: 0, note: 'No sizes in stock' }, 200, cors(env));
+    // A request is fulfilled when there's stock for its size AND colour. Legacy
+    // rows with no colour (colour-agnostic stock) satisfy any colour; a request
+    // with no colour is satisfied by any in-stock row of that size.
+    const hasStock = (reqSize, reqColor) => {
+      const rs = normS(reqSize);
+      return stocked.some((row) => {
+        if (normS(row.size) !== rs) return false;
+        if (!row.color_name) return true;   // colour-agnostic stock
+        if (!reqColor) return true;         // colourless request
+        return normC(row.color_name) === normC(reqColor);
+      });
+    };
 
-    // 2. Pending waitlist requests for those sizes.
+    // 2. Pending waitlist requests that are now fulfillable.
     const reqRows = await sbSelect(env, key, `restock_requests?select=id,email,size,color_name&product_id=eq.${pid}`);
-    const pending = (reqRows || []).filter((r) => r.email && inStock.has(String(r.size)));
+    const pending = (reqRows || []).filter((r) => r.email && hasStock(r.size, r.color_name));
     if (!pending.length) return json({ ok: true, notified: 0 }, 200, cors(env));
 
     // 3. Product + email config.

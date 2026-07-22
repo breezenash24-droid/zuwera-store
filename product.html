@@ -3230,7 +3230,10 @@ function sizeStockForColor(sizeLabel, colorName) {
   if (!rows.length) return 0;
   const sum = list => list.reduce((s, r) => s + (r?.stock_quantity || 0), 0);
   if (colorName) {
-    const colorRows = rows.filter(r => r.color_name === colorName);
+    // Normalize colour (trim + lowercase) so a case/whitespace difference between
+    // the product_sizes row and the colour swatch doesn't read as "sold out".
+    const nc = String(colorName).trim().toLowerCase();
+    const colorRows = rows.filter(r => String(r.color_name || '').trim().toLowerCase() === nc);
     if (colorRows.length) return sum(colorRows);
     const nullRows = rows.filter(r => !r.color_name);
     return nullRows.length ? sum(nullRows) : 0;
