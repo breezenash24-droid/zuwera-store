@@ -389,7 +389,8 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
 /* Reset the trigger <button> so it reads as the old size-guide text link. */
 .size-header button.size-guide-link{ background:none; border-top:0; border-left:0; border-right:0; cursor:pointer; font-family:var(--fb); }
 #find-size-modal{ z-index:720; }
-.mbox.fs-box{ width:min(440px,94vw); box-shadow:0 24px 64px -24px rgba(0,0,0,.45); text-align:center; }
+.mbox.fs-box{ width:min(440px,94vw); box-shadow:0 24px 64px -24px rgba(0,0,0,.45); }
+.fs-copy{ margin-bottom:1.5rem; }
 /* A generic `body.light-mode .mbox button[type="button"]{color:…!important}` rule
    (for muted secondary buttons) forces dark text onto our FILLED buttons, hiding
    it on their dark fill. Restore proper contrast — id specificity + !important. */
@@ -397,7 +398,8 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
 #find-size-modal .fs-unit.active { color: var(--black) !important; }
 #find-size-modal .fs-unit { color: var(--c65) !important; }
 #find-size-modal .fs-unit:hover:not(.active) { color: var(--white) !important; }
-/* Centered header, left-aligned fields — mirrors the full size guide's calculator. */
+/* Left-aligned header (shared .review-modal-eyebrow/title/copy) + fields, matching
+   the size-guide / size & fit modals. The result reveal + link stay centred. */
 #find-size-modal .fs-grid { text-align:left; }
 #find-size-modal .fs-input { text-align:left; }
 .fs-kicker{ font-family:var(--fm); font-size:.58rem; letter-spacing:.24em; text-transform:uppercase; color:var(--zw-accent,#F891A5); margin:0 0 .5rem; }
@@ -1517,9 +1519,9 @@ body.super-light-mode { background: #FFFFFF !important; }
      onclick="if(event.target===this) closeFindSizeModal()">
   <div class="mbox fs-box">
     <button class="mclose" id="fs-close" type="button" aria-label="Close" onclick="closeFindSizeModal()">&#215;</button>
-    <p class="fs-kicker">Fit Reference</p>
-    <h2 class="fs-title" id="fs-title">Find My Size</h2>
-    <p class="fs-subtitle">Enter your height and weight for a recommended starting size.</p>
+    <p class="review-modal-eyebrow">Fit Reference</p>
+    <h2 class="review-modal-title" id="fs-title">Find My Size</h2>
+    <p class="review-modal-copy fs-copy">Enter your height and weight for a recommended starting size.</p>
     <div class="fs-grid">
       <div class="fs-field">
         <div class="fs-label"><span>Height</span>
