@@ -390,7 +390,6 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
 .size-header button.size-guide-link{ background:none; border-top:0; border-left:0; border-right:0; cursor:pointer; font-family:var(--fb); }
 #find-size-modal{ z-index:720; }
 .mbox.fs-box{ width:min(440px,94vw); box-shadow:0 24px 64px -24px rgba(0,0,0,.45); }
-.fs-copy{ margin-bottom:1.5rem; }
 /* A generic `body.light-mode .mbox button[type="button"]{color:…!important}` rule
    (for muted secondary buttons) forces dark text onto our FILLED buttons, hiding
    it on their dark fill. Restore proper contrast — id specificity + !important. */
@@ -402,9 +401,6 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
    the size-guide / size & fit modals. The result reveal + link stay centred. */
 #find-size-modal .fs-grid { text-align:left; }
 #find-size-modal .fs-input { text-align:left; }
-.fs-kicker{ font-family:var(--fm); font-size:.58rem; letter-spacing:.24em; text-transform:uppercase; color:var(--zw-accent,#F891A5); margin:0 0 .5rem; }
-.fs-title{ font-family:var(--font-head); font-size:1.7rem; line-height:1; letter-spacing:.04em; text-transform:uppercase; color:var(--white); margin:0 0 .45rem; }
-.fs-subtitle{ font-size:.82rem; line-height:1.55; color:var(--c65); margin:0 0 1.5rem; }
 .fs-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.3rem; }
 .fs-field{ display:flex; flex-direction:column; gap:.5rem; min-width:0; }
 .fs-label{ display:flex; align-items:center; justify-content:space-between; gap:.4rem; font-family:var(--fm); font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; color:var(--c65); }
@@ -439,9 +435,7 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
     position:absolute !important;
     left:0 !important; right:0 !important; bottom:0 !important; top:auto !important;
     width:auto !important; margin:0 !important;
-    padding:1.4rem 1.3rem 2rem !important;
   }
-  .fs-title{ font-size:1.5rem; }
 }
 @keyframes modalIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
 .mclose {
@@ -1517,39 +1511,43 @@ body.super-light-mode { background: #FFFFFF !important; }
      bottom sheet on mobile). Native, no iframe. -->
 <div id="find-size-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="fs-title" aria-hidden="true"
      onclick="if(event.target===this) closeFindSizeModal()">
-  <div class="mbox fs-box">
-    <button class="mclose" id="fs-close" type="button" aria-label="Close" onclick="closeFindSizeModal()">&#215;</button>
-    <p class="review-modal-eyebrow">Fit Reference</p>
-    <h2 class="review-modal-title" id="fs-title">Find My Size</h2>
-    <p class="review-modal-copy fs-copy">Enter your height and weight for a recommended starting size.</p>
-    <div class="fs-grid">
-      <div class="fs-field">
-        <div class="fs-label"><span>Height</span>
-          <span class="fs-toggles" data-field="height">
-            <button type="button" class="fs-unit active" data-unit="in" onclick="fsToggleUnit(this)">IN</button>
-            <button type="button" class="fs-unit" data-unit="cm" onclick="fsToggleUnit(this)">CM</button>
-          </span>
-        </div>
-        <input type="number" id="fs-height" class="fs-input" placeholder="e.g., 70" inputmode="decimal" min="0" step="0.5">
-      </div>
-      <div class="fs-field">
-        <div class="fs-label"><span>Weight</span>
-          <span class="fs-toggles" data-field="weight">
-            <button type="button" class="fs-unit active" data-unit="lbs" onclick="fsToggleUnit(this)">LBS</button>
-            <button type="button" class="fs-unit" data-unit="kg" onclick="fsToggleUnit(this)">KG</button>
-          </span>
-        </div>
-        <input type="number" id="fs-weight" class="fs-input" placeholder="e.g., 180" inputmode="decimal" min="0" step="1">
-      </div>
+  <div class="mbox review-dialog fs-box">
+    <button class="mclose review-modal-close" id="fs-close" type="button" aria-label="Close" onclick="closeFindSizeModal()">&#215;</button>
+    <div class="review-modal-intro">
+      <p class="review-modal-eyebrow">Fit Reference</p>
+      <h2 class="review-modal-title" id="fs-title">Find My Size</h2>
+      <p class="review-modal-copy">Enter your height and weight for a recommended starting size.</p>
     </div>
-    <button type="button" class="fs-submit" id="fs-submit" onclick="runFindSize()">Find My Size</button>
-    <p class="fs-error" id="fs-error" role="alert"></p>
-    <div class="fs-result" id="fs-result" hidden>
-      <div class="fs-result-label">Your recommended size</div>
-      <div class="fs-result-size" id="fs-result-size"></div>
-      <div class="fs-result-text" id="fs-result-text"></div>
+    <div class="review-modal-body">
+      <div class="fs-grid">
+        <div class="fs-field">
+          <div class="fs-label"><span>Height</span>
+            <span class="fs-toggles" data-field="height">
+              <button type="button" class="fs-unit active" data-unit="in" onclick="fsToggleUnit(this)">IN</button>
+              <button type="button" class="fs-unit" data-unit="cm" onclick="fsToggleUnit(this)">CM</button>
+            </span>
+          </div>
+          <input type="number" id="fs-height" class="fs-input" placeholder="e.g., 70" inputmode="decimal" min="0" step="0.5">
+        </div>
+        <div class="fs-field">
+          <div class="fs-label"><span>Weight</span>
+            <span class="fs-toggles" data-field="weight">
+              <button type="button" class="fs-unit active" data-unit="lbs" onclick="fsToggleUnit(this)">LBS</button>
+              <button type="button" class="fs-unit" data-unit="kg" onclick="fsToggleUnit(this)">KG</button>
+            </span>
+          </div>
+          <input type="number" id="fs-weight" class="fs-input" placeholder="e.g., 180" inputmode="decimal" min="0" step="1">
+        </div>
+      </div>
+      <button type="button" class="fs-submit" id="fs-submit" onclick="runFindSize()">Find My Size</button>
+      <p class="fs-error" id="fs-error" role="alert"></p>
+      <div class="fs-result" id="fs-result" hidden>
+        <div class="fs-result-label">Your recommended size</div>
+        <div class="fs-result-size" id="fs-result-size"></div>
+        <div class="fs-result-text" id="fs-result-text"></div>
+      </div>
+      <a class="fs-full-link" href="/sizeguide.html" id="fs-full-link" onclick="return fsOpenFullGuide()">View full size guide &rarr;</a>
     </div>
-    <a class="fs-full-link" href="/sizeguide.html" id="fs-full-link" onclick="return fsOpenFullGuide()">View full size guide &rarr;</a>
   </div>
 </div>
 
