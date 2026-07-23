@@ -426,23 +426,18 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
 .fs-full-link{ display:block; text-align:center; margin-top:1.2rem; font-family:var(--fm); font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:var(--c65); text-decoration:none; transition:color .2s; }
 .fs-full-link:hover{ color:var(--white); text-decoration:underline; }
 /* Mobile bottom sheet. Flex alignment on the overlay did NOT pin this (short)
-   sheet to the bottom — it kept rendering as a centered card with the page
-   showing beneath it. Anchor the box to the bottom edge directly instead. The
-   overlay is position:fixed inset:0, so an absolutely-positioned child at
-   bottom:0 sits on the viewport's bottom edge. The shared rule's slide-up
-   transform (translateY(100%)→0) still applies to a positioned element. */
+   sheet to the bottom — it kept rendering as a centered card. So the ONLY bespoke
+   thing here is the position anchor: the overlay is position:fixed inset:0, so an
+   absolutely-positioned child at bottom:0 sits on the viewport's bottom edge.
+   Everything else about the box — rounded top, no top border, shadow, grab handle,
+   max-height, sticky close — is left to the SHARED cohesion sheet rule so this
+   looks identical to the size-guide / review / quick-add sheets. */
 @media(max-width:900px){
   #find-size-modal > .mbox.fs-box{
     position:absolute !important;
     left:0 !important; right:0 !important; bottom:0 !important; top:auto !important;
-    width:100% !important; max-width:100% !important;
-    max-height:var(--zw-sheet-max) !important;
-    margin:0 !important;
-    border-radius:1.25rem 1.25rem 0 0 !important;
-    border-left:none !important; border-right:none !important; border-bottom:none !important;
-    box-shadow:0 -8px 40px rgba(0,0,0,.28) !important;
-    overflow-y:auto !important;
-    padding:1.6rem 1.3rem 2.2rem !important;
+    width:auto !important; margin:0 !important;
+    padding:1.4rem 1.3rem 2rem !important;
   }
   .fs-title{ font-size:1.5rem; }
 }
