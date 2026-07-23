@@ -3653,6 +3653,7 @@
                 _flagOrders = ords || [];
             } catch (_) { _flagOrders = []; }
             _flagsLoaded = true;
+            if (_normalizeRegistryFlags()) { try { await _saveFeatureFlagsQuiet(); } catch (_) {} }
             renderFeatureFlags();
         }
 
@@ -3671,9 +3672,14 @@
         function renderFeatureFlags() {
             const host = document.getElementById('flagsList');
             if (!host) return;
-            const names = Object.keys(_featureFlags).sort();
+            // The curated storefront features are now permanent, managed as on/off
+            // options on their own admin pages — so they no longer appear here. This
+            // page is only for NEW/experimental flags you add yourself (gradual
+            // rollout, A/B, kill-switches).
+            const registryKeys = new Set(ZW_FEATURE_REGISTRY.map(f => f.key));
+            const names = Object.keys(_featureFlags).filter(n => !registryKeys.has(n)).sort();
             if (!names.length) {
-                host.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:36px 20px;border:1px dashed var(--border);border-radius:10px;line-height:1.7;">No feature flags yet.<br>Add one above (e.g. <code>checkout_v2</code>), then gate code with <code>window.zwFlag(\'checkout_v2\')</code>.</div>';
+                host.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:36px 20px;border:1px dashed var(--border);border-radius:10px;line-height:1.7;">No custom feature flags yet.<br>Your live features (search, recommendations, Q&amp;A, bundles…) are now on/off options on their own pages.<br>Add a flag above (e.g. <code>checkout_v2</code>) to gate new/experimental code with <code>window.zwFlag(\'checkout_v2\')</code>.</div>';
                 return;
             }
             host.innerHTML = names.map(name => {
@@ -3751,6 +3757,17 @@
                 else if (!_featureFlags[f.key].description) _featureFlags[f.key].description = f.desc;
             });
             _flagsLoaded = true;
+            if (_normalizeRegistryFlags()) { try { await _saveFeatureFlagsQuiet(); } catch (_) {} }
+        }
+        // Curated features are plain on/off now (no gradual rollout), so an enabled
+        // one must mean "everyone". Fix any that were left at a partial rollout.
+        function _normalizeRegistryFlags() {
+            let changed = false;
+            ZW_FEATURE_REGISTRY.forEach(f => {
+                const st = _featureFlags[f.key];
+                if (st && st.enabled === true && st.rollout !== 100) { st.rollout = 100; changed = true; }
+            });
+            return changed;
         }
         async function _saveFeatureFlagsQuiet() {
             const now = new Date().toISOString();
@@ -3767,51 +3784,50 @@
                 return true;
             } catch (e) { showToast('Could not save: ' + (e.message || e), 'error'); return false; }
         }
+        // Optional heading shown above a page's feature toggles (per admin page).
+        const _pageFlagHeadings = {
+            settings:   { title: 'Storefront features', sub: 'Turn customer-facing features on or off. Changes go live immediately.' },
+            products:   { title: 'Product-page features', sub: 'Extras shown on the storefront around your products.' },
+            emails:     { title: 'Automated email features', sub: 'Lifecycle emails. Scheduled ones also need their cron set up (see below).' },
+            sizecharts: { title: 'Size-guide feature', sub: '' },
+            questions:  { title: 'Q&A feature', sub: '' },
+            bundles:    { title: 'Bundles feature', sub: '' },
+        };
         async function renderPageFlags(pageId) {
             const host = document.getElementById('pageFlags-' + pageId);
             if (!host) return;
             await ensureFeatureFlagsLoaded();
             const flags = ZW_FEATURE_REGISTRY.filter(f => f.page === pageId);
             if (!flags.length) { host.innerHTML = ''; return; }
-            host.innerHTML = flags.map(f => {
+            const head = _pageFlagHeadings[pageId];
+            const headHtml = head ? `
+                <div style="margin:0 0 12px;">
+                  <h3 style="margin:0 0 3px;font-size:1.05rem;">${escapeHtml(head.title)}</h3>
+                  ${head.sub ? `<p style="font-size:.8rem;color:var(--text-secondary);margin:0;line-height:1.5;">${escapeHtml(head.sub)}</p>` : ''}
+                </div>` : '';
+            host.innerHTML = headHtml + '<div style="display:flex;flex-direction:column;gap:10px;">' + flags.map(f => {
                 const st = _featureFlags[f.key] || {};
-                const enabled = st.enabled !== false;
-                const rollout = (typeof st.rollout === 'number') ? Math.max(0, Math.min(100, st.rollout)) : 100;
+                const on = st.enabled === true;
                 const label = (f.desc || f.key).split('—')[0].trim();
                 const detail = (f.desc || '').indexOf('—') !== -1 ? f.desc.slice(f.desc.indexOf('—') + 1).trim() : '';
-                const audColor = !enabled ? '#f85149' : (rollout >= 100 ? '#3fb950' : '#fbbf24');
                 return `
-                <div style="background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid ${audColor};border-radius:10px;padding:14px 16px;margin-bottom:10px;">
-                  <label style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;cursor:pointer;">
-                    <span style="min-width:0;">
-                      <span style="font-weight:600;color:var(--text-primary);">${escapeHtml(label)}</span>
-                      ${detail ? `<span style="display:block;font-size:.78rem;color:var(--text-secondary);margin-top:3px;line-height:1.5;">${escapeHtml(detail)}</span>` : ''}
-                    </span>
-                    <input type="checkbox" data-pf-enabled="${escapeAttr(f.key)}" ${enabled ? 'checked' : ''} style="flex-shrink:0;width:20px;height:20px;accent-color:var(--accent,#F891A5);cursor:pointer;margin-top:2px;">
-                  </label>
-                  <div style="display:flex;align-items:center;gap:10px;margin-top:12px;${enabled ? '' : 'opacity:.4;pointer-events:none;'}">
-                    <span style="font-size:.74rem;color:var(--text-secondary);white-space:nowrap;">Show to</span>
-                    <input type="range" min="0" max="100" step="1" value="${rollout}" data-pf-rollout="${escapeAttr(f.key)}" style="flex:1;accent-color:var(--accent,#F891A5);">
-                    <span data-pf-pct="${escapeAttr(f.key)}" style="font-size:.78rem;font-weight:600;min-width:56px;text-align:right;">${rollout >= 100 ? 'Everyone' : rollout + '%'}</span>
-                  </div>
-                </div>`;
-            }).join('');
+                <label style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;cursor:pointer;background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid ${on ? '#3fb950' : 'var(--border)'};border-radius:10px;padding:14px 16px;">
+                  <span style="min-width:0;">
+                    <span style="font-weight:600;color:var(--text-primary);">${escapeHtml(label)}</span>
+                    ${detail ? `<span style="display:block;font-size:.78rem;color:var(--text-secondary);margin-top:3px;line-height:1.5;">${escapeHtml(detail)}</span>` : ''}
+                  </span>
+                  <input type="checkbox" data-pf-enabled="${escapeAttr(f.key)}" ${on ? 'checked' : ''} style="flex-shrink:0;width:20px;height:20px;accent-color:var(--accent,#F891A5);cursor:pointer;margin-top:2px;">
+                </label>`;
+            }).join('') + '</div>';
             host.querySelectorAll('[data-pf-enabled]').forEach(el => el.addEventListener('change', async e => {
                 const k = e.target.getAttribute('data-pf-enabled');
-                _featureFlags[k] = _featureFlags[k] || {}; _featureFlags[k].enabled = e.target.checked;
+                _featureFlags[k] = _featureFlags[k] || {};
+                _featureFlags[k].enabled = e.target.checked;
+                _featureFlags[k].rollout = e.target.checked ? 100 : 0;   // full feature — everyone, no gradual rollout
                 await _saveFeatureFlagsQuiet();
                 renderPageFlags(pageId);
-                showToast(e.target.checked ? 'Feature turned on — live for visitors now' : 'Feature turned off — live now');
+                showToast(e.target.checked ? 'Feature turned on — live for everyone now' : 'Feature turned off — live now');
             }));
-            host.querySelectorAll('[data-pf-rollout]').forEach(el => {
-                el.addEventListener('input', e => {
-                    const k = e.target.getAttribute('data-pf-rollout');
-                    const val = parseInt(e.target.value, 10) || 0;
-                    _featureFlags[k] = _featureFlags[k] || {}; _featureFlags[k].rollout = val;
-                    const pct = host.querySelector(`[data-pf-pct="${k}"]`); if (pct) pct.textContent = val >= 100 ? 'Everyone' : val + '%';
-                });
-                el.addEventListener('change', async () => { await _saveFeatureFlagsQuiet(); renderPageFlags(pageId); showToast('Rollout saved — live now'); });
-            });
         }
         window.renderPageFlags = renderPageFlags;
 
