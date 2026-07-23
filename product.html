@@ -447,7 +447,12 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
     border:none !important;
     border-radius:20px 20px 0 0 !important;
     box-shadow:0 -8px 40px rgba(0,0,0,.22) !important;
-    overflow-y:auto !important; overflow-x:hidden !important;
+    /* MUST be a single `overflow` value, not overflow-x:hidden + overflow-y:auto.
+       WebKit/Safari ignores border-radius when the two axes differ, which rendered
+       this sheet with SQUARE corners in Safari (Chrome rounded it fine). One value
+       fixes the rounding; content is short so `auto` never shows a scrollbar. */
+    overflow:auto !important;
+    isolation:isolate !important;   /* force WebKit to clip children to the border-radius */
     display:flex !important; flex-direction:column !important;
   }
   /* Own grab handle (in case the shared one isn't reaching it either). */
