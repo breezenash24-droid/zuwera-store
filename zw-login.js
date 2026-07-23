@@ -47,27 +47,29 @@
     // site-wide 900px compact breakpoint so tablet widths (601-900px) get the
     // sheet too, instead of the centered desktop card.
     '@media(max-width:900px){',
-      // The sheet slides in with a SINGLE motion — transform only. The container
-      // stays fully opaque and just gates visibility (delayed on close so the sheet
-      // can slide back down before it's hidden). Previously the container also faded
-      // opacity 0->1 over .28s while the sheet slid over .42s, so the sheet ghosted in
-      // as it moved — the clunky, two-motion open. Now it's one clean slide on the
-      // shared --zw-ease-sheet curve, matching the bag/search panels and mobile menu.
-      '#zwlg-modal{align-items:flex-end;padding:0;opacity:1;visibility:hidden;transition:visibility 0s linear .44s;}',
+      // Container: bottom-aligned, padded so the sheet starts BELOW the fixed
+      // nav bar (same formula every other modal uses in storefront-cohesion.css).
+      '#zwlg-modal{align-items:flex-end;padding:calc(1.6rem + 36px + env(safe-area-inset-top,0px)) 0 0;opacity:1;visibility:hidden;transition:visibility 0s linear .44s;}',
       '#zwlg-modal.open{opacity:1;visibility:visible;transition:visibility 0s;}',
-      '#zwlg-modal .zwlg-box{width:100%;max-width:100%;max-height:var(--zw-sheet-max);border-radius:1.25rem 1.25rem 0 0;border-top:none;border-left:none;border-right:none;padding:2.4rem 1.4rem calc(1.8rem + env(safe-area-inset-bottom,0px));transform:translateY(100%);opacity:1;box-shadow:0 -8px 40px rgba(0,0,0,.28);transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));}',
+      // Box: flex-column so the drag-handle (::before, order:-1) and sticky
+      // close button stack correctly — mirrors the .mbox sheet layout.
+      '#zwlg-modal .zwlg-box{width:100%;max-width:100%;max-height:var(--zw-sheet-max);min-height:0;height:auto;border-radius:1.25rem 1.25rem 0 0;border-top:none;border-left:none;border-right:none;padding:2.4rem 1.4rem calc(1.8rem + env(safe-area-inset-bottom,0px));transform:translateY(100%);opacity:1;box-shadow:0 -8px 40px rgba(0,0,0,.28);transition:transform .42s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;}',
       '#zwlg-modal.open .zwlg-box{transform:translateY(0);}',
-      '#zwlg-modal .zwlg-box::before{content:"";display:block;width:36px;height:4px;border-radius:2px;background:rgba(244,241,235,.18);margin:-1.4rem auto 1.2rem;}',
-      // Dark bar on the light/super-light sheet — the near-white handle above is
-      // invisible on the white surface, leaving no pull indicator.
-      'body.light-mode #zwlg-modal .zwlg-box::before,body.super-light-mode #zwlg-modal .zwlg-box::before{background:rgba(9,9,11,.22);}',
-      // Close button matches the site standard (44px desktop → 38px on compact).
-      '#zwlg-modal .zwlg-close{width:38px;height:38px;}',
+      // Drag handle: same size/position as the cohesion ::before on .mbox
+      '#zwlg-modal .zwlg-box::before{content:"";display:block;flex:0 0 auto;order:-1;width:36px;height:4px;border-radius:2px;background:rgba(244,241,235,.18);margin:.6rem auto .55rem;}',
+      'body.light-mode #zwlg-modal .zwlg-box::before,body.super-light-mode #zwlg-modal .zwlg-box::before{background:rgba(9,9,11,.16);}',
+      // Close button: sticky inside the scrollable sheet, matches .mclose exactly
+      // (38px square, solid dark bg, border, shadow, top-right via align-self).
+      '#zwlg-modal .zwlg-close{position:sticky !important;top:.75rem;align-self:flex-end;flex-shrink:0;margin-left:auto;margin-right:.75rem;z-index:200;width:38px;height:38px;min-height:38px;border-radius:0;background:rgba(18,18,20,.9);border:1.5px solid rgba(244,241,235,.22);color:rgba(244,241,235,.82);box-shadow:0 2px 12px rgba(0,0,0,.28);opacity:1;font-size:1rem;line-height:1;cursor:pointer;transition:opacity .2s,background .2s;}',
+      'body.light-mode #zwlg-modal .zwlg-close,body.super-light-mode #zwlg-modal .zwlg-close{background:rgba(248,247,245,.95);border-color:rgba(9,9,11,.14);color:rgba(9,9,11,.65);box-shadow:0 2px 12px rgba(9,9,11,.1);}',
     '}',
+    // Desktop close button: matches .mclose — 44px square, solid dark fill,
+    // subtle border, full opacity (no ghost-fade). The mobile @media above
+    // overrides this to 38px sticky.
     '#zwlg-modal .zwlg-close{position:absolute;top:.9rem;right:.9rem;width:44px;height:44px;display:flex;',
-      'align-items:center;justify-content:center;background:rgba(244,241,235,.05);border:1px solid rgba(244,241,235,.08);',
-      'color:#f4f1eb;font-size:1rem;line-height:1;opacity:.45;cursor:pointer;transition:opacity .2s,background .2s;}',
-    '#zwlg-modal .zwlg-close:hover{opacity:1;background:rgba(244,241,235,.1);}',
+      'align-items:center;justify-content:center;background:rgba(9,9,11,.7);border:1px solid rgba(244,241,235,.1);',
+      'color:var(--zw-paper,#f4f1eb);font-size:1rem;line-height:1;opacity:1;z-index:40;cursor:pointer;transition:opacity .2s,background .2s;}',
+    '#zwlg-modal .zwlg-close:hover{background:rgba(9,9,11,.85);}',
     '#zwlg-modal .zwlg-brand{display:flex;justify-content:center;margin-bottom:1.6rem;padding-bottom:1.4rem;',
       'border-bottom:1px solid rgba(244,241,235,.06);}',
     '#zwlg-modal .zwlg-brand img{display:block;width:auto;height:64px;max-width:85%;object-fit:contain;object-position:center;}',
@@ -113,7 +115,7 @@
     'body.light-mode #zwlg-modal .zwlg-sub,body.super-light-mode #zwlg-modal .zwlg-sub{color:rgba(9,9,11,.55);}',
     'body.light-mode #zwlg-modal .zwlg-tabs,body.super-light-mode #zwlg-modal .zwlg-tabs{border-bottom-color:rgba(9,9,11,.08);}',
     'body.light-mode #zwlg-modal .zwlg-tab,body.super-light-mode #zwlg-modal .zwlg-tab{color:rgba(9,9,11,.45);}',
-    'body.light-mode #zwlg-modal .zwlg-close,body.super-light-mode #zwlg-modal .zwlg-close{background:rgba(9,9,11,.05);border-color:rgba(9,9,11,.12);color:#09090b;}',
+    'body.light-mode #zwlg-modal .zwlg-close,body.super-light-mode #zwlg-modal .zwlg-close{background:rgba(9,9,11,.05);border-color:rgba(9,9,11,.1);color:var(--zw-ink,#09090b);}',
     'body.light-mode #zwlg-modal label,body.super-light-mode #zwlg-modal label{color:rgba(9,9,11,.55);}',
     'body.light-mode #zwlg-modal input,body.super-light-mode #zwlg-modal input{background:rgba(9,9,11,.03);border-color:rgba(9,9,11,.1);color:#09090b;}',
     'body.light-mode #zwlg-modal input::placeholder,body.super-light-mode #zwlg-modal input::placeholder{color:rgba(9,9,11,.18);}',
