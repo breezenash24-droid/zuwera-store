@@ -427,18 +427,29 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
 .fs-result-text{ font-size:.78rem; line-height:1.5; color:var(--c65); max-width:34ch; margin:0 auto; }
 .fs-full-link{ display:block; text-align:center; margin-top:1.2rem; font-family:var(--fm); font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:var(--c65); text-decoration:none; transition:color .2s; }
 .fs-full-link:hover{ color:var(--white); text-decoration:underline; }
-/* Mobile bottom sheet. Flex alignment on the overlay did NOT pin this (short)
-   sheet to the bottom — it kept rendering as a centered card. So the ONLY bespoke
-   thing here is the position anchor: the overlay is position:fixed inset:0, so an
-   absolutely-positioned child at bottom:0 sits on the viewport's bottom edge.
-   Everything else about the box — rounded top, no top border, shadow, grab handle,
-   max-height, sticky close — is left to the SHARED cohesion sheet rule so this
-   looks identical to the size-guide / review / quick-add sheets. */
+/* Mobile bottom sheet — FULLY self-contained. The shared cohesion sheet rule
+   wasn't reaching this box (it rendered as a square .mbox with a 2px accent top
+   border = the "angular strip"), so force every visual property here instead of
+   relying on it. The extra :not(#…) selectors lift specificity above the shared
+   rule + base .mbox so nothing in the cascade can override this. */
 @media(max-width:900px){
-  #find-size-modal > .mbox.fs-box{
+  #find-size-modal:not(#fs_a):not(#fs_b):not(#fs_c) > .mbox.fs-box{
     position:absolute !important;
     left:0 !important; right:0 !important; bottom:0 !important; top:auto !important;
-    width:auto !important; margin:0 !important;
+    width:auto !important; max-width:none !important; margin:0 !important;
+    max-height:88vh !important; padding:0 !important;
+    border:none !important;
+    border-radius:20px 20px 0 0 !important;
+    box-shadow:0 -8px 40px rgba(0,0,0,.22) !important;
+    overflow-y:auto !important; overflow-x:hidden !important;
+    display:flex !important; flex-direction:column !important;
+  }
+  /* Own grab handle (in case the shared one isn't reaching it either). */
+  #find-size-modal:not(#fs_a):not(#fs_b) > .mbox.fs-box::before{
+    content:''; display:block; flex:0 0 auto; order:-1;
+    width:38px; height:4px; border-radius:2px;
+    background:rgba(9,9,11,.18);
+    margin:.7rem auto .1rem;
   }
 }
 @keyframes modalIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
