@@ -54,6 +54,12 @@
             --bg-tertiary: #f5f5f5;
             --border: #e8e8e8;
             --border-color: #e8e8e8;
+            /* Text tones weren't set here — fine while super-light also carries
+               .light-mode, but define them so anything reading --text-primary/
+               --text-secondary can never fall back to the dark theme's light text
+               on a white ground. */
+            --text-primary: #111;
+            --text-secondary: #666;
         }
 
         body.light-mode select,
@@ -868,7 +874,11 @@
             background: none; border: none; color: var(--text-secondary); padding: 3px 11px;
             font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; cursor: pointer;
         }
-        .policy-mode-btn.active { background: var(--surface); color: var(--text-primary); }
+        /* Was background:var(--surface);color:var(--text-primary) — those can resolve
+           to the same tone per theme, hiding the label. Use the brand accent with a
+           fixed light label so the active segment is always legible, matching the
+           admin's active tabs. */
+        .policy-mode-btn.active { background: var(--accent); color: #fff; }
         .policy-visual-editor {
             border: 1px solid var(--border); border-radius: 0 0 6px 6px;
             min-height: 300px; padding: 16px 18px; outline: none;
