@@ -208,40 +208,49 @@
             return ADMIN_LEVELS[page] === 'edit';
         }
 
+        // Declared in GROUP order — keep each item under its group's comment so a new
+        // page lands in the right bucket (the sidebar renders group-by-group, so out-of-
+        // order entries used to render fine but were easy to mis-file).
         const ADMIN_PAGES = [
+            /* Overview */
             { id:'dashboard',  icon:'📊', label:'Dashboard',   title:'Dashboard',           group:'overview',      mobile:'Home', kw:'home overview summary' },
             { id:'analytics',  icon:'📈', label:'Analytics',   title:'Analytics',           group:'overview', kw:'traffic visitors stats metrics sessions conversion' },
             { id:'finance',    icon:'💰', label:'Finance',     title:'Finance',             group:'overview',      mobile:'Finance', kw:'revenue profit payouts sales money earnings refunds' },
+            /* Catalogue */
             { id:'products',   icon:'👟', label:'Products',    title:'Product Inventory',   group:'catalogue',     mobile:'Products', kw:'inventory stock sku catalog items drop jackets variants colors' },
-            { id:'legacy',     icon:'📦', label:'Legacy',      title:'Legacy Products',     group:'catalogue',     searchLabel:'Legacy Products', kw:'old archived products' },
             { id:'sizecharts', icon:'📏', label:'Size Charts', title:'Size Charts',         group:'catalogue', kw:'size guide measurements fit chart sizing' },
             { id:'reviews',    icon:'⭐', label:'Reviews',     title:'Customer Reviews',    group:'catalogue', kw:'ratings testimonials stars moderate feedback' },
             { id:'questions',  icon:'❓', label:'Q&A',         title:'Product Q&A',         group:'catalogue', kw:'questions answers product qa moderate ask reply' },
+            /* Marketing */
             { id:'loyalty',    icon:'⭐', label:'Loyalty',     title:'Loyalty',             group:'marketing', searchLabel:'Loyalty / Points / Rewards', kw:'loyalty points rewards perks repeat customers retention redeem' },
-            { id:'bundles',    icon:'🎁', label:'Bundles',     title:'Bundles',             group:'catalogue', searchLabel:'Bundles / Sets / Complete the look', kw:'bundle set combo complete the look shop the set frequently bought together upsell aov' },
-            { id:'journal',    icon:'📓', label:'Journal',     title:'Journal',             group:'storefront', kw:'blog journal posts articles lookbook content editorial stories news' },
+            { id:'bundles',    icon:'🎁', label:'Bundles',     title:'Bundles',             group:'marketing', searchLabel:'Bundles / Sets / Complete the look', kw:'bundle set combo complete the look shop the set frequently bought together upsell aov' },
             { id:'subscribers',icon:'📧', label:'Subscribers', title:'Newsletter Subscribers', group:'marketing', searchLabel:'Newsletter / Email list / Subscribers', kw:'newsletter subscribers email list mailing signups stay in the loop marketing send journal' },
             { id:'emails',     icon:'✉️', label:'Emails',      title:'Email Activity',      group:'marketing', searchLabel:'Email activity / log / automated emails / send delays', kw:'email log activity sent review request abandoned cart journal delay days timing automated marketing history' },
             { id:'commerce',   icon:'🏷️', label:'Coupons',     title:'Coupons',             group:'marketing',     searchLabel:'Commerce / Coupons / Promotions', kw:'discount promo code voucher sale promotion loyalty' },
             { id:'meta',       icon:'📣', label:'Ads & Tracking', title:'Ads & Tracking', group:'marketing', searchLabel:'Meta / Facebook / Pixel / Conversions API / Google Ads / Analytics / GA4 / Merchant Center', kw:'facebook instagram pixel capi conversions api google ads ga4 gtag merchant center tracking utm marketing' },
+            /* Operations */
             { id:'orders',     icon:'🛒', label:'Orders',      title:'Orders',              group:'operations',    mobile:'Orders', searchLabel:'Orders / Sales', kw:'orders sales transactions purchases fulfillment status tracking customer table awaiting shipped' },
             { id:'receipts',   icon:'🧾', label:'Receipts',    title:'Receipts',            group:'operations',    searchLabel:'Receipts / Invoices', kw:'orders invoices sales transactions purchases receipt tracking number' },
             { id:'shipping',   icon:'🚚', label:'Shipping',    title:'Shipping',            group:'operations', kw:'fulfillment labels tracking shippo dispatch send' },
             { id:'returns',    icon:'↩',  label:'Returns',     title:'Returns & Exchanges', group:'operations', kw:'exchange refund rma return request' },
             { id:'users',      icon:'👥', label:'Users',       title:'User Management',     group:'operations', kw:'customers accounts members profiles delete user' },
+            /* Storefront */
+            { id:'journal',    icon:'📓', label:'Journal',     title:'Journal',             group:'storefront', kw:'blog journal posts articles lookbook content editorial stories news' },
             { id:'website',    icon:'🎨', label:'Appearance',  title:'Appearance',          group:'storefront', kw:'theme look design brand logo favicon hero fonts typography colors wordmark' },
             { id:'settings',   icon:'⚙️', label:'Settings',    title:'Settings',            group:'storefront', kw:'config announcement banner header policy faq about content technologies early access' },
+            /* Configuration */
             { id:'tax',        icon:'🧮', label:'Tax',         title:'Tax',                 group:'configuration', kw:'tax rate sales tax vat state rates nexus override' },
             { id:'apis',       icon:'🔑', label:'APIs',        title:'API Status',          group:'configuration', searchLabel:'API Keys', kw:'api keys stripe shippo resend brevo cloudinary deepl cloudflare loops twilio posthog email branding integrations secrets' },
             { id:'audit',      icon:'📋', label:'Audit Log',   title:'Audit Log',           group:'configuration', kw:'history changes log activity events admin actions' },
             { id:'flags',      icon:'🚩', label:'Feature Flags', title:'Feature Flags',     group:'configuration', kw:'feature flags rollout gradual release toggle experiment kill switch ab test canary beta launchdarkly' },
+            { id:'legacy',     icon:'📦', label:'Legacy',      title:'Legacy Products',     group:'configuration', searchLabel:'Legacy Products', kw:'old archived products legacy inventory' },
         ];
         const ADMIN_NAV_GROUPS = [
             { id:'overview',      label:'Overview' },
             { id:'catalogue',     label:'Catalogue' },
             { id:'marketing',     label:'Marketing' },
             { id:'operations',    label:'Operations' },
-            { id:'storefront',    label:'Storefront',    collapsed:true },
+            { id:'storefront',    label:'Storefront' },
             { id:'configuration', label:'Configuration', collapsed:true },
         ];
         function renderAdminNav(){
@@ -1996,14 +2005,32 @@
                         <h2>Site Settings</h2>
                         <p class="zw-page-intro">Control how your store behaves — your banner message, shipping rules, return policy, legal pages, FAQs, and more. Hit the <strong>Save</strong> button in each section after making changes.</p>
                     </div>
-                    <div style="margin-bottom:26px;">
+                    <!-- In-page jump-nav — Settings is a long page spanning four bands.
+                         These chips scroll to each; no sections were moved (save logic
+                         binds by element id, so relocation would have been risky). -->
+                    <style>
+                      .set-jumpnav{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:8px;
+                        padding:12px 0;margin:-4px 0 22px;background:var(--bg-primary);border-bottom:1px solid var(--border);}
+                      .set-jump-chip{font-family:'Barlow Condensed',sans-serif;font-size:.8rem;letter-spacing:.1em;
+                        text-transform:uppercase;color:var(--text-secondary);background:var(--bg-secondary);
+                        border:1px solid var(--border);border-radius:999px;padding:6px 14px;cursor:pointer;transition:color .15s,border-color .15s;}
+                      .set-jump-chip:hover{color:var(--text-primary);border-color:var(--accent);}
+                      .set-jump-target{scroll-margin-top:64px;}
+                    </style>
+                    <nav class="set-jumpnav" aria-label="Settings sections">
+                        <button type="button" class="set-jump-chip" onclick="document.getElementById('set-jump-features').scrollIntoView({behavior:'smooth',block:'start'})">Features</button>
+                        <button type="button" class="set-jump-chip" onclick="document.getElementById('set-jump-chrome').scrollIntoView({behavior:'smooth',block:'start'})">Storefront chrome</button>
+                        <button type="button" class="set-jump-chip" onclick="document.getElementById('set-jump-rules').scrollIntoView({behavior:'smooth',block:'start'})">Store rules</button>
+                        <button type="button" class="set-jump-chip" onclick="document.getElementById('set-jump-content').scrollIntoView({behavior:'smooth',block:'start'})">Content &amp; pages</button>
+                    </nav>
+                    <div id="set-jump-features" class="set-jump-target" style="margin-bottom:26px;">
                         <h3 style="margin:0 0 4px;font-size:1.05rem;">Storefront features</h3>
                         <p style="margin:0 0 14px;color:var(--text-secondary);font-size:.85rem;">Optional customer-facing features — header search, recently-viewed, the bag panel, and the support widget. Each toggle saves immediately and goes live.</p>
                         <div id="pageFlags-settings"></div>
                     </div>
 
                     <!-- ── Section: Storefront chrome ── -->
-                    <div style="margin:4px 0 12px;display:flex;align-items:center;gap:12px;">
+                    <div id="set-jump-chrome" class="set-jump-target" style="margin:4px 0 12px;display:flex;align-items:center;gap:12px;">
                         <span style="font-family:'Barlow Condensed',sans-serif;font-size:.82rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-secondary);white-space:nowrap;">Storefront chrome</span>
                         <span style="flex:1;height:1px;background:var(--border);"></span>
                     </div>
@@ -2210,7 +2237,7 @@
                     </div>
 
                     <!-- ── Section: Store rules ── -->
-                    <div style="margin:28px 0 12px;display:flex;align-items:center;gap:12px;">
+                    <div id="set-jump-rules" class="set-jump-target" style="margin:28px 0 12px;display:flex;align-items:center;gap:12px;">
                         <span style="font-family:'Barlow Condensed',sans-serif;font-size:.82rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-secondary);white-space:nowrap;">Store rules</span>
                         <span style="flex:1;height:1px;background:var(--border);"></span>
                     </div>
@@ -2279,7 +2306,7 @@
                     </div>
                     
                     <!-- ── Section: Content & pages ── -->
-                    <div style="margin:28px 0 12px;display:flex;align-items:center;gap:12px;">
+                    <div id="set-jump-content" class="set-jump-target" style="margin:28px 0 12px;display:flex;align-items:center;gap:12px;">
                         <span style="font-family:'Barlow Condensed',sans-serif;font-size:.82rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-secondary);white-space:nowrap;">Content &amp; pages</span>
                         <span style="flex:1;height:1px;background:var(--border);"></span>
                     </div>
