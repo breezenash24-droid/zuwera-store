@@ -4460,17 +4460,25 @@ window.addEventListener('resize', function () {
     box.style.setProperty('transform', 'translateY(0)', 'important');
   }
 });
-// iOS Safari can keep a zoomed-in scale after rotating landscape → portrait
-// (text-size-adjust:100% is already set, so this is the viewport scale, not text
-// inflation). Momentarily pin maximum-scale on rotation to force the zoom back to
-// 1, then restore the base viewport so pinch-zoom still works.
+// iOS Safari keeps a zoomed-in VISUAL VIEWPORT after rotating landscape → portrait
+// (text-size-adjust:100% is set, so it's the scale, not text inflation). Fix:
+// momentarily pin maximum-scale so Safari re-fits to the new width, then release
+// so pinch-zoom still works. `orientationchange` fires BEFORE the layout settles,
+// so also react to the resize that follows a real WIDTH change (rotation) — not to
+// the keyboard opening (which only changes height).
 (function fixOrientationZoom() {
   var vp = document.querySelector('meta[name="viewport"]');
-  if (!vp || !('onorientationchange' in window)) return;
-  var base = vp.getAttribute('content');
-  window.addEventListener('orientationchange', function () {
+  if (!vp) return;
+  var base = vp.getAttribute('content').replace(/\s*,?\s*maximum-scale=[^,]*/gi, '');
+  var lastW = window.innerWidth, t;
+  function refit() {
+    clearTimeout(t);
     vp.setAttribute('content', base + ', maximum-scale=1');
-    setTimeout(function () { vp.setAttribute('content', base); }, 400);
+    t = setTimeout(function () { vp.setAttribute('content', base); }, 600);
+  }
+  window.addEventListener('orientationchange', function () { setTimeout(refit, 60); });
+  window.addEventListener('resize', function () {
+    if (Math.abs(window.innerWidth - lastW) > 60) { lastW = window.innerWidth; refit(); }
   });
 })();
 function runFindSize() {
