@@ -440,7 +440,7 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
    rule + base .mbox so nothing in the cascade can override this. */
 @media(max-width:900px){
   #find-size-modal:not(#fs_a):not(#fs_b):not(#fs_c) > .mbox.fs-box{
-    position:absolute !important;
+    position:fixed !important;   /* fixed = viewport-anchored, so it can't "float" if the overlay's positioning breaks */
     left:0 !important; right:0 !important; bottom:0 !important; top:auto !important;
     width:auto !important; max-width:none !important; margin:0 !important;
     max-height:88vh !important; padding:0 !important;
@@ -4387,7 +4387,7 @@ function openFindSizeModal() {
   // Full width like the other sheets; start off-screen for a clean slide-up (the
   // base .mbox `animation:modalIn` nudge fought the sheet motion and looked weird).
   if (isSheet && box) {
-    box.style.setProperty('position', 'absolute', 'important');
+    box.style.setProperty('position', 'fixed', 'important');   // viewport-anchored — never floats
     box.style.setProperty('left', '0', 'important');
     box.style.setProperty('right', '0', 'important');
     box.style.setProperty('bottom', '0', 'important');
@@ -4445,6 +4445,21 @@ function closeFindSizeModal() {
   }
 }
 window.closeFindSizeModal = closeFindSizeModal;
+// If the viewport changes (rotation) while the sheet is open, re-assert its
+// bottom anchor so it can't end up floating mid-screen.
+window.addEventListener('resize', function () {
+  const m = document.getElementById('find-size-modal');
+  if (!m || !m.classList.contains('open')) return;
+  const box = m.querySelector('.fs-box');
+  if (box && window.matchMedia && window.matchMedia('(max-width:900px)').matches) {
+    box.style.setProperty('position', 'fixed', 'important');
+    box.style.setProperty('left', '0', 'important');
+    box.style.setProperty('right', '0', 'important');
+    box.style.setProperty('bottom', '0', 'important');
+    box.style.setProperty('top', 'auto', 'important');
+    box.style.setProperty('transform', 'translateY(0)', 'important');
+  }
+});
 // iOS Safari can keep a zoomed-in scale after rotating landscape → portrait
 // (text-size-adjust:100% is already set, so this is the viewport scale, not text
 // inflation). Momentarily pin maximum-scale on rotation to force the zoom back to
