@@ -1028,6 +1028,12 @@ body.light-mode :is(.pcard,.product-card):hover{
   aspect-ratio:1/1;   /* square grid tiles, Nike-style — shorter cards, more per screen. Product PAGE image (.main-image/.gallery-main) and related cards (inline 4/5) are unaffected. */
   background:#f4f1eb !important;
 }
+/* The card image fills the square edge-to-edge (no pillarbox/empty space). A stray
+   aspect-ratio on the <img> used to leave gaps on iOS Safari; force a clean fill. */
+:is(.pcard-img,.product-img) > img{
+  width:100% !important; height:100% !important;
+  object-fit:cover !important; aspect-ratio:auto !important;
+}
 
 body.light-mode :is(.pcard-img,.product-img){
   background:#f4f1eb !important;
