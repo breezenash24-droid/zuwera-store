@@ -554,7 +554,7 @@ document.documentElement.classList.add('zw-collflash');
     /* Variant photo thumbnails on the card (replace the Add-to-Bag button). The
        more-specific selector + !important beats the shared swatch CSS that hides
        them by default and on mobile. Tapping one previews that colorway. */
-    .product-card .zw-card-swatches{ display:flex !important; flex-wrap:wrap; gap:.4rem; margin-top:.6rem; }
+    .product-card .zw-card-swatches{ display:flex !important; flex-wrap:wrap; gap:.4rem; margin-top:.55rem; padding-bottom:7px; }
     /* MOBILE ONLY: one horizontal-scroll row (Nike-style) instead of wrapping to a
        2nd row — saves vertical space in the narrow 2-up cards and keeps every card
        the same height regardless of colour count. Desktop keeps the wrapped grid. */
@@ -564,14 +564,23 @@ document.documentElement.classList.add('zw-collflash');
       .product-card .zw-card-swatch{ scroll-snap-align:start; }
     }
     .product-card .zw-card-swatch{
-      width:42px; height:53px; flex:0 0 auto; padding:0; cursor:pointer; border-radius:2px;
+      width:48px; height:48px; flex:0 0 auto; padding:0; cursor:pointer; border-radius:0;   /* boxy + square, Nike-style */
       border:1px solid var(--border);
       background-size:cover !important; background-position:center !important; background-repeat:no-repeat !important;
+      position:relative;
       transition:border-color .15s ease;
     }
+    /* Nike-style selected indicator: a bar beneath the active colour thumbnail
+       (black on the light storefront, light on dark). */
+    .product-card .zw-card-swatch::after{ content:''; position:absolute; left:0; right:0; bottom:-7px; height:3px; background:transparent; transition:background .15s ease; }
     .product-card .zw-card-swatch:hover,
     .product-card .zw-card-swatch:focus-visible,
     .product-card .zw-card-swatch.active{ border-color:var(--white); box-shadow:none !important; transform:none !important; }
+    .product-card .zw-card-swatch.active::after{ background:var(--white); }
+    body.light-mode .product-card .zw-card-swatch:hover,
+    body.light-mode .product-card .zw-card-swatch:focus-visible,
+    body.light-mode .product-card .zw-card-swatch.active{ border-color:#09090b; }
+    body.light-mode .product-card .zw-card-swatch.active::after{ background:#09090b; }
     .product-card .zw-card-swatch.zw-swatch-more{
       display:flex; align-items:center; justify-content:center;
       font-size:.6rem; font-weight:600; color:var(--white);
@@ -1926,13 +1935,15 @@ function updateCountdown() {
           // All colours in a single horizontal-scroll row — no "+N" cap now that
           // extra colours scroll (CSS: .zw-card-swatches overflow-x:auto) instead of
           // wrapping to a 2nd row and breaking card alignment.
-          let html = colors.map((c) => {
+          let html = colors.map((c, i) => {
             const ci = imgs.filter((im) => im.color_variant_id === c.id).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0];
             let src = (ci && ci.image_url) || fallbackImg || '';
             if (src && typeof optimizeImage === 'function') src = optimizeImage(src, 600);
             const nm = c.color_name || 'Color';
             const thumbStyle = src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`;
-            return `<button type="button" class="zw-card-swatch" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
+            // First swatch active on load — its colour is the one shown on the card,
+            // so the selected-bar (Nike-style) sits under it from the start.
+            return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
           }).join('');
           return `<div class="zw-card-swatches" data-quick-add="${payload}">${html}</div>`;
         };
@@ -1997,6 +2008,7 @@ function updateCountdown() {
                     ${isSoldOut ? `<div class="stock-badge-sold-out"><span>Sold Out</span></div>` : ''}
                   </div>
                 </div>
+                ${isLive && !isSoldOut && hasSwatches ? zwColSwatchRow(p, quickAddPayload, originalImg) : ''}
                 <div class="product-info">
                   <p class="product-name">${productName}</p>
                   <p class="product-category">${productType}</p>
@@ -2006,7 +2018,7 @@ function updateCountdown() {
                     ? `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>`
                     : isSoldOut
                       ? `<span class="product-notify" style="opacity:.55">Sold Out</span>`
-                      : (hasSwatches ? zwColSwatchRow(p, quickAddPayload, originalImg) : '')
+                      : ''
                   }
                 </div>
                 ${isLive ? `<div class="quick-size-panel-col" id="${colCardId}">
