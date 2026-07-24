@@ -147,7 +147,7 @@
       '.zwf-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,1fr);gap:1rem;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;padding-bottom:.5rem;scrollbar-width:thin}',
       '@media(min-width:900px){.zwf-row{grid-auto-columns:minmax(200px,1fr)}}',
       '.zwf-card{scroll-snap-align:start;text-decoration:none;color:inherit;display:block}',
-      '.zwf-card-img{position:relative;aspect-ratio:3/4;background:rgba(128,128,128,.10);overflow:hidden;border-radius:2px}',
+      '.zwf-card-img{position:relative;aspect-ratio:1/1;background:rgba(128,128,128,.10);overflow:hidden;border-radius:2px}',
       '.zwf-card-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.7,.2,1)}',
       '.zwf-card:hover .zwf-card-img img{transform:scale(1.04)}',
       '.zwf-card-info{padding:.7rem .1rem 0}',

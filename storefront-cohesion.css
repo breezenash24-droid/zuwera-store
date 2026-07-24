@@ -1025,7 +1025,7 @@ body.light-mode :is(.pcard,.product-card):hover{
 }
 
 :is(.pcard-img,.product-img){
-  aspect-ratio:3/4;
+  aspect-ratio:1/1;   /* square grid tiles, Nike-style — shorter cards, more per screen. Product PAGE image (.main-image/.gallery-main) and related cards (inline 4/5) are unaffected. */
   background:#f4f1eb !important;
 }
 
