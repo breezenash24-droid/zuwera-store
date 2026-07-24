@@ -555,6 +555,14 @@ document.documentElement.classList.add('zw-collflash');
        more-specific selector + !important beats the shared swatch CSS that hides
        them by default and on mobile. Tapping one previews that colorway. */
     .product-card .zw-card-swatches{ display:flex !important; flex-wrap:wrap; gap:.4rem; margin-top:.6rem; }
+    /* MOBILE ONLY: one horizontal-scroll row (Nike-style) instead of wrapping to a
+       2nd row — saves vertical space in the narrow 2-up cards and keeps every card
+       the same height regardless of colour count. Desktop keeps the wrapped grid. */
+    @media (max-width:900px){
+      .product-card .zw-card-swatches{ flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
+      .product-card .zw-card-swatches::-webkit-scrollbar{ display:none; }
+      .product-card .zw-card-swatch{ scroll-snap-align:start; }
+    }
     .product-card .zw-card-swatch{
       width:42px; height:53px; flex:0 0 auto; padding:0; cursor:pointer; border-radius:2px;
       border:1px solid var(--border);
@@ -1907,7 +1915,6 @@ function updateCountdown() {
           const colors = (p.color_variants || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
           const imgs = p.product_images || [];
           const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          const MAX = 5;
           if (!colors.length) {
             // Single-image product: one thumbnail of the main image (keeps cards
             // consistent — no out-of-place Add-to-Bag button).
@@ -1916,9 +1923,10 @@ function updateCountdown() {
             if (!src) return '';
             return `<div class="zw-card-swatches" data-quick-add="${payload}"><button type="button" class="zw-card-swatch" data-img="${esc(src)}" aria-label="${esc(p.title || 'View')}" style="background-image:url('${esc(src)}')"></button></div>`;
           }
-          // Cap at MAX thumbnails + a "+N" overflow tile so every card stays the
-          // same height (variable counts wrapped to a 2nd row and broke alignment).
-          let html = colors.slice(0, MAX).map((c) => {
+          // All colours in a single horizontal-scroll row — no "+N" cap now that
+          // extra colours scroll (CSS: .zw-card-swatches overflow-x:auto) instead of
+          // wrapping to a 2nd row and breaking card alignment.
+          let html = colors.map((c) => {
             const ci = imgs.filter((im) => im.color_variant_id === c.id).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0];
             let src = (ci && ci.image_url) || fallbackImg || '';
             if (src && typeof optimizeImage === 'function') src = optimizeImage(src, 600);
@@ -1926,7 +1934,6 @@ function updateCountdown() {
             const thumbStyle = src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`;
             return `<button type="button" class="zw-card-swatch" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
           }).join('');
-          if (colors.length > MAX) html += `<button type="button" class="zw-card-swatch zw-swatch-more" aria-label="${esc((colors.length - MAX) + ' more colors')}">+${colors.length - MAX}</button>`;
           return `<div class="zw-card-swatches" data-quick-add="${payload}">${html}</div>`;
         };
         grid.innerHTML = renderList.map(p => {
@@ -1945,7 +1952,7 @@ function updateCountdown() {
           const originalImg = firstImg;
           firstImg = optimizeImage(firstImg, 600);
           const imgHtml = firstImg
-            ? `<img src="${firstImg}" alt="${productName}" loading="lazy" width="400" height="500" style="width:100%;height:100%;object-fit:cover;aspect-ratio:4/5" onerror="if(this.src !== '${originalImg || ''}') this.src='${originalImg || ''}';">`
+            ? `<img src="${firstImg}" alt="${productName}" loading="lazy" width="400" height="500" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center" onerror="if(this.src !== '${originalImg || ''}') this.src='${originalImg || ''}';">`
             : `<div class="product-img-placeholder">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
                 <span>Image Coming Soon</span>
