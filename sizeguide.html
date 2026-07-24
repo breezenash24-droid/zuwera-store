@@ -480,6 +480,30 @@
       body.embed-focused .calc-input { padding: 0.7rem 0.75rem; }
     }
 
+    /* Find My Size embedded in the product Size Guide modal — match the standalone
+       Find My Size sheet the user preferred: title in the big italic modal style, and
+       height + weight kept two-up at EVERY width. The default grid (auto-fit minmax
+       200px) collapses to a single stacked column on narrow phones; the standalone
+       stays side-by-side, so pin two columns whenever the guide is embedded. */
+    body.embed-mode .calc-title,
+    body.embed-focused .calc-title {
+      font-style: italic;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      font-size: 1.7rem;
+      line-height: 1.02;
+    }
+    body.embed-mode .calc-grid,
+    body.embed-focused .calc-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 0.85rem;
+    }
+    @media (max-width: 600px) {
+      body.embed-mode .calc-title,
+      body.embed-focused .calc-title { font-size: 1.45rem; }
+    }
+
     /* ------ CATEGORY TABS ------ */
     .tabs-nav {
       display: flex;
