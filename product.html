@@ -4380,20 +4380,41 @@ function openFindSizeModal() {
   if (!m) return;
   const err = document.getElementById('fs-error'); if (err) err.textContent = '';
   const res = document.getElementById('fs-result'); if (res) res.hidden = true;
+  const isSheet = window.matchMedia && window.matchMedia('(max-width:900px)').matches;
+  const box = m.querySelector('.fs-box');
+  // Style the box BEFORE it's shown (no flash of the boxy CSS version), all via
+  // INLINE !important since the page cascade kept overriding stylesheet rules.
+  // Full width like the other sheets; start off-screen for a clean slide-up (the
+  // base .mbox `animation:modalIn` nudge fought the sheet motion and looked weird).
+  if (isSheet && box) {
+    box.style.setProperty('position', 'absolute', 'important');
+    box.style.setProperty('left', '0', 'important');
+    box.style.setProperty('right', '0', 'important');
+    box.style.setProperty('bottom', '0', 'important');
+    box.style.setProperty('top', 'auto', 'important');
+    box.style.setProperty('width', 'auto', 'important');
+    box.style.setProperty('max-width', 'none', 'important');
+    box.style.setProperty('margin', '0', 'important');
+    box.style.setProperty('border', 'none', 'important');
+    box.style.setProperty('border-radius', '24px 24px 0 0', 'important');
+    box.style.setProperty('overflow', 'auto', 'important');
+    box.style.setProperty('box-shadow', '0 -8px 40px rgba(0,0,0,.28)', 'important');
+    box.style.setProperty('animation', 'none', 'important');
+    box.style.setProperty('transition', 'none', 'important');
+    box.style.setProperty('transform', 'translateY(100%)', 'important');
+    m.style.setProperty('transition', 'background .28s ease', 'important');
+    m.style.setProperty('background', 'rgba(9,9,11,0)', 'important');
+  }
   m.classList.add('open');
   m.setAttribute('aria-hidden', 'false');
-  // Bulletproof mobile bottom-sheet look via INLINE !important — the page's CSS
-  // cascade kept overriding the scrim + rounded corners no matter the selector
-  // specificity, so force them here where nothing can beat them.
-  if (window.matchMedia && window.matchMedia('(max-width:900px)').matches) {
-    m.style.setProperty('background', 'rgba(9,9,11,.6)', 'important');   // scrim so the sheet stands out
-    const box = m.querySelector('.fs-box');
-    if (box) {
-      box.style.setProperty('border', 'none', 'important');
-      box.style.setProperty('border-radius', '24px 24px 0 0', 'important');
-      box.style.setProperty('overflow', 'auto', 'important');            // single value → clips to the radius (Safari-safe)
-      box.style.setProperty('box-shadow', '0 -8px 40px rgba(0,0,0,.28)', 'important');
-    }
+  if (isSheet && box) {
+    requestAnimationFrame(() => {
+      m.style.setProperty('background', 'rgba(9,9,11,.55)', 'important');   // fade scrim in
+      requestAnimationFrame(() => {
+        box.style.setProperty('transition', 'transform .4s cubic-bezier(.32,.72,0,1)', 'important');
+        box.style.setProperty('transform', 'translateY(0)', 'important');   // slide up
+      });
+    });
   }
   if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = 'hidden';
   setTimeout(() => { const h = document.getElementById('fs-height'); if (h) h.focus(); }, 60);
@@ -4402,14 +4423,41 @@ window.openFindSizeModal = openFindSizeModal;
 function closeFindSizeModal() {
   const m = document.getElementById('find-size-modal');
   if (!m) return;
-  m.classList.remove('open');
-  m.style.removeProperty('background');   // clear the inline scrim
-  m.setAttribute('aria-hidden', 'true');
-  if (!document.querySelector('.modal.open')) {
-    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = '';
+  const box = m.querySelector('.fs-box');
+  const isSheet = box && window.matchMedia && window.matchMedia('(max-width:900px)').matches && m.classList.contains('open');
+  const finish = () => {
+    m.classList.remove('open');
+    m.style.removeProperty('background');
+    m.style.removeProperty('transition');
+    if (box) { box.style.removeProperty('transform'); box.style.removeProperty('transition'); }
+    m.setAttribute('aria-hidden', 'true');
+    if (!document.querySelector('.modal.open')) {
+      if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = '';
+    }
+  };
+  if (isSheet) {
+    m.style.setProperty('background', 'rgba(9,9,11,0)', 'important');        // fade scrim out
+    box.style.setProperty('transition', 'transform .26s cubic-bezier(.32,.72,0,1)', 'important');
+    box.style.setProperty('transform', 'translateY(100%)', 'important');     // slide down
+    setTimeout(finish, 240);
+  } else {
+    finish();
   }
 }
 window.closeFindSizeModal = closeFindSizeModal;
+// iOS Safari can keep a zoomed-in scale after rotating landscape → portrait
+// (text-size-adjust:100% is already set, so this is the viewport scale, not text
+// inflation). Momentarily pin maximum-scale on rotation to force the zoom back to
+// 1, then restore the base viewport so pinch-zoom still works.
+(function fixOrientationZoom() {
+  var vp = document.querySelector('meta[name="viewport"]');
+  if (!vp || !('onorientationchange' in window)) return;
+  var base = vp.getAttribute('content');
+  window.addEventListener('orientationchange', function () {
+    vp.setAttribute('content', base + ', maximum-scale=1');
+    setTimeout(function () { vp.setAttribute('content', base); }, 400);
+  });
+})();
 function runFindSize() {
   const err = document.getElementById('fs-error');
   const res = document.getElementById('fs-result');
