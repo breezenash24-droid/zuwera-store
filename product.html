@@ -445,18 +445,12 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
     width:auto !important; max-width:none !important; margin:0 !important;
     max-height:88vh !important; padding:0 !important;
     border:none !important;
-    background:#fff !important;   /* force the sheet's own white surface so the rounded corners have something to round */
     border-radius:24px 24px 0 0 !important;
-    /* DIAGNOSTIC pink ring — follows the corners. Tells us: rounded ring = radius
-       works (was just invisible); square ring = radius overridden; no ring = this
-       rule isn't reaching the box. Removed once we know. */
-    box-shadow:0 0 0 3px #F891A5, 0 -8px 40px rgba(0,0,0,.22) !important;
-    /* MUST be a single `overflow` value, not overflow-x:hidden + overflow-y:auto.
-       WebKit/Safari ignores border-radius when the two axes differ, which rendered
-       this sheet with SQUARE corners in Safari (Chrome rounded it fine). One value
-       fixes the rounding; content is short so `auto` never shows a scrollbar. */
+    box-shadow:0 -8px 40px rgba(0,0,0,.28) !important;
+    /* Single `overflow` value (not overflow-x:hidden + overflow-y:auto): WebKit
+       ignores border-radius when the two axes differ. openFindSizeModal() also sets
+       these inline as a bulletproof backstop, since the cascade kept winning. */
     overflow:auto !important;
-    isolation:isolate !important;   /* force WebKit to clip children to the border-radius */
     display:flex !important; flex-direction:column !important;
   }
   /* Own grab handle (in case the shared one isn't reaching it either). */
@@ -4388,6 +4382,19 @@ function openFindSizeModal() {
   const res = document.getElementById('fs-result'); if (res) res.hidden = true;
   m.classList.add('open');
   m.setAttribute('aria-hidden', 'false');
+  // Bulletproof mobile bottom-sheet look via INLINE !important — the page's CSS
+  // cascade kept overriding the scrim + rounded corners no matter the selector
+  // specificity, so force them here where nothing can beat them.
+  if (window.matchMedia && window.matchMedia('(max-width:900px)').matches) {
+    m.style.setProperty('background', 'rgba(9,9,11,.6)', 'important');   // scrim so the sheet stands out
+    const box = m.querySelector('.fs-box');
+    if (box) {
+      box.style.setProperty('border', 'none', 'important');
+      box.style.setProperty('border-radius', '24px 24px 0 0', 'important');
+      box.style.setProperty('overflow', 'auto', 'important');            // single value → clips to the radius (Safari-safe)
+      box.style.setProperty('box-shadow', '0 -8px 40px rgba(0,0,0,.28)', 'important');
+    }
+  }
   if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = 'hidden';
   setTimeout(() => { const h = document.getElementById('fs-height'); if (h) h.focus(); }, 60);
 }
@@ -4396,6 +4403,7 @@ function closeFindSizeModal() {
   const m = document.getElementById('find-size-modal');
   if (!m) return;
   m.classList.remove('open');
+  m.style.removeProperty('background');   // clear the inline scrim
   m.setAttribute('aria-hidden', 'true');
   if (!document.querySelector('.modal.open')) {
     if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = '';
