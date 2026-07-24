@@ -62,7 +62,9 @@
     'product-title': '.product-title, .product-subtitle',
     'product-detail': '.accordion-header, .accordion-body, .colorway-section .section-label',
     // Modals build their own markup, so none of the page's type reached them.
-    'modal':        '.zwf-modal-title, .zwf-modal-sub, .zwf-fit-btn, .zwf-fit-go, .zwf-fit-again, .quick-add-option-head, .quick-add-product-meta, .quick-add-empty-option',
+    // Split head vs body; must stay identical to admin-main.js SECTION_DEFS.
+    'modal':        '.mtitle, .review-mbox-title, .review-modal-title, .size-guide-title, #payment-modal-title, .calc-title, .zwf-modal-title, .zwf-fit-btn, .zwf-fit-go, .zwf-fit-again, .quick-add-option-head',
+    'modal-body':   '.msubtitle, .review-modal-copy, .review-modal-message, .size-guide-copy, .calc-subtitle, .zwf-modal-sub, .quick-add-product-meta, .quick-add-empty-option',
     'price':        '.pcard-price, .pcard-cat',
     'btn':          '.add-to-cart-btn, .pcard-add-btn, #checkout-btn, #pay-submit',
     'footer':       '.fcopy, .flinks a, .fig',
