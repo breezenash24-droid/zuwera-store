@@ -376,6 +376,21 @@
 
   .gallery-main{
     aspect-ratio:4 / 5 !important;
+    height:auto !important;
+    min-height:0 !important;      /* flex items default to min-height:auto (= content),
+                                     so a tall child (e.g. the video on Zuwera Tech) was
+                                     stretching the frame past 4:5 and cropping the image. */
+    max-height:none !important;
+    flex:0 0 auto !important;
+  }
+  /* Pin the media absolutely inside the 4:5 frame so NO child can stretch it —
+     the frame's aspect-ratio alone governs the height. Arrows are hidden on mobile;
+     badge/heart/dots come later in the DOM so they still stack on top. */
+  #galleryMain > #mainImage,
+  #galleryMain > #mainVideo{
+    position:absolute !important; inset:0 !important;
+    width:100% !important; height:100% !important;
+    object-fit:cover !important;
   }
 
   .gallery-thumbnails{
