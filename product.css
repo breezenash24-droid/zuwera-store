@@ -840,7 +840,20 @@ body.light-mode .color-swatch.active::after { background: #09090b; }
     border-top: none !important;
     border-bottom: none !important;
   }
-  .gallery-section .colorway-section .color-swatches { margin-bottom: 0.5rem; }
+  /* Nike-style mobile picker: colours scroll horizontally in one row under the
+     photo (was wrapping to multiple rows). */
+  .colorway-section .color-swatches {
+    margin-bottom: 0.5rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    padding-bottom: 12px;
+  }
+  .colorway-section .color-swatches::-webkit-scrollbar { display: none; }
+  .colorway-section .color-swatch { scroll-snap-align: start; }
 
   .product-title {
     font-size: clamp(1.5rem, 5vw, 2rem);
