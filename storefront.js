@@ -190,6 +190,13 @@ function showToast(msg) {
     grid.style.setProperty('--col-lg', col(cfg.col_lg, col(cfg.columns, 3)));
     grid.style.setProperty('--col-md', col(cfg.col_md, 2));
     grid.style.setProperty('--col-sm', col(cfg.col_sm, 2));
+    // Per-section card controls (Page Builder → Products section):
+    //  · show_colors:false  → product-only cards (hide the colour swatch row)
+    //  · show_reviews:false → hide the star rating / review-count line
+    //  · color_snap:true    → colour scroll snaps one-at-a-time (else free scroll)
+    grid.classList.toggle('zw-hide-colors', cfg.show_colors === false);
+    grid.classList.toggle('zw-hide-reviews', cfg.show_reviews === false);
+    grid.classList.toggle('zw-swatch-snap', cfg.color_snap === true);
     if (window.zwEnsureSwipeBar) window.zwEnsureSwipeBar(grid);
     // Per-device scrollbar visibility (show / reveal-on-hover / hidden) + thickness.
     const _w = grid.closest('.zw-swipe-wrap');
