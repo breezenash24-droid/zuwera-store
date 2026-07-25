@@ -364,7 +364,10 @@
   }
 
   .product-layout{
-    grid-template-columns:1fr !important;
+    /* minmax(0,1fr) not 1fr: a plain 1fr track keeps min-width:auto, so a wide
+       nowrap child (the 7-colour swatch row = 7x31vw) stretched the whole page
+       instead of scrolling. minmax(0,…) lets the column stay viewport-width. */
+    grid-template-columns:minmax(0, 1fr) !important;
     gap:1.5rem !important;
   }
 
@@ -372,7 +375,13 @@
     position:static !important;
     gap:.75rem !important;
     margin-inline:calc(var(--zw-mobile-gutter) * -1);
+    min-width:0;   /* don't expand to the widest child (the swatch scroll row) */
   }
+  /* Every ancestor of the horizontal swatch row must allow shrinking below its
+     content, otherwise the nowrap row blows out the page width instead of
+     scrolling inside .color-swatches (overflow-x:auto). */
+  .colorway-section,
+  .colorway-section .color-swatches{ min-width:0; max-width:100%; }
 
   .gallery-main{
     aspect-ratio:4 / 5 !important;
