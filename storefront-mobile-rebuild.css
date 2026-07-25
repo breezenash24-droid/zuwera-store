@@ -5,7 +5,7 @@
 :root{
   --zw-mobile-gutter:clamp(1rem,4vw,1.35rem);
   --zw-mobile-section-gap:clamp(3.5rem,9vw,5rem);
-  --zw-mobile-card-gap:clamp(.9rem,3vw,1.15rem);
+  --zw-mobile-card-gap:clamp(2px,1vw,6px);   /* tight, Nike-style 2-up grid — images nearly fill the screen (was ~14-18px of empty space between cards) */
 }
 
 @media (max-width: 900px){
