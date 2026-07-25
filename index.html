@@ -893,7 +893,10 @@ font-weight:700;font-style:italic;
 /* Variant photo thumbnails on the home cards (replaces the color dots + Add-to-Bag).
    More-specific than the shared .zw-card-swatch so they show always (incl. mobile),
    as photo tiles, with a clean active border (no haze). Tap previews the colorway. */
-.pcard .zw-card-swatches{ display:flex !important; flex-wrap:wrap; gap:.4rem; margin:.5rem 0 .3rem; padding-bottom:7px; min-width:0; }
+.pcard{ min-width:0; }
+.pcard .zw-card-swatches{ display:flex !important; flex-wrap:nowrap; gap:.4rem; margin:.5rem 0 .3rem; padding-bottom:7px; min-width:0; max-width:100%; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
+.pcard .zw-card-swatches::-webkit-scrollbar{ display:none; }
+.pcard .zw-card-swatch{ scroll-snap-align:start; }
 .pcard .zw-card-swatch{ width:48px; height:48px; flex:0 0 auto; padding:0; cursor:pointer; border-radius:0; border:1px solid rgba(128,128,128,.4); background-size:cover !important; background-position:center !important; background-repeat:no-repeat !important; box-shadow:none !important; position:relative; transition:border-color .15s ease; }
 /* Nike/adidas-style selected bar under the active colour (theme-aware). */
 .pcard .zw-card-swatch::after{ content:''; position:absolute; left:0; right:0; bottom:-7px; height:3px; background:transparent; transition:background .15s ease; }

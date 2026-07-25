@@ -554,15 +554,13 @@ document.documentElement.classList.add('zw-collflash');
     /* Variant photo thumbnails on the card (replace the Add-to-Bag button). The
        more-specific selector + !important beats the shared swatch CSS that hides
        them by default and on mobile. Tapping one previews that colorway. */
-    .product-card .zw-card-swatches{ display:flex !important; flex-wrap:wrap; gap:.4rem; margin-top:.55rem; padding-bottom:7px; }
-    /* MOBILE ONLY: one horizontal-scroll row (Nike-style) instead of wrapping to a
-       2nd row — saves vertical space in the narrow 2-up cards and keeps every card
-       the same height regardless of colour count. Desktop keeps the wrapped grid. */
-    @media (max-width:900px){
-      .product-card .zw-card-swatches{ flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
-      .product-card .zw-card-swatches::-webkit-scrollbar{ display:none; }
-      .product-card .zw-card-swatch{ scroll-snap-align:start; }
-    }
+    /* One horizontal-scroll row at EVERY width — colours never wrap to a 2nd row;
+       extras scroll. min-width:0 on the card + row keeps it from stretching the
+       card/page instead of scrolling. */
+    .product-card{ min-width:0; }
+    .product-card .zw-card-swatches{ display:flex !important; flex-wrap:nowrap; gap:.4rem; margin-top:.55rem; padding-bottom:7px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; min-width:0; max-width:100%; }
+    .product-card .zw-card-swatches::-webkit-scrollbar{ display:none; }
+    .product-card .zw-card-swatch{ scroll-snap-align:start; }
     .product-card .zw-card-swatch{
       width:48px; height:48px; flex:0 0 auto; padding:0; cursor:pointer; border-radius:0;   /* boxy + square, Nike-style */
       border:1px solid var(--border);
@@ -635,7 +633,9 @@ document.documentElement.classList.add('zw-collflash');
     body.light-mode .quick-size-ph .qsp-close{ background:rgba(9,9,11,.04);border-color:rgba(9,9,11,.18);color:rgba(9,9,11,.55); }
     .quick-size-ph .qsp-close:hover{color:#f4f1eb}
     /* Color swatches */
-    .qcol-row{display:flex;flex-wrap:wrap;gap:.55rem;margin-bottom:.2rem;padding-bottom:8px}
+    .qcol-row{display:flex;flex-wrap:nowrap;gap:.55rem;margin-bottom:.2rem;padding-bottom:8px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;max-width:100%}
+    .qcol-row::-webkit-scrollbar{display:none}
+    .qcol-swatch{scroll-snap-align:start}
     .qcol-swatch{
       width:44px;height:44px;border:1px solid rgba(244,241,235,.18);
       border-radius:0;   /* boxy, adidas-style */
