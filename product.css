@@ -867,9 +867,10 @@ body.light-mode .color-swatch.active::after { background: #09090b; }
     grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
   }
 
+  /* Nike-style mobile: big thumbnails, ~3 across, scroll for more. */
   .color-swatch {
-    width: 64px;
-    height: 50px;
+    width: 31vw;
+    height: 28vw;
   }
 
   .add-to-cart-btn {
@@ -948,8 +949,8 @@ body.light-mode .color-swatch.active::after { background: #09090b; }
   }
 
   .color-swatch {
-    width: 60px;
-    height: 48px;
+    width: 31vw;
+    height: 28vw;
   }
 
   .add-to-cart-btn {
