@@ -893,10 +893,21 @@ font-weight:700;font-style:italic;
 /* Variant photo thumbnails on the home cards (replaces the color dots + Add-to-Bag).
    More-specific than the shared .zw-card-swatch so they show always (incl. mobile),
    as photo tiles, with a clean active border (no haze). Tap previews the colorway. */
-.pcard .zw-card-swatches{ display:flex !important; flex-wrap:wrap; gap:.4rem; margin-top:.55rem; }
-.pcard .zw-card-swatch{ width:42px; height:53px; flex:0 0 auto; padding:0; cursor:pointer; border-radius:2px; border:1px solid rgba(128,128,128,.4); background-size:cover !important; background-position:center !important; background-repeat:no-repeat !important; box-shadow:none !important; transition:border-color .15s ease; }
+.pcard .zw-card-swatches{ display:flex !important; flex-wrap:wrap; gap:.4rem; margin:.5rem 0 .3rem; padding-bottom:7px; min-width:0; }
+.pcard .zw-card-swatch{ width:48px; height:48px; flex:0 0 auto; padding:0; cursor:pointer; border-radius:0; border:1px solid rgba(128,128,128,.4); background-size:cover !important; background-position:center !important; background-repeat:no-repeat !important; box-shadow:none !important; position:relative; transition:border-color .15s ease; }
+/* Nike/adidas-style selected bar under the active colour (theme-aware). */
+.pcard .zw-card-swatch::after{ content:''; position:absolute; left:0; right:0; bottom:-7px; height:3px; background:transparent; transition:background .15s ease; }
 .pcard .zw-card-swatch:hover, .pcard .zw-card-swatch:focus-visible, .pcard .zw-card-swatch.active{ border-color:rgba(128,128,128,.95); box-shadow:none !important; transform:none !important; }
+.pcard .zw-card-swatch.active::after{ background:#f4f1eb; }
+body.light-mode .pcard .zw-card-swatch.active::after{ background:#09090b; }
 .pcard .zw-card-swatch.zw-swatch-more{ display:flex; align-items:center; justify-content:center; font-size:.6rem; font-weight:600; background-image:none !important; background:transparent !important; }
+/* Mobile: one horizontal-scroll row (Nike-style); min-width:0 chain keeps it from stretching the page. */
+@media (max-width:900px){
+  .pcard{ min-width:0; }
+  .pcard .zw-card-swatches{ flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; max-width:100%; }
+  .pcard .zw-card-swatches::-webkit-scrollbar{ display:none; }
+  .pcard .zw-card-swatch{ scroll-snap-align:start; }
+}
 .pcard--swatched .pcard-add-btn{ display:none !important; }
 .pcard-action{
   display:inline-flex;align-items:center;gap:.4rem;

@@ -635,14 +635,17 @@ document.documentElement.classList.add('zw-collflash');
     body.light-mode .quick-size-ph .qsp-close{ background:rgba(9,9,11,.04);border-color:rgba(9,9,11,.18);color:rgba(9,9,11,.55); }
     .quick-size-ph .qsp-close:hover{color:#f4f1eb}
     /* Color swatches */
-    .qcol-row{display:flex;flex-wrap:wrap;gap:.55rem;margin-bottom:.2rem}
+    .qcol-row{display:flex;flex-wrap:wrap;gap:.55rem;margin-bottom:.2rem;padding-bottom:8px}
     .qcol-swatch{
-      width:40px;height:40px;border:2px solid rgba(244,241,235,.15);
-      border-radius:2px;
-      cursor:pointer;transition:all .15s;flex-shrink:0;
+      width:44px;height:44px;border:1px solid rgba(244,241,235,.18);
+      border-radius:0;   /* boxy, adidas-style */
+      cursor:pointer;transition:border-color .15s;flex-shrink:0;
+      position:relative;
       -webkit-tap-highlight-color:transparent;
     }
-    .qcol-swatch:hover,.qcol-swatch.active{border-color:#f4f1eb;box-shadow:0 0 0 1px #f4f1eb}
+    .qcol-swatch::after{content:'';position:absolute;left:0;right:0;bottom:-6px;height:3px;background:transparent;transition:background .15s}
+    .qcol-swatch:hover,.qcol-swatch.active{border-color:#f4f1eb;box-shadow:none}
+    .qcol-swatch.active::after{background:#f4f1eb}
     .qcol-name{font-size:.53rem;letter-spacing:.1em;color:rgba(244,241,235,.45);margin-top:.45rem;min-height:.8rem}
     /* Size buttons */
     .quick-size-row{display:flex;flex-wrap:wrap;gap:.45rem}
@@ -806,7 +809,8 @@ document.documentElement.classList.add('zw-collflash');
     body.light-mode .collection-empty-option,body.light-mode .collection-review-message{color:rgba(9,9,11,.5)}
     body.light-mode .collection-review-actions button,body.light-mode .collection-review-actions a{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.68)}
     body.light-mode .qcol-swatch{border-color:rgba(9,9,11,.22)}
-    body.light-mode .qcol-swatch:hover,body.light-mode .qcol-swatch.active{border-color:#09090b;box-shadow:0 0 0 1px #09090b}
+    body.light-mode .qcol-swatch:hover,body.light-mode .qcol-swatch.active{border-color:#09090b;box-shadow:none}
+    body.light-mode .qcol-swatch.active::after{background:#09090b}
     body.light-mode .collection-review-confirm{background:#09090b!important;color:#f4f1eb!important;border-color:#09090b!important}
     body.super-light-mode { background:#FFFFFF !important; --black:#FFFFFF; --white:#09090b; --muted:rgba(9,9,11,.5); }
     body.super-light-mode .nav { background:#FFFFFF; border-bottom-color:rgba(10,10,10,0.08); }
