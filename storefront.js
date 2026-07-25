@@ -2839,7 +2839,6 @@ function zwCardSwatchRow(p, quickAddPayload, fallbackImg) {
   const colors = (p.color_variants || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const imgs = p.product_images || [];
   const esc = (s) => escapeHomeFavoriteHtml(String(s == null ? '' : s));
-  const MAX = 5;
   if (!colors.length) {
     // Single-image product: show one thumbnail of the main image so the card
     // stays consistent (no out-of-place Add-to-Bag button).
@@ -2848,16 +2847,16 @@ function zwCardSwatchRow(p, quickAddPayload, fallbackImg) {
     if (!src) return '';
     return `<div class="zw-card-swatches" data-quick-add="${quickAddPayload}"><button type="button" class="zw-card-swatch" data-img="${esc(src)}" aria-label="${esc(p.title || 'View')}" style="background-image:url('${esc(src)}')"></button></div>`;
   }
-  // Cap at MAX thumbnails + a "+N" overflow tile so every card is the same height.
-  let html = colors.slice(0, MAX).map((c) => {
+  // All colours in one row (scrolls on mobile) — first swatch active on load so the
+  // selected-bar sits under the colour the card is showing.
+  let html = colors.map((c, i) => {
     const ci = imgs.filter((im) => im.color_variant_id === c.id).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0];
     let src = (ci && ci.image_url) || fallbackImg || '';
     if (src && typeof window.optimizeImage === 'function') src = window.optimizeImage(src, 600);
     const nm = c.color_name || 'Color';
     const thumbStyle = src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`;
-    return `<button type="button" class="zw-card-swatch" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
+    return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
   }).join('');
-  if (colors.length > MAX) html += `<button type="button" class="zw-card-swatch zw-swatch-more" aria-label="${esc((colors.length - MAX) + ' more colors')}">+${colors.length - MAX}</button>`;
   return `<div class="zw-card-swatches" data-quick-add="${quickAddPayload}">${html}</div>`;
 }
 
@@ -2937,6 +2936,7 @@ function renderProductCards(products, grid) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </button>
         </div>
+        ${hasSwatches ? zwCardSwatchRow(p, quickAddPayload, firstImg) : ''}
         <div class="pcard-info">
           <p class="pcard-name">${escapeHomeFavoriteHtml(productName)}</p>
           <p class="pcard-cat">${escapeHomeFavoriteHtml(productType)}</p>
@@ -2946,7 +2946,6 @@ function renderProductCards(products, grid) {
             <span id="cnt-${domId}">${_revCache[p.id] ? zwReviewCountText(_revCache[p.id].count, _revCache[p.id].avg) : ''}</span>
           </button>
           ${isLive ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}"><span class="pcard-add-desktop-label">Add to Bag</span></button>` : ''}
-          ${hasSwatches ? zwCardSwatchRow(p, quickAddPayload, firstImg) : ''}
         </div>
         ${isLive ? `<div class="quick-size-panel" id="qsp-${domId}">
           <div class="quick-size-panel-header">
