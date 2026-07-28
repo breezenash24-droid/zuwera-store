@@ -127,6 +127,20 @@
       + '<div class="zwf-row">' + html + '</div></div>';
     return sec;
   }
+  // Apply a block's per-card controls (Page Builder → Product tab → Card options):
+  // card size (row column min-width) + hide name/category/price. No-op without cfg.
+  function applyRowCfg(sec, cfg) {
+    if (!sec || !cfg) return;
+    var row = sec.querySelector('.zwf-row');
+    var sizeMap = { s: '160px', l: '280px', xl: '360px' };  // 'm'/unset = default responsive
+    if (row) {
+      if (sizeMap[cfg.card_size]) row.style.setProperty('--zwf-card-min', sizeMap[cfg.card_size]);
+      else row.style.removeProperty('--zwf-card-min');
+    }
+    sec.classList.toggle('zwf-hide-name', cfg.show_name === false);
+    sec.classList.toggle('zwf-hide-cat', cfg.show_cat === false);
+    sec.classList.toggle('zwf-hide-price', cfg.show_price === false);
+  }
 
   /* ───────────────────────── styles (injected once) ───────────────────────── */
 
@@ -144,8 +158,10 @@
       // the hero and the marquee and left every strip title behind. Fallbacks keep
       // product pages (which never load storefront.js) exactly as they are.
       '.zwf-strip-title{font-family:var(--fw,inherit);font-weight:var(--zw-fw-head,900);font-style:var(--zw-fst-head,italic);text-transform:uppercase;letter-spacing:.06em;font-size:clamp(1.1rem,3vw,1.6rem);margin:0 0 1.2rem}',
-      '.zwf-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,1fr);gap:1rem;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;padding-bottom:.5rem;scrollbar-width:thin}',
-      '@media(min-width:900px){.zwf-row{grid-auto-columns:minmax(200px,1fr)}}',
+      '.zwf-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(var(--zwf-card-min,150px),1fr);gap:1rem;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;padding-bottom:.5rem;scrollbar-width:thin}',
+      '@media(min-width:900px){.zwf-row{grid-auto-columns:minmax(var(--zwf-card-min,200px),1fr)}}',
+      /* Per-block Card options (Page Builder → Product tab): hide card text lines */
+      '.zwf-hide-name .pcard-name,.zwf-hide-cat .pcard-cat,.zwf-hide-price .pcard-price{display:none!important}',
       '.zwf-card{scroll-snap-align:start;text-decoration:none;color:inherit;display:block}',
       '.zwf-card-img{position:relative;aspect-ratio:1/1;background:rgba(128,128,128,.10);overflow:hidden;border-radius:2px}',
       '.zwf-card-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.7,.2,1)}',
@@ -704,10 +720,12 @@
       opts.container.innerHTML = '<div class="zwf-strip-inner">'
         + (heading ? '<h2 class="zwf-strip-title">' + esc(heading) + '</h2>' : '')
         + '<div class="zwf-row">' + rowHtml + '</div></div>';
+      applyRowCfg(opts.container, opts.cfg);
       return opts.container;
     }
     var sec = strip(heading, rowHtml);
     sec.setAttribute('data-zwf', 'recently-viewed');
+    applyRowCfg(sec, opts.cfg);
     insertBeforeFooter(sec);
     return sec;
   }
@@ -746,7 +764,7 @@
       .slice(0, n).map(function (x) { return x.p; });
   }
 
-  function renderRecommendations(current) {
+  function renderRecommendations(current, cfg) {
     if (!current) return;
     catalog().then(function (all) {
       var rel = pickRelated(all, current, 8);
@@ -754,6 +772,7 @@
       ensureStyles();
       var sec = strip('You may also like', rel.map(function (p) { return pcardCard(p, false); }).join(''));
       sec.setAttribute('data-zwf', 'recommendations');
+      applyRowCfg(sec, cfg);
       insertBeforeFooter(sec);
     });
   }
@@ -848,7 +867,7 @@
   /* ── optional block: new arrivals ──────────────────────────────────────────
      Newest products by created_at (falls back to the admin's sort order when a
      row has no timestamp), excluding the one being viewed. */
-  function renderNewArrivals(current) {
+  function renderNewArrivals(current, cfg) {
     catalog().then(function (all) {
       var list = all.filter(function (p) { return !current || String(p.id) !== String(current.id); });
       var dated = list.filter(function (p) { return p.created_at; });
@@ -861,6 +880,7 @@
       ensureStyles();
       var sec = strip('New arrivals', list.map(function (p) { return pcardCard(p, false); }).join(''));
       sec.setAttribute('data-zwf', 'new-arrivals');
+      applyRowCfg(sec, cfg);
       insertBeforeFooter(sec);
     });
   }
@@ -1382,15 +1402,15 @@
         // content because of a settings hiccup.
         var DEFAULT_PDP = [{ id: 'bundle', on: true }, { id: 'recently_viewed', on: true }, { id: 'recommendations', on: true }, { id: 'qa', on: true }];
         var run = {
-          bundle: function () { if (wantBundles) renderBundle(p); },
-          recently_viewed: function () { if (wantRV) renderRecentlyViewed(p.id); },
-          recommendations: function () { if (wantRec) renderRecommendations(p); },
-          qa: function () { if (wantQA) initQA(p); },
+          bundle: function (cfg) { if (wantBundles) renderBundle(p); },
+          recently_viewed: function (cfg) { if (wantRV) renderRecentlyViewed(p.id, { cfg: cfg }); },
+          recommendations: function (cfg) { if (wantRec) renderRecommendations(p, cfg); },
+          qa: function (cfg) { if (wantQA) initQA(p); },
           // Optional blocks — added from the builder's Product tab, so they carry
           // no separate feature flag: being in the layout IS the switch.
-          new_arrivals: function () { renderNewArrivals(p); },
-          journal: function () { renderJournalRow(); },
-          newsletter: function () { renderNewsletterBlock(); },
+          new_arrivals: function (cfg) { renderNewArrivals(p, cfg); },
+          journal: function (cfg) { renderJournalRow(); },
+          newsletter: function (cfg) { renderNewsletterBlock(); },
         };
         fetch('/api/product-page-config')
           .then(function (r) { return r.ok ? r.json() : null; })
@@ -1406,7 +1426,7 @@
             list.forEach(function (s) {
               if (!s || s.on === false) return;
               var fn = run[s.id];
-              if (fn) fn();
+              if (fn) fn(s.cfg || null);
             });
           });
       });
