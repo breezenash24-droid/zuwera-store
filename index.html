@@ -837,6 +837,10 @@ html.zw-boot-white #zw-boot{background:#FFFFFF!important}
 }
 .pcard{
   background:transparent;position:relative;overflow:hidden;transition:background .3s;
+  /* Container query context: every inner element sizes in cqw (% of THIS card's
+     width), so swatches, text and spacing all scale with the Card Size you set —
+     in grid columns and swipe carousels alike — instead of staying fixed. */
+  container-type:inline-size;
 }
 .pcard:hover{background:rgba(244,241,235,.02)}
 .pcard-img{
@@ -877,27 +881,35 @@ font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;
 @keyframes svgHeartPop{0%{transform:scale(1)}35%{transform:scale(1.42)}65%{transform:scale(0.88)}100%{transform:scale(1)}}
 .heart-btn svg.heart-pop{animation:svgHeartPop .35s cubic-bezier(.36,.07,.19,.97)}
 @media(prefers-reduced-motion:reduce){.heart-btn svg.heart-pop{animation:none}}
+/* Flex column + gap (not per-element margins) so ANY subset of name / category /
+   price / reviews collapses to even spacing with no leftover gaps — works the
+   same for one element, a pair, a trio, or all of them. Padding scales with the
+   card so a big card isn't mostly empty space and a small card isn't cramped. */
 .pcard-info{
-  padding:1.4rem 1.5rem;
+  display:flex; flex-direction:column;
+  gap:clamp(.2rem, 1.3cqw, .55rem);
+  padding:clamp(1rem, 4.5cqw, 2rem) clamp(1rem, 4.2cqw, 2rem);
   border-top:1px solid rgba(244,241,235,.06);
 }
 .pcard-cat{
-font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;font-weight:500;
-  color:rgba(244,241,235,.6);margin-bottom:.35rem;
+  font-size:clamp(.55rem, 2.4cqw, .82rem);letter-spacing:.1em;text-transform:uppercase;font-weight:500;
+  color:rgba(244,241,235,.6);
 }
 .pcard-name{
-font-weight:700;font-style:italic;
-  font-size:1.4rem;letter-spacing:.03em;margin-bottom:.3rem;
+  font-weight:700;font-style:italic;line-height:1.1;
+  font-size:clamp(1rem, 5.6cqw, 2rem);letter-spacing:.03em;
 }
-.pcard-price{font-size:1.05rem;font-weight:700;letter-spacing:.01em;color:rgba(244,241,235,.95)}
+.pcard-price{font-size:clamp(.9rem, 4.2cqw, 1.5rem);font-weight:700;letter-spacing:.01em;color:rgba(244,241,235,.95)}
 /* Variant photo thumbnails on the home cards (replaces the color dots + Add-to-Bag).
    More-specific than the shared .zw-card-swatch so they show always (incl. mobile),
    as photo tiles, with a clean active border (no haze). Tap previews the colorway. */
 .pcard{ min-width:0; }
-.pcard .zw-card-swatches{ display:flex !important; flex-wrap:nowrap; gap:.4rem; margin:.5rem 0 .3rem; padding-bottom:7px; min-width:0; max-width:100%; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
+/* Swatch row: inset to line up with the text below it, with gaps + thumbnail size
+   that scale with the card (cqw) so the colours stay proportional at any Card Size. */
+.pcard .zw-card-swatches{ display:flex !important; flex-wrap:nowrap; gap:clamp(.3rem, 1.6cqw, .7rem); margin:clamp(.45rem,2.2cqw,1rem) 0 clamp(.2rem,1.2cqw,.5rem); padding:0 clamp(1rem, 4.2cqw, 2rem) 7px; scroll-padding-left:clamp(1rem, 4.2cqw, 2rem); min-width:0; max-width:100%; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
 .pcard .zw-card-swatches::-webkit-scrollbar{ display:none; }
 .pcard .zw-card-swatch{ scroll-snap-align:start; }
-.pcard .zw-card-swatch{ width:48px; height:48px; flex:0 0 auto; padding:0; cursor:pointer; border-radius:0; border:1px solid rgba(128,128,128,.4); background-size:cover !important; background-position:center !important; background-repeat:no-repeat !important; box-shadow:none !important; position:relative; transition:border-color .15s ease; }
+.pcard .zw-card-swatch{ width:clamp(42px, 13cqw, 76px); height:clamp(42px, 13cqw, 76px); flex:0 0 auto; padding:0; cursor:pointer; border-radius:0; border:1px solid rgba(128,128,128,.4); background-size:cover !important; background-position:center !important; background-repeat:no-repeat !important; box-shadow:none !important; position:relative; transition:border-color .15s ease; }
 /* Nike/adidas-style selected bar under the active colour (theme-aware). */
 .pcard .zw-card-swatch::after{ content:''; position:absolute; left:0; right:0; bottom:-7px; height:3px; background:transparent; transition:background .15s ease; }
 .pcard .zw-card-swatch:hover, .pcard .zw-card-swatch:focus-visible, .pcard .zw-card-swatch.active{ border-color:rgba(128,128,128,.95); box-shadow:none !important; transform:none !important; }
@@ -920,6 +932,9 @@ body.light-mode .pcard .zw-card-swatch.active::after{ background:#09090b; }
 .zw-hide-price .pcard-price{ display:none !important; }
 .zw-hide-badge .pcard-badge{ display:none !important; }
 .zw-swatch-snap .zw-card-swatches{ scroll-snap-type:x mandatory !important; }
+/* When name, category, price AND reviews are all hidden, don't leave an empty
+   bordered/padded strip under the image — collapse the info box entirely. */
+.zw-hide-name.zw-hide-cat.zw-hide-price.zw-hide-reviews .pcard-info{ padding:0 !important; border-top:none !important; }
 /* Full-bleed section Background for the products section. It's a centered
    max-width:1200px column, so a plain background would only paint that column
    (a "weird half-width band"). storefront.js sets --zw-secbg + .zw-secbg; this
@@ -933,10 +948,10 @@ body.light-mode .pcard .zw-card-swatch.active::after{ background:#09090b; }
 }
 .products-section.zw-secbg > *{ position:relative; z-index:1; }
 .pcard-action{
-  display:inline-flex;align-items:center;gap:.4rem;
-  margin-top:.9rem;
+  display:inline-flex;align-items:center;gap:.4rem;align-self:flex-start;
+  margin-top:clamp(.1rem,1cqw,.5rem); /* small extra breathing room above reviews */
   min-height:1.5rem; /* reserve space so async review load never reflows the card */
-  font-family:var(--fm);font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;
+  font-family:var(--fm);font-size:clamp(.5rem,2.1cqw,.72rem);letter-spacing:.16em;text-transform:uppercase;
   color:var(--gold);
   border-bottom:1px solid rgba(248,145,165,.25);
   padding-bottom:2px;cursor:pointer;transition:border-color .2s;
