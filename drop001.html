@@ -416,7 +416,9 @@ document.documentElement.classList.add('zw-collflash');
     }
     .products-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      /* --plp-cols (2/3/4) is set from the admin "Collection card size" setting;
+         defaults to 3. Tablet/mobile keep their own counts below. */
+      grid-template-columns: repeat(var(--plp-cols, 3), minmax(0, 1fr));
       gap: 1.5rem;
       background: transparent;
     }
@@ -1061,6 +1063,16 @@ document.documentElement.classList.add('zw-collflash');
     try { localStorage.setItem('zw_card_cta', on ? 'color-swatches' : 'add-to-bag'); } catch (_) {}
   };
   try { window.__zwApplyCardMode(localStorage.getItem('zw_card_cta') || 'add-to-bag'); } catch (_) {}
+
+  // Collection grid density: Large=2 / Medium=3 / Small=4 across on desktop.
+  // Sets --plp-cols on <html>; cached for a flash-free first paint and refreshed
+  // by the site_settings fetch. Stored on product_card_cta (value.collection_cols).
+  window.__zwApplyCollectionCols = function (cols) {
+    var n = (Number(cols) === 2 || Number(cols) === 4) ? Number(cols) : 3;
+    document.documentElement.style.setProperty('--plp-cols', n);
+    try { localStorage.setItem('zw_plp_cols', String(n)); } catch (_) {}
+  };
+  try { window.__zwApplyCollectionCols(localStorage.getItem('zw_plp_cols') || 3); } catch (_) {}
   window.__zwSyncThemeColor = function() {
     var m = document.body.classList.contains('super-light-mode') ? 'super-light'
           : document.body.classList.contains('light-mode') ? 'light' : 'dark';
@@ -1802,6 +1814,7 @@ function updateCountdown() {
             let cta = row.value;
             try { if (typeof cta === 'string') cta = JSON.parse(cta); } catch (_) {}
             window.__zwApplyCardMode((cta && cta.mode === 'color-swatches') ? 'color-swatches' : 'add-to-bag');
+            if (window.__zwApplyCollectionCols) window.__zwApplyCollectionCols(cta && cta.collection_cols);
           }
           else if (row.key === 'theme' && row.value) {
             const mode = row.value.mode === 'dark' ? 'dark' : row.value.mode === 'super-light' ? 'super-light' : 'light';
