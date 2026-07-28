@@ -3679,7 +3679,7 @@
             const registryKeys = new Set(ZW_FEATURE_REGISTRY.map(f => f.key));
             const names = Object.keys(_featureFlags).filter(n => !registryKeys.has(n)).sort();
             if (!names.length) {
-                host.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:36px 20px;border:1px dashed var(--border);border-radius:10px;line-height:1.7;">No custom feature flags yet.<br>Your live features (search, recommendations, Q&amp;A, bundles…) are now on/off options on their own pages.<br>Add a flag above (e.g. <code>checkout_v2</code>) to gate new/experimental code with <code>window.zwFlag(\'checkout_v2\')</code>.</div>';
+                host.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:36px 20px;border:1px dashed var(--border);border-radius:10px;line-height:1.7;">No custom feature flags yet.<br><b>Looking for the product search toggle?</b> It lives in <b>Settings → Storefront features → “Product search”</b> (not here). Recommendations, Q&amp;A, bundles &amp; the rest are also on/off on their own pages.<br>Add a flag above (e.g. <code>checkout_v2</code>) to gate new/experimental code with <code>window.zwFlag(\'checkout_v2\')</code>.</div>';
                 return;
             }
             host.innerHTML = names.map(name => {
@@ -4598,13 +4598,19 @@
                 list = list.filter(p => (p.category || '') === _prodCategoryFilter);
             }
             if (_prodSearch) {
-                const q = _prodSearch;
-                list = list.filter(p =>
-                    (p.sku || '').toLowerCase().includes(q) ||
-                    (p.title || '').toLowerCase().includes(q) ||
-                    (p.colorway || '').toLowerCase().includes(q) ||
-                    (p.category || '').toLowerCase().includes(q)
-                );
+                // Tokenised search across all the useful fields: every word must match
+                // SOMEWHERE (not the whole query in a single field), so "black jacket"
+                // finds a jacket whose colorway is black, "mens tee" works, etc.
+                const toks = _prodSearch.split(/\s+/).filter(Boolean);
+                list = list.filter(p => {
+                    const hay = [p.sku, p.title, p.colorway, p.category, p.subtitle, p.gender,
+                        Array.isArray(p.tags) ? p.tags.join(' ') : p.tags]
+                        .join(' ').toLowerCase();
+                    return toks.every(t => {
+                        const sing = (t.length > 3 && t.charAt(t.length - 1) === 's') ? t.slice(0, -1) : t;
+                        return hay.indexOf(t) !== -1 || (sing !== t && hay.indexOf(sing) !== -1);
+                    });
+                });
             }
             if (_prodSort.key) {
                 list = [...list].sort((a, b) => {

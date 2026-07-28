@@ -369,19 +369,28 @@
   var CLEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
 
   function scoreProduct(p, tokens) {
-    var hay = [nameOf(p), p.subtitle, p.gender, p.colorway, p.category,
+    var hay = [nameOf(p), p.subtitle, p.gender, p.colorway, p.category, p.sku,
       Array.isArray(p.tags) ? p.tags.join(' ') : p.tags, p.material_composition]
       .join(' ').toLowerCase();
     var name = nameOf(p).toLowerCase();
-    var score = 0;
+    var score = 0, matched = 0;
     for (var i = 0; i < tokens.length; i++) {
       var t = tokens[i];
-      if (hay.indexOf(t) === -1) return 0;          // every token must match (AND)
-      if (name.indexOf(t) === 0) score += 3;        // title prefix
-      else if (name.indexOf(t) !== -1) score += 2;  // title contains
-      else score += 1;                              // matched elsewhere
+      // Friendlier matching: also try the singular ("jackets"→"jacket",
+      // "mens"→"men") so plural/possessive queries still hit, and DON'T bail when a
+      // token misses — rank by how many tokens matched instead of demanding all of
+      // them (AND→ranked OR). So "black hoodie" still surfaces hoodies even if none
+      // are black, with the best matches on top, instead of showing nothing.
+      var sing = (t.length > 3 && t.charAt(t.length - 1) === 's') ? t.slice(0, -1) : t;
+      var hit = hay.indexOf(t) !== -1 || (sing !== t && hay.indexOf(sing) !== -1);
+      if (!hit) continue;
+      matched++;
+      if (name.indexOf(t) === 0) score += 4;         // title starts with the word
+      else if (name.indexOf(t) !== -1) score += 3;   // title contains it
+      else score += 1;                               // matched a tag / category / etc.
     }
-    return score;
+    if (!matched) return 0;
+    return score + matched * 2;                       // reward matching more of the query
   }
 
   function initSearch() {
