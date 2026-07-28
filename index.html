@@ -920,6 +920,18 @@ body.light-mode .pcard .zw-card-swatch.active::after{ background:#09090b; }
 .zw-hide-price .pcard-price{ display:none !important; }
 .zw-hide-badge .pcard-badge{ display:none !important; }
 .zw-swatch-snap .zw-card-swatches{ scroll-snap-type:x mandatory !important; }
+/* Full-bleed section Background for the products section. It's a centered
+   max-width:1200px column, so a plain background would only paint that column
+   (a "weird half-width band"). storefront.js sets --zw-secbg + .zw-secbg; this
+   paints a viewport-wide band behind the whole strip. Uses left/right calc
+   (not width:100vw) so it never adds a horizontal scrollbar. */
+.products-section.zw-secbg{ position:relative; }
+.products-section.zw-secbg::before{
+  content:''; position:absolute; z-index:0; top:0; bottom:0;
+  left:calc(50% - 50vw); right:calc(50% - 50vw);
+  background:var(--zw-secbg); pointer-events:none;
+}
+.products-section.zw-secbg > *{ position:relative; z-index:1; }
 .pcard-action{
   display:inline-flex;align-items:center;gap:.4rem;
   margin-top:.9rem;

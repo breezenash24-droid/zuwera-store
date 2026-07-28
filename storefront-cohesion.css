@@ -4109,10 +4109,14 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
    mode). In grid mode ("products with rows") there's no horizontal overflow, so
    JS never adds .zw-has-swipe and the bar stays hidden. Wrapped in .zw-swipe-wrap. */
 .zw-swipe-wrap{ position:relative; }
+/* Nike-style rail: a wide, quiet track with a thumb that FILLS the track height
+   (top:0; height:100%) so it reads as a solid pill sliding in a groove — not a
+   lozenge floating over a hairline. Spans the content column so it lines up with
+   the row above it instead of a narrow centred stub. */
 .zw-swipe-bar{
   display:none; position:relative; height:4px; border-radius:var(--zw-radius-pill, 999px); cursor:pointer;
-  width:min(760px, 92%); margin:1.5rem auto 0; touch-action:none;
-  background:rgba(244,241,235,.16);
+  width:100%; max-width:1180px; margin:1.4rem auto 0; touch-action:none;
+  background:rgba(244,241,235,.14);
 }
 .zw-swipe-wrap.zw-has-swipe > .zw-swipe-bar{ display:block; }
 /* Reveal-on-hover (desktop only): when .zw-bar-hover is set, the bar keeps its
@@ -4124,18 +4128,18 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
   .zw-swipe-wrap.zw-has-swipe.zw-bar-hover:focus-within > .zw-swipe-bar{ opacity:1; }
 }
 .zw-swipe-thumb{
-  position:absolute; top:-3px; left:0; height:10px; min-width:26px; border-radius:var(--zw-radius-pill, 999px);
-  background:rgba(244,241,235,.6); cursor:grab; transition:background .2s ease;
+  position:absolute; top:0; left:0; height:100%; min-width:44px; border-radius:var(--zw-radius-pill, 999px);
+  background:rgba(244,241,235,.55); cursor:grab; transition:background .2s ease;
 }
-.zw-swipe-thumb:hover{ background:rgba(244,241,235,.85); }
+.zw-swipe-thumb:hover{ background:rgba(244,241,235,.8); }
 .zw-swipe-thumb.zw-dragging{ cursor:grabbing; background:rgba(244,241,235,.95); }
-/* Light themes: dark bar on light background */
+/* Light themes: dark thumb on a faint track */
 body.light-mode .zw-swipe-bar,
-body.super-light-mode .zw-swipe-bar{ background:rgba(9,9,11,.12); }
+body.super-light-mode .zw-swipe-bar{ background:rgba(9,9,11,.10); }
 body.light-mode .zw-swipe-thumb,
-body.super-light-mode .zw-swipe-thumb{ background:rgba(9,9,11,.55); }
+body.super-light-mode .zw-swipe-thumb{ background:rgba(9,9,11,.45); }
 body.light-mode .zw-swipe-thumb:hover,
-body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.8); }
+body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.72); }
 
 /* ── Per-device scrollbar controls (builder) ─────────────────────────────────
    The wrap carries data-bar-lg / -md / -sm = show | hover | off (one per
@@ -4164,12 +4168,10 @@ body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.8); }
   .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"]:hover > .zw-swipe-bar,
   .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"].zw-bar-scrolling > .zw-swipe-bar{ opacity:1; }
 }
-/* Thickness (thin is the default 4px bar / 10px thumb; top:-3px keeps every
-   thumb vertically centred on its bar) */
+/* Thickness (thin is the default 4px). The thumb is height:100%, so it fills
+   whatever track height we set here — no separate thumb sizing needed. */
 .zw-swipe-wrap[data-bar-size="medium"] > .zw-swipe-bar{ height:6px; }
-.zw-swipe-wrap[data-bar-size="medium"] > .zw-swipe-bar > .zw-swipe-thumb{ height:12px; }
 .zw-swipe-wrap[data-bar-size="thick"] > .zw-swipe-bar{ height:9px; }
-.zw-swipe-wrap[data-bar-size="thick"] > .zw-swipe-bar > .zw-swipe-thumb{ height:15px; }
 
 /* ── Unified nav logo theming ─────────────────────────────────────────────
    The nav logo class is NOT a reliable colour hint — .nav-logo, .nav-logo-link
@@ -4212,6 +4214,18 @@ body.super-light-mode img[src*="wordmark-nav"]{ filter:none !important; }
   .sec-head,.sec-head *,.about-label,.about-body,.about-body *,.stat-n,.stat-l,
   .zw-eyebrow,.eyebrow,[class*="-label"],[class*="-title"]):not(button):not(a.btn):not(.btn){
   color:#09090b !important;
+}
+
+/* ── Explicit section Text Color ──────────────────────────────────────────
+   storefront.js adds .zw-sec-tc to a section that has a CHOSEN Text Color (and
+   sets that color on the section itself). Cascade it onto child text that
+   hardcodes its own color (product cards, headings, labels) — otherwise those
+   theme rules win and the chosen color appears to do nothing. Mirrors
+   .zw-on-light but inherits the chosen color instead of forcing dark. */
+.zw-sec-tc :is(h1,h2,h3,h4,p,li,.pcard-name,.pcard-cat,.pcard-price,
+  .sec-head,.sec-head *,.about-label,.about-body,.about-body *,.stat-n,.stat-l,
+  .zw-eyebrow,.eyebrow,[class*="-label"],[class*="-title"]):not(button):not(a.btn):not(.btn){
+  color:inherit !important;
 }
 
 
