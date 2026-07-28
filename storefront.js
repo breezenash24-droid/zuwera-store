@@ -197,6 +197,14 @@ function showToast(msg) {
     grid.classList.toggle('zw-hide-colors', cfg.show_colors === false);
     grid.classList.toggle('zw-hide-reviews', cfg.show_reviews === false);
     grid.classList.toggle('zw-swatch-snap', cfg.color_snap === true);
+    // Card size (swipe carousels): a preset [desktop, tablet, mobile] width, or a
+    // custom width typed by the user (applied at every breakpoint).
+    const _cardW = { s:['clamp(240px,26%,300px)','54vw','74vw'], m:['clamp(300px,32%,380px)','64vw','84vw'], l:['clamp(360px,40%,470px)','74vw','90vw'], xl:['clamp(440px,50%,580px)','84vw','94vw'] };
+    const _cwCustom = (cfg.card_w || '').toString().trim();
+    const _cw = _cwCustom ? [_cwCustom, _cwCustom, _cwCustom] : (_cardW[cfg.card_size] || null);
+    ['--zw-card-w-lg','--zw-card-w-md','--zw-card-w-sm'].forEach((v, i) => {
+      if (_cw) grid.style.setProperty(v, _cw[i]); else grid.style.removeProperty(v);
+    });
     if (window.zwEnsureSwipeBar) window.zwEnsureSwipeBar(grid);
     // Per-device scrollbar visibility (show / reveal-on-hover / hidden) + thickness.
     const _w = grid.closest('.zw-swipe-wrap');
