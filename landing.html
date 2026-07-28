@@ -207,6 +207,12 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
 
     .lp-empty{ text-align:center; padding:4rem 1rem; opacity:.55; font-family:var(--fm); font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; }
     .lp-skel{ opacity:.35; }
+    /* Featured card element toggles (Page Builder → Pages → Featured → Card options).
+       Classes set on the grid by landing.js. */
+    .zw-hide-name .lp-card-name{ display:none !important; }
+    .zw-hide-cat .lp-card-cat{ display:none !important; }
+    .zw-hide-price .lp-card-price{ display:none !important; }
+    .zw-hide-badge .lp-card-badge{ display:none !important; }
 
     body.light-mode .lp-hero{ background:#e8e5de; }
     /* No bottom haze in light themes — the hero text is dark, so the gradient

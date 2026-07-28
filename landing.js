@@ -326,6 +326,18 @@
     grid.style.setProperty('--col-lg', _c(featCfg.col_lg, _c(featCfg.columns, 3)));
     grid.style.setProperty('--col-md', _c(featCfg.col_md, 2));
     grid.style.setProperty('--col-sm', _c(featCfg.col_sm, 2));
+    // Featured card element toggles + card size (Page Builder → Pages → Featured →
+    // Card options). Only elements the landing card already renders — colour swatches
+    // and review stars aren't rendered on landing cards yet.
+    grid.classList.toggle('zw-hide-name', featCfg.show_name === false);
+    grid.classList.toggle('zw-hide-cat', featCfg.show_cat === false);
+    grid.classList.toggle('zw-hide-price', featCfg.show_price === false);
+    grid.classList.toggle('zw-hide-badge', featCfg.show_badge === false);
+    var _lpCardW = { s:['clamp(240px,26%,300px)','54vw','74vw'], m:['clamp(300px,32%,380px)','64vw','84vw'], l:['clamp(360px,40%,470px)','74vw','90vw'], xl:['clamp(440px,50%,580px)','84vw','94vw'] };
+    var _lpcw = _lpCardW[featCfg.card_size] || null;
+    ['--zw-card-w-lg','--zw-card-w-md','--zw-card-w-sm'].forEach(function (v, i) { if (_lpcw) grid.style.setProperty(v, _lpcw[i]); else grid.style.removeProperty(v); });
+    var _featHeadEl = featH ? featH.closest('.lp-sec-head') : null;
+    if (_featHeadEl) _featHeadEl.style.display = (featCfg.show_heading === false) ? 'none' : '';
     if (!featured.length) {
       grid.innerHTML = '<div class="lp-empty" style="grid-column:1/-1">Nothing here yet — check back soon.</div>';
       return;

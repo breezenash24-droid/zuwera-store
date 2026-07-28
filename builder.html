@@ -1337,12 +1337,8 @@ function renderPagesTab(container){
     <div class="tog2"><label>Show featured products</label><label class="switch"><input type="checkbox" data-lp="featured.enabled" ${feat.enabled!==false?'checked':''}><span class="sw-sl"></span></label></div>
     <div class="field"><label>Section heading</label><input data-lp="featured.heading" value="${he(feat.heading||'')}" placeholder="Featured"></div>
     ${featHtml}
-    <div class="fl" style="margin-top:.35rem">Layout per device</div>
-    <div class="fhint" style="margin-bottom:.35rem">“Swipe” shows one product at a time (scroll right for more); “Grid” tiles them in columns.</div>
-    ${lpLayRow('🖥️ Desktop','featured.lay_lg','featured.col_lg','featured.snap_lg',feat.lay_lg||'grid',String(feat.col_lg||3),feat.snap_lg||'smooth','featured.bar_lg',feat.bar_lg||(feat.bar_hover?'hover':'show'))}
-    ${lpLayRow('▭ Tablet','featured.lay_md','featured.col_md','featured.snap_md',feat.lay_md||'swipe',String(feat.col_md||2),feat.snap_md||'smooth','featured.bar_md',feat.bar_md||'show')}
-    ${lpLayRow('▯ Mobile','featured.lay_sm','featured.col_sm','featured.snap_sm',feat.lay_sm||'swipe',String(feat.col_sm||2),feat.snap_sm||'smooth','featured.bar_sm',feat.bar_sm||'show')}
-    <div class="field" style="margin-top:.3rem"><label>Scrollbar thickness</label><select data-lp="featured.bar_size">${lpSelOpt(feat.bar_size||'thin',LP_BARSIZEO)}</select></div>
+    ${lpPlatFields(feat)}
+    ${lpCardOptions(feat)}
     <div class="fdiv"></div>
 
     <div class="tab-hd">Page Sections</div>
@@ -1362,6 +1358,7 @@ function renderPagesTab(container){
     const sync=()=>lpSetPath(el.dataset.lp, el.type==='checkbox'?el.checked:el.value);
     el.addEventListener('input',sync); el.addEventListener('change',sync);
   });
+  syncPlatTabs();   // show the featured device panel matching the current preview device
   // Hero viewfinder: build the draggable tablet/mobile frames, and rebuild them
   // whenever a hero image or fit changes (Browse dispatches 'change' on these).
   ['lpHeroImg','lpHeroMobImg','lpHeroTabImg'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',initHeroViewfinders);});
@@ -1775,6 +1772,39 @@ const LP_SNAPO=[['smooth','Smooth (free scroll)'],['snap','One at a time (snap)'
 const LP_BARO=[['show','Always show'],['hover','On hover / while scrolling'],['off','Hidden']];
 const LP_BARSIZEO=[['thin','Thin'],['medium','Medium'],['thick','Thick']];
 const lpSelOpt=(v,opts)=>opts.map(([val,txt])=>`<option value="${val}"${String(v)===val?' selected':''}>${txt}</option>`).join('');
+// data-lp checkbox toggle (mirrors tog2 but writes to the landing config).
+const lpTog=(path,label,checked)=>`<div class="tog2"><label>${label}</label><label class="switch"><input type="checkbox" data-lp="${path}" ${checked?'checked':''}><span class="sw-sl"></span></label></div>`;
+// Featured layout controls as per-device TABS inside a collapsible group — mirrors
+// the homepage products platFields and reuses the shared pfDevice/syncPlatTabs +
+// .pf-tabs/.pf-panel machinery (agnostic to data-f vs data-lp).
+const lpPlatFields=(feat)=>{
+  const panel=(d,layV,colV,snapV,barV)=>`<div class="pf-panel" data-dev="${d}">`
+    +`<div class="field"><label>Layout</label><select data-lp="featured.lay_${d}">${lpSelOpt(layV,LP_LAYO)}</select></div>`
+    +`<div class="field"><label>Columns (grid)</label><select data-lp="featured.col_${d}">${lpSelOpt(colV,LP_COLO)}</select></div>`
+    +`<div class="field"><label>Scroll feel (swipe)</label><select data-lp="featured.snap_${d}">${lpSelOpt(snapV,LP_SNAPO)}</select></div>`
+    +`<div class="field"><label>Scrollbar (swipe)</label><select data-lp="featured.bar_${d}">${lpSelOpt(barV,LP_BARO)}</select></div>`
+    +`</div>`;
+  const inner=`<div class="fhint" style="margin-bottom:.35rem">Pick a device tab, then set how this row behaves there — it also switches the preview to that device. “Swipe” shows one product at a time; “Grid” tiles in columns.</div>`
+    +`<div class="pf-tabs" data-pf-tabs><button type="button" class="pf-tab" data-dev="lg" onclick="pfDevice('lg')">🖥️ Desktop</button><button type="button" class="pf-tab" data-dev="md" onclick="pfDevice('md')">▭ Tablet</button><button type="button" class="pf-tab" data-dev="sm" onclick="pfDevice('sm')">▯ Mobile</button></div>`
+    +panel('lg',feat.lay_lg||'grid',String(feat.col_lg||3),feat.snap_lg||'smooth',feat.bar_lg||(feat.bar_hover?'hover':'show'))
+    +panel('md',feat.lay_md||'swipe',String(feat.col_md||2),feat.snap_md||'smooth',feat.bar_md||'show')
+    +panel('sm',feat.lay_sm||'swipe',String(feat.col_sm||2),feat.snap_sm||'smooth',feat.bar_sm||'show')
+    +`<div class="fdiv"></div>`
+    +`<div class="field"><label>Scrollbar thickness</label><select data-lp="featured.bar_size">${lpSelOpt(feat.bar_size||'thin',LP_BARSIZEO)}</select></div>`;
+  return grp('Layout &amp; scroll',inner,true);
+};
+// Card-option toggles for the featured cards (collapsible group). Colour swatches
+// + review stars are intentionally absent here — landing cards don't render those
+// yet (the landing product fetch has no color_variants/reviews); that's a follow-up.
+const lpCardOptions=(feat)=>grp('Card options',
+  lpTog('featured.show_heading','Show section heading',feat.show_heading!==false)
+  +lpTog('featured.show_name','Show product name',feat.show_name!==false)
+  +lpTog('featured.show_cat','Show category line',feat.show_cat!==false)
+  +lpTog('featured.show_price','Show price',feat.show_price!==false)
+  +lpTog('featured.show_badge','Show availability badge',feat.show_badge!==false)
+  +`<div class="fdiv"></div>`
+  +`<div class="field"><label>Card size (swipe carousel)</label><select data-lp="featured.card_size">${lpSelOpt(feat.card_size||'auto',[['auto','Auto'],['s','Small'],['m','Medium'],['l','Large'],['xl','Extra Large']])}</select></div>`
+,true);
 const lpLayRow=(label,layPath,colPath,snapPath,layV,colV,snapV,barPath,barV)=>`<div class="fl" style="margin-top:.1rem">${label}</div><div class="field"><label>Layout</label><select data-lp="${layPath}">${lpSelOpt(layV,LP_LAYO)}</select></div><div class="field"><label>Columns (grid mode)</label><select data-lp="${colPath}">${lpSelOpt(colV,LP_COLO)}</select></div><div class="field"><label>Scroll feel (swipe)</label><select data-lp="${snapPath}">${lpSelOpt(snapV,LP_SNAPO)}</select></div>${barPath?`<div class="field"><label>Scrollbar (swipe)</label><select data-lp="${barPath}">${lpSelOpt(barV,LP_BARO)}</select></div>`:''}`;
 /* NOTE: Section padding is rendered once, by the universal "Section Style"
    block in buildForm. It used to ALSO be rendered here as sliders, but both
@@ -2214,8 +2244,11 @@ function pfDevice(dev){
 }
 function syncPlatTabs(dev){
   dev=dev||{desk:'lg',tab:'md',mob:'sm'}[pvMode]||'lg';
-  document.querySelectorAll('#edBody [data-pf-tabs] .pf-tab').forEach(b=>b.classList.toggle('on',b.dataset.dev===dev));
-  document.querySelectorAll('#edBody .pf-panel').forEach(p=>p.classList.toggle('on',p.dataset.dev===dev));
+  // Scoped to the whole editor panel (not just #edBody) so it also drives the
+  // Pages-tab featured layout tabs, which render into #lpContent. Only one editor
+  // surface is visible at a time, so there's no cross-talk.
+  document.querySelectorAll('[data-pf-tabs] .pf-tab').forEach(b=>b.classList.toggle('on',b.dataset.dev===dev));
+  document.querySelectorAll('.pf-panel').forEach(p=>p.classList.toggle('on',p.dataset.dev===dev));
 }
 function setTheme(t){pvTheme=t;document.querySelectorAll('#thTog button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));schedSend();}
 
