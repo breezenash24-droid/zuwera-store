@@ -193,9 +193,17 @@ function showToast(msg) {
     // Per-section card controls (Page Builder → Products section):
     //  · show_colors:false  → product-only cards (hide the colour swatch row)
     //  · show_reviews:false → hide the star rating / review-count line
+    //  · show_name:false    → hide the product name
+    //  · show_cat:false     → hide the category / description line
+    //  · show_price:false   → hide the price
+    //  · show_badge:false   → hide the availability badge (Available / Coming Soon)
     //  · color_snap:true    → colour scroll snaps one-at-a-time (else free scroll)
     grid.classList.toggle('zw-hide-colors', cfg.show_colors === false);
     grid.classList.toggle('zw-hide-reviews', cfg.show_reviews === false);
+    grid.classList.toggle('zw-hide-name', cfg.show_name === false);
+    grid.classList.toggle('zw-hide-cat', cfg.show_cat === false);
+    grid.classList.toggle('zw-hide-price', cfg.show_price === false);
+    grid.classList.toggle('zw-hide-badge', cfg.show_badge === false);
     grid.classList.toggle('zw-swatch-snap', cfg.color_snap === true);
     // Card size (swipe carousels): a preset [desktop, tablet, mobile] width, or a
     // custom width typed by the user (applied at every breakpoint).
