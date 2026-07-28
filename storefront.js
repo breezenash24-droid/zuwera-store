@@ -856,6 +856,13 @@ function showToast(msg) {
           const secSub = el.closest('.drop-wrap')?.querySelector('.sec-head span') || el.querySelector('.sec-head span');
           if (secHead && s.title !== undefined) secHead.textContent = s.title;
           if (secSub && s.subtitle !== undefined) secSub.textContent = s.subtitle;
+          // Per-element heading visibility (Page Builder → Products): hide the
+          // title and/or subtitle, and collapse the whole heading block (incl. its
+          // divider) when both are off, so no empty bordered strip is left.
+          if (secHead) secHead.style.display = (s.show_title === false) ? 'none' : '';
+          if (secSub) secSub.style.display = (s.show_subtitle === false) ? 'none' : '';
+          const _secHeadEl = (secHead || secSub) ? (secHead || secSub).closest('.sec-head') : null;
+          if (_secHeadEl) _secHeadEl.style.display = (s.show_title === false && s.show_subtitle === false) ? 'none' : '';
           // Per-platform layout: grid vs one-at-a-time swipe for desktop/tablet/
           // mobile, driven by data attrs + --col vars the CSS reads per breakpoint.
           const _pgrid = document.getElementById('products-grid');
