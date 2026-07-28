@@ -416,10 +416,14 @@ document.documentElement.classList.add('zw-collflash');
     }
     .products-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 1.5rem;
       background: transparent;
     }
+    /* min-width:0 so a wide nowrap swatch row scrolls inside its own column
+       instead of stretching that column wider than its siblings — which made
+       cards different sizes. Guarantees every card is the exact same width. */
+    .products-grid > a { min-width: 0; }
     .products-grid.single-item {
       display: block;
     }
@@ -430,7 +434,7 @@ document.documentElement.classList.add('zw-collflash');
       max-width: 450px;
     }
     .products-grid.two-items {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
     .product-card {
       background: transparent;
@@ -773,9 +777,13 @@ document.documentElement.classList.add('zw-collflash');
     .collection-option-grid{display:flex;flex-wrap:wrap;gap:.55rem}
     .collection-size{border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.76);min-height:38px;padding:0 .8rem;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
     /* Colour picker = product-photo thumbnail (matches the full product page). */
-    .collection-color{width:52px;height:65px;flex:0 0 auto;border:1px solid rgba(244,241,235,.2);border-radius:2px;background-color:transparent;background-size:cover;background-position:center top;background-repeat:no-repeat;padding:0;cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease}
+    .collection-color{width:52px;height:65px;flex:0 0 auto;border:1px solid rgba(244,241,235,.2);border-radius:0;background-color:transparent;background-size:cover;background-position:center top;background-repeat:no-repeat;padding:0;cursor:pointer;position:relative;transition:border-color .15s ease}
+    /* Nike/adidas-style selected bar under the active colour — matches the product
+       cards and the product page instead of the old rounded ring. */
+    .collection-color::after{content:'';position:absolute;left:0;right:0;bottom:-6px;height:3px;background:transparent;transition:background .15s ease}
     .collection-color:hover{border-color:rgba(244,241,235,.55)}
-    .collection-color.active{border-color:var(--white);box-shadow:0 0 0 1px var(--white)}
+    .collection-color.active{border-color:var(--white)}
+    .collection-color.active::after{background:var(--white)}
     .collection-size.active{border-color:var(--white);color:var(--white);background:rgba(244,241,235,.1)}
     .collection-size.sold-out{opacity:.35;cursor:not-allowed;text-decoration:line-through}
     .collection-empty-option{font-size:.68rem;color:rgba(244,241,235,.48);margin:0}
@@ -803,7 +811,8 @@ document.documentElement.classList.add('zw-collflash');
     body.light-mode .collection-option-head strong{color:rgba(9,9,11,.86)}
     body.light-mode .collection-size{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.74)}
     body.light-mode .collection-color{border-color:rgba(9,9,11,.18)}
-    body.light-mode .collection-color.active{border-color:#09090b;box-shadow:0 0 0 1px #09090b}
+    body.light-mode .collection-color.active{border-color:#09090b}
+    body.light-mode .collection-color.active::after{background:#09090b}
     body.light-mode .collection-size.active{border-color:#09090b;color:#09090b;background:rgba(9,9,11,.06)}
     body.light-mode .collection-thumb.active{border-color:#09090b;opacity:1}
     body.light-mode .collection-empty-option,body.light-mode .collection-review-message{color:rgba(9,9,11,.5)}
@@ -880,7 +889,7 @@ document.documentElement.classList.add('zw-collflash');
 
 
     @media (max-width: 768px) {
-      .products-grid { grid-template-columns: repeat(2, 1fr); gap: 1.2rem; }
+      .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem; }
     }
 
     @media (max-width: 600px) {
