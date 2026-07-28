@@ -1779,7 +1779,8 @@ const platFields=(g,dLg='grid',dMd='grid',dSm='swipe')=>{
     +panel('md',g.lay_md||dMd,String(g.col_md||2),g.snap_md||'smooth',g.bar_md||'show')
     +panel('sm',g.lay_sm||dSm,String(g.col_sm||2),g.snap_sm||'smooth',g.bar_sm||'show')
     +`<div class="fdiv"></div>`
-    +sel('bar_size','Scrollbar thickness',g.bar_size||'thin',PLAT_BARSIZEO);
+    +sel('bar_size','Scrollbar thickness',g.bar_size||'thin',PLAT_BARSIZEO)
+    +tog2('arrows','Prev / next arrows (desktop)',g.arrows===true);
   return grp('Layout &amp; scroll',inner,true);
 };
 /* Color field with a live hex input. Both the swatch and the text box share
@@ -1827,7 +1828,8 @@ const lpPlatFields=(feat)=>{
     +panel('md',feat.lay_md||'swipe',String(feat.col_md||2),feat.snap_md||'smooth',feat.bar_md||'show')
     +panel('sm',feat.lay_sm||'swipe',String(feat.col_sm||2),feat.snap_sm||'smooth',feat.bar_sm||'show')
     +`<div class="fdiv"></div>`
-    +`<div class="field"><label>Scrollbar thickness</label><select data-lp="featured.bar_size">${lpSelOpt(feat.bar_size||'thin',LP_BARSIZEO)}</select></div>`;
+    +`<div class="field"><label>Scrollbar thickness</label><select data-lp="featured.bar_size">${lpSelOpt(feat.bar_size||'thin',LP_BARSIZEO)}</select></div>`
+    +lpTog('featured.arrows','Prev / next arrows (desktop)',feat.arrows===true);
   return grp('Layout &amp; scroll',inner,true);
 };
 // Card-option toggles for the featured cards (collapsible group). Colour swatches

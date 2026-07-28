@@ -22,7 +22,40 @@
     wrap.setAttribute('data-bar-md', m(cfg.bar_md, 'show'));
     wrap.setAttribute('data-bar-sm', m(cfg.bar_sm, 'show'));
     wrap.setAttribute('data-bar-size', (cfg.bar_size === 'medium' || cfg.bar_size === 'thick') ? cfg.bar_size : 'thin');
+    wrap.setAttribute('data-arrows', cfg.arrows ? 'on' : 'off');   // Nike-style prev/next buttons
     wrap.classList.remove('zw-bar-hover');
+  };
+
+  // Nike-style prev/next arrows for a swipe row (mirror of the homepage helper).
+  // Free-scroll stays; each arrow nudges the row by one card. Shown by CSS only
+  // when enabled (data-arrows="on") + scrollable + hover-capable. Binds once.
+  window.zwEnsureSwipeArrows = window.zwEnsureSwipeArrows || function (wrap, grid) {
+    if (!wrap || !grid || wrap._zwArrowsBound) return;
+    wrap._zwArrowsBound = true;
+    var prev = document.createElement('button');
+    prev.type = 'button'; prev.className = 'zw-swipe-arrow zw-swipe-prev'; prev.setAttribute('aria-label', 'Previous');
+    prev.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
+    var next = document.createElement('button');
+    next.type = 'button'; next.className = 'zw-swipe-arrow zw-swipe-next'; next.setAttribute('aria-label', 'Next');
+    next.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+    wrap.appendChild(prev); wrap.appendChild(next);
+    var step = function () {
+      var first = grid.firstElementChild;
+      var w = first ? first.getBoundingClientRect().width : grid.clientWidth * 0.8;
+      var cs = getComputedStyle(grid);
+      var gap = parseFloat(cs.columnGap || cs.gap) || 16;
+      return w + gap;
+    };
+    prev.addEventListener('click', function () { grid.scrollBy({ left: -step(), behavior: 'smooth' }); });
+    next.addEventListener('click', function () { grid.scrollBy({ left: step(), behavior: 'smooth' }); });
+    var upd = function () {
+      var max = grid.scrollWidth - grid.clientWidth;
+      prev.disabled = grid.scrollLeft <= 2;
+      next.disabled = grid.scrollLeft >= max - 2;
+    };
+    grid.addEventListener('scroll', function () { requestAnimationFrame(upd); }, { passive: true });
+    window.addEventListener('resize', function () { requestAnimationFrame(upd); }, { passive: true });
+    requestAnimationFrame(upd); setTimeout(upd, 360);
   };
 
   // Per-device grid/swipe layout setter — mirror of the homepage helper (landing
@@ -84,6 +117,7 @@
       var end = function (e) { if (!dragging) return; dragging = false; thumb.classList.remove('zw-dragging'); try { thumb.releasePointerCapture(e.pointerId); } catch (_) {} };
       thumb.addEventListener('pointerup', end); thumb.addEventListener('pointercancel', end);
       bar.addEventListener('pointerdown', function (e) { if (e.target === thumb) return; var r = bar.getBoundingClientRect(); grid.scrollTo({ left: ((e.clientX - r.left) / r.width) * (grid.scrollWidth - grid.clientWidth), behavior: 'smooth' }); });
+      if (window.zwEnsureSwipeArrows) window.zwEnsureSwipeArrows(wrap, grid);
       grid._zwBarBound = true;
     }
     requestAnimationFrame(sync); setTimeout(sync, 350);

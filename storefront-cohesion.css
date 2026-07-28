@@ -4177,6 +4177,33 @@ body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.72); }
 .zw-swipe-wrap[data-bar-size="medium"] > .zw-swipe-bar{ height:6px; }
 .zw-swipe-wrap[data-bar-size="thick"] > .zw-swipe-bar{ height:9px; }
 
+/* ── Swipe prev/next arrows (Nike-style, opt-in) ─────────────────────────────
+   Free scroll (wheel/drag/bar) always works; these just nudge one card at a time.
+   Built by zwEnsureSwipeArrows; shown only when the section enables them
+   (data-arrows="on"), the row is actually scrollable (.zw-has-swipe), AND the
+   device has a pointer that can hover (desktop) — touch users just swipe. */
+.zw-swipe-arrow{
+  display:none; position:absolute; top:calc(50% - 1.35rem); z-index:4;
+  width:2.7rem; height:2.7rem; border-radius:var(--zw-radius-pill, 999px);
+  align-items:center; justify-content:center; cursor:pointer;
+  border:1px solid rgba(9,9,11,.12); background:rgba(244,241,235,.9);
+  color:#09090b; backdrop-filter:blur(6px); box-shadow:0 2px 10px rgba(0,0,0,.10);
+  transition:background .15s ease, opacity .15s ease, transform .15s ease;
+}
+.zw-swipe-arrow svg{ width:1.15rem; height:1.15rem; }
+.zw-swipe-prev{ left:clamp(.4rem, 1vw, 1rem); }
+.zw-swipe-next{ right:clamp(.4rem, 1vw, 1rem); }
+.zw-swipe-arrow:hover{ background:#fff; transform:translateY(-1px); }
+.zw-swipe-arrow:disabled{ opacity:0; pointer-events:none; }   /* fade out at the ends */
+@media (hover:hover){
+  .zw-swipe-wrap.zw-has-swipe[data-arrows="on"] > .zw-swipe-arrow{ display:flex; }
+}
+/* Dark themes: dark chip, light glyph */
+body:not(.light-mode):not(.super-light-mode) .zw-swipe-arrow{
+  background:rgba(9,9,11,.72); border-color:rgba(244,241,235,.16); color:#f4f1eb;
+}
+body:not(.light-mode):not(.super-light-mode) .zw-swipe-arrow:hover{ background:rgba(9,9,11,.9); }
+
 /* ── Unified nav logo theming ─────────────────────────────────────────────
    The nav logo class is NOT a reliable colour hint — .nav-logo, .nav-logo-link
    and .zw-nav-logo each appear on different pages with DIFFERENT artwork. So we
