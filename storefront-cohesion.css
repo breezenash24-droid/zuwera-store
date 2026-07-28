@@ -4092,15 +4092,15 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
    wins when enabled. */
 @media (min-width:1025px){
   .zw-plat-grid[data-lg="swipe"][data-snap-lg="on"]{ scroll-snap-type:x mandatory !important; }
-  .zw-plat-grid[data-lg="swipe"][data-snap-lg="on"] > *{ flex:0 0 66% !important; width:66% !important; scroll-snap-align:center !important; }
+  .zw-plat-grid[data-lg="swipe"][data-snap-lg="on"] > *{ flex:0 0 var(--zw-card-w-lg, 66%) !important; width:var(--zw-card-w-lg, 66%) !important; scroll-snap-align:center !important; }
 }
 @media (min-width:641px) and (max-width:1024px){
   .zw-plat-grid[data-md="swipe"][data-snap-md="on"]{ scroll-snap-type:x mandatory !important; }
-  .zw-plat-grid[data-md="swipe"][data-snap-md="on"] > *{ flex:0 0 80vw !important; width:80vw !important; scroll-snap-align:center !important; }
+  .zw-plat-grid[data-md="swipe"][data-snap-md="on"] > *{ flex:0 0 var(--zw-card-w-md, 80vw) !important; width:var(--zw-card-w-md, 80vw) !important; scroll-snap-align:center !important; }
 }
 @media (max-width:640px){
   .zw-plat-grid[data-sm="swipe"][data-snap-sm="on"]{ scroll-snap-type:x mandatory !important; }
-  .zw-plat-grid[data-sm="swipe"][data-snap-sm="on"] > *{ flex:0 0 86vw !important; width:86vw !important; scroll-snap-align:center !important; }
+  .zw-plat-grid[data-sm="swipe"][data-snap-sm="on"] > *{ flex:0 0 var(--zw-card-w-sm, 86vw) !important; width:var(--zw-card-w-sm, 86vw) !important; scroll-snap-align:center !important; }
 }
 
 /* ── Swipe scrollbar for products/featured rows ──────────────────────────────
@@ -4151,21 +4151,25 @@ body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.72); }
 @media (min-width:1025px){ .zw-swipe-wrap[data-bar-lg="off"] > .zw-swipe-bar{ display:none !important; } }
 @media (min-width:641px) and (max-width:1024px){ .zw-swipe-wrap[data-bar-md="off"] > .zw-swipe-bar{ display:none !important; } }
 @media (max-width:640px){ .zw-swipe-wrap[data-bar-sm="off"] > .zw-swipe-bar{ display:none !important; } }
-/* Reveal mode: hidden until hover (desktop) or while scrolling (touch) */
+/* Reveal mode ("On hover / while scrolling"): the bar is hidden, then fades in
+   only while there's ACTIVITY — the row is scrolled or the pointer is moving over
+   it (storefront.js pulses .zw-bar-scrolling, which auto-clears ~0.9s after
+   activity stops). We deliberately do NOT reveal on plain :hover, so the bar
+   doesn't sit visible the entire time the cursor merely rests over the row.
+   :focus-within is kept so keyboard users can still surface it. */
 @media (min-width:1025px){
   .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"] > .zw-swipe-bar{ opacity:0; transition:opacity .25s ease; }
-  .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"]:hover > .zw-swipe-bar,
   .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"]:focus-within > .zw-swipe-bar,
   .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"].zw-bar-scrolling > .zw-swipe-bar{ opacity:1; }
 }
 @media (min-width:641px) and (max-width:1024px){
   .zw-swipe-wrap.zw-has-swipe[data-bar-md="hover"] > .zw-swipe-bar{ opacity:0; transition:opacity .25s ease; }
-  .zw-swipe-wrap.zw-has-swipe[data-bar-md="hover"]:hover > .zw-swipe-bar,
+  .zw-swipe-wrap.zw-has-swipe[data-bar-md="hover"]:focus-within > .zw-swipe-bar,
   .zw-swipe-wrap.zw-has-swipe[data-bar-md="hover"].zw-bar-scrolling > .zw-swipe-bar{ opacity:1; }
 }
 @media (max-width:640px){
   .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"] > .zw-swipe-bar{ opacity:0; transition:opacity .25s ease; }
-  .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"]:hover > .zw-swipe-bar,
+  .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"]:focus-within > .zw-swipe-bar,
   .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"].zw-bar-scrolling > .zw-swipe-bar{ opacity:1; }
 }
 /* Thickness (thin is the default 4px). The thumb is height:100%, so it fills

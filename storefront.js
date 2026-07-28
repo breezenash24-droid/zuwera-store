@@ -255,25 +255,23 @@ function showToast(msg) {
     if (!grid._zwBarBound) {
       grid.addEventListener('scroll', sync, { passive: true });
       window.addEventListener('resize', sync, { passive: true });
-      // Reveal-while-scrolling for "hover" mode on touch (no pointer hover): show
-      // the bar during a scroll gesture, then fade it out ~0.9s after it settles.
-      let _barScrollT;
-      grid.addEventListener('scroll', () => {
+      // Reveal on ACTIVITY for "hover / while scrolling" mode: any scroll of the
+      // row, or pointer movement over it, shows the bar — which then fades ~0.9s
+      // after activity stops, so it never sits visible the whole time the cursor
+      // merely rests over the row (which is what plain CSS :hover did). Movement is
+      // the trigger, not entry, so an idle hover fades out; leaving fades it fast.
+      // Harmless in "show"/"off" modes — only the hover-mode CSS reacts to it.
+      let _barActT;
+      const _pulseBar = () => {
         wrap.classList.add('zw-bar-scrolling');
-        clearTimeout(_barScrollT);
-        _barScrollT = setTimeout(() => wrap.classList.remove('zw-bar-scrolling'), 900);
-      }, { passive: true });
-      // Belt-and-suspenders reveal for "hover / while scrolling" mode: CSS :hover on
-      // the wrap can be unreliable inside the builder iframe and over a full-bleed
-      // row that overflows the wrap, so also reveal via JS pointer events. Harmless
-      // in "show"/"off" modes — only the hover-mode CSS reacts to zw-bar-scrolling.
-      wrap.addEventListener('pointerenter', () => {
-        wrap.classList.add('zw-bar-scrolling');
-        clearTimeout(_barScrollT);
-      }, { passive: true });
+        clearTimeout(_barActT);
+        _barActT = setTimeout(() => wrap.classList.remove('zw-bar-scrolling'), 900);
+      };
+      grid.addEventListener('scroll', _pulseBar, { passive: true });
+      wrap.addEventListener('pointermove', _pulseBar, { passive: true });
       wrap.addEventListener('pointerleave', () => {
-        clearTimeout(_barScrollT);
-        _barScrollT = setTimeout(() => wrap.classList.remove('zw-bar-scrolling'), 250);
+        clearTimeout(_barActT);
+        _barActT = setTimeout(() => wrap.classList.remove('zw-bar-scrolling'), 200);
       }, { passive: true });
       // Drag the thumb → scroll the row proportionally.
       let dragging = false, startX = 0, startLeft = 0;
@@ -699,6 +697,11 @@ function showToast(msg) {
 
       // Style overrides moved to the bottom of the function so they don't get erased by cssText
       if (s.anchor_id) el.id = s.anchor_id;
+      // Hide-on-device targets the element by id. Static sections (products, about,
+      // release…) map to pre-existing markup with no id, so a Hide toggle would
+      // silently do nothing unless an Anchor ID was also set. Fall back to sec.id so
+      // the toggle works on its own. (Dynamic sections already get el.id = sec.id.)
+      if ((s.hide_mobile || s.hide_desktop) && !el.id) el.id = sec.id;
       if (s.hide_mobile) {
         let mobileHideStyle = document.getElementById('zw-builder-mobile-hide-' + el.id);
         if (!mobileHideStyle) {
