@@ -790,6 +790,10 @@ const PDP_BLOCK_META = {
   journal:           { label:'From the journal',       tp:'journal',         icon:'📓', flag:null, desc:'Latest published journal posts' },
   newsletter:        { label:'Newsletter signup',      tp:'newsletter',      icon:'✉️', flag:null, desc:'“Stay in the loop” — signups land in Subscribers' },
 };
+// Card-grid blocks that support per-block Card options (size + hide text lines).
+// They render as .zwf-card rows via storefront-features.js. (more_from_release
+// uses a different renderer in product.html and isn't wired for these yet.)
+const PDP_CARD_BLOCKS = { recommendations:1, recently_viewed:1, new_arrivals:1 };
 // What a store shows before anyone touches this tab.
 const PDP_ORDER_DEFAULT = ['more_from_release','bundle','recently_viewed','recommendations','qa'];
 let pdpCfg = null, pdpFlags = null;
@@ -804,7 +808,10 @@ function pdpNormalize(v){
   saved.forEach(s=>{
     const id = s && String(s.id||'');
     if(!PDP_BLOCK_META[id] || seen.includes(id)) return;
-    seen.push(id); out.push({ id, on: s.on !== false });
+    seen.push(id);
+    const block = { id, on: s.on !== false };
+    if(s.cfg && typeof s.cfg === 'object') block.cfg = s.cfg;   // per-block card options
+    out.push(block);
   });
   return out;
 }
@@ -880,6 +887,36 @@ function paintProductTab(container){
       d.addEventListener('drop',e=>{ e.preventDefault(); d.classList.remove('drag-over'); pdpReorder(e.dataTransfer.getData('text/plain'), s.id); });
     }
     list.appendChild(d);
+
+    // Card-row blocks get an expandable Card-options panel (size + hide text).
+    if(PDP_CARD_BLOCKS[s.id] && s.on){
+      s.cfg = s.cfg || {};
+      const cfg = s.cfg;
+      const gear = document.createElement('button');
+      gear.type='button'; gear.className='vis-btn'; gear.title='Card options'; gear.textContent='⚙'; gear.style.opacity='.7';
+      const panel = document.createElement('div');
+      panel.className='pdp-block-cfg';
+      panel.style.cssText='display:none;flex-direction:column;gap:.28rem;padding:.5rem .6rem .6rem;margin:-.15rem 0 .45rem;border:1px solid var(--bd);border-top:none;border-radius:0 0 4px 4px;background:rgba(255,255,255,.02)';
+      panel.innerHTML =
+        `<div class="field"><label>Card size</label><select data-cfg="card_size">`
+        +`<option value="m"${(cfg.card_size||'m')==='m'?' selected':''}>Medium (default)</option>`
+        +`<option value="s"${cfg.card_size==='s'?' selected':''}>Small</option>`
+        +`<option value="l"${cfg.card_size==='l'?' selected':''}>Large</option>`
+        +`<option value="xl"${cfg.card_size==='xl'?' selected':''}>Extra Large</option>`
+        +`</select></div>`
+        +`<div class="tog2"><label>Show product name</label><label class="switch"><input type="checkbox" data-cfg="show_name" ${cfg.show_name!==false?'checked':''}><span class="sw-sl"></span></label></div>`
+        +`<div class="tog2"><label>Show category line</label><label class="switch"><input type="checkbox" data-cfg="show_cat" ${cfg.show_cat!==false?'checked':''}><span class="sw-sl"></span></label></div>`
+        +`<div class="tog2"><label>Show price</label><label class="switch"><input type="checkbox" data-cfg="show_price" ${cfg.show_price!==false?'checked':''}><span class="sw-sl"></span></label></div>`
+        +`<div class="fhint">Colour swatches &amp; review stars aren't shown on these rows yet.</div>`;
+      gear.addEventListener('click',e=>{ e.stopPropagation(); panel.style.display = panel.style.display==='none' ? 'flex' : 'none'; });
+      panel.querySelectorAll('[data-cfg]').forEach(el=>{
+        const apply=()=>{ cfg[el.dataset.cfg] = el.type==='checkbox' ? el.checked : el.value; };
+        el.addEventListener('change',apply); el.addEventListener('input',apply);
+      });
+      const acts = d.querySelector('.sec-acts');
+      if(acts) acts.insertBefore(gear, acts.firstChild); else d.appendChild(gear);
+      list.appendChild(panel);
+    }
   });
 
   // Gallery of blocks not currently on the page — same row vocabulary, plus a +.
