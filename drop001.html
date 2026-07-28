@@ -1073,6 +1073,15 @@ document.documentElement.classList.add('zw-collflash');
     try { localStorage.setItem('zw_plp_cols', String(n)); } catch (_) {}
   };
   try { window.__zwApplyCollectionCols(localStorage.getItem('zw_plp_cols') || 3); } catch (_) {}
+
+  // Card image fit: 'contain' shows the whole photo (zoom out) instead of cropping.
+  // Toggles body.zw-card-fit-contain (CSS in storefront-cohesion.css); cached for a
+  // flash-free first paint, refreshed by the site_settings fetch (product_card_cta).
+  window.__zwApplyCardFit = function (fit) {
+    if (document.body) document.body.classList.toggle('zw-card-fit-contain', fit === 'contain');
+    try { localStorage.setItem('zw_card_fit', fit === 'contain' ? 'contain' : 'cover'); } catch (_) {}
+  };
+  try { window.__zwApplyCardFit(localStorage.getItem('zw_card_fit') || 'cover'); } catch (_) {}
   window.__zwSyncThemeColor = function() {
     var m = document.body.classList.contains('super-light-mode') ? 'super-light'
           : document.body.classList.contains('light-mode') ? 'light' : 'dark';
@@ -1815,6 +1824,7 @@ function updateCountdown() {
             try { if (typeof cta === 'string') cta = JSON.parse(cta); } catch (_) {}
             window.__zwApplyCardMode((cta && cta.mode === 'color-swatches') ? 'color-swatches' : 'add-to-bag');
             if (window.__zwApplyCollectionCols) window.__zwApplyCollectionCols(cta && cta.collection_cols);
+            if (window.__zwApplyCardFit) window.__zwApplyCardFit(cta && cta.card_fit === 'contain' ? 'contain' : 'cover');
           }
           else if (row.key === 'theme' && row.value) {
             const mode = row.value.mode === 'dark' ? 'dark' : row.value.mode === 'super-light' ? 'super-light' : 'light';

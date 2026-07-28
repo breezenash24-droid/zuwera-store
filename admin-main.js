@@ -7647,6 +7647,8 @@
                 if (sel) sel.value = (v && v.mode === 'color-swatches') ? 'color-swatches' : 'add-to-bag';
                 const colSel = document.getElementById('settCollectionCols');
                 if (colSel) colSel.value = (v && (Number(v.collection_cols) === 2 || Number(v.collection_cols) === 4)) ? String(Number(v.collection_cols)) : '3';
+                const fitSel = document.getElementById('settCardFit');
+                if (fitSel) fitSel.value = (v && v.card_fit === 'contain') ? 'contain' : 'cover';
             } else if (row.key === 'nav_menu') {
                 let v = row.value;
                 try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
@@ -7718,13 +7720,15 @@
         const mode = sel && sel.value === 'color-swatches' ? 'color-swatches' : 'add-to-bag';
         const colSel = document.getElementById('settCollectionCols');
         const collection_cols = colSel && (colSel.value === '2' || colSel.value === '4') ? Number(colSel.value) : 3;
+        const fitSel = document.getElementById('settCardFit');
+        const card_fit = fitSel && fitSel.value === 'contain' ? 'contain' : 'cover';
         const { error } = await sb.from('site_settings').upsert(
-            { key: 'product_card_cta', value: { mode, collection_cols }, updated_at: new Date().toISOString() },
+            { key: 'product_card_cta', value: { mode, collection_cols, card_fit }, updated_at: new Date().toISOString() },
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving card style', 'error'); console.error(error); }
         else {
-            await logAdminAudit('settings.update', 'site_settings', 'product_card_cta', { mode, collection_cols });
+            await logAdminAudit('settings.update', 'site_settings', 'product_card_cta', { mode, collection_cols, card_fit });
             showToast('Card style saved!', 'success');
         }
     });

@@ -4232,6 +4232,19 @@ body.super-light-mode img[src*="wordmark-nav"]{ filter:none !important; }
   color:inherit !important;
 }
 
+/* ── Product-card image fit ───────────────────────────────────────────────
+   Default is object-fit:cover (crop the photo to fill the square — the tight,
+   Nike-style look). When the admin picks "Fit — show the whole image", each page
+   sets body.zw-card-fit-contain and the card photos zoom OUT to show the whole
+   frame, on a soft ground so any letterboxing reads as intentional. Covers every
+   card surface: homepage, collection, landing, and the product-page rows. */
+body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img) img{
+  object-fit:contain !important;
+}
+body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img){
+  background:rgba(128,128,128,.10);
+}
+
 
 /* Header logos differ by page (tall square emblem on browse/checkout, shorter
    wide wordmark on info/account pages). Pin the logo cell to a consistent

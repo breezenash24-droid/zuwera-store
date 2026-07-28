@@ -34,8 +34,19 @@ window.__zwApplyCardMode = function (mode) {
   if (!document.body) document.addEventListener('DOMContentLoaded', set);
   try { localStorage.setItem('zw_card_cta', on ? 'color-swatches' : 'add-to-bag'); } catch (_) {}
 };
+// Card image fit: 'contain' shows the whole photo (zoom out); default 'cover' crops
+// to fill. Toggles body.zw-card-fit-contain (CSS in storefront-cohesion.css). Cached
+// for a flash-free first paint, refreshed by loadSiteSettings.
+window.__zwApplyCardFit = function (fit) {
+  var contain = fit === 'contain';
+  function set() { if (document.body) document.body.classList.toggle('zw-card-fit-contain', contain); }
+  set();
+  if (!document.body) document.addEventListener('DOMContentLoaded', set);
+  try { localStorage.setItem('zw_card_fit', contain ? 'contain' : 'cover'); } catch (_) {}
+};
 (function () {
   try { window.__zwApplyCardMode(localStorage.getItem('zw_card_cta') || 'add-to-bag'); } catch (_) {}
+  try { window.__zwApplyCardFit(localStorage.getItem('zw_card_fit') || 'cover'); } catch (_) {}
 })();
 
 (function normalizeHomepageCopy() {
@@ -2311,6 +2322,7 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       let cta = settings.product_card_cta;
       try { if (typeof cta === 'string') cta = JSON.parse(cta); } catch (_) {}
       window.__zwApplyCardMode((cta && cta.mode === 'color-swatches') ? 'color-swatches' : 'add-to-bag');
+      window.__zwApplyCardFit(cta && cta.card_fit === 'contain' ? 'contain' : 'cover');
     }
 
     // 1. brand
