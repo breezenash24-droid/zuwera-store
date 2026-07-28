@@ -263,6 +263,18 @@ function showToast(msg) {
         clearTimeout(_barScrollT);
         _barScrollT = setTimeout(() => wrap.classList.remove('zw-bar-scrolling'), 900);
       }, { passive: true });
+      // Belt-and-suspenders reveal for "hover / while scrolling" mode: CSS :hover on
+      // the wrap can be unreliable inside the builder iframe and over a full-bleed
+      // row that overflows the wrap, so also reveal via JS pointer events. Harmless
+      // in "show"/"off" modes — only the hover-mode CSS reacts to zw-bar-scrolling.
+      wrap.addEventListener('pointerenter', () => {
+        wrap.classList.add('zw-bar-scrolling');
+        clearTimeout(_barScrollT);
+      }, { passive: true });
+      wrap.addEventListener('pointerleave', () => {
+        clearTimeout(_barScrollT);
+        _barScrollT = setTimeout(() => wrap.classList.remove('zw-bar-scrolling'), 250);
+      }, { passive: true });
       // Drag the thumb → scroll the row proportionally.
       let dragging = false, startX = 0, startLeft = 0;
       thumb.addEventListener('pointerdown', (e) => {
@@ -1610,16 +1622,36 @@ function showToast(msg) {
       // Use !important so a chosen section background reliably beats the
       // light/super-light mode rules (e.g. .drop-wrap { background:var(--ink) }),
       // which otherwise win over a plain inline style for built-in sections.
-      if (s.sec_bg) el.style.setProperty('background', s.sec_bg, 'important');
-      else el.style.removeProperty('background'); // clear when unset so mode bg returns
+      // The products section is a centered max-width column, so a plain inline
+      // background would only paint that column (a "weird half-width band"). For
+      // it we drive a full-bleed ::before via --zw-secbg + .zw-secbg instead;
+      // every other section is full-width, so the direct background is right there.
+      const _bgBleed = el.classList.contains('products-section');
+      if (s.sec_bg) {
+        if (_bgBleed) {
+          el.style.setProperty('--zw-secbg', s.sec_bg);
+          el.classList.add('zw-secbg');
+          el.style.removeProperty('background');
+        } else {
+          el.style.setProperty('background', s.sec_bg, 'important');
+        }
+      } else {
+        el.style.removeProperty('background'); // clear when unset so mode bg returns
+        el.style.removeProperty('--zw-secbg');
+        el.classList.remove('zw-secbg');
+      }
       if (s.pad_top) el.style.paddingTop = s.pad_top + 'px';
       if (s.pad_bot) el.style.paddingBottom = s.pad_bot + 'px';
 
       // Universal text color (opt-in). Sections that set color via cssText
       // (cta/banner) ship a text_color default, so the else-branch only clears
-      // an inline override on sections that never set color themselves.
+      // an inline override on sections that never set color themselves. The
+      // zw-sec-tc class cascades the chosen color onto child text that hardcodes
+      // its own color (product cards, headings) — otherwise those win and the
+      // chosen Text Color appears to "do nothing".
       if (s.text_color) {
         el.style.setProperty('color', s.text_color, 'important');
+        el.classList.add('zw-sec-tc');
         el.classList.remove('zw-on-light');
       } else if (s.sec_bg && _zwIsLightColor(s.sec_bg)) {
         // Light section background but no text color chosen → force dark text so it
@@ -1628,9 +1660,11 @@ function showToast(msg) {
         // darkens child text that hardcodes its own light color (e.g. product cards).
         el.style.setProperty('color', '#09090b', 'important');
         el.classList.add('zw-on-light');
+        el.classList.remove('zw-sec-tc');
       } else {
         el.style.removeProperty('color');
         el.classList.remove('zw-on-light');
+        el.classList.remove('zw-sec-tc');
       }
       // Universal heading-size override (opt-in). Only applied when set — when
       // blank, each section's own responsive heading size (re-rendered into the
