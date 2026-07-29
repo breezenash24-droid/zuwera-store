@@ -1424,12 +1424,37 @@ function updateCollectionMeta(categoryLabel) {
   const categoryEl = document.getElementById('collection-category');
   const sectionTitleEl = document.querySelector('.section-header h2');
   const noteEl = document.querySelector('.notify-note');
-  if (labelEl) labelEl.textContent = categoryLabel ? `Zuwera - ${label}` : 'Zuwera - Collection';
+  const eb = (window.__zwCollPageCfg && window.__zwCollPageCfg.eyebrow) || 'Zuwera';
+  if (labelEl) labelEl.textContent = categoryLabel ? `${eb} - ${label}` : `${eb} - Collection`;
   if (categoryEl) categoryEl.textContent = label;
   if (sectionTitleEl) sectionTitleEl.textContent = categoryLabel ? `Release 001 - ${label}` : 'Release 001 - All Products';
   if (noteEl) noteEl.textContent = categoryLabel
     ? `Be first to know when ${label.toLowerCase()} go live. No spam, ever.`
     : 'Be first to know when the next release goes live. No spam, ever.';
+}
+
+// Applies the builder's collection_page header wording (title + countdown label).
+// The eyebrow (.drop-label) is handled by updateCollectionMeta on every render so
+// it can append the active category; here we set the one-time header pieces.
+function applyCollectionHeader(cfg) {
+  if (!cfg) return;
+  try {
+    if (cfg.title) {
+      const h = document.getElementById('collection-title');
+      if (h) {
+        for (let i = 0; i < h.childNodes.length; i++) {
+          const n = h.childNodes[i];
+          if (n.nodeType === 3 && n.textContent.trim()) { n.textContent = cfg.title + ' '; break; }
+        }
+      }
+    }
+    if (cfg.subtitle) {
+      const d = document.querySelector('.drop-date-label');
+      if (d) d.textContent = cfg.subtitle;
+    }
+    const labelEl = document.querySelector('.drop-label');
+    if (labelEl && cfg.eyebrow) labelEl.textContent = `${cfg.eyebrow} - Collection`;
+  } catch (_) {}
 }
 
 function productHref(product) {
@@ -1821,7 +1846,7 @@ function updateCountdown() {
       });
 
     try {
-      const { data } = await sb.from('site_settings').select('*').in('key', ['theme', 'brand', 'product_card_cta']);
+      const { data } = await sb.from('site_settings').select('*').in('key', ['theme', 'brand', 'product_card_cta', 'collection_page']);
       if (data) {
         data.forEach(row => {
           if (row.key === 'product_card_cta') {
@@ -1840,7 +1865,20 @@ function updateCountdown() {
             const link = document.querySelector('link[rel="icon"]');
             if (link) { window.__zwApplyFavicon ? window.__zwApplyFavicon(row.value.favicon) : (link.href = row.value.favicon); }
           }
+          else if (row.key === 'collection_page') {
+            let cp = row.value;
+            try { if (typeof cp === 'string') cp = JSON.parse(cp); } catch (_) {}
+            window.__zwCollPageCfg = cp || null;
+          }
         });
+      }
+      // The builder's Collection page config (collection_page) wins over the
+      // admin Product-Cards defaults, when the corresponding field is set.
+      const _cp = window.__zwCollPageCfg;
+      if (_cp) {
+        if (_cp.card_size && window.__zwApplyCollectionCols) window.__zwApplyCollectionCols(_cp.card_size);
+        if (_cp.card_fit && window.__zwApplyCardFit) window.__zwApplyCardFit(_cp.card_fit === 'contain' ? 'contain' : 'cover');
+        applyCollectionHeader(_cp);
       }
     } catch (e) {}
 
