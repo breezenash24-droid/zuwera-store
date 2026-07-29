@@ -4200,11 +4200,23 @@ body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.72); }
 .zw-swipe-next{ right:0; left:auto; }          /* far right, at the content edge */
 .zw-swipe-arrow:hover{ background:#f0f0f0; transform:translateY(-1px); }
 .zw-swipe-arrow:disabled{ opacity:.32; cursor:default; pointer-events:none; }   /* greyed at the ends, like Nike */
+
+/* Preferred placement: the arrows are mounted in the section header, on the SAME
+   row as the title (far right) — so they sit in open space and never crowd the
+   product cards. zwEnsureSwipeArrows builds .zw-arrow-group and adds .zw-show when
+   the row can scroll + arrows are enabled; the media query keeps them to
+   hover-capable (desktop) devices, touch users just swipe. */
+.sec-head.zw-has-arrows{ align-items:center; margin-bottom:1.25rem; }   /* round buttons align to the title; a little air above the cards */
+.sec-head.zw-has-arrows h2{ margin-right:auto; }                        /* push the arrow group to the far right of the row */
+.zw-arrow-group{ display:none; align-items:center; gap:.55rem; flex:0 0 auto; margin-left:1rem; }
+.zw-arrow-group .zw-swipe-arrow{ position:static; top:auto; right:auto; left:auto; }   /* inline in the header, not absolute in a band */
 @media (hover:hover){
-  /* Reserve a clear band above the row so the arrows sit in open space (like Nike)
-     instead of overlapping the faint section heading rule just above them. */
-  .zw-swipe-wrap.zw-has-swipe[data-arrows="on"]{ padding-top:3.1rem; }   /* just fits the arrows; keeps the title close to the row */
-  .zw-swipe-wrap.zw-has-swipe[data-arrows="on"] > .zw-swipe-arrow{ display:flex; }
+  .zw-arrow-group.zw-show{ display:flex; }
+  .zw-arrow-group.zw-show > .zw-swipe-arrow{ display:flex; }
+  /* Fallback (a carousel with no section header): reserve a clear band above the
+     row and show the wrap-mounted arrows there, as before. */
+  .zw-swipe-wrap.zw-has-swipe[data-arrows="on"]:not(.zw-arrows-in-head){ padding-top:3.1rem; }
+  .zw-swipe-wrap.zw-has-swipe[data-arrows="on"]:not(.zw-arrows-in-head) > .zw-swipe-arrow{ display:flex; }
 }
 /* No dark-theme override: the arrows stay white in every theme, exactly like the
    always-white hero carousel controls — so every control shares one colour. A
