@@ -1310,6 +1310,12 @@ body.super-light-mode { background: #FFFFFF !important; }
           <p class="price-member" id="memberPrice"></p>
         </div>
 
+        <!-- SPORT SECTION (shown only when the product has sports assigned) -->
+        <div class="colorway-section product-sports-section" id="productSportsWrap" style="display:none">
+          <p class="section-label">Sport</p>
+          <div class="product-sports" id="productSports"></div>
+        </div>
+
         <!-- COLORWAY SELECTION -->
         <div class="colorway-section">
           <p class="section-label">Colorway</p>
@@ -2674,6 +2680,20 @@ function renderProduct() {
     const _custom = (currentProduct.descriptor || '').trim();
     const _desc = _custom || ((_poss && _cat) ? (_poss + ' ' + _cat) : (_poss || _cat || 'All'));
     document.getElementById('genderTag').textContent = _desc;
+  }
+  // Sport section — chips for each assigned sport; hidden when there are none.
+  {
+    const _sw = document.getElementById('productSportsWrap'), _sh = document.getElementById('productSports');
+    const _sp = Array.isArray(currentProduct.sports) ? currentProduct.sports.filter(Boolean) : [];
+    if (_sw && _sh) {
+      if (_sp.length) {
+        const _e = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        _sh.innerHTML = _sp.map((s) => `<span class="product-sport-pill">${_e(s)}</span>`).join('');
+        _sw.style.display = '';
+      } else {
+        _sw.style.display = 'none';
+      }
+    }
   }
   renderProductCategoryNavigation(currentProduct).catch((error) => console.warn('Failed to render category navigation:', error));
 

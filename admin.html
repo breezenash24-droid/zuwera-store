@@ -3033,6 +3033,26 @@
                             <p class="form-hint" style="margin-top: 8px;">Optional. Tags can be surfaced in the header navigation — e.g. a “New” or “Sale” menu item lists every product carrying that tag.</p>
                         </div>
                         <div class="form-group">
+                            <label class="form-label">Sports</label>
+                            <div id="sportsChips" class="sports-chips"></div>
+                            <div class="sports-add-row">
+                                <input type="text" id="sportsAddInput" class="form-input" placeholder="Add a sport…" autocomplete="off">
+                                <button type="button" id="sportsAddBtn" class="btn btn-secondary btn-sm">Add</button>
+                            </div>
+                            <p class="form-hint" style="margin-top: 8px;">Tap a sport to tag this product — it shows as a “Sport” section on the product page and powers the Sport filter on the collection page. Use ✕ to remove a sport from the list everywhere, or add your own below.</p>
+                            <style>
+                              .sports-chips { display:flex; flex-wrap:wrap; gap:8px; }
+                              .sport-chip { display:inline-flex; align-items:center; border:1px solid var(--border, #333); border-radius:999px; overflow:hidden; background:transparent; }
+                              .sport-chip.active { border-color:var(--accent, #F891A5); background:color-mix(in srgb, var(--accent, #F891A5) 12%, transparent); }
+                              .sport-chip-label { background:none; border:0; color:var(--text-primary, inherit); font-size:.8rem; padding:6px 4px 6px 12px; cursor:pointer; }
+                              .sport-chip.active .sport-chip-label { color:var(--accent, #F891A5); font-weight:600; }
+                              .sport-chip-x { background:none; border:0; color:var(--text-secondary, #999); font-size:.95rem; line-height:1; padding:6px 10px 6px 6px; cursor:pointer; opacity:.6; }
+                              .sport-chip-x:hover { opacity:1; color:var(--danger, #e5484d); }
+                              .sports-add-row { display:flex; gap:8px; margin-top:10px; }
+                              .sports-add-row .form-input { flex:1; }
+                            </style>
+                        </div>
+                        <div class="form-group">
                             <label class="form-label">Colorway / Summary Label</label>
                             <input type="text" id="colorway" class="form-input" placeholder="Optional. e.g., Black / White or Vintage Olive">
                             <p class="form-hint" style="margin-top: 8px;">Used in admin search, exports, and as a storefront fallback when you have not added color variants yet. Leave it blank to auto-build from your saved color variants.</p>
