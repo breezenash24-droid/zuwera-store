@@ -4189,14 +4189,16 @@ body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.72); }
   display:none; position:absolute; top:.35rem; z-index:5;
   width:2.9rem; height:2.9rem; border-radius:var(--zw-radius-pill, 999px);   /* Nike-sized */
   align-items:center; justify-content:center; cursor:pointer;
-  border:1px solid rgba(9,9,11,.12); background:rgba(244,241,235,.92);
-  color:#09090b; backdrop-filter:blur(6px); box-shadow:0 2px 10px rgba(0,0,0,.10);
+  /* Neutral light-grey chip (was cream --paper, which read as a dirty tan on the
+     white storefront). Dark theme override is below. */
+  border:1px solid rgba(9,9,11,.14); background:rgba(9,9,11,.06);
+  color:#09090b; box-shadow:0 2px 10px rgba(0,0,0,.08);
   transition:background .15s ease, opacity .15s ease, transform .15s ease;
 }
 .zw-swipe-arrow svg{ width:1.3rem; height:1.3rem; }
 .zw-swipe-prev{ right:3.4rem; left:auto; }   /* left of the pair */
 .zw-swipe-next{ right:0; left:auto; }          /* far right, at the content edge */
-.zw-swipe-arrow:hover{ background:#fff; transform:translateY(-1px); }
+.zw-swipe-arrow:hover{ background:rgba(9,9,11,.12); transform:translateY(-1px); }
 .zw-swipe-arrow:disabled{ opacity:.32; cursor:default; pointer-events:none; }   /* greyed at the ends, like Nike */
 @media (hover:hover){
   /* Reserve a clear band above the row so the arrows sit in open space (like Nike)
