@@ -343,6 +343,9 @@
       '.zwf-result{text-align:center;padding:.6rem 0 .2rem}',
       '.zwf-result-size{font-family:var(--fw,inherit);font-weight:900;font-style:italic;font-size:3.2rem;line-height:1;margin:.3rem 0}',
       '.zwf-result-note{font-family:var(--fb,inherit);font-size:.82rem;opacity:.6;margin:.2rem 0 1.4rem;line-height:1.5}',
+      /* "View full size guide" link inside the fit finder (opens the size-guide modal) */
+      '.zwf-fit-guide{display:block;width:100%;margin-top:.9rem;background:none;border:none;cursor:pointer;text-align:center;font-family:var(--fm,inherit);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;opacity:.6;text-decoration:underline;text-underline-offset:3px;color:inherit;padding:.2rem}',
+      '.zwf-fit-guide:hover{opacity:1}',
 
       /* support widget (floating) */
       '.zwf-support{position:fixed;right:20px;bottom:20px;z-index:900;display:flex;flex-direction:column;align-items:flex-end;gap:12px}',
@@ -1040,7 +1043,9 @@
     var order = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
     var w = weightLb || 0;
     var idx = w < 120 ? 0 : w < 140 ? 1 : w < 165 ? 2 : w < 190 ? 3 : w < 220 ? 4 : w < 250 ? 5 : 6;
-    if (heightIn >= 74) idx++; else if (heightIn && heightIn <= 64) idx--;
+    // Height nudge: tall (6'0"+) sizes up, short (5'3"-) sizes down; average heights
+    // unchanged so weight leads. (Was only 6'2"+ up, which left 6'0-6'3" unadjusted.)
+    if (heightIn >= 72) idx++; else if (heightIn && heightIn <= 64) idx--;
     if (fit === 'relaxed') idx++; else if (fit === 'snug') idx--;
     idx = Math.max(0, Math.min(order.length - 1, idx));
     var rec = order[idx];
@@ -1167,7 +1172,8 @@
       + [['snug', 'Snug'], ['true', 'True to size'], ['relaxed', 'Relaxed']]
         .map(function (o) { return '<button type="button" data-fit="' + o[0] + '"' + (o[0] === _fitState.fit ? ' class="on"' : '') + '>' + o[1] + '</button>'; }).join('')
       + '</div></div>'
-      + '<button class="zwf-btn zwf-fit-go" type="button">See my size</button>';
+      + '<button class="zwf-btn zwf-fit-go" type="button">See my size</button>'
+      + '<button class="zwf-fit-guide" type="button">View full size guide →</button>';
   }
 
   function openFitFinder(sizes) {
@@ -1191,6 +1197,7 @@
     var body = _fitModal.querySelector('.zwf-fit-body');
     _fitState = { fit: 'true' };
     body.innerHTML = fitFormMarkup();
+    wireFitGuide(body);
     body.querySelectorAll('.zwf-seg button').forEach(function (b) {
       b.addEventListener('click', function () {
         _fitState.fit = b.getAttribute('data-fit');
@@ -1205,13 +1212,26 @@
       var rec = fitRecommend(h, w, _fitState.fit, _fitSizes);
       body.innerHTML = '<div class="zwf-result"><h3 class="zwf-modal-title">Your size</h3>'
         + '<div class="zwf-result-size">' + esc(rec) + '</div>'
-        + '<p class="zwf-result-note">A starting point based on your answers — fit varies by cut. Check the size guide if you’re between sizes.</p>'
-        + '<button class="zwf-btn zwf-fit-again" type="button">Start over</button></div>';
+        + '<p class="zwf-result-note">A starting point based on your answers — fit varies by cut.</p>'
+        + '<button class="zwf-btn zwf-fit-again" type="button">Start over</button>'
+        + '<button class="zwf-fit-guide" type="button">View full size guide →</button></div>';
       body.querySelector('.zwf-fit-again').addEventListener('click', function () { openFitFinder(_fitSizes); });
+      wireFitGuide(body);
     });
     requestAnimationFrame(function () { _fitModal.classList.add('open'); });
   }
   function closeFit() { if (_fitModal) _fitModal.classList.remove('open'); }
+  // "View full size guide" inside the fit finder → close this sheet, then open the
+  // product page's size-guide modal (window.openSizeGuideModal, defined on
+  // product.html). Guarded so it's a no-op anywhere that modal doesn't exist.
+  function wireFitGuide(scope) {
+    var g = scope && scope.querySelector('.zwf-fit-guide');
+    if (!g) return;
+    g.addEventListener('click', function () {
+      closeFit();
+      setTimeout(function () { if (typeof window.openSizeGuideModal === 'function') window.openSizeGuideModal(); }, 240);
+    });
+  }
 
   /* ───────────────────── feature: support widget ───────────────────── */
 
