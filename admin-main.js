@@ -3786,7 +3786,10 @@
         }
         // Optional heading shown above a page's feature toggles (per admin page).
         const _pageFlagHeadings = {
-            settings:   { title: 'Storefront features', sub: 'Turn customer-facing features on or off. Changes go live immediately.' },
+            // 'settings' intentionally omitted: the Settings page already renders a
+            // static "Storefront features" heading + description in admin.html, so
+            // adding one here produced a DUPLICATE heading that pushed the toggles
+            // down (looked like the section was floating below a redundant header).
             products:   { title: 'Product-page features', sub: 'Extras shown on the storefront around your products.' },
             emails:     { title: 'Automated email features', sub: 'Lifecycle emails. Scheduled ones also need their cron set up (see below).' },
             sizecharts: { title: 'Size-guide feature', sub: '' },
