@@ -3660,8 +3660,9 @@ function renderReviews() {
   document.getElementById('reviewsHeader').textContent =
     `Reviews (${avgRating} \u00b7 ${currentProduct.reviews.length})`;
 
-  // Show latest 3 reviews
-  const displayReviews = currentProduct.reviews.slice(0, 3);
+  // Show up to the first 6 reviews inline in the column (Nike-style), so people
+  // read reviews without opening anything. The modal stays for photos / the rest.
+  const displayReviews = currentProduct.reviews.slice(0, 6);
 
   displayReviews.forEach(review => {
     const reviewEl = document.createElement('div');
@@ -3709,10 +3710,16 @@ function renderReviews() {
     }
   });
 
-  if (currentProduct.reviews.length > 3) {
+  // Keep the photo-carrying modal reachable whenever it adds something the inline
+  // column can't: more reviews than the 6 shown, or any review photos (only the
+  // modal renders photos + a lightbox). If every review is already inline and none
+  // has a photo, the modal would just repeat the column, so we skip the button.
+  const _hasMore = currentProduct.reviews.length > displayReviews.length;
+  const _hasPhotos = currentProduct.reviews.some(r => Array.isArray(r.photos) && r.photos.length);
+  if (_hasMore || _hasPhotos) {
     const moreBtn = document.createElement('button');
     moreBtn.className = 'more-reviews-btn';
-    moreBtn.textContent = `View All ${currentProduct.reviews.length} Reviews`;
+    moreBtn.textContent = _hasMore ? `View All ${currentProduct.reviews.length} Reviews` : 'See Review Photos';
     moreBtn.onclick = () => openAllReviewsModal(currentProduct.id, currentProduct.id, currentProduct.title);
     content.appendChild(moreBtn);
   }
