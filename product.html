@@ -3710,16 +3710,15 @@ function renderReviews() {
     }
   });
 
-  // Keep the photo-carrying modal reachable whenever it adds something the inline
-  // column can't: more reviews than the 6 shown, or any review photos (only the
-  // modal renders photos + a lightbox). If every review is already inline and none
-  // has a photo, the modal would just repeat the column, so we skip the button.
-  const _hasMore = currentProduct.reviews.length > displayReviews.length;
-  const _hasPhotos = currentProduct.reviews.some(r => Array.isArray(r.photos) && r.photos.length);
-  if (_hasMore || _hasPhotos) {
+  // Always offer the modal when there's at least one review (guaranteed by the
+  // early return above) — the "See Reviews" button — so the full list + any
+  // photos/lightbox are always reachable, even with a single review. Reads
+  // "View All N Reviews" when there's more than the 6 shown inline.
+  {
     const moreBtn = document.createElement('button');
     moreBtn.className = 'more-reviews-btn';
-    moreBtn.textContent = _hasMore ? `View All ${currentProduct.reviews.length} Reviews` : 'See Review Photos';
+    const _hasMore = currentProduct.reviews.length > displayReviews.length;
+    moreBtn.textContent = _hasMore ? `View All ${currentProduct.reviews.length} Reviews` : 'See Reviews';
     moreBtn.onclick = () => openAllReviewsModal(currentProduct.id, currentProduct.id, currentProduct.title);
     content.appendChild(moreBtn);
   }
