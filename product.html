@@ -3671,8 +3671,9 @@ function renderReviews() {
   document.getElementById('reviewsHeader').textContent =
     `Reviews (${avgRating} \u00b7 ${currentProduct.reviews.length})`;
 
-  // Show latest 3 reviews
-  const displayReviews = currentProduct.reviews.slice(0, 3);
+  // Show up to the first 6 reviews inline in the column (Nike-style), so people
+  // read reviews without opening anything. The modal stays for photos / the rest.
+  const displayReviews = currentProduct.reviews.slice(0, 6);
 
   displayReviews.forEach(review => {
     const reviewEl = document.createElement('div');
@@ -3720,10 +3721,15 @@ function renderReviews() {
     }
   });
 
-  if (currentProduct.reviews.length > 3) {
+  // Always offer the modal when there's at least one review (guaranteed by the
+  // early return above) — the "See Reviews" button — so the full list + any
+  // photos/lightbox are always reachable, even with a single review. Reads
+  // "View All N Reviews" when there's more than the 6 shown inline.
+  {
     const moreBtn = document.createElement('button');
     moreBtn.className = 'more-reviews-btn';
-    moreBtn.textContent = `View All ${currentProduct.reviews.length} Reviews`;
+    const _hasMore = currentProduct.reviews.length > displayReviews.length;
+    moreBtn.textContent = _hasMore ? `View All ${currentProduct.reviews.length} Reviews` : 'See Reviews';
     moreBtn.onclick = () => openAllReviewsModal(currentProduct.id, currentProduct.id, currentProduct.title);
     content.appendChild(moreBtn);
   }
