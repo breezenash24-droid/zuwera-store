@@ -1321,10 +1321,10 @@ body.super-light-mode { background: #FFFFFF !important; }
         <div class="size-section">
           <div class="size-header">
             <p class="section-label" id="sizeSectionLabel">Select Size</p>
-            <!-- Quick fit calculator — opens a focused height+weight modal
-                 (bottom sheet on mobile). syncSizeGuideVisibility() shows it only
-                 for sized apparel (tops/bottoms). -->
-            <button type="button" class="size-guide-link" id="findSizeTrigger" onclick="openFindSizeModal()">Find My Size</button>
+            <!-- "Find My Size" removed as redundant — the "Find your size" fit finder
+                 (storefront-features.js, appended into .size-header) is the single size
+                 helper now. Its modal/JS below stay in place but are unreferenced;
+                 syncSizeGuideVisibility() null-guards the old #findSizeTrigger. -->
           </div>
           <div class="size-grid" id="sizeGrid"></div>
           <!-- Back-in-stock capture — shown when a sold-out size is tapped -->
