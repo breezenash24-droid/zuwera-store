@@ -2029,9 +2029,10 @@ function updateCountdown() {
         grid.innerHTML = renderList.map(p => {
           const productName = p.title || p.name || 'Untitled';
           const productCategory = categoryLabelFromProduct(p);
+          window.zwSingularCat = window.zwSingularCat || function (c) { if (!c) return c; var s = String(c).trim(); if (/(pants|shorts|leggings|joggers|socks|jeans|tights|briefs|boxers|trousers|sunglasses|glasses|shoes|sneakers|boots|sandals|slides|gloves|overalls|pajamas|pyjamas)$/i.test(s)) return s; return /[^s]s$/i.test(s) ? s.slice(0, -1) : s; };
           const _g = String(p.gender || '').trim().toLowerCase();
           const _genderPrefix = _g === 'men' ? "Men's " : _g === 'women' ? "Women's " : _g === 'unisex' ? 'Unisex ' : _g === 'kids' ? "Kids' " : '';
-          const productType = (_genderPrefix + (productCategory || '')).trim();
+          const productType = (_genderPrefix + window.zwSingularCat(productCategory || '')).trim();
           const productPrice = p.current_price || p.msrp || p.price;
           const badge = (p.status === 'coming_soon' || p.status === 'Coming Soon') ? 'Coming Soon' : (p.status === 'live' || p.status === 'Live' ? 'Available' : (p.status || 'Coming Soon'));
           let firstImg = p.image_url;

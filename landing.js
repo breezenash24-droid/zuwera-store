@@ -349,9 +349,10 @@
         : '<div class="lp-card-ph"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg></div>';
       var st = String(p.status || '').toLowerCase();
       var badge = (st === 'live') ? '' : '<span class="lp-card-badge">' + esc(p.status || 'Coming Soon') + '</span>';
+      window.zwSingularCat = window.zwSingularCat || function (c) { if (!c) return c; var s = String(c).trim(); if (/(pants|shorts|leggings|joggers|socks|jeans|tights|briefs|boxers|trousers|sunglasses|glasses|shoes|sneakers|boots|sandals|slides|gloves|overalls|pajamas|pyjamas)$/i.test(s)) return s; return /[^s]s$/i.test(s) ? s.slice(0, -1) : s; };
       var g = String(p.gender || '').trim().toLowerCase();
       var gp = g === 'men' ? "Men's " : g === 'women' ? "Women's " : g === 'unisex' ? 'Unisex ' : g === 'kids' ? "Kids' " : '';
-      var typeLabel = (gp + (catOf(p) || '')).trim();
+      var typeLabel = (gp + window.zwSingularCat(catOf(p) || '')).trim();
       return '<a class="lp-card" href="' + esc(productHref(p)) + '">' +
         '<div class="lp-card-img">' + imgHtml + badge + '</div>' +
         '<p class="lp-card-name">' + esc(p.title || '') + '</p>' +
