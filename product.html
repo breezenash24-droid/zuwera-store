@@ -2660,8 +2660,16 @@ function renderProduct() {
   // <Category>" from gender + subtitle (the category). CSS uppercases it, so the
   // stored casing can stay natural. Mirrors the live preview in admin-main.js.
   {
+    // Singularise the category where it reads better ("Jacket" not "Jackets"),
+    // but keep plural-only / pair garments (Pants, Shorts, Leggings, Socks…) as-is.
+    window.zwSingularCat = window.zwSingularCat || function (c) {
+      if (!c) return c;
+      var s = String(c).trim();
+      if (/(pants|shorts|leggings|joggers|socks|jeans|tights|briefs|boxers|trousers|sunglasses|glasses|shoes|sneakers|boots|sandals|slides|gloves|overalls|pajamas|pyjamas)$/i.test(s)) return s;
+      return /[^s]s$/i.test(s) ? s.slice(0, -1) : s;
+    };
     const _g = (currentProduct.gender || '').trim();
-    const _cat = (currentProduct.subtitle || '').trim();
+    const _cat = window.zwSingularCat((currentProduct.subtitle || '').trim());
     const _poss = _g === 'Men' ? "Men's" : _g === 'Women' ? "Women's" : _g === 'Kids' ? "Kids'" : (_g || '');
     const _custom = (currentProduct.descriptor || '').trim();
     const _desc = _custom || ((_poss && _cat) ? (_poss + ' ' + _cat) : (_poss || _cat || 'All'));
