@@ -19,10 +19,12 @@
 --
 -- Applied to production 2026-07-28 via the add_feature_flags_to_public_read_whitelist
 -- migration. Idempotent: re-running simply re-sets the same allow-list.
+-- 2026-07-29: added 'collection_page' (builder Collection tab config, read by
+-- drop001.html with the anon key) via the add_collection_page_public_read migration.
 ALTER POLICY "Public read content keys" ON public.site_settings
 USING (key = ANY (ARRAY[
   'announcement_bar','brand','fonts','hero','legal_policies','shipping_policy',
   'theme','technologies','tax_rate_overrides','about_page','faq','header_behavior',
   'product_card_cta','nav_menu','landing_pages','landing_pages_published',
-  'image_effects','bag_panel','feature_flags'
+  'image_effects','bag_panel','feature_flags','collection_page'
 ]));

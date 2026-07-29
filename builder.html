@@ -325,6 +325,7 @@ body{display:flex;flex-direction:column}
     <button class="lp-tab on" onclick="lpTab('content')" id="tab-content" title="Homepage sections">Content</button>
     <button class="lp-tab" onclick="lpTab('pages')"   id="tab-pages" title="Men / Women landing pages">Pages</button>
     <button class="lp-tab" onclick="lpTab('product')" id="tab-product" title="What shows under a product">Product</button>
+    <button class="lp-tab" onclick="lpTab('collection')" id="tab-collection" title="The release / all-products listing page">Collection</button>
     <button class="lp-tab" onclick="lpTab('design')"  id="tab-design" title="Theme & navigation">Design</button>
     <button class="lp-tab" onclick="lpTab('settings')" id="tab-settings" title="SEO & metadata">Settings</button>
   </div>
@@ -979,6 +980,88 @@ async function pdpSave(){
   if(btn){ btn.disabled=false; btn.textContent='💾 Save Product Layout'; }
 }
 
+// ── COLLECTION TAB ──────────────────────────────────────────────────────────
+// Edits site_settings.collection_page — the release / all-products listing
+// (drop001.html). Header wording + product-grid look. Card size/fit here win
+// over the admin Product-Cards defaults; "Use store default" leaves them alone.
+const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'' };
+let collectionCfg = null;
+
+async function renderCollectionTab(container){
+  container.innerHTML = '<div class="tab-pane"><div class="tab-hd">Collection page</div><div style="font-size:.6rem;color:var(--mu)">Loading…</div></div>';
+  if(!collectionCfg){
+    try{
+      const {data}=await sb.from('site_settings').select('value').eq('key','collection_page').maybeSingle();
+      let v=(data&&data.value)||{};
+      if(typeof v==='string'){ try{ v=JSON.parse(v); }catch(_){ v={}; } }
+      collectionCfg = Object.assign({}, COLL_DEFAULTS, v);
+    }catch(_){ collectionCfg = Object.assign({}, COLL_DEFAULTS); }
+  }
+  paintCollectionTab(container);
+}
+
+function paintCollectionTab(container){
+  const c = collectionCfg;
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  const fld = (label,key,val,hint) =>
+    `<div class="field"><label>${label}</label><input type="text" data-coll="${key}" value="${esc(val)}">`
+    + (hint?`<div class="fhint">${hint}</div>`:'') + `</div>`;
+  const sel = (label,key,val,opts) =>
+    `<div class="field"><label>${label}</label><select data-coll="${key}">`
+    + opts.map(o=>`<option value="${o[0]}"${String(val||'')===o[0]?' selected':''}>${o[1]}</option>`).join('')
+    + `</select></div>`;
+
+  const headerG = grp('Header text',
+    fld('Eyebrow','eyebrow', c.eyebrow, 'Small line above the title — the category is appended automatically.')
+    + fld('Title','title', c.title, 'The large title at the top of the page.')
+    + fld('Countdown label','subtitle', c.subtitle, 'The line just above the launch countdown.'));
+
+  const cardsG = grp('Product grid',
+    sel('Cards per row','card_size', c.card_size, [['','Use store default'],['2','2 — large'],['3','3 — medium'],['4','4 — small']])
+    + sel('Image fit','card_fit', c.card_fit, [['','Use store default'],['cover','Fill the frame (crop)'],['contain','Show the whole image']]),
+    false);
+
+  container.innerHTML = `<div class="tab-pane">
+    <div class="tab-hd">Collection page</div>
+    <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">The release / all-products listing page. Edit the header wording and how the product grid looks. Save to see it in the preview.</div>
+    ${headerG}${cardsG}
+    <button onclick="saveCollectionCfg()" class="apply-btn" id="collSaveBtn">💾 Save Collection Page</button>
+    <div id="collMsg" style="font-size:.58rem;color:var(--mu);min-height:1em"></div>
+    <button onclick="resetCollectionCfg()" class="tbtn tbtn-ghost" style="align-self:flex-start">Reset to default</button>
+  </div>`;
+
+  container.querySelectorAll('[data-coll]').forEach(el=>{
+    const apply=()=>{ collectionCfg[el.dataset.coll] = el.value; };
+    el.addEventListener('change',apply); el.addEventListener('input',apply);
+  });
+}
+
+async function saveCollectionCfg(){
+  const btn=document.getElementById('collSaveBtn'), msg=document.getElementById('collMsg');
+  if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
+  try{
+    const token=await getAccessToken(); if(!token) throw new Error('Session expired — sign in again.');
+    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({accessToken:token,key:'collection_page',value:collectionCfg})});
+    const j=await res.json().catch(()=>({}));
+    if(!res.ok||j.error) throw new Error(j.error||'Save failed');
+    if(msg) msg.textContent='Saved — live on the collection page.';
+    reloadCollectionPreview();
+  }catch(e){ if(msg) msg.textContent=e.message||'Save failed'; if(typeof showErr==='function') showErr(e.message); }
+  if(btn){ btn.disabled=false; btn.textContent='💾 Save Collection Page'; }
+}
+
+function resetCollectionCfg(){
+  collectionCfg = Object.assign({}, COLL_DEFAULTS);
+  paintCollectionTab(document.getElementById('lpContent'));
+}
+
+function collectionPreviewUrl(){ return '/drop001.html?builder=1'; }
+function reloadCollectionPreview(){
+  const f=document.getElementById('pvIframe'); if(!f) return;
+  f.src=collectionPreviewUrl()+'&_cb='+Date.now();
+}
+
 function renderDesignTab(container){
   container.innerHTML='<div class="design-subtabs"><button class="dsub'+(designSub==='theme'?' on':'')+'" onclick="setDesignSub(\'theme\')">Appearance</button><button class="dsub'+(designSub==='nav'?' on':'')+'" onclick="setDesignSub(\'nav\')">Navigation</button></div><div id="designSub"></div>';
   const sub=container.querySelector('#designSub');
@@ -1014,6 +1097,7 @@ function renderLP(){
   else if(curTab==='settings'){renderSeoTab(el);}
   else if(curTab==='pages'){renderPagesTab(el);}
   else if(curTab==='product'){renderProductTab(el);}
+  else if(curTab==='collection'){renderCollectionTab(el);}
   else if(curTab==='theme'){renderThemeTab(el);}
   else if(curTab==='nav'){renderNavTab(el);}
   else if(curTab==='seo'){renderSeoTab(el);}
@@ -1468,10 +1552,15 @@ function syncPreviewFrame(){
     });
     return;
   }
-  // leaving pages/product → put the homepage back
+  if(curTab==='collection'){
+    try{ if(new URL(f.src,location.origin).pathname.indexOf('drop001')!==-1) return; }catch(_){}
+    f.src=collectionPreviewUrl();
+    return;
+  }
+  // leaving pages/product/collection → put the homepage back
   try{
     const cur=new URL(f.src,location.origin);
-    if(cur.pathname.indexOf('landing')!==-1||cur.pathname.indexOf('/product/')===0) f.src='/index.html?builder=1';
+    if(cur.pathname.indexOf('landing')!==-1||cur.pathname.indexOf('/product/')===0||cur.pathname.indexOf('drop001')!==-1) f.src='/index.html?builder=1';
   }catch(_){ f.src='/index.html?builder=1'; }
 }
 function scrollPreviewToPdp(id){
