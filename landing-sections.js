@@ -38,7 +38,24 @@
     var next = document.createElement('button');
     next.type = 'button'; next.className = 'zw-swipe-arrow zw-swipe-next'; next.setAttribute('aria-label', 'Next');
     next.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
-    wrap.appendChild(prev); wrap.appendChild(next);
+    // Nike-style: mount the arrows in the section header, on the SAME row as the
+    // title (far right), so they sit in open space and never crowd the cards. Fall
+    // back to a band above the row only when the section has no .sec-head header.
+    var head = wrap.previousElementSibling;
+    if (!(head && head.classList && head.classList.contains('sec-head'))) {
+      head = wrap.parentElement ? wrap.parentElement.querySelector(':scope > .sec-head') : null;
+    }
+    var group = null;
+    if (head) {
+      group = document.createElement('div');
+      group.className = 'zw-arrow-group';
+      group.appendChild(prev); group.appendChild(next);
+      head.appendChild(group);
+      head.classList.add('zw-has-arrows');
+      wrap.classList.add('zw-arrows-in-head');
+    } else {
+      wrap.appendChild(prev); wrap.appendChild(next);
+    }
     var step = function () {
       var first = grid.firstElementChild;
       var w = first ? first.getBoundingClientRect().width : grid.clientWidth * 0.8;
@@ -50,8 +67,10 @@
     next.addEventListener('click', function () { grid.scrollBy({ left: step(), behavior: 'smooth' }); });
     var upd = function () {
       var max = grid.scrollWidth - grid.clientWidth;
+      var scrollable = max > 2;
       prev.disabled = grid.scrollLeft <= 2;
       next.disabled = grid.scrollLeft >= max - 2;
+      if (group) group.classList.toggle('zw-show', scrollable && wrap.getAttribute('data-arrows') === 'on');
     };
     grid.addEventListener('scroll', function () { requestAnimationFrame(upd); }, { passive: true });
     window.addEventListener('resize', function () { requestAnimationFrame(upd); }, { passive: true });
