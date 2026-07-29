@@ -436,7 +436,9 @@
         btn.innerHTML = SEARCH_SVG;
         if (before) host.insertBefore(btn, before); else host.appendChild(btn);
       }
-      if (!btn.__zwSearchWired) { btn.__zwSearchWired = true; btn.addEventListener('click', openSearch); }
+      // Toggle: a second click on the magnifier closes the panel (the bag button
+      // already does this). Click-outside / scroll close still work as before.
+      if (!btn.__zwSearchWired) { btn.__zwSearchWired = true; btn.addEventListener('click', function () { if (isOpen(_overlay)) closeSearch(); else openSearch(); }); }
     }
 
     // "/" opens search (unless typing in a field).
