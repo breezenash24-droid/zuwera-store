@@ -1008,7 +1008,7 @@
 
       <!-- CALCULATOR -->
       <section class="calculator">
-      <h2 class="calc-title">Find My Size</h2>
+      <h2 class="calc-title">Find Your Size</h2>
       <p class="calc-subtitle">Enter your details below for a recommended starting size.</p>
 
       <div class="calc-grid">
@@ -1105,7 +1105,7 @@
         </div>
       </div>
 
-      <button class="calc-button" id="calcSubmit">Find My Size</button>
+      <button class="calc-button" id="calcSubmit">Find Your Size</button>
 
       <div class="calc-result" id="calcResult">
         <div class="calc-result-title" id="calcResultTitle">Your recommended size</div>
@@ -2524,8 +2524,8 @@
         tabsNav.classList.toggle('tabs-nav--hidden', lockSingleTab);
       }
 
-      // Calculator title stays the generic "Find My Size" — the modal title
-      // already says which product's guide this is.
+      // Calculator title stays the generic "Find Your Size" (matches the product
+      // page fit finder) — the modal title already says which product's guide this is.
 
       if (genderField && (context.hasExplicitGender || ['kids', 'sports_bras', 'hats'].includes(context.tabId))) {
         genderField.hidden = true;
