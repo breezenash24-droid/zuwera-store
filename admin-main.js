@@ -5473,6 +5473,16 @@
             } else if (badge) {
                 badge.style.display = 'none';
             }
+            // Live preview of the auto description line (Gender + Category), so the
+            // admin sees exactly what shows on the product page when they leave the
+            // Description line blank. Mirrors buildProductDescriptor in product.html.
+            const _prev = document.getElementById('descriptorPreview');
+            if (_prev) {
+                const g = (document.getElementById('gender').value || '').trim();
+                const cat = (document.getElementById('subtitle').value || '').trim();
+                const poss = g === 'Men' ? "Men's" : g === 'Women' ? "Women's" : g === 'Kids' ? "Kids'" : (g || '');
+                _prev.textContent = (poss && cat) ? (poss + ' ' + cat) : (poss || cat || 'Unisex Socks');
+            }
         }
 
         document.getElementById('gender').addEventListener('change', updateCategoryBadge);
@@ -6956,6 +6966,7 @@
                     sku: document.getElementById('sku').value,
                     title: document.getElementById('title').value,
                     subtitle: document.getElementById('subtitle').value,
+                    descriptor: (document.getElementById('descriptor')?.value || '').trim() || null,
                     gender: document.getElementById('gender').value,
                     tags: (document.getElementById('productTags')?.value || '').split(',').map(s => s.trim()).filter(Boolean),
                     colorway: effectiveColorway || null,
@@ -7167,6 +7178,7 @@
             document.getElementById('sku').value = product.sku;
             document.getElementById('title').value = product.title;
             document.getElementById('subtitle').value = product.subtitle;
+            const _descEl = document.getElementById('descriptor'); if (_descEl) _descEl.value = product.descriptor || '';
             document.getElementById('gender').value = product.gender;
             document.getElementById('productTags').value = (Array.isArray(product.tags) ? product.tags : []).join(', ');
             updateCategoryBadge();

@@ -2655,7 +2655,18 @@ function renderProduct() {
   document.getElementById('productTitle').textContent = currentProduct.title;
   const _mi = document.getElementById('mainImage');
   if (_mi && !_mi.alt && currentProduct.title) _mi.alt = currentProduct.title;
-  document.getElementById('genderTag').textContent = (currentProduct.gender || 'All').toUpperCase();
+  // Descriptive line under the title ("says what it is", like Nike). Use the
+  // admin's custom `descriptor` override when set, else auto-build "<Gender>'s
+  // <Category>" from gender + subtitle (the category). CSS uppercases it, so the
+  // stored casing can stay natural. Mirrors the live preview in admin-main.js.
+  {
+    const _g = (currentProduct.gender || '').trim();
+    const _cat = (currentProduct.subtitle || '').trim();
+    const _poss = _g === 'Men' ? "Men's" : _g === 'Women' ? "Women's" : _g === 'Kids' ? "Kids'" : (_g || '');
+    const _custom = (currentProduct.descriptor || '').trim();
+    const _desc = _custom || ((_poss && _cat) ? (_poss + ' ' + _cat) : (_poss || _cat || 'All'));
+    document.getElementById('genderTag').textContent = _desc;
+  }
   renderProductCategoryNavigation(currentProduct).catch((error) => console.warn('Failed to render category navigation:', error));
 
   // Dynamic SEO meta — update page title and social tags per product
