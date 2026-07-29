@@ -52,8 +52,12 @@ body{display:flex;flex-direction:column}
 
 /* ── LEFT PANEL (tabs) ── */
 .lp{width:260px;flex-shrink:0;background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}
-.lp-tabs{display:flex;border-bottom:1px solid var(--bd);flex-shrink:0}
-.lp-tab{flex:1;background:none;border:none;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;padding:.62rem .2rem;cursor:pointer;transition:.1s;border-bottom:2px solid transparent;white-space:nowrap}
+/* Six tabs don't fit on one line in the ~335px editor panel (COLLECTION is the
+   long one) — a single flex row crammed + clipped them. A 3-col grid lays them
+   out as two tidy rows of three, equal width, no clipping, and it scales as tabs
+   are added. */
+.lp-tabs{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--bd);flex-shrink:0}
+.lp-tab{background:none;border:none;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.05em;text-transform:uppercase;padding:.6rem .3rem;cursor:pointer;transition:.1s;border-bottom:2px solid transparent;white-space:nowrap;min-width:0}
 .lp-tab.on{color:#f4f1eb;border-bottom-color:var(--ac)}
 .lp-tab:hover:not(.on){color:rgba(244,241,235,.7)}
 .lp-content{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0}
