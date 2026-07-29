@@ -5488,6 +5488,58 @@
         document.getElementById('gender').addEventListener('change', updateCategoryBadge);
         document.getElementById('subtitle').addEventListener('change', updateCategoryBadge);
 
+        // ── Sports: per-product tags (products.sports) + an editable master list
+        //    (site_settings.sports_config.list). Tap a chip to tag the product; ✕
+        //    removes a sport from the list everywhere; Add appends a new one. ──
+        const DEFAULT_SPORTS = ['Lifestyle','Running','Training & Gym','Basketball','Football','Soccer','Yoga','Baseball','Golf','Skateboarding','Tennis','Track & Field','Lacrosse','Walking','Outdoor','Volleyball','Swimming','Hiking','Hockey','Dance','Cricket','Cheerleading','Cycling','High-Intensity Interval Training','Softball'];
+        let _sportsList = null;
+        const _selectedSports = new Set();
+        async function ensureSportsList() {
+            if (_sportsList) return _sportsList;
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'sports_config').maybeSingle();
+                let v = (data && data.value) || {};
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = {}; } }
+                _sportsList = (Array.isArray(v.list) && v.list.length) ? v.list.slice() : DEFAULT_SPORTS.slice();
+            } catch (_) { _sportsList = DEFAULT_SPORTS.slice(); }
+            return _sportsList;
+        }
+        async function saveSportsList() {
+            try { await sb.from('site_settings').upsert({ key: 'sports_config', value: { list: _sportsList } }, { onConflict: 'key' }); }
+            catch (e) { if (typeof showToast === 'function') showToast('Could not save the sports list', 'error'); }
+        }
+        function renderSportsChips() {
+            const host = document.getElementById('sportsChips'); if (!host) return;
+            const esc = function (s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+            const list = (_sportsList || []).slice();
+            _selectedSports.forEach(function (s) { if (list.indexOf(s) === -1) list.push(s); });   // show assigned-but-delisted sports too
+            host.innerHTML = list.length
+                ? list.map(function (s) { const on = _selectedSports.has(s); return '<span class="sport-chip' + (on ? ' active' : '') + '"><button type="button" class="sport-chip-label" data-act="toggle" data-sport="' + esc(s) + '">' + esc(s) + '</button><button type="button" class="sport-chip-x" data-act="remove" data-sport="' + esc(s) + '" title="Remove from list" aria-label="Remove ' + esc(s) + '">&#215;</button></span>'; }).join('')
+                : '<span style="font-size:.82rem;color:var(--text-secondary)">No sports yet — add one below.</span>';
+        }
+        (function wireSportsChips() {
+            const host = document.getElementById('sportsChips');
+            if (host) host.addEventListener('click', function (e) {
+                const btn = e.target.closest('[data-act]'); if (!btn) return;
+                const sport = btn.getAttribute('data-sport'), act = btn.getAttribute('data-act');
+                if (act === 'toggle') { if (_selectedSports.has(sport)) _selectedSports.delete(sport); else _selectedSports.add(sport); _formDirty = true; renderSportsChips(); }
+                else if (act === 'remove') {
+                    if (!confirm('Remove “' + sport + '” from the sports list? It stays on any product already tagged with it until you untag them.')) return;
+                    _sportsList = (_sportsList || []).filter(function (s) { return s !== sport; });
+                    saveSportsList(); renderSportsChips();
+                }
+            });
+            const addBtn = document.getElementById('sportsAddBtn'), addInput = document.getElementById('sportsAddInput');
+            const doAdd = function () {
+                const v = (addInput.value || '').trim(); if (!v) return;
+                if (!_sportsList) _sportsList = DEFAULT_SPORTS.slice();
+                if (!_sportsList.some(function (s) { return s.toLowerCase() === v.toLowerCase(); })) { _sportsList.push(v); saveSportsList(); }
+                _selectedSports.add(v); addInput.value = ''; _formDirty = true; renderSportsChips();
+            };
+            if (addBtn) addBtn.addEventListener('click', doAdd);
+            if (addInput) addInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } });
+        })();
+
         // Installment calculation
         document.getElementById('currentPrice').addEventListener('input', (e) => {
             const price = parseFloat(e.target.value);
@@ -6969,6 +7021,7 @@
                     descriptor: (document.getElementById('descriptor')?.value || '').trim() || null,
                     gender: document.getElementById('gender').value,
                     tags: (document.getElementById('productTags')?.value || '').split(',').map(s => s.trim()).filter(Boolean),
+                    sports: Array.from(_selectedSports),
                     colorway: effectiveColorway || null,
                     material_composition: document.getElementById('materialComposition').value,
                     msrp: parseFloat(document.getElementById('msrp').value),
@@ -7181,6 +7234,7 @@
             const _descEl = document.getElementById('descriptor'); if (_descEl) _descEl.value = product.descriptor || '';
             document.getElementById('gender').value = product.gender;
             document.getElementById('productTags').value = (Array.isArray(product.tags) ? product.tags : []).join(', ');
+            _selectedSports.clear(); (Array.isArray(product.sports) ? product.sports : []).forEach(function (s) { _selectedSports.add(s); }); ensureSportsList().then(renderSportsChips);
             updateCategoryBadge();
             document.getElementById('sizeGuideProfile').value = 'auto';
             document.getElementById('pomGuideSizeInput').value = '';
@@ -7318,6 +7372,7 @@
         function resetProductForm() {
             _formDirty = false;
             document.getElementById('productForm').reset();
+            _selectedSports.clear(); ensureSportsList().then(renderSportsChips);
             document.getElementById('imagesContainer').innerHTML = '<div class="image-row"><span style="font-weight:600;min-width:60px;">Image 1</span><input type="text" class="form-input product-image-url" placeholder="Paste image URL..."><label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label><img class="image-preview" style="display:none"><button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button></div>';
             document.getElementById('colorVariantsContainer').innerHTML = '';
             document.getElementById('sizeGridContainer').innerHTML = '';
