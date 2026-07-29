@@ -5,7 +5,21 @@
    storefront-cohesion.css (loaded sitewide); this file supplies the base
    layout that was previously inline in index.html only. */
 
-.quick-add-review-modal{z-index:650}
+/* Overlay base — SELF-CONTAINED so the modal centres on any host page. The
+   generic `.modal` overlay (position:fixed;inset:0; flex-centre; display toggle)
+   is inline in index.html only, and .quick-add-review-modal is excluded from the
+   sitewide centering rule in storefront-cohesion.css — so on pages that don't
+   carry index.html's inline styles (account.html "saved" items, bag.html) the
+   overlay had NO positioning and rendered as a left-aligned block. Scoped to the
+   quick-add overlay so it can't affect other modals. The mobile bottom/side-sheet
+   treatment (max-width:900px in storefront-cohesion.css) overrides this with
+   !important, so it still wins. */
+.quick-add-review-modal{
+  display:none;position:fixed;inset:0;z-index:650;
+  align-items:center;justify-content:center;
+  padding:.5rem;overflow-y:auto;
+}
+.quick-add-review-modal.open{display:flex}
 .quick-add-review-box{width:min(520px,92vw);padding:0;overflow:hidden}
 .quick-add-product-box{width:min(920px,94vw);max-height:min(760px,92vh);overflow:auto}
 @media (min-width:901px){
