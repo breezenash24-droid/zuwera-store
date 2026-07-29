@@ -348,6 +348,27 @@ document.documentElement.classList.add('zw-collflash');
     .plp-cat-btn { background:transparent; border:0; text-align:left; color:inherit; font-family:var(--font-head); font-size:1.05rem; letter-spacing:.02em; padding:.42rem 0; cursor:pointer; opacity:.65; transition:opacity .15s; }
     .plp-cat-btn:hover { opacity:1; }
     .plp-cat-btn.active { opacity:1; font-weight:700; text-decoration:underline; text-underline-offset:4px; }
+    /* Facets: Gender / Color / Price (multi-select). Theme-safe: active states use
+       currentColor so they read on dark, light and super-light. */
+    .plp-facet { margin-top:1.7rem; }
+    #plp-fm-facets .plp-facet:first-child { margin-top:0; }
+    .plp-opts { display:flex; flex-direction:column; }
+    .plp-opt { display:flex; align-items:center; gap:.55rem; background:transparent; border:0; text-align:left; color:inherit; font-family:var(--font-head); font-size:.98rem; letter-spacing:.02em; padding:.36rem 0; cursor:pointer; opacity:.7; width:100%; transition:opacity .15s; }
+    .plp-opt:hover { opacity:1; }
+    .plp-opt.active { opacity:1; font-weight:700; }
+    .plp-opt-check { position:relative; width:15px; height:15px; border:1.5px solid currentColor; border-radius:3px; flex:0 0 auto; opacity:.45; }
+    .plp-opt.active .plp-opt-check { opacity:1; }
+    .plp-opt.active .plp-opt-check::after { content:''; position:absolute; left:4px; top:0; width:4px; height:8px; border:solid currentColor; border-width:0 2px 2px 0; transform:rotate(45deg); }
+    .plp-colors { display:flex; flex-wrap:wrap; gap:.7rem .55rem; }
+    .plp-color { display:flex; flex-direction:column; align-items:center; gap:.3rem; background:none; border:0; padding:0; cursor:pointer; width:46px; opacity:.75; transition:opacity .15s; }
+    .plp-color:hover { opacity:1; }
+    .plp-color-dot { width:27px; height:27px; border-radius:50%; border:1px solid var(--border); }
+    .plp-color.active { opacity:1; }
+    .plp-color.active .plp-color-dot { outline:2px solid currentColor; outline-offset:2px; }
+    .plp-color-name { font-family:var(--font-mono); font-size:.5rem; letter-spacing:.05em; text-transform:uppercase; opacity:.7; text-align:center; line-height:1.1; }
+    .plp-color.active .plp-color-name { font-weight:600; opacity:1; }
+    .plp-clear-all { margin-top:1.7rem; background:none; border:0; padding:.2rem 0; color:inherit; opacity:.55; font-family:var(--font-mono); font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+    .plp-clear-all:hover { opacity:1; }
     /* Immersive grid swap: cards fade + rise in (staggered) when filters/sort change */
     @keyframes plpCardIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
     .products-grid.plp-animate-in > a { animation:plpCardIn .45s cubic-bezier(.22,.61,.36,1) both; }
@@ -1286,6 +1307,9 @@ document.documentElement.classList.add('zw-collflash');
             <p class="plp-fm-label">Category</p>
             <div id="plp-fm-cats"></div>
           </div>
+          <div class="plp-fm-sec" id="plp-fm-facetsec">
+            <div id="plp-fm-facets"></div>
+          </div>
         </div>
         <div class="plp-fm-foot">
           <button type="button" class="plp-fm-apply" onclick="window.__zwClosePlpFilterModal&&window.__zwClosePlpFilterModal()">Done</button>
@@ -1566,6 +1590,118 @@ function updateCountdown() {
       function plpEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
       function plpPrice(p){ return parseFloat(p && (p.current_price || p.msrp)) || 0; }
 
+      // ── Facets: Gender / Color / Price (multi-select; AND across facets, OR within) ──
+      const activeGenders = new Set(), activeColors = new Set(), activePrices = new Set();
+      const PLP_COLOR_BUCKETS = [
+        { key:'Black', dot:'#111111' }, { key:'Grey', dot:'#9a9a9a' }, { key:'White', dot:'#ffffff' },
+        { key:'Beige', dot:'#d8c4a0' }, { key:'Brown', dot:'#6b4423' }, { key:'Red', dot:'#d0021b' },
+        { key:'Maroon', dot:'#6e1420' }, { key:'Orange', dot:'#f5820b' }, { key:'Yellow', dot:'#f5d020' },
+        { key:'Olive', dot:'#7d7d1e' }, { key:'Green', dot:'#3aa655' }, { key:'Teal', dot:'#14b8a6' },
+        { key:'Blue', dot:'#2d7ff9' }, { key:'Navy', dot:'#1b2a4a' }, { key:'Purple', dot:'#7b3ff2' },
+        { key:'Pink', dot:'#ff6fa5' }
+      ];
+      const PLP_PRICE_RANGES = [
+        { key:'0-25', label:'$0 – $25', min:0, max:25 },
+        { key:'25-50', label:'$25 – $50', min:25, max:50 },
+        { key:'50-100', label:'$50 – $100', min:50, max:100 },
+        { key:'100-150', label:'$100 – $150', min:100, max:150 },
+        { key:'150+', label:'Over $150', min:150, max:Infinity }
+      ];
+      const PLP_PRICE_BY_KEY = {}; PLP_PRICE_RANGES.forEach(function(r){ PLP_PRICE_BY_KEY[r.key] = r; });
+      function plpHexHsl(hex){
+        hex = String(hex==null?'':hex).trim().replace(/^#/,'');
+        if (hex.length === 3) hex = hex.split('').map(function(c){ return c+c; }).join('');
+        if (!/^[0-9a-f]{6}$/i.test(hex)) return null;
+        var r=parseInt(hex.slice(0,2),16)/255, g=parseInt(hex.slice(2,4),16)/255, b=parseInt(hex.slice(4,6),16)/255;
+        var mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2, s=0, h=0;
+        if (mx!==mn){ var d=mx-mn; s = l>0.5 ? d/(2-mx-mn) : d/(mx+mn); if(mx===r)h=(g-b)/d+(g<b?6:0); else if(mx===g)h=(b-r)/d+2; else h=(r-g)/d+4; h*=60; }
+        return { h:h, s:s, l:l };
+      }
+      // Map any swatch hex to one defined colour bucket (HSL: neutrals by lightness/
+      // saturation, then hue — warm-dark to Brown/Maroon, dark-blue to Navy, muted
+      // yellow-green to Olive, warm-light to Beige, light red/magenta to Pink).
+      function plpColorBucket(hex){
+        var c = plpHexHsl(hex); if (!c) return null;
+        var h=c.h, s=c.s, l=c.l;
+        if (l>=0.92) return 'White';
+        if (l<=0.10) return 'Black';
+        if (s<=0.12) return l>=0.82 ? 'White' : 'Grey';
+        if (h>=20 && h<=55 && l>=0.68 && s<=0.6) return 'Beige';
+        if (h>=10 && h<=45 && l<=0.42) return 'Brown';
+        if ((h>=345 || h<=12) && l<=0.30) return 'Maroon';
+        if (h>=55 && h<=95 && (l<=0.42 || s<=0.45)) return 'Olive';
+        if (h>=200 && h<=255 && l<=0.34) return 'Navy';
+        if ((h>=305 || h<=10) && l>=0.68 && s>=0.12) return 'Pink';
+        if (h<12 || h>=345) return 'Red';
+        if (h<40) return 'Orange';
+        if (h<65) return 'Yellow';
+        if (h<160) return 'Green';
+        if (h<195) return 'Teal';
+        if (h<255) return 'Blue';
+        if (h<305) return 'Purple';
+        return 'Pink';
+      }
+      function plpProductColors(p){
+        var out = {};
+        ((p && p.color_variants) || []).forEach(function(c){ var b = plpColorBucket(c && c.hex_color); if (b) out[b] = true; });
+        return out;
+      }
+      function plpExcluded(p){ var s=(p && p.status || '').toLowerCase(); return s==='legacy'||s==='archived'||s==='draft'; }
+      function plpFacetScope(p){ return !plpExcluded(p) && productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag); }
+      function plpGenderList(){
+        var order=['Men','Women','Unisex','Kids'], present={};
+        (_allProducts||[]).forEach(function(p){ if (plpExcluded(p) || !productMatchesTag(p, requestedTag)) return; var g=String(p.gender||'').trim(); if (g) present[g.toLowerCase()]=g; });
+        return order.filter(function(g){ return present[g.toLowerCase()]; }).map(function(g){ return present[g.toLowerCase()]; });
+      }
+      function plpColorFacetList(){
+        var present={};
+        (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; var bs=plpProductColors(p); for (var k in bs) present[k]=true; });
+        return PLP_COLOR_BUCKETS.filter(function(b){ return present[b.key]; });
+      }
+      function plpPriceFacetList(){
+        var present={};
+        (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; var pr=plpPrice(p); PLP_PRICE_RANGES.forEach(function(r){ if (pr>=r.min && pr<r.max) present[r.key]=true; }); });
+        return PLP_PRICE_RANGES.filter(function(r){ return present[r.key]; });
+      }
+      // Shared HTML for the Gender / Color / Price facets (desktop sidebar + mobile sheet).
+      function plpFacetSectionsHtml(){
+        var html='';
+        var genders = requestedGender ? [] : plpGenderList();
+        if (genders.length > 1){
+          html += '<div class="plp-facet"><p class="plp-sidebar-head">Gender</p><div class="plp-opts">';
+          genders.forEach(function(g){ var on=activeGenders.has(g.toLowerCase()); html += '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="gender" data-val="'+plpEsc(g.toLowerCase())+'"><span class="plp-opt-check"></span>'+plpEsc(g)+'</button>'; });
+          html += '</div></div>';
+        }
+        var colors = plpColorFacetList();
+        if (colors.length){
+          html += '<div class="plp-facet"><p class="plp-sidebar-head">Color</p><div class="plp-colors">';
+          colors.forEach(function(b){ var on=activeColors.has(b.key); html += '<button type="button" class="plp-color'+(on?' active':'')+'" data-facet="color" data-val="'+plpEsc(b.key)+'" title="'+plpEsc(b.key)+'"><span class="plp-color-dot" style="background:'+b.dot+'"></span><span class="plp-color-name">'+plpEsc(b.key)+'</span></button>'; });
+          html += '</div></div>';
+        }
+        var prices = plpPriceFacetList();
+        if (prices.length > 1){
+          html += '<div class="plp-facet"><p class="plp-sidebar-head">Shop by price</p><div class="plp-opts">';
+          prices.forEach(function(r){ var on=activePrices.has(r.key); html += '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="price" data-val="'+plpEsc(r.key)+'"><span class="plp-opt-check"></span>'+plpEsc(r.label)+'</button>'; });
+          html += '</div></div>';
+        }
+        var n = activeGenders.size + activeColors.size + activePrices.size + (activeCategory?1:0);
+        if (n) html += '<button type="button" class="plp-clear-all" data-facet="clear">Clear all ('+n+')</button>';
+        return html;
+      }
+      function plpFacetClick(e){
+        var b = e.target.closest('[data-facet]'); if (!b) return false;
+        var facet=b.getAttribute('data-facet'), val=b.getAttribute('data-val');
+        if (facet==='clear'){ activeGenders.clear(); activeColors.clear(); activePrices.clear(); activeCategory=''; window.__zwApplyPlpFilters(); return true; }
+        var set = facet==='gender'?activeGenders : facet==='color'?activeColors : facet==='price'?activePrices : null;
+        if (!set) return false;
+        if (set.has(val)) set.delete(val); else set.add(val);
+        window.__zwApplyPlpFilters();
+        return true;
+      }
+      window.__zwApplyPlpFilters = function(){
+        _plpAnimateGrid(function(){ renderProducts(_allProducts); renderPlpSidebar(); });
+      };
+
       function plpScopeName(){ return requestedGender || requestedTag || 'All'; }
       function plpCategoryList(){
         const seen = {}, cats = [];
@@ -1583,16 +1719,23 @@ function updateCountdown() {
         const aside = document.getElementById('plp-sidebar');
         if (!aside) return;
         const cats = plpCategoryList();
-        if (cats.length < 2) { aside.innerHTML = ''; renderPlpFilterModal(); return; }
-        let html = '<p class="plp-sidebar-head">Category</p><div class="plp-cat-list">';
-        html += '<button type="button" class="plp-cat-btn'+(!activeCategory?' active':'')+'" data-cat="">All '+plpEsc(plpScopeName())+'</button>';
-        cats.forEach(function(c){
-          const on = activeCategory && activeCategory.toLowerCase() === c.toLowerCase();
-          html += '<button type="button" class="plp-cat-btn'+(on?' active':'')+'" data-cat="'+plpEsc(c)+'">'+plpEsc(c)+'</button>';
-        });
-        html += '</div>';
+        let html = '';
+        if (cats.length >= 2){
+          html += '<p class="plp-sidebar-head">Category</p><div class="plp-cat-list">';
+          html += '<button type="button" class="plp-cat-btn'+(!activeCategory?' active':'')+'" data-cat="">All '+plpEsc(plpScopeName())+'</button>';
+          cats.forEach(function(c){
+            const on = activeCategory && activeCategory.toLowerCase() === c.toLowerCase();
+            html += '<button type="button" class="plp-cat-btn'+(on?' active':'')+'" data-cat="'+plpEsc(c)+'">'+plpEsc(c)+'</button>';
+          });
+          html += '</div>';
+        }
+        html += plpFacetSectionsHtml();
         aside.innerHTML = html;
-        aside.onclick = function(e){ const b = e.target.closest('.plp-cat-btn'); if (b) window.__zwSetPlpCategory(b.getAttribute('data-cat') || ''); };
+        aside.onclick = function(e){
+          const b = e.target.closest('.plp-cat-btn');
+          if (b) { window.__zwSetPlpCategory(b.getAttribute('data-cat') || ''); return; }
+          plpFacetClick(e);
+        };
         renderPlpFilterModal();
       }
       // -- Mobile filter/sort bottom-sheet modal (so you can change category/sort
@@ -1613,10 +1756,17 @@ function updateCountdown() {
           catHost.innerHTML = html;
           catHost.onclick = function(e){ const b=e.target.closest('.plp-fm-cat'); if (b){ window.__zwSetPlpCategory(b.getAttribute('data-cat')||''); window.__zwClosePlpFilterModal(); } };
         }
+        const facetHost = document.getElementById('plp-fm-facets'), facetSec = document.getElementById('plp-fm-facetsec');
+        if (facetHost){
+          const fh = plpFacetSectionsHtml();
+          facetHost.innerHTML = fh;
+          if (facetSec) facetSec.style.display = fh ? '' : 'none';
+          facetHost.onclick = function(e){ plpFacetClick(e); };   // multi-select — keep the sheet open
+        }
         _plpUpdateFilterCount();
       }
       function _plpUpdateFilterCount(){
-        var n = (activeCategory ? 1 : 0) + (activeSort && activeSort !== 'featured' ? 1 : 0);
+        var n = (activeCategory ? 1 : 0) + (activeSort && activeSort !== 'featured' ? 1 : 0) + activeGenders.size + activeColors.size + activePrices.size;
         var el = document.getElementById('plp-filter-count-badge');
         if (el){ el.textContent = n ? String(n) : ''; el.style.display = n ? '' : 'none'; }
       }
@@ -1947,6 +2097,9 @@ function updateCountdown() {
           if (status === 'legacy' || status === 'archived' || status === 'draft') return false;
           if (activeCategory && categoryLabelFromProduct(p).toLowerCase() !== activeCategory.toLowerCase()) return false;
           if (!productMatchesQuery(p, requestedQuery)) return false;
+          if (activeGenders.size && !activeGenders.has(String(p.gender||'').trim().toLowerCase())) return false;
+          if (activeColors.size){ var _bs=plpProductColors(p), _cok=false; activeColors.forEach(function(k){ if(_bs[k]) _cok=true; }); if(!_cok) return false; }
+          if (activePrices.size){ var _pr=plpPrice(p), _pok=false; activePrices.forEach(function(key){ var r=PLP_PRICE_BY_KEY[key]; if(r && _pr>=r.min && _pr<r.max) _pok=true; }); if(!_pok) return false; }
           return productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag);
         });
 
