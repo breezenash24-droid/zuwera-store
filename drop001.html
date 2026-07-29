@@ -350,8 +350,17 @@ document.documentElement.classList.add('zw-collflash');
     .plp-cat-btn.active { opacity:1; font-weight:700; text-decoration:underline; text-underline-offset:4px; }
     /* Facets: Gender / Color / Price (multi-select). Theme-safe: active states use
        currentColor so they read on dark, light and super-light. */
-    .plp-facet { margin-top:1.7rem; }
-    #plp-fm-facets .plp-facet:first-child { margin-top:0; }
+    /* Collapsible facet section (Nike-style): a divider, a header button with a
+       chevron, and a body that hides when .collapsed. */
+    .plp-facet { border-top:1px solid var(--border); padding-top:1.15rem; margin-top:1.15rem; }
+    #plp-sidebar > .plp-facet:first-child,
+    #plp-fm-facets > .plp-facet:first-child { border-top:0; padding-top:0; margin-top:0; }
+    .plp-facet-head { display:flex; align-items:center; justify-content:space-between; gap:.5rem; width:100%; background:none; border:0; padding:0; margin:0 0 .85rem; cursor:pointer; font-family:var(--font-mono); font-size:.58rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); transition:color .15s; }
+    .plp-facet-head:hover { color:inherit; }
+    .plp-facet-chev { flex:0 0 auto; opacity:.75; transition:transform .2s ease; }
+    .plp-facet.collapsed .plp-facet-chev { transform:rotate(-90deg); }
+    .plp-facet.collapsed .plp-facet-head { margin-bottom:0; }
+    .plp-facet.collapsed .plp-facet-body { display:none; }
     .plp-opts { display:flex; flex-direction:column; }
     .plp-opt { display:flex; align-items:center; gap:.55rem; background:transparent; border:0; text-align:left; color:inherit; font-family:var(--font-head); font-size:.98rem; letter-spacing:.02em; padding:.36rem 0; cursor:pointer; opacity:.7; width:100%; transition:opacity .15s; }
     .plp-opt:hover { opacity:1; }
@@ -1591,7 +1600,7 @@ function updateCountdown() {
       function plpPrice(p){ return parseFloat(p && (p.current_price || p.msrp)) || 0; }
 
       // ── Facets: Gender / Color / Price (multi-select; AND across facets, OR within) ──
-      const activeGenders = new Set(), activeColors = new Set(), activePrices = new Set();
+      const activeGenders = new Set(), activeColors = new Set(), activePrices = new Set(), activeSports = new Set();
       const PLP_COLOR_BUCKETS = [
         { key:'Black', dot:'#111111' }, { key:'Grey', dot:'#9a9a9a' }, { key:'White', dot:'#ffffff' },
         { key:'Beige', dot:'#d8c4a0' }, { key:'Brown', dot:'#6b4423' }, { key:'Red', dot:'#d0021b' },
@@ -1663,36 +1672,63 @@ function updateCountdown() {
         (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; var pr=plpPrice(p); PLP_PRICE_RANGES.forEach(function(r){ if (pr>=r.min && pr<r.max) present[r.key]=true; }); });
         return PLP_PRICE_RANGES.filter(function(r){ return present[r.key]; });
       }
-      // Shared HTML for the Gender / Color / Price facets (desktop sidebar + mobile sheet).
+      function plpProductSports(p){ return (p && Array.isArray(p.sports)) ? p.sports.filter(Boolean) : []; }
+      function plpSportFacetList(){
+        var present={}, order=[];
+        (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; plpProductSports(p).forEach(function(s){ s=String(s).trim(); if (s && !present[s.toLowerCase()]){ present[s.toLowerCase()]=true; order.push(s); } }); });
+        order.sort(function(a,b){ return a.localeCompare(b); });
+        return order;
+      }
+      // Collapsible facet (Nike-style): the header + chevron toggles the body.
+      // Collapsed state is remembered per session so a filter change (which
+      // re-renders the sidebar) doesn't spring every section back open.
+      const _plpCollapsed = new Set();
+      function plpFacetWrap(key, title, bodyHtml){
+        var col = _plpCollapsed.has(key);
+        return '<div class="plp-facet'+(col?' collapsed':'')+'" data-fkey="'+key+'">'
+          + '<button type="button" class="plp-facet-head" data-toggle="'+key+'"><span>'+plpEsc(title)+'</span>'
+          + '<svg class="plp-facet-chev" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>'
+          + '<div class="plp-facet-body">'+bodyHtml+'</div></div>';
+      }
+      function plpToggleCollapse(e){
+        var t = e.target.closest('[data-toggle]'); if (!t) return false;
+        var key = t.getAttribute('data-toggle'), facet = t.closest('.plp-facet'); if (!facet) return true;
+        if (_plpCollapsed.has(key)){ _plpCollapsed.delete(key); facet.classList.remove('collapsed'); }
+        else { _plpCollapsed.add(key); facet.classList.add('collapsed'); }
+        return true;
+      }
+      // Shared collapsible facets (Gender / Color / Sport / Price) — desktop sidebar + mobile sheet.
       function plpFacetSectionsHtml(){
         var html='';
         var genders = requestedGender ? [] : plpGenderList();
         if (genders.length > 1){
-          html += '<div class="plp-facet"><p class="plp-sidebar-head">Gender</p><div class="plp-opts">';
-          genders.forEach(function(g){ var on=activeGenders.has(g.toLowerCase()); html += '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="gender" data-val="'+plpEsc(g.toLowerCase())+'"><span class="plp-opt-check"></span>'+plpEsc(g)+'</button>'; });
-          html += '</div></div>';
+          var gb = '<div class="plp-opts">' + genders.map(function(g){ var on=activeGenders.has(g.toLowerCase()); return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="gender" data-val="'+plpEsc(g.toLowerCase())+'"><span class="plp-opt-check"></span>'+plpEsc(g)+'</button>'; }).join('') + '</div>';
+          html += plpFacetWrap('gender','Gender',gb);
         }
         var colors = plpColorFacetList();
         if (colors.length){
-          html += '<div class="plp-facet"><p class="plp-sidebar-head">Color</p><div class="plp-colors">';
-          colors.forEach(function(b){ var on=activeColors.has(b.key); html += '<button type="button" class="plp-color'+(on?' active':'')+'" data-facet="color" data-val="'+plpEsc(b.key)+'" title="'+plpEsc(b.key)+'"><span class="plp-color-dot" style="background:'+b.dot+'"></span><span class="plp-color-name">'+plpEsc(b.key)+'</span></button>'; });
-          html += '</div></div>';
+          var cb = '<div class="plp-colors">' + colors.map(function(b){ var on=activeColors.has(b.key); return '<button type="button" class="plp-color'+(on?' active':'')+'" data-facet="color" data-val="'+plpEsc(b.key)+'" title="'+plpEsc(b.key)+'"><span class="plp-color-dot" style="background:'+b.dot+'"></span><span class="plp-color-name">'+plpEsc(b.key)+'</span></button>'; }).join('') + '</div>';
+          html += plpFacetWrap('color','Color',cb);
+        }
+        var sports = plpSportFacetList();
+        if (sports.length){
+          var sb = '<div class="plp-opts">' + sports.map(function(s){ var on=activeSports.has(s.toLowerCase()); return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="sport" data-val="'+plpEsc(s.toLowerCase())+'"><span class="plp-opt-check"></span>'+plpEsc(s)+'</button>'; }).join('') + '</div>';
+          html += plpFacetWrap('sport','Sport',sb);
         }
         var prices = plpPriceFacetList();
         if (prices.length > 1){
-          html += '<div class="plp-facet"><p class="plp-sidebar-head">Shop by price</p><div class="plp-opts">';
-          prices.forEach(function(r){ var on=activePrices.has(r.key); html += '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="price" data-val="'+plpEsc(r.key)+'"><span class="plp-opt-check"></span>'+plpEsc(r.label)+'</button>'; });
-          html += '</div></div>';
+          var pb = '<div class="plp-opts">' + prices.map(function(r){ var on=activePrices.has(r.key); return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="price" data-val="'+plpEsc(r.key)+'"><span class="plp-opt-check"></span>'+plpEsc(r.label)+'</button>'; }).join('') + '</div>';
+          html += plpFacetWrap('price','Shop by price',pb);
         }
-        var n = activeGenders.size + activeColors.size + activePrices.size + (activeCategory?1:0);
+        var n = activeGenders.size + activeColors.size + activePrices.size + activeSports.size + (activeCategory?1:0);
         if (n) html += '<button type="button" class="plp-clear-all" data-facet="clear">Clear all ('+n+')</button>';
         return html;
       }
       function plpFacetClick(e){
         var b = e.target.closest('[data-facet]'); if (!b) return false;
         var facet=b.getAttribute('data-facet'), val=b.getAttribute('data-val');
-        if (facet==='clear'){ activeGenders.clear(); activeColors.clear(); activePrices.clear(); activeCategory=''; window.__zwApplyPlpFilters(); return true; }
-        var set = facet==='gender'?activeGenders : facet==='color'?activeColors : facet==='price'?activePrices : null;
+        if (facet==='clear'){ activeGenders.clear(); activeColors.clear(); activePrices.clear(); activeSports.clear(); activeCategory=''; window.__zwApplyPlpFilters(); return true; }
+        var set = facet==='gender'?activeGenders : facet==='color'?activeColors : facet==='price'?activePrices : facet==='sport'?activeSports : null;
         if (!set) return false;
         if (set.has(val)) set.delete(val); else set.add(val);
         window.__zwApplyPlpFilters();
@@ -1721,17 +1757,19 @@ function updateCountdown() {
         const cats = plpCategoryList();
         let html = '';
         if (cats.length >= 2){
-          html += '<p class="plp-sidebar-head">Category</p><div class="plp-cat-list">';
-          html += '<button type="button" class="plp-cat-btn'+(!activeCategory?' active':'')+'" data-cat="">All '+plpEsc(plpScopeName())+'</button>';
+          let catBody = '<div class="plp-cat-list">';
+          catBody += '<button type="button" class="plp-cat-btn'+(!activeCategory?' active':'')+'" data-cat="">All '+plpEsc(plpScopeName())+'</button>';
           cats.forEach(function(c){
             const on = activeCategory && activeCategory.toLowerCase() === c.toLowerCase();
-            html += '<button type="button" class="plp-cat-btn'+(on?' active':'')+'" data-cat="'+plpEsc(c)+'">'+plpEsc(c)+'</button>';
+            catBody += '<button type="button" class="plp-cat-btn'+(on?' active':'')+'" data-cat="'+plpEsc(c)+'">'+plpEsc(c)+'</button>';
           });
-          html += '</div>';
+          catBody += '</div>';
+          html += plpFacetWrap('category', 'Category', catBody);
         }
         html += plpFacetSectionsHtml();
         aside.innerHTML = html;
         aside.onclick = function(e){
+          if (plpToggleCollapse(e)) return;                       // header chevron → collapse/expand
           const b = e.target.closest('.plp-cat-btn');
           if (b) { window.__zwSetPlpCategory(b.getAttribute('data-cat') || ''); return; }
           plpFacetClick(e);
@@ -1761,12 +1799,12 @@ function updateCountdown() {
           const fh = plpFacetSectionsHtml();
           facetHost.innerHTML = fh;
           if (facetSec) facetSec.style.display = fh ? '' : 'none';
-          facetHost.onclick = function(e){ plpFacetClick(e); };   // multi-select — keep the sheet open
+          facetHost.onclick = function(e){ if (plpToggleCollapse(e)) return; plpFacetClick(e); };   // multi-select — keep the sheet open
         }
         _plpUpdateFilterCount();
       }
       function _plpUpdateFilterCount(){
-        var n = (activeCategory ? 1 : 0) + (activeSort && activeSort !== 'featured' ? 1 : 0) + activeGenders.size + activeColors.size + activePrices.size;
+        var n = (activeCategory ? 1 : 0) + (activeSort && activeSort !== 'featured' ? 1 : 0) + activeGenders.size + activeColors.size + activePrices.size + activeSports.size;
         var el = document.getElementById('plp-filter-count-badge');
         if (el){ el.textContent = n ? String(n) : ''; el.style.display = n ? '' : 'none'; }
       }
@@ -2100,6 +2138,7 @@ function updateCountdown() {
           if (activeGenders.size && !activeGenders.has(String(p.gender||'').trim().toLowerCase())) return false;
           if (activeColors.size){ var _bs=plpProductColors(p), _cok=false; activeColors.forEach(function(k){ if(_bs[k]) _cok=true; }); if(!_cok) return false; }
           if (activePrices.size){ var _pr=plpPrice(p), _pok=false; activePrices.forEach(function(key){ var r=PLP_PRICE_BY_KEY[key]; if(r && _pr>=r.min && _pr<r.max) _pok=true; }); if(!_pok) return false; }
+          if (activeSports.size){ var _sp=plpProductSports(p), _sok=false; for (var _si=0; _si<_sp.length; _si++){ if (activeSports.has(String(_sp[_si]).trim().toLowerCase())){ _sok=true; break; } } if(!_sok) return false; }
           return productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag);
         });
 
