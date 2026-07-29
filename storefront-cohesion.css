@@ -4186,31 +4186,29 @@ body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.72); }
   /* Nike-style: the two arrows sit together at the top-right, in a CLEAR BAND above
      the product row (the band is reserved via the wrap's padding-top below) — so
      they clear the section's faint heading rule and never touch the images. */
-  display:none; position:absolute; top:.35rem; z-index:5;
+  display:none; position:absolute; top:.1rem; z-index:5;
   width:2.9rem; height:2.9rem; border-radius:var(--zw-radius-pill, 999px);   /* Nike-sized */
   align-items:center; justify-content:center; cursor:pointer;
-  /* Neutral light-grey chip (was cream --paper, which read as a dirty tan on the
-     white storefront). Dark theme override is below. */
-  border:1px solid rgba(9,9,11,.14); background:rgba(9,9,11,.06);
-  color:#09090b; box-shadow:0 2px 10px rgba(0,0,0,.08);
+  /* Identical to the hero carousel controls (.zw-hc-prev/next/pause): white chip,
+     dark glyph, same shadow — so every carousel control shares one colour. */
+  border:none; background:#fff;
+  color:#111; box-shadow:0 4px 12px rgba(0,0,0,.15);
   transition:background .15s ease, opacity .15s ease, transform .15s ease;
 }
 .zw-swipe-arrow svg{ width:1.3rem; height:1.3rem; }
 .zw-swipe-prev{ right:3.4rem; left:auto; }   /* left of the pair */
 .zw-swipe-next{ right:0; left:auto; }          /* far right, at the content edge */
-.zw-swipe-arrow:hover{ background:rgba(9,9,11,.12); transform:translateY(-1px); }
+.zw-swipe-arrow:hover{ background:#f0f0f0; transform:translateY(-1px); }
 .zw-swipe-arrow:disabled{ opacity:.32; cursor:default; pointer-events:none; }   /* greyed at the ends, like Nike */
 @media (hover:hover){
   /* Reserve a clear band above the row so the arrows sit in open space (like Nike)
      instead of overlapping the faint section heading rule just above them. */
-  .zw-swipe-wrap.zw-has-swipe[data-arrows="on"]{ padding-top:3.7rem; }
+  .zw-swipe-wrap.zw-has-swipe[data-arrows="on"]{ padding-top:3.1rem; }   /* just fits the arrows; keeps the title close to the row */
   .zw-swipe-wrap.zw-has-swipe[data-arrows="on"] > .zw-swipe-arrow{ display:flex; }
 }
-/* Dark themes: dark chip, light glyph */
-body:not(.light-mode):not(.super-light-mode) .zw-swipe-arrow{
-  background:rgba(9,9,11,.72); border-color:rgba(244,241,235,.16); color:#f4f1eb;
-}
-body:not(.light-mode):not(.super-light-mode) .zw-swipe-arrow:hover{ background:rgba(9,9,11,.9); }
+/* No dark-theme override: the arrows stay white in every theme, exactly like the
+   always-white hero carousel controls — so every control shares one colour. A
+   white chip reads well on a dark product row too (same as on the hero images). */
 
 /* ── Unified nav logo theming ─────────────────────────────────────────────
    The nav logo class is NOT a reliable colour hint — .nav-logo, .nav-logo-link
