@@ -4186,7 +4186,7 @@ body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.72); }
   /* Nike-style: the two arrows sit together at the top-right, in a CLEAR BAND above
      the product row (the band is reserved via the wrap's padding-top below) — so
      they clear the section's faint heading rule and never touch the images. */
-  display:none; position:absolute; top:.1rem; z-index:5;
+  display:none; position:absolute; top:-3rem; z-index:5;   /* up in the heading row, beside the title */
   width:2.9rem; height:2.9rem; border-radius:var(--zw-radius-pill, 999px);   /* Nike-sized */
   align-items:center; justify-content:center; cursor:pointer;
   /* Identical to the hero carousel controls (.zw-hc-prev/next/pause): white chip,
@@ -4201,9 +4201,8 @@ body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.72); }
 .zw-swipe-arrow:hover{ background:#f0f0f0; transform:translateY(-1px); }
 .zw-swipe-arrow:disabled{ opacity:.32; cursor:default; pointer-events:none; }   /* greyed at the ends, like Nike */
 @media (hover:hover){
-  /* Reserve a clear band above the row so the arrows sit in open space (like Nike)
-     instead of overlapping the faint section heading rule just above them. */
-  .zw-swipe-wrap.zw-has-swipe[data-arrows="on"]{ padding-top:3.1rem; }   /* just fits the arrows; keeps the title close to the row */
+  /* No reserved band — the arrows sit in the section-heading row (top-right, level
+     with the title) via the negative top above, so the title stays up by the row. */
   .zw-swipe-wrap.zw-has-swipe[data-arrows="on"] > .zw-swipe-arrow{ display:flex; }
 }
 /* No dark-theme override: the arrows stay white in every theme, exactly like the
