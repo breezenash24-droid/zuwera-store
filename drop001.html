@@ -480,6 +480,15 @@ document.documentElement.classList.add('zw-collflash');
          scroll, like Nike) and stack the pill bar directly BELOW it (top offset =
          nav + this bar's height) so they never overlap. */
       .plp-bar { margin-bottom:0; }
+      /* The sticky bar's drop-shadow turns on when the nav hides (scroll-down) and
+         was casting DOWN onto the pill bar — that's why the filter looked faded on
+         scroll-down and fine on scroll-up. Drop it on mobile; a hairline separates
+         the bars instead. --border is near-white on the light page, so use an
+         explicit adaptive colour. */
+      .plp-bar::before { display:none !important; }
+      .plp-bar, .plp-pillbar { border-bottom:1px solid rgba(244,241,235,.14); }
+      body.light-mode .plp-bar, body.super-light-mode .plp-bar,
+      body.light-mode .plp-pillbar, body.super-light-mode .plp-pillbar { border-bottom-color:rgba(9,9,11,.1); }
     }
     .section-header {
       display: flex;
