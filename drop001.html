@@ -1692,7 +1692,9 @@ function updateCountdown() {
         var count={};
         (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; var bs=plpProductColors(p); for (var k in bs) count[k]=(count[k]||0)+1; });
         var present = PLP_COLOR_BUCKETS.filter(function(b){ return count[b.key]; });
-        var lim = parseInt(plpCfg().color_count, 10);   // "how many colours are shown"
+        var off = plpCfg().colors_off;   // colours the admin hid, per-bucket
+        if (Array.isArray(off) && off.length){ var offm={}; off.forEach(function(k){ offm[String(k)]=true; }); present = present.filter(function(b){ return !offm[b.key]; }); }
+        var lim = parseInt(plpCfg().color_count, 10);   // legacy cap (kept for back-compat)
         if (lim>0 && present.length>lim){
           present = present.slice().sort(function(a,b){ return (count[b.key]||0)-(count[a.key]||0); }).slice(0, lim)   // keep the most common
                             .sort(function(a,b){ return PLP_COLOR_BUCKETS.indexOf(a)-PLP_COLOR_BUCKETS.indexOf(b); });   // back to canonical order
