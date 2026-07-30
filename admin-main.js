@@ -8573,6 +8573,9 @@
             { id: 'price',        label: 'Prices & Labels',   role: 'mono', sample: '$89.00 · SIZE M',             cssSel: '.pcard-price, .pcard-cat',                         previewEl: '.fp-card-price,.fp-card-cat', previewAll: true  },
             { id: 'btn',          label: 'Buttons & CTAs',    role: 'mono', sample: 'ADD TO BAG',                  cssSel: '.add-to-cart-btn, .pcard-add-btn, #checkout-btn, #pay-submit', previewEl: '.fp-cta', previewAll: false },
             { id: 'footer',       label: 'Footer',            role: 'mono', sample: 'RETURNS · PRIVACY · TERMS',   cssSel: '.fcopy, .flinks a, .fig',                          previewEl: null,                       previewAll: false },
+            // Collection filter sidebar / mobile sheet / sort bar. cssSel MUST stay
+            // identical to SECTION_SELECTORS.filter in storefront-theme.js.
+            { id: 'filter',       label: 'Collection Filters', role: 'body', sample: 'CATEGORY · JACKETS',        cssSel: '.plp-sidebar-head, .plp-cat-btn, .plp-facet-head, .plp-opt, .plp-color-name, .plp-clear-all, .plp-count, .plp-sort-wrap, .plp-sort, .plp-filter-toggle, .plp-fm-title, .plp-fm-label, .plp-fm-cat, .plp-fm-apply', previewEl: null, previewAll: false },
         ];
 
         const _defaultFontsState = () => ({

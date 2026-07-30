@@ -988,7 +988,9 @@ async function pdpSave(){
 // Edits site_settings.collection_page — the release / all-products listing
 // (drop001.html). Header wording + product-grid look. Card size/fit here win
 // over the admin Product-Cards defaults; "Use store default" leaves them alone.
-const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'', f_category:true, f_gender:true, f_color:true, f_sport:true, f_bestfor:true, f_material:true, f_price:true, price_breaks:'', color_count:'', color_grain:'standard', colors_off:[] };
+const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'', f_category:true, f_gender:true, f_color:true, f_sport:true, f_bestfor:true, f_material:true, f_price:true, price_breaks:'', color_count:'', color_grain:'standard', colors_off:[], materials_off:[] };
+// Mirror of drop001's PLP_MATERIALS names (for the per-material hide chips).
+const COLL_MATERIALS = ['Cotton','Fleece','Wool','Leather','Denim','Linen','Silk','Cashmere','Polyester','Nylon','Spandex','Recycled','Mesh','Bamboo','Rayon','Acrylic'];
 // Mirror of drop001's PLP_COLOR_BUCKETS so the chip swatches match the storefront.
 const COLL_COLOR_BUCKETS = [
   {key:'Black',dot:'#111111'},{key:'Grey',dot:'#9a9a9a'},{key:'White',dot:'#ffffff'},
@@ -1038,28 +1040,47 @@ function paintCollectionTab(container){
 
   // Live price-bracket preview + per-colour show/hide chips.
   const colorsOff = new Set(Array.isArray(c.colors_off) ? c.colors_off : []);
+  const materialsOff = new Set(Array.isArray(c.materials_off) ? c.materials_off : []);
   const priceRangesFrom = (str) => {
-    let bk = String(str||'').split(',').map(s=>parseFloat(String(s).trim())).filter(n=>!isNaN(n)&&n>0);
-    bk = bk.filter((n,i)=>bk.indexOf(n)===i).sort((a,b)=>a-b);
-    if(!bk.length) return ['$0 – $25','$25 – $50','$50 – $100','$100 – $150','Over $150'];
-    const out=[]; let prev=0; bk.forEach(b=>{ out.push('$'+prev+' – $'+b); prev=b; }); out.push('Over $'+prev); return out;
+    const entries = String(str||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const DEF = ['$0 – $25','$25 – $50','$50 – $100','$100 – $150','$150+'];
+    if(!entries.length) return DEF;
+    const explicit = entries.some(e=>/[-+]/.test(e));
+    const out=[];
+    if(!explicit){
+      let nums = entries.map(e=>parseFloat(e)).filter(n=>!isNaN(n)&&n>0);
+      nums = nums.filter((n,i)=>nums.indexOf(n)===i).sort((a,b)=>a-b);
+      if(!nums.length) return DEF;
+      let prev=0; nums.forEach(n=>{ out.push('$'+prev+' – $'+n); prev=n; }); out.push('$'+prev+'+');
+    } else {
+      entries.forEach(e=>{
+        let mp=e.match(/^\$?(\d+(?:\.\d+)?)\s*\+$/); if(mp){ out.push('$'+parseFloat(mp[1])+'+'); return; }
+        let mr=e.match(/^\$?(\d+(?:\.\d+)?)\s*-\s*\$?(\d+(?:\.\d+)?)$/); if(mr){ let lo=parseFloat(mr[1]),hi=parseFloat(mr[2]); if(lo<hi) out.push('$'+lo+' – $'+hi); return; }
+      });
+    }
+    return out.length ? out : DEF;
   };
   const pricePreview = (str) => priceRangesFrom(str).map(r=>`<span class="coll-pchip">${r}</span>`).join('');
   const colorChips = COLL_COLOR_BUCKETS.map(b =>
     `<button type="button" class="coll-cchip${colorsOff.has(b.key)?' off':''}" data-cchip="${b.key}"><span class="coll-cdot" style="background:${b.dot}"></span>${b.key}</button>`).join('');
+  const materialChips = COLL_MATERIALS.map(m =>
+    `<button type="button" class="coll-cchip${materialsOff.has(m)?' off':''}" data-mchip="${m}">${m}</button>`).join('');
 
   const filtersG = grp('Filters (sidebar)',
     `<div class="coll-sub">Columns to show</div>`
     + tog('Category','f_category') + tog('Gender','f_gender') + tog('Color','f_color') + tog('Sport','f_sport') + tog('Best for','f_bestfor') + tog('Material','f_material') + tog('Price','f_price')
     + `<div class="fhint" style="margin:.1rem 0 .9rem">Turn a column off to hide it from the sidebar & mobile filter sheet.</div>`
     + `<div class="coll-sub">Price brackets</div>`
-    + `<div class="field"><input type="text" data-coll="price_breaks" id="collPriceBreaks" value="${esc(c.price_breaks)}" placeholder="e.g. 25, 50, 100, 150"></div>`
-    + `<div class="fhint">Enter the dollar amounts to split at — the ranges between them are built for you. Blank = the default below.</div>`
+    + `<div class="field"><input type="text" data-coll="price_breaks" id="collPriceBreaks" value="${esc(c.price_breaks)}" placeholder="25, 50, 100  or  0-50, 50-100, 100+"></div>`
+    + `<div class="fhint">Two ways: type <b>breakpoints</b> (25, 50, 100) for auto ranges + a final "$X+", or write <b>exact brackets</b> (0-50, 50-100, 100+) to add open-ended "$X+" brackets like $50+ or $100+. Blank = default.</div>`
     + `<div class="coll-preview-lbl">Brackets shown</div><div class="coll-pchips" id="collPricePreview">${pricePreview(c.price_breaks)}</div>`
     + `<div class="coll-sub" style="margin-top:1rem">Colours</div>`
     + sel('Grouping','color_grain', c.color_grain, [['coarse','Coarse — fewest, broadest groups'],['standard','Standard'],['fine','Fine — keep every shade']])
     + `<div class="fhint" style="margin:.1rem 0 .5rem">Tap a colour to hide it from the filter. Grouping decides how similar shades merge.</div>`
-    + `<div class="coll-cchips" id="collColorChips">${colorChips}</div>`,
+    + `<div class="coll-cchips" id="collColorChips">${colorChips}</div>`
+    + `<div class="coll-sub" style="margin-top:1rem">Materials</div>`
+    + `<div class="fhint" style="margin:.1rem 0 .5rem">Tap a material to hide it from the filter. (Materials are detected from each product's Material Composition; only ones actually used show on the page.)</div>`
+    + `<div class="coll-cchips" id="collMaterialChips">${materialChips}</div>`,
     false);
 
   container.innerHTML = `<div class="tab-pane">
@@ -1093,6 +1114,15 @@ function paintCollectionTab(container){
       if(colorsOff.has(k)) colorsOff.delete(k); else colorsOff.add(k);
       btn.classList.toggle('off');
       collectionCfg.colors_off = Array.from(colorsOff);
+    });
+  });
+  // Per-material show/hide chips → collectionCfg.materials_off.
+  container.querySelectorAll('[data-mchip]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const k=btn.getAttribute('data-mchip');
+      if(materialsOff.has(k)) materialsOff.delete(k); else materialsOff.add(k);
+      btn.classList.toggle('off');
+      collectionCfg.materials_off = Array.from(materialsOff);
     });
   });
   // Live-update the price-bracket preview as the breakpoints are typed.

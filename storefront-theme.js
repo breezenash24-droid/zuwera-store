@@ -68,6 +68,10 @@
     'price':        '.pcard-price, .pcard-cat',
     'btn':          '.add-to-cart-btn, .pcard-add-btn, #checkout-btn, #pay-submit',
     'footer':       '.fcopy, .flinks a, .fig',
+    // Collection filter sidebar + mobile sheet + sort/count bar. Default (no
+    // override) leaves them on --font-filter (the Body font); must stay identical
+    // to admin-main.js SECTION_DEFS.
+    'filter':       '.plp-sidebar-head, .plp-cat-btn, .plp-facet-head, .plp-opt, .plp-color-name, .plp-clear-all, .plp-count, .plp-sort-wrap, .plp-sort, .plp-filter-toggle, .plp-fm-title, .plp-fm-label, .plp-fm-cat, .plp-fm-apply',
   };
 
   function _loadFontUrl(url) {
