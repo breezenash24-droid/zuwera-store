@@ -991,13 +991,18 @@ document.documentElement.classList.add('zw-collflash');
 
 
     @media (max-width: 768px) {
-      /* Nike-style: near edge-to-edge images. Small side padding + tight gap so
-         the two columns fill the width instead of floating with big margins. */
-      .products-section { padding-left: 0.4rem; padding-right: 0.4rem; }
-      .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.3rem; }
-      /* Taller cards (4:5, the real photo ratio) instead of a square crop — this
-         is the "fuller picture" / less wasted space, matching Nike's portrait tiles. */
-      .product-img { aspect-ratio: 4/5; }
+      /* TRUE edge-to-edge like Nike: the section has NO side padding, so the grid
+         cells run to the screen edges. Card CONTENT (swatches + name/price) is
+         inset with card padding, and the image bleeds back out to the card edge
+         with a negative margin — so photos touch the edges while text stays inset. */
+      .products-section { padding-left: 0; padding-right: 0; }
+      .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; }
+      .product-card { padding: 0 0.6rem; }
+      .product-img { margin-left: -0.6rem; margin-right: -0.6rem; }   /* keeps the base 1:1 square, like Nike */
+      /* The count/context bar + pill bar sit in the now-unpadded section — inset
+         their own content so the text isn't jammed against the screen edge. */
+      .plp-bar { padding-left: 0.9rem; padding-right: 0.9rem; }
+      .plp-pillbar { padding-left: 0.9rem; padding-right: 0.9rem; margin-left: 0; margin-right: 0; }
     }
 
     @media (max-width: 600px) {
@@ -1012,12 +1017,12 @@ document.documentElement.classList.add('zw-collflash');
       .countdown { gap: 0.8rem; }
       .countdown-item { min-width: 60px; }
       .countdown-number { font-size: clamp(2rem, 12vw, 3.5rem); }
-      .products-section { padding: 3rem 0.4rem; }
+      .products-section { padding: 3rem 0; }
       .products-grid, .products-grid.two-items {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.3rem;
+        gap: 2px;
       }
-      .product-card { padding: 0; }
+      .product-card { padding: 0 0.6rem; }
       .notify-section { padding: 3rem 1rem; }
       .notify-form { flex-direction: column; gap: 0; }
       .notify-form input {
