@@ -59,6 +59,11 @@
   justify-content: space-between;
   gap: 0.8rem 1.5rem;
 }
+/* Tablet: stack the summary below the items so the bag/saved columns get the
+   full width instead of being squeezed into the narrow 1fr of a 2-col grid. */
+@media (max-width: 900px) {
+  .cart-page-body { grid-template-columns: 1fr; }
+}
 @media (max-width: 760px) {
   .cart-page-body { grid-template-columns: 1fr; padding: 2rem 1.2rem 4rem; }
 }
@@ -112,23 +117,79 @@
 .favorites-msg { font-size: 0.88rem; color: var(--c45); line-height: 1.7; }
 .favorites-msg a { color: var(--white); text-decoration: underline; cursor: pointer; }
 .favorites-msg a:hover { opacity: 0.65; }
+/* ── Saved item card ─────────────────────────────────────────────────────── */
+.zw-saved-item {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1.1rem 0;
+  border-bottom: 1px solid rgba(244,241,235,0.08);
+}
+.zw-saved-item:last-child { border-bottom: none; }
+.zw-saved-item-img {
+  width: 88px;
+  height: 110px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(244,241,235,0.08);
+  background: rgba(244,241,235,0.03);
+}
+.zw-saved-item-img--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(244,241,235,0.3);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.zw-saved-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  /* card-width driven layout for the action buttons below */
+  container-type: inline-size;
+}
+.zw-saved-item-name {
+  font-size: 0.95rem;
+  line-height: 1.3;
+  font-weight: 500;
+  color: rgba(244,241,235,0.96);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.zw-saved-item-sub {
+  font-size: 0.64rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,0.45);
+  margin-top: 0.25rem;
+}
+.zw-saved-item-price {
+  font-size: 0.85rem;
+  color: rgba(244,241,235,0.82);
+  margin-top: 0.4rem;
+  font-variant-numeric: tabular-nums;
+}
 .zw-saved-item-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 0.8rem;
+  margin-top: 0.85rem;
 }
 .zw-saved-item-btn,
 .zw-saved-item-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 36px;
-  padding: 0 0.95rem;
+  min-height: 38px;
+  padding: 0 1rem;
   border: 1px solid rgba(244,241,235,0.16);
   background: rgba(244,241,235,0.04);
   color: rgba(244,241,235,0.88);
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   text-decoration: none;
@@ -152,6 +213,13 @@
 .zw-saved-item-btn--ghost {
   background: transparent;
   color: rgba(244,241,235,0.8);
+}
+/* Narrow card (squeezed tablet column or mobile): "Add to Bag" takes its own
+   full-width row on top; the two ghost actions split the row beneath. Driven by
+   the CARD width (container query), so it's right regardless of viewport. */
+@container (max-width: 330px) {
+  .zw-saved-item-btn--primary { order: -1; flex: 1 1 100%; }
+  .zw-saved-item-btn--ghost { flex: 1 1 calc(50% - 0.25rem); }
 }
 
 /* ===================== CART SUMMARY ===================== */
@@ -245,28 +313,44 @@ body.light-mode .cart-shell-footer-nav a { color: rgba(9,9,11,0.66); }
 body.light-mode .cart-shell-footer-nav a:hover { color: #09090b; }
 body.light-mode .cart-shell-footer-copy { color: rgba(9,9,11,0.4); }
 body.light-mode .zw-saved-item-btn,
-body.light-mode .zw-saved-item-link {
+body.light-mode .zw-saved-item-link,
+body.super-light-mode .zw-saved-item-btn,
+body.super-light-mode .zw-saved-item-link {
   border-color: rgba(9,9,11,0.14);
   background: rgba(9,9,11,0.03);
   color: rgba(9,9,11,0.82);
 }
-body.light-mode .zw-saved-item-btn--primary {
+body.light-mode .zw-saved-item-btn--primary,
+body.super-light-mode .zw-saved-item-btn--primary {
   background: #09090b;
   border-color: #09090b;
   color: #E8E3DC;
 }
-body.light-mode .zw-saved-item-btn--primary:hover { background: #1a1a1a; }
+body.light-mode .zw-saved-item-btn--primary:hover,
+body.super-light-mode .zw-saved-item-btn--primary:hover { background: #1a1a1a; }
+/* Card text + image on light grounds — base colors are near-white (dark theme),
+   which is what made the subtitle/price invisible on the white bag page. */
+body.light-mode .zw-saved-item,
+body.super-light-mode .zw-saved-item { border-bottom-color: rgba(9,9,11,0.08); }
+body.light-mode .zw-saved-item-name,
+body.super-light-mode .zw-saved-item-name { color: #09090b; }
+body.light-mode .zw-saved-item-sub,
+body.super-light-mode .zw-saved-item-sub { color: rgba(9,9,11,0.5); }
+body.light-mode .zw-saved-item-price,
+body.super-light-mode .zw-saved-item-price { color: rgba(9,9,11,0.75); }
+body.light-mode .zw-saved-item-img,
+body.super-light-mode .zw-saved-item-img { border-color: rgba(9,9,11,0.1); background: rgba(9,9,11,0.02); }
+body.light-mode .zw-saved-item-img--empty,
+body.super-light-mode .zw-saved-item-img--empty { color: rgba(9,9,11,0.3); }
 @media (max-width: 760px) {
   .cart-shell-footer {
     padding: 1rem 1.2rem 1.6rem;
     flex-direction: column;
     align-items: flex-start;
   }
-  .zw-saved-item-btn,
-  .zw-saved-item-link {
-    flex: 1 1 calc(50% - 0.45rem);
-    min-width: 9rem;
-  }
+  /* Buttons stack via the .zw-saved-item-info container query, not the viewport. */
+  .zw-saved-item { gap: 0.85rem; }
+  .zw-saved-item-img { width: 78px; height: 98px; }
 }
 
 /* ─── BAG PAGE REDESIGN ──────────────────────────────────────────────────── */
