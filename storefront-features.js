@@ -420,6 +420,11 @@
         // the last thing in the header.
         host = navRight;
         before = navRight.querySelector('#mobile-menu-btn, .hamburger-btn');
+      } else {
+        // checkout: custom .co-header-right with the bag pill (#co-bag-pill).
+        // Reuse the bag-icon class so the magnifier matches it, sat just before it.
+        var coRight = document.querySelector('.co-header-right');
+        if (coRight) { host = coRight; before = coRight.querySelector('#co-bag-pill'); cls = 'co-bag-icon'; }
       }
     }
     if (host) {
@@ -1768,7 +1773,7 @@
     // phase on document runs before all three, and stopping propagation there
     // means none of them ever fire. One hook, no per-page special-casing.
     document.addEventListener('click', function (e) {
-      var t = e.target && e.target.closest && e.target.closest('#cart-btn, .zw-hdr-bag');
+      var t = e.target && e.target.closest && e.target.closest('#cart-btn, .zw-hdr-bag, #co-bag-pill');
       if (!t) return;
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;  // new-tab still works
       if (/\/bag(\.html)?$/.test(location.pathname)) return;               // already on the bag page
