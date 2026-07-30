@@ -995,6 +995,9 @@ document.documentElement.classList.add('zw-collflash');
          the two columns fill the width instead of floating with big margins. */
       .products-section { padding-left: 0.4rem; padding-right: 0.4rem; }
       .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.3rem; }
+      /* Taller cards (4:5, the real photo ratio) instead of a square crop — this
+         is the "fuller picture" / less wasted space, matching Nike's portrait tiles. */
+      .product-img { aspect-ratio: 4/5; }
     }
 
     @media (max-width: 600px) {
