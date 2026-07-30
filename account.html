@@ -1402,6 +1402,23 @@ async function loadSaved() {
       .order('created_at', { ascending: false });
     if (loading) loading.style.display = 'none';
     if (!data?.length) { if (empty) empty.style.display = 'block'; return; }
+    // favorites.price can be null when an item was saved without a price snapshot
+    // (e.g. the Zuwera Flower Tee), so no price rendered. Fall back to the product's
+    // real price — same idea as the bag page's product-detail lookup.
+    const _needPrice = data.filter(f => f.product_id && !(parseFloat(f.price) > 0)).map(f => f.product_id);
+    if (_needPrice.length) {
+      try {
+        const { data: _prods } = await _sb.from('products').select('id,current_price,price').in('id', _needPrice);
+        const _byId = {};
+        (_prods || []).forEach(p => { _byId[p.id] = p; });
+        data.forEach(f => {
+          if (parseFloat(f.price) > 0) return;
+          const p = _byId[f.product_id];
+          const real = p ? (p.current_price != null && p.current_price !== '' ? p.current_price : p.price) : null;
+          if (real != null && real !== '') f.price = real;
+        });
+      } catch (_) {}
+    }
     list.dataset.loaded = '1';
     _savedRows = {};
     data.forEach(f => { if (f.product_id) _savedRows[f.product_id] = f; });
