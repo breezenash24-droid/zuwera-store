@@ -311,24 +311,6 @@
   font-weight: 600;
 }
 
-/* SPORT SECTION — subtle chips (one per assigned sport) */
-.product-sports {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.product-sport-pill {
-  display: inline-block;
-  border: 1px solid var(--c20);
-  padding: 0.4rem 0.8rem;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--white);
-  opacity: 0.85;
-}
-
 /* PRICE SECTION */
 .price-section {
   display: flex;
