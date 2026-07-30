@@ -1614,14 +1614,35 @@ function updateCountdown() {
         { key:'Blue', dot:'#2d7ff9' }, { key:'Navy', dot:'#1b2a4a' }, { key:'Purple', dot:'#7b3ff2' },
         { key:'Pink', dot:'#ff6fa5' }
       ];
-      const PLP_PRICE_RANGES = [
+      const PLP_DEFAULT_PRICE_RANGES = [
         { key:'0-25', label:'$0 – $25', min:0, max:25 },
         { key:'25-50', label:'$25 – $50', min:25, max:50 },
         { key:'50-100', label:'$50 – $100', min:50, max:100 },
         { key:'100-150', label:'$100 – $150', min:100, max:150 },
         { key:'150+', label:'Over $150', min:150, max:Infinity }
       ];
-      const PLP_PRICE_BY_KEY = {}; PLP_PRICE_RANGES.forEach(function(r){ PLP_PRICE_BY_KEY[r.key] = r; });
+      // Builder → Collection tab settings (site_settings.collection_page). Read live so
+      // a save (which re-runs renderPlpSidebar) applies without a page reload.
+      function plpCfg(){ return window.__zwCollPageCfg || {}; }
+      var _plpPriceCache = null;
+      function plpResetCfgCache(){ _plpPriceCache = null; }
+      // Custom price brackets: breakpoints "25,50,100,150" → $0–25 … Over $150.
+      function plpPriceRanges(){
+        if (_plpPriceCache) return _plpPriceCache;
+        var breaks = String(plpCfg().price_breaks||'').split(',').map(function(s){ return parseFloat(String(s).trim()); }).filter(function(n){ return !isNaN(n) && n>0; });
+        breaks = breaks.filter(function(n,i){ return breaks.indexOf(n)===i; }).sort(function(a,b){ return a-b; });
+        var ranges;
+        if (breaks.length){
+          ranges = []; var prev=0;
+          breaks.forEach(function(b){ ranges.push({ key:prev+'-'+b, label:'$'+prev+' – $'+b, min:prev, max:b }); prev=b; });
+          ranges.push({ key:prev+'+', label:'Over $'+prev, min:prev, max:Infinity });
+        } else { ranges = PLP_DEFAULT_PRICE_RANGES; }
+        _plpPriceCache = ranges; return ranges;
+      }
+      function plpPriceByKey(key){ var rs=plpPriceRanges(); for (var i=0;i<rs.length;i++){ if (rs[i].key===key) return rs[i]; } return null; }
+      // Colour grouping: 'coarse' folds the extended buckets into broader ones.
+      const PLP_COARSE_MERGE = { Beige:'Brown', Maroon:'Red', Olive:'Green', Teal:'Blue', Navy:'Blue' };
+      function plpGrainBucket(b){ return (b && plpCfg().color_grain==='coarse' && PLP_COARSE_MERGE[b]) ? PLP_COARSE_MERGE[b] : b; }
       function plpHexHsl(hex){
         hex = String(hex==null?'':hex).trim().replace(/^#/,'');
         if (hex.length === 3) hex = hex.split('').map(function(c){ return c+c; }).join('');
@@ -1657,7 +1678,7 @@ function updateCountdown() {
       }
       function plpProductColors(p){
         var out = {};
-        ((p && p.color_variants) || []).forEach(function(c){ var b = plpColorBucket(c && c.hex_color); if (b) out[b] = true; });
+        ((p && p.color_variants) || []).forEach(function(c){ var b = plpGrainBucket(plpColorBucket(c && c.hex_color)); if (b) out[b] = true; });
         return out;
       }
       function plpExcluded(p){ var s=(p && p.status || '').toLowerCase(); return s==='legacy'||s==='archived'||s==='draft'; }
@@ -1668,14 +1689,20 @@ function updateCountdown() {
         return order.filter(function(g){ return present[g.toLowerCase()]; }).map(function(g){ return present[g.toLowerCase()]; });
       }
       function plpColorFacetList(){
-        var present={};
-        (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; var bs=plpProductColors(p); for (var k in bs) present[k]=true; });
-        return PLP_COLOR_BUCKETS.filter(function(b){ return present[b.key]; });
+        var count={};
+        (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; var bs=plpProductColors(p); for (var k in bs) count[k]=(count[k]||0)+1; });
+        var present = PLP_COLOR_BUCKETS.filter(function(b){ return count[b.key]; });
+        var lim = parseInt(plpCfg().color_count, 10);   // "how many colours are shown"
+        if (lim>0 && present.length>lim){
+          present = present.slice().sort(function(a,b){ return (count[b.key]||0)-(count[a.key]||0); }).slice(0, lim)   // keep the most common
+                            .sort(function(a,b){ return PLP_COLOR_BUCKETS.indexOf(a)-PLP_COLOR_BUCKETS.indexOf(b); });   // back to canonical order
+        }
+        return present;
       }
       function plpPriceFacetList(){
-        var present={};
-        (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; var pr=plpPrice(p); PLP_PRICE_RANGES.forEach(function(r){ if (pr>=r.min && pr<r.max) present[r.key]=true; }); });
-        return PLP_PRICE_RANGES.filter(function(r){ return present[r.key]; });
+        var present={}, ranges=plpPriceRanges();
+        (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; var pr=plpPrice(p); ranges.forEach(function(r){ if (pr>=r.min && pr<r.max) present[r.key]=true; }); });
+        return ranges.filter(function(r){ return present[r.key]; });
       }
       function plpProductSports(p){ return (p && Array.isArray(p.sports)) ? p.sports.filter(Boolean) : []; }
       function plpSportFacetList(){
@@ -1704,23 +1731,23 @@ function updateCountdown() {
       }
       // Shared collapsible facets (Gender / Color / Sport / Price) — desktop sidebar + mobile sheet.
       function plpFacetSectionsHtml(){
-        var html='';
-        var genders = requestedGender ? [] : plpGenderList();
+        var html='', cfg=plpCfg();
+        var genders = (cfg.f_gender===false || requestedGender) ? [] : plpGenderList();
         if (genders.length > 1){
           var gb = '<div class="plp-opts">' + genders.map(function(g){ var on=activeGenders.has(g.toLowerCase()); return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="gender" data-val="'+plpEsc(g.toLowerCase())+'"><span class="plp-opt-check"></span>'+plpEsc(g)+'</button>'; }).join('') + '</div>';
           html += plpFacetWrap('gender','Gender',gb);
         }
-        var colors = plpColorFacetList();
+        var colors = cfg.f_color===false ? [] : plpColorFacetList();
         if (colors.length){
           var cb = '<div class="plp-colors">' + colors.map(function(b){ var on=activeColors.has(b.key); return '<button type="button" class="plp-color'+(on?' active':'')+'" data-facet="color" data-val="'+plpEsc(b.key)+'" title="'+plpEsc(b.key)+'"><span class="plp-color-dot" style="background:'+b.dot+'"></span><span class="plp-color-name">'+plpEsc(b.key)+'</span></button>'; }).join('') + '</div>';
           html += plpFacetWrap('color','Color',cb);
         }
-        var sports = plpSportFacetList();
+        var sports = cfg.f_sport===false ? [] : plpSportFacetList();
         if (sports.length){
           var sb = '<div class="plp-opts">' + sports.map(function(s){ var on=activeSports.has(s.toLowerCase()); return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="sport" data-val="'+plpEsc(s.toLowerCase())+'"><span class="plp-opt-check"></span>'+plpEsc(s)+'</button>'; }).join('') + '</div>';
           html += plpFacetWrap('sport','Sport',sb);
         }
-        var prices = plpPriceFacetList();
+        var prices = cfg.f_price===false ? [] : plpPriceFacetList();
         if (prices.length > 1){
           var pb = '<div class="plp-opts">' + prices.map(function(r){ var on=activePrices.has(r.key); return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="price" data-val="'+plpEsc(r.key)+'"><span class="plp-opt-check"></span>'+plpEsc(r.label)+'</button>'; }).join('') + '</div>';
           html += plpFacetWrap('price','Shop by price',pb);
@@ -1761,7 +1788,7 @@ function updateCountdown() {
         if (!aside) return;
         const cats = plpCategoryList();
         let html = '';
-        if (cats.length >= 2){
+        if (cats.length >= 2 && plpCfg().f_category !== false){
           let catBody = '<div class="plp-cat-list">';
           catBody += '<button type="button" class="plp-cat-btn'+(!activeCategory?' active':'')+'" data-cat="">All '+plpEsc(plpScopeName())+'</button>';
           cats.forEach(function(c){
@@ -2073,6 +2100,10 @@ function updateCountdown() {
         if (_cp.card_fit && window.__zwApplyCardFit) window.__zwApplyCardFit(_cp.card_fit === 'contain' ? 'contain' : 'cover');
         applyCollectionHeader(_cp);
       }
+      // Re-render the filter sidebar now the config (column toggles / price
+      // brackets / colour count + grouping) is loaded, so it applies without a reload.
+      if (typeof plpResetCfgCache === 'function') plpResetCfgCache();
+      if (typeof renderPlpSidebar === 'function') renderPlpSidebar();
     } catch (e) {}
 
       let products;
@@ -2142,7 +2173,7 @@ function updateCountdown() {
           if (!productMatchesQuery(p, requestedQuery)) return false;
           if (activeGenders.size && !activeGenders.has(String(p.gender||'').trim().toLowerCase())) return false;
           if (activeColors.size){ var _bs=plpProductColors(p), _cok=false; activeColors.forEach(function(k){ if(_bs[k]) _cok=true; }); if(!_cok) return false; }
-          if (activePrices.size){ var _pr=plpPrice(p), _pok=false; activePrices.forEach(function(key){ var r=PLP_PRICE_BY_KEY[key]; if(r && _pr>=r.min && _pr<r.max) _pok=true; }); if(!_pok) return false; }
+          if (activePrices.size){ var _pr=plpPrice(p), _pok=false; activePrices.forEach(function(key){ var r=plpPriceByKey(key); if(r && _pr>=r.min && _pr<r.max) _pok=true; }); if(!_pok) return false; }
           if (activeSports.size){ var _sp=plpProductSports(p), _sok=false; for (var _si=0; _si<_sp.length; _si++){ if (activeSports.has(String(_sp[_si]).trim().toLowerCase())){ _sok=true; break; } } if(!_sok) return false; }
           return productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag);
         });

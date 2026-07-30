@@ -988,7 +988,7 @@ async function pdpSave(){
 // Edits site_settings.collection_page — the release / all-products listing
 // (drop001.html). Header wording + product-grid look. Card size/fit here win
 // over the admin Product-Cards defaults; "Use store default" leaves them alone.
-const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'' };
+const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'', f_category:true, f_gender:true, f_color:true, f_sport:true, f_price:true, price_breaks:'', color_count:'', color_grain:'standard' };
 let collectionCfg = null;
 
 async function renderCollectionTab(container){
@@ -1014,6 +1014,8 @@ function paintCollectionTab(container){
     `<div class="field"><label>${label}</label><select data-coll="${key}">`
     + opts.map(o=>`<option value="${o[0]}"${String(val||'')===o[0]?' selected':''}>${o[1]}</option>`).join('')
     + `</select></div>`;
+  const tog = (label,key) =>
+    `<div class="tog2"><label>${label}</label><label class="switch"><input type="checkbox" data-coll="${key}" ${c[key]!==false?'checked':''}><span class="sw-sl"></span></label></div>`;
 
   const headerG = grp('Header text',
     fld('Eyebrow','eyebrow', c.eyebrow, 'Small line above the title — the category is appended automatically.')
@@ -1025,17 +1027,29 @@ function paintCollectionTab(container){
     + sel('Image fit','card_fit', c.card_fit, [['','Use store default'],['cover','Fill the frame (crop)'],['contain','Show the whole image']]),
     false);
 
+  const filtersG = grp('Filters (sidebar)',
+    tog('Show Category filter','f_category')
+    + tog('Show Gender filter','f_gender')
+    + tog('Show Color filter','f_color')
+    + tog('Show Sport filter','f_sport')
+    + tog('Show Price filter','f_price')
+    + `<div class="fhint" style="margin:.2rem 0 .6rem">Turn a column off to hide it from the collection sidebar & mobile filter sheet.</div>`
+    + fld('Price brackets','price_breaks', c.price_breaks, 'Dollar breakpoints, comma-separated (e.g. 25, 50, 100, 150). Blank = default $0–25 … Over $150.')
+    + fld('Max colors shown','color_count', c.color_count, 'Cap how many colour swatches appear (blank or 0 = show every colour present).')
+    + sel('Colour grouping','color_grain', c.color_grain, [['standard','Standard'],['coarse','Coarse — fewer, broader groups'],['fine','Fine — split every shade']]),
+    false);
+
   container.innerHTML = `<div class="tab-pane">
     <div class="tab-hd">Collection page</div>
-    <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">The release / all-products listing page. Edit the header wording and how the product grid looks. Save to see it in the preview.</div>
-    ${headerG}${cardsG}
+    <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">The release / all-products listing page. Edit the header wording, the product grid, and the filter sidebar. Save to see it in the preview.</div>
+    ${headerG}${cardsG}${filtersG}
     <button onclick="saveCollectionCfg()" class="apply-btn" id="collSaveBtn">💾 Save Collection Page</button>
     <div id="collMsg" style="font-size:.58rem;color:var(--mu);min-height:1em"></div>
     <button onclick="resetCollectionCfg()" class="tbtn tbtn-ghost" style="align-self:flex-start">Reset to default</button>
   </div>`;
 
   container.querySelectorAll('[data-coll]').forEach(el=>{
-    const apply=()=>{ collectionCfg[el.dataset.coll] = el.value; };
+    const apply=()=>{ collectionCfg[el.dataset.coll] = el.type==='checkbox' ? el.checked : el.value; };
     el.addEventListener('change',apply); el.addEventListener('input',apply);
   });
 }
