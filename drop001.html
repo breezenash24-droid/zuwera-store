@@ -433,7 +433,11 @@ document.documentElement.classList.add('zw-collflash');
     @media (max-width:760px){ .plp-bar .plp-sort-wrap{ display:none; } }
     @media (prefers-reduced-motion: reduce){ .plp-fm, .plp-fm-sheet, .plp-fm::before{ transition:none; } }
     @media (max-width:760px) {
-      .plp-layout { flex-direction:column; gap:1rem; }
+      /* Column layout: the parent keeps align-items:flex-start, which would shrink
+         .plp-main to content width (→ the grid collapsed to nothing = blank page).
+         Force both the column and .plp-main to full width. */
+      .plp-layout { flex-direction:column; align-items:stretch; gap:1rem; }
+      .plp-main { width:100%; }
       .plp-sidebar { display:none; position:static; flex-basis:auto; width:100%; margin-right:0; margin-bottom:.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem; }
       .plp-sidebar.open { display:block; }
     }
