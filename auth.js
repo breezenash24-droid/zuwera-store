@@ -824,7 +824,7 @@ function favoriteCardHtml(favorite, detail, options) {
         ${subtitle}
         ${priceHtml}
         <div class="zw-saved-item-actions">
-          <a href="${href}" class="zw-saved-item-link zw-saved-item-btn zw-saved-item-btn--ghost">View Product</a>
+          <a href="${href}" class="zw-saved-item-link zw-saved-item-btn zw-saved-item-btn--ghost">View</a>
           <button
             type="button"
             data-favorite-add="${escapeFavoriteHtml(productId)}"

@@ -597,11 +597,13 @@
     padding:1.25rem var(--zw-mobile-gutter) calc(1.75rem + env(safe-area-inset-bottom,0px)) !important;
   }
 
-  .zw-saved-item-btn,
-  .zw-saved-item-link{
-    flex:1 1 100% !important;
-    min-width:0 !important;
-  }
+  /* Saved items: two product cards per row on mobile (matches the account page). */
+  #cart-favs-list{ grid-template-columns:repeat(2, minmax(0,1fr)) !important; gap:.8rem !important; }
+  /* Compact action layout: "Add to Bag" full-width on top, then View + Remove
+     side by side beneath. Three stacked full-width buttons made each card too tall. */
+  .zw-saved-item-actions{ gap:.5rem !important; }
+  .zw-saved-item-btn--primary{ order:-1; flex:1 1 100% !important; min-width:0 !important; }
+  .zw-saved-item-btn--ghost{ flex:1 1 calc(50% - .3rem) !important; min-width:0 !important; padding:0 .5rem !important; }
 
   #cart-items-list li{
     gap:.8rem !important;

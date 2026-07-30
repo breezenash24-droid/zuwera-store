@@ -381,6 +381,12 @@ body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-co
     <button class="nbtn" id="login-btn">Login</button>
     <button class="nbtn" id="account-btn" style="display:none">Account</button>
     <button class="nbtn" id="logout-btn" style="display:none">Sign Out</button>
+    <span class="zw-hdr-group">
+      <a href="bag.html" class="zw-hdr-bag" aria-label="Bag" aria-current="page">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 01-8 0"></path></svg>
+        <span class="zw-hdr-bag-count cart-count" id="hdr-bag-count">0</span>
+      </a>
+    </span>
     <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="8" x2="21" y2="8"></line><line x1="3" y1="16" x2="21" y2="16"></line></svg>
     </button>
@@ -391,6 +397,12 @@ body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-co
    just been parsed) so it doesn't flash "Account" then the name. The .zw-authed
    CSS above already handled the Login↔Account visibility before paint. */
 (function(){try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on');}catch(_){}})();
+/* Fill the nav bag-count badge from the cart (same as account.html). */
+(function(){try{
+  var cart=JSON.parse(localStorage.getItem('cart')||'[]');
+  var n=Array.isArray(cart)?cart.reduce(function(s,it){return s+(Number(it&&(it.qty||it.quantity||it.q))||1);},0):0;
+  document.querySelectorAll('#hdr-bag-count, .cart-count, .zw-mobile-bag-count').forEach(function(el){el.textContent=n;});
+}catch(_){}})();
 (function(){try{
   var u=window.__zwSessionUser;if(!u)return;
   var a=document.getElementById('account-btn');if(!a)return;
