@@ -6971,6 +6971,7 @@
                     tags: (document.getElementById('productTags')?.value || '').split(',').map(s => s.trim()).filter(Boolean),
                     colorway: effectiveColorway || null,
                     material_composition: document.getElementById('materialComposition').value,
+                    best_for: Array.from(document.querySelectorAll('.bestfor-check:checked')).map(cb => cb.value),
                     msrp: parseFloat(document.getElementById('msrp').value),
                     current_price: parseFloat(document.getElementById('currentPrice').value),
                     member_price: document.getElementById('memberPrice').value ? parseFloat(document.getElementById('memberPrice').value) : null,
@@ -7188,6 +7189,7 @@
             document.getElementById('pomHeadCircCm').value = '';
             document.getElementById('colorway').value = product.colorway || '';
             document.getElementById('materialComposition').value = product.material_composition;
+            { const _bf = (Array.isArray(product.best_for) ? product.best_for : []).map(s => String(s).toLowerCase()); document.querySelectorAll('.bestfor-check').forEach(cb => { cb.checked = _bf.indexOf(cb.value.toLowerCase()) !== -1; }); }
             document.getElementById('msrp').value = product.msrp;
             document.getElementById('currentPrice').value = product.current_price;
             document.getElementById('memberPrice').value = product.member_price || '';
@@ -7331,6 +7333,7 @@
             document.getElementById('recycledContentDetail').value = '';
             document.getElementById('sizeGuideStatus').textContent = 'Select a category or gender and this will pull matching sizes from your size guide. You can still type any size name you want.';
             document.querySelectorAll('.tech-checkbox').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.bestfor-check').forEach(cb => cb.checked = false);
             document.querySelectorAll('.form-input.error, .form-select.error').forEach(el => el.classList.remove('error'));
             document.querySelector('.tab-button.active')?.classList.remove('active');
             document.querySelector('.tab-button')?.classList.add('active');

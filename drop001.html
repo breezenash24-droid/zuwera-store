@@ -1612,7 +1612,7 @@ function updateCountdown() {
       function plpPrice(p){ return parseFloat(p && (p.current_price || p.msrp)) || 0; }
 
       // ── Facets: Gender / Color / Price (multi-select; AND across facets, OR within) ──
-      const activeGenders = new Set(), activeColors = new Set(), activePrices = new Set(), activeSports = new Set();
+      const activeGenders = new Set(), activeColors = new Set(), activePrices = new Set(), activeSports = new Set(), activeMaterials = new Set(), activeBestFor = new Set();
       const PLP_COLOR_BUCKETS = [
         { key:'Black', dot:'#111111' }, { key:'Grey', dot:'#9a9a9a' }, { key:'White', dot:'#ffffff' },
         { key:'Beige', dot:'#d8c4a0' }, { key:'Brown', dot:'#6b4423' }, { key:'Red', dot:'#d0021b' },
@@ -1720,6 +1720,32 @@ function updateCountdown() {
         order.sort(function(a,b){ return a.localeCompare(b); });
         return order;
       }
+      // Best For (weather) — a fixed set, read from products.best_for (text[]).
+      function plpProductBestFor(p){ return (p && Array.isArray(p.best_for)) ? p.best_for.filter(Boolean) : []; }
+      const PLP_BEST_FOR = ['Warm Weather','Cold Weather','Wet Weather','Dry Weather'];
+      function plpBestForFacetList(){
+        var present={};
+        (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; plpProductBestFor(p).forEach(function(s){ present[String(s).trim().toLowerCase()]=true; }); });
+        return PLP_BEST_FOR.filter(function(s){ return present[s.toLowerCase()]; });
+      }
+      // Materials — derived from the product's material_composition free text
+      // (e.g. "80% Cotton, 20% Polyester") by matching known fabrics.
+      const PLP_MATERIALS = [
+        {name:'Cotton',k:['cotton']},{name:'Fleece',k:['fleece']},{name:'Wool',k:['wool','merino']},
+        {name:'Leather',k:['leather']},{name:'Denim',k:['denim']},{name:'Linen',k:['linen']},
+        {name:'Silk',k:['silk']},{name:'Cashmere',k:['cashmere']},{name:'Polyester',k:['polyester']},
+        {name:'Nylon',k:['nylon']},{name:'Spandex',k:['spandex','elastane','lycra']},{name:'Recycled',k:['recycled']},
+        {name:'Mesh',k:['mesh']},{name:'Bamboo',k:['bamboo']},{name:'Rayon',k:['rayon','viscose','modal']},{name:'Acrylic',k:['acrylic']}
+      ];
+      function plpProductMaterials(p){
+        var txt = String((p && p.material_composition) || '').toLowerCase(); if (!txt) return [];
+        var out=[]; PLP_MATERIALS.forEach(function(m){ if (m.k.some(function(kw){ return txt.indexOf(kw)!==-1; })) out.push(m.name); }); return out;
+      }
+      function plpMaterialFacetList(){
+        var present={};
+        (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; plpProductMaterials(p).forEach(function(m){ present[m]=true; }); });
+        return PLP_MATERIALS.filter(function(m){ return present[m.name]; }).map(function(m){ return m.name; });
+      }
       // Collapsible facet (Nike-style): the header + chevron toggles the body.
       // Collapsed state is remembered per session so a filter change (which
       // re-renders the sidebar) doesn't spring every section back open.
@@ -1756,20 +1782,30 @@ function updateCountdown() {
           var sb = '<div class="plp-opts">' + sports.map(function(s){ var on=activeSports.has(s.toLowerCase()); return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="sport" data-val="'+plpEsc(s.toLowerCase())+'"><span class="plp-opt-check"></span>'+plpEsc(s)+'</button>'; }).join('') + '</div>';
           html += plpFacetWrap('sport','Sport',sb);
         }
+        var bestfor = cfg.f_bestfor===false ? [] : plpBestForFacetList();
+        if (bestfor.length){
+          var bf = '<div class="plp-opts">' + bestfor.map(function(s){ var on=activeBestFor.has(s.toLowerCase()); return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="bestfor" data-val="'+plpEsc(s.toLowerCase())+'"><span class="plp-opt-check"></span>'+plpEsc(s)+'</button>'; }).join('') + '</div>';
+          html += plpFacetWrap('bestfor','Best for',bf);
+        }
+        var materials = cfg.f_material===false ? [] : plpMaterialFacetList();
+        if (materials.length){
+          var mb = '<div class="plp-opts">' + materials.map(function(s){ var on=activeMaterials.has(s.toLowerCase()); return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="material" data-val="'+plpEsc(s.toLowerCase())+'"><span class="plp-opt-check"></span>'+plpEsc(s)+'</button>'; }).join('') + '</div>';
+          html += plpFacetWrap('material','Material',mb);
+        }
         var prices = cfg.f_price===false ? [] : plpPriceFacetList();
         if (prices.length > 1){
           var pb = '<div class="plp-opts">' + prices.map(function(r){ var on=activePrices.has(r.key); return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="price" data-val="'+plpEsc(r.key)+'"><span class="plp-opt-check"></span>'+plpEsc(r.label)+'</button>'; }).join('') + '</div>';
           html += plpFacetWrap('price','Shop by price',pb);
         }
-        var n = activeGenders.size + activeColors.size + activePrices.size + activeSports.size + (activeCategory?1:0);
+        var n = activeGenders.size + activeColors.size + activePrices.size + activeSports.size + activeMaterials.size + activeBestFor.size + (activeCategory?1:0);
         if (n) html += '<button type="button" class="plp-clear-all" data-facet="clear">Clear all ('+n+')</button>';
         return html;
       }
       function plpFacetClick(e){
         var b = e.target.closest('[data-facet]'); if (!b) return false;
         var facet=b.getAttribute('data-facet'), val=b.getAttribute('data-val');
-        if (facet==='clear'){ activeGenders.clear(); activeColors.clear(); activePrices.clear(); activeSports.clear(); activeCategory=''; window.__zwApplyPlpFilters(); return true; }
-        var set = facet==='gender'?activeGenders : facet==='color'?activeColors : facet==='price'?activePrices : facet==='sport'?activeSports : null;
+        if (facet==='clear'){ activeGenders.clear(); activeColors.clear(); activePrices.clear(); activeSports.clear(); activeMaterials.clear(); activeBestFor.clear(); activeCategory=''; window.__zwApplyPlpFilters(); return true; }
+        var set = facet==='gender'?activeGenders : facet==='color'?activeColors : facet==='price'?activePrices : facet==='sport'?activeSports : facet==='material'?activeMaterials : facet==='bestfor'?activeBestFor : null;
         if (!set) return false;
         if (set.has(val)) set.delete(val); else set.add(val);
         window.__zwApplyPlpFilters();
@@ -2184,6 +2220,8 @@ function updateCountdown() {
           if (activeColors.size){ var _bs=plpProductColors(p), _cok=false; activeColors.forEach(function(k){ if(_bs[k]) _cok=true; }); if(!_cok) return false; }
           if (activePrices.size){ var _pr=plpPrice(p), _pok=false; activePrices.forEach(function(key){ var r=plpPriceByKey(key); if(r && _pr>=r.min && _pr<r.max) _pok=true; }); if(!_pok) return false; }
           if (activeSports.size){ var _sp=plpProductSports(p), _sok=false; for (var _si=0; _si<_sp.length; _si++){ if (activeSports.has(String(_sp[_si]).trim().toLowerCase())){ _sok=true; break; } } if(!_sok) return false; }
+          if (activeBestFor.size){ var _bf=plpProductBestFor(p), _bok=false; for (var _bi=0; _bi<_bf.length; _bi++){ if (activeBestFor.has(String(_bf[_bi]).trim().toLowerCase())){ _bok=true; break; } } if(!_bok) return false; }
+          if (activeMaterials.size){ var _mt=plpProductMaterials(p), _mok=false; for (var _mi=0; _mi<_mt.length; _mi++){ if (activeMaterials.has(String(_mt[_mi]).trim().toLowerCase())){ _mok=true; break; } } if(!_mok) return false; }
           return productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag);
         });
 

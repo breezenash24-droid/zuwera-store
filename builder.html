@@ -988,7 +988,7 @@ async function pdpSave(){
 // Edits site_settings.collection_page — the release / all-products listing
 // (drop001.html). Header wording + product-grid look. Card size/fit here win
 // over the admin Product-Cards defaults; "Use store default" leaves them alone.
-const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'', f_category:true, f_gender:true, f_color:true, f_sport:true, f_price:true, price_breaks:'', color_count:'', color_grain:'standard', colors_off:[] };
+const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'', f_category:true, f_gender:true, f_color:true, f_sport:true, f_bestfor:true, f_material:true, f_price:true, price_breaks:'', color_count:'', color_grain:'standard', colors_off:[] };
 // Mirror of drop001's PLP_COLOR_BUCKETS so the chip swatches match the storefront.
 const COLL_COLOR_BUCKETS = [
   {key:'Black',dot:'#111111'},{key:'Grey',dot:'#9a9a9a'},{key:'White',dot:'#ffffff'},
@@ -1050,7 +1050,7 @@ function paintCollectionTab(container){
 
   const filtersG = grp('Filters (sidebar)',
     `<div class="coll-sub">Columns to show</div>`
-    + tog('Category','f_category') + tog('Gender','f_gender') + tog('Color','f_color') + tog('Sport','f_sport') + tog('Price','f_price')
+    + tog('Category','f_category') + tog('Gender','f_gender') + tog('Color','f_color') + tog('Sport','f_sport') + tog('Best for','f_bestfor') + tog('Material','f_material') + tog('Price','f_price')
     + `<div class="fhint" style="margin:.1rem 0 .9rem">Turn a column off to hide it from the sidebar & mobile filter sheet.</div>`
     + `<div class="coll-sub">Price brackets</div>`
     + `<div class="field"><input type="text" data-coll="price_breaks" id="collPriceBreaks" value="${esc(c.price_breaks)}" placeholder="e.g. 25, 50, 100, 150"></div>`
