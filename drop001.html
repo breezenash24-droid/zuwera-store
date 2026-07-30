@@ -446,9 +446,10 @@ document.documentElement.classList.add('zw-collflash');
     @media (max-width:760px){
       .plp-pillbar {
         display:flex; gap:.5rem; overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
-        position:sticky; top:calc(var(--zw-nav-h,54px)); z-index:30;
-        padding:.65rem 1rem; margin:0 -1rem .2rem; -webkit-overflow-scrolling:touch;
+        position:sticky; top:calc(var(--zw-nav-h,54px)); z-index:40;
+        padding:.65rem .6rem; margin:0 -.6rem .2rem; -webkit-overflow-scrolling:touch;
         background:var(--black); border-bottom:1px solid var(--border);
+        transition:top .4s ease;
       }
       html.zw-nav-hidden .plp-pillbar { top:0; }
       .plp-pillbar::-webkit-scrollbar { display:none; }
@@ -463,6 +464,10 @@ document.documentElement.classList.add('zw-collflash');
       .plp-pill.active { border-color:currentColor; font-weight:600; }
       .plp-pill-filter { font-weight:600; }
       .plp-bar .plp-filter-toggle { display:none; }   /* replaced by the Filter pill */
+      /* The count/sort bar is normally sticky at the SAME top as the pill bar, so
+         the two stacked/overlapped. On mobile let it scroll away and keep only the
+         pill bar sticky (Nike-style), so nothing overlaps. */
+      .plp-bar { position:static; z-index:auto; margin-bottom:.4rem; }
     }
     .section-header {
       display: flex;
@@ -965,7 +970,10 @@ document.documentElement.classList.add('zw-collflash');
 
 
     @media (max-width: 768px) {
-      .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem; }
+      /* Nike-style: near edge-to-edge images. Small side padding + tight gap so
+         the two columns fill the width instead of floating with big margins. */
+      .products-section { padding-left: 0.6rem; padding-right: 0.6rem; }
+      .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
     }
 
     @media (max-width: 600px) {
@@ -980,17 +988,11 @@ document.documentElement.classList.add('zw-collflash');
       .countdown { gap: 0.8rem; }
       .countdown-item { min-width: 60px; }
       .countdown-number { font-size: clamp(2rem, 12vw, 3.5rem); }
-      .products-section { padding: 3rem 1rem; }
-      .products-grid, .products-grid.two-items { 
-        display: flex;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        gap: 1rem;
-        padding-bottom: 1rem;
-        scrollbar-width: none;
+      .products-section { padding: 3rem 0.6rem; }
+      .products-grid, .products-grid.two-items {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
       }
-      .products-grid::-webkit-scrollbar { display: none; }
-      .products-grid > a { flex: 0 0 85%; scroll-snap-align: start; }
       .product-card { padding: 0; }
       .notify-section { padding: 3rem 1rem; }
       .notify-form { flex-direction: column; gap: 0; }
