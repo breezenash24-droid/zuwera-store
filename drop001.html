@@ -433,9 +433,36 @@ document.documentElement.classList.add('zw-collflash');
     @media (max-width:760px){ .plp-bar .plp-sort-wrap{ display:none; } }
     @media (prefers-reduced-motion: reduce){ .plp-fm, .plp-fm-sheet, .plp-fm::before{ transition:none; } }
     @media (max-width:760px) {
-      .plp-layout { flex-direction:column; gap:1rem; }
+      /* Column layout: the parent keeps align-items:flex-start, which would shrink
+         .plp-main to content width (→ the grid collapsed to nothing = blank page).
+         Force both the column and .plp-main to full width. */
+      .plp-layout { flex-direction:column; align-items:stretch; gap:1rem; }
+      .plp-main { width:100%; }
       .plp-sidebar { display:none; position:static; flex-basis:auto; width:100%; margin-right:0; margin-bottom:.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem; }
       .plp-sidebar.open { display:block; }
+    }
+    /* Mobile: Nike-style sticky horizontal pill bar */
+    .plp-pillbar { display:none; }
+    @media (max-width:760px){
+      .plp-pillbar {
+        display:flex; gap:.5rem; overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
+        position:sticky; top:calc(var(--zw-nav-h,54px)); z-index:30;
+        padding:.65rem 1rem; margin:0 -1rem .2rem; -webkit-overflow-scrolling:touch;
+        background:var(--black); border-bottom:1px solid var(--border);
+      }
+      html.zw-nav-hidden .plp-pillbar { top:0; }
+      .plp-pillbar::-webkit-scrollbar { display:none; }
+      .plp-pill {
+        flex:0 0 auto; display:inline-flex; align-items:center; gap:.4rem;
+        padding:.5rem .9rem; border:1px solid var(--border); border-radius:999px;
+        background:transparent; color:inherit; font-family:var(--font-filter);
+        font-size:.74rem; letter-spacing:.03em; cursor:pointer; white-space:nowrap; line-height:1;
+        transition:border-color .15s ease, background .15s ease;
+      }
+      .plp-pill svg { width:15px; height:15px; flex:0 0 auto; }
+      .plp-pill.active { border-color:currentColor; font-weight:600; }
+      .plp-pill-filter { font-weight:600; }
+      .plp-bar .plp-filter-toggle { display:none; }   /* replaced by the Filter pill */
     }
     .section-header {
       display: flex;
@@ -1311,6 +1338,9 @@ document.documentElement.classList.add('zw-collflash');
       </label>
     </div>
 
+    <!-- Mobile: Nike-style sticky pill bar (Filter + one pill per facet) -->
+    <div class="plp-pillbar" id="plp-pillbar"></div>
+
     <!-- Mobile filter & sort bottom-sheet -->
     <div id="plp-filter-modal" class="plp-fm" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Filter and sort" onclick="if(event.target===this)window.__zwClosePlpFilterModal&&window.__zwClosePlpFilterModal()">
       <div class="plp-fm-sheet">
@@ -1334,6 +1364,21 @@ document.documentElement.classList.add('zw-collflash');
         </div>
         <div class="plp-fm-foot">
           <button type="button" class="plp-fm-apply" onclick="window.__zwClosePlpFilterModal&&window.__zwClosePlpFilterModal()">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile per-facet bottom-sheet (opened by a pill) -->
+    <div id="plp-facet-sheet" class="plp-fm" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Filter" onclick="if(event.target===this)window.__zwClosePlpFacetSheet&&window.__zwClosePlpFacetSheet()">
+      <div class="plp-fm-sheet">
+        <div class="plp-fm-grab" aria-hidden="true"></div>
+        <div class="plp-fm-head">
+          <span class="plp-fm-title" id="plp-facet-sheet-title">Filter</span>
+          <button type="button" class="plp-fm-x" aria-label="Close" onclick="window.__zwClosePlpFacetSheet&&window.__zwClosePlpFacetSheet()">&#215;</button>
+        </div>
+        <div class="plp-fm-body" id="plp-facet-sheet-body"></div>
+        <div class="plp-fm-foot">
+          <button type="button" class="plp-fm-apply" onclick="window.__zwClosePlpFacetSheet&&window.__zwClosePlpFacetSheet()">Done</button>
         </div>
       </div>
     </div>
@@ -1835,6 +1880,68 @@ function updateCountdown() {
         _plpAnimateGrid(function(){ renderProducts(_allProducts); renderPlpSidebar(); });
       };
 
+      // ── Mobile: sticky pill bar (Filter + one pill per facet) + per-facet sheet ──
+      function renderPlpPillBar(){
+        var host = document.getElementById('plp-pillbar'); if (!host) return;
+        var cfg = plpCfg();
+        var icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2.1" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2.1" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="18" r="2.1" fill="currentColor" stroke="none"/></svg>';
+        var total = (activeCategory?1:0)+activeGenders.size+activeColors.size+activeSports.size+activeBestFor.size+activeMaterials.size+activePrices.size;
+        var html = '<button type="button" class="plp-pill plp-pill-filter'+(total?' active':'')+'" data-pill="__all__">'+icon+'Filter'+(total?' ('+total+')':'')+'</button>';
+        var facets = [
+          { key:'category', label:'Category', on:(cfg.f_category!==false), count:(activeCategory?1:0), has:(plpCategoryList().length>1) },
+          { key:'gender',   label:'Gender',   on:(cfg.f_gender!==false && !requestedGender), count:activeGenders.size, has:(plpGenderList().length>1) },
+          { key:'color',    label:'Color',    on:(cfg.f_color!==false),    count:activeColors.size,    has:(plpColorFacetList().length>0) },
+          { key:'sport',    label:'Sport',    on:(cfg.f_sport!==false),    count:activeSports.size,    has:(plpSportFacetList().length>0) },
+          { key:'bestfor',  label:'Best for', on:(cfg.f_bestfor!==false),  count:activeBestFor.size,   has:(plpBestForFacetList().length>0) },
+          { key:'material', label:'Material', on:(cfg.f_material!==false), count:activeMaterials.size, has:(plpMaterialFacetList().length>0) },
+          { key:'price',    label:'Price',    on:(cfg.f_price!==false),    count:activePrices.size,    has:(plpPriceFacetList().length>1) }
+        ];
+        facets.forEach(function(f){ if (!f.on || !f.has) return; html += '<button type="button" class="plp-pill'+(f.count?' active':'')+'" data-pill="'+f.key+'">'+plpEsc(f.label)+(f.count?' ('+f.count+')':'')+'</button>'; });
+        host.innerHTML = html;
+        host.onclick = function(e){ var b=e.target.closest('[data-pill]'); if(!b) return; var k=b.getAttribute('data-pill'); if(k==='__all__') window.__zwOpenPlpFilterModal(); else window.__zwOpenPlpFacetSheet(k); };
+      }
+      // Option HTML for ONE facet (used by the per-facet sheet). Same classes /
+      // data-facet/data-val as the sidebar, so plpFacetClick handles the taps.
+      function plpFacetBodyHtml(key){
+        if (key==='category'){
+          var cats=plpCategoryList(), h='<div>';
+          h+='<button type="button" class="plp-fm-cat'+(!activeCategory?' active':'')+'" data-cat="">All '+plpEsc(plpScopeName())+'</button>';
+          cats.forEach(function(c){ var on=activeCategory&&activeCategory.toLowerCase()===c.toLowerCase(); h+='<button type="button" class="plp-fm-cat'+(on?' active':'')+'" data-cat="'+plpEsc(c)+'">'+plpEsc(c)+'</button>'; });
+          return h+'</div>';
+        }
+        if (key==='color'){ return '<div class="plp-colors">'+plpColorFacetList().map(function(b){ var on=activeColors.has(b.key); return '<button type="button" class="plp-color'+(on?' active':'')+'" data-facet="color" data-val="'+plpEsc(b.key)+'"><span class="plp-color-dot" style="background:'+b.dot+'"></span><span class="plp-color-name">'+plpEsc(b.key)+'</span></button>'; }).join('')+'</div>'; }
+        var listFn = key==='gender'?plpGenderList : key==='sport'?plpSportFacetList : key==='bestfor'?plpBestForFacetList : key==='material'?plpMaterialFacetList : key==='price'?plpPriceFacetList : null;
+        if (!listFn) return '';
+        var items = listFn();
+        return '<div class="plp-opts">'+items.map(function(it){
+          var val = key==='price' ? it.key : String(it).toLowerCase();
+          var label = key==='price' ? it.label : String(it);
+          var set = key==='gender'?activeGenders : key==='sport'?activeSports : key==='bestfor'?activeBestFor : key==='material'?activeMaterials : activePrices;
+          var on = set.has(val);
+          return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="'+key+'" data-val="'+plpEsc(val)+'"><span class="plp-opt-check"></span>'+plpEsc(label)+'</button>';
+        }).join('')+'</div>';
+      }
+      window.__zwOpenPlpFacetSheet = function(key){
+        var titles={category:'Category',gender:'Gender',color:'Colour',sport:'Sport',bestfor:'Best for',material:'Material',price:'Price'};
+        var t=document.getElementById('plp-facet-sheet-title'); if(t) t.textContent='Filter by '+(titles[key]||key);
+        var body=document.getElementById('plp-facet-sheet-body');
+        if(body){
+          body.innerHTML=plpFacetBodyHtml(key);
+          body.onclick=function(e){
+            var cb=e.target.closest('.plp-fm-cat'); if(cb){ window.__zwSetPlpCategory(cb.getAttribute('data-cat')||''); body.innerHTML=plpFacetBodyHtml(key); return; }
+            if(plpFacetClick(e)) body.innerHTML=plpFacetBodyHtml(key);   // re-render to refresh active states
+          };
+        }
+        var m=document.getElementById('plp-facet-sheet'); if(!m) return;
+        m.classList.add('open'); m.setAttribute('aria-hidden','false');
+        if(window.ZWModalScrollLock){ window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow='hidden'; }
+      };
+      window.__zwClosePlpFacetSheet = function(){
+        var m=document.getElementById('plp-facet-sheet'); if(!m) return;
+        m.classList.remove('open'); m.setAttribute('aria-hidden','true');
+        if(window.ZWModalScrollLock){ window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow=''; }
+      };
+
       function plpScopeName(){ return requestedGender || requestedTag || 'All'; }
       function plpCategoryList(){
         const seen = {}, cats = [];
@@ -1872,6 +1979,7 @@ function updateCountdown() {
           plpFacetClick(e);
         };
         renderPlpFilterModal();
+        renderPlpPillBar();
       }
       // -- Mobile filter/sort bottom-sheet modal (so you can change category/sort
       //    from anywhere without scrolling back up to the sidebar) --
