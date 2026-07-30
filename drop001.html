@@ -1626,7 +1626,7 @@ function updateCountdown() {
         { key:'25-50', label:'$25 – $50', min:25, max:50 },
         { key:'50-100', label:'$50 – $100', min:50, max:100 },
         { key:'100-150', label:'$100 – $150', min:100, max:150 },
-        { key:'150+', label:'Over $150', min:150, max:Infinity }
+        { key:'150+', label:'$150+', min:150, max:Infinity }
       ];
       // Builder → Collection tab settings (site_settings.collection_page). Read live so
       // a save (which re-runs renderPlpSidebar) applies without a page reload.
@@ -1634,17 +1634,35 @@ function updateCountdown() {
       var _plpPriceCache = null;
       function plpResetCfgCache(){ _plpPriceCache = null; }
       // Custom price brackets: breakpoints "25,50,100,150" → $0–25 … Over $150.
+      // Price brackets. Two input styles (auto-detected):
+      //  · bare breakpoints "20,40,60"  → $0–$20, $20–$40, $40–$60, $60+
+      //  · explicit brackets "0-50, 50-100, 100+"  → any mix of ranges + "$X+"
+      //    (open-top). So you can add "$50+", multiple "$X+", overlapping, etc.
+      function plpParseBrackets(str){
+        var entries = String(str||'').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+        if (!entries.length) return PLP_DEFAULT_PRICE_RANGES;
+        var explicit = entries.some(function(e){ return /[-+]/.test(e); });
+        var out = [];
+        if (!explicit){
+          var nums = entries.map(function(e){ return parseFloat(e); }).filter(function(n){ return !isNaN(n) && n>0; });
+          nums = nums.filter(function(n,i){ return nums.indexOf(n)===i; }).sort(function(a,b){ return a-b; });
+          if (!nums.length) return PLP_DEFAULT_PRICE_RANGES;
+          var prev=0;
+          nums.forEach(function(n){ out.push({ key:prev+'-'+n, label:'$'+prev+' – $'+n, min:prev, max:n }); prev=n; });
+          out.push({ key:prev+'+', label:'$'+prev+'+', min:prev, max:Infinity });
+        } else {
+          entries.forEach(function(e){
+            var mp = e.match(/^\$?(\d+(?:\.\d+)?)\s*\+$/);
+            if (mp){ var a=parseFloat(mp[1]); out.push({ key:a+'+', label:'$'+a+'+', min:a, max:Infinity }); return; }
+            var mr = e.match(/^\$?(\d+(?:\.\d+)?)\s*-\s*\$?(\d+(?:\.\d+)?)$/);
+            if (mr){ var lo=parseFloat(mr[1]), hi=parseFloat(mr[2]); if (lo<hi) out.push({ key:lo+'-'+hi, label:'$'+lo+' – $'+hi, min:lo, max:hi }); return; }
+          });
+        }
+        return out.length ? out : PLP_DEFAULT_PRICE_RANGES;
+      }
       function plpPriceRanges(){
-        if (_plpPriceCache) return _plpPriceCache;
-        var breaks = String(plpCfg().price_breaks||'').split(',').map(function(s){ return parseFloat(String(s).trim()); }).filter(function(n){ return !isNaN(n) && n>0; });
-        breaks = breaks.filter(function(n,i){ return breaks.indexOf(n)===i; }).sort(function(a,b){ return a-b; });
-        var ranges;
-        if (breaks.length){
-          ranges = []; var prev=0;
-          breaks.forEach(function(b){ ranges.push({ key:prev+'-'+b, label:'$'+prev+' – $'+b, min:prev, max:b }); prev=b; });
-          ranges.push({ key:prev+'+', label:'Over $'+prev, min:prev, max:Infinity });
-        } else { ranges = PLP_DEFAULT_PRICE_RANGES; }
-        _plpPriceCache = ranges; return ranges;
+        if (!_plpPriceCache) _plpPriceCache = plpParseBrackets(plpCfg().price_breaks);
+        return _plpPriceCache;
       }
       function plpPriceByKey(key){ var rs=plpPriceRanges(); for (var i=0;i<rs.length;i++){ if (rs[i].key===key) return rs[i]; } return null; }
       // Colour grouping: 'coarse' folds the extended buckets into broader ones.
@@ -1744,7 +1762,9 @@ function updateCountdown() {
       function plpMaterialFacetList(){
         var present={};
         (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; plpProductMaterials(p).forEach(function(m){ present[m]=true; }); });
-        return PLP_MATERIALS.filter(function(m){ return present[m.name]; }).map(function(m){ return m.name; });
+        var off = plpCfg().materials_off, offm={};   // materials the admin hid
+        if (Array.isArray(off)) off.forEach(function(k){ offm[String(k).toLowerCase()]=true; });
+        return PLP_MATERIALS.filter(function(m){ return present[m.name] && !offm[m.name.toLowerCase()]; }).map(function(m){ return m.name; });
       }
       // Collapsible facet (Nike-style): the header + chevron toggles the body.
       // Collapsed state is remembered per session so a filter change (which
