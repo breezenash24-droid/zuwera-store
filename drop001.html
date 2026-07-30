@@ -342,7 +342,7 @@ document.documentElement.classList.add('zw-collflash');
     .plp-filter-toggle:hover { border-color:var(--muted); }
     .plp-filter-toggle svg { width:13px; height:13px; }
     /* Desktop: "Hide Filters" smoothly collapses the sidebar; the grid widens. */
-    @media (min-width:761px){ .plp-layout.plp-filters-off .plp-sidebar { flex-basis:0; margin-right:0; opacity:0; transform:translateX(-10px); pointer-events:none; } }
+    @media (min-width:1025px){ .plp-layout.plp-filters-off .plp-sidebar { flex-basis:0; margin-right:0; opacity:0; transform:translateX(-10px); pointer-events:none; } }
     .plp-layout { display:flex; align-items:flex-start; }
     .plp-sidebar { flex:0 0 190px; margin-right:2.5rem; overflow-y:auto; overflow-x:hidden; position:sticky; top:calc(var(--zw-nav-h,54px) + var(--zw-plpbar-h,50px) + 14px); max-height:calc(100vh - var(--zw-nav-h,54px) - var(--zw-plpbar-h,50px) - 28px); scrollbar-width:thin; scrollbar-color:var(--border) transparent; transition:top .4s ease, flex-basis .4s cubic-bezier(.4,0,.2,1), margin-right .4s cubic-bezier(.4,0,.2,1), opacity .3s ease, transform .4s cubic-bezier(.4,0,.2,1); }
     .plp-sidebar::-webkit-scrollbar { width:6px; }
@@ -438,10 +438,11 @@ document.documentElement.classList.add('zw-collflash');
     .plp-fm-cat.active{ opacity:1; font-weight:700; text-decoration:underline; text-underline-offset:4px; }
     .plp-fm-foot{ padding:1rem 1.3rem calc(1rem + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--border); flex-shrink:0; }
     .plp-fm-apply{ width:100%; padding:1.05rem; background:var(--white); color:var(--black); border:none; font-family:var(--font-filter); font-size:.7rem; letter-spacing:.16em; text-transform:uppercase; font-weight:600; cursor:pointer; }
-    @media (max-width:760px){ .plp-bar .plp-sort-wrap{ display:none; } }
+    @media (max-width:1024px){ .plp-bar .plp-sort-wrap{ display:none; } }
     @media (prefers-reduced-motion: reduce){ .plp-fm, .plp-fm-sheet, .plp-fm::before{ transition:none; } }
-    @media (max-width:760px) {
-      /* Column layout: the parent keeps align-items:flex-start, which would shrink
+    @media (max-width:1024px) {
+      /* Tablet + mobile: use the pill-bar filter instead of the desktop sidebar.
+         Column layout: the parent keeps align-items:flex-start, which would shrink
          .plp-main to content width (→ the grid collapsed to nothing = blank page).
          Force both the column and .plp-main to full width. */
       .plp-layout { flex-direction:column; align-items:stretch; gap:1rem; }
@@ -449,9 +450,9 @@ document.documentElement.classList.add('zw-collflash');
       .plp-sidebar { display:none; position:static; flex-basis:auto; width:100%; margin-right:0; margin-bottom:.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem; }
       .plp-sidebar.open { display:block; }
     }
-    /* Mobile: Nike-style sticky horizontal pill bar */
+    /* Tablet + mobile: Nike-style sticky horizontal pill bar (replaces the sidebar) */
     .plp-pillbar { display:none; }
-    @media (max-width:760px){
+    @media (max-width:1024px){
       .plp-pillbar {
         display:flex; gap:.5rem; overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
         position:sticky; top:calc(var(--zw-nav-h,54px) + var(--zw-plpbar-h,50px)); z-index:40;
@@ -1005,10 +1006,15 @@ document.documentElement.classList.add('zw-collflash');
       .product-card { padding: 0; }
       .product-card .product-info,
       .product-card .zw-card-swatches { padding-left: 0.7rem; padding-right: 0.7rem; }
-      /* The count/context bar + pill bar sit in the now-unpadded section — inset
-         their own content too. */
-      .plp-bar { padding-left: 0.9rem; padding-right: 0.9rem; }
-      .plp-pillbar { padding-left: 0.9rem; padding-right: 0.9rem; margin-left: 0; margin-right: 0; }
+      /* Give the count/context bar + pill bar the SAME full-bleed as the grid so
+         their backgrounds span exactly the same width as the images. Without this
+         they render at the section-box width while the grid escapes to 100vw, so
+         the bar looks narrower / "cut off" beside the full-bleed images. Content
+         stays inset with padding to match the card text inset. */
+      .plp-bar,
+      .plp-pillbar { width: 100vw; margin-left: calc(50% - 50vw); margin-right: 0; box-sizing: border-box; }
+      .plp-bar { padding-left: 1rem; padding-right: 1rem; }
+      .plp-pillbar { padding-left: 1rem; padding-right: 1rem; }
     }
 
     @media (max-width: 600px) {

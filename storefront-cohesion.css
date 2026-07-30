@@ -4206,8 +4206,12 @@ body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.72); }
    product cards. zwEnsureSwipeArrows builds .zw-arrow-group and adds .zw-show when
    the row can scroll + arrows are enabled; the media query keeps them to
    hover-capable (desktop) devices, touch users just swipe. */
-.sec-head.zw-has-arrows{ align-items:center; margin-bottom:1.25rem; }   /* round buttons align to the title; a little air above the cards */
-.sec-head.zw-has-arrows h2{ margin-right:auto; }                        /* push the arrow group to the far right of the row */
+/* display:flex is asserted here (not just inherited from a page's base .sec-head)
+   so the header stays a single right-aligned row wherever the arrows appear —
+   including tablet/mobile SWIPE mode, where some pages' .sec-head isn't flex and
+   the arrow group would otherwise drop BELOW the title on the left. */
+.sec-head.zw-has-arrows{ display:flex !important; flex-wrap:nowrap; align-items:center; margin-bottom:1.25rem; }   /* round buttons align to the title; a little air above the cards */
+.sec-head.zw-has-arrows h2{ margin-right:auto; min-width:0; }           /* push the arrow group to the far right of the row */
 .zw-arrow-group{ display:none; align-items:center; gap:.55rem; flex:0 0 auto; margin-left:1rem; }
 .zw-arrow-group .zw-swipe-arrow{ position:static; top:auto; right:auto; left:auto; }   /* inline in the header, not absolute in a band */
 @media (hover:hover){

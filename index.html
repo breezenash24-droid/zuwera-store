@@ -796,6 +796,11 @@ html.zw-boot-white #zw-boot{background:#FFFFFF!important}
   max-width:1200px;margin:0 auto;
   padding:4rem 2.5rem 4rem;   /* extra top space nudges "Release 001" down */
 }
+/* Tablet: nudge the section title further down — 4rem top reads tight under the
+   nav at tablet width, especially with the swipe arrows on the title row. */
+@media (max-width:900px){
+  .products-section{ padding-top:6.5rem; }
+}
 .sec-head{
   display:flex;justify-content:space-between;align-items:baseline;
   padding-bottom:0;border-bottom:none;   /* faint rule removed */
