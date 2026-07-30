@@ -1776,7 +1776,8 @@
       var t = e.target && e.target.closest && e.target.closest('#cart-btn, .zw-hdr-bag, #co-bag-pill');
       if (!t) return;
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;  // new-tab still works
-      if (/\/bag(\.html)?$/.test(location.pathname)) return;               // already on the bag page
+      // (Previously skipped on /bag; the bag button there now opens the panel too,
+      // for quick access to the mini-cart + Orders/Saves/Account links.)
       e.preventDefault();
       e.stopPropagation();
       if (_bagOverlay && _bagOverlay.classList.contains('open')) closeBag(); else openBag();

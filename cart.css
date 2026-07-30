@@ -123,7 +123,11 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  /* Cap the card width (max 200px, not 1fr) so a couple of saved items stay
+     compact and proportional to the cart rows instead of stretching to fill the
+     whole column. Tiles from the left; more items wrap onto new rows. */
+  grid-template-columns: repeat(auto-fill, minmax(160px, 200px));
+  justify-content: start;
   gap: 1.1rem;
 }
 .zw-saved-item {
