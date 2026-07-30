@@ -455,7 +455,7 @@ document.documentElement.classList.add('zw-collflash');
       .plp-pillbar {
         display:flex; gap:.5rem; overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
         position:sticky; top:calc(var(--zw-nav-h,54px) + var(--zw-plpbar-h,50px)); z-index:40;
-        padding:.65rem .5rem; margin:0 -.5rem .2rem; -webkit-overflow-scrolling:touch;
+        padding:.65rem .4rem; margin:0 -.4rem .2rem; -webkit-overflow-scrolling:touch;
         background:var(--black); border-bottom:1px solid var(--border);
         transition:top .4s ease;
       }
@@ -463,13 +463,17 @@ document.documentElement.classList.add('zw-collflash');
       .plp-pillbar::-webkit-scrollbar { display:none; }
       .plp-pill {
         flex:0 0 auto; display:inline-flex; align-items:center; gap:.4rem;
-        padding:.5rem .9rem; border:1px solid var(--border); border-radius:999px;
-        background:transparent; color:inherit; font-family:var(--font-filter);
+        padding:.5rem .9rem; border:1px solid rgba(244,241,235,.3); border-radius:999px;
+        background:transparent; color:var(--white); font-family:var(--font-filter);
         font-size:.74rem; letter-spacing:.03em; cursor:pointer; white-space:nowrap; line-height:1;
         transition:border-color .15s ease, background .15s ease;
       }
+      /* --border is near-white and invisible on the super-light/light page, which
+         is what made the pills look faded/borderless. Use an explicit adaptive
+         border instead. */
+      body.light-mode .plp-pill, body.super-light-mode .plp-pill { border-color:rgba(9,9,11,.28); }
       .plp-pill svg { width:15px; height:15px; flex:0 0 auto; }
-      .plp-pill.active { border-color:currentColor; font-weight:600; }
+      .plp-pill.active { border-color:currentColor; background:color-mix(in srgb, currentColor 8%, transparent); font-weight:600; }
       .plp-pill-filter { font-weight:600; }
       .plp-bar .plp-filter-toggle { display:none; }   /* replaced by the Filter pill */
       /* Keep the count/context bar sticky (shows "N Products" / category while you
@@ -980,8 +984,8 @@ document.documentElement.classList.add('zw-collflash');
     @media (max-width: 768px) {
       /* Nike-style: near edge-to-edge images. Small side padding + tight gap so
          the two columns fill the width instead of floating with big margins. */
-      .products-section { padding-left: 0.5rem; padding-right: 0.5rem; }
-      .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem; }
+      .products-section { padding-left: 0.4rem; padding-right: 0.4rem; }
+      .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.3rem; }
     }
 
     @media (max-width: 600px) {
@@ -996,10 +1000,10 @@ document.documentElement.classList.add('zw-collflash');
       .countdown { gap: 0.8rem; }
       .countdown-item { min-width: 60px; }
       .countdown-number { font-size: clamp(2rem, 12vw, 3.5rem); }
-      .products-section { padding: 3rem 0.5rem; }
+      .products-section { padding: 3rem 0.4rem; }
       .products-grid, .products-grid.two-items {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.4rem;
+        gap: 0.3rem;
       }
       .product-card { padding: 0; }
       .notify-section { padding: 3rem 1rem; }
