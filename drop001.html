@@ -996,7 +996,9 @@ document.documentElement.classList.add('zw-collflash');
          inset with card padding, and the image bleeds back out to the card edge
          with a negative margin — so photos touch the edges while text stays inset. */
       .products-section { padding-left: 0; padding-right: 0; }
-      .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; }
+      /* Full-bleed: force the grid to the full viewport width regardless of any
+         ancestor padding, so the images are guaranteed edge-to-edge. */
+      .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; width: 100vw; margin-left: calc(50% - 50vw); }
       /* The card <a> fills the grid cell, so the image already reaches the screen
          edge with NO padding/margin trickery. Just inset the text + swatch row so
          they aren't jammed against the edge. */
@@ -1025,6 +1027,8 @@ document.documentElement.classList.add('zw-collflash');
       .products-grid, .products-grid.two-items {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 2px;
+        width: 100vw;
+        margin-left: calc(50% - 50vw);
       }
       .product-card { padding: 0; }
       .notify-section { padding: 3rem 1rem; }
