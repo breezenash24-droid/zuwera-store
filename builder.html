@@ -988,7 +988,16 @@ async function pdpSave(){
 // Edits site_settings.collection_page — the release / all-products listing
 // (drop001.html). Header wording + product-grid look. Card size/fit here win
 // over the admin Product-Cards defaults; "Use store default" leaves them alone.
-const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'', f_category:true, f_gender:true, f_color:true, f_sport:true, f_price:true, price_breaks:'', color_count:'', color_grain:'standard' };
+const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'', f_category:true, f_gender:true, f_color:true, f_sport:true, f_price:true, price_breaks:'', color_count:'', color_grain:'standard', colors_off:[] };
+// Mirror of drop001's PLP_COLOR_BUCKETS so the chip swatches match the storefront.
+const COLL_COLOR_BUCKETS = [
+  {key:'Black',dot:'#111111'},{key:'Grey',dot:'#9a9a9a'},{key:'White',dot:'#ffffff'},
+  {key:'Beige',dot:'#d8c4a0'},{key:'Brown',dot:'#6b4423'},{key:'Red',dot:'#d0021b'},
+  {key:'Maroon',dot:'#6e1420'},{key:'Orange',dot:'#f5820b'},{key:'Yellow',dot:'#f5d020'},
+  {key:'Olive',dot:'#7d7d1e'},{key:'Green',dot:'#3aa655'},{key:'Teal',dot:'#14b8a6'},
+  {key:'Blue',dot:'#2d7ff9'},{key:'Navy',dot:'#1b2a4a'},{key:'Purple',dot:'#7b3ff2'},
+  {key:'Pink',dot:'#ff6fa5'}
+];
 let collectionCfg = null;
 
 async function renderCollectionTab(container){
@@ -1027,19 +1036,44 @@ function paintCollectionTab(container){
     + sel('Image fit','card_fit', c.card_fit, [['','Use store default'],['cover','Fill the frame (crop)'],['contain','Show the whole image']]),
     false);
 
+  // Live price-bracket preview + per-colour show/hide chips.
+  const colorsOff = new Set(Array.isArray(c.colors_off) ? c.colors_off : []);
+  const priceRangesFrom = (str) => {
+    let bk = String(str||'').split(',').map(s=>parseFloat(String(s).trim())).filter(n=>!isNaN(n)&&n>0);
+    bk = bk.filter((n,i)=>bk.indexOf(n)===i).sort((a,b)=>a-b);
+    if(!bk.length) return ['$0 – $25','$25 – $50','$50 – $100','$100 – $150','Over $150'];
+    const out=[]; let prev=0; bk.forEach(b=>{ out.push('$'+prev+' – $'+b); prev=b; }); out.push('Over $'+prev); return out;
+  };
+  const pricePreview = (str) => priceRangesFrom(str).map(r=>`<span class="coll-pchip">${r}</span>`).join('');
+  const colorChips = COLL_COLOR_BUCKETS.map(b =>
+    `<button type="button" class="coll-cchip${colorsOff.has(b.key)?' off':''}" data-cchip="${b.key}"><span class="coll-cdot" style="background:${b.dot}"></span>${b.key}</button>`).join('');
+
   const filtersG = grp('Filters (sidebar)',
-    tog('Show Category filter','f_category')
-    + tog('Show Gender filter','f_gender')
-    + tog('Show Color filter','f_color')
-    + tog('Show Sport filter','f_sport')
-    + tog('Show Price filter','f_price')
-    + `<div class="fhint" style="margin:.2rem 0 .6rem">Turn a column off to hide it from the collection sidebar & mobile filter sheet.</div>`
-    + fld('Price brackets','price_breaks', c.price_breaks, 'Dollar breakpoints, comma-separated (e.g. 25, 50, 100, 150). Blank = default $0–25 … Over $150.')
-    + fld('Max colors shown','color_count', c.color_count, 'Cap how many colour swatches appear (blank or 0 = show every colour present).')
-    + sel('Colour grouping','color_grain', c.color_grain, [['standard','Standard'],['coarse','Coarse — fewer, broader groups'],['fine','Fine — split every shade']]),
+    `<div class="coll-sub">Columns to show</div>`
+    + tog('Category','f_category') + tog('Gender','f_gender') + tog('Color','f_color') + tog('Sport','f_sport') + tog('Price','f_price')
+    + `<div class="fhint" style="margin:.1rem 0 .9rem">Turn a column off to hide it from the sidebar & mobile filter sheet.</div>`
+    + `<div class="coll-sub">Price brackets</div>`
+    + `<div class="field"><input type="text" data-coll="price_breaks" id="collPriceBreaks" value="${esc(c.price_breaks)}" placeholder="e.g. 25, 50, 100, 150"></div>`
+    + `<div class="fhint">Enter the dollar amounts to split at — the ranges between them are built for you. Blank = the default below.</div>`
+    + `<div class="coll-preview-lbl">Brackets shown</div><div class="coll-pchips" id="collPricePreview">${pricePreview(c.price_breaks)}</div>`
+    + `<div class="coll-sub" style="margin-top:1rem">Colours</div>`
+    + sel('Grouping','color_grain', c.color_grain, [['coarse','Coarse — fewest, broadest groups'],['standard','Standard'],['fine','Fine — keep every shade']])
+    + `<div class="fhint" style="margin:.1rem 0 .5rem">Tap a colour to hide it from the filter. Grouping decides how similar shades merge.</div>`
+    + `<div class="coll-cchips" id="collColorChips">${colorChips}</div>`,
     false);
 
   container.innerHTML = `<div class="tab-pane">
+    <style>
+      .coll-sub{ font-size:.56rem; letter-spacing:.12em; text-transform:uppercase; color:var(--mu); font-weight:600; margin:.2rem 0 .5rem; }
+      .coll-cchips{ display:flex; flex-wrap:wrap; gap:.34rem; }
+      .coll-cchip{ display:inline-flex; align-items:center; gap:.35rem; padding:.26rem .5rem .26rem .34rem; border:1px solid var(--bd); border-radius:999px; background:none; color:inherit; font-size:.56rem; letter-spacing:.04em; text-transform:uppercase; cursor:pointer; transition:opacity .15s ease, border-color .15s ease; }
+      .coll-cchip:hover{ border-color:var(--mu); }
+      .coll-cdot{ width:13px; height:13px; border-radius:50%; border:1px solid rgba(150,150,150,.4); flex:0 0 auto; }
+      .coll-cchip.off{ opacity:.4; text-decoration:line-through; }
+      .coll-pchips{ display:flex; flex-wrap:wrap; gap:.3rem; margin:.1rem 0 .3rem; }
+      .coll-pchip{ font-size:.55rem; padding:.22rem .5rem; border:1px solid var(--bd); border-radius:3px; color:var(--mu); letter-spacing:.02em; white-space:nowrap; }
+      .coll-preview-lbl{ font-size:.5rem; letter-spacing:.1em; text-transform:uppercase; color:var(--mu); opacity:.65; margin:.35rem 0 .15rem; }
+    </style>
     <div class="tab-hd">Collection page</div>
     <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">The release / all-products listing page. Edit the header wording, the product grid, and the filter sidebar. Save to see it in the preview.</div>
     ${headerG}${cardsG}${filtersG}
@@ -1052,6 +1086,18 @@ function paintCollectionTab(container){
     const apply=()=>{ collectionCfg[el.dataset.coll] = el.type==='checkbox' ? el.checked : el.value; };
     el.addEventListener('change',apply); el.addEventListener('input',apply);
   });
+  // Per-colour show/hide chips → collectionCfg.colors_off (array of hidden buckets).
+  container.querySelectorAll('[data-cchip]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const k=btn.getAttribute('data-cchip');
+      if(colorsOff.has(k)) colorsOff.delete(k); else colorsOff.add(k);
+      btn.classList.toggle('off');
+      collectionCfg.colors_off = Array.from(colorsOff);
+    });
+  });
+  // Live-update the price-bracket preview as the breakpoints are typed.
+  const _pb=container.querySelector('#collPriceBreaks'), _pv=container.querySelector('#collPricePreview');
+  if(_pb && _pv) _pb.addEventListener('input',()=>{ _pv.innerHTML = pricePreview(_pb.value); });
 }
 
 async function saveCollectionCfg(){
