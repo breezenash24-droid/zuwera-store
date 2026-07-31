@@ -322,6 +322,7 @@
         let currentProduct = null;
         let deleteProductId = null;
         let themeMode = 'dark'; // 'dark' | 'light' | 'super-light'
+        let modalAccent = 'a';  // 'a' | 'b' | 'c' — how far the modal pink reaches (site_settings.theme.modal_accent)
         let sizeChartsData = [];
         let currentSizeChart = null;
         let productSizeChartCache = null;
@@ -411,6 +412,7 @@
             initializeTheme();
             checkAuthState();
             setupEventListeners();
+            if (window.paintModalAccent) window.paintModalAccent();
         });
 
         // Theme Management
@@ -433,12 +435,8 @@
             localStorage.setItem('theme', themeMode);
 
             // Save theme to Supabase for main site only after auth has loaded.
-            if (typeof sb !== 'undefined' && sb && currentUser?.id) {
-                sb.from('site_settings').upsert({ key: 'theme', value: { mode: themeMode } }, { onConflict: 'key' })
-                    .then(({ error }) => {
-                        if (!error) void logAdminAudit('settings.update', 'site_settings', 'theme', { mode: themeMode });
-                    });
-            }
+            // Read-modify-write so it never clobbers the sibling modal_accent field.
+            if (typeof sb !== 'undefined' && sb && currentUser?.id) saveThemeSettings({ mode: themeMode });
 
             // Sync theme to embedded analytics iframe
             const frame = document.getElementById('analyticsFrame');
@@ -446,6 +444,47 @@
                 try { frame.contentWindow.postMessage({ type: 'zw-theme', mode: themeMode }, '*'); } catch (_) {}
             }
         }
+
+        // ── Modal accent (site_settings.theme.modal_accent = 'a'|'b'|'c') ──────
+        // Read-modify-write on the shared theme blob so the light/dark toggle and
+        // the accent control never overwrite each other's field.
+        async function saveThemeSettings(patch) {
+            if (!(typeof sb !== 'undefined' && sb && currentUser?.id)) return;
+            let cur = {};
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'theme').maybeSingle();
+                if (data && data.value && typeof data.value === 'object') cur = data.value;
+            } catch (_) {}
+            const value = Object.assign({}, cur, patch);
+            const { error } = await sb.from('site_settings').upsert({ key: 'theme', value }, { onConflict: 'key' });
+            if (!error) void logAdminAudit('settings.update', 'site_settings', 'theme', value);
+        }
+        window.paintModalAccent = function () {
+            document.querySelectorAll('#modalAccentBtns [data-macc]').forEach(function (b) {
+                const on = b.getAttribute('data-macc') === modalAccent;
+                b.classList.toggle('btn-primary', on);
+                b.classList.toggle('btn-secondary', !on);
+            });
+        };
+        window.setModalAccent = function (v) {
+            v = String(v || '').toLowerCase();
+            if (!/^[abc]$/.test(v)) return;
+            modalAccent = v;
+            window.paintModalAccent();
+            saveThemeSettings({ modal_accent: v });
+            if (typeof showToast === 'function') showToast('Modal accent saved');
+        };
+        // Reflect the live saved value in the control on load.
+        (async function () {
+            try {
+                if (typeof sb !== 'undefined' && sb) {
+                    const { data } = await sb.from('site_settings').select('value').eq('key', 'theme').maybeSingle();
+                    const m = data && data.value && data.value.modal_accent;
+                    if (m && /^[abc]$/.test(String(m).toLowerCase())) modalAccent = String(m).toLowerCase();
+                }
+            } catch (_) {}
+            window.paintModalAccent();
+        })();
 
         document.getElementById('themeToggle').addEventListener('click', () => {
             const cycle = { dark: 'light', light: 'super-light', 'super-light': 'dark' };

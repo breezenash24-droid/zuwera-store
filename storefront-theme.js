@@ -266,6 +266,17 @@
 
   function applySettingsRows(rows) {
     rows.forEach(function(row) {
+      // Modal accent mode lives inside the theme blob (theme.value.modal_accent =
+      // 'a' | 'b' | 'c'). Apply on every page — including the homepage, before the
+      // theme block's early-return below — since modals appear everywhere.
+      if (row.key === 'theme' && row.value) {
+        var _acc = String(row.value.modal_accent || 'a').toLowerCase();
+        if (_acc === 'a' || _acc === 'b' || _acc === 'c') {
+          var _mb = document.body;
+          _mb.classList.remove('zw-macc-a', 'zw-macc-b', 'zw-macc-c');
+          _mb.classList.add('zw-macc-' + _acc);
+        }
+      }
       if (row.key === 'theme') {
         var isHomepage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/');
         if (isHomepage || window.__ZW_BUILDER_PREVIEW__) return;
