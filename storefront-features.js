@@ -212,6 +212,12 @@
       '.zwf-bag.open{pointer-events:auto}',
       '.zwf-bag-panel{background:var(--zw-page,#fff);color:var(--zw-ink,#09090b);width:100%;max-height:min(76vh,620px);display:flex;flex-direction:column;overflow:hidden;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));box-shadow:0 22px 48px rgba(0,0,0,.18)}',
       '.zwf-bag.open .zwf-bag-panel{transform:translate3d(0,0,0)}',
+      // Dim scrim behind the slide-down bag/search panels — they used to leave the
+      // page undimmed (inconsistent with the other modals). A solid-colour opacity
+      // fade is cheap (not the backdrop-filter that caused the original stutter);
+      // pointer-events:none keeps click-outside-to-close working.
+      '.zwf-bag::before,.zwf-search::before{content:"";position:absolute;inset:0;background:rgba(9,9,11,.5);opacity:0;transition:opacity .4s ease;pointer-events:none}',
+      '.zwf-bag.open::before,.zwf-search.open::before{opacity:1}',
       /* A parked panel must not cast a shadow. Both panels sit at -101%, so their
          bottom edge is a few px ABOVE the overlay — but the shadow (offset 22,
          blur 48) reaches ~46px past that edge, straight into the overlay's
@@ -242,6 +248,9 @@
       '.zwf-bag-link:hover{opacity:.65}',
       '.zwf-bag-link svg{width:17px;height:17px;opacity:.55;flex-shrink:0}',
       '.zwf-bag-count{margin-left:auto;min-width:1.35em;height:1.35em;padding:0 .45em;border-radius:1em;background:var(--zw-accent,#F891A5);color:#09090b;font-family:var(--fm,var(--fb,inherit));font-size:.68rem;font-weight:600;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}',
+      // Accent mode: the saves badge is a filled pill, so it can\'t use currentColor
+      // like the text accents — give it a neutral ink fill in the mono modes (B/C).
+      'body.zw-macc-b .zwf-bag-count,body.zw-macc-c .zwf-bag-count{background:var(--zw-ink,#09090b);color:var(--zw-page,#fff)}',
       /* The account button moves INTO this panel, so hide the header one while
          the feature is on (both header systems). */
       'body.zwf-bagpanel-on :is(#login-btn,#account-btn,#hdr-login){display:none!important}',
