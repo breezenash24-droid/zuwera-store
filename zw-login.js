@@ -36,6 +36,11 @@
       'background:transparent;opacity:0;visibility:hidden;pointer-events:none;',
       'transition:opacity .28s ease,visibility 0s linear .28s;-webkit-tap-highlight-color:transparent;}',
     '#zwlg-modal.open{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .28s ease;}',
+    // Dim scrim behind the sheet — the login modal used to leave the page undimmed,
+    // unlike the filter/size modals. Fades with .open; the box paints above it and
+    // pointer-events:none keeps click-outside-to-close working.
+    '#zwlg-modal::before{content:"";position:fixed;inset:0;background:rgba(9,9,11,.55);opacity:0;transition:opacity .3s ease;pointer-events:none;}',
+    '#zwlg-modal.open::before{opacity:1;}',
     '#zwlg-modal .zwlg-box{position:relative;width:min(420px,92vw);max-height:92dvh;overflow-y:auto;',
       'background:#0f0f0f;color:#f4f1eb;border:1px solid rgba(244,241,235,.08);border-top:2px solid #F891A5;',
       'box-shadow:0 28px 90px rgba(0,0,0,.28);',
@@ -70,9 +75,6 @@
       'align-items:center;justify-content:center;background:rgba(9,9,11,.7);border:1px solid rgba(244,241,235,.1);',
       'color:var(--zw-paper,#f4f1eb);font-size:1rem;line-height:1;opacity:1;z-index:40;cursor:pointer;transition:opacity .2s,background .2s;}',
     '#zwlg-modal .zwlg-close:hover{background:rgba(9,9,11,.85);}',
-    '#zwlg-modal .zwlg-brand{display:flex;justify-content:center;margin-bottom:1.6rem;padding-bottom:1.4rem;',
-      'border-bottom:1px solid rgba(244,241,235,.06);}',
-    '#zwlg-modal .zwlg-brand img{display:block;width:auto;height:64px;max-width:85%;object-fit:contain;object-position:center;}',
     '#zwlg-modal .zwlg-tabs{display:flex;border-bottom:1px solid rgba(244,241,235,.08);margin-bottom:1.8rem;}',
     '#zwlg-modal .zwlg-tab{flex:1;background:none;border:none;color:rgba(244,241,235,.25);',
       'font-family:var(--zw-font-body,"Barlow",sans-serif);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;',
@@ -135,7 +137,6 @@
     '<div id="' + MODAL_ID + '" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Account">' +
       '<div class="zwlg-box">' +
         '<button class="zwlg-close" type="button" aria-label="Close">&#215;</button>' +
-        '<div class="zwlg-brand"><img src="/images/wordmark.png" alt="Zuwera"></div>' +
         '<div class="zwlg-tabs">' +
           '<button class="zwlg-tab active" type="button" data-tab="signin">Login</button>' +
           '<button class="zwlg-tab" type="button" data-tab="signup">Create Account</button>' +
