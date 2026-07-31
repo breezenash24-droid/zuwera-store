@@ -212,12 +212,6 @@
       '.zwf-bag.open{pointer-events:auto}',
       '.zwf-bag-panel{background:var(--zw-page,#fff);color:var(--zw-ink,#09090b);width:100%;max-height:min(76vh,620px);display:flex;flex-direction:column;overflow:hidden;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));box-shadow:0 22px 48px rgba(0,0,0,.18)}',
       '.zwf-bag.open .zwf-bag-panel{transform:translate3d(0,0,0)}',
-      // Dim scrim behind the slide-down bag/search panels — they used to leave the
-      // page undimmed (inconsistent with the other modals). A solid-colour opacity
-      // fade is cheap (not the backdrop-filter that caused the original stutter);
-      // pointer-events:none keeps click-outside-to-close working.
-      '.zwf-bag::before,.zwf-search::before{content:"";position:absolute;inset:0;background:rgba(9,9,11,.5);opacity:0;transition:opacity .4s ease;pointer-events:none}',
-      '.zwf-bag.open::before,.zwf-search.open::before{opacity:1}',
       /* A parked panel must not cast a shadow. Both panels sit at -101%, so their
          bottom edge is a few px ABOVE the overlay — but the shadow (offset 22,
          blur 48) reaches ~46px past that edge, straight into the overlay's

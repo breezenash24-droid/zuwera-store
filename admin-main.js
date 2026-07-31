@@ -449,7 +449,7 @@
         // Read-modify-write on the shared theme blob so the light/dark toggle and
         // the accent control never overwrite each other's field.
         async function saveThemeSettings(patch) {
-            if (!(typeof sb !== 'undefined' && sb && currentUser?.id)) return;
+            if (!(typeof sb !== 'undefined' && sb && currentUser?.id)) return false;
             let cur = {};
             try {
                 const { data } = await sb.from('site_settings').select('value').eq('key', 'theme').maybeSingle();
@@ -457,7 +457,14 @@
             } catch (_) {}
             const value = Object.assign({}, cur, patch);
             const { error } = await sb.from('site_settings').upsert({ key: 'theme', value }, { onConflict: 'key' });
-            if (!error) void logAdminAudit('settings.update', 'site_settings', 'theme', value);
+            if (error) return false;
+            void logAdminAudit('settings.update', 'site_settings', 'theme', value);
+            return true;
+        }
+        const MODAL_ACCENT_NAMES = { a: 'Pink everywhere', b: 'Reviews & fit only', c: 'Monochrome' };
+        function setModalAccentStatus(text, color) {
+            const st = document.getElementById('modalAccentStatus');
+            if (st) { st.textContent = text; st.style.color = color || 'var(--text-secondary)'; }
         }
         window.paintModalAccent = function () {
             document.querySelectorAll('#modalAccentBtns [data-macc]').forEach(function (b) {
@@ -465,14 +472,19 @@
                 b.classList.toggle('btn-primary', on);
                 b.classList.toggle('btn-secondary', !on);
             });
+            setModalAccentStatus('Current: ' + (MODAL_ACCENT_NAMES[modalAccent] || modalAccent));
         };
-        window.setModalAccent = function (v) {
+        window.setModalAccent = async function (v) {
             v = String(v || '').toLowerCase();
             if (!/^[abc]$/.test(v)) return;
             modalAccent = v;
             window.paintModalAccent();
-            saveThemeSettings({ modal_accent: v });
-            if (typeof showToast === 'function') showToast('Modal accent saved');
+            setModalAccentStatus('Saving…');
+            const ok = await saveThemeSettings({ modal_accent: v });
+            const name = MODAL_ACCENT_NAMES[v] || v;
+            setModalAccentStatus(ok ? ('Saved ✓  ' + name) : 'Not saved — sign in to the admin first',
+                                 ok ? '#2e7d43' : '#c0392b');
+            if (typeof showToast === 'function') showToast(ok ? ('Modal accent saved — ' + name) : 'Could not save modal accent', ok ? 'info' : 'error');
         };
         // Reflect the live saved value in the control on load.
         (async function () {
