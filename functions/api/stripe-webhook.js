@@ -41,6 +41,73 @@ const SERVICE_TOKEN_MAP = {
 const getServicelevelToken = (name) => SERVICE_TOKEN_MAP[name] || 'usps_ground_advantage';
 const getSupabaseServiceKey = (env) => env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY;
 
+// Per-COLOUR image map so order emails/records show each variant's OWN photo
+// instead of the product's default image (two colours of the same product would
+// otherwise show an identical picture). Keyed by `${key}::${colour}` where key is
+// the product id, sku (lowercased) or title (lowercased+trimmed); the value is the
+// colour variant's first image (lowest sort_order), taken from product_images via
+// its color_variant_id.
+async function fetchVariantImageMap(env, serviceKey) {
+  const map = {};
+  if (!env.SUPABASE_URL || !serviceKey) return map;
+  const H = { headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey } };
+  try {
+    // Three plain fetches joined in JS (no PostgREST embeds, so it doesn't depend
+    // on FK auto-detection): colour variants, products (for sku/title keys), and
+    // the images that belong to a colour variant.
+    const [cvRes, prRes, piRes] = await Promise.all([
+      fetch(env.SUPABASE_URL + '/rest/v1/color_variants?select=id,product_id,color_name&limit=5000', H),
+      fetch(env.SUPABASE_URL + '/rest/v1/products?select=id,sku,title&limit=2000', H),
+      fetch(env.SUPABASE_URL + '/rest/v1/product_images?select=image_url,sort_order,color_variant_id&color_variant_id=not.is.null&limit=10000', H),
+    ]);
+    const cvs = cvRes.ok ? await cvRes.json().catch(() => []) : [];
+    const prs = prRes.ok ? await prRes.json().catch(() => []) : [];
+    const pis = piRes.ok ? await piRes.json().catch(() => []) : [];
+    const prodById = {};
+    for (const p of prs || []) if (p && p.id) prodById[p.id] = p;
+    // color_variant_id -> first image (lowest sort_order)
+    const imgByVariant = {};
+    for (const pi of pis || []) {
+      if (!pi || !pi.color_variant_id || !pi.image_url) continue;
+      const so = pi.sort_order == null ? 9999 : pi.sort_order;
+      const cur = imgByVariant[pi.color_variant_id];
+      if (!cur || so < cur.so) imgByVariant[pi.color_variant_id] = { url: pi.image_url, so };
+    }
+    for (const cv of cvs || []) {
+      if (!cv || !cv.color_name) continue;
+      const rec = imgByVariant[cv.id];
+      if (!rec) continue;
+      const colour = cv.color_name.trim().toLowerCase();
+      const prod = prodById[cv.product_id] || {};
+      if (cv.product_id) map[cv.product_id + '::' + colour] = rec.url;
+      if (prod.sku)      map[prod.sku.toLowerCase() + '::' + colour] = rec.url;
+      if (prod.title)    map[prod.title.trim().toLowerCase() + '::' + colour] = rec.url;
+    }
+  } catch (_) { /* non-fatal — falls back to the product default image */ }
+  return map;
+}
+
+// Best image for an order item: the item's COLOUR variant photo first, then any
+// image the item already carries, then the product default (`defaults` = a
+// {id|sku|title -> image_url} map).
+function pickItemImage(item, variantMap, defaults) {
+  const colour = (item.color || item.colorName || item.c || '').trim().toLowerCase();
+  const pid  = item.productId || item.product_id;
+  const sku  = (item.sku  || '').toLowerCase();
+  const name = (item.name || item.title || '').trim().toLowerCase();
+  if (colour) {
+    const v = (pid && variantMap[pid + '::' + colour])
+           || (sku  && variantMap[sku  + '::' + colour])
+           || (name && variantMap[name + '::' + colour]);
+    if (v) return v;
+  }
+  return item.image
+      || (pid && defaults[pid])
+      || (sku  && defaults[sku])
+      || (name && defaults[name])
+      || '';
+}
+
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 export async function onRequestPost({ request, env }) {
@@ -604,13 +671,10 @@ async function saveOrderToSupabase(pi, meta, tracking, env) {
       }
     } catch (_) { /* non-fatal — order still saves, just without images */ }
   }
+  const variantImgMap = await fetchVariantImageMap(env, serviceKey);
   const itemsWithImages = items.map(i => ({
     ...i,
-    image: i.image
-      || productImgSnap[i.productId] || productImgSnap[i.product_id]
-      || productImgSnap[(i.sku  || '').toLowerCase()]
-      || productImgSnap[(i.name || '').trim().toLowerCase()]
-      || '',
+    image: pickItemImage(i, variantImgMap, productImgSnap),
   }));
 
   // Generate structured order number (e.g. ZW-MTP-00143)
@@ -834,15 +898,14 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
       }
     } catch (_) { /* non-fatal — email still sends without images */ }
   }
+  const variantImageMap = await fetchVariantImageMap(env, serviceKey);
 
   let parsedItems = [];
   try { parsedItems = JSON.parse(meta.items || '[]'); } catch (_) {}
 
   const itemsHtml = parsedItems.length
     ? parsedItems.map(i => {
-        const imageUrl = productImageMap[(i.sku || '').toLowerCase()]
-                      || productImageMap[(i.name || '').trim().toLowerCase()]
-                      || '';
+        const imageUrl = pickItemImage(i, variantImageMap, productImageMap);
         const imgCell = imageUrl
           ? `<img src="${imageUrl}" alt="${i.name}" width="72" height="90" style="width:72px;height:90px;object-fit:cover;border-radius:4px;display:block;">`
           : `<div style="width:72px;height:90px;background:rgba(128,128,128,.12);border-radius:4px;"></div>`;
