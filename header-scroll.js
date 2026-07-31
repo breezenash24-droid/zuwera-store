@@ -88,6 +88,27 @@
       return wasHidden;
     };
 
+    // Shared add-to-bag acknowledgment for every page. The homepage/product page
+    // define their own (targeting #cart-btn); this guarded fallback covers the
+    // .zw-hdr-bag header used by the collection, account and bag pages so the
+    // animation fires everywhere you can add to bag. Reveals the header if it was
+    // scrolled away, then dips the bag icon + pops the count badge (CSS in
+    // storefront-cohesion.css; prefers-reduced-motion honored there).
+    if (typeof window.animateAddToBag !== 'function') {
+      window.animateAddToBag = function () {
+        var bag = document.querySelector('#cart-btn, .zw-hdr-bag');
+        if (!bag) return;
+        var pulse = function () {
+          bag.classList.remove('bag-dip'); void bag.offsetWidth; bag.classList.add('bag-dip');
+          var c = bag.querySelector('.cc, .cart-count, .zw-hdr-bag-count');
+          if (c) { c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
+          window.setTimeout(function () { bag.classList.remove('bag-dip'); }, 500);
+        };
+        var wasHidden = (typeof window.zwRevealHeader === 'function') && window.zwRevealHeader();
+        if (wasHidden) window.setTimeout(pulse, 380); else pulse();
+      };
+    }
+
     function update() {
       ticking = false;
       if (mode !== 'auto-hide') { show(); return; }
