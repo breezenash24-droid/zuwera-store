@@ -2855,6 +2855,10 @@ function updateCountdown() {
     document.querySelectorAll('.cart-count, .zw-mobile-bag-count').forEach(function(el) {
       el.textContent = total;
     });
+    // Bag feedback: reveal the header (if scrolled away) + dip the bag / pop the
+    // count — same as the homepage. Slight delay so it plays as the review modal
+    // closes rather than behind it.
+    window.setTimeout(function(){ if (typeof window.animateAddToBag === 'function') window.animateAddToBag(); }, 220);
     showToast('Added to bag');
   }
 

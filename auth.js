@@ -941,6 +941,7 @@ window.addFavoriteToCart = async function(productId, payload, btn) {
 
     localStorage.setItem('cart', JSON.stringify(cart));
     if (typeof loadCartCount === 'function') loadCartCount();
+    if (typeof window.animateAddToBag === 'function') window.animateAddToBag();
     if (typeof window.renderProductCartItems === 'function') window.renderProductCartItems();
     if (typeof renderCart === 'function') renderCart();
     if (typeof openCart === 'function') openCart();
