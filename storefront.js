@@ -2382,6 +2382,7 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       try { if (typeof cta === 'string') cta = JSON.parse(cta); } catch (_) {}
       window.__zwApplyCardMode((cta && cta.mode === 'color-swatches') ? 'color-swatches' : 'add-to-bag');
       window.__zwApplyCardFit(cta && cta.card_fit === 'contain' ? 'contain' : 'cover');
+      window.__zwCardGalleryLoop = !!(cta && cta.card_loop);   // gallery loop opt-in (quick-add modal etc.)
     }
 
     // 1. brand

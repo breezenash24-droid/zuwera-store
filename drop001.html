@@ -2313,6 +2313,7 @@ function updateCountdown() {
             window.__zwApplyCardMode((cta && cta.mode === 'color-swatches') ? 'color-swatches' : 'add-to-bag');
             if (window.__zwApplyCollectionCols) window.__zwApplyCollectionCols(cta && cta.collection_cols);
             if (window.__zwApplyCardFit) window.__zwApplyCardFit(cta && cta.card_fit === 'contain' ? 'contain' : 'cover');
+            window.__zwCardGalleryLoop = !!(cta && cta.card_loop);   // global gallery loop opt-in
           }
           else if (row.key === 'theme' && row.value) {
             const mode = row.value.mode === 'dark' ? 'dark' : row.value.mode === 'super-light' ? 'super-light' : 'light';
@@ -2777,7 +2778,7 @@ function updateCountdown() {
   function zwCardMirrorOn(){ return (window.__zwCollPageCfg || {}).card_mirror === true; }
   // When on, the arrows wrap around: Next on the last image jumps to the first (and
   // Prev on the first jumps to the last). Default off (arrows stop at the ends).
-  function zwCardLoopOn(){ return (window.__zwCollPageCfg || {}).card_loop === true; }
+  function zwCardLoopOn(){ return (window.__zwCollPageCfg || {}).card_loop === true || window.__zwCardGalleryLoop === true; }
   function _ccIsVideo(im){ return (im && im.media_type === 'video') || /\.(mp4|webm|mov|m4v)(\?|$)/i.test((im && im.image_url) || ''); }
   // Media (images + optional videos) for a colour, sorted; falls back to the
   // product's uncoloured/all images when a colour has none of its own.
