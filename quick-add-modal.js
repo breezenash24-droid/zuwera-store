@@ -266,7 +266,12 @@
     var images = (item.images && item.images.length) ? item.images : (item.image ? [item.image] : []);
     if (!images.length) return;
     var currentIndex = quickAddActiveImageIndex(item, images);
-    var nextIndex = (currentIndex + direction + images.length) % images.length;
+    // Loop back to the first image only when the admin "Loop product images" option
+    // is on (window.__zwCardGalleryLoop, from product_card_cta.card_loop); otherwise
+    // stop at the ends.
+    var nextIndex = (window.__zwCardGalleryLoop === true)
+      ? (currentIndex + direction + images.length) % images.length
+      : Math.max(0, Math.min(images.length - 1, currentIndex + direction));
     item.activeImage = images[nextIndex];
     quickAddRenderGallery(item, { type: 'slide', dir: direction });
   }
