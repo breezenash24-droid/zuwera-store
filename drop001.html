@@ -2752,8 +2752,11 @@ function updateCountdown() {
   function _ccEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   // Carousel on for the CURRENT viewport? Per-device flags (card_carousel_lg/md/sm)
   // win; an unset device falls back to the legacy all-device `card_carousel` master.
+  // NB: read window.__zwCollPageCfg directly (what plpCfg() returns) — these helpers
+  // live at the script's top level, outside the collection IIFE where plpCfg is
+  // defined, so calling plpCfg() here throws ReferenceError and breaks the grid render.
   function zwCardCarouselOn(){
-    var cfg = plpCfg();
+    var cfg = window.__zwCollPageCfg || {};
     var w = window.innerWidth || document.documentElement.clientWidth || 0;
     var key = w <= 640 ? 'card_carousel_sm' : (w <= 1024 ? 'card_carousel_md' : 'card_carousel_lg');
     var v = cfg[key];
@@ -2762,7 +2765,7 @@ function updateCountdown() {
     return cfg.card_carousel === true;
   }
   // Position dots default ON; admin can hide them (card_dots:false).
-  function zwCardDotsOn(){ return plpCfg().card_dots !== false; }
+  function zwCardDotsOn(){ return (window.__zwCollPageCfg || {}).card_dots !== false; }
   function _ccIsVideo(im){ return (im && im.media_type === 'video') || /\.(mp4|webm|mov|m4v)(\?|$)/i.test((im && im.image_url) || ''); }
   // Media (images + optional videos) for a colour, sorted; falls back to the
   // product's uncoloured/all images when a colour has none of its own.
