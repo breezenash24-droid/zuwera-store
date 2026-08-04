@@ -7871,6 +7871,8 @@
                 if (fitSel) fitSel.value = (v && v.card_fit === 'contain') ? 'contain' : 'cover';
                 const loopChk = document.getElementById('settCardLoop');
                 if (loopChk) loopChk.checked = !!(v && v.card_loop);
+                const loopStyleSel = document.getElementById('settCardLoopStyle');
+                if (loopStyleSel) loopStyleSel.value = (v && v.card_loop_style === 'rewind') ? 'rewind' : 'seamless';
             } else if (row.key === 'nav_menu') {
                 let v = row.value;
                 try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
@@ -7945,13 +7947,15 @@
         const fitSel = document.getElementById('settCardFit');
         const card_fit = fitSel && fitSel.value === 'contain' ? 'contain' : 'cover';
         const card_loop = !!(document.getElementById('settCardLoop') && document.getElementById('settCardLoop').checked);
+        const loopStyleEl = document.getElementById('settCardLoopStyle');
+        const card_loop_style = (loopStyleEl && loopStyleEl.value === 'rewind') ? 'rewind' : 'seamless';
         const { error } = await sb.from('site_settings').upsert(
-            { key: 'product_card_cta', value: { mode, collection_cols, card_fit, card_loop }, updated_at: new Date().toISOString() },
+            { key: 'product_card_cta', value: { mode, collection_cols, card_fit, card_loop, card_loop_style }, updated_at: new Date().toISOString() },
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving card style', 'error'); console.error(error); }
         else {
-            await logAdminAudit('settings.update', 'site_settings', 'product_card_cta', { mode, collection_cols, card_fit, card_loop });
+            await logAdminAudit('settings.update', 'site_settings', 'product_card_cta', { mode, collection_cols, card_fit, card_loop, card_loop_style });
             showToast('Card style saved!', 'success');
         }
     });
