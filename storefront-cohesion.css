@@ -420,14 +420,15 @@ body.light-mode .cart-shell-footer-copy{
   overscroll-behavior:contain;
 }
 
-/* all-reviews overlay: dimmed backdrop on mobile, transparent on desktop */
+/* all-reviews overlay — follow the admin modal-backdrop scrim (excluded from the
+   .modal scrim by :not(#all-reviews-modal), so applied by id here). */
 #all-reviews-modal{
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
+  background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important;
+  backdrop-filter:var(--zw-mbd-blur, none) !important;
+  -webkit-backdrop-filter:var(--zw-mbd-blur, none) !important;
 }
 @media(min-width:901px){
   #all-reviews-modal{
-    background:none !important;
     align-items:center !important;
     justify-content:center !important;
     padding:clamp(1rem, 3vw, 2rem) !important;
@@ -505,9 +506,10 @@ body.light-mode #zw-lang-modal{
 :root{ --zw-mbd-int:1; --zw-mbd-rgb:9,9,11; --zw-mbd-a:.5; --zw-mbd-blur:none; }
 body[data-mbd-int="light"]{ --zw-mbd-int:.6; }
 body[data-mbd-int="heavy"]{ --zw-mbd-int:1.5; }
-body[data-mbd-tint="brand"]{ --zw-mbd-rgb:248,145,165; }
 /* Per-device treatment. Only one media query is live at a time, so the active
-   device's rule wins; frost forces a white tint (overriding brand). */
+   device's rule wins. Frost sets a white tint below; the brand tint is placed
+   AFTER these rules so it wins the equal-specificity source-order tie → a pink
+   frost/dim/blur instead of white. */
 @media (min-width:1025px){
   body[data-mbd-lg="dim"]  { --zw-mbd-a:calc(.5*var(--zw-mbd-int)); --zw-mbd-blur:none; }
   body[data-mbd-lg="blur"] { --zw-mbd-a:calc(.14*var(--zw-mbd-int)); --zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(140%); }
@@ -526,6 +528,9 @@ body[data-mbd-tint="brand"]{ --zw-mbd-rgb:248,145,165; }
   body[data-mbd-sm="frost"]{ --zw-mbd-rgb:255,255,255; --zw-mbd-a:calc(.4*var(--zw-mbd-int)); --zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(120%); }
   body[data-mbd-sm="none"] { --zw-mbd-a:0; --zw-mbd-blur:none; }
 }
+/* Brand tint — AFTER the treatment rules so it wins the source-order tie against
+   frost's white (equal specificity). Pink dim / blur / frost. */
+body[data-mbd-tint="brand"]{ --zw-mbd-rgb:248,145,165; }
 .modal,
 #zw-lang-modal{
   background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important;
@@ -789,9 +794,11 @@ body.super-light-mode #zw-lang-box{
 }
 
 #size-fit-modal{
-  background:none !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
+  /* Follow the admin modal-backdrop scrim (this modal is excluded from the .modal
+     scrim by :not(.modal--review), so it needs the vars applied by id). */
+  background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important;
+  backdrop-filter:var(--zw-mbd-blur, none) !important;
+  -webkit-backdrop-filter:var(--zw-mbd-blur, none) !important;
   align-items:center !important;
   justify-content:center !important;
   padding:clamp(1rem, 3vw, 2rem) !important;
