@@ -29,9 +29,10 @@
   // with a 2px pink top border, the ZUWERA wordmark, an italic Barlow Condensed
   // title, pink underlined tabs, and Barlow body text. Scoped under #zwlg-modal.
   var CSS = [
-    // Clear backing (no dark scrim) to match every other modal — storefront-cohesion.css
-    // sets .modal/.collection-review-modal background:none in both themes; the card floats
-    // on the visible page with a shadow rather than dimming it.
+    // Self-contained defaults for the modal-backdrop scrim vars so the login sheet
+    // dims even on a page that didn't load storefront-cohesion.css; when cohesion IS
+    // present its body[data-mbd-*] rules override these on <body> (higher up the tree).
+    ':root{--zw-mbd-rgb:9,9,11;--zw-mbd-a:.5;--zw-mbd-blur:none;}',
     '#zwlg-modal{position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;padding:1rem;',
       'background:transparent;opacity:0;visibility:hidden;pointer-events:none;',
       'transition:opacity .28s ease,visibility 0s linear .28s;-webkit-tap-highlight-color:transparent;}',
@@ -39,7 +40,7 @@
     // Dim scrim behind the sheet — the login modal used to leave the page undimmed,
     // unlike the filter/size modals. Fades with .open; the box paints above it and
     // pointer-events:none keeps click-outside-to-close working.
-    '#zwlg-modal::before{content:"";position:fixed;inset:0;background:var(--zw-scrim-bg,rgba(9,9,11,.5));backdrop-filter:var(--zw-scrim-blur,none);-webkit-backdrop-filter:var(--zw-scrim-blur,none);opacity:0;transition:opacity .3s ease;pointer-events:none;}',
+    '#zwlg-modal::before{content:"";position:fixed;inset:0;background:rgba(var(--zw-mbd-rgb),var(--zw-mbd-a));backdrop-filter:var(--zw-mbd-blur,none);-webkit-backdrop-filter:var(--zw-mbd-blur,none);opacity:0;transition:opacity .3s ease;pointer-events:none;}',
     '#zwlg-modal.open::before{opacity:1;}',
     '#zwlg-modal .zwlg-box{position:relative;width:min(420px,92vw);max-height:92dvh;overflow-y:auto;',
       'background:#0f0f0f;color:#f4f1eb;border:1px solid rgba(244,241,235,.08);border-top:2px solid var(--zw-mfn,#F891A5);',

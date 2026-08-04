@@ -2571,6 +2571,17 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       window.__zwApplyThemeRows([{ key: 'fonts', value: settings.fonts }]);
     }
 
+    // 8. theme — modal accent + backdrop. The homepage sets __zwSkipThemeFetch so
+    //    storefront-theme.js never runs applySettingsRows here; feed it the theme
+    //    row directly. applySettingsRows early-returns before the mode block on the
+    //    homepage, so this applies ONLY the modal accent/backdrop (mode is handled
+    //    by the homepage's own inline theme paint) — body[data-mbd-*] + zw-macc.
+    if (settings.theme && window.__zwApplyThemeRows) {
+      let _th = settings.theme;
+      try { if (typeof _th === 'string') _th = JSON.parse(_th); } catch (_) {}
+      window.__zwApplyThemeRows([{ key: 'theme', value: _th }]);
+    }
+
     // If in builder preview, re-apply builder config now that Supabase is done
     if (window.__zwReapplyBuilder) window.__zwReapplyBuilder();
   } catch (e) {

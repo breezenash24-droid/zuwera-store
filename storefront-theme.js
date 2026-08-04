@@ -277,14 +277,42 @@
           _mb.classList.add('zw-macc-' + _acc);
         }
       }
-      // Modal backdrop treatment per device (theme.modal_backdrop = {lg,md,sm} each
-      // 'dim'|'blur'|'none') → body[data-mbd-lg|md|sm], read by the scrim vars in CSS.
+      // Modal backdrop treatment (theme.modal_backdrop). Resolve the treatment for
+      // THIS page group (home | shop | checkout | account) — a per-page override in
+      // .pages[group] (use:'custom') replaces the global per-device treatment — then
+      // set the body attributes the scrim vars in storefront-cohesion.css read:
+      //   data-mbd-lg|md|sm = dim|blur|frost|none, data-mbd-int = light|medium|heavy,
+      //   data-mbd-tint = neutral|brand, data-mbd-tap = on|off (tap-dim-to-close).
       if (row.key === 'theme' && row.value && row.value.modal_backdrop) {
-        var _bd = row.value.modal_backdrop, _body = document.body, _okb = { dim: 1, blur: 1, none: 1 };
+        var _bd = row.value.modal_backdrop, _body = document.body, _okb = { dim: 1, blur: 1, frost: 1, none: 1 };
+        var _pth = (window.location.pathname || '').toLowerCase();
+        var _grp = (_pth === '/' || _pth === '' || /(^|\/)index\.html$/.test(_pth)) ? 'home'
+                 : /(bag|checkout|cart)\.html/.test(_pth) ? 'checkout'
+                 : /(account|about|journal|contact|polic|returns|sizeguide|faq)\.html/.test(_pth) ? 'account'
+                 : 'shop';
+        var _pg = _bd.pages && _bd.pages[_grp];
+        var _src = (_pg && _pg.use === 'custom') ? _pg : _bd;   // per-page override, else global
         ['lg', 'md', 'sm'].forEach(function (dev) {
-          var v = String((_bd && _bd[dev]) || 'dim').toLowerCase();
-          if (_okb[v]) _body.setAttribute('data-mbd-' + dev, v);
+          var v = String((_src && _src[dev]) || (_bd && _bd[dev]) || 'dim').toLowerCase();
+          _body.setAttribute('data-mbd-' + dev, _okb[v] ? v : 'dim');
         });
+        var _int = String(_bd.intensity || 'medium').toLowerCase();
+        _body.setAttribute('data-mbd-int', /^(light|medium|heavy)$/.test(_int) ? _int : 'medium');
+        _body.setAttribute('data-mbd-tint', _bd.tint === 'brand' ? 'brand' : 'neutral');
+        _body.setAttribute('data-mbd-tap', _bd.close_on_tap === false ? 'off' : 'on');
+        // Tap-the-dim-to-close — best-effort across the shared .modal overlays: a
+        // direct click on the backdrop (not its content) closes the modal. Bound once.
+        if (!window.__zwMbdTapBound) {
+          window.__zwMbdTapBound = true;
+          document.addEventListener('click', function (e) {
+            if (document.body.getAttribute('data-mbd-tap') === 'off') return;
+            var m = e.target;
+            if (!m || !m.classList || !m.classList.contains('modal')) return; // only the backdrop itself
+            if (m.id === 'mobile-menu' || m.id === 'payment-modal') return;    // these manage their own close
+            var btn = m.querySelector('.mclose,.zwlg-close,.plp-fm-x,.collection-review-close,#zw-lang-close,[data-close],[aria-label="Close"]');
+            if (btn) btn.click(); else m.classList.remove('open', 'active', 'show');
+          }, false);
+        }
       }
       if (row.key === 'theme') {
         var isHomepage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/');

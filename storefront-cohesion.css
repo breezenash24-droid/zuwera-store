@@ -409,9 +409,9 @@ body.light-mode .cart-shell-footer-copy{
 .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#all-reviews-modal),
 .collection-review-modal,
 #zw-lang-modal{
-  background:none !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
+  background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important;
+  backdrop-filter:var(--zw-mbd-blur, none) !important;
+  -webkit-backdrop-filter:var(--zw-mbd-blur, none) !important;
   pointer-events:auto;
   align-items:center !important;
   justify-content:center !important;
@@ -437,9 +437,9 @@ body.light-mode .cart-shell-footer-copy{
 body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#all-reviews-modal),
 body.light-mode .collection-review-modal,
 body.light-mode #zw-lang-modal{
-  background:none !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
+  background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important;
+  backdrop-filter:var(--zw-mbd-blur, none) !important;
+  -webkit-backdrop-filter:var(--zw-mbd-blur, none) !important;
 }
 
 /* ── SYMMETRIC MODAL MOTION ─────────────────────────────────────────────
@@ -491,29 +491,46 @@ body.light-mode #zw-lang-modal{
 
    ONE exception, deliberate: reviews.js's .rvp-lightbox keeps rgba(0,0,0,.9). It's
    a photo viewer — the dark surround is the point, and it isn't a .modal. */
-/* ── Modal backdrop treatment (admin-toggleable per device: dim | blur | none) ──
-   --zw-scrim-bg + --zw-scrim-blur drive every modal overlay (this rule) plus the
-   login + filter ::before scrims. Default = a light dim on all devices; the admin
-   control sets body[data-mbd-lg|md|sm] to override per breakpoint. "blur" is the
-   Apple-style frosted look (a slight tint + a real backdrop blur). */
-:root{ --zw-scrim-bg:rgba(9,9,11,.5); --zw-scrim-blur:none; }
+/* ── Modal backdrop treatment (admin-toggleable) ───────────────────────────────
+   The scrim behind every modal is computed from three inherited custom props so
+   the whole system is one rgba() + one blur, not a per-combo matrix:
+     --zw-mbd-rgb  tint colour   (neutral 9,9,11  |  brand accent  |  white for frost)
+     --zw-mbd-a    tint opacity  (treatment base × intensity)
+     --zw-mbd-blur backdrop blur (none | blur(px)×intensity saturate)
+   storefront-theme.js sets, on <body>: data-mbd-lg|md|sm = dim|blur|frost|none
+   (resolved per page group), data-mbd-int = light|medium|heavy, data-mbd-tint =
+   neutral|brand. These drive the vars; the use sites (.modal, login/filter
+   ::before) just paint rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) + the blur.
+   Default (no attrs, e.g. a page the JS didn't reach) = a medium neutral dim. */
+:root{ --zw-mbd-int:1; --zw-mbd-rgb:9,9,11; --zw-mbd-a:.5; --zw-mbd-blur:none; }
+body[data-mbd-int="light"]{ --zw-mbd-int:.6; }
+body[data-mbd-int="heavy"]{ --zw-mbd-int:1.5; }
+body[data-mbd-tint="brand"]{ --zw-mbd-rgb:248,145,165; }
+/* Per-device treatment. Only one media query is live at a time, so the active
+   device's rule wins; frost forces a white tint (overriding brand). */
 @media (min-width:1025px){
-  body[data-mbd-lg="blur"]{ --zw-scrim-bg:rgba(9,9,11,.28); --zw-scrim-blur:blur(20px) saturate(150%); }
-  body[data-mbd-lg="none"]{ --zw-scrim-bg:transparent; --zw-scrim-blur:none; }
+  body[data-mbd-lg="dim"]  { --zw-mbd-a:calc(.5*var(--zw-mbd-int)); --zw-mbd-blur:none; }
+  body[data-mbd-lg="blur"] { --zw-mbd-a:calc(.14*var(--zw-mbd-int)); --zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(140%); }
+  body[data-mbd-lg="frost"]{ --zw-mbd-rgb:255,255,255; --zw-mbd-a:calc(.4*var(--zw-mbd-int)); --zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(120%); }
+  body[data-mbd-lg="none"] { --zw-mbd-a:0; --zw-mbd-blur:none; }
 }
 @media (min-width:641px) and (max-width:1024px){
-  body[data-mbd-md="blur"]{ --zw-scrim-bg:rgba(9,9,11,.28); --zw-scrim-blur:blur(20px) saturate(150%); }
-  body[data-mbd-md="none"]{ --zw-scrim-bg:transparent; --zw-scrim-blur:none; }
+  body[data-mbd-md="dim"]  { --zw-mbd-a:calc(.5*var(--zw-mbd-int)); --zw-mbd-blur:none; }
+  body[data-mbd-md="blur"] { --zw-mbd-a:calc(.14*var(--zw-mbd-int)); --zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(140%); }
+  body[data-mbd-md="frost"]{ --zw-mbd-rgb:255,255,255; --zw-mbd-a:calc(.4*var(--zw-mbd-int)); --zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(120%); }
+  body[data-mbd-md="none"] { --zw-mbd-a:0; --zw-mbd-blur:none; }
 }
 @media (max-width:640px){
-  body[data-mbd-sm="blur"]{ --zw-scrim-bg:rgba(9,9,11,.28); --zw-scrim-blur:blur(20px) saturate(150%); }
-  body[data-mbd-sm="none"]{ --zw-scrim-bg:transparent; --zw-scrim-blur:none; }
+  body[data-mbd-sm="dim"]  { --zw-mbd-a:calc(.5*var(--zw-mbd-int)); --zw-mbd-blur:none; }
+  body[data-mbd-sm="blur"] { --zw-mbd-a:calc(.14*var(--zw-mbd-int)); --zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(140%); }
+  body[data-mbd-sm="frost"]{ --zw-mbd-rgb:255,255,255; --zw-mbd-a:calc(.4*var(--zw-mbd-int)); --zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(120%); }
+  body[data-mbd-sm="none"] { --zw-mbd-a:0; --zw-mbd-blur:none; }
 }
 .modal,
 #zw-lang-modal{
-  background:var(--zw-scrim-bg, transparent) !important;
-  backdrop-filter:var(--zw-scrim-blur, none) !important;
-  -webkit-backdrop-filter:var(--zw-scrim-blur, none) !important;
+  background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important;
+  backdrop-filter:var(--zw-mbd-blur, none) !important;
+  -webkit-backdrop-filter:var(--zw-mbd-blur, none) !important;
 }
 .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog,.cbox){
   transition:transform var(--zw-motion-modal) var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1)),
@@ -3463,9 +3480,12 @@ body.light-mode .collection-review-modal,
 body.super-light-mode .modal:not(#mobile-menu):not(#payment-modal):not(#cart-modal),
 body.super-light-mode .quick-add-review-modal,
 body.super-light-mode .collection-review-modal{
-  background:transparent !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
+  /* Modal-backdrop scrim (admin-toggleable). This is the highest-specificity rule
+     for these overlays, so it — not the base .modal rule — is what actually paints.
+     "None" resolves --zw-mbd-a to 0 → transparent, restoring the floating-card look. */
+  background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important;
+  backdrop-filter:var(--zw-mbd-blur, none) !important;
+  -webkit-backdrop-filter:var(--zw-mbd-blur, none) !important;
 }
 
 /* ── Desktop light/super-light explicit overrides ── */

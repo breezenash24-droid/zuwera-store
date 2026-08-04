@@ -323,7 +323,19 @@
         let deleteProductId = null;
         let themeMode = 'dark'; // 'dark' | 'light' | 'super-light'
         let modalAccent = 'a';  // 'a' | 'b' | 'c' — how far the modal pink reaches (site_settings.theme.modal_accent)
-        let modalBackdrop = { lg: 'dim', md: 'dim', sm: 'dim' };  // per-device dim|blur|none (site_settings.theme.modal_backdrop)
+        // site_settings.theme.modal_backdrop — global per-device treatment + style
+        // options + per-page overrides. Treatments: dim|blur|frost|none.
+        let modalBackdrop = {
+            lg: 'dim', md: 'dim', sm: 'dim',
+            intensity: 'medium', tint: 'neutral', close_on_tap: true,
+            pages: {
+                home:     { use: 'global', lg: 'dim', md: 'dim', sm: 'dim' },
+                shop:     { use: 'global', lg: 'dim', md: 'dim', sm: 'dim' },
+                checkout: { use: 'global', lg: 'dim', md: 'dim', sm: 'dim' },
+                account:  { use: 'global', lg: 'dim', md: 'dim', sm: 'dim' }
+            }
+        };
+        const MBD_PAGE_LABELS = { home: 'Home', shop: 'Collection & Product', checkout: 'Bag & Checkout', account: 'Account & info' };
         let sizeChartsData = [];
         let currentSizeChart = null;
         let productSizeChartCache = null;
@@ -488,23 +500,65 @@
                                  ok ? '#2e7d43' : '#c0392b');
             if (typeof showToast === 'function') showToast(ok ? ('Modal accent saved — ' + name) : 'Could not save modal accent', ok ? 'info' : 'error');
         };
+        function _mbdSeg(cur, opts, cbName) {
+            return opts.map(function (o) {
+                var on = cur === o[0];
+                return '<button type="button" class="btn ' + (on ? 'btn-primary' : 'btn-secondary') + ' btn-sm" onclick="' + cbName + "('" + o[0] + "')" + '">' + o[1] + '</button>';
+            }).join('');
+        }
+        function _mbdMatrix(scope) {
+            var obj = scope === 'global' ? modalBackdrop : modalBackdrop.pages[scope];
+            var devs = [['lg', 'Desktop'], ['md', 'Tablet'], ['sm', 'Mobile']];
+            var treats = [['dim', 'Dim'], ['blur', 'Blur'], ['frost', 'Frost'], ['none', 'None']];
+            return devs.map(function (d) {
+                return '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 6px">'
+                    + '<span style="min-width:62px;font-size:.78rem;color:var(--text-secondary)">' + d[1] + '</span>'
+                    + treats.map(function (t) {
+                        var on = (obj[d[0]] || 'dim') === t[0];
+                        return '<button type="button" class="btn ' + (on ? 'btn-primary' : 'btn-secondary') + ' btn-sm" onclick="setMbdTreat(\'' + scope + '\',\'' + d[0] + '\',\'' + t[0] + '\')">' + t[1] + '</button>';
+                    }).join('')
+                    + '</div>';
+            }).join('');
+        }
         window.paintModalBackdrop = function () {
-            document.querySelectorAll('#modalBackdropCtl .mbd-row').forEach(function (row) {
-                var dev = row.getAttribute('data-dev');
-                row.querySelectorAll('[data-mode]').forEach(function (b) {
-                    var on = b.getAttribute('data-mode') === (modalBackdrop[dev] || 'dim');
-                    b.classList.toggle('btn-primary', on);
-                    b.classList.toggle('btn-secondary', !on);
-                });
+            var host = document.getElementById('modalBackdropCtl');
+            if (!host) return;
+            var lbl = function (t) { return '<span style="min-width:62px;font-size:.78rem;color:var(--text-secondary)">' + t + '</span>'; };
+            var row = function (inner, mb) { return '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:' + (mb || '0 0 6px') + '">' + inner + '</div>'; };
+            var html = '';
+            html += '<div style="font-size:.8rem;font-weight:600;letter-spacing:.04em;margin:0 0 8px">Global (all pages)</div>';
+            html += _mbdMatrix('global');
+            html += row(lbl('Intensity') + _mbdSeg(modalBackdrop.intensity, [['light', 'Light'], ['medium', 'Medium'], ['heavy', 'Heavy']], 'setMbdIntensity'), '12px 0 6px');
+            html += row(lbl('Tint') + _mbdSeg(modalBackdrop.tint, [['neutral', 'Neutral'], ['brand', 'Brand pink']], 'setMbdTint'));
+            html += row(lbl('Tap to close') + _mbdSeg(modalBackdrop.close_on_tap ? 'on' : 'off', [['on', 'On'], ['off', 'Off']], 'setMbdTap'));
+            html += '<div style="font-size:.8rem;font-weight:600;letter-spacing:.04em;margin:16px 0 8px">Per-page overrides</div>';
+            ['home', 'shop', 'checkout', 'account'].forEach(function (pg) {
+                var use = modalBackdrop.pages[pg].use === 'custom' ? 'custom' : 'global';
+                html += '<div style="border:1px solid var(--border);border-radius:6px;padding:12px;margin:0 0 8px">'
+                    + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 ' + (use === 'custom' ? '10px' : '0') + '">'
+                    + '<span style="min-width:150px;font-size:.82rem;font-weight:600">' + MBD_PAGE_LABELS[pg] + '</span>'
+                    + '<button type="button" class="btn ' + (use === 'global' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" onclick="setMbdPageUse(\'' + pg + '\',\'global\')">Use global</button>'
+                    + '<button type="button" class="btn ' + (use === 'custom' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" onclick="setMbdPageUse(\'' + pg + '\',\'custom\')">Custom</button>'
+                    + '</div>'
+                    + (use === 'custom' ? _mbdMatrix(pg) : '')
+                    + '</div>';
             });
+            host.innerHTML = html;
         };
-        window.setModalBackdrop = async function (dev, mode) {
-            if (!/^(lg|md|sm)$/.test(dev) || !/^(dim|blur|none)$/.test(mode)) return;
-            modalBackdrop[dev] = mode;
-            window.paintModalBackdrop();
+        async function _saveMbd() {
             const ok = await saveThemeSettings({ modal_backdrop: modalBackdrop });
             if (typeof showToast === 'function') showToast(ok ? 'Modal backdrop saved' : 'Could not save — sign in first', ok ? 'info' : 'error');
+        }
+        window.setMbdTreat = function (scope, dev, val) {
+            if (!/^(lg|md|sm)$/.test(dev) || !/^(dim|blur|frost|none)$/.test(val)) return;
+            var obj = scope === 'global' ? modalBackdrop : modalBackdrop.pages[scope];
+            if (!obj) return;
+            obj[dev] = val; window.paintModalBackdrop(); _saveMbd();
         };
+        window.setMbdIntensity = function (v) { if (!/^(light|medium|heavy)$/.test(v)) return; modalBackdrop.intensity = v; window.paintModalBackdrop(); _saveMbd(); };
+        window.setMbdTint = function (v) { if (!/^(neutral|brand)$/.test(v)) return; modalBackdrop.tint = v; window.paintModalBackdrop(); _saveMbd(); };
+        window.setMbdTap = function (v) { modalBackdrop.close_on_tap = (v === 'on'); window.paintModalBackdrop(); _saveMbd(); };
+        window.setMbdPageUse = function (pg, use) { if (!modalBackdrop.pages[pg]) return; modalBackdrop.pages[pg].use = (use === 'custom') ? 'custom' : 'global'; window.paintModalBackdrop(); _saveMbd(); };
         // Reflect the live saved values in the controls on load.
         (async function () {
             try {
@@ -514,7 +568,19 @@
                     const m = val.modal_accent;
                     if (m && /^[abc]$/.test(String(m).toLowerCase())) modalAccent = String(m).toLowerCase();
                     if (val.modal_backdrop && typeof val.modal_backdrop === 'object') {
-                        ['lg', 'md', 'sm'].forEach(function (d) { var v = String(val.modal_backdrop[d] || '').toLowerCase(); if (/^(dim|blur|none)$/.test(v)) modalBackdrop[d] = v; });
+                        var mb = val.modal_backdrop, TR = /^(dim|blur|frost|none)$/;
+                        ['lg', 'md', 'sm'].forEach(function (d) { var v = String(mb[d] || '').toLowerCase(); if (TR.test(v)) modalBackdrop[d] = v; });
+                        if (/^(light|medium|heavy)$/.test(String(mb.intensity))) modalBackdrop.intensity = mb.intensity;
+                        if (mb.tint === 'brand' || mb.tint === 'neutral') modalBackdrop.tint = mb.tint;
+                        if (typeof mb.close_on_tap === 'boolean') modalBackdrop.close_on_tap = mb.close_on_tap;
+                        if (mb.pages && typeof mb.pages === 'object') {
+                            ['home', 'shop', 'checkout', 'account'].forEach(function (pg) {
+                                var s = mb.pages[pg]; if (!s) return;
+                                var t = modalBackdrop.pages[pg];
+                                t.use = (s.use === 'custom') ? 'custom' : 'global';
+                                ['lg', 'md', 'sm'].forEach(function (d) { var v = String(s[d] || '').toLowerCase(); if (TR.test(v)) t[d] = v; });
+                            });
+                        }
                     }
                 }
             } catch (_) {}
