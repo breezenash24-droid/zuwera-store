@@ -333,9 +333,11 @@
                 shop:     { use: 'global', lg: 'dim', md: 'dim', sm: 'dim' },
                 checkout: { use: 'global', lg: 'dim', md: 'dim', sm: 'dim' },
                 account:  { use: 'global', lg: 'dim', md: 'dim', sm: 'dim' }
-            }
+            },
+            modals: {}   // per-modal override: key -> 'dim'|'blur'|'frost'|'none' ('global'/absent = follow the rules)
         };
         const MBD_PAGE_LABELS = { home: 'Home', shop: 'Collection & Product', checkout: 'Bag & Checkout', account: 'Account & info' };
+        const MBD_MODAL_LABELS = { login: 'Login / Join', language: 'Language picker', filter: 'Collection filters', findsize: 'Find your size', sizefit: 'Size & fit', reviews: 'Reviews', quickadd: 'Quick add', collectionreview: 'Collection quick-view' };
         let sizeChartsData = [];
         let currentSizeChart = null;
         let productSizeChartCache = null;
@@ -543,6 +545,18 @@
                     + (use === 'custom' ? _mbdMatrix(pg) : '')
                     + '</div>';
             });
+            html += '<div style="font-size:.8rem;font-weight:600;letter-spacing:.04em;margin:16px 0 4px">Individual modals</div>';
+            html += '<p style="font-size:.75rem;color:var(--text-secondary);margin:0 0 8px;max-width:520px">Break a specific modal away from the rules above. "Use rules" follows the global/per-page setting.</p>';
+            Object.keys(MBD_MODAL_LABELS).forEach(function (k) {
+                var cur = String(modalBackdrop.modals[k] || 'global');
+                html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 6px">'
+                    + '<span style="font-size:.82rem;color:var(--text-primary)">' + MBD_MODAL_LABELS[k] + '</span>'
+                    + '<select onchange="setMbdModal(\'' + k + '\', this.value)" style="min-width:150px;padding:5px 8px;font-size:.8rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-primary,#fff);color:var(--text-primary)">'
+                    + [['global', 'Use rules'], ['dim', 'Dim'], ['blur', 'Blur'], ['frost', 'Frost'], ['none', 'None']].map(function (o) {
+                        return '<option value="' + o[0] + '"' + (cur === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+                    }).join('')
+                    + '</select></div>';
+            });
             host.innerHTML = html;
         };
         async function _saveMbd() {
@@ -558,6 +572,12 @@
         window.setMbdIntensity = function (v) { if (!/^(light|medium|heavy)$/.test(v)) return; modalBackdrop.intensity = v; window.paintModalBackdrop(); _saveMbd(); };
         window.setMbdTint = function (v) { if (!/^(neutral|brand)$/.test(v)) return; modalBackdrop.tint = v; window.paintModalBackdrop(); _saveMbd(); };
         window.setMbdTap = function (v) { modalBackdrop.close_on_tap = (v === 'on'); window.paintModalBackdrop(); _saveMbd(); };
+        window.setMbdModal = function (key, val) {
+            if (!MBD_MODAL_LABELS[key]) return;
+            if (val === 'global') delete modalBackdrop.modals[key];
+            else if (/^(dim|blur|frost|none)$/.test(val)) modalBackdrop.modals[key] = val;
+            _saveMbd();
+        };
         window.setMbdPageUse = function (pg, use) { if (!modalBackdrop.pages[pg]) return; modalBackdrop.pages[pg].use = (use === 'custom') ? 'custom' : 'global'; window.paintModalBackdrop(); _saveMbd(); };
         // Reflect the live saved values in the controls on load.
         (async function () {
@@ -580,6 +600,9 @@
                                 t.use = (s.use === 'custom') ? 'custom' : 'global';
                                 ['lg', 'md', 'sm'].forEach(function (d) { var v = String(s[d] || '').toLowerCase(); if (TR.test(v)) t[d] = v; });
                             });
+                        }
+                        if (mb.modals && typeof mb.modals === 'object') {
+                            Object.keys(mb.modals).forEach(function (k) { var v = String(mb.modals[k] || '').toLowerCase(); if (TR.test(v)) modalBackdrop.modals[k] = v; });
                         }
                     }
                 }

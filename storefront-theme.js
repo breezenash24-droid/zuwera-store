@@ -300,6 +300,37 @@
         _body.setAttribute('data-mbd-int', /^(light|medium|heavy)$/.test(_int) ? _int : 'medium');
         _body.setAttribute('data-mbd-tint', _bd.tint === 'brand' ? 'brand' : 'neutral');
         _body.setAttribute('data-mbd-tap', _bd.close_on_tap === false ? 'off' : 'on');
+        // Per-modal overrides: _bd.modals[key] = 'global'|'dim'|'blur'|'frost'|'none'.
+        // Emit a <style> that sets the scrim vars on individual modal overlays so they
+        // override the global body vars for JUST those modals (CSS-only → works even
+        // for modals injected later). Intensity stays global (var(--zw-mbd-int)); the
+        // tint colour is baked in here so a per-modal dim/blur isn't polluted by the
+        // global treatment's rgb (e.g. a global frost sets the body rgb to white).
+        (function () {
+          var modals = _bd.modals || {};
+          var REG = {
+            login: '#zwlg-modal', language: '#zw-lang-modal', filter: '.plp-fm',
+            findsize: '#find-size-modal', sizefit: '#size-fit-modal',
+            reviews: '#all-reviews-modal,#review-modal', quickadd: '.quick-add-review-modal',
+            collectionreview: '.collection-review-modal'
+          };
+          var brand = '248,145,165', neutral = '9,9,11';
+          var base = (_bd.tint === 'brand') ? brand : neutral;
+          function decl(t) {
+            if (t === 'none') return '--zw-mbd-a:0;--zw-mbd-blur:none';
+            if (t === 'blur') return '--zw-mbd-rgb:' + base + ';--zw-mbd-a:calc(.14*var(--zw-mbd-int));--zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(140%)';
+            if (t === 'frost') return '--zw-mbd-rgb:' + (_bd.tint === 'brand' ? brand : '255,255,255') + ';--zw-mbd-a:calc(.4*var(--zw-mbd-int));--zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(120%)';
+            return '--zw-mbd-rgb:' + base + ';--zw-mbd-a:calc(.5*var(--zw-mbd-int));--zw-mbd-blur:none'; // dim
+          }
+          var css = '';
+          Object.keys(REG).forEach(function (k) {
+            var t = String(modals[k] || 'global').toLowerCase();
+            if (/^(dim|blur|frost|none)$/.test(t)) css += REG[k] + '{' + decl(t) + '}';
+          });
+          var st = document.getElementById('zw-mbd-permodal');
+          if (!st) { st = document.createElement('style'); st.id = 'zw-mbd-permodal'; (document.head || document.documentElement).appendChild(st); }
+          st.textContent = css;
+        })();
         // Tap-the-dim-to-close — best-effort across the shared .modal overlays: a
         // direct click on the backdrop (not its content) closes the modal. Bound once.
         if (!window.__zwMbdTapBound) {
