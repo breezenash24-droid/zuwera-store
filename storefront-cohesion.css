@@ -498,15 +498,15 @@ body.light-mode #zw-lang-modal{
    Apple-style frosted look (a slight tint + a real backdrop blur). */
 :root{ --zw-scrim-bg:rgba(9,9,11,.5); --zw-scrim-blur:none; }
 @media (min-width:1025px){
-  body[data-mbd-lg="blur"]{ --zw-scrim-bg:rgba(9,9,11,.14); --zw-scrim-blur:blur(9px); }
+  body[data-mbd-lg="blur"]{ --zw-scrim-bg:rgba(9,9,11,.28); --zw-scrim-blur:blur(20px) saturate(150%); }
   body[data-mbd-lg="none"]{ --zw-scrim-bg:transparent; --zw-scrim-blur:none; }
 }
 @media (min-width:641px) and (max-width:1024px){
-  body[data-mbd-md="blur"]{ --zw-scrim-bg:rgba(9,9,11,.14); --zw-scrim-blur:blur(9px); }
+  body[data-mbd-md="blur"]{ --zw-scrim-bg:rgba(9,9,11,.28); --zw-scrim-blur:blur(20px) saturate(150%); }
   body[data-mbd-md="none"]{ --zw-scrim-bg:transparent; --zw-scrim-blur:none; }
 }
 @media (max-width:640px){
-  body[data-mbd-sm="blur"]{ --zw-scrim-bg:rgba(9,9,11,.14); --zw-scrim-blur:blur(9px); }
+  body[data-mbd-sm="blur"]{ --zw-scrim-bg:rgba(9,9,11,.28); --zw-scrim-blur:blur(20px) saturate(150%); }
   body[data-mbd-sm="none"]{ --zw-scrim-bg:transparent; --zw-scrim-blur:none; }
 }
 .modal,
