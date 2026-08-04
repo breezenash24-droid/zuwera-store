@@ -632,6 +632,9 @@ document.documentElement.classList.add('zw-collflash');
       display: flex;
       align-items: center;
       justify-content: center;
+      /* Badges only — must NOT eat pointer/touch events, or this full-card layer
+         blocks the image carousel underneath (no swipe on mobile, no drag on desktop). */
+      pointer-events: none;
     }
     .coming-soon-badge {
       background: rgba(10,10,10,0.85);
