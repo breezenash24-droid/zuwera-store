@@ -416,7 +416,7 @@ document.documentElement.classList.add('zw-collflash');
        Visibility flips to hidden only after the slide-out finishes (delayed). */
     .plp-fm{ position:fixed; inset:0; z-index:600; visibility:hidden; transition:visibility 0s linear .45s; }
     .plp-fm.open{ visibility:visible; transition-delay:0s; }
-    .plp-fm::before{ content:''; position:absolute; inset:0; background:var(--zw-scrim-bg,rgba(0,0,0,.5)); backdrop-filter:var(--zw-scrim-blur,none); -webkit-backdrop-filter:var(--zw-scrim-blur,none); opacity:0; transition:opacity .35s ease; }
+    .plp-fm::before{ content:''; position:absolute; inset:0; background:rgba(var(--zw-mbd-rgb),var(--zw-mbd-a)); backdrop-filter:var(--zw-mbd-blur,none); -webkit-backdrop-filter:var(--zw-mbd-blur,none); opacity:0; transition:opacity .35s ease; }
     .plp-fm.open::before{ opacity:1; }
     .plp-fm.plp-fm-dragging::before{ transition:none; opacity:var(--zw-fm-ov,1); }   /* follow the finger */
     .plp-fm-sheet{ position:absolute; left:0; right:0; bottom:0; max-height:86vh; display:flex; flex-direction:column; background:var(--black); color:var(--white); border-top-left-radius:18px; border-top-right-radius:18px; transform:translateY(100%); transition:transform .4s cubic-bezier(.32,.72,0,1); will-change:transform; }
