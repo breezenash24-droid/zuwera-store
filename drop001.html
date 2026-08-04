@@ -599,12 +599,18 @@ document.documentElement.classList.add('zw-collflash');
     }
     /* Card image carousel (opt-in via admin) — horizontal swipe through the
        selected colour's images/videos, On-Running style. */
-    .product-card .zw-card-carousel{ position:absolute; inset:0; display:flex; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; }
+    .product-card .zw-card-carousel{ position:absolute; inset:0; display:flex; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; touch-action:pan-x; }
     .product-card .zw-card-carousel::-webkit-scrollbar{ display:none; }
-    .product-card .zw-cc-item{ flex:0 0 100%; width:100%; height:100%; object-fit:cover; object-position:center; scroll-snap-align:center; scroll-snap-stop:always; display:block; }
+    .product-card .zw-cc-item{ flex:0 0 100%; width:100%; height:100%; object-fit:cover; object-position:center; scroll-snap-align:center; scroll-snap-stop:always; display:block; -webkit-user-drag:none; user-select:none; }
     .product-card .zw-cc-dots{ position:absolute; left:0; right:0; bottom:8px; display:flex; gap:5px; justify-content:center; z-index:3; pointer-events:none; }
     .product-card .zw-cc-dots span{ width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.55); box-shadow:0 0 2px rgba(0,0,0,.35); transition:transform .2s ease, background .2s ease; }
     .product-card .zw-cc-dots span.on{ background:#fff; transform:scale(1.35); }
+    /* Desktop nav arrows — appear on hover on fine-pointer devices; touch uses swipe. */
+    .product-card .zw-cc-nav{ position:absolute; top:50%; transform:translateY(-50%); z-index:4; width:30px; height:30px; padding:0; border:none; border-radius:50%; background:rgba(255,255,255,.85); color:#111; font-size:19px; line-height:1; display:none; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 1px 5px rgba(0,0,0,.2); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
+    .product-card .zw-cc-prev{ left:8px; }
+    .product-card .zw-cc-next{ right:8px; }
+    .product-card .zw-cc-nav:hover{ background:#fff; }
+    @media (hover:hover) and (pointer:fine){ .product-card:hover .zw-cc-nav{ display:flex; } }
     .product-img-placeholder {
       display: flex;
       flex-direction: column;
@@ -2470,7 +2476,7 @@ function updateCountdown() {
           // All colours in a single horizontal-scroll row — no "+N" cap now that
           // extra colours scroll (CSS: .zw-card-swatches overflow-x:auto) instead of
           // wrapping to a 2nd row and breaking card alignment.
-          const _carOn = plpCfg().card_carousel === true;
+          const _carOn = zwCardCarouselOn();
           const _carVids = plpCfg().card_videos === true;
           let html = colors.map((c, i) => {
             const ci = imgs.filter((im) => im.color_variant_id === c.id).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0];
@@ -2502,7 +2508,7 @@ function updateCountdown() {
           }
           const originalImg = firstImg;
           firstImg = optimizeImage(firstImg, 600);
-          const _ccOn = plpCfg().card_carousel === true;
+          const _ccOn = zwCardCarouselOn();
           const _firstColorId = ((p.color_variants || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0] || {}).id;
           const _ccMedia = _ccOn ? zwCardMedia(p, _firstColorId, plpCfg().card_videos === true) : [];
           const imgHtml = (_ccOn && _ccMedia.length > 1)
@@ -2744,6 +2750,19 @@ function updateCountdown() {
   // -- Nike-style card color swatches (swatch mode) --
   // ── Card image carousel helpers (admin opt-in: card_carousel / card_videos) ──
   function _ccEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  // Carousel on for the CURRENT viewport? Per-device flags (card_carousel_lg/md/sm)
+  // win; an unset device falls back to the legacy all-device `card_carousel` master.
+  function zwCardCarouselOn(){
+    var cfg = plpCfg();
+    var w = window.innerWidth || document.documentElement.clientWidth || 0;
+    var key = w <= 640 ? 'card_carousel_sm' : (w <= 1024 ? 'card_carousel_md' : 'card_carousel_lg');
+    var v = cfg[key];
+    if (v === true) return true;
+    if (v === false) return false;
+    return cfg.card_carousel === true;
+  }
+  // Position dots default ON; admin can hide them (card_dots:false).
+  function zwCardDotsOn(){ return plpCfg().card_dots !== false; }
   function _ccIsVideo(im){ return (im && im.media_type === 'video') || /\.(mp4|webm|mov|m4v)(\?|$)/i.test((im && im.image_url) || ''); }
   // Media (images + optional videos) for a colour, sorted; falls back to the
   // product's uncoloured/all images when a colour has none of its own.
@@ -2767,8 +2786,9 @@ function updateCountdown() {
     }).join('');
   }
   function zwCarouselHtml(media, name){
-    var dots = media.length > 1 ? '<div class="zw-cc-dots">'+media.map(function(_,i){ return '<span'+(i===0?' class="on"':'')+'></span>'; }).join('')+'</div>' : '';
-    return '<div class="zw-card-carousel" tabindex="-1">'+zwCarouselSlides(media, name)+'</div>'+dots;
+    var dots = (zwCardDotsOn() && media.length > 1) ? '<div class="zw-cc-dots">'+media.map(function(_,i){ return '<span'+(i===0?' class="on"':'')+'></span>'; }).join('')+'</div>' : '';
+    var nav = media.length > 1 ? '<button type="button" class="zw-cc-nav zw-cc-prev" aria-label="Previous image" tabindex="-1">&lsaquo;</button><button type="button" class="zw-cc-nav zw-cc-next" aria-label="Next image" tabindex="-1">&rsaquo;</button>' : '';
+    return '<div class="zw-card-carousel" tabindex="-1">'+zwCarouselSlides(media, name)+'</div>'+nav+dots;
   }
   // Swap the carousel (and its dots) to a colour's media on swatch change.
   function zwRebuildCardCarousel(card, sw){
@@ -2791,6 +2811,52 @@ function updateCountdown() {
     var w = car.clientWidth || 1, idx = Math.round(car.scrollLeft / w), spans = dots.children;
     for (var i=0;i<spans.length;i++) spans[i].classList.toggle('on', i === idx);
   }, true);
+
+  // Desktop nav-arrow clicks — advance one slide (touch users swipe instead).
+  document.addEventListener('click', function(e){
+    var nav = e.target && e.target.closest && e.target.closest('.zw-cc-nav');
+    if (!nav || !nav.parentElement) return;
+    e.preventDefault(); e.stopPropagation();
+    var car = nav.parentElement.querySelector('.zw-card-carousel'); if (!car) return;
+    var w = car.clientWidth || 1, max = car.children.length - 1;
+    var idx = Math.round(car.scrollLeft / w) + (nav.classList.contains('zw-cc-next') ? 1 : -1);
+    idx = Math.max(0, Math.min(max, idx));
+    car.scrollTo({ left: idx * w, behavior: 'smooth' });
+  }, true);
+
+  // Mouse drag-to-scroll — the only way to advance the carousel with a mouse
+  // (scrollbar is hidden). Touch keeps native momentum scroll, so we skip it.
+  (function(){
+    var d = null;
+    document.addEventListener('pointerdown', function(e){
+      if (e.pointerType === 'touch') return;
+      var car = e.target && e.target.closest && e.target.closest('.zw-card-carousel');
+      if (!car || car.children.length < 2) return;
+      d = { car:car, x:e.clientX, sl:car.scrollLeft, moved:false };
+      car.style.scrollSnapType = 'none';
+      e.preventDefault();               // suppress native image ghost-drag
+    });
+    document.addEventListener('pointermove', function(e){
+      if (!d) return;
+      var dx = e.clientX - d.x;
+      if (Math.abs(dx) > 3) d.moved = true;
+      d.car.scrollLeft = d.sl - dx;
+    });
+    function end(){
+      if (!d) return;
+      var car = d.car; car.style.scrollSnapType = '';
+      var w = car.clientWidth || 1, idx = Math.round(car.scrollLeft / w);
+      car.scrollTo({ left: idx * w, behavior:'smooth' });
+      if (d.moved){                     // a drag shouldn't also open the product page
+        var sup = function(ev){ ev.preventDefault(); ev.stopPropagation(); document.removeEventListener('click', sup, true); };
+        document.addEventListener('click', sup, true);
+        setTimeout(function(){ document.removeEventListener('click', sup, true); }, 80);
+      }
+      d = null;
+    }
+    document.addEventListener('pointerup', end);
+    document.addEventListener('pointercancel', end);
+  })();
 
   // Hover swaps the card photo to the color's image and KEEPS it (sticks on the
   // last colour hovered; a refresh re-renders the default). Click opens the bag
