@@ -391,7 +391,7 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
    content (the other modals only look rounded because they happen to sit over dark
    content). A dim makes the rounded sheet stand out on any background. The id beats
    cohesion's `.modal{background:transparent!important}`. */
-#find-size-modal.open{ background:rgba(9,9,11,.5) !important; -webkit-backdrop-filter:blur(2px) !important; backdrop-filter:blur(2px) !important; }
+#find-size-modal.open{ background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important; -webkit-backdrop-filter:var(--zw-mbd-blur, none) !important; backdrop-filter:var(--zw-mbd-blur, none) !important; }
 /* padding:0 — the .review-modal-intro / .review-modal-body wrappers provide the
    padding (same as every other modal), so the box must not double-pad it (that's
    what made the content look cramped/narrow). Wider than before to match the
