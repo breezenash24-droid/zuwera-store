@@ -277,6 +277,15 @@
           _mb.classList.add('zw-macc-' + _acc);
         }
       }
+      // Modal backdrop treatment per device (theme.modal_backdrop = {lg,md,sm} each
+      // 'dim'|'blur'|'none') → body[data-mbd-lg|md|sm], read by the scrim vars in CSS.
+      if (row.key === 'theme' && row.value && row.value.modal_backdrop) {
+        var _bd = row.value.modal_backdrop, _body = document.body, _okb = { dim: 1, blur: 1, none: 1 };
+        ['lg', 'md', 'sm'].forEach(function (dev) {
+          var v = String((_bd && _bd[dev]) || 'dim').toLowerCase();
+          if (_okb[v]) _body.setAttribute('data-mbd-' + dev, v);
+        });
+      }
       if (row.key === 'theme') {
         var isHomepage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/');
         if (isHomepage || window.__ZW_BUILDER_PREVIEW__) return;

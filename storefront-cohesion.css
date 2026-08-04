@@ -491,11 +491,29 @@ body.light-mode #zw-lang-modal{
 
    ONE exception, deliberate: reviews.js's .rvp-lightbox keeps rgba(0,0,0,.9). It's
    a photo viewer — the dark surround is the point, and it isn't a .modal. */
+/* ── Modal backdrop treatment (admin-toggleable per device: dim | blur | none) ──
+   --zw-scrim-bg + --zw-scrim-blur drive every modal overlay (this rule) plus the
+   login + filter ::before scrims. Default = a light dim on all devices; the admin
+   control sets body[data-mbd-lg|md|sm] to override per breakpoint. "blur" is the
+   Apple-style frosted look (a slight tint + a real backdrop blur). */
+:root{ --zw-scrim-bg:rgba(9,9,11,.5); --zw-scrim-blur:none; }
+@media (min-width:1025px){
+  body[data-mbd-lg="blur"]{ --zw-scrim-bg:rgba(9,9,11,.14); --zw-scrim-blur:blur(9px); }
+  body[data-mbd-lg="none"]{ --zw-scrim-bg:transparent; --zw-scrim-blur:none; }
+}
+@media (min-width:641px) and (max-width:1024px){
+  body[data-mbd-md="blur"]{ --zw-scrim-bg:rgba(9,9,11,.14); --zw-scrim-blur:blur(9px); }
+  body[data-mbd-md="none"]{ --zw-scrim-bg:transparent; --zw-scrim-blur:none; }
+}
+@media (max-width:640px){
+  body[data-mbd-sm="blur"]{ --zw-scrim-bg:rgba(9,9,11,.14); --zw-scrim-blur:blur(9px); }
+  body[data-mbd-sm="none"]{ --zw-scrim-bg:transparent; --zw-scrim-blur:none; }
+}
 .modal,
 #zw-lang-modal{
-  background:transparent !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
+  background:var(--zw-scrim-bg, transparent) !important;
+  backdrop-filter:var(--zw-scrim-blur, none) !important;
+  -webkit-backdrop-filter:var(--zw-scrim-blur, none) !important;
 }
 .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog,.cbox){
   transition:transform var(--zw-motion-modal) var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1)),
