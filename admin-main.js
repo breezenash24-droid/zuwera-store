@@ -323,6 +323,7 @@
         let deleteProductId = null;
         let themeMode = 'dark'; // 'dark' | 'light' | 'super-light'
         let modalAccent = 'a';  // 'a' | 'b' | 'c' — how far the modal pink reaches (site_settings.theme.modal_accent)
+        let modalBackdrop = { lg: 'dim', md: 'dim', sm: 'dim' };  // per-device dim|blur|none (site_settings.theme.modal_backdrop)
         let sizeChartsData = [];
         let currentSizeChart = null;
         let productSizeChartCache = null;
@@ -413,6 +414,7 @@
             checkAuthState();
             setupEventListeners();
             if (window.paintModalAccent) window.paintModalAccent();
+            if (window.paintModalBackdrop) window.paintModalBackdrop();
         });
 
         // Theme Management
@@ -486,16 +488,38 @@
                                  ok ? '#2e7d43' : '#c0392b');
             if (typeof showToast === 'function') showToast(ok ? ('Modal accent saved — ' + name) : 'Could not save modal accent', ok ? 'info' : 'error');
         };
-        // Reflect the live saved value in the control on load.
+        window.paintModalBackdrop = function () {
+            document.querySelectorAll('#modalBackdropCtl .mbd-row').forEach(function (row) {
+                var dev = row.getAttribute('data-dev');
+                row.querySelectorAll('[data-mode]').forEach(function (b) {
+                    var on = b.getAttribute('data-mode') === (modalBackdrop[dev] || 'dim');
+                    b.classList.toggle('btn-primary', on);
+                    b.classList.toggle('btn-secondary', !on);
+                });
+            });
+        };
+        window.setModalBackdrop = async function (dev, mode) {
+            if (!/^(lg|md|sm)$/.test(dev) || !/^(dim|blur|none)$/.test(mode)) return;
+            modalBackdrop[dev] = mode;
+            window.paintModalBackdrop();
+            const ok = await saveThemeSettings({ modal_backdrop: modalBackdrop });
+            if (typeof showToast === 'function') showToast(ok ? 'Modal backdrop saved' : 'Could not save — sign in first', ok ? 'info' : 'error');
+        };
+        // Reflect the live saved values in the controls on load.
         (async function () {
             try {
                 if (typeof sb !== 'undefined' && sb) {
                     const { data } = await sb.from('site_settings').select('value').eq('key', 'theme').maybeSingle();
-                    const m = data && data.value && data.value.modal_accent;
+                    const val = (data && data.value) || {};
+                    const m = val.modal_accent;
                     if (m && /^[abc]$/.test(String(m).toLowerCase())) modalAccent = String(m).toLowerCase();
+                    if (val.modal_backdrop && typeof val.modal_backdrop === 'object') {
+                        ['lg', 'md', 'sm'].forEach(function (d) { var v = String(val.modal_backdrop[d] || '').toLowerCase(); if (/^(dim|blur|none)$/.test(v)) modalBackdrop[d] = v; });
+                    }
                 }
             } catch (_) {}
             window.paintModalAccent();
+            window.paintModalBackdrop();
         })();
 
         document.getElementById('themeToggle').addEventListener('click', () => {

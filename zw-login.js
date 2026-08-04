@@ -39,7 +39,7 @@
     // Dim scrim behind the sheet — the login modal used to leave the page undimmed,
     // unlike the filter/size modals. Fades with .open; the box paints above it and
     // pointer-events:none keeps click-outside-to-close working.
-    '#zwlg-modal::before{content:"";position:fixed;inset:0;background:rgba(9,9,11,.55);opacity:0;transition:opacity .3s ease;pointer-events:none;}',
+    '#zwlg-modal::before{content:"";position:fixed;inset:0;background:var(--zw-scrim-bg,rgba(9,9,11,.5));backdrop-filter:var(--zw-scrim-blur,none);-webkit-backdrop-filter:var(--zw-scrim-blur,none);opacity:0;transition:opacity .3s ease;pointer-events:none;}',
     '#zwlg-modal.open::before{opacity:1;}',
     '#zwlg-modal .zwlg-box{position:relative;width:min(420px,92vw);max-height:92dvh;overflow-y:auto;',
       'background:#0f0f0f;color:#f4f1eb;border:1px solid rgba(244,241,235,.08);border-top:2px solid var(--zw-mfn,#F891A5);',
