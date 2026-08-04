@@ -899,6 +899,22 @@ body.light-mode .pbox .mclose{
   color:#F4F1EB !important;
 }
 
+/* ── One standardized modal close button ─────────────────────────────────────
+   Every modal's close had drifted — some near-solid (.82–.95), some translucent
+   (.05–.08). Unify the SURFACE across all of them (size stays per-modal). Placed
+   last so it wins over the rules above via source order. */
+.mclose, .collection-review-close, #zw-lang-close, .plp-fm-x, .zwlg-close, .pbox .mclose{
+  background:rgba(9,9,11,.7) !important;
+  border:1px solid rgba(244,241,235,.16) !important;
+  color:var(--zw-paper,#f4f1eb) !important;
+  backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
+}
+body.light-mode .mclose, body.light-mode .collection-review-close, body.light-mode #zw-lang-close, body.light-mode .plp-fm-x, body.light-mode .zwlg-close, body.light-mode .pbox .mclose,
+body.super-light-mode .mclose, body.super-light-mode .collection-review-close, body.super-light-mode #zw-lang-close, body.super-light-mode .plp-fm-x, body.super-light-mode .zwlg-close, body.super-light-mode .pbox .mclose{
+  background:rgba(9,9,11,.06) !important;
+  border-color:rgba(9,9,11,.18) !important;
+  color:#09090b !important;
+}
 
 .hamburger-btn,
 #mobile-menu-btn{

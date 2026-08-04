@@ -204,7 +204,9 @@
       '.zwf-search.open{pointer-events:auto}',
       /* translate3d + will-change keeps this on the compositor — no layout or
          paint per frame, so it stays at 60fps. */
-      '.zwf-search-panel{background:var(--ink,#09090b);color:var(--paper,#f4f1eb);width:100%;max-height:min(72vh,560px);display:flex;flex-direction:column;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));box-shadow:0 22px 48px rgba(0,0,0,.22)}',
+      /* Match the bag panel's theme-adaptive surface (--zw-page/--zw-ink) instead of
+         the always-dark --ink, so search isn't a black panel on the super-light theme. */
+      '.zwf-search-panel{background:var(--zw-page,#fff);color:var(--zw-ink,#09090b);width:100%;max-height:min(72vh,560px);display:flex;flex-direction:column;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));box-shadow:0 22px 48px rgba(0,0,0,.22)}',
       '.zwf-search.open .zwf-search-panel{transform:translate3d(0,0,0)}',
       /* ── bag panel ── shares the search panel's mechanics: no dim, no blur,
          compositor-only slide, clipped so it hides above. */
