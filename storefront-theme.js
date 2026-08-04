@@ -312,8 +312,11 @@
             login: '#zwlg-modal', language: '#zw-lang-modal', filter: '.plp-fm',
             findsize: '#find-size-modal', sizefit: '#size-fit-modal',
             reviews: '#all-reviews-modal,#review-modal', quickadd: '.quick-add-review-modal',
-            collectionreview: '.collection-review-modal'
+            collectionreview: '.collection-review-modal', bag: '.zwf-bag', search: '.zwf-search'
           };
+          // The bag/search DRAWERS are a separate system that doesn't follow the .modal
+          // global scrim, so they default to OFF (no dim) and "use rules" also means off.
+          var DRAWERS = { bag: 1, search: 1 };
           var brand = '248,145,165', neutral = '9,9,11';
           var base = (_bd.tint === 'brand') ? brand : neutral;
           function decl(t) {
@@ -324,7 +327,8 @@
           }
           var css = '';
           Object.keys(REG).forEach(function (k) {
-            var t = String(modals[k] || 'global').toLowerCase();
+            var t = String(modals[k] || (DRAWERS[k] ? 'none' : 'global')).toLowerCase();
+            if (DRAWERS[k] && t === 'global') t = 'none';
             if (/^(dim|blur|frost|none)$/.test(t)) css += REG[k] + '{' + decl(t) + '}';
           });
           var st = document.getElementById('zw-mbd-permodal');

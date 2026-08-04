@@ -516,9 +516,9 @@
     quickAddRenderGallery(item);
     quickAddRenderOptions(item);
     modal.classList.add('open');
-    modal.style.setProperty('background', 'transparent', 'important');
-    modal.style.setProperty('backdrop-filter', 'none', 'important');
-    modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+    modal.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+    modal.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+    modal.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
     quickAddSetScrollLock(true);
     window.requestAnimationFrame(function () { quickAddFocusWithoutScroll(document.getElementById('quick-add-review-confirm')); });
   }
