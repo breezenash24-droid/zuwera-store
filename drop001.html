@@ -597,6 +597,14 @@ document.documentElement.classList.add('zw-collflash');
       position: relative;
       overflow: hidden;
     }
+    /* Card image carousel (opt-in via admin) — horizontal swipe through the
+       selected colour's images/videos, On-Running style. */
+    .product-card .zw-card-carousel{ position:absolute; inset:0; display:flex; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; }
+    .product-card .zw-card-carousel::-webkit-scrollbar{ display:none; }
+    .product-card .zw-cc-item{ flex:0 0 100%; width:100%; height:100%; object-fit:cover; object-position:center; scroll-snap-align:center; scroll-snap-stop:always; display:block; }
+    .product-card .zw-cc-dots{ position:absolute; left:0; right:0; bottom:8px; display:flex; gap:5px; justify-content:center; z-index:3; pointer-events:none; }
+    .product-card .zw-cc-dots span{ width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.55); box-shadow:0 0 2px rgba(0,0,0,.35); transition:transform .2s ease, background .2s ease; }
+    .product-card .zw-cc-dots span.on{ background:#fff; transform:scale(1.35); }
     .product-img-placeholder {
       display: flex;
       flex-direction: column;
@@ -2462,15 +2470,19 @@ function updateCountdown() {
           // All colours in a single horizontal-scroll row — no "+N" cap now that
           // extra colours scroll (CSS: .zw-card-swatches overflow-x:auto) instead of
           // wrapping to a 2nd row and breaking card alignment.
+          const _carOn = plpCfg().card_carousel === true;
+          const _carVids = plpCfg().card_videos === true;
           let html = colors.map((c, i) => {
             const ci = imgs.filter((im) => im.color_variant_id === c.id).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0];
             let src = (ci && ci.image_url) || fallbackImg || '';
             if (src && typeof optimizeImage === 'function') src = optimizeImage(src, 600);
             const nm = c.color_name || 'Color';
             const thumbStyle = src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`;
+            const _cm = _carOn ? zwCardMedia(p, c.id, _carVids) : [];
+            const imgsAttr = (_carOn && _cm.length) ? ` data-imgs="${esc(encodeURIComponent(JSON.stringify(_cm)))}"` : '';
             // First swatch active on load — its colour is the one shown on the card,
             // so the selected-bar (Nike-style) sits under it from the start.
-            return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
+            return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-img="${esc(src)}"${imgsAttr} title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
           }).join('');
           return `<div class="zw-card-swatches" data-quick-add="${payload}">${html}</div>`;
         };
@@ -2490,12 +2502,17 @@ function updateCountdown() {
           }
           const originalImg = firstImg;
           firstImg = optimizeImage(firstImg, 600);
-          const imgHtml = firstImg
+          const _ccOn = plpCfg().card_carousel === true;
+          const _firstColorId = ((p.color_variants || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0] || {}).id;
+          const _ccMedia = _ccOn ? zwCardMedia(p, _firstColorId, plpCfg().card_videos === true) : [];
+          const imgHtml = (_ccOn && _ccMedia.length > 1)
+            ? zwCarouselHtml(_ccMedia, productName)
+            : (firstImg
             ? `<img src="${firstImg}" alt="${productName}" loading="lazy" width="400" height="500" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center" onerror="if(this.src !== '${originalImg || ''}') this.src='${originalImg || ''}';">`
             : `<div class="product-img-placeholder">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
                 <span>Image Coming Soon</span>
-              </div>`;
+              </div>`);
           const isLive = (p.status === 'live' || p.status === 'Live');
           const totalStock = p.totalStock;
           const isSoldOut = isLive && totalStock !== null && totalStock <= 0;
@@ -2725,6 +2742,56 @@ function updateCountdown() {
   }, true);
 
   // -- Nike-style card color swatches (swatch mode) --
+  // ── Card image carousel helpers (admin opt-in: card_carousel / card_videos) ──
+  function _ccEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function _ccIsVideo(im){ return (im && im.media_type === 'video') || /\.(mp4|webm|mov|m4v)(\?|$)/i.test((im && im.image_url) || ''); }
+  // Media (images + optional videos) for a colour, sorted; falls back to the
+  // product's uncoloured/all images when a colour has none of its own.
+  function zwCardMedia(p, colorId, includeVideos){
+    var imgs = (p && p.product_images) || [];
+    var list;
+    if (colorId){
+      list = imgs.filter(function(im){ return im.color_variant_id === colorId; });
+      if (!list.length) list = imgs.filter(function(im){ return !im.color_variant_id; });
+      if (!list.length) list = imgs.slice();
+    } else { list = imgs.slice(); }
+    list = list.slice().sort(function(a,b){ return (a.sort_order||0)-(b.sort_order||0); });
+    if (!includeVideos) list = list.filter(function(im){ return !_ccIsVideo(im); });
+    return list.map(function(im){ return { u: im.image_url, v: _ccIsVideo(im) }; }).filter(function(m){ return m.u; });
+  }
+  function zwCarouselSlides(media, name){
+    return media.map(function(m){
+      if (m.v) return '<video class="zw-cc-item" src="'+_ccEsc(m.u)+'" muted loop playsinline preload="metadata" autoplay></video>';
+      var src = (typeof optimizeImage === 'function') ? optimizeImage(m.u, 600) : m.u;
+      return '<img class="zw-cc-item" src="'+_ccEsc(src)+'" alt="'+_ccEsc(name)+'" loading="lazy" width="400" height="500">';
+    }).join('');
+  }
+  function zwCarouselHtml(media, name){
+    var dots = media.length > 1 ? '<div class="zw-cc-dots">'+media.map(function(_,i){ return '<span'+(i===0?' class="on"':'')+'></span>'; }).join('')+'</div>' : '';
+    return '<div class="zw-card-carousel" tabindex="-1">'+zwCarouselSlides(media, name)+'</div>'+dots;
+  }
+  // Swap the carousel (and its dots) to a colour's media on swatch change.
+  function zwRebuildCardCarousel(card, sw){
+    var carousel = card && card.querySelector('.zw-card-carousel');
+    if (!carousel || !sw || !sw.dataset.imgs) return false;
+    var media; try { media = JSON.parse(decodeURIComponent(sw.dataset.imgs)); } catch(_){ return false; }
+    if (!media || !media.length) return false;
+    var name = (card.querySelector('.product-name') || {}).textContent || '';
+    carousel.innerHTML = zwCarouselSlides(media, name);
+    try { carousel.scrollLeft = 0; } catch(_){}
+    var dots = card.querySelector('.zw-cc-dots');
+    if (dots) dots.innerHTML = media.length > 1 ? media.map(function(_,i){ return '<span'+(i===0?' class="on"':'')+'></span>'; }).join('') : '';
+    return true;
+  }
+  // Keep the dots in sync while the shopper swipes (scroll doesn't bubble → capture).
+  document.addEventListener('scroll', function(e){
+    var car = e.target && e.target.closest && e.target.closest('.zw-card-carousel');
+    if (!car || !car.parentElement) return;
+    var dots = car.parentElement.querySelector('.zw-cc-dots'); if (!dots) return;
+    var w = car.clientWidth || 1, idx = Math.round(car.scrollLeft / w), spans = dots.children;
+    for (var i=0;i<spans.length;i++) spans[i].classList.toggle('on', i === idx);
+  }, true);
+
   // Hover swaps the card photo to the color's image and KEEPS it (sticks on the
   // last colour hovered; a refresh re-renders the default). Click opens the bag
   // modal preselected to that color.
@@ -2734,7 +2801,9 @@ function updateCountdown() {
   }
   document.addEventListener('mouseover', function (e) {
     var sw = e.target.closest('.zw-card-swatch'); if (!sw || sw.classList.contains('zw-swatch-more')) return;
-    var card = sw.closest('.product-card'); var img = card && card.querySelector('.product-img img');
+    var card = sw.closest('.product-card');
+    if (zwRebuildCardCarousel(card, sw)) { _zwSetActiveSwatch(sw); return; }
+    var img = card && card.querySelector('.product-img img');
     if (!img || !sw.dataset.img) return;
     img.setAttribute('src', sw.dataset.img);
     _zwSetActiveSwatch(sw);
@@ -2748,8 +2817,10 @@ function updateCountdown() {
     if (window.matchMedia && window.matchMedia('(max-width:760px)').matches) {
       if (!sw.classList.contains('zw-swatch-more')) {
         var mcard = sw.closest('.product-card');
-        var mimg = mcard && mcard.querySelector('.product-img img');
-        if (mimg && sw.dataset.img) mimg.setAttribute('src', sw.dataset.img);
+        if (!zwRebuildCardCarousel(mcard, sw)) {
+          var mimg = mcard && mcard.querySelector('.product-img img');
+          if (mimg && sw.dataset.img) mimg.setAttribute('src', sw.dataset.img);
+        }
         _zwSetActiveSwatch(sw);
       }
       return;

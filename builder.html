@@ -988,7 +988,7 @@ async function pdpSave(){
 // Edits site_settings.collection_page — the release / all-products listing
 // (drop001.html). Header wording + product-grid look. Card size/fit here win
 // over the admin Product-Cards defaults; "Use store default" leaves them alone.
-const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'', f_category:true, f_gender:true, f_color:true, f_sport:true, f_bestfor:true, f_material:true, f_price:true, price_breaks:'', color_count:'', color_grain:'standard', colors_off:[], materials_off:[] };
+const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'', card_carousel:false, card_videos:false, f_category:true, f_gender:true, f_color:true, f_sport:true, f_bestfor:true, f_material:true, f_price:true, price_breaks:'', color_count:'', color_grain:'standard', colors_off:[], materials_off:[] };
 // Mirror of drop001's PLP_MATERIALS names (for the per-material hide chips).
 const COLL_MATERIALS = ['Cotton','Fleece','Wool','Leather','Denim','Linen','Silk','Cashmere','Polyester','Nylon','Spandex','Recycled','Mesh','Bamboo','Rayon','Acrylic'];
 // Mirror of drop001's PLP_COLOR_BUCKETS so the chip swatches match the storefront.
@@ -1035,7 +1035,9 @@ function paintCollectionTab(container){
 
   const cardsG = grp('Product grid',
     sel('Cards per row','card_size', c.card_size, [['','Use store default'],['2','2 — large'],['3','3 — medium'],['4','4 — small']])
-    + sel('Image fit','card_fit', c.card_fit, [['','Use store default'],['cover','Fill the frame (crop)'],['contain','Show the whole image']]),
+    + sel('Image fit','card_fit', c.card_fit, [['','Use store default'],['cover','Fill the frame (crop)'],['contain','Show the whole image']])
+    + tog('Swipe through images on cards','card_carousel')
+    + tog('Include videos in the card swipe','card_videos'),
     false);
 
   // Live price-bracket preview + per-colour show/hide chips.
