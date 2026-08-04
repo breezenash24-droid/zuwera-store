@@ -2769,6 +2769,12 @@ function updateCountdown() {
   }
   // Position dots default ON; admin can hide them (card_dots:false).
   function zwCardDotsOn(){ return (window.__zwCollPageCfg || {}).card_dots !== false; }
+  // When on, switching colour keeps the SAME image position (image 3 → image 3 of
+  // the next colour) instead of resetting to the first shot. Default off.
+  function zwCardMirrorOn(){ return (window.__zwCollPageCfg || {}).card_mirror === true; }
+  // When on, the arrows wrap around: Next on the last image jumps to the first (and
+  // Prev on the first jumps to the last). Default off (arrows stop at the ends).
+  function zwCardLoopOn(){ return (window.__zwCollPageCfg || {}).card_loop === true; }
   function _ccIsVideo(im){ return (im && im.media_type === 'video') || /\.(mp4|webm|mov|m4v)(\?|$)/i.test((im && im.image_url) || ''); }
   // Media (images + optional videos) for a colour, sorted; falls back to the
   // product's uncoloured/all images when a colour has none of its own.
@@ -2802,11 +2808,15 @@ function updateCountdown() {
     if (!carousel || !sw || !sw.dataset.imgs) return false;
     var media; try { media = JSON.parse(decodeURIComponent(sw.dataset.imgs)); } catch(_){ return false; }
     if (!media || !media.length) return false;
+    // Mirror mode: carry the current image index to the new colour (clamped to its
+    // shot count); otherwise snap back to the first image.
+    var w = carousel.clientWidth || 1;
+    var idx = zwCardMirrorOn() ? Math.min(Math.max(Math.round(carousel.scrollLeft / w), 0), media.length - 1) : 0;
     var name = (card.querySelector('.product-name') || {}).textContent || '';
     carousel.innerHTML = zwCarouselSlides(media, name);
-    try { carousel.scrollLeft = 0; } catch(_){}
+    try { carousel.scrollLeft = idx * w; } catch(_){}
     var dots = card.querySelector('.zw-cc-dots');
-    if (dots) dots.innerHTML = media.length > 1 ? media.map(function(_,i){ return '<span'+(i===0?' class="on"':'')+'></span>'; }).join('') : '';
+    if (dots) dots.innerHTML = media.length > 1 ? media.map(function(_,i){ return '<span'+(i===idx?' class="on"':'')+'></span>'; }).join('') : '';
     return true;
   }
   // Keep the dots in sync while the shopper swipes (scroll doesn't bubble → capture).
@@ -2826,7 +2836,8 @@ function updateCountdown() {
     var car = nav.parentElement.querySelector('.zw-card-carousel'); if (!car) return;
     var w = car.clientWidth || 1, max = car.children.length - 1;
     var idx = Math.round(car.scrollLeft / w) + (nav.classList.contains('zw-cc-next') ? 1 : -1);
-    idx = Math.max(0, Math.min(max, idx));
+    if (zwCardLoopOn()) { idx = idx > max ? 0 : (idx < 0 ? max : idx); }
+    else { idx = Math.max(0, Math.min(max, idx)); }
     car.scrollTo({ left: idx * w, behavior: 'smooth' });
   }, true);
 
