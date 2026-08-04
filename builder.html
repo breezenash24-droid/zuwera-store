@@ -988,7 +988,7 @@ async function pdpSave(){
 // Edits site_settings.collection_page — the release / all-products listing
 // (drop001.html). Header wording + product-grid look. Card size/fit here win
 // over the admin Product-Cards defaults; "Use store default" leaves them alone.
-const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'', card_carousel:false, card_videos:false, f_category:true, f_gender:true, f_color:true, f_sport:true, f_bestfor:true, f_material:true, f_price:true, price_breaks:'', color_count:'', color_grain:'standard', colors_off:[], materials_off:[] };
+const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'', card_carousel_lg:false, card_carousel_md:false, card_carousel_sm:false, card_dots:true, card_videos:false, f_category:true, f_gender:true, f_color:true, f_sport:true, f_bestfor:true, f_material:true, f_price:true, price_breaks:'', color_count:'', color_grain:'standard', colors_off:[], materials_off:[] };
 // Mirror of drop001's PLP_MATERIALS names (for the per-material hide chips).
 const COLL_MATERIALS = ['Cotton','Fleece','Wool','Leather','Denim','Linen','Silk','Cashmere','Polyester','Nylon','Spandex','Recycled','Mesh','Bamboo','Rayon','Acrylic'];
 // Mirror of drop001's PLP_COLOR_BUCKETS so the chip swatches match the storefront.
@@ -1010,6 +1010,12 @@ async function renderCollectionTab(container){
       let v=(data&&data.value)||{};
       if(typeof v==='string'){ try{ v=JSON.parse(v); }catch(_){ v={}; } }
       collectionCfg = Object.assign({}, COLL_DEFAULTS, v);
+      // Migrate the old single `card_carousel` toggle → per-device flags so an
+      // existing "on" config lights up all three device switches correctly.
+      if(v && v.card_carousel!==undefined && v.card_carousel_lg===undefined && v.card_carousel_md===undefined && v.card_carousel_sm===undefined){
+        collectionCfg.card_carousel_lg = collectionCfg.card_carousel_md = collectionCfg.card_carousel_sm = (v.card_carousel===true);
+      }
+      delete collectionCfg.card_carousel;
     }catch(_){ collectionCfg = Object.assign({}, COLL_DEFAULTS); }
   }
   paintCollectionTab(container);
@@ -1036,8 +1042,11 @@ function paintCollectionTab(container){
   const cardsG = grp('Product grid',
     sel('Cards per row','card_size', c.card_size, [['','Use store default'],['2','2 — large'],['3','3 — medium'],['4','4 — small']])
     + sel('Image fit','card_fit', c.card_fit, [['','Use store default'],['cover','Fill the frame (crop)'],['contain','Show the whole image']])
-    + tog('Swipe through images on cards','card_carousel')
-    + tog('Include videos in the card swipe','card_videos'),
+    + tog('Swipe images — Desktop','card_carousel_lg')
+    + tog('Swipe images — Tablet','card_carousel_md')
+    + tog('Swipe images — Mobile','card_carousel_sm')
+    + tog('Show position dots','card_dots')
+    + tog('Include videos in the swipe','card_videos'),
     false);
 
   // Live price-bracket preview + per-colour show/hide chips.
