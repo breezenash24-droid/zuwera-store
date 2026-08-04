@@ -4736,9 +4736,17 @@ function scrollToNotify() {
 (function() {
   function clearBackdrop(el) {
     if (!el || !el.classList || !el.classList.contains('modal')) return;
-    el.style.setProperty('background', 'transparent', 'important');
-    el.style.setProperty('backdrop-filter', 'none', 'important');
-    el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+    // Scrim set INLINE so it beats every stylesheet (incl. cross-origin). #mobile-menu
+    // (opaque drawer) and #payment-modal (white sheet) own their surface — keep transparent.
+    if (el.id === 'mobile-menu' || el.id === 'payment-modal') {
+      el.style.setProperty('background', 'transparent', 'important');
+      el.style.setProperty('backdrop-filter', 'none', 'important');
+      el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+      return;
+    }
+    el.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+    el.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+    el.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
   }
 
   var attrObs = new MutationObserver(function(muts) {

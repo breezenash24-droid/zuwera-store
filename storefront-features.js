@@ -200,8 +200,12 @@
          an invisible click-catcher, clipped so the panel can hide above it. It
          doesn't fade either — one moving thing (the panel) reads smoother than a
          slide and a cross-fade fighting each other. */
-      '.zwf-search{position:fixed;inset:0;z-index:990;display:flex;flex-direction:column;background:transparent;pointer-events:none;overflow:hidden}',
-      '.zwf-search.open{pointer-events:auto}',
+      /* Backdrop is admin-controllable (modal-backdrop system): --zw-mbd-a defaults to
+         0 (no dim) so the drawer stays a clean click-catcher until the admin turns a
+         backdrop on for the "search" modal. Blur/frost repaint per frame and can stutter
+         the slide on low-end devices — that's the opt-in cost; Dim is paint-cheap. */
+      '.zwf-search{position:fixed;inset:0;z-index:990;display:flex;flex-direction:column;background:transparent;--zw-mbd-a:0;transition:background .3s ease,backdrop-filter .3s ease;pointer-events:none;overflow:hidden}',
+      '.zwf-search.open{pointer-events:auto;background:rgba(var(--zw-mbd-rgb),var(--zw-mbd-a));backdrop-filter:var(--zw-mbd-blur,none);-webkit-backdrop-filter:var(--zw-mbd-blur,none)}',
       /* translate3d + will-change keeps this on the compositor — no layout or
          paint per frame, so it stays at 60fps. */
       /* Match the bag panel's theme-adaptive surface (--zw-page/--zw-ink) instead of
@@ -210,8 +214,8 @@
       '.zwf-search.open .zwf-search-panel{transform:translate3d(0,0,0)}',
       /* ── bag panel ── shares the search panel's mechanics: no dim, no blur,
          compositor-only slide, clipped so it hides above. */
-      '.zwf-bag{position:fixed;inset:0;z-index:989;display:flex;flex-direction:column;background:transparent;pointer-events:none;overflow:hidden}',
-      '.zwf-bag.open{pointer-events:auto}',
+      '.zwf-bag{position:fixed;inset:0;z-index:989;display:flex;flex-direction:column;background:transparent;--zw-mbd-a:0;transition:background .3s ease,backdrop-filter .3s ease;pointer-events:none;overflow:hidden}',
+      '.zwf-bag.open{pointer-events:auto;background:rgba(var(--zw-mbd-rgb),var(--zw-mbd-a));backdrop-filter:var(--zw-mbd-blur,none);-webkit-backdrop-filter:var(--zw-mbd-blur,none)}',
       '.zwf-bag-panel{background:var(--zw-page,#fff);color:var(--zw-ink,#09090b);width:100%;max-height:min(76vh,620px);display:flex;flex-direction:column;overflow:hidden;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));box-shadow:0 22px 48px rgba(0,0,0,.18)}',
       '.zwf-bag.open .zwf-bag-panel{transform:translate3d(0,0,0)}',
       /* A parked panel must not cast a shadow. Both panels sit at -101%, so their

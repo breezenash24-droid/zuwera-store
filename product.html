@@ -4209,9 +4209,9 @@ window.openSizeFitModal = async function() {
     if (_sfBox) { _sfBox.style.removeProperty('width'); _sfBox.style.removeProperty('max-width'); _sfBox.style.removeProperty('border-radius'); }
   }
   // Clear/transparent backdrop, like every other modal on the site.
-  modal.style.setProperty('background', 'transparent', 'important');
-  modal.style.setProperty('backdrop-filter', 'none', 'important');
-  modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+  modal.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+  modal.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+  modal.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
   // Defer the scroll lock to modal-lock.js (position:fixed + scroll compensation)
   // instead of a raw overflow:hidden — the dual lock shifted the page up on open.
   if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = 'hidden';
@@ -4542,9 +4542,9 @@ window.openSizeGuideModal = async function() {
   const params = buildSizeGuideParams();
 
   modal.classList.add('open');
-  modal.style.setProperty('background', 'transparent', 'important');
-  modal.style.setProperty('backdrop-filter', 'none', 'important');
-  modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+  modal.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+  modal.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+  modal.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
   // Defer the scroll lock to modal-lock.js (position:fixed + scroll compensation)
   // instead of a raw overflow:hidden — the dual lock shifted the page up on open.
   if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = 'hidden';
@@ -5298,9 +5298,19 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 (function() {
   function clearBackdrop(el) {
     if (!el || !el.classList || !el.classList.contains('modal')) return;
-    el.style.setProperty('background', 'transparent', 'important');
-    el.style.setProperty('backdrop-filter', 'none', 'important');
-    el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+    // The scrim (rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))) is set INLINE so it beats
+    // every stylesheet — including the old per-page rules and any cross-origin sheet.
+    // #mobile-menu (opaque drawer) and #payment-modal (white sheet) own their surface;
+    // a scrim would make them see-through, so keep those transparent.
+    if (el.id === 'mobile-menu' || el.id === 'payment-modal') {
+      el.style.setProperty('background', 'transparent', 'important');
+      el.style.setProperty('backdrop-filter', 'none', 'important');
+      el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+      return;
+    }
+    el.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+    el.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+    el.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
   }
 
   var attrObs = new MutationObserver(function(muts) {

@@ -327,9 +327,9 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
 
   modal.classList.add('open');
   modal.setAttribute('aria-hidden', 'false');
-  modal.style.setProperty('background', 'transparent', 'important');
-  modal.style.setProperty('backdrop-filter', 'none', 'important');
-  modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+  modal.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+  modal.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+  modal.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
   if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow = 'hidden'; }
 
   try {
@@ -465,9 +465,9 @@ function openReviewForm(pid, pname) {
   const reviewModal = document.getElementById('review-modal');
   reviewModal.classList.add('open');
   reviewModal.setAttribute('aria-hidden', 'false');
-  reviewModal.style.setProperty('background', 'transparent', 'important');
-  reviewModal.style.setProperty('backdrop-filter', 'none', 'important');
-  reviewModal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+  reviewModal.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+  reviewModal.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+  reviewModal.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
   // Force the bottom-sheet layout inline (highest priority) so it's a real bottom sheet
   // — anchored to the bottom edge, full sheet height, rounded top — regardless of any
   // cached/older reviews.css or a higher-specificity rule that would otherwise centre it.
@@ -569,9 +569,9 @@ function openEditReviewForm(id, rating, pid) {
   const editModal = document.getElementById('review-modal');
   editModal.classList.add('open');
   editModal.setAttribute('aria-hidden', 'false');
-  editModal.style.setProperty('background', 'transparent', 'important');
-  editModal.style.setProperty('backdrop-filter', 'none', 'important');
-  editModal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+  editModal.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+  editModal.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+  editModal.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
   // Same forced bottom-sheet layout as openReviewForm (this is a separate entry point,
   // reachable from a review's Edit button). Cleared in closeReviewModal.
   if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {

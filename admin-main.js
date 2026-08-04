@@ -337,7 +337,8 @@
             modals: {}   // per-modal override: key -> 'dim'|'blur'|'frost'|'none' ('global'/absent = follow the rules)
         };
         const MBD_PAGE_LABELS = { home: 'Home', shop: 'Collection & Product', checkout: 'Bag & Checkout', account: 'Account & info' };
-        const MBD_MODAL_LABELS = { login: 'Login / Join', language: 'Language picker', filter: 'Collection filters', findsize: 'Find your size', sizefit: 'Size & fit', reviews: 'Reviews', quickadd: 'Quick add', collectionreview: 'Collection quick-view' };
+        const MBD_MODAL_LABELS = { login: 'Login / Join', language: 'Language picker', filter: 'Collection filters', findsize: 'Find your size', sizefit: 'Size & fit', reviews: 'Reviews', quickadd: 'Quick add', collectionreview: 'Collection quick-view', bag: 'Bag drawer', search: 'Search drawer' };
+        const MBD_DRAWERS = { bag: 1, search: 1 };   // default OFF (separate drawer system)
         let sizeChartsData = [];
         let currentSizeChart = null;
         let productSizeChartCache = null;
@@ -548,11 +549,14 @@
             html += '<div style="font-size:.8rem;font-weight:600;letter-spacing:.04em;margin:16px 0 4px">Individual modals</div>';
             html += '<p style="font-size:.75rem;color:var(--text-secondary);margin:0 0 8px;max-width:520px">Break a specific modal away from the rules above. "Use rules" follows the global/per-page setting.</p>';
             Object.keys(MBD_MODAL_LABELS).forEach(function (k) {
-                var cur = String(modalBackdrop.modals[k] || 'global');
+                var cur = String(modalBackdrop.modals[k] || (MBD_DRAWERS[k] ? 'none' : 'global'));
+                var opts = MBD_DRAWERS[k]
+                    ? [['none', 'Off'], ['dim', 'Dim'], ['blur', 'Blur'], ['frost', 'Frost']]
+                    : [['global', 'Use rules'], ['dim', 'Dim'], ['blur', 'Blur'], ['frost', 'Frost'], ['none', 'None']];
                 html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 6px">'
                     + '<span style="font-size:.82rem;color:var(--text-primary)">' + MBD_MODAL_LABELS[k] + '</span>'
                     + '<select onchange="setMbdModal(\'' + k + '\', this.value)" style="min-width:150px;padding:5px 8px;font-size:.8rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-primary,#fff);color:var(--text-primary)">'
-                    + [['global', 'Use rules'], ['dim', 'Dim'], ['blur', 'Blur'], ['frost', 'Frost'], ['none', 'None']].map(function (o) {
+                    + opts.map(function (o) {
                         return '<option value="' + o[0] + '"' + (cur === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
                     }).join('')
                     + '</select></div>';
