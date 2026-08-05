@@ -7943,7 +7943,7 @@
                 const loopChk = document.getElementById('settCardLoop');
                 if (loopChk) loopChk.checked = !!(v && v.card_loop);
                 const loopStyleSel = document.getElementById('settCardLoopStyle');
-                if (loopStyleSel) loopStyleSel.value = (v && v.card_loop_style === 'rewind') ? 'rewind' : 'seamless';
+                if (loopStyleSel) loopStyleSel.value = (v && /^(seamless|rewind|fade|instant)$/.test(v.card_loop_style)) ? v.card_loop_style : 'seamless';
             } else if (row.key === 'nav_menu') {
                 let v = row.value;
                 try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
@@ -8019,7 +8019,7 @@
         const card_fit = fitSel && fitSel.value === 'contain' ? 'contain' : 'cover';
         const card_loop = !!(document.getElementById('settCardLoop') && document.getElementById('settCardLoop').checked);
         const loopStyleEl = document.getElementById('settCardLoopStyle');
-        const card_loop_style = (loopStyleEl && loopStyleEl.value === 'rewind') ? 'rewind' : 'seamless';
+        const card_loop_style = (loopStyleEl && /^(seamless|rewind|fade|instant)$/.test(loopStyleEl.value)) ? loopStyleEl.value : 'seamless';
         const { error } = await sb.from('site_settings').upsert(
             { key: 'product_card_cta', value: { mode, collection_cols, card_fit, card_loop, card_loop_style }, updated_at: new Date().toISOString() },
             { onConflict: 'key' }
