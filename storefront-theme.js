@@ -277,6 +277,20 @@
           _mb.classList.add('zw-macc-' + _acc);
         }
       }
+      // Product-gallery animation (theme.gallery_anim = { load, scroll }). Sets the
+      // body attributes product.css keys the main-image animations on: the colorway/
+      // first-paint "load" animation and the arrow/swipe/thumbnail "scroll" animation.
+      // Absent/invalid → CSS defaults (fade / slide). Applied on every page; only the
+      // product page has the gallery, so it's a harmless no-op elsewhere.
+      if (row.key === 'theme' && row.value && row.value.gallery_anim) {
+        var _ga = row.value.gallery_anim, _gbody = document.body;
+        var _loadOk = { fade: 1, zoom: 1, blur: 1, rise: 1, none: 1 };
+        var _scrollOk = { slide: 1, fade: 1, zoom: 1, push: 1, none: 1 };
+        var _gl = String(_ga.load || 'fade').toLowerCase();
+        var _gs = String(_ga.scroll || 'slide').toLowerCase();
+        _gbody.setAttribute('data-gal-load', _loadOk[_gl] ? _gl : 'fade');
+        _gbody.setAttribute('data-gal-scroll', _scrollOk[_gs] ? _gs : 'slide');
+      }
       // Modal backdrop treatment (theme.modal_backdrop). Resolve the treatment for
       // THIS page group (home | shop | checkout | account) — a per-page override in
       // .pages[group] (use:'custom') replaces the global per-device treatment — then

@@ -323,6 +323,8 @@
         let deleteProductId = null;
         let themeMode = 'dark'; // 'dark' | 'light' | 'super-light'
         let modalAccent = 'a';  // 'a' | 'b' | 'c' — how far the modal pink reaches (site_settings.theme.modal_accent)
+        // site_settings.theme.gallery_anim — product-page main-image animations.
+        let galleryAnim = { load: 'fade', scroll: 'slide' };
         // site_settings.theme.modal_backdrop — global per-device treatment + style
         // options + per-page overrides. Treatments: dim|blur|frost|none.
         let modalBackdrop = {
@@ -429,6 +431,7 @@
             setupEventListeners();
             if (window.paintModalAccent) window.paintModalAccent();
             if (window.paintModalBackdrop) window.paintModalBackdrop();
+            if (window.paintGalleryAnim) window.paintGalleryAnim();
         });
 
         // Theme Management
@@ -580,6 +583,34 @@
             _saveMbd();
         };
         window.setMbdPageUse = function (pg, use) { if (!modalBackdrop.pages[pg]) return; modalBackdrop.pages[pg].use = (use === 'custom') ? 'custom' : 'global'; window.paintModalBackdrop(); _saveMbd(); };
+
+        // ── Product gallery animation (site_settings.theme.gallery_anim) ──────────
+        var GAL_LOAD_OPTS = [['fade', 'Fade'], ['zoom', 'Zoom'], ['blur', 'Blur'], ['rise', 'Rise up'], ['none', 'None']];
+        var GAL_SCROLL_OPTS = [['slide', 'Slide'], ['fade', 'Fade'], ['zoom', 'Zoom'], ['push', 'Push'], ['none', 'None']];
+        function _galSelect(kind, cur, opts) {
+            return '<select onchange="setGalAnim(\'' + kind + '\', this.value)" style="min-width:150px;padding:5px 8px;font-size:.8rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-primary,#fff);color:var(--text-primary)">'
+                + opts.map(function (o) { return '<option value="' + o[0] + '"' + (cur === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('')
+                + '</select>';
+        }
+        window.paintGalleryAnim = function () {
+            var host = document.getElementById('galleryAnimCtl');
+            if (!host) return;
+            var rowLbl = function (t) { return '<span style="font-size:.82rem;color:var(--text-primary)">' + t + '</span>'; };
+            var r = function (inner) { return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px">' + inner + '</div>'; };
+            host.innerHTML =
+                r(rowLbl('Scroll animation (arrows / swipe / thumbnails)') + _galSelect('scroll', galleryAnim.scroll, GAL_SCROLL_OPTS))
+                + r(rowLbl('Load animation (colorway switch / first paint)') + _galSelect('load', galleryAnim.load, GAL_LOAD_OPTS));
+        };
+        async function _saveGal() {
+            const ok = await saveThemeSettings({ gallery_anim: galleryAnim });
+            if (typeof showToast === 'function') showToast(ok ? 'Gallery animation saved' : 'Could not save — sign in first', ok ? 'info' : 'error');
+        }
+        window.setGalAnim = function (kind, val) {
+            if (kind === 'load' && GAL_LOAD_OPTS.some(function (o) { return o[0] === val; })) galleryAnim.load = val;
+            else if (kind === 'scroll' && GAL_SCROLL_OPTS.some(function (o) { return o[0] === val; })) galleryAnim.scroll = val;
+            else return;
+            _saveGal();
+        };
         // Reflect the live saved values in the controls on load.
         (async function () {
             try {
@@ -606,10 +637,16 @@
                             Object.keys(mb.modals).forEach(function (k) { var v = String(mb.modals[k] || '').toLowerCase(); if (TR.test(v)) modalBackdrop.modals[k] = v; });
                         }
                     }
+                    if (val.gallery_anim && typeof val.gallery_anim === 'object') {
+                        var _gv = val.gallery_anim;
+                        if (GAL_LOAD_OPTS.some(function (o) { return o[0] === _gv.load; })) galleryAnim.load = _gv.load;
+                        if (GAL_SCROLL_OPTS.some(function (o) { return o[0] === _gv.scroll; })) galleryAnim.scroll = _gv.scroll;
+                    }
                 }
             } catch (_) {}
             window.paintModalAccent();
             window.paintModalBackdrop();
+            if (window.paintGalleryAnim) window.paintGalleryAnim();
         })();
 
         document.getElementById('themeToggle').addEventListener('click', () => {
