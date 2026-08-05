@@ -2694,7 +2694,12 @@ function updateCountdown() {
       images: productImage ? [productImage] : [],
       colors: [],
       sizes: [['One Size', 1]],
-      selectedColor: null,
+      // Seed the clicked colour as a stub so the modal's FIRST paint already shows it
+      // (name label + it blocks the colors[0] fallback in openCollectionReviewModal).
+      // The async fetch below replaces it with the full colour object (same name), so
+      // there's no "first colour, then the one you clicked" flash. Paired with passing
+      // the clicked swatch's image as productImage at the call site.
+      selectedColor: preselectColorName ? { color_name: preselectColorName } : null,
       selectedSize: null,
       weightLb: parseFloat(productWeightLb) || 0.5,
       quantity: 1
@@ -3027,7 +3032,9 @@ function updateCountdown() {
     var payload = {};
     try { payload = JSON.parse(decodeURIComponent(row.dataset.quickAdd || '{}')); }
     catch (_) { showToast('Unable to open product options'); return; }
-    colQuickAdd(payload.productId, payload.title, payload.price, payload.sku, payload.image, payload.weightLb, payload.panelId, null, sw.dataset.colorName || null);
+    // Pass the CLICKED swatch's image (not the product default) so the modal's first
+    // paint shows the colour the shopper clicked, not the first colour then a swap.
+    colQuickAdd(payload.productId, payload.title, payload.price, payload.sku, sw.dataset.img || payload.image, payload.weightLb, payload.panelId, null, sw.dataset.colorName || null);
   }, true);
 
   var _collectionReviewItem = null;
