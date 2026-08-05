@@ -4440,6 +4440,12 @@ function openFindSizeModal() {
         box.style.setProperty('transform', 'translateY(0)', 'important');   // slide up
       });
     });
+  } else {
+    // Desktop: apply the admin scrim directly (inline, !important) so the backdrop is
+    // guaranteed — don't depend on the clearBackdrop MutationObserver having fired.
+    m.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+    m.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+    m.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
   }
   if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = 'hidden';
   setTimeout(() => { const h = document.getElementById('fs-height'); if (h) h.focus(); }, 60);
