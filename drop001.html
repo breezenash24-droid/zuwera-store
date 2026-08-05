@@ -2317,7 +2317,7 @@ function updateCountdown() {
             if (window.__zwApplyCollectionCols) window.__zwApplyCollectionCols(cta && cta.collection_cols);
             if (window.__zwApplyCardFit) window.__zwApplyCardFit(cta && cta.card_fit === 'contain' ? 'contain' : 'cover');
             window.__zwCardGalleryLoop = !!(cta && cta.card_loop);   // global gallery loop opt-in
-            window.__zwCardLoopStyle = (cta && cta.card_loop_style === 'rewind') ? 'rewind' : 'seamless';
+            window.__zwCardLoopStyle = (cta && /^(seamless|rewind|fade|instant)$/.test(cta.card_loop_style)) ? cta.card_loop_style : 'seamless';
           }
           else if (row.key === 'theme' && row.value) {
             const mode = row.value.mode === 'dark' ? 'dark' : row.value.mode === 'super-light' ? 'super-light' : 'light';
@@ -2864,8 +2864,36 @@ function updateCountdown() {
   // then silently snap the scroll back — last→first reads as a normal advance, not a
   // rewind sweep. Rewind: the old behaviour (smooth-scroll all the way back).
   function zwCardLoopStyle(){
-    var s = window.__zwCardLoopStyle || (window.__zwCollPageCfg || {}).card_loop_style;
-    return s === 'rewind' ? 'rewind' : 'seamless';
+    var s = String(window.__zwCardLoopStyle || (window.__zwCollPageCfg || {}).card_loop_style || '').toLowerCase();
+    return /^(rewind|fade|instant)$/.test(s) ? s : 'seamless';
+  }
+  // Fade: dim the whole strip out, jump to the first/last shot, fade it back — a soft
+  // cross-dissolve wrap with no sideways travel.
+  function zwFadeWrap(car, toStart){
+    if (!car || car.__ccWrap) return;
+    var n = car.children.length, w = car.clientWidth || 1; if (n < 2) return;
+    car.__ccWrap = true;
+    var prevSnap = car.style.scrollSnapType;
+    car.style.scrollSnapType = 'none';
+    car.style.transition = 'opacity .17s ease';
+    car.style.opacity = '0';
+    setTimeout(function(){
+      car.scrollLeft = toStart ? 0 : (n - 1) * w;
+      car.style.opacity = '1';
+      var dots = car.parentElement && car.parentElement.querySelector('.zw-cc-dots');
+      if (dots){ var di = toStart ? 0 : (n - 1); for (var i = 0; i < dots.children.length; i++) dots.children[i].classList.toggle('on', i === di); }
+      setTimeout(function(){ car.style.transition = ''; car.style.scrollSnapType = prevSnap || ''; car.__ccWrap = false; }, 190);
+    }, 175);
+  }
+  // Instant: jump straight to the first/last shot, no motion.
+  function zwInstantWrap(car, toStart){
+    var n = car.children.length, w = car.clientWidth || 1; if (n < 2) return;
+    var prevSnap = car.style.scrollSnapType;
+    car.style.scrollSnapType = 'none';
+    car.scrollLeft = toStart ? 0 : (n - 1) * w;
+    car.style.scrollSnapType = prevSnap || '';
+    var dots = car.parentElement && car.parentElement.querySelector('.zw-cc-dots');
+    if (dots){ var di = toStart ? 0 : (n - 1); for (var i = 0; i < dots.children.length; i++) dots.children[i].classList.toggle('on', i === di); }
   }
   function zwSeamlessWrap(car, toStart){
     if (!car || car.__ccWrap) return;
@@ -2899,10 +2927,13 @@ function updateCountdown() {
     requestAnimationFrame(step);
   }
   function zwCardWrap(car, toStart){
-    if (zwCardLoopStyle() === 'rewind') {
+    var st = zwCardLoopStyle();
+    if (st === 'rewind') {
       var w = car.clientWidth || 1, max = car.scrollWidth - w;
       car.scrollTo({ left: toStart ? 0 : max, behavior: 'smooth' });
-    } else { zwSeamlessWrap(car, toStart); }
+    } else if (st === 'fade') { zwFadeWrap(car, toStart); }
+    else if (st === 'instant') { zwInstantWrap(car, toStart); }
+    else { zwSeamlessWrap(car, toStart); }
   }
 
   // Desktop nav-arrow clicks — advance one slide (touch users swipe instead).

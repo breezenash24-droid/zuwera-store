@@ -2383,7 +2383,7 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       window.__zwApplyCardMode((cta && cta.mode === 'color-swatches') ? 'color-swatches' : 'add-to-bag');
       window.__zwApplyCardFit(cta && cta.card_fit === 'contain' ? 'contain' : 'cover');
       window.__zwCardGalleryLoop = !!(cta && cta.card_loop);   // gallery loop opt-in (quick-add modal etc.)
-      window.__zwCardLoopStyle = (cta && cta.card_loop_style === 'rewind') ? 'rewind' : 'seamless';
+      window.__zwCardLoopStyle = (cta && /^(seamless|rewind|fade|instant)$/.test(cta.card_loop_style)) ? cta.card_loop_style : 'seamless';
     }
 
     // 1. brand
