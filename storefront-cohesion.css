@@ -3738,7 +3738,10 @@ body.light-mode .quick-add-gallery-arrow{background:rgba(9,9,11,.55);border-colo
    container and stops a sticky `top` toggle from re-evaluating). Reduced-motion
    keeps the header shown. */
 nav#nav, header.nav, nav.nav, nav.zw-nav{
-  transition: transform .35s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)), background .35s, border-color .35s, box-shadow .35s, padding .35s !important;
+  /* `top .3s` added so the header RISES smoothly into the announcement bar's space as
+     the bar slides out (was missing → the nav's top jumped instantly). Matches the bar
+     slide duration for a synced push. reduced-motion is handled by the global guard. */
+  transition: top .3s cubic-bezier(.32,.72,0,1), transform .35s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)), background .35s, border-color .35s, box-shadow .35s, padding .35s !important;
 }
 nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-nav.zw-nav-hidden{
   transform: translateY(-110%) !important;

@@ -2298,30 +2298,39 @@ function applyAnnouncementBar(mode, msgText) {
     return;
   }
 
-  // Content-push: the bar FOLDS its height while the nav (transition:top) and the
-  // spacer collapse in lockstep, so the page pushes up to fill — no overlay slide.
-  // All three pieces share this exact duration/easing so they move as one; opacity
-  // matches the fold so the text never shows in a half-height bar on reveal.
-  // Ease-out (fast start, gentle settle) so it feels snappy, not laggy like `ease`.
-  barEl.style.transition = 'max-height 0.25s cubic-bezier(.32,.72,0,1), padding 0.25s cubic-bezier(.32,.72,0,1), opacity 0.25s cubic-bezier(.32,.72,0,1)';
+  // Push-out (desktop): the bar SLIDES up out of the viewport (transform → GPU, no
+  // reflow) while the nav RISES into its place (nav `top`, now transitioned in
+  // cohesion) and the spacer collapses — all at the same 0.3s, so the bar's bottom
+  // edge tracks the nav's top edge and the header visibly PUSHES the bar out (not a
+  // fold/fade in place). Opacity/display stay up DURING the slide so header-scroll.js
+  // still sees the bar as present and won't hide the header mid-push; the bar is
+  // marked gone only once it's fully out, so the header's own auto-hide then resumes.
+  const _barReduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const _barDur = _barReduce ? '0s' : '0.3s';
+  const spacerEl = document.getElementById('bar-spacer');
+  if (spacerEl) spacerEl.style.transition = 'height ' + _barDur + ' cubic-bezier(.32,.72,0,1)';
+  barEl.style.transition = 'none';            // don't animate the bar's first paint
+  barEl.style.transform = 'translateY(0)';
+  barEl.style.willChange = 'transform';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    barEl.style.transition = 'transform ' + _barDur + ' cubic-bezier(.32,.72,0,1)';
+  }));
   let lastScrollY = window.scrollY;
   let isHidden = false;
   const scrollActivationAt = Date.now() + 150;
   let _barHideTimer = null;
-  const spacerEl = document.getElementById('bar-spacer');
   const syncAnnouncementState = (hidden) => {
     clearTimeout(_barHideTimer);
     if (hidden) {
-      zwSetBarFold(barEl, true);
-      if (spacerEl) spacerEl.style.height = '0';
-      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); }, 290);
+      barEl.style.transform = 'translateY(-100%)';                 // slide up & out
+      setAnnouncementBarLayout(barEl, navEl, false);               // nav rises, spacer collapses
+      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); }, _barReduce ? 0 : 340);
     } else {
       barEl.style.display = 'flex';
-      void barEl.offsetHeight;
-      zwSetBarFold(barEl, false);
-      if (spacerEl) spacerEl.style.height = barEl.offsetHeight + 'px';
+      void barEl.offsetHeight;                                     // render at its current (hidden) position first
+      barEl.style.transform = 'translateY(0)';                     // then slide back down into place
+      setAnnouncementBarLayout(barEl, navEl, true);                // nav lowers, spacer expands
     }
-    setAnnouncementBarLayout(barEl, navEl, !hidden);
   };
   syncAnnouncementState(false);
   _announcementBarScrollHandler = function() {
@@ -2329,10 +2338,9 @@ function applyAnnouncementBar(mode, msgText) {
     if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { lastScrollY = currentY; return; }
     if (Date.now() < scrollActivationAt) { lastScrollY = currentY; return; }
     const scrollingDown = currentY > lastScrollY + 6;
-    const scrollingUp = currentY < lastScrollY - 6;
-    // 'scroll' reappears at the top / on scroll-up; 'scrolloff' hides once and
-    // detaches, so it stays gone until the page is reopened.
-    if (normalizedMode !== 'scrolloff' && (currentY <= 16 || scrollingUp)) {
+    // Reappear ONLY at the very top (scrolled all the way up), not on every scroll-up.
+    // 'scrolloff' hides once and detaches, so it stays gone until the page is reopened.
+    if (normalizedMode !== 'scrolloff' && currentY <= 16) {
       if (isHidden) { isHidden = false; syncAnnouncementState(false); }
     } else if (currentY > 40 && scrollingDown) {
       if (!isHidden) {
