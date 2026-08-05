@@ -2497,9 +2497,13 @@ function updateCountdown() {
             const thumbStyle = src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`;
             const _cm = _carOn ? zwCardMedia(p, c.id, _carVids) : [];
             const imgsAttr = (_carOn && _cm.length) ? ` data-imgs="${esc(encodeURIComponent(JSON.stringify(_cm)))}"` : '';
+            // Colour-facet bucket for this swatch — same key space as the filter
+            // (plpProductColors), so the active colour filter can auto-select the
+            // matching swatch after render (see the preview pass in renderProducts).
+            const _bkt = plpGrainBucket(plpColorBucket(c.hex_color)) || '';
             // First swatch active on load — its colour is the one shown on the card,
             // so the selected-bar (Nike-style) sits under it from the start.
-            return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-img="${esc(src)}"${imgsAttr} title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
+            return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-color-bucket="${esc(_bkt)}" data-img="${esc(src)}"${imgsAttr} title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
           }).join('');
           return `<div class="zw-card-swatches" data-quick-add="${payload}">${html}</div>`;
         };
@@ -2594,6 +2598,20 @@ function updateCountdown() {
             </a>`;
         }).join('');
         refreshCollectionFavoriteButtons();
+        // Colour filter → auto-select that colour on each card. For every card, pick
+        // the FIRST-clicked active colour the card actually has and preview its swatch
+        // (image + active state), so a shopper filtering by e.g. Pink sees the pink
+        // colourway on each product without clicking. Re-runs on every render, so it
+        // stays correct as filters change; clearing the colour filter restores defaults.
+        if (activeColors.size && typeof _zwPreviewSwatch === 'function') {
+          var _pvOrder = Array.from(activeColors);
+          grid.querySelectorAll('.zw-card-swatches').forEach(function (row) {
+            for (var _i = 0; _i < _pvOrder.length; _i++) {
+              var _sw = row.querySelector('.zw-card-swatch[data-color-bucket="' + _pvOrder[_i] + '"]');
+              if (_sw) { _zwPreviewSwatch(_sw); break; }
+            }
+          });
+        }
       }
     })();
   </script>
@@ -2966,6 +2984,18 @@ function updateCountdown() {
   function _zwSetActiveSwatch(sw) {
     var row = sw.closest('.zw-card-swatches');
     if (row) row.querySelectorAll('.zw-card-swatch').forEach(function (s) { s.classList.toggle('active', s === sw); });
+  }
+  // Programmatically preview a swatch's colour on its card — same effect as hovering
+  // it: rebuild the carousel for that colour (carousel mode) or swap the still image,
+  // then mark it active. Used by the collection colour filter to auto-select the
+  // filtered colour so the card shows it without the shopper clicking.
+  function _zwPreviewSwatch(sw) {
+    if (!sw) return;
+    var card = sw.closest('.product-card');
+    if (zwRebuildCardCarousel(card, sw)) { _zwSetActiveSwatch(sw); return; }
+    var img = card && card.querySelector('.product-img img');
+    if (img && sw.dataset.img) img.setAttribute('src', sw.dataset.img);
+    _zwSetActiveSwatch(sw);
   }
   document.addEventListener('mouseover', function (e) {
     var sw = e.target.closest('.zw-card-swatch'); if (!sw || sw.classList.contains('zw-swatch-more')) return;
