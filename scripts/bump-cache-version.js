@@ -87,3 +87,17 @@ const summary = Object.entries(hashes)
   .join('\n');
 
 console.log(`\n[asset-versions] ${changedFiles} HTML file(s) updated.\n${summary}\n`);
+
+// Emit a build id for the client-side auto-reload (version-check in header-scroll.js).
+// It's a hash of every shipped asset hash + the cache-bust salt, so it changes on
+// every real code deploy (any JS/CSS byte change or a CACHE_BUST bump) and stays
+// identical for a no-op redeploy — so open tabs only reload when there's actually a
+// new version. Served no-store (see _headers) so the client always sees the latest.
+const buildId = crypto
+  .createHash('sha256')
+  .update(CACHE_BUST)
+  .update(JSON.stringify(hashes))
+  .digest('hex')
+  .slice(0, 12);
+fs.writeFileSync(path.join(root, 'version.json'), JSON.stringify({ build: buildId }) + '\n');
+console.log(`[asset-versions] build id: ${buildId} -> version.json\n`);
