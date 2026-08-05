@@ -531,6 +531,10 @@ body[data-mbd-int="heavy"]{ --zw-mbd-int:1.5; }
 /* Brand tint — AFTER the treatment rules so it wins the source-order tie against
    frost's white (equal specificity). Pink dim / blur / frost. */
 body[data-mbd-tint="brand"]{ --zw-mbd-rgb:248,145,165; }
+/* Frost on a LIGHT page: a white frost over a white/super-light page is invisible, so
+   use a dark smoked-glass frost instead (higher specificity wins; brand tint is
+   excluded so a pink frost still wins). Dark theme keeps the white frost. */
+:is(body.light-mode, body.super-light-mode):is([data-mbd-lg="frost"], [data-mbd-md="frost"], [data-mbd-sm="frost"]):not([data-mbd-tint="brand"]){ --zw-mbd-rgb:24,24,28; }
 .modal,
 #zw-lang-modal{
   background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important;

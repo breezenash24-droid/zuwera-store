@@ -4755,7 +4755,10 @@ function scrollToNotify() {
 
   function observe(el) {
     clearBackdrop(el);
-    attrObs.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
+    // Watch only 'class' (open/close), NOT 'style' — clearBackdrop writes 'style' and on
+    // some browsers re-setting an identical value re-fires the observer → loop → frozen
+    // main thread (taps on modals/accordions stop working).
+    attrObs.observe(el, { attributes: true, attributeFilter: ['class'] });
   }
 
   function init() {
