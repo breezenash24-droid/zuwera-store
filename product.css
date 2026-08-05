@@ -132,10 +132,41 @@
   from { opacity: 0.3; transform: translateX(-32%); }
   to   { opacity: 1;   transform: translateX(0); }
 }
+
+/* ── Admin-selectable gallery animations (site_settings.theme.gallery_anim) ──
+   storefront-theme.js sets body[data-gal-load] (colorway switch / first paint) and
+   body[data-gal-scroll] (arrows / swipe / thumbnails). The JS keeps adding the same
+   zw-img-in / zw-slide-next / zw-slide-prev classes; these rules only swap the
+   animation-NAME, so duration/easing/fill from the base shorthand carry over.
+   Unset → the defaults above (fade / slide). */
+/* Load animation variants */
+body[data-gal-load="zoom"] .main-image.zw-img-in { animation-name: zwGalLoadZoom; }
+body[data-gal-load="blur"] .main-image.zw-img-in { animation-name: zwGalLoadBlur; }
+body[data-gal-load="rise"] .main-image.zw-img-in { animation-name: zwGalLoadRise; }
+body[data-gal-load="none"] .main-image.zw-img-in { animation: none; }
+@keyframes zwGalLoadZoom { from { opacity: 0; transform: scale(1.14); } to { opacity: 1; transform: scale(1); } }
+@keyframes zwGalLoadBlur { from { opacity: 0; filter: blur(16px); }      to { opacity: 1; filter: blur(0); } }
+@keyframes zwGalLoadRise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: translateY(0); } }
+/* Scroll animation variants (some are directional → separate next/prev) */
+body[data-gal-scroll="fade"] .main-image.zw-slide-next,
+body[data-gal-scroll="fade"] .main-image.zw-slide-prev { animation-name: zwGalScrollFade; }
+body[data-gal-scroll="zoom"] .main-image.zw-slide-next { animation-name: zwGalScrollZoomNext; }
+body[data-gal-scroll="zoom"] .main-image.zw-slide-prev { animation-name: zwGalScrollZoomPrev; }
+body[data-gal-scroll="push"] .main-image.zw-slide-next { animation-name: zwGalScrollPushNext; }
+body[data-gal-scroll="push"] .main-image.zw-slide-prev { animation-name: zwGalScrollPushPrev; }
+body[data-gal-scroll="none"] .main-image.zw-slide-next,
+body[data-gal-scroll="none"] .main-image.zw-slide-prev { animation: none; }
+@keyframes zwGalScrollFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes zwGalScrollZoomNext { from { opacity: 0; transform: scale(1.12) translateX(9%); }  to { opacity: 1; transform: scale(1) translateX(0); } }
+@keyframes zwGalScrollZoomPrev { from { opacity: 0; transform: scale(1.12) translateX(-9%); } to { opacity: 1; transform: scale(1) translateX(0); } }
+@keyframes zwGalScrollPushNext { from { opacity: .4; transform: translateX(100%); }  to { opacity: 1; transform: translateX(0); } }
+@keyframes zwGalScrollPushPrev { from { opacity: .4; transform: translateX(-100%); } to { opacity: 1; transform: translateX(0); } }
+
 @media (prefers-reduced-motion: reduce) {
+  /* !important so it beats the higher-specificity body[data-gal-*] selectors above. */
   .main-image.zw-img-in,
   .main-image.zw-slide-next,
-  .main-image.zw-slide-prev { animation: none; }
+  .main-image.zw-slide-prev { animation: none !important; }
 }
 
 .main-image {
