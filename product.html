@@ -4423,14 +4423,18 @@ function openFindSizeModal() {
     box.style.setProperty('animation', 'none', 'important');
     box.style.setProperty('transition', 'none', 'important');
     box.style.setProperty('transform', 'translateY(100%)', 'important');
-    m.style.setProperty('transition', 'background .28s ease', 'important');
-    m.style.setProperty('background', 'rgba(9,9,11,0)', 'important');
+    m.style.setProperty('transition', 'background .28s ease, backdrop-filter .28s ease', 'important');
+    m.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),0)', 'important');   // fade from transparent
   }
   m.classList.add('open');
   m.setAttribute('aria-hidden', 'false');
   if (isSheet && box) {
     requestAnimationFrame(() => {
-      m.style.setProperty('background', 'rgba(9,9,11,.55)', 'important');   // fade scrim in
+      // Fade in the admin modal-backdrop scrim (not a hardcoded dim) — inline so it
+      // beats the page cascade, and follows the Dim/Blur/Frost/None + intensity setting.
+      m.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+      m.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+      m.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
       requestAnimationFrame(() => {
         box.style.setProperty('transition', 'transform .4s cubic-bezier(.32,.72,0,1)', 'important');
         box.style.setProperty('transform', 'translateY(0)', 'important');   // slide up
