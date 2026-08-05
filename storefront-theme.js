@@ -310,7 +310,7 @@
           var modals = _bd.modals || {};
           var REG = {
             login: '#zwlg-modal', language: '#zw-lang-modal', filter: '.plp-fm',
-            findsize: '#find-size-modal', sizefit: '#size-fit-modal',
+            findsize: '.zwf-modal,#find-size-modal', sizefit: '#size-fit-modal',
             reviews: '#all-reviews-modal,#review-modal', quickadd: '.quick-add-review-modal',
             collectionreview: '.collection-review-modal', bag: '.zwf-bag', search: '.zwf-search'
           };

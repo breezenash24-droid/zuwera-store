@@ -304,12 +304,14 @@
       '.zwf-fit-btn:hover{opacity:1}',
 
       /* shared modal (fit finder) — cream panel that reads on both themes */
-      /* No dim. Same rule the search and bag panels follow — the page behind stays
-         exactly as it is. The box carries its own shadow and hairline instead, which
-         it needs anyway now that it's page-coloured: on super-light both the modal
-         and the page are pure white, so the dim was the only thing separating them. */
-      '.zwf-modal{position:fixed;inset:0;z-index:4100;display:flex;align-items:center;justify-content:center;padding:1.2rem;background:transparent;opacity:0;pointer-events:none;transition:opacity .22s ease}',
-      '.zwf-modal.open{opacity:1;pointer-events:auto}',
+      /* Backdrop follows the admin modal-backdrop system (Dim/Blur/Frost/None +
+         intensity + tint), exactly like the bag & search panels above: the scrim
+         is painted on `.open` from the inherited --zw-mbd-* vars. This is the modal
+         the "Find your size" button actually opens — the product page's
+         #find-size-modal is an unreferenced duplicate. The box keeps its own shadow
+         + hairline so it still reads on super-light even when None is chosen. */
+      '.zwf-modal{position:fixed;inset:0;z-index:4100;display:flex;align-items:center;justify-content:center;padding:1.2rem;background:transparent;opacity:0;pointer-events:none;transition:opacity .22s ease,background .22s ease,backdrop-filter .22s ease}',
+      '.zwf-modal.open{opacity:1;pointer-events:auto;background:rgba(var(--zw-mbd-rgb),var(--zw-mbd-a));backdrop-filter:var(--zw-mbd-blur,none);-webkit-backdrop-filter:var(--zw-mbd-blur,none)}',
       /* Page-coloured, not hardcoded cream. #f4f1eb is the dark theme's paper, so on
          super-light (white page) the modal read as a cream slab that belonged to a
          different site. --zw-page/--zw-ink are what the bag panel already uses, so it
