@@ -324,7 +324,7 @@
         let themeMode = 'dark'; // 'dark' | 'light' | 'super-light'
         let modalAccent = 'a';  // 'a' | 'b' | 'c' — how far the modal pink reaches (site_settings.theme.modal_accent)
         // site_settings.theme.gallery_anim — product-page main-image animations.
-        let galleryAnim = { load: 'fade', scroll: 'slide', speed: 'normal' };
+        let galleryAnim = { load: 'fade', scroll: 'slide', load_speed: 'normal', scroll_speed: 'normal' };
         // site_settings.theme.modal_backdrop — global per-device treatment + style
         // options + per-page overrides. Treatments: dim|blur|frost|none.
         let modalBackdrop = {
@@ -600,8 +600,9 @@
             var r = function (inner) { return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px">' + inner + '</div>'; };
             host.innerHTML =
                 r(rowLbl('Scroll animation (arrows / swipe / thumbnails)') + _galSelect('scroll', galleryAnim.scroll, GAL_SCROLL_OPTS))
+                + r(rowLbl('Scroll speed') + _galSelect('scroll_speed', galleryAnim.scroll_speed, GAL_SPEED_OPTS))
                 + r(rowLbl('Load animation (colorway switch / first paint)') + _galSelect('load', galleryAnim.load, GAL_LOAD_OPTS))
-                + r(rowLbl('Speed') + _galSelect('speed', galleryAnim.speed, GAL_SPEED_OPTS));
+                + r(rowLbl('Load speed') + _galSelect('load_speed', galleryAnim.load_speed, GAL_SPEED_OPTS));
         };
         async function _saveGal() {
             const ok = await saveThemeSettings({ gallery_anim: galleryAnim });
@@ -610,7 +611,8 @@
         window.setGalAnim = function (kind, val) {
             if (kind === 'load' && GAL_LOAD_OPTS.some(function (o) { return o[0] === val; })) galleryAnim.load = val;
             else if (kind === 'scroll' && GAL_SCROLL_OPTS.some(function (o) { return o[0] === val; })) galleryAnim.scroll = val;
-            else if (kind === 'speed' && GAL_SPEED_OPTS.some(function (o) { return o[0] === val; })) galleryAnim.speed = val;
+            else if (kind === 'load_speed' && GAL_SPEED_OPTS.some(function (o) { return o[0] === val; })) galleryAnim.load_speed = val;
+            else if (kind === 'scroll_speed' && GAL_SPEED_OPTS.some(function (o) { return o[0] === val; })) galleryAnim.scroll_speed = val;
             else return;
             _saveGal();
         };
@@ -644,7 +646,11 @@
                         var _gv = val.gallery_anim;
                         if (GAL_LOAD_OPTS.some(function (o) { return o[0] === _gv.load; })) galleryAnim.load = _gv.load;
                         if (GAL_SCROLL_OPTS.some(function (o) { return o[0] === _gv.scroll; })) galleryAnim.scroll = _gv.scroll;
-                        if (GAL_SPEED_OPTS.some(function (o) { return o[0] === _gv.speed; })) galleryAnim.speed = _gv.speed;
+                        // Migrate the old single `speed` → both, unless split values are present.
+                        var _okSp = function (x) { return GAL_SPEED_OPTS.some(function (o) { return o[0] === x; }); };
+                        var _oldSp = _okSp(_gv.speed) ? _gv.speed : null;
+                        galleryAnim.load_speed = _okSp(_gv.load_speed) ? _gv.load_speed : (_oldSp || galleryAnim.load_speed);
+                        galleryAnim.scroll_speed = _okSp(_gv.scroll_speed) ? _gv.scroll_speed : (_oldSp || galleryAnim.scroll_speed);
                     }
                 }
             } catch (_) {}

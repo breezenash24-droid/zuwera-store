@@ -162,18 +162,21 @@ body[data-gal-scroll="none"] .main-image.zw-slide-prev { animation: none; }
 @keyframes zwGalScrollPushNext { from { opacity: .4; transform: translateX(100%); }  to { opacity: 1; transform: translateX(0); } }
 @keyframes zwGalScrollPushPrev { from { opacity: .4; transform: translateX(-100%); } to { opacity: 1; transform: translateX(0); } }
 
-/* Animation timing (site_settings.theme.gallery_anim.speed → body[data-gal-speed]).
-   Only overrides animation-duration, so it composes with any load/scroll style above.
-   Unset / "normal" = the base .4s. */
-body[data-gal-speed="fast"]   .main-image.zw-img-in,
-body[data-gal-speed="fast"]   .main-image.zw-slide-next,
-body[data-gal-speed="fast"]   .main-image.zw-slide-prev   { animation-duration: .22s; }
-body[data-gal-speed="slow"]   .main-image.zw-img-in,
-body[data-gal-speed="slow"]   .main-image.zw-slide-next,
-body[data-gal-speed="slow"]   .main-image.zw-slide-prev   { animation-duration: .65s; }
-body[data-gal-speed="slower"] .main-image.zw-img-in,
-body[data-gal-speed="slower"] .main-image.zw-slide-next,
-body[data-gal-speed="slower"] .main-image.zw-slide-prev   { animation-duration: .95s; }
+/* Animation timing — split per animation (theme.gallery_anim.load_speed /
+   .scroll_speed → body[data-gal-load-speed] / body[data-gal-scroll-speed]), mirroring
+   the split load/scroll styles. Only overrides animation-duration, so it composes with
+   any style above. Unset / "normal" = the base .4s. */
+/* Load speed (colorway switch / first paint) */
+body[data-gal-load-speed="fast"]   .main-image.zw-img-in { animation-duration: .22s; }
+body[data-gal-load-speed="slow"]   .main-image.zw-img-in { animation-duration: .65s; }
+body[data-gal-load-speed="slower"] .main-image.zw-img-in { animation-duration: .95s; }
+/* Scroll speed (arrows / swipe / thumbnails) */
+body[data-gal-scroll-speed="fast"]   .main-image.zw-slide-next,
+body[data-gal-scroll-speed="fast"]   .main-image.zw-slide-prev { animation-duration: .22s; }
+body[data-gal-scroll-speed="slow"]   .main-image.zw-slide-next,
+body[data-gal-scroll-speed="slow"]   .main-image.zw-slide-prev { animation-duration: .65s; }
+body[data-gal-scroll-speed="slower"] .main-image.zw-slide-next,
+body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-duration: .95s; }
 
 @media (prefers-reduced-motion: reduce) {
   /* !important so it beats the higher-specificity body[data-gal-*] selectors above. */
