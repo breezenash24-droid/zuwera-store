@@ -2989,6 +2989,25 @@ function updateCountdown() {
   function _zwSetActiveSwatch(sw) {
     var row = sw.closest('.zw-card-swatches');
     if (row) row.querySelectorAll('.zw-card-swatch').forEach(function (s) { s.classList.toggle('active', s === sw); });
+    // Reflect the shown colour in the card's product link so clicking THROUGH to the
+    // product page opens it on this colour (?color=name, which product.html deep-links)
+    // instead of always the first swatch. Works for hover, filter auto-select and tap.
+    _zwSetCardLinkColor(sw);
+  }
+  // Rewrite the card's <a href> to carry the active swatch's colour. The colour-less
+  // base href is stashed once in data-baseHref so switching colours (or back to the
+  // default) never stacks params. Middle-click / open-in-new-tab keep the colour too.
+  function _zwSetCardLinkColor(sw) {
+    var card = sw && sw.closest('.product-card');
+    var link = card && card.closest('a[href]');
+    if (!link) return;
+    if (!link.dataset.baseHref) link.dataset.baseHref = link.getAttribute('href') || '';
+    var base = link.dataset.baseHref;
+    if (!base) return;
+    var name = sw.classList.contains('zw-swatch-more') ? '' : (sw.dataset.colorName || '');
+    if (!name) { link.setAttribute('href', base); return; }
+    var sep = base.indexOf('?') >= 0 ? '&' : '?';
+    link.setAttribute('href', base + sep + 'color=' + encodeURIComponent(name));
   }
   // Programmatically preview a swatch's colour on its card — same effect as hovering
   // it: rebuild the carousel for that colour (carousel mode) or swap the still image,
