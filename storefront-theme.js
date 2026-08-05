@@ -286,10 +286,13 @@
         var _ga = row.value.gallery_anim, _gbody = document.body;
         var _loadOk = { fade: 1, zoom: 1, blur: 1, rise: 1, none: 1 };
         var _scrollOk = { slide: 1, fade: 1, zoom: 1, push: 1, none: 1 };
+        var _spOk = { normal: 1, fast: 1, slow: 1, slower: 1 };
         var _gl = String(_ga.load || 'fade').toLowerCase();
         var _gs = String(_ga.scroll || 'slide').toLowerCase();
+        var _sp = String(_ga.speed || 'normal').toLowerCase();
         _gbody.setAttribute('data-gal-load', _loadOk[_gl] ? _gl : 'fade');
         _gbody.setAttribute('data-gal-scroll', _scrollOk[_gs] ? _gs : 'slide');
+        _gbody.setAttribute('data-gal-speed', _spOk[_sp] ? _sp : 'normal');
       }
       // Modal backdrop treatment (theme.modal_backdrop). Resolve the treatment for
       // THIS page group (home | shop | checkout | account) — a per-page override in
