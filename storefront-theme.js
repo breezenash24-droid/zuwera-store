@@ -289,10 +289,14 @@
         var _spOk = { normal: 1, fast: 1, slow: 1, slower: 1 };
         var _gl = String(_ga.load || 'fade').toLowerCase();
         var _gs = String(_ga.scroll || 'slide').toLowerCase();
-        var _sp = String(_ga.speed || 'normal').toLowerCase();
+        // Split load/scroll speeds; fall back to the old single `speed` for configs
+        // saved before the split.
+        var _lsp = String(_ga.load_speed || _ga.speed || 'normal').toLowerCase();
+        var _ssp = String(_ga.scroll_speed || _ga.speed || 'normal').toLowerCase();
         _gbody.setAttribute('data-gal-load', _loadOk[_gl] ? _gl : 'fade');
         _gbody.setAttribute('data-gal-scroll', _scrollOk[_gs] ? _gs : 'slide');
-        _gbody.setAttribute('data-gal-speed', _spOk[_sp] ? _sp : 'normal');
+        _gbody.setAttribute('data-gal-load-speed', _spOk[_lsp] ? _lsp : 'normal');
+        _gbody.setAttribute('data-gal-scroll-speed', _spOk[_ssp] ? _ssp : 'normal');
       }
       // Modal backdrop treatment (theme.modal_backdrop). Resolve the treatment for
       // THIS page group (home | shop | checkout | account) — a per-page override in
