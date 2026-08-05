@@ -2022,6 +2022,9 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
      hero, sections etc. render in light mode instead of flashing dark until
      deferred storefront.js applies the class. Mirrors what drop001/account do. -->
 <script>(function(){try{var m=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode')||'super-light';if(m==='light')document.body.classList.add('light-mode');else if(m==='super-light')document.body.classList.add('light-mode','super-light-mode');}catch(_){}})()</script>
+<!-- Bag-panel class before the nav (below) so cohesion.css hides the header
+     login/account buttons pre-paint instead of flashing on mobile. -->
+<script>try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on')}catch(_){}</script>
 <!-- Boot cover: themed layer held over the content on a page-builder reload while
      storefront.js reflows the layout, so the reflow doesn't visibly "jump". Shown
      only when html.zw-pb-pending (set synchronously in <head>); faded out by
