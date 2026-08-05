@@ -1831,19 +1831,38 @@ function applyAnnouncementBar(mode, msgText) {
     return;
   }
 
-  // Content-push: fold the bar's height while the nav (transition:top) + spacer
-  // collapse in lockstep, so the product pushes up to fill — no overlay slide.
-  // Shared duration/easing across all three; opacity matches so the text never
-  // shows in a half-height bar on reveal. Ease-out so it feels snappy, not laggy.
-  barEl.style.transition = 'max-height 0.25s cubic-bezier(.32,.72,0,1), padding 0.25s cubic-bezier(.32,.72,0,1), opacity 0.25s cubic-bezier(.32,.72,0,1)';
+  // Push-out (desktop): the bar SLIDES up out of view (transform → GPU) while the nav
+  // RISES into its place (nav `top`, now transitioned in cohesion) and the spacer
+  // collapses — synced 0.3s, so the header visibly PUSHES the bar out (not a fold/fade
+  // in place). Opacity/display stay up during the slide so header-scroll.js keeps the
+  // header shown mid-push; the bar is marked gone only once out, so its auto-hide then
+  // resumes. (Kept in sync with the storefront.js copy of this handler.)
+  const _barReduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const _barDur = _barReduce ? '0s' : '0.3s';
+  const spacerEl2 = document.getElementById('bar-spacer');
+  if (spacerEl2) spacerEl2.style.transition = 'height ' + _barDur + ' cubic-bezier(.32,.72,0,1)';
+  barEl.style.transition = 'none';
+  barEl.style.transform = 'translateY(0)';
+  barEl.style.willChange = 'transform';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    barEl.style.transition = 'transform ' + _barDur + ' cubic-bezier(.32,.72,0,1)';
+  }));
   let lastScrollY = window.scrollY;
   let isHidden = false;
   const scrollActivationAt = Date.now() + 150;
-  const spacerEl2 = document.getElementById('bar-spacer');
+  let _barHideTimer = null;
   const syncAnnouncementState = (hidden) => {
-    zwSetBarFold(barEl, hidden);
-    if (spacerEl2) spacerEl2.style.height = hidden ? '0' : barEl.offsetHeight + 'px';
-    setAnnouncementBarLayout(barEl, navEl, !hidden);
+    clearTimeout(_barHideTimer);
+    if (hidden) {
+      barEl.style.transform = 'translateY(-100%)';                 // slide up & out
+      setAnnouncementBarLayout(barEl, navEl, false);               // nav rises, spacer collapses
+      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; }, _barReduce ? 0 : 340);
+    } else {
+      barEl.style.display = 'flex';
+      void barEl.offsetHeight;                                     // render at its current (hidden) position first
+      barEl.style.transform = 'translateY(0)';                     // then slide back down into place
+      setAnnouncementBarLayout(barEl, navEl, true);                // nav lowers, spacer expands
+    }
   };
   syncAnnouncementState(false);
   _productAnnouncementBarScrollHandler = function() {
@@ -1854,9 +1873,8 @@ function applyAnnouncementBar(mode, msgText) {
       return;
     }
     const scrollingDown = currentY > lastScrollY + 6;
-    const scrollingUp = currentY < lastScrollY - 6;
-
-    if (normalizedMode !== 'scrolloff' && (currentY <= 16 || scrollingUp)) {
+    // Reappear ONLY at the very top (scrolled all the way up), not on every scroll-up.
+    if (normalizedMode !== 'scrolloff' && currentY <= 16) {
       if (isHidden) {
         isHidden = false;
         syncAnnouncementState(false);
