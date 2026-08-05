@@ -1080,6 +1080,12 @@ body.super-light-mode { background: #FFFFFF !important; }
 <script src="consent.js?v=1" defer></script>
 </head>
 <body>
+<!-- Theme classes the instant <body> is parsed — BEFORE the announcement bar + nav
+     below — so the header and banner paint in the cached mode (super-light = white)
+     instead of flashing the default dark until storefront-theme.js applies it ~later.
+     The <head> script already set the page background; this adds the body classes the
+     nav/bar CSS keys off. Mirrors index / drop001 / bag. -->
+<script>try{var _m=localStorage.getItem('zw_theme_mode')||'super-light';if(_m==='light')document.body.classList.add('light-mode');else if(_m==='super-light')document.body.classList.add('light-mode','super-light-mode');}catch(_){}</script>
 <!-- Bag-panel class BEFORE the nav (not after it, where the auth/search script sits):
      when the bag panel is on it hides the header login/account buttons, and setting
      the class here — the instant <body> is parsed, before the <nav> below — means the
