@@ -5319,7 +5319,10 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 
   function observe(el) {
     clearBackdrop(el);
-    attrObs.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
+    // Watch only 'class' (open/close), NOT 'style' — clearBackdrop writes 'style', and
+    // on some browsers setting an identical value still re-fires the observer, which
+    // would loop and freeze the main thread (breaking taps on modals/accordions).
+    attrObs.observe(el, { attributes: true, attributeFilter: ['class'] });
   }
 
   function init() {
