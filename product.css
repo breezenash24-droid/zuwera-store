@@ -162,6 +162,19 @@ body[data-gal-scroll="none"] .main-image.zw-slide-prev { animation: none; }
 @keyframes zwGalScrollPushNext { from { opacity: .4; transform: translateX(100%); }  to { opacity: 1; transform: translateX(0); } }
 @keyframes zwGalScrollPushPrev { from { opacity: .4; transform: translateX(-100%); } to { opacity: 1; transform: translateX(0); } }
 
+/* Animation timing (site_settings.theme.gallery_anim.speed → body[data-gal-speed]).
+   Only overrides animation-duration, so it composes with any load/scroll style above.
+   Unset / "normal" = the base .4s. */
+body[data-gal-speed="fast"]   .main-image.zw-img-in,
+body[data-gal-speed="fast"]   .main-image.zw-slide-next,
+body[data-gal-speed="fast"]   .main-image.zw-slide-prev   { animation-duration: .22s; }
+body[data-gal-speed="slow"]   .main-image.zw-img-in,
+body[data-gal-speed="slow"]   .main-image.zw-slide-next,
+body[data-gal-speed="slow"]   .main-image.zw-slide-prev   { animation-duration: .65s; }
+body[data-gal-speed="slower"] .main-image.zw-img-in,
+body[data-gal-speed="slower"] .main-image.zw-slide-next,
+body[data-gal-speed="slower"] .main-image.zw-slide-prev   { animation-duration: .95s; }
+
 @media (prefers-reduced-motion: reduce) {
   /* !important so it beats the higher-specificity body[data-gal-*] selectors above. */
   .main-image.zw-img-in,

@@ -324,7 +324,7 @@
         let themeMode = 'dark'; // 'dark' | 'light' | 'super-light'
         let modalAccent = 'a';  // 'a' | 'b' | 'c' — how far the modal pink reaches (site_settings.theme.modal_accent)
         // site_settings.theme.gallery_anim — product-page main-image animations.
-        let galleryAnim = { load: 'fade', scroll: 'slide' };
+        let galleryAnim = { load: 'fade', scroll: 'slide', speed: 'normal' };
         // site_settings.theme.modal_backdrop — global per-device treatment + style
         // options + per-page overrides. Treatments: dim|blur|frost|none.
         let modalBackdrop = {
@@ -587,6 +587,7 @@
         // ── Product gallery animation (site_settings.theme.gallery_anim) ──────────
         var GAL_LOAD_OPTS = [['fade', 'Fade'], ['zoom', 'Zoom'], ['blur', 'Blur'], ['rise', 'Rise up'], ['none', 'None']];
         var GAL_SCROLL_OPTS = [['slide', 'Slide'], ['fade', 'Fade'], ['zoom', 'Zoom'], ['push', 'Push'], ['none', 'None']];
+        var GAL_SPEED_OPTS = [['fast', 'Fast (0.22s)'], ['normal', 'Normal (0.4s)'], ['slow', 'Slow (0.65s)'], ['slower', 'Slower (0.95s)']];
         function _galSelect(kind, cur, opts) {
             return '<select onchange="setGalAnim(\'' + kind + '\', this.value)" style="min-width:150px;padding:5px 8px;font-size:.8rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-primary,#fff);color:var(--text-primary)">'
                 + opts.map(function (o) { return '<option value="' + o[0] + '"' + (cur === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('')
@@ -599,7 +600,8 @@
             var r = function (inner) { return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px">' + inner + '</div>'; };
             host.innerHTML =
                 r(rowLbl('Scroll animation (arrows / swipe / thumbnails)') + _galSelect('scroll', galleryAnim.scroll, GAL_SCROLL_OPTS))
-                + r(rowLbl('Load animation (colorway switch / first paint)') + _galSelect('load', galleryAnim.load, GAL_LOAD_OPTS));
+                + r(rowLbl('Load animation (colorway switch / first paint)') + _galSelect('load', galleryAnim.load, GAL_LOAD_OPTS))
+                + r(rowLbl('Speed') + _galSelect('speed', galleryAnim.speed, GAL_SPEED_OPTS));
         };
         async function _saveGal() {
             const ok = await saveThemeSettings({ gallery_anim: galleryAnim });
@@ -608,6 +610,7 @@
         window.setGalAnim = function (kind, val) {
             if (kind === 'load' && GAL_LOAD_OPTS.some(function (o) { return o[0] === val; })) galleryAnim.load = val;
             else if (kind === 'scroll' && GAL_SCROLL_OPTS.some(function (o) { return o[0] === val; })) galleryAnim.scroll = val;
+            else if (kind === 'speed' && GAL_SPEED_OPTS.some(function (o) { return o[0] === val; })) galleryAnim.speed = val;
             else return;
             _saveGal();
         };
@@ -641,6 +644,7 @@
                         var _gv = val.gallery_anim;
                         if (GAL_LOAD_OPTS.some(function (o) { return o[0] === _gv.load; })) galleryAnim.load = _gv.load;
                         if (GAL_SCROLL_OPTS.some(function (o) { return o[0] === _gv.scroll; })) galleryAnim.scroll = _gv.scroll;
+                        if (GAL_SPEED_OPTS.some(function (o) { return o[0] === _gv.speed; })) galleryAnim.speed = _gv.speed;
                     }
                 }
             } catch (_) {}
