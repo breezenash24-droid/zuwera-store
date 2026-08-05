@@ -3840,6 +3840,25 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
   opacity:1; visibility:visible; pointer-events:auto; transform:translateY(0);
   transition:opacity .2s ease, transform .2s ease;
 }
+/* Backdrop behind the open mega panel — follows the admin modal-backdrop scrim
+   (--zw-mbd-* vars: Dim/Blur/Frost/None + intensity + tint) so the page BELOW the
+   header dims/blurs like every modal. A nav ::after covering from just under the
+   header (--zw-megatop) to the viewport bottom, sitting one layer under the panel
+   (z 218 < panel 219) so the nav + panel stay lit and read as one surface. Toggled
+   by `:has()` on any mega item's hover/focus (same mechanism as the border rule
+   below). pointer-events:none so it's purely visual — never blocks the page or eats
+   the hover that keeps the panel open. */
+:is(nav#nav,.nav,header.nav)::after{
+  content:''; position:fixed; top:var(--zw-megatop, 92px); left:0; right:0; bottom:0;
+  background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a));
+  -webkit-backdrop-filter:var(--zw-mbd-blur, none); backdrop-filter:var(--zw-mbd-blur, none);
+  opacity:0; visibility:hidden; pointer-events:none; z-index:218;
+  transition:opacity .2s ease, visibility 0s linear .2s;
+}
+:is(nav#nav,.nav,header.nav):has(.zw-navitem.zw-has-mega:hover)::after,
+:is(nav#nav,.nav,header.nav):has(.zw-navitem.zw-has-mega:focus-within)::after{
+  opacity:1; visibility:visible; transition:opacity .2s ease;
+}
 .zw-mega-col{ display:flex; flex-direction:column; gap:.7rem; min-width:150px; }
 .zw-mega-col h4{
   font-family:var(--fm); font-size:.6rem; letter-spacing:.2em; text-transform:uppercase;
