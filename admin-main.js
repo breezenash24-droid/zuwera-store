@@ -7867,6 +7867,7 @@
         let hasLegal = false, hasFaq = false, hasAbout = false;
         if (!data) return;
         data.forEach(row => {
+            try {
             if (row.key === 'early_access') {
                 const v = row.value || {};
                 const en = document.getElementById('earlyAccessEnabled');
@@ -7876,18 +7877,21 @@
             } else if (row.key === 'announcement_bar') {
                 let v = row.value;
                 try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
+                // Null-guard every element (a missing node used to THROW and abort the
+                // rest of the row's load, leaving the mode radio on its HTML default "On").
+                const _abMain = document.getElementById('settAnnouncementBarMain');
+                const _abProd = document.getElementById('settAnnouncementBarProduct');
+                let mode = 'on';
                 if (typeof v === 'object' && v !== null) {
-                    document.getElementById('settAnnouncementBarMain').value = v.main || '';
-                    document.getElementById('settAnnouncementBarProduct').value = v.product || '';
-                    // Support legacy 'enabled' boolean as well as new 'mode'
-                    let mode = v.mode;
-                    if (!mode) mode = (v.enabled === false) ? 'off' : 'on';
-                    const modeRadio = document.querySelector(`input[name="announcementBarMode"][value="${mode}"]`);
-                    if (modeRadio) modeRadio.checked = true;
-                } else {
-                    document.getElementById('settAnnouncementBarMain').value = typeof v === 'string' ? v : '';
-                    document.getElementById('settAnnouncementModeOn').checked = true;
+                    if (_abMain) _abMain.value = v.main || '';
+                    if (_abProd) _abProd.value = v.product || '';
+                    mode = v.mode || ((v.enabled === false) ? 'off' : 'on');
+                } else if (_abMain) {
+                    _abMain.value = typeof v === 'string' ? v : '';
                 }
+                // Set EVERY radio explicitly (check the saved mode, uncheck the rest) so
+                // the static `checked` on "On" can never override the loaded value.
+                document.querySelectorAll('input[name="announcementBarMode"]').forEach(r => { r.checked = (r.value === mode); });
             } else if (row.key === 'header_behavior') {
                 let v = row.value;
                 try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
@@ -7949,6 +7953,7 @@
                 try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
                 if (window._zwFillNavMenu) window._zwFillNavMenu(Array.isArray(v) ? v : []);
             }
+            } catch (_rowErr) { console.warn('[settings] failed to load row', row && row.key, _rowErr); }
         });
         if (!hasTechs) {
             window._loadedTechs = fallbackTechDict;
