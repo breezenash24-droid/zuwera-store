@@ -2067,6 +2067,25 @@
                             <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Product Page Banner (optional, defaults to main)</label>
                             <input type="text" id="settAnnouncementBarProduct" class="form-input" placeholder="e.g. EARLY ACCESS DROP 001 - SHIPS FREE" style="width:100%;">
                         </div>
+                        <div style="border-top:1px solid var(--border);margin:18px 0 14px;padding-top:16px;">
+                            <div style="font-size:.9rem;letter-spacing:.04em;margin-bottom:4px;">Other pages</div>
+                            <div style="font-size:.75rem;color:var(--text-secondary);margin-bottom:12px;">Put the bar on the rest of the storefront (uses the mode above). Text and toggles apply on desktop, tablet &amp; mobile.</div>
+                            <div style="margin-bottom:14px;">
+                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Banner text for other pages</label>
+                                <input type="text" id="settAnnouncementBarDefault" class="form-input" placeholder="e.g. FREE SHIPPING OVER $75" style="width:100%;">
+                            </div>
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:8px;">Show the bar on these pages</label>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px 18px;">
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="drop001" style="accent-color:var(--accent);cursor:pointer;"> Collection</label>
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="landing" style="accent-color:var(--accent);cursor:pointer;"> Landing (Men/Women)</label>
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="bag" style="accent-color:var(--accent);cursor:pointer;"> Bag</label>
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="account" style="accent-color:var(--accent);cursor:pointer;"> Account</label>
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="about" style="accent-color:var(--accent);cursor:pointer;"> About</label>
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="journal" style="accent-color:var(--accent);cursor:pointer;"> Journal</label>
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="returns" style="accent-color:var(--accent);cursor:pointer;"> Returns</label>
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="sizeguide" style="accent-color:var(--accent);cursor:pointer;"> Size Guide</label>
+                            </div>
+                        </div>
                         <button type="button" class="btn btn-primary btn-sm" id="saveAnnouncementBtn">Save Announcement</button>
                     </div>
 

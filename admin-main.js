@@ -7886,6 +7886,14 @@
                     if (_abMain) _abMain.value = v.main || '';
                     if (_abProd) _abProd.value = v.product || '';
                     mode = v.mode || ((v.enabled === false) ? 'off' : 'on');
+                    // Phase 2 — other-pages default text + per-page toggles.
+                    const _abDef = document.getElementById('settAnnouncementBarDefault');
+                    if (_abDef) _abDef.value = (v.default && v.default.text) || '';
+                    const _annPages = v.pages || {};
+                    document.querySelectorAll('[data-annpage]').forEach(cb => {
+                        const p = _annPages[cb.dataset.annpage];
+                        cb.checked = !!(p && p.on);
+                    });
                 } else if (_abMain) {
                     _abMain.value = typeof v === 'string' ? v : '';
                 }
@@ -7986,6 +7994,13 @@
             mode: mode,
             enabled: mode !== 'off'   // keep for backwards compat
         };
+        // Phase 2 — the shared bar on every OTHER page (announcement-bar.js):
+        //   default.text = text used by all other pages; default.on:false so a page
+        //   only shows the bar when its per-page toggle is checked. Mode is shared.
+        const _annDef = document.getElementById('settAnnouncementBarDefault');
+        val.default = { on: false, text: _annDef ? _annDef.value.trim() : '' };
+        val.pages = {};
+        document.querySelectorAll('[data-annpage]').forEach(cb => { val.pages[cb.dataset.annpage] = { on: cb.checked }; });
         const { error } = await sb.from('site_settings').upsert(
             { key: 'announcement_bar', value: JSON.stringify(val), updated_at: new Date().toISOString() },
             { onConflict: 'key' }
