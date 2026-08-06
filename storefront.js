@@ -2192,7 +2192,9 @@ function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   } else {
     document.documentElement.style.removeProperty('--zw-bar-top');
     const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
-    if (navEl) navEl.style.top = barH + 'px';
+    // -1px so the header's top edge sits 1px INTO the bar (never a bare seam between
+    // the two boxes — kills the hairline gap during the slide). Spacer stays full barH.
+    if (navEl) navEl.style.top = (barH ? barH - 1 : 0) + 'px';
     if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
   }
   // The header height just changed (bar shown/hidden, nav repositioned) — re-pad

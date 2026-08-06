@@ -1739,7 +1739,7 @@ function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   } else {
     // Desktop: bar always fixed at top:0; nav pushed below; spacer holds bar height in flow
     const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
-    navEl.style.top = barH + 'px';
+    navEl.style.top = (barH ? barH - 1 : 0) + 'px';   // 1px overlap into the bar → no hairline seam during the slide
     document.documentElement.style.setProperty('--mobile-nav-gap', barH + 'px');
     if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
     if (pageEl) pageEl.style.paddingTop = ''; // restore the CSS value
