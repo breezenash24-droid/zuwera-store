@@ -480,6 +480,43 @@
             void logAdminAudit('settings.update', 'site_settings', 'theme', value);
             return true;
         }
+
+        // ── Standard "stage then Save" protocol for the appearance/theme cards
+        //    (modal accent / backdrop / gallery animation). Changing a control stages
+        //    it (the control preview updates) but nothing is persisted or goes live on
+        //    the storefront until that card's Save button is clicked — the same
+        //    explicit-Save standard the rest of the admin uses, so a stray single click
+        //    can never change the live site.
+        const _THEME_SAVE_UI = {
+            accent:   { btn: 'saveAccentBtn',      status: 'modalAccentStatus' },
+            backdrop: { btn: 'saveBackdropBtn',    status: 'modalBackdropStatus' },
+            gallery:  { btn: 'saveGalleryAnimBtn', status: 'galleryAnimStatus' },
+        };
+        function markThemeDirty(kind) {
+            const ui = _THEME_SAVE_UI[kind]; if (!ui) return;
+            const btn = document.getElementById(ui.btn), st = document.getElementById(ui.status);
+            if (btn) btn.disabled = false;
+            if (st) { st.textContent = 'Unsaved changes'; st.style.color = '#c0392b'; }
+        }
+        function clearThemeDirty(kind, savedName) {
+            const ui = _THEME_SAVE_UI[kind]; if (!ui) return;
+            const btn = document.getElementById(ui.btn), st = document.getElementById(ui.status);
+            if (btn) btn.disabled = true;
+            if (st) { st.textContent = savedName ? ('Saved ✓  ' + savedName) : 'Saved ✓'; st.style.color = '#2e7d43'; }
+        }
+        async function _persistTheme(kind, patch, label, savedName) {
+            const st = document.getElementById((_THEME_SAVE_UI[kind] || {}).status);
+            if (st) { st.textContent = 'Saving…'; st.style.color = 'var(--text-secondary)'; }
+            const ok = await saveThemeSettings(patch);
+            if (ok) clearThemeDirty(kind, savedName);
+            else if (st) { st.textContent = 'Not saved — sign in to the admin first'; st.style.color = '#c0392b'; }
+            if (typeof showToast === 'function') showToast(ok ? (label + ' saved') : ('Could not save ' + label.toLowerCase()), ok ? 'info' : 'error');
+            return ok;
+        }
+        window.saveModalAccentSetting   = function () { return _persistTheme('accent',   { modal_accent: modalAccent },     'Modal accent', MODAL_ACCENT_NAMES[modalAccent] || modalAccent); };
+        window.saveModalBackdropSetting = function () { return _persistTheme('backdrop', { modal_backdrop: modalBackdrop }, 'Modal backdrop'); };
+        window.saveGalleryAnimSetting   = function () { return _persistTheme('gallery',  { gallery_anim: galleryAnim },     'Gallery animation'); };
+
         const MODAL_ACCENT_NAMES = { a: 'Pink everywhere', b: 'Reviews & fit only', c: 'Monochrome' };
         function setModalAccentStatus(text, color) {
             const st = document.getElementById('modalAccentStatus');
@@ -493,17 +530,12 @@
             });
             setModalAccentStatus('Current: ' + (MODAL_ACCENT_NAMES[modalAccent] || modalAccent));
         };
-        window.setModalAccent = async function (v) {
+        window.setModalAccent = function (v) {
             v = String(v || '').toLowerCase();
             if (!/^[abc]$/.test(v)) return;
             modalAccent = v;
             window.paintModalAccent();
-            setModalAccentStatus('Saving…');
-            const ok = await saveThemeSettings({ modal_accent: v });
-            const name = MODAL_ACCENT_NAMES[v] || v;
-            setModalAccentStatus(ok ? ('Saved ✓  ' + name) : 'Not saved — sign in to the admin first',
-                                 ok ? '#2e7d43' : '#c0392b');
-            if (typeof showToast === 'function') showToast(ok ? ('Modal accent saved — ' + name) : 'Could not save modal accent', ok ? 'info' : 'error');
+            markThemeDirty('accent');   // stage only — persists when "Save accent" is clicked
         };
         function _mbdSeg(cur, opts, cbName) {
             return opts.map(function (o) {
@@ -571,18 +603,18 @@
             if (!/^(lg|md|sm)$/.test(dev) || !/^(dim|blur|frost|none)$/.test(val)) return;
             var obj = scope === 'global' ? modalBackdrop : modalBackdrop.pages[scope];
             if (!obj) return;
-            obj[dev] = val; window.paintModalBackdrop(); _saveMbd();
+            obj[dev] = val; window.paintModalBackdrop(); markThemeDirty('backdrop');
         };
-        window.setMbdIntensity = function (v) { if (!/^(light|medium|heavy)$/.test(v)) return; modalBackdrop.intensity = v; window.paintModalBackdrop(); _saveMbd(); };
-        window.setMbdTint = function (v) { if (!/^(neutral|brand)$/.test(v)) return; modalBackdrop.tint = v; window.paintModalBackdrop(); _saveMbd(); };
-        window.setMbdTap = function (v) { modalBackdrop.close_on_tap = (v === 'on'); window.paintModalBackdrop(); _saveMbd(); };
+        window.setMbdIntensity = function (v) { if (!/^(light|medium|heavy)$/.test(v)) return; modalBackdrop.intensity = v; window.paintModalBackdrop(); markThemeDirty('backdrop'); };
+        window.setMbdTint = function (v) { if (!/^(neutral|brand)$/.test(v)) return; modalBackdrop.tint = v; window.paintModalBackdrop(); markThemeDirty('backdrop'); };
+        window.setMbdTap = function (v) { modalBackdrop.close_on_tap = (v === 'on'); window.paintModalBackdrop(); markThemeDirty('backdrop'); };
         window.setMbdModal = function (key, val) {
             if (!MBD_MODAL_LABELS[key]) return;
             if (val === 'global') delete modalBackdrop.modals[key];
             else if (/^(dim|blur|frost|none)$/.test(val)) modalBackdrop.modals[key] = val;
-            _saveMbd();
+            markThemeDirty('backdrop');
         };
-        window.setMbdPageUse = function (pg, use) { if (!modalBackdrop.pages[pg]) return; modalBackdrop.pages[pg].use = (use === 'custom') ? 'custom' : 'global'; window.paintModalBackdrop(); _saveMbd(); };
+        window.setMbdPageUse = function (pg, use) { if (!modalBackdrop.pages[pg]) return; modalBackdrop.pages[pg].use = (use === 'custom') ? 'custom' : 'global'; window.paintModalBackdrop(); markThemeDirty('backdrop'); };
 
         // ── Product gallery animation (site_settings.theme.gallery_anim) ──────────
         var GAL_LOAD_OPTS = [['fade', 'Fade'], ['zoom', 'Zoom'], ['blur', 'Blur'], ['rise', 'Rise up'], ['none', 'None']];
@@ -614,7 +646,7 @@
             else if (kind === 'load_speed' && GAL_SPEED_OPTS.some(function (o) { return o[0] === val; })) galleryAnim.load_speed = val;
             else if (kind === 'scroll_speed' && GAL_SPEED_OPTS.some(function (o) { return o[0] === val; })) galleryAnim.scroll_speed = val;
             else return;
-            _saveGal();
+            markThemeDirty('gallery');   // stage only — persists when "Save animation" is clicked
         };
         // Reflect the live saved values in the controls on load.
         (async function () {
@@ -4008,6 +4040,7 @@
             questions:  { title: 'Q&A feature', sub: '' },
             bundles:    { title: 'Bundles feature', sub: '' },
         };
+        const _pageFlagsDirty = {};   // staged (unsaved) feature-toggle changes, per admin page
         async function renderPageFlags(pageId) {
             const host = document.getElementById('pageFlags-' + pageId);
             if (!host) return;
@@ -4033,17 +4066,31 @@
                   </span>
                   <input type="checkbox" data-pf-enabled="${escapeAttr(f.key)}" ${on ? 'checked' : ''} style="flex-shrink:0;width:20px;height:20px;accent-color:var(--accent,#F891A5);cursor:pointer;margin-top:2px;">
                 </label>`;
-            }).join('') + '</div>';
-            host.querySelectorAll('[data-pf-enabled]').forEach(el => el.addEventListener('change', async e => {
+            }).join('') + '</div>'
+            + `<div style="display:flex;align-items:center;gap:12px;margin-top:14px;">
+                 <button type="button" class="btn btn-primary btn-sm" onclick="savePageFlags('${escapeAttr(pageId)}')" ${_pageFlagsDirty[pageId] ? '' : 'disabled'}>Save features</button>
+                 <span class="pf-status" style="font-size:.8rem;font-weight:600;color:${_pageFlagsDirty[pageId] ? '#c0392b' : 'var(--text-secondary)'};">${_pageFlagsDirty[pageId] ? 'Unsaved changes' : ''}</span>
+               </div>`;
+            host.querySelectorAll('[data-pf-enabled]').forEach(el => el.addEventListener('change', e => {
                 const k = e.target.getAttribute('data-pf-enabled');
                 _featureFlags[k] = _featureFlags[k] || {};
                 _featureFlags[k].enabled = e.target.checked;
                 _featureFlags[k].rollout = e.target.checked ? 100 : 0;   // full feature — everyone, no gradual rollout
-                await _saveFeatureFlagsQuiet();
-                renderPageFlags(pageId);
-                showToast(e.target.checked ? 'Feature turned on — live for everyone now' : 'Feature turned off — live now');
+                _pageFlagsDirty[pageId] = true;
+                renderPageFlags(pageId);   // stage only — persists when "Save features" is clicked
             }));
         }
+        window.savePageFlags = async function (pageId) {
+            const host = document.getElementById('pageFlags-' + pageId);
+            const btn = host && host.querySelector('button[onclick*="savePageFlags"]');
+            const st = host && host.querySelector('.pf-status');
+            if (st) { st.textContent = 'Saving…'; st.style.color = 'var(--text-secondary)'; }
+            const ok = await _saveFeatureFlagsQuiet();
+            if (ok) _pageFlagsDirty[pageId] = false;
+            if (btn) btn.disabled = ok;
+            if (st) { st.textContent = ok ? 'Saved ✓ — live now' : 'Not saved — sign in first'; st.style.color = ok ? '#2e7d43' : '#c0392b'; }
+            if (typeof showToast === 'function') showToast(ok ? 'Storefront features saved — live now' : 'Could not save features', ok ? 'info' : 'error');
+        };
         window.renderPageFlags = renderPageFlags;
 
         window.addFeatureFlag = function () {
@@ -7587,7 +7634,13 @@
             _formDirty = false;
             document.getElementById('productForm').reset();
             _selectedSports.clear(); ensureSportsList().then(renderSportsChips);
-            document.getElementById('imagesContainer').innerHTML = '<div class="image-row"><span style="font-weight:600;min-width:60px;">Image 1</span><input type="text" class="form-input product-image-url" placeholder="Paste image URL..."><label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label><img class="image-preview" style="display:none"><button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button></div>';
+            // Start with ONE empty rich media card (identical to "+ Add Media") instead
+            // of the old bare .image-row, so the first row matches every other row (and
+            // is a real .media-card the save/reorder logic recognizes).
+            const _imgContainer = document.getElementById('imagesContainer');
+            _imgContainer.innerHTML = '';
+            addMediaCard(_imgContainer, '', '', '');
+            syncMediaColorFilter();
             document.getElementById('colorVariantsContainer').innerHTML = '';
             document.getElementById('sizeGridContainer').innerHTML = '';
             window._pendingStockData = null;

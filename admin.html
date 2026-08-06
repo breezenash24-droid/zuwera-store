@@ -2025,7 +2025,7 @@
                     </nav>
                     <div id="set-jump-features" class="set-jump-target" style="margin-bottom:26px;">
                         <h3 style="margin:0 0 4px;font-size:1.05rem;">Storefront features</h3>
-                        <p style="margin:0 0 14px;color:var(--text-secondary);font-size:.85rem;">Optional customer-facing features. <b>The “Product search” toggle below turns the header search bar (the magnifier) on or off.</b> Also here: recently-viewed rows, the bag panel, and the support widget. Each toggle saves immediately and goes live.</p>
+                        <p style="margin:0 0 14px;color:var(--text-secondary);font-size:.85rem;">Optional customer-facing features. <b>The “Product search” toggle below turns the header search bar (the magnifier) on or off.</b> Also here: recently-viewed rows, the bag panel, and the support widget. Flip the toggles you want, then click <strong>Save features</strong> to apply.</p>
                         <div id="pageFlags-settings"></div>
                     </div>
 
@@ -2760,27 +2760,38 @@
                         <!-- Modal accent (site_settings.theme.modal_accent) -->
                         <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
                             <h3 style="font-size:1.1rem;letter-spacing:.06em;margin-bottom:5px">Modal accent</h3>
-                            <p style="font-size:.82rem;color:var(--text-secondary);line-height:1.5;max-width:480px;margin-bottom:16px">How far the pink accent reaches across your pop-up modals &mdash; filters, login/join, reviews and size &amp; fit. Saves instantly.</p>
+                            <p style="font-size:.82rem;color:var(--text-secondary);line-height:1.5;max-width:480px;margin-bottom:16px">How far the pink accent reaches across your pop-up modals &mdash; filters, login/join, reviews and size &amp; fit. Pick a level, then click <strong>Save</strong> to apply it.</p>
                             <div id="modalAccentBtns" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
                                 <button type="button" class="btn btn-secondary btn-sm" data-macc="a" onclick="setModalAccent('a')">Pink everywhere</button>
                                 <button type="button" class="btn btn-secondary btn-sm" data-macc="b" onclick="setModalAccent('b')">Reviews &amp; fit only</button>
                                 <button type="button" class="btn btn-secondary btn-sm" data-macc="c" onclick="setModalAccent('c')">Monochrome</button>
-                                <span id="modalAccentStatus" style="font-size:.82rem;font-weight:600;margin-left:6px"></span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:12px;margin-top:16px">
+                                <button type="button" class="btn btn-primary btn-sm" id="saveAccentBtn" disabled onclick="saveModalAccentSetting()">Save accent</button>
+                                <span id="modalAccentStatus" style="font-size:.82rem;font-weight:600"></span>
                             </div>
                         </div>
 
                         <!-- Modal backdrop (site_settings.theme.modal_backdrop) -->
                         <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
                             <h3 style="font-size:1.1rem;letter-spacing:.06em;margin-bottom:5px">Modal backdrop</h3>
-                            <p style="font-size:.82rem;color:var(--text-secondary);line-height:1.5;max-width:560px;margin-bottom:16px">How the page behind a pop-up modal looks. <strong>Dim</strong> darkens it, <strong>Blur</strong> is a frosted glass, <strong>Frost</strong> is a lighter white frost, <strong>None</strong> leaves it clear. Set it per device, tune <strong>Intensity</strong>/<strong>Tint</strong>, choose whether tapping the dim closes the modal, and override any page group. Saves instantly.</p>
+                            <p style="font-size:.82rem;color:var(--text-secondary);line-height:1.5;max-width:560px;margin-bottom:16px">How the page behind a pop-up modal looks. <strong>Dim</strong> darkens it, <strong>Blur</strong> is a frosted glass, <strong>Frost</strong> is a lighter white frost, <strong>None</strong> leaves it clear. Set it per device, tune <strong>Intensity</strong>/<strong>Tint</strong>, choose whether tapping the dim closes the modal, and override any page group. Adjust the options, then click <strong>Save</strong> to apply.</p>
                             <div id="modalBackdropCtl" style="display:flex;flex-direction:column"></div>
+                            <div style="display:flex;align-items:center;gap:12px;margin-top:16px">
+                                <button type="button" class="btn btn-primary btn-sm" id="saveBackdropBtn" disabled onclick="saveModalBackdropSetting()">Save backdrop</button>
+                                <span id="modalBackdropStatus" style="font-size:.82rem;font-weight:600"></span>
+                            </div>
                         </div>
 
                         <!-- Product gallery animation (site_settings.theme.gallery_anim) -->
                         <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
                             <h3 style="font-size:1.1rem;letter-spacing:.06em;margin-bottom:5px">Product gallery animation</h3>
-                            <p style="font-size:.82rem;color:var(--text-secondary);line-height:1.5;max-width:560px;margin-bottom:16px">How the main product photo animates. <strong>Load</strong> plays on a colorway switch and first paint; <strong>Scroll</strong> plays when moving between photos (arrows, swipe, thumbnails). Saves instantly.</p>
+                            <p style="font-size:.82rem;color:var(--text-secondary);line-height:1.5;max-width:560px;margin-bottom:16px">How the main product photo animates. <strong>Load</strong> plays on a colorway switch and first paint; <strong>Scroll</strong> plays when moving between photos (arrows, swipe, thumbnails). Choose your animations, then click <strong>Save</strong> to apply.</p>
                             <div id="galleryAnimCtl" style="display:flex;flex-direction:column"></div>
+                            <div style="display:flex;align-items:center;gap:12px;margin-top:16px">
+                                <button type="button" class="btn btn-primary btn-sm" id="saveGalleryAnimBtn" disabled onclick="saveGalleryAnimSetting()">Save animation</button>
+                                <span id="galleryAnimStatus" style="font-size:.82rem;font-weight:600"></span>
+                            </div>
                         </div>
 
                         <!-- Typography -->
