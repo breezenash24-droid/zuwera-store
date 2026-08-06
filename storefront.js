@@ -2194,7 +2194,9 @@ function setAnnouncementBarLayout(barEl, navEl, isVisible) {
     const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
     // -1px so the header's top edge sits 1px INTO the bar (never a bare seam between
     // the two boxes — kills the hairline gap during the slide). Spacer stays full barH.
-    if (navEl) navEl.style.top = (barH ? barH - 1 : 0) + 'px';
+    // Hidden rests at -1 (not 0) so the 1px header/​bar overlap stays CONSTANT through
+    // the whole slide instead of decaying to 0 at the end (which left a hairline seam).
+    if (navEl) navEl.style.top = (barH ? barH - 1 : -1) + 'px';
     if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
   }
   // The header height just changed (bar shown/hidden, nav repositioned) — re-pad
