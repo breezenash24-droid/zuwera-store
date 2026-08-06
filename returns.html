@@ -1181,7 +1181,7 @@ async function handleSubmit() {
       returnItems: state.selectedItems,
     });
     window.removeEventListener('beforeunload', _warnBeforeUnload);
-    if (statusEl) { statusEl.textContent = '? Request submitted!'; statusEl.className = 'submit-status success'; }
+    if (statusEl) { statusEl.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Request submitted!'; statusEl.className = 'submit-status success'; }
     setTimeout(() => location.reload(), 3000);
   } catch(e) {
     state.submitting = false;
@@ -1301,17 +1301,17 @@ function renderWizard(orders) {
         <p style="font-size:.78rem;color:var(--muted);margin-bottom:1.2rem">What would you like us to do?</p>
         <div class="res-cards">
           <button class="res-card" data-value="return" onclick="selectResolution(this)">
-            <div class="res-card-icon">??</div>
+            <div class="res-card-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M5 9.5h.01M19 14.5h.01"/></svg></div>
             <div class="res-card-name">Refund</div>
             <div class="res-card-desc">Money back to your original payment method</div>
           </button>
           <button class="res-card" data-value="exchange" onclick="selectResolution(this)">
-            <div class="res-card-icon">??</div>
+            <div class="res-card-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3l4 4-4 4"/><path d="M21 7H7"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h14"/></svg></div>
             <div class="res-card-name">Exchange</div>
             <div class="res-card-desc">Swap for a different size, color, or style</div>
           </button>
           <button class="res-card" data-value="store_credit" onclick="selectResolution(this)">
-            <div class="res-card-icon">?</div>
+            <div class="res-card-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h3"/></svg></div>
             <div class="res-card-name">Store Credit</div>
             <div class="res-card-desc">Credit towards your next Zuwera order</div>
           </button>
