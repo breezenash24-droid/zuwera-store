@@ -1090,7 +1090,7 @@
         // findable by name OR alias (kw) in the ⌘K search, even if it lives several
         // cards down inside a page.
         const ZW_SEARCH_FEATURES = [
-            {icon:'📣',main:'Announcement Bar',sub:'Settings · Storefront chrome',kw:'banner promo top bar message marquee scrolling',page:'settings',el:'settAnnouncementBarMain'},
+            {icon:'📣',main:'Announcement Bar',sub:'Settings · Storefront chrome',kw:'banner promo top bar message marquee scrolling link clickable pages',page:'settings',el:'settAnnouncementBarMessage'},
             {icon:'🧭',main:'Header Scroll Behavior',sub:'Settings · Storefront chrome',kw:'header sticky auto hide pin nav scroll adidas always visible per page override returns',page:'settings',el:'settHeaderDefault'},
             {icon:'🎨',main:'Product Cards (Add to Bag vs Color swatches)',sub:'Settings · Storefront chrome',kw:'product card swatch swatches color colour chips nike hover preview add to bag button cta grid homepage collection toggle',page:'settings',el:'settCardCta'},
             {icon:'🧭',main:'Navigation Menu (header links & mega-menu)',sub:'Settings · Storefront chrome',kw:'navigation nav menu header links mega menu dropdown hover categories men women top level columns editable customize what is listed',page:'settings',el:'navMenuEditor'},
@@ -7877,25 +7877,30 @@
             } else if (row.key === 'announcement_bar') {
                 let v = row.value;
                 try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
-                // Null-guard every element (a missing node used to THROW and abort the
-                // rest of the row's load, leaving the mode radio on its HTML default "On").
-                const _abMain = document.getElementById('settAnnouncementBarMain');
-                const _abProd = document.getElementById('settAnnouncementBarProduct');
+                // Unified model: { message, mode, link, pages:{<key>:{on}} }. Everything
+                // null-guarded + wrapped so a missing node can't abort the settings loop.
+                const _msgEl  = document.getElementById('settAnnouncementBarMessage');
+                const _linkEl = document.getElementById('settAnnouncementBarLink');
                 let mode = 'on';
                 if (typeof v === 'object' && v !== null) {
-                    if (_abMain) _abMain.value = v.main || '';
-                    if (_abProd) _abProd.value = v.product || '';
+                    // Message: new `message`, else legacy main/product/default.text.
+                    const msg = (v.message != null && v.message !== '') ? v.message
+                              : (v.main || v.product || (v.default && v.default.text) || '');
+                    if (_msgEl)  _msgEl.value  = msg || '';
+                    if (_linkEl) _linkEl.value = v.link || '';
                     mode = v.mode || ((v.enabled === false) ? 'off' : 'on');
-                    // Phase 2 — other-pages default text + per-page toggles.
-                    const _abDef = document.getElementById('settAnnouncementBarDefault');
-                    if (_abDef) _abDef.value = (v.default && v.default.text) || '';
-                    const _annPages = v.pages || {};
+                    // Page toggles: new pages.<key>; back-compat → home/product from
+                    // `enabled`, the rest from the old default.on flag.
+                    const _pages = v.pages || {};
+                    const _legacyDefaultOn = !!(v.default && v.default.on);
                     document.querySelectorAll('[data-annpage]').forEach(cb => {
-                        const p = _annPages[cb.dataset.annpage];
-                        cb.checked = !!(p && p.on);
+                        const k = cb.dataset.annpage, pv = _pages[k];
+                        cb.checked = (pv !== undefined)
+                            ? ((pv === true) || !!(pv && pv.on))
+                            : ((k === 'home' || k === 'product') ? (v.enabled !== false) : _legacyDefaultOn);
                     });
-                } else if (_abMain) {
-                    _abMain.value = typeof v === 'string' ? v : '';
+                } else if (_msgEl) {
+                    _msgEl.value = typeof v === 'string' ? v : '';
                 }
                 // Set EVERY radio explicitly (check the saved mode, uncheck the rest) so
                 // the static `checked` on "On" can never override the loaded value.
@@ -7985,29 +7990,39 @@
         }
     }
 
+    // "All / None" convenience for the page grid.
+    document.getElementById('annPagesAll')?.addEventListener('click', () => {
+        document.querySelectorAll('[data-annpage]').forEach(cb => { cb.checked = true; });
+    });
+    document.getElementById('annPagesNone')?.addEventListener('click', () => {
+        document.querySelectorAll('[data-annpage]').forEach(cb => { cb.checked = false; });
+    });
+
     document.getElementById('saveAnnouncementBtn').addEventListener('click', async () => {
         const selectedMode = document.querySelector('input[name="announcementBarMode"]:checked');
         const mode = selectedMode ? selectedMode.value : 'on';
+        const message = (document.getElementById('settAnnouncementBarMessage')?.value || '').trim();
+        const link = (document.getElementById('settAnnouncementBarLink')?.value || '').trim();
+        // One message + per-page toggles for EVERY page (announcement-bar.js reads this).
+        const pages = {};
+        document.querySelectorAll('[data-annpage]').forEach(cb => { pages[cb.dataset.annpage] = { on: cb.checked }; });
         const val = {
-            main: document.getElementById('settAnnouncementBarMain').value.trim(),
-            product: document.getElementById('settAnnouncementBarProduct').value.trim(),
-            mode: mode,
-            enabled: mode !== 'off'   // keep for backwards compat
+            message, mode, link, pages,
+            // Back-compat mirrors so any older/cached page code (or a rollback) still
+            // renders the bar: home/product read main/product, others read default.text.
+            main: message,
+            product: message,
+            enabled: mode !== 'off',
+            default: { on: true, text: message },
         };
-        // Phase 2 — the shared bar on every OTHER page (announcement-bar.js):
-        //   default.text = text used by all other pages; default.on:false so a page
-        //   only shows the bar when its per-page toggle is checked. Mode is shared.
-        const _annDef = document.getElementById('settAnnouncementBarDefault');
-        val.default = { on: false, text: _annDef ? _annDef.value.trim() : '' };
-        val.pages = {};
-        document.querySelectorAll('[data-annpage]').forEach(cb => { val.pages[cb.dataset.annpage] = { on: cb.checked }; });
         const { error } = await sb.from('site_settings').upsert(
             { key: 'announcement_bar', value: JSON.stringify(val), updated_at: new Date().toISOString() },
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving announcement', 'error'); console.error(error); }
         else {
-            await logAdminAudit('settings.update', 'site_settings', 'announcement_bar', { mode, has_main: Boolean(val.main), has_product: Boolean(val.product) });
+            const onCount = Object.keys(pages).filter(k => pages[k].on).length;
+            await logAdminAudit('settings.update', 'site_settings', 'announcement_bar', { mode, has_message: Boolean(message), has_link: Boolean(link), pages_on: onCount });
             showToast('Announcement saved!', 'success');
         }
     });

@@ -2036,57 +2036,71 @@
                     </div>
 
                     <!-- Announcement Bar -->
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
-                        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:16px;">Announcement Bar</div>
-                        <div style="margin-bottom:16px;">
-                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:8px;">Banner Mode</label>
-                            <div style="display:flex; flex-direction:column; gap:8px;">
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);">
-                                    <input type="radio" name="announcementBarMode" id="settAnnouncementModeOn" value="on" checked style="accent-color:var(--accent);cursor:pointer;">
-                                    <span><strong>On</strong> — Banner always visible</span>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:26px 28px;margin-bottom:20px;">
+                        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.15rem;letter-spacing:.08em;margin-bottom:4px;">Announcement Bar</div>
+                        <p style="color:var(--text-secondary);font-size:.82rem;margin:0 0 24px;line-height:1.6;">The thin promo bar at the very top of the site. Write one message, choose how it behaves, and pick which pages show it — the same message runs across desktop, tablet &amp; mobile.</p>
+
+                        <!-- 1 · Message -->
+                        <div style="margin-bottom:22px;">
+                            <label for="settAnnouncementBarMessage" style="display:block;font-size:.82rem;font-weight:600;color:var(--text-primary);margin-bottom:7px;">1 &nbsp;·&nbsp; Message</label>
+                            <input type="text" id="settAnnouncementBarMessage" class="form-input" placeholder="e.g. FREE SHIPPING ON ORDERS OVER $75" style="width:100%;">
+                            <div style="font-size:.75rem;color:var(--text-secondary);margin-top:6px;">Leave this empty to hide the bar everywhere.</div>
+                        </div>
+
+                        <!-- 2 · Link -->
+                        <div style="margin-bottom:22px;">
+                            <label for="settAnnouncementBarLink" style="display:block;font-size:.82rem;font-weight:600;color:var(--text-primary);margin-bottom:7px;">2 &nbsp;·&nbsp; Link <span style="font-weight:400;color:var(--text-secondary);">— optional</span></label>
+                            <input type="text" id="settAnnouncementBarLink" class="form-input" placeholder="e.g. /drop/001   or   https://…" style="width:100%;">
+                            <div style="font-size:.75rem;color:var(--text-secondary);margin-top:6px;">If set, the whole bar becomes clickable and sends customers here.</div>
+                        </div>
+
+                        <!-- 3 · Behavior -->
+                        <div style="margin-bottom:22px;">
+                            <label style="display:block;font-size:.82rem;font-weight:600;color:var(--text-primary);margin-bottom:10px;">3 &nbsp;·&nbsp; Behavior</label>
+                            <div style="display:flex; flex-direction:column; gap:10px;">
+                                <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;font-size:.85rem;color:var(--text-primary);line-height:1.45;">
+                                    <input type="radio" name="announcementBarMode" id="settAnnouncementModeOn" value="on" checked style="accent-color:var(--accent);cursor:pointer;margin-top:2px;">
+                                    <span><strong>Always visible</strong> — stays pinned at the top</span>
                                 </label>
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);">
-                                    <input type="radio" name="announcementBarMode" id="settAnnouncementModeScroll" value="scroll" style="accent-color:var(--accent);cursor:pointer;">
-                                    <span><strong>On until scroll</strong> — Slides out of the way when scrolling down, returns when you scroll back to the top</span>
+                                <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;font-size:.85rem;color:var(--text-primary);line-height:1.45;">
+                                    <input type="radio" name="announcementBarMode" id="settAnnouncementModeScroll" value="scroll" style="accent-color:var(--accent);cursor:pointer;margin-top:2px;">
+                                    <span><strong>Hide on scroll</strong> — slides away when scrolling down, returns when you scroll back to the top</span>
                                 </label>
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);">
-                                    <input type="radio" name="announcementBarMode" id="settAnnouncementModeScrollOff" value="scrolloff" style="accent-color:var(--accent);cursor:pointer;">
-                                    <span><strong>On, then dismiss</strong> — Hides for good on first scroll; comes back only when the page is reopened</span>
+                                <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;font-size:.85rem;color:var(--text-primary);line-height:1.45;">
+                                    <input type="radio" name="announcementBarMode" id="settAnnouncementModeScrollOff" value="scrolloff" style="accent-color:var(--accent);cursor:pointer;margin-top:2px;">
+                                    <span><strong>Dismiss on scroll</strong> — hides for good on the first scroll; comes back only when the page is reopened</span>
                                 </label>
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);">
-                                    <input type="radio" name="announcementBarMode" id="settAnnouncementModeOff" value="off" style="accent-color:var(--accent);cursor:pointer;">
-                                    <span><strong>Off</strong> — Banner hidden</span>
+                                <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;font-size:.85rem;color:var(--text-primary);line-height:1.45;">
+                                    <input type="radio" name="announcementBarMode" id="settAnnouncementModeOff" value="off" style="accent-color:var(--accent);cursor:pointer;margin-top:2px;">
+                                    <span><strong>Off</strong> — hidden on every page</span>
                                 </label>
                             </div>
                         </div>
-                        <div style="margin-bottom:12px;">
-                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Main Page Banner</label>
-                            <input type="text" id="settAnnouncementBarMain" class="form-input" placeholder="e.g. ALL THE DEVILS ARE HERE" style="width:100%;">
-                        </div>
-                        <div style="margin-bottom:12px;">
-                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Product Page Banner (optional, defaults to main)</label>
-                            <input type="text" id="settAnnouncementBarProduct" class="form-input" placeholder="e.g. EARLY ACCESS DROP 001 - SHIPS FREE" style="width:100%;">
-                        </div>
-                        <div style="border-top:1px solid var(--border);margin:18px 0 14px;padding-top:16px;">
-                            <div style="font-size:.9rem;letter-spacing:.04em;margin-bottom:4px;">Other pages</div>
-                            <div style="font-size:.75rem;color:var(--text-secondary);margin-bottom:12px;">Put the bar on the rest of the storefront (uses the mode above). Text and toggles apply on desktop, tablet &amp; mobile.</div>
-                            <div style="margin-bottom:14px;">
-                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Banner text for other pages</label>
-                                <input type="text" id="settAnnouncementBarDefault" class="form-input" placeholder="e.g. FREE SHIPPING OVER $75" style="width:100%;">
+
+                        <!-- 4 · Pages -->
+                        <div style="margin-bottom:24px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px;">
+                                <label style="font-size:.82rem;font-weight:600;color:var(--text-primary);">4 &nbsp;·&nbsp; Show on these pages</label>
+                                <div style="display:flex;gap:6px;">
+                                    <button type="button" id="annPagesAll" style="font-size:.72rem;padding:4px 11px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text-secondary);cursor:pointer;">All</button>
+                                    <button type="button" id="annPagesNone" style="font-size:.72rem;padding:4px 11px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text-secondary);cursor:pointer;">None</button>
+                                </div>
                             </div>
-                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:8px;">Show the bar on these pages</label>
-                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px 18px;">
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="drop001" style="accent-color:var(--accent);cursor:pointer;"> Collection</label>
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="landing" style="accent-color:var(--accent);cursor:pointer;"> Landing (Men/Women)</label>
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="bag" style="accent-color:var(--accent);cursor:pointer;"> Bag</label>
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="account" style="accent-color:var(--accent);cursor:pointer;"> Account</label>
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="about" style="accent-color:var(--accent);cursor:pointer;"> About</label>
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="journal" style="accent-color:var(--accent);cursor:pointer;"> Journal</label>
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="returns" style="accent-color:var(--accent);cursor:pointer;"> Returns</label>
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="sizeguide" style="accent-color:var(--accent);cursor:pointer;"> Size Guide</label>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:11px 20px;">
+                                <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="home" style="accent-color:var(--accent);cursor:pointer;width:15px;height:15px;"> Home</label>
+                                <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="product" style="accent-color:var(--accent);cursor:pointer;width:15px;height:15px;"> Product pages</label>
+                                <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="drop001" style="accent-color:var(--accent);cursor:pointer;width:15px;height:15px;"> Collection</label>
+                                <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="landing" style="accent-color:var(--accent);cursor:pointer;width:15px;height:15px;"> Landing (Men/Women)</label>
+                                <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="bag" style="accent-color:var(--accent);cursor:pointer;width:15px;height:15px;"> Bag</label>
+                                <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="account" style="accent-color:var(--accent);cursor:pointer;width:15px;height:15px;"> Account</label>
+                                <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="about" style="accent-color:var(--accent);cursor:pointer;width:15px;height:15px;"> About</label>
+                                <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="journal" style="accent-color:var(--accent);cursor:pointer;width:15px;height:15px;"> Journal</label>
+                                <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="returns" style="accent-color:var(--accent);cursor:pointer;width:15px;height:15px;"> Returns</label>
+                                <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.85rem;color:var(--text-primary);"><input type="checkbox" data-annpage="sizeguide" style="accent-color:var(--accent);cursor:pointer;width:15px;height:15px;"> Size Guide</label>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-primary btn-sm" id="saveAnnouncementBtn">Save Announcement</button>
+
+                        <button type="button" class="btn btn-primary" id="saveAnnouncementBtn">Save Announcement</button>
                     </div>
 
                     <!-- Header Scroll Behavior -->
@@ -3088,7 +3102,7 @@
                         <div class="form-group">
                             <label class="form-label">Tags</label>
                             <input type="text" id="productTags" class="form-input" placeholder="Comma-separated, e.g. New, Sale, Limited">
-                            <p class="form-hint" style="margin-top: 8px;">Optional. Tags can be surfaced in the header navigation — e.g. a “New” or “Sale” menu item lists every product carrying that tag.</p>
+                            <p class="form-hint">Optional. Can power header-nav lists like “New” or “Sale”.</p>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Sports</label>
@@ -3097,7 +3111,7 @@
                                 <input type="text" id="sportsAddInput" class="form-input" placeholder="Add a sport…" autocomplete="off">
                                 <button type="button" id="sportsAddBtn" class="btn btn-secondary btn-sm">Add</button>
                             </div>
-                            <p class="form-hint" style="margin-top: 8px;">Tap a sport to tag this product — it shows as a “Sport” section on the product page and powers the Sport filter on the collection page. Use ✕ to remove a sport from the list everywhere, or add your own below.</p>
+                            <p class="form-hint">Adds a “Sport” section on the product page + powers the collection Sport filter. ✕ removes one everywhere.</p>
                             <style>
                               .sports-chips { display:flex; flex-wrap:wrap; gap:8px; }
                               .sport-chip { display:inline-flex; align-items:center; border:1px solid var(--border, #333); border-radius:999px; overflow:hidden; background:transparent; }
@@ -3113,7 +3127,7 @@
                         <div class="form-group">
                             <label class="form-label">Colorway / Summary Label</label>
                             <input type="text" id="colorway" class="form-input" placeholder="Optional. e.g., Black / White or Vintage Olive">
-                            <p class="form-hint" style="margin-top: 8px;">Used in admin search, exports, and as a storefront fallback when you have not added color variants yet. Leave it blank to auto-build from your saved color variants.</p>
+                            <p class="form-hint">Admin search + a storefront fallback until you add color variants. Blank = auto-built.</p>
                         </div>
                     </div>
                     <div class="form-group">
@@ -3175,6 +3189,15 @@
                             <span id="mediaFilterCount" style="font-size:.74rem;color:var(--text-secondary);"></span>
                         </div>
                         <div id="imagesContainer" class="media-grid"></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Gallery Image Crop Focus</label>
+                        <select id="imageFocalY" class="form-input" style="max-width:440px;">
+                            <option value="0">Top — show face/head (crop bottom)</option>
+                            <option value="50">Center — balanced crop</option>
+                            <option value="100">Bottom — show feet/hem (crop top)</option>
+                        </select>
+                        <p class="form-hint">Which part of a portrait photo stays visible when it's cropped in the mini product modal.</p>
                     </div>
                     <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0 1rem">
                     <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Model Reference</div>
@@ -3331,15 +3354,6 @@
                             <label class="form-label">Shipping Weight (lb) <span style="color:#e07060;font-size:.75em">Required</span></label>
                             <input type="number" id="shippingWeightLb" class="form-input" placeholder="e.g., 0.5" step="0.01" min="0.01">
                             <div style="font-size:.72rem;color:var(--text-secondary);margin-top:.3rem">Actual packed weight used for live shipping rates at checkout.</div>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Gallery Image Crop Focus</label>
-                            <select id="imageFocalY" class="form-input">
-                                <option value="0">Top — show face/head (crop bottom)</option>
-                                <option value="50">Center — balanced crop</option>
-                                <option value="100">Bottom — show feet/hem (crop top)</option>
-                            </select>
-                            <div style="font-size:.72rem;color:var(--text-secondary);margin-top:.3rem">Controls which part of the image stays visible when portrait photos are cropped in the mini product modal.</div>
                         </div>
                     </div>
                     <div class="form-grid">

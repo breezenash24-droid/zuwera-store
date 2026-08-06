@@ -1153,11 +1153,30 @@
         }
 
         #productFormModal .modal-content {
-            max-width: 1160px;
+            max-width: 1280px;
             width: 96%;
             max-height: 92vh;
+            padding: 40px 48px 44px;
             display: flex;
             flex-direction: column;
+        }
+        /* Clean, aligned 2-up field rows. The base .form-grid is auto-fit down to
+           ~200px, which collapsed these into 4 cramped, ragged columns. */
+        #productFormModal .form-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 22px 30px;
+            align-items: start;
+        }
+        #productFormModal .form-group { margin-bottom: 22px; }
+        /* Quieter help text so it stops competing with the inputs for attention. */
+        #productFormModal .form-hint {
+            font-size: 0.76rem;
+            line-height: 1.45;
+            opacity: 0.72;
+            margin-top: 5px !important;
+        }
+        @media (max-width: 720px) {
+            #productFormModal .form-grid { grid-template-columns: 1fr; }
         }
         /* Close button stays pinned to the top-right while the long form scrolls. */
         #productFormModal .modal-close-btn {
