@@ -2134,228 +2134,7 @@ window.addEventListener('scroll', () => {
 const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 let _sb = null; // set in DOMContentLoaded once supabase-client.js has run
-let _announcementBarScrollHandler = null;
-
-function teardownAnnouncementBarScroll() {
-  if (_announcementBarScrollHandler) {
-    window.removeEventListener('scroll', _announcementBarScrollHandler);
-    _announcementBarScrollHandler = null;
-  }
-}
-
-// Fold (collapse) or unfold the bar's OWN height so it pushes the nav + page
-// content up/down into the reclaimed space, instead of sliding away as an overlay.
-// max-height (not height:auto) so both directions animate; padding folds with it;
-// the real height is measured each time so the fold matches the bar exactly.
-function zwSetBarFold(barEl, hidden) {
-  if (!barEl) return;
-  if (hidden) {
-    if (!barEl.style.maxHeight || barEl.style.maxHeight === 'none') {
-      barEl.style.maxHeight = barEl.offsetHeight + 'px';
-      void barEl.offsetHeight;                 // commit the start height before collapsing
-    }
-    barEl.style.maxHeight = '0px';
-    barEl.style.paddingTop = '0px';
-    barEl.style.paddingBottom = '0px';
-    barEl.style.opacity = '0';
-    barEl.style.pointerEvents = 'none';
-  } else {
-    barEl.style.paddingTop = '';
-    barEl.style.paddingBottom = '';
-    barEl.style.opacity = '1';
-    barEl.style.pointerEvents = '';
-    const wasCollapsed = barEl.style.maxHeight === '0px';
-    barEl.style.maxHeight = 'none';             // uncap to read the true height
-    const full = barEl.offsetHeight;
-    if (wasCollapsed) { barEl.style.maxHeight = '0px'; void barEl.offsetHeight; }
-    barEl.style.maxHeight = full + 'px';        // animate 0 -> full (or just set on first show)
-  }
-}
-
-function setAnnouncementBarLayout(barEl, navEl, isVisible) {
-  // Mobile: bar top is handled by CSS variable --nav-h, no JS needed
-  // Desktop: nav pushed below bar via nav.style.top; spacer holds bar height in flow
-  const spacerEl = document.getElementById('bar-spacer');
-  if (window.matchMedia('(max-width:900px)').matches) {
-    // Bar sits below the nav via CSS on mobile; clear any desktop nav offset
-    // (e.g. left behind after a resize across the breakpoint) and drop the spacer.
-    if (navEl) navEl.style.top = '';
-    if (spacerEl) spacerEl.style.height = '0';
-    // Position the fixed bar flush under the nav by measuring the nav's REAL
-    // height (safe-area + padding + button all vary by device) and feeding it to
-    // --zw-bar-top. The old CSS-only formula drifted from the actual nav height,
-    // leaving the bar "floating" with a gap below the header.
-    if (navEl) {
-      const navH = Math.round(navEl.getBoundingClientRect().height);
-      if (navH) document.documentElement.style.setProperty('--zw-bar-top', navH + 'px');
-    }
-  } else {
-    document.documentElement.style.removeProperty('--zw-bar-top');
-    const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
-    // -1px so the header's top edge sits 1px INTO the bar (never a bare seam between
-    // the two boxes — kills the hairline gap during the slide). Spacer stays full barH.
-    // Hidden rests at -1 (not 0) so the 1px header/​bar overlap stays CONSTANT through
-    // the whole slide instead of decaying to 0 at the end (which left a hairline seam).
-    if (navEl) navEl.style.top = (barH ? barH - 1 : -1) + 'px';
-    if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
-  }
-  // The header height just changed (bar shown/hidden, nav repositioned) — re-pad
-  // the builder layout's top section so it stays clear of the header.
-  try { if (window.__zwApplyTopOffset) window.__zwApplyTopOffset(); } catch (_) {}
-}
-
-// Keep the mobile bar flush under the nav across resize / orientation changes by
-// re-measuring the nav height into --zw-bar-top (mobile only, no desktop effects).
-function zwSyncMobileBarTop() {
-  if (!window.matchMedia('(max-width:900px)').matches) { document.documentElement.style.removeProperty('--zw-bar-top'); return; }
-  const navEl = document.getElementById('nav');
-  if (navEl) { const h = Math.round(navEl.getBoundingClientRect().height); if (h) document.documentElement.style.setProperty('--zw-bar-top', h + 'px'); }
-}
-window.addEventListener('resize', zwSyncMobileBarTop, { passive: true });
-if (document.readyState !== 'loading') zwSyncMobileBarTop();
-else document.addEventListener('DOMContentLoaded', zwSyncMobileBarTop);
-
-function applyAnnouncementBar(mode, msgText) {
-  const barEl = document.getElementById('bar');
-  const navEl = document.getElementById('nav');
-  if (!barEl) return;
-  const normalizedMode = String(mode || 'on').trim().toLowerCase();
-  const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
-
-  teardownAnnouncementBarScroll();
-  barEl.style.opacity = '1';
-  barEl.style.pointerEvents = '';
-  barEl.style.transform = '';
-  barEl.style.maxHeight = '';        // clear any leftover fold from a previous mode
-  barEl.style.paddingTop = '';
-  barEl.style.paddingBottom = '';
-  if (navEl) navEl.style.transform = ''; // safety: clear any stale nav transform from earlier versions
-
-  const textEl = document.getElementById('announcementText');
-  const fallbackText = (barEl.dataset.defaultText || (textEl ? textEl.textContent : '') || '').trim();
-  if (!barEl.dataset.defaultText) barEl.dataset.defaultText = fallbackText;
-  if (textEl) {
-    const nextText = (typeof msgText === 'string' ? msgText : '').trim();
-    textEl.textContent = nextText || fallbackText;
-  }
-
-  if (normalizedMode === 'off') {
-    if (isMobileViewport) {
-      // On mobile, hide via display:none (no slide) to avoid leaving a gap
-      barEl.style.display = 'none';
-      barEl.style.transform = 'none';
-      barEl.style.opacity = '1';
-      barEl.style.pointerEvents = '';
-    } else {
-      barEl.style.display = 'none';
-    }
-    setAnnouncementBarLayout(barEl, navEl, false);
-    return;
-  }
-
-  barEl.style.display = 'flex';
-  setAnnouncementBarLayout(barEl, navEl, true);
-
-  // Smooth the spacer's height changes on scroll hide/show — but only enable the
-  // transition AFTER the initial layout has painted, so the bar's first
-  // appearance (0 -> height, once settings load) doesn't animate a push-down.
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    const sp = document.getElementById('bar-spacer');
-    if (sp) sp.style.transition = 'height .25s cubic-bezier(.32,.72,0,1)';
-  }));
-
-  if (normalizedMode !== 'scroll' && normalizedMode !== 'scrolloff') return;
-
-  if (isMobileViewport) {
-    // Mobile: the bar's transform is CSS-locked (anti-flicker), so animate
-    // OPACITY instead of a slide. 'scroll' hides on scroll-down and reappears at
-    // the top / on scroll-up; 'scrolloff' hides once on the first scroll-down and
-    // stays gone (the handler detaches) until the page is reopened. Mirrors the
-    // desktop path and the product page so all four modes behave consistently.
-    barEl.style.transition = 'opacity .3s ease';
-    let lastScrollY = window.scrollY;
-    let isHidden = false;
-    const scrollActivationAt = Date.now() + 150;
-    const syncAnnouncementState = (hidden) => {
-      barEl.style.opacity = hidden ? '0' : '1';
-      barEl.style.pointerEvents = hidden ? 'none' : '';
-    };
-    syncAnnouncementState(false);
-    _announcementBarScrollHandler = function() {
-      const currentY = window.scrollY;
-      if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { lastScrollY = currentY; return; }
-      if (Date.now() < scrollActivationAt) { lastScrollY = currentY; return; }
-      const scrollingDown = currentY > lastScrollY + 6;
-      const scrollingUp = currentY < lastScrollY - 6;
-      // 'scroll' reappears at the top / on scroll-up; 'scrolloff' stays gone.
-      if (normalizedMode !== 'scrolloff' && (currentY <= 16 || scrollingUp)) {
-        if (isHidden) { isHidden = false; syncAnnouncementState(false); }
-      } else if (currentY > 40 && scrollingDown) {
-        if (!isHidden) {
-          isHidden = true; syncAnnouncementState(true);
-          if (normalizedMode === 'scrolloff') teardownAnnouncementBarScroll();
-        }
-      }
-      lastScrollY = currentY;
-    };
-    window.addEventListener('scroll', _announcementBarScrollHandler, { passive: true });
-    return;
-  }
-
-  // Push-out (desktop): the bar SLIDES up out of the viewport (transform → GPU, no
-  // reflow) while the nav RISES into its place (nav `top`, now transitioned in
-  // cohesion) and the spacer collapses — all at the same 0.3s, so the bar's bottom
-  // edge tracks the nav's top edge and the header visibly PUSHES the bar out (not a
-  // fold/fade in place). Opacity/display stay up DURING the slide so header-scroll.js
-  // still sees the bar as present and won't hide the header mid-push; the bar is
-  // marked gone only once it's fully out, so the header's own auto-hide then resumes.
-  const _barReduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  const _barDur = _barReduce ? '0s' : '0.3s';
-  const spacerEl = document.getElementById('bar-spacer');
-  if (spacerEl) spacerEl.style.transition = 'height ' + _barDur + ' cubic-bezier(.32,.72,0,1)';
-  barEl.style.transition = 'none';            // don't animate the bar's first paint
-  barEl.style.transform = 'translateY(0)';
-  barEl.style.willChange = 'transform';
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    barEl.style.transition = 'transform ' + _barDur + ' cubic-bezier(.32,.72,0,1)';
-  }));
-  let lastScrollY = window.scrollY;
-  let isHidden = false;
-  const scrollActivationAt = Date.now() + 150;
-  let _barHideTimer = null;
-  const syncAnnouncementState = (hidden) => {
-    clearTimeout(_barHideTimer);
-    if (hidden) {
-      barEl.style.transform = 'translateY(-100%)';                 // slide up & out
-      setAnnouncementBarLayout(barEl, navEl, false);               // nav rises, spacer collapses
-      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); }, _barReduce ? 0 : 340);
-    } else {
-      barEl.style.display = 'flex';
-      void barEl.offsetHeight;                                     // render at its current (hidden) position first
-      barEl.style.transform = 'translateY(0)';                     // then slide back down into place
-      setAnnouncementBarLayout(barEl, navEl, true);                // nav lowers, spacer expands
-    }
-  };
-  syncAnnouncementState(false);
-  _announcementBarScrollHandler = function() {
-    const currentY = window.scrollY;
-    if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { lastScrollY = currentY; return; }
-    if (Date.now() < scrollActivationAt) { lastScrollY = currentY; return; }
-    const scrollingDown = currentY > lastScrollY + 6;
-    // Reappear ONLY at the very top (scrolled all the way up), not on every scroll-up.
-    // 'scrolloff' hides once and detaches, so it stays gone until the page is reopened.
-    if (normalizedMode !== 'scrolloff' && currentY <= 16) {
-      if (isHidden) { isHidden = false; syncAnnouncementState(false); }
-    } else if (currentY > 40 && scrollingDown) {
-      if (!isHidden) {
-        isHidden = true; syncAnnouncementState(true);
-        if (normalizedMode === 'scrolloff') teardownAnnouncementBarScroll();
-      }
-    }
-    lastScrollY = currentY;
-  };
-  window.addEventListener('scroll', _announcementBarScrollHandler, { passive: true });
-}
+/* Announcement bar is now driven entirely by the shared announcement-bar.js module (loaded on this page) - no per-page handler here. */
 
 /* -- SHIPPING POLICY (default until Supabase loads) -- */
 window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
@@ -2377,7 +2156,6 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       _settingsTimeout
     ]);
     if (!resp.ok) {
-      applyAnnouncementBar('scroll', '');
       return;
     }
     const data = await resp.json();
@@ -2524,27 +2302,6 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       }
     }
 
-    // 5. announcement_bar
-    let announcementApplied = false;
-    if (settings.announcement_bar !== undefined) {
-      let v = settings.announcement_bar;
-      try {
-        if (typeof v === 'string') v = JSON.parse(v);
-      } catch(e) {}
-      
-      let mode = 'scroll';
-      let msgText = '';
-      if (typeof v === 'object' && v !== null) {
-        mode = v.mode || (v.enabled === false ? 'off' : 'scroll');
-        msgText = Object.prototype.hasOwnProperty.call(v, 'main') ? (v.main ?? '') : '';
-      } else {
-        msgText = v;
-      }
-
-      applyAnnouncementBar(mode, msgText);
-      announcementApplied = true;
-    }
-    if (!announcementApplied) applyAnnouncementBar('scroll', '');
 
     // Apply builder_theme overrides to bar bg/color â€” only when builder is NOT active
     // (when active, themeSettings are already merged into the published config above)
@@ -2600,7 +2357,6 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
     if (window.__zwReapplyBuilder) window.__zwReapplyBuilder();
   } catch (e) {
     console.log('Settings load skipped:', e);
-    applyAnnouncementBar('scroll', '');
     if (window.__zwReapplyBuilder) window.__zwReapplyBuilder();
   }
 })();

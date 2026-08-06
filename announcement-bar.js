@@ -27,9 +27,9 @@
    ──────────────────────────────────────────────────────────────────────────── */
 (function () {
   'use strict';
-  // Home + product already ship their own #bar (markup + CSS + inline handler); this
-  // shared module is ONLY for pages that don't. Bail if a bar already exists.
-  if (document.getElementById('bar')) return;
+  // Single shared implementation of the announcement bar for EVERY page. On pages that
+  // already ship a #bar in markup (home index.html, product.html) we ADOPT it and keep
+  // their inline CSS; on all other pages we inject the bar + its own scoped CSS.
 
   var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
   var REST = 'https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value&key=eq.announcement_bar';
@@ -69,9 +69,9 @@
   // Inject #bar + #bar-spacer as the first children of <body> (the bar is fixed, so
   // the spacer reserves its height in flow → content never jumps).
   function ensureBar() {
-    injectStyle();
     var bar = document.getElementById('bar');
-    if (bar) return bar;
+    if (bar) return bar;   // adopt the page's own bar (home/product keep their inline CSS)
+    injectStyle();         // only inject our scoped CSS when WE create the bar
     var spacer = document.createElement('div');
     spacer.id = 'bar-spacer';
     spacer.setAttribute('aria-hidden', 'true');
@@ -106,6 +106,9 @@
       if (navEl) navEl.style.top = (barH ? barH - 1 : -1) + 'px';
       if (spacerEl) spacerEl.style.height = isVisible ? (barH - 1) + 'px' : '0';
     }
+    // Builder preview (homepage): the header height just changed — re-pad the builder
+    // layout's top section so it stays clear of the header. No-op outside the builder.
+    try { if (window.__zwApplyTopOffset) window.__zwApplyTopOffset(); } catch (_) {}
   }
 
   var _scrollHandler = null;
@@ -118,15 +121,35 @@
     var navEl = getNav();
     var textEl = document.getElementById('announcementText');
     var key = pageKey();
-    var pages = (cfg && cfg.pages) || {};
-    var def = (cfg && cfg.default) || {};
-    var per = pages[key] || {};
-    // Resolve on/off, text, mode with per-page → default → legacy fallbacks.
-    var on = per.on != null ? !!per.on : (def.on != null ? !!def.on : (cfg && cfg.enabled !== false));
-    var text = (per.text != null && per.text !== '') ? per.text
-             : (def.text != null && def.text !== '') ? def.text
-             : (key === 'home' ? (cfg && cfg.main) : '') || (key === 'product' ? (cfg && cfg.product) : '') || (cfg && cfg.main) || '';
-    var mode = String(per.mode || def.mode || (cfg && cfg.mode) || 'on').trim().toLowerCase();
+    cfg = cfg || {};
+    var pages = cfg.pages || {};
+    var def = cfg.default || {};
+
+    // Remember the markup's own placeholder (home/product ship one in their #bar) so an
+    // empty admin message falls back to it instead of blanking those pages.
+    if (barEl.dataset.zwDefaultText == null) {
+      barEl.dataset.zwDefaultText = ((textEl ? (textEl.textContent || '') : '')).trim();
+    }
+    var markupDefault = barEl.dataset.zwDefaultText || '';
+
+    // WHERE — one model: pages.<key> (bool or {on}) for EVERY page incl home/product.
+    // Back-compat: no pages entry → home/product use `enabled`, others use default.on.
+    var pv = pages[key];
+    var on;
+    if (pv !== undefined) { on = (pv === true) || !!(pv && pv.on); }
+    else if (key === 'home' || key === 'product') { on = (cfg.enabled !== false); }
+    else { on = !!def.on; }
+
+    // TEXT — one shared message. Back-compat: main/product/default.text, then markup.
+    var text = String(
+      cfg.message ||
+      (key === 'product' ? cfg.product : key === 'home' ? cfg.main : def.text) ||
+      cfg.main || ''
+    ).trim();
+    if (!text && (key === 'home' || key === 'product')) text = markupDefault;
+
+    var mode = String(cfg.mode || 'on').trim().toLowerCase();
+    var link = String(cfg.link || '').trim();
 
     teardownScroll();
     barEl.style.transform = '';
@@ -134,9 +157,22 @@
     barEl.style.opacity = '1';
     barEl.style.pointerEvents = '';
     if (navEl) navEl.style.transform = '';
-    if (textEl) textEl.textContent = String(text || '').trim();
+    if (textEl) textEl.textContent = text;
 
-    if (!on || !String(text || '').trim() || mode === 'off') {
+    // Clickable bar (optional link). The whole bar acts as a link; keyboard-accessible.
+    barEl.onclick = null; barEl.onkeydown = null;
+    if (link) {
+      barEl.style.cursor = 'pointer';
+      barEl.setAttribute('role', 'link'); barEl.setAttribute('tabindex', '0');
+      barEl.setAttribute('aria-label', text + ' — open link');
+      barEl.onclick = function () { window.location.href = link; };
+      barEl.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href = link; } };
+    } else {
+      barEl.style.cursor = '';
+      barEl.removeAttribute('role'); barEl.removeAttribute('tabindex'); barEl.removeAttribute('aria-label');
+    }
+
+    if (!on || !text || mode === 'off') {
       barEl.style.display = 'none';
       layout(barEl, navEl, false);
       return;
@@ -187,7 +223,7 @@
       if (h) {
         barEl.style.transform = 'translateY(-100%)';
         layout(barEl, navEl, false);
-        hideTimer = setTimeout(function () { barEl.style.display = 'none'; }, reduce ? 0 : 340);
+        hideTimer = setTimeout(function () { barEl.style.display = 'none'; try { if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); } catch (_) {} }, reduce ? 0 : 340);
       } else {
         barEl.style.display = 'flex';
         void barEl.offsetHeight;
