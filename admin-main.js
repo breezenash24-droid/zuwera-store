@@ -7587,7 +7587,13 @@
             _formDirty = false;
             document.getElementById('productForm').reset();
             _selectedSports.clear(); ensureSportsList().then(renderSportsChips);
-            document.getElementById('imagesContainer').innerHTML = '<div class="image-row"><span style="font-weight:600;min-width:60px;">Image 1</span><input type="text" class="form-input product-image-url" placeholder="Paste image URL..."><label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label><img class="image-preview" style="display:none"><button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button></div>';
+            // Start with ONE empty rich media card (identical to "+ Add Media") instead
+            // of the old bare .image-row, so the first row matches every other row (and
+            // is a real .media-card the save/reorder logic recognizes).
+            const _imgContainer = document.getElementById('imagesContainer');
+            _imgContainer.innerHTML = '';
+            addMediaCard(_imgContainer, '', '', '');
+            syncMediaColorFilter();
             document.getElementById('colorVariantsContainer').innerHTML = '';
             document.getElementById('sizeGridContainer').innerHTML = '';
             window._pendingStockData = null;
