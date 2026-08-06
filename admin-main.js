@@ -4040,6 +4040,7 @@
             questions:  { title: 'Q&A feature', sub: '' },
             bundles:    { title: 'Bundles feature', sub: '' },
         };
+        const _pageFlagsDirty = {};   // staged (unsaved) feature-toggle changes, per admin page
         async function renderPageFlags(pageId) {
             const host = document.getElementById('pageFlags-' + pageId);
             if (!host) return;
@@ -4065,17 +4066,31 @@
                   </span>
                   <input type="checkbox" data-pf-enabled="${escapeAttr(f.key)}" ${on ? 'checked' : ''} style="flex-shrink:0;width:20px;height:20px;accent-color:var(--accent,#F891A5);cursor:pointer;margin-top:2px;">
                 </label>`;
-            }).join('') + '</div>';
-            host.querySelectorAll('[data-pf-enabled]').forEach(el => el.addEventListener('change', async e => {
+            }).join('') + '</div>'
+            + `<div style="display:flex;align-items:center;gap:12px;margin-top:14px;">
+                 <button type="button" class="btn btn-primary btn-sm" onclick="savePageFlags('${escapeAttr(pageId)}')" ${_pageFlagsDirty[pageId] ? '' : 'disabled'}>Save features</button>
+                 <span class="pf-status" style="font-size:.8rem;font-weight:600;color:${_pageFlagsDirty[pageId] ? '#c0392b' : 'var(--text-secondary)'};">${_pageFlagsDirty[pageId] ? 'Unsaved changes' : ''}</span>
+               </div>`;
+            host.querySelectorAll('[data-pf-enabled]').forEach(el => el.addEventListener('change', e => {
                 const k = e.target.getAttribute('data-pf-enabled');
                 _featureFlags[k] = _featureFlags[k] || {};
                 _featureFlags[k].enabled = e.target.checked;
                 _featureFlags[k].rollout = e.target.checked ? 100 : 0;   // full feature — everyone, no gradual rollout
-                await _saveFeatureFlagsQuiet();
-                renderPageFlags(pageId);
-                showToast(e.target.checked ? 'Feature turned on — live for everyone now' : 'Feature turned off — live now');
+                _pageFlagsDirty[pageId] = true;
+                renderPageFlags(pageId);   // stage only — persists when "Save features" is clicked
             }));
         }
+        window.savePageFlags = async function (pageId) {
+            const host = document.getElementById('pageFlags-' + pageId);
+            const btn = host && host.querySelector('button[onclick*="savePageFlags"]');
+            const st = host && host.querySelector('.pf-status');
+            if (st) { st.textContent = 'Saving…'; st.style.color = 'var(--text-secondary)'; }
+            const ok = await _saveFeatureFlagsQuiet();
+            if (ok) _pageFlagsDirty[pageId] = false;
+            if (btn) btn.disabled = ok;
+            if (st) { st.textContent = ok ? 'Saved ✓ — live now' : 'Not saved — sign in first'; st.style.color = ok ? '#2e7d43' : '#c0392b'; }
+            if (typeof showToast === 'function') showToast(ok ? 'Storefront features saved — live now' : 'Could not save features', ok ? 'info' : 'error');
+        };
         window.renderPageFlags = renderPageFlags;
 
         window.addFeatureFlag = function () {
