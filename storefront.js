@@ -2781,6 +2781,13 @@ function collectCategoryLabels(products) {
 
 function renderCategoryNavigation(products) {
   if (window.__zwCustomNavApplied) return;
+  // A custom nav (site_settings.nav_menu → Men/Women/New) is cached: index.html's
+  // pre-paint script set html.zw-customnav from localStorage. nav-menu.js will render
+  // that custom menu, so DON'T write the auto product-category links here — otherwise
+  // on a returning/hard-refresh load they flash in #nav-category-links before nav-menu
+  // overwrites them. (First-ever load has no cache → falls through; those stay hidden
+  // via html:not(.zw-nav-ready) until nav-menu settles, so no flash there either.)
+  try { if (document.documentElement.classList.contains('zw-customnav')) return; } catch (_) {}
   const labels = collectCategoryLabels(products);
   const desktop = document.getElementById('nav-category-links');
   const mobile = document.getElementById('mobile-category-links');
