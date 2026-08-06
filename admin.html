@@ -3102,7 +3102,7 @@
                         <div class="form-group">
                             <label class="form-label">Tags</label>
                             <input type="text" id="productTags" class="form-input" placeholder="Comma-separated, e.g. New, Sale, Limited">
-                            <p class="form-hint" style="margin-top: 8px;">Optional. Tags can be surfaced in the header navigation — e.g. a “New” or “Sale” menu item lists every product carrying that tag.</p>
+                            <p class="form-hint">Optional. Can power header-nav lists like “New” or “Sale”.</p>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Sports</label>
@@ -3111,7 +3111,7 @@
                                 <input type="text" id="sportsAddInput" class="form-input" placeholder="Add a sport…" autocomplete="off">
                                 <button type="button" id="sportsAddBtn" class="btn btn-secondary btn-sm">Add</button>
                             </div>
-                            <p class="form-hint" style="margin-top: 8px;">Tap a sport to tag this product — it shows as a “Sport” section on the product page and powers the Sport filter on the collection page. Use ✕ to remove a sport from the list everywhere, or add your own below.</p>
+                            <p class="form-hint">Adds a “Sport” section on the product page + powers the collection Sport filter. ✕ removes one everywhere.</p>
                             <style>
                               .sports-chips { display:flex; flex-wrap:wrap; gap:8px; }
                               .sport-chip { display:inline-flex; align-items:center; border:1px solid var(--border, #333); border-radius:999px; overflow:hidden; background:transparent; }
@@ -3127,7 +3127,7 @@
                         <div class="form-group">
                             <label class="form-label">Colorway / Summary Label</label>
                             <input type="text" id="colorway" class="form-input" placeholder="Optional. e.g., Black / White or Vintage Olive">
-                            <p class="form-hint" style="margin-top: 8px;">Used in admin search, exports, and as a storefront fallback when you have not added color variants yet. Leave it blank to auto-build from your saved color variants.</p>
+                            <p class="form-hint">Admin search + a storefront fallback until you add color variants. Blank = auto-built.</p>
                         </div>
                     </div>
                     <div class="form-group">
@@ -3189,6 +3189,15 @@
                             <span id="mediaFilterCount" style="font-size:.74rem;color:var(--text-secondary);"></span>
                         </div>
                         <div id="imagesContainer" class="media-grid"></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Gallery Image Crop Focus</label>
+                        <select id="imageFocalY" class="form-input" style="max-width:440px;">
+                            <option value="0">Top — show face/head (crop bottom)</option>
+                            <option value="50">Center — balanced crop</option>
+                            <option value="100">Bottom — show feet/hem (crop top)</option>
+                        </select>
+                        <p class="form-hint">Which part of a portrait photo stays visible when it's cropped in the mini product modal.</p>
                     </div>
                     <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0 1rem">
                     <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Model Reference</div>
@@ -3345,15 +3354,6 @@
                             <label class="form-label">Shipping Weight (lb) <span style="color:#e07060;font-size:.75em">Required</span></label>
                             <input type="number" id="shippingWeightLb" class="form-input" placeholder="e.g., 0.5" step="0.01" min="0.01">
                             <div style="font-size:.72rem;color:var(--text-secondary);margin-top:.3rem">Actual packed weight used for live shipping rates at checkout.</div>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Gallery Image Crop Focus</label>
-                            <select id="imageFocalY" class="form-input">
-                                <option value="0">Top — show face/head (crop bottom)</option>
-                                <option value="50">Center — balanced crop</option>
-                                <option value="100">Bottom — show feet/hem (crop top)</option>
-                            </select>
-                            <div style="font-size:.72rem;color:var(--text-secondary);margin-top:.3rem">Controls which part of the image stays visible when portrait photos are cropped in the mini product modal.</div>
                         </div>
                     </div>
                     <div class="form-grid">
