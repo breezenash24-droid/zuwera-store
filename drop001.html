@@ -2599,6 +2599,7 @@ function updateCountdown() {
             </a>`;
         }).join('');
         refreshCollectionFavoriteButtons();
+        zwObserveCardVideos();   // only play card videos that are actually on screen
         // Colour filter → auto-select that colour on each card. For every card, pick
         // the FIRST-clicked active colour the card actually has and preview its swatch
         // (image + active state), so a shopper filtering by e.g. Pink sees the pink
@@ -2785,6 +2786,31 @@ function updateCountdown() {
   // -- Nike-style card color swatches (swatch mode) --
   // ── Card image carousel helpers (admin opt-in: card_carousel / card_videos) ──
   function _ccEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // ── Card-video performance ──────────────────────────────────────────────────
+  // A grid full of autoplaying <video>s decodes them ALL at once — heavy CPU/GPU +
+  // battery, and janky scroll on phones (browsers can even refuse to play past a
+  // limit). Card videos ship WITHOUT `autoplay` and preload="metadata"; this
+  // IntersectionObserver plays one only while it's on screen and pauses it the moment
+  // it scrolls away, so at most the 2–4 visible cards ever decode at once.
+  var _zwCardVidObs = null;
+  function zwObserveCardVideos(){
+    if (!('IntersectionObserver' in window)) return;   // old browsers: leave as-is
+    if (!_zwCardVidObs) {
+      _zwCardVidObs = new IntersectionObserver(function(entries){
+        entries.forEach(function(en){
+          var v = en.target;
+          if (en.isIntersecting) { var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); }
+          else { try { v.pause(); } catch(_){} }
+        });
+      }, { threshold: 0.2, rootMargin: '100px 0px' });
+    }
+    document.querySelectorAll('.product-card video.zw-cc-item:not([data-vobs])').forEach(function(v){
+      v.dataset.vobs = '1';
+      v.removeAttribute('autoplay');   // the observer, not autoplay, controls playback
+      _zwCardVidObs.observe(v);
+    });
+  }
   // Carousel on for the CURRENT viewport? Per-device flags (card_carousel_lg/md/sm)
   // win; an unset device falls back to the legacy all-device `card_carousel` master.
   // NB: read window.__zwCollPageCfg directly (what plpCfg() returns) — these helpers
@@ -2824,7 +2850,7 @@ function updateCountdown() {
   }
   function zwCarouselSlides(media, name){
     return media.map(function(m){
-      if (m.v) return '<video class="zw-cc-item" src="'+_ccEsc(m.u)+'" muted loop playsinline preload="metadata" autoplay></video>';
+      if (m.v) return '<video class="zw-cc-item" src="'+_ccEsc(m.u)+'" muted loop playsinline preload="metadata"></video>';
       var src = (typeof optimizeImage === 'function') ? optimizeImage(m.u, 600) : m.u;
       return '<img class="zw-cc-item" src="'+_ccEsc(src)+'" alt="'+_ccEsc(name)+'" loading="lazy" width="400" height="500">';
     }).join('');
@@ -2846,18 +2872,35 @@ function updateCountdown() {
     var idx = zwCardMirrorOn() ? Math.min(Math.max(Math.round(carousel.scrollLeft / w), 0), media.length - 1) : 0;
     var name = (card.querySelector('.product-name') || {}).textContent || '';
     carousel.innerHTML = zwCarouselSlides(media, name);
+    zwObserveCardVideos();
     try { carousel.scrollLeft = idx * w; } catch(_){}
     var dots = card.querySelector('.zw-cc-dots');
     if (dots) dots.innerHTML = media.length > 1 ? media.map(function(_,i){ return '<span'+(i===idx?' class="on"':'')+'></span>'; }).join('') : '';
     return true;
   }
-  // Keep the dots in sync while the shopper swipes (scroll doesn't bubble → capture).
+  // Keep the dots in sync while the shopper swipes (scroll doesn't bubble → capture),
+  // and snap-correct the strip once scrolling settles.
   document.addEventListener('scroll', function(e){
     var car = e.target && e.target.closest && e.target.closest('.zw-card-carousel');
     if (!car || car.__ccWrap || !car.parentElement) return;   // frozen mid seamless-wrap
-    var dots = car.parentElement.querySelector('.zw-cc-dots'); if (!dots) return;
-    var w = car.clientWidth || 1, idx = Math.round(car.scrollLeft / w), spans = dots.children;
-    for (var i=0;i<spans.length;i++) spans[i].classList.toggle('on', i === idx);
+    var w = car.clientWidth || 1, idx = Math.round(car.scrollLeft / w);
+    var dots = car.parentElement.querySelector('.zw-cc-dots');
+    if (dots) { var spans = dots.children; for (var i=0;i<spans.length;i++) spans[i].classList.toggle('on', i === idx); }
+    // Snap-correction: after scrolling stops, nudge exactly onto the nearest image so a
+    // drifted / sub-pixel scroll position can't leave a sliver of the NEXT image showing
+    // at the card edge. Only fires when off by >1.5px (a clean snap is left alone) and
+    // never during the seamless-loop wrap or our own correction scroll.
+    if (car.__ccSnapping) return;
+    if (car.__ccSnapT) clearTimeout(car.__ccSnapT);
+    car.__ccSnapT = setTimeout(function(){
+      if (car.__ccWrap) return;
+      var ww = car.clientWidth || 1, tgt = Math.round(car.scrollLeft / ww) * ww;
+      if (Math.abs(car.scrollLeft - tgt) > 1.5) {
+        car.__ccSnapping = 1;
+        try { car.scrollTo({ left: tgt, behavior: 'smooth' }); } catch(_){ car.scrollLeft = tgt; }
+        setTimeout(function(){ car.__ccSnapping = 0; }, 450);
+      }
+    }, 130);
   }, true);
 
   // ── Loop wrap: "seamless" (default) vs "rewind" ─────────────────────────────
