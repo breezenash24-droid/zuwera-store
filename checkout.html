@@ -809,9 +809,55 @@ window.zwClearPromo = function() {
 
 /* -- Read cart -- */
 (function() {
+  var _coUser = null;
   try {
-    var cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    if (!Array.isArray(cart)) cart = [];
+    var _base = null; var _chunks = {};
+    for (var _i = 0; _i < localStorage.length; _i++) {
+      var _k = localStorage.key(_i);
+      if (!_k) continue;
+      var _mm = _k.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/);
+      if (!_mm) continue;
+      if (_mm[1] === undefined) _base = localStorage.getItem(_k);
+      else _chunks[_mm[1]] = localStorage.getItem(_k);
+    }
+    var _order = Object.keys(_chunks).map(Number).sort(function(a, b) { return a - b; });
+    var _rawStr = _order.length ? _order.map(function(n) { return _chunks[n]; }).join('') : _base;
+    if (_rawStr) {
+      if (_rawStr.indexOf('base64-') === 0) {
+        var _bb = _rawStr.slice(7).replace(/-/g, '+').replace(/_/g, '/');
+        var _bin = atob(_bb);
+        _rawStr = new TextDecoder().decode(Uint8Array.from(_bin, function(c) { return c.charCodeAt(0); }));
+      }
+      var _raw = JSON.parse(_rawStr);
+      var _sess = _raw && _raw.currentSession ? _raw.currentSession : _raw;
+      if (_sess && _sess.user) {
+        var _live = Number(_sess.expires_at || 0) * 1000 > Date.now();
+        if (_live || _sess.refresh_token) _coUser = _sess.user;
+      }
+    }
+  } catch (_) {}
+
+  function normalizeCartPricing(cart) {
+    return (cart || []).map(function(item) {
+      var regularPrice = parseFloat(item.regularPrice ?? item.basePrice ?? item.price ?? 0) || 0;
+      var memberPrice  = parseFloat(item.memberPrice ?? item.member_price ?? 0) || 0;
+      var isMember     = Boolean(_coUser);
+      var effectivePrice = (isMember && memberPrice > 0 && (!regularPrice || memberPrice < regularPrice))
+        ? memberPrice
+        : (regularPrice || parseFloat(item.price) || 0);
+      return Object.assign({}, item, {
+        regularPrice: regularPrice,
+        memberPrice: memberPrice,
+        price: effectivePrice,
+        quantity: Math.max(1, parseInt(item.quantity, 10) || 1)
+      });
+    });
+  }
+
+  try {
+    var raw = JSON.parse(localStorage.getItem('cart') || '[]');
+    if (!Array.isArray(raw)) raw = [];
+    var cart = normalizeCartPricing(raw);
     window.cartItems = cart;
   } catch(_) { window.cartItems = []; }
 

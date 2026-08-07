@@ -523,7 +523,7 @@
     window.requestAnimationFrame(function () { quickAddFocusWithoutScroll(document.getElementById('quick-add-review-confirm')); });
   }
 
-  async function quickAddToCart(productId, productTitle, productPrice, productSku, productImage, productWeightLb, btn, preselectColorName) {
+  async function quickAddToCart(productId, productTitle, productPrice, productSku, productImage, productWeightLb, btn, preselectColorName, optRegularPrice, optMemberPrice) {
     // Early-access gate: admin-enabled members-only window (see storefront-theme.js).
     if (typeof window.zwEarlyAccessBlocked === 'function' && window.zwEarlyAccessBlocked()) {
       toast('Early access is for members — sign in to shop first.');
@@ -540,8 +540,8 @@
       sku: productSku || '',
       baseSku: productSku || '',
       title: productTitle,
-      regularPrice: parseFloat(productPrice) || 0,
-      memberPrice: null,
+      regularPrice: optRegularPrice !== undefined ? parseFloat(optRegularPrice) || 0 : (parseFloat(productPrice) || 0),
+      memberPrice: optMemberPrice !== undefined ? parseFloat(optMemberPrice) || 0 : null,
       price: parseFloat(productPrice) || 0,
       image: productImage || '',
       images: productImage ? [productImage] : [],

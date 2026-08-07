@@ -1703,6 +1703,25 @@ function updateCountdown() {
       let collectionUser = null;
       let collectionFavoriteIds = new Set();
 
+      // -- Member-pricing helpers (mirrors storefront.js getEffectiveListPrice) --
+      function isCollectionMember() {
+        return !!(collectionUser || window.__zwSessionUser);
+      }
+      function getCollectionRegularPrice(p) {
+        return parseFloat(p?.current_price ?? p?.price ?? 0) || 0;
+      }
+      function getCollectionMemberPrice(p) {
+        return parseFloat(p?.member_price ?? 0) || 0;
+      }
+      function getCollectionEffectivePrice(p) {
+        const regular = getCollectionRegularPrice(p);
+        const member = getCollectionMemberPrice(p);
+        if (isCollectionMember() && member > 0 && (!regular || member < regular)) {
+          return member;
+        }
+        return regular;
+      }
+
       // -- Paint the (already FILTERED) collection from cache IMMEDIATELY — before
       //    the auth + settings network round-trips below — so the correct products
       //    show right away and the previous page doesn't linger (which looked like
@@ -1723,7 +1742,7 @@ function updateCountdown() {
       const PLP_CLOTHING_ORDER = ['Outerwear','Jackets','Coats','Vests','Hoodies','Sweatshirts','Sweaters','Knitwear','Tops','T-Shirts','Tees','Shirts','Polos','Long Sleeves','Sweatpants','Joggers','Pants','Trousers','Leggings','Shorts','Bottoms','Sets','Tracksuits','Dresses','Skirts','Swim','Underwear','Socks','Hats','Caps','Beanies','Gloves','Bags','Accessories'];
       function plpCatRank(n){ const i = PLP_CLOTHING_ORDER.findIndex(c => c.toLowerCase() === String(n).toLowerCase()); return i === -1 ? 999 : i; }
       function plpEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-      function plpPrice(p){ return parseFloat(p && (p.current_price || p.msrp)) || 0; }
+      function plpPrice(p){ return getCollectionEffectivePrice(p) || parseFloat(p && p.msrp) || 0; }
 
       // ── Facets: Gender / Color / Price (multi-select; AND across facets, OR within) ──
       const activeGenders = new Set(), activeColors = new Set(), activePrices = new Set(), activeSports = new Set(), activeMaterials = new Set(), activeBestFor = new Set();
@@ -2547,6 +2566,8 @@ function updateCountdown() {
             productId: p.id,
             title: productName,
             price: Number(priceVal) || 0,
+            regularPrice: getCollectionRegularPrice(p),
+            memberPrice: getCollectionMemberPrice(p),
             sku: p.sku || '',
             image: originalImg || '',
             weightLb: parseFloat(p.shipping_weight_lb) || 0.5,
@@ -2562,7 +2583,7 @@ function updateCountdown() {
                     class="heart-btn"
                     data-product-id="${p.id}"
                     data-product-name="${productName.replace(/"/g, '&quot;')}"
-                    data-price="${productPrice ? Number(productPrice).toFixed(2) : ''}"
+                    data-price="${priceVal ? priceVal.toFixed(2) : ''}"
                     data-product-image="${originalImg || ''}"
                     aria-label="Save item"
                     onclick="event.preventDefault(); event.stopPropagation(); toggleCollectionFavorite(this);"
