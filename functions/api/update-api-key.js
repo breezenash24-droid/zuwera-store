@@ -8,7 +8,7 @@
  * Body: { accessToken: string, keyName: string, keyValue: string }
  */
 
-import { ALLOWED_KEYS } from './_settings.js';
+import { ALLOWED_KEYS, maskKey } from './_settings.js';
 
 const ADMIN_EMAILS = ['breezenash24@gmail.com', 'nasirubreeze@zuwera.store'];
 
@@ -17,6 +17,56 @@ function json(body, status = 200) {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+/**
+ * Tamper-proof security alert: emailed on ANY key change (or a rejected attempt to
+ * change a locked key). DELIBERATELY reads its email credentials from ENV ONLY — never
+ * via resolveSetting/site_settings — so an attacker who deletes the admin-editable
+ * RESEND/BREVO override can NOT silence this alert. For the strongest guarantee set a
+ * dedicated SECURITY_ALERT_RESEND_KEY (or _BREVO_KEY) + SECURITY_ALERT_EMAIL in
+ * Cloudflare; otherwise it falls back to the env RESEND_API_KEY / BREVO_API_KEY.
+ * Best-effort + never throws — it must never block or fail the key operation itself.
+ */
+async function sendKeyChangeAlert(env, info) {
+  try {
+    const resendKey = (env.SECURITY_ALERT_RESEND_KEY || env.RESEND_API_KEY || '').trim();
+    const brevoKey  = (env.SECURITY_ALERT_BREVO_KEY  || env.BREVO_API_KEY  || '').trim();
+    const from      = (env.SECURITY_ALERT_FROM || env.EMAIL_FROM || 'Zuwera Security <security@zuwera.store>').trim();
+    const to        = (env.SECURITY_ALERT_EMAIL || '').trim() ? [env.SECURITY_ALERT_EMAIL.trim()] : ADMIN_EMAILS;
+    const verb      = info.attempted ? 'change was ATTEMPTED on a locked key' : 'was changed';
+    const subject   = `${info.attempted ? '🚨' : '⚠️'} Zuwera API key ${info.attempted ? 'change attempt' : 'changed'}: ${info.keyName}`;
+    const html = `<div style="font-family:system-ui,-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#111">
+      <h2 style="margin:0 0 12px">API key ${verb}</h2>
+      <p style="margin:0 0 16px;color:#444">A key was ${info.attempted ? 'attempted to be changed' : 'updated'} in your Zuwera admin. If this was not you, your admin session may be compromised — rotate the affected key in <strong>Cloudflare</strong> and change your password immediately.</p>
+      <table style="border-collapse:collapse;font-size:14px">
+        <tr><td style="padding:4px 14px 4px 0;color:#888">Key</td><td style="padding:4px 0"><strong>${info.keyName}</strong></td></tr>
+        <tr><td style="padding:4px 14px 4px 0;color:#888">New value</td><td style="padding:4px 0"><code>${info.masked || '—'}</code></td></tr>
+        <tr><td style="padding:4px 14px 4px 0;color:#888">By</td><td style="padding:4px 0">${info.by || 'unknown'}</td></tr>
+        <tr><td style="padding:4px 14px 4px 0;color:#888">IP</td><td style="padding:4px 0">${info.ip || 'unknown'}</td></tr>
+        <tr><td style="padding:4px 14px 4px 0;color:#888">When</td><td style="padding:4px 0">${info.when}</td></tr>
+      </table>
+      <p style="font-size:12px;color:#bbb;margin-top:24px;border-top:1px solid #eee;padding-top:12px">Zuwera Admin Security · automated alert · cannot be disabled from the admin panel</p>
+    </div>`;
+    if (resendKey) {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to, subject, html }),
+      });
+    } else if (brevoKey) {
+      const senderEmail = (from.match(/<([^>]+)>/) || [null, from])[1];
+      await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sender: { email: senderEmail, name: 'Zuwera Security' }, to: to.map(e => ({ email: e })), subject, htmlContent: html }),
+      });
+    } else {
+      console.error('[update-api-key] SECURITY ALERT could not send — no env RESEND_API_KEY / BREVO_API_KEY set. Add SECURITY_ALERT_RESEND_KEY in Cloudflare.');
+    }
+  } catch (e) {
+    console.error('[update-api-key] security alert send failed:', e && e.message);
+  }
 }
 
 async function validateAdmin(accessToken, env) {
@@ -53,10 +103,16 @@ export async function onRequestPost({ request, env }) {
 
     if (!accessToken) return json({ ok: false, error: 'Missing access token' }, 401);
 
-    await validateAdmin(accessToken, env);
+    const adminUser = await validateAdmin(accessToken, env);
+    const _by   = (adminUser && adminUser.email) || 'admin';
+    const _ip   = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
+    const _when = new Date().toISOString();
 
     if (!keyName || !ALLOWED_KEYS.has(keyName)) {
-      return json({ ok: false, error: `"${keyName}" is not an editable key` }, 400);
+      // A validated admin tried to write a key that isn't editable here (e.g. a locked
+      // crown-jewel like STRIPE_SECRET_KEY) — alert, then reject.
+      if (keyName) await sendKeyChangeAlert(env, { keyName, masked: '(rejected — key is locked to Cloudflare)', by: _by, ip: _ip, when: _when, attempted: true });
+      return json({ ok: false, error: `"${keyName}" is not editable here — it's locked to Cloudflare env vars` }, 400);
     }
     if (!keyValue || String(keyValue).includes('•')) {
       return json({ ok: false, error: 'Invalid value — do not paste the masked preview' }, 400);
@@ -86,6 +142,7 @@ export async function onRequestPost({ request, env }) {
     }
 
     console.log(`[update-api-key] Admin updated ${keyName}`);
+    await sendKeyChangeAlert(env, { keyName, masked: maskKey(keyValue.trim()), by: _by, ip: _ip, when: _when });
     return json({ ok: true, keyName, message: `${keyName} saved successfully` });
   } catch (e) {
     return json({ ok: false, error: e.message || 'Unknown error' }, 500);

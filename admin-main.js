@@ -1271,7 +1271,7 @@
             },
             stripe: {
                 label: 'Stripe',
-                keys: [{ name: 'STRIPE_SECRET_KEY', label: 'Secret Key', type: 'password', placeholder: 'sk_live_... or sk_test_...', warn: '⚠️ High security — only update if your key was rotated.' }]
+                keys: [{ name: 'STRIPE_SECRET_KEY', label: 'Secret Key', type: 'password', locked: true, lockNote: '🔒 Locked to Cloudflare for security. Every payment reads this straight from your Cloudflare env var, so it can\'t be changed (or hijacked) from here. Rotate it in the Cloudflare dashboard → Settings → Variables &amp; Secrets.' }]
             },
             shippo: {
                 label: 'Shippo',
@@ -1856,6 +1856,13 @@
             const fieldsEl = document.getElementById('akm-fields');
             fieldsEl.innerHTML = def.keys.map(k => {
                 const masked = _maskedKeys[k.name] || '';
+                if (k.locked) {
+                    return `
+                  <div class="api-key-field">
+                    <label>${k.label}${masked ? `<span>${masked}</span>` : ' <span style="opacity:.4;">not set</span>'}</label>
+                    <div class="api-key-warn">${k.lockNote || '🔒 Locked — managed in Cloudflare.'}</div>
+                  </div>`;
+                }
                 return `
                   <div class="api-key-field">
                     <label for="akf-${k.name}">${k.label}${masked ? `<span>${masked}</span>` : ' <span style="opacity:.4;">not set</span>'}</label>
