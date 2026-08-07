@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 1.4rem 2.5rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   position: sticky;
   top: 0;
   background: var(--black);

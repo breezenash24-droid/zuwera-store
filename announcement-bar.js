@@ -156,7 +156,7 @@
     barEl.style.maxHeight = '';
     barEl.style.opacity = '1';
     barEl.style.pointerEvents = '';
-    if (navEl) navEl.style.transform = '';
+    if (navEl) { navEl.style.transform = ''; navEl.style.removeProperty('z-index'); }
     if (textEl) textEl.textContent = text;
 
     // Clickable bar (optional link). The whole bar acts as a link; keyboard-accessible.
@@ -173,8 +173,14 @@
     }
 
     if (!on || !text || mode === 'off') {
+      // Bar is fully OFF on this page — leave the nav at its NATURAL position. (layout's
+      // hidden branch rests the nav at top:-1, which is only meant for the transient
+      // scroll-hide overlap; applying it here nudged the header up 1px on every bar-off
+      // page, detaching its border from the content.)
       barEl.style.display = 'none';
-      layout(barEl, navEl, false);
+      if (navEl) { navEl.style.top = ''; navEl.style.removeProperty('z-index'); }
+      var _offSp = document.getElementById('bar-spacer'); if (_offSp) _offSp.style.height = '0';
+      document.documentElement.style.removeProperty('--zw-bar-top');
       return;
     }
 
@@ -210,25 +216,28 @@
       return;
     }
 
-    // Desktop: PUSH-OUT slide (transform) + nav rise (top) + spacer collapse, synced.
+    // Desktop: the header RISES and COVERS the bar — no slide-out, so no empty space can
+    // ever show behind it. The bar stays put; the nav is lifted ABOVE the bar (#bar is
+    // z-index 230) during the transition so it visibly covers the bar as it rises, and the
+    // bar is hidden only once fully covered. What the header does AFTER (stay pinned vs
+    // auto-hide) is header-scroll.js — admin-controlled (Settings → Header Scroll Behavior;
+    // set "Always visible" to pin it like Nike).
     barEl.style.transition = 'none';
-    barEl.style.transform = 'translateY(0)';
-    barEl.style.willChange = 'transform';
-    requestAnimationFrame(function () { requestAnimationFrame(function () {
-      barEl.style.transition = 'transform ' + dur + ' cubic-bezier(.32,.72,0,1)';
-    }); });
+    barEl.style.transform = '';
+    barEl.style.willChange = '';
     var last = window.scrollY, hidden = false, at = Date.now() + 150, hideTimer = null;
     var sync = function (h) {
       clearTimeout(hideTimer);
       if (h) {
-        barEl.style.transform = 'translateY(-100%)';
-        layout(barEl, navEl, false);
+        if (navEl) navEl.style.setProperty('z-index', '231', 'important');   // nav covers the bar
+        layout(barEl, navEl, false);   // nav.top → -1: header rises OVER the stationary bar
         hideTimer = setTimeout(function () { barEl.style.display = 'none'; try { if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); } catch (_) {} }, reduce ? 0 : 340);
       } else {
         barEl.style.display = 'flex';
-        void barEl.offsetHeight;
-        barEl.style.transform = 'translateY(0)';
-        layout(barEl, navEl, true);
+        layout(barEl, navEl, true);    // nav.top → barH-1: header lowers, revealing the bar
+        // Drop the nav back below the bar only AFTER it settles, so at rest the bar is on
+        // top again (keeps the mega-menu backdrop dimming the page, not the bar).
+        hideTimer = setTimeout(function () { if (navEl) navEl.style.removeProperty('z-index'); }, reduce ? 0 : 340);
       }
     };
     _scrollHandler = function () {
