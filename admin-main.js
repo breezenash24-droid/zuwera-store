@@ -7958,6 +7958,7 @@
                 // Set EVERY radio explicitly (check the saved mode, uncheck the rest) so
                 // the static `checked` on "On" can never override the loaded value.
                 document.querySelectorAll('input[name="announcementBarMode"]').forEach(r => { r.checked = (r.value === mode); });
+                if (typeof window.updateAnnEmptyWarn === 'function') window.updateAnnEmptyWarn();
             } else if (row.key === 'header_behavior') {
                 let v = row.value;
                 try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
@@ -8044,6 +8045,19 @@
     }
 
     // "All / None" convenience for the page grid.
+    // Empty-message safeguard: the bar is hidden whenever the Message is blank (the #1
+    // "it won't show" gotcha), so surface a persistent warning and keep it in sync.
+    window.updateAnnEmptyWarn = function () {
+        const msg = (document.getElementById('settAnnouncementBarMessage')?.value || '').trim();
+        const modeEl = document.querySelector('input[name="announcementBarMode"]:checked');
+        const off = modeEl && modeEl.value === 'off';
+        const warn = document.getElementById('annEmptyWarn');
+        if (warn) warn.style.display = (!msg && !off) ? 'flex' : 'none';
+    };
+    document.getElementById('settAnnouncementBarMessage')?.addEventListener('input', window.updateAnnEmptyWarn);
+    document.querySelectorAll('input[name="announcementBarMode"]').forEach(r => r.addEventListener('change', window.updateAnnEmptyWarn));
+    window.updateAnnEmptyWarn();
+
     document.getElementById('annPagesAll')?.addEventListener('click', () => {
         document.querySelectorAll('[data-annpage]').forEach(cb => { cb.checked = true; });
     });
@@ -8076,7 +8090,9 @@
         else {
             const onCount = Object.keys(pages).filter(k => pages[k].on).length;
             await logAdminAudit('settings.update', 'site_settings', 'announcement_bar', { mode, has_message: Boolean(message), has_link: Boolean(link), pages_on: onCount });
-            showToast('Announcement saved!', 'success');
+            if (typeof window.updateAnnEmptyWarn === 'function') window.updateAnnEmptyWarn();
+            if (!message && mode !== 'off') showToast('Saved — but the bar is HIDDEN because the Message is empty. Add a message to turn it on.', 'error');
+            else showToast('Announcement saved!', 'success');
         }
     });
 
