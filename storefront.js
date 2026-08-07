@@ -3607,7 +3607,7 @@ window.addHomeFavoriteToCart = async function(productId, btn) {
     const price = parseHomeFavoritePrice(favorite.price) || 0;
     const image = favorite.product_image || '';
     const title = favorite.product_name || 'Product';
-    window.quickAddToCart(normalizedProductId, title, price, '', image, 0.5, btn instanceof Element ? btn : null);
+    window.quickAddToCart(normalizedProductId, title, price, '', image, 0.5, btn instanceof Element ? btn : null, null, favorite.regularPrice, favorite.memberPrice);
   } catch (error) {
     console.error('addHomeFavoriteToCart failed:', error);
     showToast('Could not add this saved item right now.');
@@ -3863,7 +3863,10 @@ window.__zwQuickAddClick = function(e, btn) {
     payload.sku,
     payload.image,
     payload.weightLb,
-    btn
+    btn,
+    null,
+    payload.regularPrice,
+    payload.memberPrice
   );
   return false;
 };
@@ -3908,7 +3911,7 @@ document.addEventListener('click', function (e) {
   try { payload = JSON.parse(decodeURIComponent(row.dataset.quickAdd || '{}')); }
   catch (_) { showToast('Unable to open product options'); return; }
   if (shouldBypassQuickAddModal()) { quickAddGoToProduct(payload); return; }
-  window.quickAddToCart(payload.productId, payload.title, payload.price, payload.sku, payload.image, payload.weightLb, null, sw.dataset.colorName || null);
+  window.quickAddToCart(payload.productId, payload.title, payload.price, payload.sku, payload.image, payload.weightLb, null, sw.dataset.colorName || null, payload.regularPrice, payload.memberPrice);
 }, true);
 
 /* (quick-add modal internals removed — see quick-add-modal.js) */
