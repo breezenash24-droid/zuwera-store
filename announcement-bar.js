@@ -173,8 +173,14 @@
     }
 
     if (!on || !text || mode === 'off') {
+      // Bar is fully OFF on this page — leave the nav at its NATURAL position. (layout's
+      // hidden branch rests the nav at top:-1, which is only meant for the transient
+      // scroll-hide overlap; applying it here nudged the header up 1px on every bar-off
+      // page, detaching its border from the content.)
       barEl.style.display = 'none';
-      layout(barEl, navEl, false);
+      if (navEl) { navEl.style.top = ''; navEl.style.removeProperty('z-index'); }
+      var _offSp = document.getElementById('bar-spacer'); if (_offSp) _offSp.style.height = '0';
+      document.documentElement.style.removeProperty('--zw-bar-top');
       return;
     }
 
