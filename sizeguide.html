@@ -286,8 +286,15 @@
       font-family:var(--font-head);
       font-size: 1.3rem;
       letter-spacing: 0.1em;
-      margin-bottom: 1.8rem;
+      margin-bottom: 0.4rem;
       color: var(--text);
+    }
+    .calc-subtitle {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.55;
+      margin-bottom: 1.8rem;
+      max-width: 46ch;
     }
     .calc-grid {
       display: grid;
@@ -299,8 +306,19 @@
       display: flex;
       flex-direction: column;
       gap: 0.4rem;
+      min-width: 0;   /* let the field shrink to its grid track — without this the
+                         2-up fields can't fit and the 2nd input spills off-screen
+                         (matches the standalone .fs-field). */
     }
+    /* .calc-field sets display:flex, which overrides the [hidden] attribute — so
+       hidden fields (e.g. Gender/Category auto-filled in the product modal) stayed
+       visible. Force them hidden. */
+    .calc-field[hidden] { display: none !important; }
     .calc-label {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.6rem;
       font-size: 0.75rem;
       letter-spacing: 0.12em;
       text-transform: uppercase;
@@ -308,6 +326,8 @@
       font-weight: 500;
     }
     .calc-input, .calc-select {
+      width: 100%;
+      min-width: 0;
       background: rgba(244, 241, 235, 0.04);
       border: 1px solid var(--border);
       color: var(--text);
@@ -339,8 +359,9 @@
     }
     .calc-toggles {
       display: flex;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
+      gap: 0.4rem;
+      margin-top: 0;
+      flex: 0 0 auto;
     }
     .calc-toggle-btn {
       background: none;
@@ -369,30 +390,34 @@
       background: var(--text);
       color: var(--bg);
       border: none;
-      padding: 0.8rem 2rem;
+      padding: 1rem 3rem;
+      margin-top: 0.5rem;
       font-family:var(--font-body);
-      font-size: 0.7rem;
-      letter-spacing: 0.18em;
+      font-size: 0.72rem;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       cursor: pointer;
       border-radius: 0;
-      transition: all 0.2s;
-      font-weight: 500;
+      transition: transform 0.15s ease, opacity 0.2s ease;
+      font-weight: 600;
     }
     .calc-button:hover {
-      opacity: 0.85;
+      opacity: 0.88;
+      transform: translateY(-1px);
     }
     .calc-button:active {
-      opacity: 0.7;
+      opacity: 0.75;
+      transform: translateY(0);
     }
 
     .calc-result {
-      background: rgba(248, 145, 165, 0.08);
-      border: 1px solid var(--accent);
-      padding: 1.2rem;
-      margin-top: 1.5rem;
-      border-radius: 2px;
+      background: var(--bg);
+      border: 1px solid var(--text);
+      padding: 1.75rem 1.5rem;
+      margin-top: 2rem;
+      border-radius: 0;
       display: none;
+      text-align: center;
       animation: slideDown 0.3s ease;
     }
     .calc-result.visible {
@@ -400,17 +425,88 @@
     }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
+    /* Small caption above the recommended size (id is #calcResultTitle in the DOM). */
     .calc-result-title {
-      font-family:var(--font-head);
-      font-size: 1.2rem;
-      letter-spacing: 0.1em;
-      margin-bottom: 0.8rem;
-      color: var(--accent);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.55rem;
+      color: var(--muted);
+      font-weight: 600;
     }
-    .calc-result-text {
-      font-size: 0.95rem;
+    .calc-result-size {
+      font-family: var(--font-head);
+      font-size: 3.4rem;
+      line-height: 0.95;
+      letter-spacing: 0.03em;
       color: var(--text);
-      line-height: 1.6;
+      margin-bottom: 0.7rem;
+    }
+    .calc-result-size:empty { display: none; }
+    .calc-result-text {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 34ch;
+      margin: 0 auto;
+    }
+
+    /* In the product-page modal the calculator is the whole focus: contain it to a
+       tidy centred column (instead of a wide, sparse panel), pair Height + Weight
+       as two even columns, and let the CTA span the full width. */
+    /* In the product modal the modal chrome is the frame, so drop the nested grey
+       panel and centre a tidy column — same clean, compact feel as the product
+       page's Find My Size sheet. */
+    body.embed-focused .calculator {
+      max-width: 560px;
+      margin: 0 auto 2.25rem;
+      padding: 0;
+      background: transparent;
+      border: none;
+      text-align: center;
+    }
+    body.embed-focused .calc-title,
+    body.embed-focused .calc-subtitle {
+      max-width: none;
+    }
+    body.embed-focused .calc-subtitle { margin-left: auto; margin-right: auto; }
+    /* Height + Weight stay two-up (with inline unit toggles) at every width, so the
+       calculator never sprawls into a tall single column on mobile. */
+    body.embed-focused .calc-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+      text-align: left;
+    }
+    body.embed-focused .calc-button { width: 100%; }
+    @media (max-width: 600px) {
+      body.embed-focused .calc-title { font-size: 1.4rem; }
+      body.embed-focused .calc-subtitle { margin-bottom: 1.3rem; }
+      body.embed-focused .calc-grid { gap: 0.7rem; }
+      body.embed-focused .calc-input { padding: 0.7rem 0.75rem; }
+    }
+
+    /* Find My Size embedded in the product Size Guide modal — match the standalone
+       Find My Size sheet the user preferred: title in the big italic modal style, and
+       height + weight kept two-up at EVERY width. The default grid (auto-fit minmax
+       200px) collapses to a single stacked column on narrow phones; the standalone
+       stays side-by-side, so pin two columns whenever the guide is embedded. */
+    body.embed-mode .calc-title,
+    body.embed-focused .calc-title {
+      font-style: italic;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      font-size: 1.7rem;
+      line-height: 1.02;
+    }
+    body.embed-mode .calc-grid,
+    body.embed-focused .calc-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 0.85rem;
+    }
+    @media (max-width: 600px) {
+      body.embed-mode .calc-title,
+      body.embed-focused .calc-title { font-size: 1.45rem; }
     }
 
     /* ------ CATEGORY TABS ------ */
@@ -789,10 +885,10 @@
     }
     body.light-mode .tab-btn:hover { color: #09090b; }
     body.light-mode .calc-result {
-      background: rgba(9,9,11,0.04);
-      border-color: rgba(9,9,11,0.15);
+      background: rgba(9,9,11,0.02);
+      border-color: #09090b;
     }
-    body.light-mode .calc-result-title { color: #09090b; }
+    body.light-mode .calc-result-title { color: rgba(9,9,11,0.55); }
     body.light-mode .highlight-card {
       background: rgba(9,9,11,0.04);
       border-color: rgba(9,9,11,0.15);
@@ -912,7 +1008,8 @@
 
       <!-- CALCULATOR -->
       <section class="calculator">
-      <h2 class="calc-title">Find My Size</h2>
+      <h2 class="calc-title">Find Your Size</h2>
+      <p class="calc-subtitle">Enter your details below for a recommended starting size.</p>
 
       <div class="calc-grid">
         <div class="calc-field" id="calcGenderField">
@@ -1008,10 +1105,11 @@
         </div>
       </div>
 
-      <button class="calc-button" id="calcSubmit">Find My Size</button>
+      <button class="calc-button" id="calcSubmit">Find Your Size</button>
 
       <div class="calc-result" id="calcResult">
-        <div class="calc-result-title" id="calcResultTitle">Your Recommended Size</div>
+        <div class="calc-result-title" id="calcResultTitle">Your recommended size</div>
+        <div class="calc-result-size" id="calcResultSize"></div>
         <div class="calc-result-text" id="calcResultText"></div>
       </div>
       </section>
@@ -1834,13 +1932,11 @@
       } else if (category === 'hats') {
         document.getElementById('headCircField').style.display = 'block';
       } else if (gender === 'men' || gender === 'women') {
+        // Simplified apparel calculator: just height + weight → recommended size.
+        // (Chest/waist/hips are intentionally left hidden — the recommendation now
+        // comes from height + weight; measurements still appear in the chart below.)
         document.getElementById('heightField').style.display = 'block';
         document.getElementById('weightField').style.display = 'block';
-        document.getElementById('chestField').style.display = 'block';
-        document.getElementById('waistField').style.display = 'block';
-        if (gender === 'women') {
-          document.getElementById('hipsField').style.display = 'block';
-        }
       }
     }
 
@@ -1849,7 +1945,13 @@
       const category = document.getElementById('calcCategory').value;
       const result = document.getElementById('calcResult');
       const resultTitle = document.getElementById('calcResultTitle');
+      const resultSize = document.getElementById('calcResultSize');
       const resultText = document.getElementById('calcResultText');
+
+      // Reset the reveal each run; the caption + big size are set only on success,
+      // so error messages show on their own.
+      resultTitle.textContent = '';
+      if (resultSize) resultSize.textContent = '';
 
       if (!gender || !category) {
         resultText.textContent = 'Please select both gender and category.';
@@ -1896,27 +1998,43 @@
         recommendedSize = findHatSize(headCirc);
         explanation = `Best match for ${headCirc}" head circumference`;
       } else {
-        const chest = parseFloat(document.getElementById('calcChest').value);
-        const waist = parseFloat(document.getElementById('calcWaist').value);
-        const hips = gender === 'women' ? parseFloat(document.getElementById('calcHips').value) : null;
+        // Simplified apparel path: height + weight → size.
+        const rawHeight = parseFloat(document.getElementById('calcHeight').value);
+        const rawWeight = parseFloat(document.getElementById('calcWeight').value);
+        const hCm = activeCalcUnit('heightField') === 'cm';
+        const wKg = activeCalcUnit('weightField') === 'kg';
 
-        if (!chest || !waist || (gender === 'women' && !hips)) {
-          resultText.textContent = 'Please enter all measurements.';
+        // `!rawHeight` is false for a negative number, so -4.5 slipped through and
+        // returned a size. Require positive values, then enforce sane bounds.
+        if (!(rawHeight > 0) || !(rawWeight > 0)) {
+          resultText.textContent = 'Please enter a valid height and weight.';
           result.classList.add('visible');
           return;
         }
 
-        if (gender === 'men') {
-          recommendedSize = findMenSize(chest, waist);
-          explanation = `Based on chest ${chest}" and waist ${waist}"`;
-        } else if (gender === 'women') {
-          recommendedSize = findWomenSize(chest, waist, hips);
-          explanation = `Based on bust ${chest}", waist ${waist}", and hips ${hips}"`;
+        const heightIn = hCm ? rawHeight / 2.54 : rawHeight;
+        const weightLbs = wKg ? rawWeight * 2.2046 : rawWeight;
+
+        if (heightIn < 48 || heightIn > 84) {
+          resultText.textContent = hCm ? 'Enter a height between 122 and 213 cm.' : 'Enter a height between 48 and 84 inches.';
+          result.classList.add('visible');
+          return;
         }
+        if (weightLbs < 70 || weightLbs > 400) {
+          resultText.textContent = wKg ? 'Enter a weight between 32 and 181 kg.' : 'Enter a weight between 70 and 400 lb.';
+          result.classList.add('visible');
+          return;
+        }
+
+        recommendedSize = findApparelSizeByHeightWeight(gender, heightIn, weightLbs);
+        const hDisp = activeCalcUnit('heightField') === 'cm' ? `${rawHeight} cm` : `${rawHeight}"`;
+        const wDisp = activeCalcUnit('weightField') === 'kg' ? `${rawWeight} kg` : `${rawWeight} lb`;
+        explanation = `Based on height ${hDisp} and weight ${wDisp}`;
       }
 
       if (recommendedSize) {
-        resultTitle.textContent = `Your Recommended Size: ${recommendedSize}`;
+        resultTitle.textContent = 'Your recommended size';
+        if (resultSize) resultSize.textContent = recommendedSize;
         resultText.textContent = explanation;
         window.recommendedSize = recommendedSize;
         window.currentTab = getTabIdFromGender(gender);
@@ -1930,6 +2048,33 @@
         resultText.textContent = 'Could not determine size. Please check your measurements.';
         result.classList.add('visible');
       }
+    }
+
+    // Which unit toggle (IN/CM or LBS/KG) is active for a given calc field.
+    function activeCalcUnit(fieldId) {
+      const btn = document.querySelector(`#${fieldId} .calc-toggle-btn.active`);
+      return btn ? btn.getAttribute('data-unit') : null;
+    }
+
+    // Recommend an apparel size from height + weight. Weight is the primary driver
+    // (it tracks girth, which sizing keys off of); height nudges ±1 size for a
+    // notably tall or short frame. Buckets are deliberately simple and easy to
+    // tune — each entry is [size, upper weight bound in lb].
+    function findApparelSizeByHeightWeight(gender, heightIn, weightLbs) {
+      const scale = gender === 'women'
+        ? [['XXS', 105], ['XS', 120], ['S', 140], ['M', 160], ['L', 185], ['XL', 215], ['2XL', 245], ['3XL', Infinity]]
+        : [['XS', 135], ['S', 155], ['M', 180], ['L', 205], ['XL', 235], ['2XL', 265], ['3XL', Infinity]];
+
+      let idx = scale.findIndex(([, maxW]) => weightLbs <= maxW);
+      if (idx < 0) idx = scale.length - 1;
+
+      // Height nudge for a notably tall/short frame (weight already covers girth,
+      // so only adjust at the extremes to avoid over-sizing average-tall builds).
+      const avgHeight = gender === 'women' ? 65 : 70;
+      if (heightIn >= avgHeight + 5 && idx < scale.length - 1) idx += 1;
+      else if (heightIn <= avgHeight - 5 && idx > 0) idx -= 1;
+
+      return scale[idx][0];
     }
 
     function findMenSize(chest, waist) {
@@ -2307,12 +2452,18 @@
         else label = 'Apparel';
       }
 
+      // Tops/bottoms use the broad category name (matches the size chart below), so
+      // a jacket reads "Tops Size Guide", not "Jacket Size Guide".
+      let finalLabel = singularizeGuideLabel(label);
+      if (calcCategory === 'tops') finalLabel = 'Tops';
+      else if (calcCategory === 'bottoms') finalLabel = 'Bottoms';
+
       return {
         focused,
         gender,
         calcCategory,
         tabId,
-        label: singularizeGuideLabel(label),
+        label: finalLabel,
         hasExplicitGender: Boolean(gender)
       };
     }
@@ -2373,8 +2524,8 @@
         tabsNav.classList.toggle('tabs-nav--hidden', lockSingleTab);
       }
 
-      // Calculator title stays the generic "Find My Size" — the modal title
-      // already says which product's guide this is.
+      // Calculator title stays the generic "Find Your Size" (matches the product
+      // page fit finder) — the modal title already says which product's guide this is.
 
       if (genderField && (context.hasExplicitGender || ['kids', 'sports_bras', 'hats'].includes(context.tabId))) {
         genderField.hidden = true;
@@ -2460,5 +2611,6 @@
 <script src="zw-login.js?v=8ffae84d" defer></script>
 <script src="/nav-menu.js?v=2abb3b12" defer></script>
 <script src="/storefront-features.js?v=1" defer></script>
+<script src="announcement-bar.js" defer></script>
 </body>
 </html>

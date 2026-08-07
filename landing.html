@@ -195,18 +195,27 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
 
     /* FEATURED PRODUCT CARDS */
     .lp-feat-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:1.4rem 1rem; }
-    .lp-card{ text-decoration:none; color:inherit; display:block; }
-    .lp-card-img{ position:relative; aspect-ratio:4/5; overflow:hidden; background:#161619; }
+    /* Container context so the card text scales with the card's own width (cqw),
+       matching the homepage cards — bigger featured cards get bigger type, not
+       just more empty space. */
+    .lp-card{ text-decoration:none; color:inherit; display:block; container-type:inline-size; }
+    .lp-card-img{ position:relative; aspect-ratio:1/1; overflow:hidden; background:#161619; }
     .lp-card-img img{ width:100%; height:100%; object-fit:cover; transition:transform .5s ease; }
     .lp-card:hover .lp-card-img img{ transform:scale(var(--zw-zoom-product, 1.04)); }
     .lp-card-ph{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; opacity:.25; }
     .lp-card-badge{ position:absolute; top:.7rem; left:.7rem; font-family:var(--fm); font-size:.55rem; letter-spacing:.14em; text-transform:uppercase; background:rgba(9,9,11,.78); color:#fff; padding:.32rem .55rem; }
-    .lp-card-name{ font-family:var(--fw); font-weight:900; font-style:italic; font-size:1.15rem; letter-spacing:.02em; line-height:1.05; text-transform:uppercase; margin:.7rem 0 .2rem; }
-    .lp-card-cat{ font-family:var(--fm); font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; opacity:.68; margin:0 0 .22rem; }
-    .lp-card-price{ font-family:var(--fw); font-weight:700; font-size:1.05rem; letter-spacing:.01em; margin-top:.1rem; opacity:1; }
+    .lp-card-name{ font-family:var(--fw); font-weight:900; font-style:italic; font-size:clamp(.95rem, 5.2cqw, 1.7rem); letter-spacing:.02em; line-height:1.05; text-transform:uppercase; margin:clamp(.5rem,2.6cqw,.9rem) 0 clamp(.1rem,.8cqw,.3rem); }
+    .lp-card-cat{ font-family:var(--fm); font-size:clamp(.55rem, 2.3cqw, .78rem); letter-spacing:.1em; text-transform:uppercase; opacity:.68; margin:0 0 clamp(.12rem,.9cqw,.28rem); }
+    .lp-card-price{ font-family:var(--fw); font-weight:700; font-size:clamp(.88rem, 4cqw, 1.4rem); letter-spacing:.01em; margin-top:.1rem; opacity:1; }
 
     .lp-empty{ text-align:center; padding:4rem 1rem; opacity:.55; font-family:var(--fm); font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; }
     .lp-skel{ opacity:.35; }
+    /* Featured card element toggles (Page Builder → Pages → Featured → Card options).
+       Classes set on the grid by landing.js. */
+    .zw-hide-name .lp-card-name{ display:none !important; }
+    .zw-hide-cat .lp-card-cat{ display:none !important; }
+    .zw-hide-price .lp-card-price{ display:none !important; }
+    .zw-hide-badge .lp-card-badge{ display:none !important; }
 
     body.light-mode .lp-hero{ background:#e8e5de; }
     /* No bottom haze in light themes — the hero text is dark, so the gradient
@@ -226,6 +235,9 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
 <script>(function(){try{var m=window.__zwLM()||'super-light';if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+<!-- Bag-panel class before the nav so cohesion.css hides the header login/account
+     link pre-paint instead of flashing on mobile (was only added later by features.js). -->
+<script>try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on')}catch(_){}</script>
 <script>
 (function() {
   function applyThemeMode(mode) {
@@ -383,5 +395,6 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
   <script src="/nav-menu.js?v=2abb3b12" defer></script>
   <script src="landing-sections.js?v=83f45a67" defer></script>
   <script src="landing.js?v=909d6837" defer></script>
+<script src="announcement-bar.js" defer></script>
 </body>
 </html>

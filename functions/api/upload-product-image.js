@@ -127,6 +127,14 @@ function publicUrlForKey(env, key) {
     error.status = 500;
     throw error;
   }
+  // The S3 API endpoint (…r2.cloudflarestorage.com) requires AWS auth and is NOT
+  // publicly viewable — a URL there loads nowhere. Reject it so uploads fail loud
+  // instead of returning a broken image link.
+  if (/r2\.cloudflarestorage\.com/i.test(base)) {
+    const error = new Error("R2_PUBLIC_BASE_URL points at the private S3 endpoint (r2.cloudflarestorage.com), which isn't public. Set it to your bucket's Public Development URL (https://pub-….r2.dev) or a custom domain, then redeploy.");
+    error.status = 500;
+    throw error;
+  }
   return `${base}/${key.split('/').map(encodeURIComponent).join('/')}`;
 }
 

@@ -326,6 +326,18 @@
     grid.style.setProperty('--col-lg', _c(featCfg.col_lg, _c(featCfg.columns, 3)));
     grid.style.setProperty('--col-md', _c(featCfg.col_md, 2));
     grid.style.setProperty('--col-sm', _c(featCfg.col_sm, 2));
+    // Featured card element toggles + card size (Page Builder → Pages → Featured →
+    // Card options). Only elements the landing card already renders — colour swatches
+    // and review stars aren't rendered on landing cards yet.
+    grid.classList.toggle('zw-hide-name', featCfg.show_name === false);
+    grid.classList.toggle('zw-hide-cat', featCfg.show_cat === false);
+    grid.classList.toggle('zw-hide-price', featCfg.show_price === false);
+    grid.classList.toggle('zw-hide-badge', featCfg.show_badge === false);
+    var _lpCardW = { s:['clamp(240px,26%,300px)','54vw','74vw'], m:['clamp(300px,32%,380px)','64vw','84vw'], l:['clamp(360px,40%,470px)','74vw','90vw'], xl:['clamp(440px,50%,580px)','84vw','94vw'] };
+    var _lpcw = _lpCardW[featCfg.card_size] || null;
+    ['--zw-card-w-lg','--zw-card-w-md','--zw-card-w-sm'].forEach(function (v, i) { if (_lpcw) grid.style.setProperty(v, _lpcw[i]); else grid.style.removeProperty(v); });
+    var _featHeadEl = featH ? featH.closest('.lp-sec-head') : null;
+    if (_featHeadEl) _featHeadEl.style.display = (featCfg.show_heading === false) ? 'none' : '';
     if (!featured.length) {
       grid.innerHTML = '<div class="lp-empty" style="grid-column:1/-1">Nothing here yet — check back soon.</div>';
       return;
@@ -337,9 +349,10 @@
         : '<div class="lp-card-ph"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg></div>';
       var st = String(p.status || '').toLowerCase();
       var badge = (st === 'live') ? '' : '<span class="lp-card-badge">' + esc(p.status || 'Coming Soon') + '</span>';
+      window.zwSingularCat = window.zwSingularCat || function (c) { if (!c) return c; var s = String(c).trim(); if (/(pants|shorts|leggings|joggers|socks|jeans|tights|briefs|boxers|trousers|sunglasses|glasses|shoes|sneakers|boots|sandals|slides|gloves|overalls|pajamas|pyjamas)$/i.test(s)) return s; return /[^s]s$/i.test(s) ? s.slice(0, -1) : s; };
       var g = String(p.gender || '').trim().toLowerCase();
       var gp = g === 'men' ? "Men's " : g === 'women' ? "Women's " : g === 'unisex' ? 'Unisex ' : g === 'kids' ? "Kids' " : '';
-      var typeLabel = (gp + (catOf(p) || '')).trim();
+      var typeLabel = (gp + window.zwSingularCat(catOf(p) || '')).trim();
       return '<a class="lp-card" href="' + esc(productHref(p)) + '">' +
         '<div class="lp-card-img">' + imgHtml + badge + '</div>' +
         '<p class="lp-card-name">' + esc(p.title || '') + '</p>' +

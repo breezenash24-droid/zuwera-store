@@ -29,17 +29,23 @@
   // with a 2px pink top border, the ZUWERA wordmark, an italic Barlow Condensed
   // title, pink underlined tabs, and Barlow body text. Scoped under #zwlg-modal.
   var CSS = [
-    // Clear backing (no dark scrim) to match every other modal — storefront-cohesion.css
-    // sets .modal/.collection-review-modal background:none in both themes; the card floats
-    // on the visible page with a shadow rather than dimming it.
+    // Self-contained defaults for the modal-backdrop scrim vars so the login sheet
+    // dims even on a page that didn't load storefront-cohesion.css; when cohesion IS
+    // present its body[data-mbd-*] rules override these on <body> (higher up the tree).
+    ':root{--zw-mbd-rgb:9,9,11;--zw-mbd-a:.5;--zw-mbd-blur:none;}',
     '#zwlg-modal{position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;padding:1rem;',
       'background:transparent;opacity:0;visibility:hidden;pointer-events:none;',
       'transition:opacity .28s ease,visibility 0s linear .28s;-webkit-tap-highlight-color:transparent;}',
     '#zwlg-modal.open{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .28s ease;}',
+    // Dim scrim behind the sheet — the login modal used to leave the page undimmed,
+    // unlike the filter/size modals. Fades with .open; the box paints above it and
+    // pointer-events:none keeps click-outside-to-close working.
+    '#zwlg-modal::before{content:"";position:fixed;inset:0;background:rgba(var(--zw-mbd-rgb),var(--zw-mbd-a));backdrop-filter:var(--zw-mbd-blur,none);-webkit-backdrop-filter:var(--zw-mbd-blur,none);opacity:0;transition:opacity .3s ease;pointer-events:none;}',
+    '#zwlg-modal.open::before{opacity:1;}',
     '#zwlg-modal .zwlg-box{position:relative;width:min(420px,92vw);max-height:92dvh;overflow-y:auto;',
-      'background:#0f0f0f;color:#f4f1eb;border:1px solid rgba(244,241,235,.08);border-top:2px solid #F891A5;',
+      'background:#0f0f0f;color:#f4f1eb;border:1px solid rgba(244,241,235,.08);border-top:2px solid var(--zw-mfn,#F891A5);',
       'box-shadow:0 28px 90px rgba(0,0,0,.28);',
-      'padding:2.6rem 2.4rem 2.2rem;font-family:"Barlow",sans-serif;',
+      'padding:2.6rem 2.4rem 2.2rem;font-family:var(--zw-font-body,"Barlow",sans-serif);',
       'transform:translateY(14px) scale(.98);opacity:0;transition:transform .3s cubic-bezier(.32,.72,0,1),opacity .3s ease;}',
     '#zwlg-modal.open .zwlg-box{transform:none;opacity:1;}',
     // Mobile + tablet: bottom sheet — matches the storefront modal redesign
@@ -70,44 +76,41 @@
       'align-items:center;justify-content:center;background:rgba(9,9,11,.7);border:1px solid rgba(244,241,235,.1);',
       'color:var(--zw-paper,#f4f1eb);font-size:1rem;line-height:1;opacity:1;z-index:40;cursor:pointer;transition:opacity .2s,background .2s;}',
     '#zwlg-modal .zwlg-close:hover{background:rgba(9,9,11,.85);}',
-    '#zwlg-modal .zwlg-brand{display:flex;justify-content:center;margin-bottom:1.6rem;padding-bottom:1.4rem;',
-      'border-bottom:1px solid rgba(244,241,235,.06);}',
-    '#zwlg-modal .zwlg-brand img{display:block;width:auto;height:64px;max-width:85%;object-fit:contain;object-position:center;}',
     '#zwlg-modal .zwlg-tabs{display:flex;border-bottom:1px solid rgba(244,241,235,.08);margin-bottom:1.8rem;}',
     '#zwlg-modal .zwlg-tab{flex:1;background:none;border:none;color:rgba(244,241,235,.25);',
-      'font-family:"Barlow",sans-serif;font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;',
+      'font-family:var(--zw-font-body,"Barlow",sans-serif);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;',
       'padding:.75rem 0;position:relative;cursor:pointer;transition:color .2s;}',
-    '#zwlg-modal .zwlg-tab.active{color:#F891A5;}',
-    '#zwlg-modal .zwlg-tab.active::after{content:"";position:absolute;bottom:-1px;left:0;right:0;height:1px;background:#F891A5;}',
+    '#zwlg-modal .zwlg-tab.active{color:var(--zw-mfn,#F891A5);}',
+    '#zwlg-modal .zwlg-tab.active::after{content:"";position:absolute;bottom:-1px;left:0;right:0;height:1px;background:var(--zw-mfn,#F891A5);}',
     '#zwlg-modal .zwlg-panel{display:none;}',
     '#zwlg-modal .zwlg-panel.active{display:block;}',
-    '#zwlg-modal .zwlg-title{font-family:"Barlow Condensed",sans-serif;font-weight:900;font-style:italic;',
+    '#zwlg-modal .zwlg-title{font-family:var(--zw-font-head,"Barlow Condensed",sans-serif);font-weight:900;font-style:italic;',
       'font-size:2rem;letter-spacing:.04em;margin-bottom:.25rem;color:#f4f1eb;}',
-    '#zwlg-modal .zwlg-sub{font-family:"Barlow",sans-serif;font-size:.6rem;letter-spacing:.15em;',
+    '#zwlg-modal .zwlg-sub{font-family:var(--zw-font-body,"Barlow",sans-serif);font-size:.6rem;letter-spacing:.15em;',
       'text-transform:uppercase;color:rgba(244,241,235,.3);margin-bottom:1.6rem;}',
     '#zwlg-modal .zwlg-field{margin-bottom:1rem;text-align:left;position:relative;}',
-    '#zwlg-modal label{display:block;font-family:"Barlow",sans-serif;font-size:.55rem;letter-spacing:.18em;',
+    '#zwlg-modal label{display:block;font-family:var(--zw-font-body,"Barlow",sans-serif);font-size:.55rem;letter-spacing:.18em;',
       'text-transform:uppercase;color:rgba(244,241,235,.38);margin-bottom:.4rem;}',
     '#zwlg-modal input{width:100%;background:rgba(244,241,235,.03);border:1px solid rgba(244,241,235,.1);',
-      'color:#f4f1eb;padding:.82rem 1rem;font-family:"Barlow",sans-serif;font-size:.9rem;outline:none;',
+      'color:#f4f1eb;padding:.82rem 1rem;font-family:var(--zw-font-body,"Barlow",sans-serif);font-size:.9rem;outline:none;',
       'transition:border-color .2s,box-shadow .2s;}',
     '#zwlg-modal input::placeholder{color:rgba(244,241,235,.18);}',
-    '#zwlg-modal input:focus{border-color:#F891A5;box-shadow:0 0 0 3px rgba(248,145,165,.08);}',
+    '#zwlg-modal input:focus{border-color:var(--zw-mfn,#F891A5);box-shadow:0 0 0 3px rgba(248,145,165,.08);}',
     '#zwlg-modal .zwlg-pwtoggle{position:absolute;right:.6rem;top:calc(50% + .55rem);transform:translateY(-50%);',
       'background:none;border:none;color:rgba(244,241,235,.4);cursor:pointer;padding:0;display:flex;}',
     '#zwlg-modal .zwlg-submit{width:100%;background:#f4f1eb;color:#09090b;border:1px solid #f4f1eb;',
-      'font-family:"Barlow",sans-serif;font-weight:600;font-size:.85rem;letter-spacing:.12em;text-transform:uppercase;',
+      'font-family:var(--zw-font-body,"Barlow",sans-serif);font-weight:600;font-size:.85rem;letter-spacing:.12em;text-transform:uppercase;',
       'padding:.9rem;cursor:pointer;margin-top:1rem;transition:background .2s,color .2s,border-color .2s;}',
     '#zwlg-modal .zwlg-submit:hover{background:#e2dfd9;border-color:#e2dfd9;}',
     '#zwlg-modal .zwlg-submit:disabled{opacity:.5;cursor:default;}',
-    '#zwlg-modal .zwlg-err{color:#c0392b;font-family:"Barlow",sans-serif;font-size:.65rem;min-height:.9rem;margin:.3rem 0 .4rem;}',
-    '#zwlg-modal .zwlg-ok{color:#7bd88f;font-family:"Barlow",sans-serif;font-size:.7rem;margin:.3rem 0 .4rem;display:none;}',
+    '#zwlg-modal .zwlg-err{color:#c0392b;font-family:var(--zw-font-body,"Barlow",sans-serif);font-size:.65rem;min-height:.9rem;margin:.3rem 0 .4rem;}',
+    '#zwlg-modal .zwlg-ok{color:#7bd88f;font-family:var(--zw-font-body,"Barlow",sans-serif);font-size:.7rem;margin:.3rem 0 .4rem;display:none;}',
     '#zwlg-modal .zwlg-mini{display:block;width:100%;text-align:center;background:none;border:none;color:rgba(244,241,235,.7);',
-      'font-family:"Barlow",sans-serif;font-size:.6rem;letter-spacing:.1em;cursor:pointer;margin-top:1rem;text-decoration:none;}',
-    '#zwlg-modal .zwlg-mini:hover{color:#F891A5;}',
+      'font-family:var(--zw-font-body,"Barlow",sans-serif);font-size:.6rem;letter-spacing:.1em;cursor:pointer;margin-top:1rem;text-decoration:none;}',
+    '#zwlg-modal .zwlg-mini:hover{color:var(--zw-mfn,#F891A5);}',
     // Light / super-light mode — matches the main modal (cream/white .mbox, dark
     // text, wordmark inverted to dark).
-    'body.light-mode #zwlg-modal .zwlg-box,body.super-light-mode #zwlg-modal .zwlg-box{background:#F0EEE9;color:#09090b;border-color:rgba(9,9,11,.08);border-top-color:#F891A5;}',
+    'body.light-mode #zwlg-modal .zwlg-box,body.super-light-mode #zwlg-modal .zwlg-box{background:#F0EEE9;color:#09090b;border-color:rgba(9,9,11,.08);border-top-color:var(--zw-mfn,#F891A5);}',
     'body.super-light-mode #zwlg-modal .zwlg-box{background:#FFFFFF;}',
     'body.light-mode #zwlg-modal .zwlg-brand img,body.super-light-mode #zwlg-modal .zwlg-brand img{filter:invert(1);}',
     'body.light-mode #zwlg-modal .zwlg-brand,body.super-light-mode #zwlg-modal .zwlg-brand{border-bottom-color:rgba(9,9,11,.06);}',
@@ -135,7 +138,6 @@
     '<div id="' + MODAL_ID + '" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Account">' +
       '<div class="zwlg-box">' +
         '<button class="zwlg-close" type="button" aria-label="Close">&#215;</button>' +
-        '<div class="zwlg-brand"><img src="/images/wordmark.png" alt="Zuwera"></div>' +
         '<div class="zwlg-tabs">' +
           '<button class="zwlg-tab active" type="button" data-tab="signin">Login</button>' +
           '<button class="zwlg-tab" type="button" data-tab="signup">Create Account</button>' +

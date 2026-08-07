@@ -18,6 +18,7 @@
 import { cors, json, verifyAdminCan } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { loopsFallback } from './_email.js';
+import { getEmailAppearance, getEmailContent, renderEmailShell, fillTemplate } from './_email-theme.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
 
@@ -36,12 +37,15 @@ async function sbSelect(env, key, path) {
 }
 
 // Same provider ladder as send-return-status-email.js: Resend → Brevo → Loops.
+// A unique X-Entity-Ref-ID makes Gmail treat each send as its own conversation
+// instead of threading identical "Back in stock: …" subjects together.
 async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brevoKey, env, cache }) {
+  const refId = (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : `zw-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   if (resendKey) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [to], reply_to: 'orders@zuwera.store', subject, html }),
+      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [to], reply_to: 'orders@zuwera.store', subject, html, headers: { 'X-Entity-Ref-ID': refId } }),
     });
     if (r.ok) return { provider: 'resend' };
   }
@@ -54,6 +58,7 @@ async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brev
         to: [{ email: to, name: toName || '' }],
         replyTo: { email: 'orders@zuwera.store' },
         subject, htmlContent: html,
+        headers: { 'X-Entity-Ref-ID': refId },
       }),
     });
     if (r.ok) return { provider: 'brevo' };
@@ -66,26 +71,26 @@ async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brev
   throw new Error('No email provider configured (RESEND_API_KEY or BREVO_API_KEY required).');
 }
 
-function buildEmail({ productTitle, size, colorName, url, image, logoUrl }) {
+// Themed via the shared shell (fonts/colours/logo/light-dark + editable copy from
+// site_settings), so it matches the site and the admin Emails editor controls it.
+export function buildEmail({ productTitle, size, colorName, url, image, appearance, content }) {
+  const a = appearance;
   const variant = [colorName, size].filter(Boolean).join(' · ');
   const imgBlock = image
-    ? `<tr><td style="padding:0 0 24px"><a href="${esc(url)}"><img src="${esc(image)}" alt="${esc(productTitle)}" width="240" style="max-width:240px;width:100%;border-radius:6px;display:block;margin:0 auto"></a></td></tr>`
+    ? `<tr><td style="padding:2px 0 20px"><a href="${esc(url)}"><img src="${esc(image)}" alt="${esc(productTitle)}" width="240" style="max-width:240px;width:100%;border-radius:6px;display:block;margin:0 auto"></a></td></tr>`
     : '';
-  return `<!doctype html><html><body style="margin:0;background:#0b0b0d;font-family:Arial,Helvetica,sans-serif;color:#f4f1eb">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b0b0d">
-    <tr><td align="center" style="padding:32px 16px">
-      <table role="presentation" width="440" cellpadding="0" cellspacing="0" style="max-width:440px;width:100%;text-align:center">
-        <tr><td style="padding:0 0 28px"><img src="${esc(logoUrl)}" alt="ZUWERA" width="120" style="max-width:120px"></td></tr>
-        <tr><td style="font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:#e05252;padding:0 0 8px">Back in stock</td></tr>
-        <tr><td style="font-size:26px;font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:.02em;line-height:1.15;padding:0 0 6px">${esc(productTitle)}</td></tr>
-        ${variant ? `<tr><td style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#9c988f;padding:0 0 22px">${esc(variant)}</td></tr>` : '<tr><td style="height:22px"></td></tr>'}
-        ${imgBlock}
-        <tr><td style="font-size:15px;line-height:1.6;color:#cfcbc2;padding:0 8px 26px">The size you wanted is available again — but it may not last. Grab it before it sells out.</td></tr>
-        <tr><td style="padding:0 0 30px"><a href="${esc(url)}" style="display:inline-block;background:#f4f1eb;color:#0b0b0d;text-decoration:none;font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;padding:14px 34px;border-radius:3px">Shop now</a></td></tr>
-        <tr><td style="font-size:11px;color:#726e66;line-height:1.6;border-top:1px solid rgba(244,241,235,.1);padding:20px 0 0">You're receiving this because you asked to be notified when this item came back in stock. This is a one-time alert — no further action needed.</td></tr>
-      </table>
-    </td></tr>
-  </table></body></html>`;
+  const body = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="text-align:center">
+    ${variant ? `<tr><td style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:${a.muted};padding:0 0 16px">${esc(variant)}</td></tr>` : '<tr><td style="height:4px"></td></tr>'}
+    ${imgBlock}
+    <tr><td style="padding:4px 0 8px"><a href="${esc(url)}" style="display:inline-block;background:${a.text};color:${a.bg};text-decoration:none;font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;padding:14px 34px;border-radius:3px">Shop now</a></td></tr>
+  </table>`;
+  return renderEmailShell(a, {
+    kicker: content.kicker,
+    heading: fillTemplate(content.heading, { product: productTitle }),
+    intro: content.intro,
+    bodyHtml: body,
+    footer: content.footer,
+  });
 }
 
 export async function onRequestOptions({ env }) {
@@ -122,28 +127,51 @@ export async function onRequestPost({ request, env }) {
 
     const pid = encodeURIComponent(productId);
 
-    // 1. Which sizes are back in stock now?
-    const sizeRows = await sbSelect(env, key, `product_sizes?select=size,stock_quantity&product_id=eq.${pid}`);
-    const inStock = new Set((sizeRows || [])
-      .filter((s) => (Number(s.stock_quantity) || 0) > 0)
-      .map((s) => String(s.size)));
-    if (!inStock.size) return json({ ok: true, notified: 0, note: 'No sizes in stock' }, 200, cors(env));
+    // 1. Which (size, colour) combos are back in stock now? Stock is per-colour,
+    //    so we must match colour too — not just size — or we'd notify/clear a
+    //    waitlist entry for the wrong colourway.
+    const normC = (c) => String(c == null ? '' : c).trim().toLowerCase();
+    // Canonicalize sizes so a waitlist "XXL" matches an inventory "2XL" (the
+    // storefront/waitlist use display labels; product_sizes may store 2XL/3XL).
+    const SIZE_ALIASES = { xxxxs: '4xs', xxxs: '3xs', xxs: '2xs', xxxxl: '4xl', xxxl: '3xl', xxl: '2xl' };
+    const normS = (s) => {
+      const c = String(s == null ? '' : s).trim().toLowerCase().replace(/\s+/g, '');
+      return SIZE_ALIASES[c] || c;
+    };
+    const sizeRows = await sbSelect(env, key, `product_sizes?select=size,color_name,stock_quantity&product_id=eq.${pid}`);
+    const stocked = (sizeRows || []).filter((s) => (Number(s.stock_quantity) || 0) > 0);
+    if (!stocked.length) return json({ ok: true, notified: 0, note: 'No sizes in stock' }, 200, cors(env));
+    // A request is fulfilled when there's stock for its size AND colour. Legacy
+    // rows with no colour (colour-agnostic stock) satisfy any colour; a request
+    // with no colour is satisfied by any in-stock row of that size.
+    const hasStock = (reqSize, reqColor) => {
+      const rs = normS(reqSize);
+      return stocked.some((row) => {
+        if (normS(row.size) !== rs) return false;
+        if (!row.color_name) return true;   // colour-agnostic stock
+        if (!reqColor) return true;         // colourless request
+        return normC(row.color_name) === normC(reqColor);
+      });
+    };
 
-    // 2. Pending waitlist requests for those sizes.
+    // 2. Pending waitlist requests that are now fulfillable.
     const reqRows = await sbSelect(env, key, `restock_requests?select=id,email,size,color_name&product_id=eq.${pid}`);
-    const pending = (reqRows || []).filter((r) => r.email && inStock.has(String(r.size)));
+    const pending = (reqRows || []).filter((r) => r.email && hasStock(r.size, r.color_name));
     if (!pending.length) return json({ ok: true, notified: 0 }, 200, cors(env));
 
     // 3. Product + email config.
-    const prodRows = await sbSelect(env, key, `products?select=title,image_url&id=eq.${pid}&limit=1`);
+    const prodRows = await sbSelect(env, key, `products?select=title,image_url,product_images(image_url,sort_order,color_variant_id),color_variants(id,color_name)&id=eq.${pid}&limit=1`);
     const product = (prodRows || [])[0] || {};
     const productTitle = product.title || 'Your item';
     const productUrl = `https://zuwera.store/product.html?id=${pid}`;
 
     const cache = await fetchSiteSettings(
-      ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL', 'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID'],
+      ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL', 'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID',
+       'fonts', 'brand', 'email_theme', 'email_settings'],
       env
     );
+    const appearance = getEmailAppearance(cache);
+    const content = getEmailContent(cache, 'back_in_stock');
     const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
     const brevoKey  = resolveSetting('BREVO_API_KEY', env, cache);
     const loopsKey  = resolveSetting('LOOPS_API_KEY', env, cache);
@@ -152,15 +180,37 @@ export async function onRequestPost({ request, env }) {
     }
     const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'orders@zuwera.store';
     const logoUrl   = resolveSetting('BRAND_LOGO_URL', env, cache) || LOGO_FALLBACK;
-    const image     = product.image_url || '';
+    appearance.logo = logoUrl;   // resolveSetting also covers an env-var logo, which the helper can't see
+    // Show the photo for the COLOUR the shopper waitlisted (like the storefront):
+    // that colour variant's first image → a shared (no-variant) image → the main
+    // image_url. Computed per request below, since each may want a different colour.
+    const isPhoto = (im) => im && im.image_url && !/\.(mp4|webm|mov|m4v|ogv)(\?.*)?$/i.test(im.image_url);
+    const allImages = (Array.isArray(product.product_images) ? product.product_images : []).filter(isPhoto);
+    const variants  = Array.isArray(product.color_variants) ? product.color_variants : [];
+    const bySort = (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    const imageForColor = (colorName) => {
+      const v = colorName ? variants.find((x) => normC(x.color_name) === normC(colorName)) : null;
+      if (v) {
+        const vImgs = allImages.filter((im) => im.color_variant_id === v.id).slice().sort(bySort);
+        if (vImgs.length) return vImgs[0].image_url;
+      }
+      const shared = allImages.filter((im) => !im.color_variant_id).slice().sort(bySort);
+      if (shared.length) return shared[0].image_url;
+      const any = allImages.slice().sort(bySort);
+      return (any[0] && any[0].image_url) || product.image_url || '';
+    };
 
     // 4. Send, collecting the ids that went out so we only delete those.
     const sentIds = [];
     for (const r of pending) {
       try {
-        const html = buildEmail({ productTitle, size: r.size, colorName: r.color_name, url: productUrl, image, logoUrl });
+        // Deep-link the exact variant so SHOP NOW lands on their colour + size.
+        const variantUrl = productUrl
+          + (r.color_name ? `&color=${encodeURIComponent(r.color_name)}` : '')
+          + (r.size ? `&size=${encodeURIComponent(r.size)}` : '');
+        const html = buildEmail({ productTitle, size: r.size, colorName: r.color_name, url: variantUrl, image: imageForColor(r.color_name), appearance, content });
         await sendEmail({
-          to: r.email, toName: '', subject: `Back in stock: ${productTitle} (${r.size})`,
+          to: r.email, toName: '', subject: fillTemplate(content.subject, { product: productTitle, size: r.size }),
           html, fromEmail, resendKey, brevoKey, env, cache,
         });
         sentIds.push(r.id);

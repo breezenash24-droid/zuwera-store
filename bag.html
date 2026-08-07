@@ -139,8 +139,8 @@ html.zw-authed #account-btn{display:inline-flex!important}
     .nav-right { display:flex; align-items:center; gap:.6rem; }
     .nbtn { background:none; border:none; color:rgba(244,241,235,.6); font-family:var(--font-body); font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; padding:.4rem .8rem; transition:color .2s; }
     .nbtn:hover { color:#f4f1eb; }
-    body.light-mode nav#nav { background:#F0EEE9; border-bottom-color:rgba(9,9,11,.08); box-shadow:0 1px 12px rgba(9,9,11,.06); }
-    body.super-light-mode nav#nav { background:#FFFFFF; border-bottom-color:rgba(9,9,11,.08); box-shadow:0 1px 12px rgba(9,9,11,.06); }
+    body.light-mode nav#nav { background:#F0EEE9; border-bottom-color:transparent; box-shadow:0 1px 12px rgba(9,9,11,.05); }
+    body.super-light-mode nav#nav { background:#FFFFFF; border-bottom-color:transparent; box-shadow:0 1px 12px rgba(9,9,11,.05); }
     body.light-mode .nav-logo img { filter:invert(1); }
     body.light-mode .nav-logo span { color:#09090b; }
     body.light-mode .nbtn { color:rgba(9,9,11,.55); }
@@ -367,6 +367,9 @@ body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-co
 </head>
 <body>
 <script>(function(){try{var m=localStorage.getItem('zw_theme_mode')||'super-light';if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+<!-- Bag-panel class before the nav (below) so cohesion.css hides the header
+     login/account buttons pre-paint instead of flashing on mobile. -->
+<script>try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on')}catch(_){}</script>
 
 <div id="toast"></div>
 
@@ -381,6 +384,12 @@ body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-co
     <button class="nbtn" id="login-btn">Login</button>
     <button class="nbtn" id="account-btn" style="display:none">Account</button>
     <button class="nbtn" id="logout-btn" style="display:none">Sign Out</button>
+    <span class="zw-hdr-group">
+      <a href="bag.html" class="zw-hdr-bag" aria-label="Bag" aria-current="page">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 01-8 0"></path></svg>
+        <span class="zw-hdr-bag-count cart-count" id="hdr-bag-count">0</span>
+      </a>
+    </span>
     <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="8" x2="21" y2="8"></line><line x1="3" y1="16" x2="21" y2="16"></line></svg>
     </button>
@@ -391,6 +400,12 @@ body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-co
    just been parsed) so it doesn't flash "Account" then the name. The .zw-authed
    CSS above already handled the Login↔Account visibility before paint. */
 (function(){try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on');}catch(_){}})();
+/* Fill the nav bag-count badge from the cart (same as account.html). */
+(function(){try{
+  var cart=JSON.parse(localStorage.getItem('cart')||'[]');
+  var n=Array.isArray(cart)?cart.reduce(function(s,it){return s+(Number(it&&(it.qty||it.quantity||it.q))||1);},0):0;
+  document.querySelectorAll('#hdr-bag-count, .cart-count, .zw-mobile-bag-count').forEach(function(el){el.textContent=n;});
+}catch(_){}})();
 (function(){try{
   var u=window.__zwSessionUser;if(!u)return;
   var a=document.getElementById('account-btn');if(!a)return;
@@ -476,6 +491,7 @@ body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-co
         </div>
         <span class="summary-value" id="summary-tax">-</span>
       </div>
+      <div class="summary-row" id="bag-discount-row" style="display:none"><span id="bag-discount-label">Discount</span><span class="summary-value" id="bag-discount-value" style="color:#2fa96b;font-weight:600">-$0.00</span></div>
 <div class="summary-row total"><span>Total</span><span id="summary-total">-</span></div>
       <button id="checkout-btn">Checkout</button>
     </div>
@@ -564,8 +580,8 @@ body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-co
           <div class="pm-lines">
             <div class="pm-line"><span>Subtotal</span><span id="pm-subtotal">—</span></div>
             <div class="pm-line"><span>Shipping</span><span id="pm-shipping">Free</span></div>
-            <div class="pm-line" id="zw-promo-row" style="display:none"><span>Discount</span><span id="zw-promo-discount" style="color:rgba(110,210,130,.9)">-$0.00</span></div>
             <div class="pm-line"><span id="pm-tax-label">Tax</span><span id="pm-tax">—</span></div>
+            <div class="pm-line" id="zw-promo-row" style="display:none"><span>Discount</span><span id="zw-promo-discount" style="color:rgba(110,210,130,.9)">-$0.00</span></div>
           </div>
           <div class="pm-total-row"><span>Total</span><span id="pm-total">—</span></div>
         </div>
@@ -1360,5 +1376,6 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 <script src="/nav-menu.js?v=2abb3b12" defer></script>
 <script src="/storefront-features.js?v=1" defer></script>
+<script src="announcement-bar.js" defer></script>
 </body>
 </html>

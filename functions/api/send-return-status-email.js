@@ -13,6 +13,7 @@
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { cors, json, verifyAdmin, getCommerceBundle } from './_commerce.js';
 import { loopsFallback } from './_email.js';
+import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
 
@@ -81,7 +82,7 @@ function statusBody(status, resolution, r) {
   }
 }
 
-function nextStepsHtml(status, resolution, r) {
+function nextStepsHtml(status, resolution, r, a) {
   const resolutionWord = resolution === 'exchange' ? 'exchange' : resolution === 'store_credit' ? 'store credit' : 'refund';
   const steps = [];
 
@@ -123,104 +124,75 @@ function nextStepsHtml(status, resolution, r) {
 
   if (!steps.length) return '';
   return `
-    <div style="margin:20px 0;background:rgba(244,241,235,.04);border:1px solid rgba(244,241,235,.1);border-radius:8px;padding:18px 20px;">
-      <p style="margin:0 0 12px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35);">What Happens Next</p>
+    <div style="margin:20px 0;background:rgba(128,128,128,.06);border:1px solid ${a.border};border-radius:8px;padding:18px 20px;">
+      <p style="margin:0 0 12px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${a.muted};">What Happens Next</p>
       ${steps.map((s, i) => `
         <div style="display:flex;gap:12px;align-items:flex-start;${i < steps.length - 1 ? 'margin-bottom:10px;' : ''}">
-          <div style="width:20px;height:20px;border-radius:50%;background:#38bdf8;color:#000;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">${i + 1}</div>
-          <div style="font-size:13px;color:rgba(244,241,235,.7);line-height:1.5;">${s}</div>
+          <div style="width:20px;height:20px;border-radius:50%;background:${a.accent};color:#000;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">${i + 1}</div>
+          <div style="font-size:13px;color:${a.muted};line-height:1.5;">${s}</div>
         </div>`).join('')}
     </div>`;
 }
 
-function labelSectionHtml(r) {
+function labelSectionHtml(r, a) {
   if (!r.labelUrl && !r.trackingNumber) return '';
   const carrierLabel = [r.carrier, r.service].filter(Boolean).join(' — ');
   return `
     <div style="margin:20px 0;">
-      <table width="100%" style="border:1px solid rgba(244,241,235,.1);border-radius:8px;overflow:hidden;border-collapse:collapse;">
+      <table width="100%" style="border:1px solid ${a.border};border-radius:8px;overflow:hidden;border-collapse:collapse;">
         ${r.labelUrl ? `
-        <tr><td style="padding:14px 20px;border-bottom:1px solid rgba(244,241,235,.08);">
-          <p style="margin:0 0 3px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35);">Return Label</p>
-          <a href="${r.labelUrl}" style="color:#38bdf8;font-size:14px;font-weight:600;text-decoration:underline;">Download Label (PDF)</a>
+        <tr><td style="padding:14px 20px;border-bottom:1px solid ${a.border};">
+          <p style="margin:0 0 3px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${a.muted};">Return Label</p>
+          <a href="${r.labelUrl}" style="color:${a.accent};font-size:14px;font-weight:600;text-decoration:underline;">Download Label (PDF)</a>
         </td></tr>` : ''}
         ${r.trackingNumber ? `
-        <tr><td style="padding:14px 20px;border-bottom:1px solid rgba(244,241,235,.08);">
-          <p style="margin:0 0 3px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35);">Tracking Number</p>
-          <p style="margin:0;font-size:14px;color:#f4f1eb;font-family:monospace;">${r.trackingNumber}</p>
+        <tr><td style="padding:14px 20px;border-bottom:1px solid ${a.border};">
+          <p style="margin:0 0 3px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${a.muted};">Tracking Number</p>
+          <p style="margin:0;font-size:14px;color:${a.text};font-family:${a.fontMono};">${r.trackingNumber}</p>
         </td></tr>` : ''}
         ${carrierLabel ? `
-        <tr><td style="padding:14px 20px;border-bottom:1px solid rgba(244,241,235,.08);">
-          <p style="margin:0 0 3px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35);">Carrier</p>
-          <p style="margin:0;font-size:14px;color:#f4f1eb;">${carrierLabel}</p>
+        <tr><td style="padding:14px 20px;border-bottom:1px solid ${a.border};">
+          <p style="margin:0 0 3px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${a.muted};">Carrier</p>
+          <p style="margin:0;font-size:14px;color:${a.text};">${carrierLabel}</p>
         </td></tr>` : ''}
         ${r.trackingUrl ? `
         <tr><td style="padding:14px 20px;" align="center">
-          <a href="${r.trackingUrl}" style="display:inline-block;background:#38bdf8;color:#000;padding:10px 28px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;text-decoration:none;border-radius:6px;">Track Your Return</a>
+          <a href="${r.trackingUrl}" style="display:inline-block;background:${a.accent};color:#000;padding:10px 28px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;text-decoration:none;border-radius:6px;">Track Your Return</a>
         </td></tr>` : ''}
       </table>
     </div>`;
 }
 
-function buildEmail({ r, status, resolution, fromFirstName, logoUrl }) {
+export function buildEmail({ r, status, resolution, fromFirstName, logoUrl, appearance }) {
+  const a = appearance;
   const headline = statusHeadline(status, resolution);
   const bodyText = statusBody(status, resolution, r);
-  const nextSteps = nextStepsHtml(status, resolution, r);
-  const labelSec  = labelSectionHtml(r);
+  const nextSteps = nextStepsHtml(status, resolution, r, a);
+  const labelSec  = labelSectionHtml(r, a);
   const adminMsg  = (r.customerMessage || '').trim();
   const orderLabel = r.orderLabel || ('#' + String(r.orderId || '').slice(-8).toUpperCase());
   const resolutionDisplay = resolution === 'exchange' ? 'Exchange' : resolution === 'store_credit' ? 'Store Credit' : 'Return / Refund';
 
-  return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f4f1eb;font-family:'Helvetica Neue',Arial,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1eb;padding:40px 0">
-  <tr><td align="center">
-    <table width="100%" style="max-width:560px;background:#09090b;border-collapse:collapse">
+  const body = `
+    <p style="margin:0 0 16px;font-size:14px;color:${a.text};line-height:1.75;">Hi ${fromFirstName},</p>
+    <p style="margin:0 0 16px;font-size:14px;color:${a.muted};line-height:1.75;">${bodyText}</p>
+    ${labelSec}
+    ${nextSteps}
+    ${adminMsg ? `
+    <div style="margin:20px 0;padding:16px 20px;border-left:3px solid ${a.accent};background:rgba(128,128,128,.06);">
+      <p style="margin:0 0 6px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${a.muted};">Message from Zuwera</p>
+      <p style="margin:0;font-size:14px;color:${a.text};line-height:1.6;">${adminMsg.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'<br>')}</p>
+    </div>` : ''}
+    <p style="margin:20px 0 6px;font-size:14px;color:${a.muted};line-height:1.75;">Questions? Reply to this email or visit <a href="https://zuwera.store/returns.html" style="color:${a.accent};text-decoration:underline">your return portal</a>.</p>
+    <p style="margin:0;font-size:14px;color:${a.muted};line-height:1.75;">Thanks,<br>The Zuwera Team</p>`;
 
-      <!-- Header -->
-      <tr><td style="padding:24px 36px;text-align:left;background:#09090b;">
-        <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;display:block;border:0"
-             onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-        <span style="display:none;font-family:Georgia,serif;font-size:1.5rem;letter-spacing:.12em;color:#f4f1eb;">ZUWERA</span>
-      </td></tr>
-
-      <!-- Status bar -->
-      <tr><td style="padding:0 36px 0;background:#09090b;">
-        <div style="border-top:2px solid #38bdf8;padding-top:20px;">
-          <p style="margin:0 0 4px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,.35);">${orderLabel} · ${resolutionDisplay}</p>
-          <h2 style="margin:0 0 6px;font-family:Georgia,serif;font-size:22px;letter-spacing:.04em;color:#f4f1eb;">${headline}</h2>
-        </div>
-      </td></tr>
-
-      <!-- Body -->
-      <tr><td style="padding:20px 36px 0;background:#09090b;font-size:14px;line-height:1.75;color:rgba(244,241,235,.7);">
-        <p style="margin:0 0 16px">Hi ${fromFirstName},</p>
-        <p style="margin:0 0 16px">${bodyText}</p>
-
-        ${labelSec}
-        ${nextSteps}
-
-        ${adminMsg ? `
-        <div style="margin:20px 0;padding:16px 20px;border-left:3px solid #38bdf8;background:rgba(56,189,248,.06);">
-          <p style="margin:0 0 6px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35);">Message from Zuwera</p>
-          <p style="margin:0;font-size:14px;color:rgba(244,241,235,.85);line-height:1.6;">${adminMsg.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'<br>')}</p>
-        </div>` : ''}
-
-        <p style="margin:20px 0 6px">Questions? Reply to this email or visit <a href="https://zuwera.store/returns.html" style="color:#38bdf8;">your return portal</a>.</p>
-        <p style="margin:0 0 4px">Thanks,</p>
-        <p style="margin:0 0 28px">The Zuwera Team</p>
-      </td></tr>
-
-      <!-- Footer -->
-      <tr><td style="padding:18px 36px;background:#0a0a0c;border-top:1px solid rgba(244,241,235,.07);font-size:10px;letter-spacing:.1em;color:rgba(244,241,235,.2);text-transform:uppercase;text-align:center;">
-        &copy; ${new Date().getFullYear()} Zuwera &middot;
-        <a href="https://zuwera.store" style="color:rgba(244,241,235,.2);text-decoration:none">zuwera.store</a>
-      </td></tr>
-    </table>
-  </td></tr>
-</table>
-</body></html>`;
+  return renderEmailShell(a, {
+    kicker:  `${orderLabel} · ${resolutionDisplay}`,
+    heading: headline,
+    intro:   '',
+    bodyHtml: body,
+    footer:  `© ${new Date().getFullYear()} Zuwera · zuwera.store`,
+  });
 }
 
 async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brevoKey, env, cache }) {
@@ -283,7 +255,7 @@ export async function onRequestPost({ request, env }) {
 
     const cache = await fetchSiteSettings(
       ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL',
-       'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID'], env
+       'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID', 'fonts', 'brand', 'email_theme'], env
     );
     const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
     const brevoKey  = resolveSetting('BREVO_API_KEY',  env, cache);
@@ -297,8 +269,9 @@ export async function onRequestPost({ request, env }) {
     const resolution = String(r.resolution || 'return').trim();
     const toName     = (r.customerName || 'Customer').trim();
     const fromFirstName = toName.split(' ')[0] || 'there';
+    const appearance = getEmailAppearance(cache); appearance.logo = logoUrl;
 
-    const html    = buildEmail({ r, status, resolution, fromFirstName, logoUrl });
+    const html    = buildEmail({ r, status, resolution, fromFirstName, logoUrl, appearance });
     const subject = `${statusHeadline(status, resolution)} — ${r.orderLabel || 'Your Zuwera Return'}`;
 
     const result = await sendEmail({ to: toEmail, toName, subject, html, fromEmail, resendKey, brevoKey, env, cache });

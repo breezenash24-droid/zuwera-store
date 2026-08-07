@@ -80,6 +80,7 @@
 <link rel="stylesheet" href="reviews-vibe.css?v=8580381c">
 <link rel="stylesheet" href="storefront-cohesion.css?v=1ddba8e7">
 <script src="header-scroll.js?v=4a734678" defer></script>
+<script src="announcement-bar.js" defer></script>
 <script src="image-effects.js?v=1" defer></script>
 <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=d7cd202c">
 
@@ -328,12 +329,9 @@ body.super-light-mode #bar {
   #size-guide-modal .size-guide-head {
     padding-bottom: .3rem;
   }
-  #size-guide-modal .size-guide-kicker {
-    font-size: .52rem;
-    margin-bottom: .1rem;
-  }
   #size-guide-modal .size-guide-title {
-    font-size: 1rem;
+    font-size: 1.75rem;
+    line-height: 1.02;
     margin-bottom: 0;
   }
   #size-guide-modal .size-guide-copy {
@@ -383,6 +381,83 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
   background:#0f0f0f; border:1px solid rgba(244,241,235,.08);
   border-top:2px solid #F891A5; padding:2.6rem 2.4rem 2.2rem;
   width:min(420px,92vw); position:relative; animation:modalIn .2s ease;
+}
+
+/* ---- Find My Size quick calculator ---- */
+/* Reset the trigger <button> so it reads as the old size-guide text link. */
+.size-header button.size-guide-link{ background:none; border-top:0; border-left:0; border-right:0; cursor:pointer; font-family:var(--fb); }
+#find-size-modal{ z-index:720; }
+/* Scrim behind the sheet. The site normally leaves modal overlays transparent, but
+   this sheet's rounded white top is INVISIBLE when it lands over light product
+   content (the other modals only look rounded because they happen to sit over dark
+   content). A dim makes the rounded sheet stand out on any background. The id beats
+   cohesion's `.modal{background:transparent!important}`. */
+#find-size-modal.open{ background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important; -webkit-backdrop-filter:var(--zw-mbd-blur, none) !important; backdrop-filter:var(--zw-mbd-blur, none) !important; }
+/* padding:0 — the .review-modal-intro / .review-modal-body wrappers provide the
+   padding (same as every other modal), so the box must not double-pad it (that's
+   what made the content look cramped/narrow). Wider than before to match the
+   other product modals on desktop. */
+.mbox.fs-box{ width:min(640px,94vw); box-shadow:0 24px 64px -24px rgba(0,0,0,.45); padding:0; }
+/* A generic `body.light-mode .mbox button[type="button"]{color:…!important}` rule
+   (for muted secondary buttons) forces dark text onto our FILLED buttons, hiding
+   it on their dark fill. Restore proper contrast — id specificity + !important. */
+#find-size-modal .fs-submit,
+#find-size-modal .fs-unit.active { color: var(--black) !important; }
+#find-size-modal .fs-unit { color: var(--c65) !important; }
+#find-size-modal .fs-unit:hover:not(.active) { color: var(--white) !important; }
+/* Left-aligned header (shared .review-modal-eyebrow/title/copy) + fields, matching
+   the size-guide / size & fit modals. The result reveal + link stay centred. */
+#find-size-modal .fs-grid { text-align:left; }
+#find-size-modal .fs-input { text-align:left; }
+.fs-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.3rem; }
+.fs-field{ display:flex; flex-direction:column; gap:.5rem; min-width:0; }
+.fs-label{ display:flex; align-items:center; justify-content:space-between; gap:.4rem; font-family:var(--fm); font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; color:var(--c65); }
+.fs-toggles{ display:flex; gap:.25rem; flex:0 0 auto; }
+.fs-unit{ background:none; border:1px solid rgba(128,128,128,.32); border:1px solid color-mix(in srgb, var(--white) 20%, transparent); color:var(--c65); padding:.18rem .42rem; font-family:var(--fm); font-size:.54rem; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; border-radius:2px; transition:all .18s; }
+.fs-unit.active{ background:var(--white); color:var(--black); border-color:var(--white); }
+.fs-unit:hover:not(.active){ border-color:var(--white); color:var(--white); }
+.fs-input{ width:100%; box-sizing:border-box; background:rgba(128,128,128,.07); background:color-mix(in srgb, var(--white) 5%, transparent); border:1px solid rgba(128,128,128,.32); border:1px solid color-mix(in srgb, var(--white) 20%, transparent); color:var(--white); padding:.8rem .9rem; font-family:var(--fb); font-size:max(16px,.9rem); border-radius:2px; outline:none; transition:border-color .2s, background .2s; -webkit-appearance:none; appearance:none; }
+.fs-input::placeholder{ color:var(--c40); }
+.fs-input:focus{ border-color:var(--white); background:color-mix(in srgb, var(--white) 9%, transparent); }
+.fs-submit{ width:100%; background:var(--white); color:var(--black); border:none; padding:1rem; font-family:var(--fb); font-weight:600; font-size:.72rem; letter-spacing:.2em; text-transform:uppercase; cursor:pointer; transition:transform .15s ease, opacity .2s ease; }
+.fs-submit:hover{ opacity:.88; transform:translateY(-1px); }
+.fs-submit:active{ opacity:.75; transform:none; }
+.fs-error{ margin:.85rem 0 0; min-height:1rem; text-align:center; font-family:var(--fb); font-size:.75rem; color:var(--zw-accent,#F891A5); }
+.fs-error:empty{ margin:0; min-height:0; }
+.fs-result{ margin-top:1.4rem; padding:1.5rem 1rem; text-align:center; border:1px solid var(--white); background:rgba(128,128,128,.05); background:color-mix(in srgb, var(--white) 3%, transparent); animation:modalIn .3s ease; }
+.fs-result[hidden]{ display:none; }
+.fs-result-label{ font-family:var(--fm); font-size:.58rem; letter-spacing:.2em; text-transform:uppercase; color:var(--c65); margin-bottom:.45rem; }
+.fs-result-size{ font-family:var(--font-head); font-size:3.2rem; line-height:.92; letter-spacing:.03em; color:var(--white); margin-bottom:.5rem; }
+.fs-result-text{ font-size:.78rem; line-height:1.5; color:var(--c65); max-width:34ch; margin:0 auto; }
+.fs-full-link{ display:block; text-align:center; margin-top:1.2rem; font-family:var(--fm); font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:var(--c65); text-decoration:none; transition:color .2s; }
+.fs-full-link:hover{ color:var(--white); text-decoration:underline; }
+/* Mobile bottom sheet — FULLY self-contained. The shared cohesion sheet rule
+   wasn't reaching this box (it rendered as a square .mbox with a 2px accent top
+   border = the "angular strip"), so force every visual property here instead of
+   relying on it. The extra :not(#…) selectors lift specificity above the shared
+   rule + base .mbox so nothing in the cascade can override this. */
+@media(max-width:900px){
+  #find-size-modal:not(#fs_a):not(#fs_b):not(#fs_c) > .mbox.fs-box{
+    position:fixed !important;   /* fixed = viewport-anchored, so it can't "float" if the overlay's positioning breaks */
+    left:0 !important; right:0 !important; bottom:0 !important; top:auto !important;
+    width:auto !important; max-width:none !important; margin:0 !important;
+    max-height:88vh !important; padding:0 !important;
+    border:none !important;
+    border-radius:24px 24px 0 0 !important;
+    box-shadow:0 -8px 40px rgba(0,0,0,.28) !important;
+    /* Single `overflow` value (not overflow-x:hidden + overflow-y:auto): WebKit
+       ignores border-radius when the two axes differ. openFindSizeModal() also sets
+       these inline as a bulletproof backstop, since the cascade kept winning. */
+    overflow:auto !important;
+    display:flex !important; flex-direction:column !important;
+  }
+  /* Own grab handle (in case the shared one isn't reaching it either). */
+  #find-size-modal:not(#fs_a):not(#fs_b) > .mbox.fs-box::before{
+    content:''; display:block; flex:0 0 auto; order:-1;
+    width:38px; height:4px; border-radius:2px;
+    background:rgba(9,9,11,.18);
+    margin:.7rem auto .1rem;
+  }
 }
 @keyframes modalIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
 .mclose {
@@ -1006,6 +1081,17 @@ body.super-light-mode { background: #FFFFFF !important; }
 <script src="consent.js?v=1" defer></script>
 </head>
 <body>
+<!-- Theme classes the instant <body> is parsed — BEFORE the announcement bar + nav
+     below — so the header and banner paint in the cached mode (super-light = white)
+     instead of flashing the default dark until storefront-theme.js applies it ~later.
+     The <head> script already set the page background; this adds the body classes the
+     nav/bar CSS keys off. Mirrors index / drop001 / bag. -->
+<script>try{var _m=localStorage.getItem('zw_theme_mode')||'super-light';if(_m==='light')document.body.classList.add('light-mode');else if(_m==='super-light')document.body.classList.add('light-mode','super-light-mode');}catch(_){}</script>
+<!-- Bag-panel class BEFORE the nav (not after it, where the auth/search script sits):
+     when the bag panel is on it hides the header login/account buttons, and setting
+     the class here — the instant <body> is parsed, before the <nav> below — means the
+     render-blocking cohesion.css hides them pre-paint instead of flashing on mobile. -->
+<script>try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on')}catch(_){}</script>
 <a class="skip-link" href="#main-content">Skip to content</a>
 
 <!--ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
@@ -1245,11 +1331,12 @@ body.super-light-mode { background: #FFFFFF !important; }
 
         <!-- SIZE SELECTION -->
         <div class="size-section">
-          <!-- No Size Guide link here: Size & Fit already carries "View Size Guide"
-               and it opens the same modal. Two links to one thing, a few hundred px
-               apart, only make the row above the sizes busier. -->
           <div class="size-header">
             <p class="section-label" id="sizeSectionLabel">Select Size</p>
+            <!-- "Find My Size" removed as redundant — the "Find your size" fit finder
+                 (storefront-features.js, appended into .size-header) is the single size
+                 helper now. Its modal/JS below stay in place but are unreferenced;
+                 syncSizeGuideVisibility() null-guards the old #findSizeTrigger. -->
           </div>
           <div class="size-grid" id="sizeGrid"></div>
           <!-- Back-in-stock capture — shown when a sold-out size is tapped -->
@@ -1440,7 +1527,6 @@ body.super-light-mode { background: #FFFFFF !important; }
   <div class="mbox size-guide-dialog">
     <button id="size-guide-close" class="mclose size-guide-close" aria-label="Close">&#215;</button>
     <div class="size-guide-head">
-      <p id="size-guide-modal-kicker" class="size-guide-kicker">Fit Reference</p>
       <h2 id="size-guide-modal-title" class="size-guide-title">Size Guide</h2>
       <p id="size-guide-modal-copy" class="size-guide-copy">Compare measurements, find your starting size, and cross-check the exact category for this piece.</p>
     </div>
@@ -1449,6 +1535,50 @@ body.super-light-mode { background: #FFFFFF !important; }
         <div id="size-guide-modal-loading" class="size-guide-message">Loading size guide...</div>
           <iframe id="size-guide-modal-iframe" src="" title="Size Guide" loading="eager" hidden scrolling="no"></iframe>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Find My Size — quick height+weight calculator (centered dialog on desktop,
+     bottom sheet on mobile). Native, no iframe. -->
+<div id="find-size-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="fs-title" aria-hidden="true"
+     onclick="if(event.target===this) closeFindSizeModal()">
+  <div class="mbox fs-box">
+    <button class="mclose review-modal-close" id="fs-close" type="button" aria-label="Close" onclick="closeFindSizeModal()">&#215;</button>
+    <div class="review-modal-intro">
+      <p class="review-modal-eyebrow">Fit Reference</p>
+      <h2 class="review-modal-title" id="fs-title">Find My Size</h2>
+      <p class="review-modal-copy">Enter your height and weight for a recommended starting size.</p>
+    </div>
+    <div class="review-modal-body">
+      <div class="fs-grid">
+        <div class="fs-field">
+          <div class="fs-label"><span>Height</span>
+            <span class="fs-toggles" data-field="height">
+              <button type="button" class="fs-unit active" data-unit="in" onclick="fsToggleUnit(this)">IN</button>
+              <button type="button" class="fs-unit" data-unit="cm" onclick="fsToggleUnit(this)">CM</button>
+            </span>
+          </div>
+          <input type="number" id="fs-height" class="fs-input" placeholder="e.g., 70" inputmode="decimal" min="0" step="0.5">
+        </div>
+        <div class="fs-field">
+          <div class="fs-label"><span>Weight</span>
+            <span class="fs-toggles" data-field="weight">
+              <button type="button" class="fs-unit active" data-unit="lbs" onclick="fsToggleUnit(this)">LBS</button>
+              <button type="button" class="fs-unit" data-unit="kg" onclick="fsToggleUnit(this)">KG</button>
+            </span>
+          </div>
+          <input type="number" id="fs-weight" class="fs-input" placeholder="e.g., 180" inputmode="decimal" min="0" step="1">
+        </div>
+      </div>
+      <button type="button" class="fs-submit" id="fs-submit" onclick="runFindSize()">Find My Size</button>
+      <p class="fs-error" id="fs-error" role="alert"></p>
+      <div class="fs-result" id="fs-result" hidden>
+        <div class="fs-result-label">Your recommended size</div>
+        <div class="fs-result-size" id="fs-result-size"></div>
+        <div class="fs-result-text" id="fs-result-text"></div>
+      </div>
+      <a class="fs-full-link" href="/sizeguide.html" id="fs-full-link" onclick="return fsOpenFullGuide()">View full size guide &rarr;</a>
     </div>
   </div>
 </div>
@@ -1551,199 +1681,7 @@ let _sessionPromise = null;
 let _sbReadyResolve;
 const _sbReady = new Promise(resolve => { _sbReadyResolve = resolve; });
 let _productFetchPromise = null;
-let _productAnnouncementBarScrollHandler = null;
-
-function teardownAnnouncementBarScroll() {
-  if (_productAnnouncementBarScrollHandler) {
-    window.removeEventListener('scroll', _productAnnouncementBarScrollHandler);
-    _productAnnouncementBarScrollHandler = null;
-  }
-}
-
-// Fold the bar's OWN height so the nav + product push up/down into the reclaimed
-// space (content-push) instead of the bar sliding away as an overlay. Mirrors the
-// homepage helper in storefront.js.
-function zwSetBarFold(barEl, hidden) {
-  if (!barEl) return;
-  if (hidden) {
-    if (!barEl.style.maxHeight || barEl.style.maxHeight === 'none') {
-      barEl.style.maxHeight = barEl.offsetHeight + 'px';
-      void barEl.offsetHeight;
-    }
-    barEl.style.maxHeight = '0px';
-    barEl.style.paddingTop = '0px';
-    barEl.style.paddingBottom = '0px';
-    barEl.style.opacity = '0';
-    barEl.style.pointerEvents = 'none';
-  } else {
-    barEl.style.paddingTop = '';
-    barEl.style.paddingBottom = '';
-    barEl.style.opacity = '1';
-    barEl.style.pointerEvents = '';
-    const wasCollapsed = barEl.style.maxHeight === '0px';
-    barEl.style.maxHeight = 'none';
-    const full = barEl.offsetHeight;
-    if (wasCollapsed) { barEl.style.maxHeight = '0px'; void barEl.offsetHeight; }
-    barEl.style.maxHeight = full + 'px';
-  }
-}
-
-function setAnnouncementBarLayout(barEl, navEl, isVisible) {
-  if (!navEl) return;
-  const spacerEl = document.getElementById('bar-spacer');
-  const pageEl = document.querySelector('.product-page');
-  const isMob = window.matchMedia('(max-width: 900px)').matches;
-  if (isMob) {
-    // Mobile: nav stays at top, bar fixed below nav, no spacer needed
-    navEl.style.top = '0px';
-    document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
-    const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
-    if (barEl && isVisible) barEl.style.top = navEl.offsetHeight + 'px';
-    if (spacerEl) spacerEl.style.height = '0';
-    // The CSS padding-top (140px, sized for the desktop bar+nav) is far too tall
-    // for mobile and left a white gap above the product. Clear exactly the fixed
-    // nav + bar instead.
-    // !important so this beats the mobile-rebuild `.product-page{padding-top…!important}`
-    // fallback — otherwise the JS padding is ignored and the page sits under a
-    // fixed 8.5rem gap regardless of the real nav/bar height.
-    if (pageEl) pageEl.style.setProperty('padding-top', (navEl.offsetHeight + barH) + 'px', 'important');
-  } else {
-    // Desktop: bar always fixed at top:0; nav pushed below; spacer holds bar height in flow
-    const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
-    navEl.style.top = barH + 'px';
-    document.documentElement.style.setProperty('--mobile-nav-gap', barH + 'px');
-    if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
-    if (pageEl) pageEl.style.paddingTop = ''; // restore the CSS value
-  }
-}
-
-function applyAnnouncementBar(mode, msgText) {
-  const barEl = document.getElementById('bar');
-  const navEl = document.querySelector('.nav');
-  if (!barEl) return;
-  const normalizedMode = String(mode || 'on').trim().toLowerCase();
-  const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
-
-  teardownAnnouncementBarScroll();
-  // Bar is always position:fixed — position just varies by viewport
-  if (isMobileViewport) {
-    barEl.style.top = (navEl ? navEl.offsetHeight : 0) + 'px';
-  } else {
-    barEl.style.top = '0';
-  }
-  barEl.style.transition = 'transform .28s ease, opacity .2s ease, top .28s ease';
-  barEl.style.transform = 'translateY(0)';
-  barEl.style.opacity = '1';
-  barEl.style.pointerEvents = '';
-  barEl.style.maxHeight = '';        // clear any leftover fold from a previous mode
-  barEl.style.paddingTop = '';
-  barEl.style.paddingBottom = '';
-
-  const textEl = document.getElementById('announcementText');
-  const fallbackText = (barEl.dataset.defaultText || (textEl ? textEl.textContent : '') || '').trim();
-  if (!barEl.dataset.defaultText) barEl.dataset.defaultText = fallbackText;
-  if (textEl) {
-    const nextText = (typeof msgText === 'string' ? msgText : '').trim();
-    textEl.textContent = nextText || fallbackText;
-  }
-
-  if (normalizedMode === 'off') {
-    barEl.style.display = 'none';
-    setAnnouncementBarLayout(barEl, navEl, false);
-    return;
-  }
-
-  barEl.style.display = 'flex';
-  setAnnouncementBarLayout(barEl, navEl, true);
-
-  if (normalizedMode !== 'scroll' && normalizedMode !== 'scrolloff') return;
-
-  if (isMobileViewport) {
-    // Mobile: fade ONLY the bar on scroll-down; the nav stays fixed.
-    barEl.style.transition = 'opacity .25s ease';
-    let lastScrollY = window.scrollY;
-    let isHidden = false;
-    const scrollActivationAt = Date.now() + 150;
-    const syncAnnouncementState = (hidden) => {
-      barEl.style.opacity = hidden ? '0' : '1';
-      barEl.style.pointerEvents = hidden ? 'none' : '';
-      // Reclaim the bar's height when it hides so the product slides up to fill
-      // the space (and back down when it returns) — previously only the opacity
-      // changed, leaving an empty gap where the faded bar used to be.
-      setAnnouncementBarLayout(barEl, navEl, !hidden);
-    };
-    syncAnnouncementState(false);
-    _productAnnouncementBarScrollHandler = function() {
-      const currentY = window.scrollY;
-      if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { lastScrollY = currentY; return; }
-      if (Date.now() < scrollActivationAt) {
-        lastScrollY = currentY;
-        return;
-      }
-      const scrollingDown = currentY > lastScrollY + 6;
-      const scrollingUp = currentY < lastScrollY - 6;
-
-      if (normalizedMode !== 'scrolloff' && (currentY <= 16 || scrollingUp)) {
-        if (isHidden) {
-          isHidden = false;
-          syncAnnouncementState(false);
-        }
-      } else if (currentY > 40 && scrollingDown) {
-        if (!isHidden) {
-          isHidden = true;
-          syncAnnouncementState(true);
-          if (normalizedMode === 'scrolloff') teardownAnnouncementBarScroll();
-        }
-      }
-
-      lastScrollY = currentY;
-    };
-    window.addEventListener('scroll', _productAnnouncementBarScrollHandler, { passive: true });
-    return;
-  }
-
-  // Content-push: fold the bar's height while the nav (transition:top) + spacer
-  // collapse in lockstep, so the product pushes up to fill — no overlay slide.
-  // Shared duration/easing across all three; opacity matches so the text never
-  // shows in a half-height bar on reveal. Ease-out so it feels snappy, not laggy.
-  barEl.style.transition = 'max-height 0.25s cubic-bezier(.32,.72,0,1), padding 0.25s cubic-bezier(.32,.72,0,1), opacity 0.25s cubic-bezier(.32,.72,0,1)';
-  let lastScrollY = window.scrollY;
-  let isHidden = false;
-  const scrollActivationAt = Date.now() + 150;
-  const spacerEl2 = document.getElementById('bar-spacer');
-  const syncAnnouncementState = (hidden) => {
-    zwSetBarFold(barEl, hidden);
-    if (spacerEl2) spacerEl2.style.height = hidden ? '0' : barEl.offsetHeight + 'px';
-    setAnnouncementBarLayout(barEl, navEl, !hidden);
-  };
-  syncAnnouncementState(false);
-  _productAnnouncementBarScrollHandler = function() {
-    const currentY = window.scrollY;
-    if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { lastScrollY = currentY; return; }
-    if (Date.now() < scrollActivationAt) {
-      lastScrollY = currentY;
-      return;
-    }
-    const scrollingDown = currentY > lastScrollY + 6;
-    const scrollingUp = currentY < lastScrollY - 6;
-
-    if (normalizedMode !== 'scrolloff' && (currentY <= 16 || scrollingUp)) {
-      if (isHidden) {
-        isHidden = false;
-        syncAnnouncementState(false);
-      }
-    } else if (currentY > 40 && scrollingDown) {
-      if (!isHidden) {
-        isHidden = true;
-        syncAnnouncementState(true);
-        if (normalizedMode === 'scrolloff') teardownAnnouncementBarScroll();
-      }
-    }
-
-    lastScrollY = currentY;
-  };
-  window.addEventListener('scroll', _productAnnouncementBarScrollHandler, { passive: true });
-}
+/* Announcement bar is now driven by the shared announcement-bar.js module (loaded on this page). */
 
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 // LOAD SITE SETTINGS (announcement bar + shipping)
@@ -1755,32 +1693,13 @@ async function loadSiteSettings() {
       headers: { 'apikey': _PROD_SB_KEY, 'Authorization': `Bearer ${_PROD_SB_KEY}` }
     });
     if (!resp.ok) {
-      applyAnnouncementBar('on', '');
       return;
     }
     const data = await resp.json();
-    let announcementApplied = false;
     let builderTheme = null;
     data.forEach(row => {
       if (row.key === 'builder_theme') {
         try { builderTheme = typeof row.value === 'string' ? JSON.parse(row.value) : row.value; } catch(e) {}
-      } else if (row.key === 'announcement_bar') {
-        let v = row.value;
-        try {
-          if (typeof v === 'string') v = JSON.parse(v);
-        } catch(e) {}
-        
-        let mode = 'on';
-        let msgText = '';
-        if (typeof v === 'object' && v !== null) {
-          mode = v.mode || (v.enabled === false ? 'off' : 'on');
-          msgText = v.product || v.main || '';
-        } else {
-          msgText = v;
-        }
-
-        applyAnnouncementBar(mode, msgText);
-        announcementApplied = true;
       } else if (row.key === 'shipping_policy') {
         const v = row.value;
         if (!v) return;
@@ -1823,7 +1742,6 @@ async function loadSiteSettings() {
           if (b.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', b.admin_res_text);
       }
     });
-    if (!announcementApplied) applyAnnouncementBar('on', '');
 
     // Apply Page Builder theme bar colors (bar_bg / bar_text_color / accent) to #bar.
     // Mirrors index.html so the announcement bar color is consistent across pages.
@@ -1840,7 +1758,6 @@ async function loadSiteSettings() {
     }
   } catch (e) {
     console.log('Settings load skipped:', e);
-    applyAnnouncementBar('on', '');
   }
 }
 // loadSiteSettings() and _productFetchPromise now start in DOMContentLoaded
@@ -1887,6 +1804,9 @@ let currentProduct = null;
 let selectedSize = null;
 let selectedColor = null;
 let selectedColorSku = null;
+// Deep-link a specific variant (e.g. from a back-in-stock email): ?color=&size=
+let _pendingColor = null;
+let _pendingSize = null;
 let cartCount = 0;
 let currentImageIndex = 0;
 let currentUser = null;
@@ -2090,6 +2010,7 @@ function syncSizeGuideVisibility(sizeLabels = getAvailableProductSizes()) {
   const hideGuide = isSingleOneSizeProduct(sizeLabels) && !keepGuideVisible;
   const headerLink = document.getElementById('sizeGuideLink');
   const accordionBtn = document.getElementById('viewSizeGuideBtn');
+  const findTrigger = document.getElementById('findSizeTrigger');
   const sizeLabel = document.getElementById('sizeSectionLabel');
 
   if (headerLink) {
@@ -2097,6 +2018,11 @@ function syncSizeGuideVisibility(sizeLabels = getAvailableProductSizes()) {
     if (hideGuide) headerLink.removeAttribute('href');
   }
   if (accordionBtn) accordionBtn.style.display = hideGuide ? 'none' : '';
+  // The quick height+weight calculator only makes sense for sized apparel.
+  if (findTrigger) {
+    const isApparel = guideContext?.calcCategory === 'tops' || guideContext?.calcCategory === 'bottoms';
+    findTrigger.style.display = (hideGuide || !isApparel) ? 'none' : '';
+  }
   if (sizeLabel) sizeLabel.textContent = hideGuide ? 'Size' : 'Select Size';
   return hideGuide;
 }
@@ -2307,7 +2233,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // padding-top (140px, desktop-sized) reserves space for it — leaving a tall
     // white gap above the product on slow loads. Clear it to just the nav height
     // now; loadSiteSettings re-applies with the real bar state/height.
-    setAnnouncementBarLayout(bar, nav, false);
     const syncNavOffset = () => {
       if (window.matchMedia('(max-width: 900px)').matches) {
         nav.style.top = '0';
@@ -2354,6 +2279,9 @@ async function loadProduct() {
   const productId = params.get('id');
   const sku = params.get('sku');
   let slug = params.get('slug');
+  // Variant deep-link — preselect this colour/size once the product renders.
+  if (params.get('color')) _pendingColor = params.get('color');
+  if (params.get('size')) _pendingSize = params.get('size');
 
   // Fallback: extract slug from pathname for clean URLs (e.g. /product/vogue)
   if (!productId && !sku && !slug) {
@@ -2416,6 +2344,9 @@ async function loadProduct() {
   const resolvedParams = new URLSearchParams();
   resolvedParams.set('id', productData.id);
   if (productData.sku) resolvedParams.set('sku', productData.sku);
+  // Keep the variant deep-link in the canonical URL so it survives + is shareable.
+  if (_pendingColor) resolvedParams.set('color', _pendingColor);
+  if (_pendingSize) resolvedParams.set('size', _pendingSize);
   const resolvedPath = resolvedSlug ? `/product/${resolvedSlug}` : '/product';
   const resolvedUrl = `${resolvedPath}?${resolvedParams.toString()}`;
   if (`${window.location.pathname}${window.location.search}` !== resolvedUrl) {
@@ -2522,7 +2453,26 @@ function renderProduct() {
   document.getElementById('productTitle').textContent = currentProduct.title;
   const _mi = document.getElementById('mainImage');
   if (_mi && !_mi.alt && currentProduct.title) _mi.alt = currentProduct.title;
-  document.getElementById('genderTag').textContent = (currentProduct.gender || 'All').toUpperCase();
+  // Descriptive line under the title ("says what it is", like Nike). Use the
+  // admin's custom `descriptor` override when set, else auto-build "<Gender>'s
+  // <Category>" from gender + subtitle (the category). CSS uppercases it, so the
+  // stored casing can stay natural. Mirrors the live preview in admin-main.js.
+  {
+    // Singularise the category where it reads better ("Jacket" not "Jackets"),
+    // but keep plural-only / pair garments (Pants, Shorts, Leggings, Socks…) as-is.
+    window.zwSingularCat = window.zwSingularCat || function (c) {
+      if (!c) return c;
+      var s = String(c).trim();
+      if (/(pants|shorts|leggings|joggers|socks|jeans|tights|briefs|boxers|trousers|sunglasses|glasses|shoes|sneakers|boots|sandals|slides|gloves|overalls|pajamas|pyjamas)$/i.test(s)) return s;
+      return /[^s]s$/i.test(s) ? s.slice(0, -1) : s;
+    };
+    const _g = (currentProduct.gender || '').trim();
+    const _cat = window.zwSingularCat((currentProduct.subtitle || '').trim());
+    const _poss = _g === 'Men' ? "Men's" : _g === 'Women' ? "Women's" : _g === 'Kids' ? "Kids'" : (_g || '');
+    const _custom = (currentProduct.descriptor || '').trim();
+    const _desc = _custom || ((_poss && _cat) ? (_poss + ' ' + _cat) : (_poss || _cat || 'All'));
+    document.getElementById('genderTag').textContent = _desc;
+  }
   renderProductCategoryNavigation(currentProduct).catch((error) => console.warn('Failed to render category navigation:', error));
 
   // Dynamic SEO meta — update page title and social tags per product
@@ -2666,7 +2616,12 @@ function getSizeGuideContext(product = currentProduct) {
 }
 
 function getSizeGuideModalMeta(context) {
-  const label = singularizeGuideLabel(context?.categoryLabel);
+  let label = singularizeGuideLabel(context?.categoryLabel);
+  // Tops/bottoms use the broad category name so the title matches the size chart
+  // (a jacket reads "Tops Size Guide", not "Jacket Size Guide"). Others keep their
+  // own name (Hat, Sports Bra, Socks).
+  if (context?.calcCategory === 'tops') label = 'Tops';
+  else if (context?.calcCategory === 'bottoms') label = 'Bottoms';
   if (!label || label.toLowerCase() === 'apparel') {
     return {
       kicker: 'Fit Reference',
@@ -2849,7 +2804,12 @@ function getMemberProductPrice(product) {
 }
 
 function isMemberSignedIn() {
-  return !!currentUser;
+  // __zwSessionUser is set synchronously pre-paint from the cached session (nav
+  // auth script), whereas currentUser is only set ~0.5s later by auth.js's async
+  // getSession. Consulting both means the FIRST renderPrice() already knows the
+  // member is signed in, so the price shows member pricing immediately instead of
+  // flashing regular → member once the session resolves.
+  return !!currentUser || !!window.__zwSessionUser;
 }
 
 function getEffectiveProductPrice(product) {
@@ -3168,15 +3128,24 @@ function renderColors() {
     return;
   }
 
+  // Prefer a deep-linked colour (?color= from an email/share) over the first swatch.
+  let _initColorIdx = 0;
+  if (_pendingColor) {
+    const _nc = String(_pendingColor).trim().toLowerCase();
+    const _fi = currentProduct.colors.findIndex(c => String(c.color_name || '').trim().toLowerCase() === _nc);
+    if (_fi >= 0) _initColorIdx = _fi;
+  }
+
   currentProduct.colors.forEach((color, idx) => {
     const swatch = document.createElement('button');
     swatch.className = 'color-swatch';
-    if (idx === 0) {
+    if (idx === _initColorIdx) {
       swatch.classList.add('active');
       selectedColor = color;
       selectedColorSku = color.variant_sku;
+      setSelectedColorLabel(color);
       // If images already loaded (colors resolved after images in the parallel fetch race),
-      // re-filter now so the first color's gallery shows immediately without needing a click.
+      // re-filter now so the selected color's gallery shows immediately without needing a click.
       if (currentProduct.allImages) {
         currentProduct.images = getImagesForColor(color.id);
         currentImageIndex = 0;
@@ -3225,12 +3194,18 @@ function renderColors() {
 // colour, use the NULL rows if present, else sum across colours.
 function sizeStockForColor(sizeLabel, colorName) {
   const inv = Array.isArray(currentProduct?.inventory) ? currentProduct.inventory : [];
-  const norm = normalizeSizeLabel(sizeLabel);
-  const rows = inv.filter(r => normalizeSizeLabel(r?.size) === norm);
+  // Canonicalize the size so equivalent labels match: the size button is built
+  // with formatProductSizeLabel ("2XL" → "XXL") but inventory may store "2XL".
+  // canonicalizeProductSizeToken folds xxl↔2xl, xxxl↔3xl, xxs↔2xs, etc.
+  const norm = canonicalizeProductSizeToken(sizeLabel);
+  const rows = inv.filter(r => canonicalizeProductSizeToken(r?.size) === norm);
   if (!rows.length) return 0;
   const sum = list => list.reduce((s, r) => s + (r?.stock_quantity || 0), 0);
   if (colorName) {
-    const colorRows = rows.filter(r => r.color_name === colorName);
+    // Normalize colour (trim + lowercase) so a case/whitespace difference between
+    // the product_sizes row and the colour swatch doesn't read as "sold out".
+    const nc = String(colorName).trim().toLowerCase();
+    const colorRows = rows.filter(r => String(r.color_name || '').trim().toLowerCase() === nc);
     if (colorRows.length) return sum(colorRows);
     const nullRows = rows.filter(r => !r.color_name);
     return nullRows.length ? sum(nullRows) : 0;
@@ -3292,9 +3267,18 @@ function renderSizes() {
     sizeGrid.appendChild(btn);
   });
 
-  const preferredSize = oneSizeOnly
-    ? sizes[0]
-    : (previousSelectedSize && sizes.includes(previousSelectedSize) ? previousSelectedSize : null);
+  // A deep-linked size (?size=) wins on first render — consumed once so switching
+  // colour afterwards doesn't keep forcing it. Canonicalized so 2XL/XXL match.
+  let _pendingSizeMatch = null;
+  if (_pendingSize) {
+    const _ps = canonicalizeProductSizeToken(_pendingSize);
+    _pendingSizeMatch = sizes.find((s) => canonicalizeProductSizeToken(s) === _ps) || null;
+    _pendingSize = null;
+  }
+  const preferredSize = _pendingSizeMatch
+    || (oneSizeOnly
+      ? sizes[0]
+      : (previousSelectedSize && sizes.includes(previousSelectedSize) ? previousSelectedSize : null));
 
   if (preferredSize) {
     const preferredButton = Array.from(sizeGrid.querySelectorAll('.size-btn'))
@@ -3498,8 +3482,9 @@ function renderReviews() {
   document.getElementById('reviewsHeader').textContent =
     `Reviews (${avgRating} \u00b7 ${currentProduct.reviews.length})`;
 
-  // Show latest 3 reviews
-  const displayReviews = currentProduct.reviews.slice(0, 3);
+  // Show up to the first 6 reviews inline in the column (Nike-style), so people
+  // read reviews without opening anything. The modal stays for photos / the rest.
+  const displayReviews = currentProduct.reviews.slice(0, 6);
 
   displayReviews.forEach(review => {
     const reviewEl = document.createElement('div');
@@ -3547,10 +3532,15 @@ function renderReviews() {
     }
   });
 
-  if (currentProduct.reviews.length > 3) {
+  // Always offer the modal when there's at least one review (guaranteed by the
+  // early return above) — the "See Reviews" button — so the full list + any
+  // photos/lightbox are always reachable, even with a single review. Reads
+  // "View All N Reviews" when there's more than the 6 shown inline.
+  {
     const moreBtn = document.createElement('button');
     moreBtn.className = 'more-reviews-btn';
-    moreBtn.textContent = `View All ${currentProduct.reviews.length} Reviews`;
+    const _hasMore = currentProduct.reviews.length > displayReviews.length;
+    moreBtn.textContent = _hasMore ? `View All ${currentProduct.reviews.length} Reviews` : 'See Reviews';
     moreBtn.onclick = () => openAllReviewsModal(currentProduct.id, currentProduct.id, currentProduct.title);
     content.appendChild(moreBtn);
   }
@@ -4022,9 +4012,9 @@ window.openSizeFitModal = async function() {
     if (_sfBox) { _sfBox.style.removeProperty('width'); _sfBox.style.removeProperty('max-width'); _sfBox.style.removeProperty('border-radius'); }
   }
   // Clear/transparent backdrop, like every other modal on the site.
-  modal.style.setProperty('background', 'transparent', 'important');
-  modal.style.setProperty('backdrop-filter', 'none', 'important');
-  modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+  modal.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+  modal.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+  modal.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
   // Defer the scroll lock to modal-lock.js (position:fixed + scroll compensation)
   // instead of a raw overflow:hidden — the dual lock shifted the page up on open.
   if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = 'hidden';
@@ -4185,6 +4175,174 @@ function ensureSizeGuideBooted(iframe, params) {
   return _sizeGuideBootPromise;
 }
 
+// ---- Find My Size quick calculator (native modal, bottom sheet on mobile) ----
+function fsToggleUnit(btn) {
+  const group = btn.parentElement;
+  if (!group) return;
+  group.querySelectorAll('.fs-unit').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function fsActiveUnit(field) {
+  const btn = document.querySelector('#find-size-modal .fs-toggles[data-field="' + field + '"] .fs-unit.active');
+  return btn ? btn.getAttribute('data-unit') : null;
+}
+// Weight-driven size buckets with a ±1 nudge for a notably tall/short frame —
+// mirrors sizeguide.html's findApparelSizeByHeightWeight so both agree.
+function fsRecommendSize(gender, heightIn, weightLbs) {
+  const scale = gender === 'women'
+    ? [['XXS',105],['XS',120],['S',140],['M',160],['L',185],['XL',215],['2XL',245],['3XL',Infinity]]
+    : [['XS',135],['S',155],['M',180],['L',205],['XL',235],['2XL',265],['3XL',Infinity]];
+  let idx = scale.findIndex(([, mx]) => weightLbs <= mx);
+  if (idx < 0) idx = scale.length - 1;
+  const avg = gender === 'women' ? 65 : 70;
+  if (heightIn >= avg + 5 && idx < scale.length - 1) idx += 1;
+  else if (heightIn <= avg - 5 && idx > 0) idx -= 1;
+  return scale[idx][0];
+}
+function openFindSizeModal() {
+  const m = document.getElementById('find-size-modal');
+  if (!m) return;
+  const err = document.getElementById('fs-error'); if (err) err.textContent = '';
+  const res = document.getElementById('fs-result'); if (res) res.hidden = true;
+  const isSheet = window.matchMedia && window.matchMedia('(max-width:900px)').matches;
+  const box = m.querySelector('.fs-box');
+  // Style the box BEFORE it's shown (no flash of the boxy CSS version), all via
+  // INLINE !important since the page cascade kept overriding stylesheet rules.
+  // Full width like the other sheets; start off-screen for a clean slide-up (the
+  // base .mbox `animation:modalIn` nudge fought the sheet motion and looked weird).
+  if (isSheet && box) {
+    box.style.setProperty('position', 'fixed', 'important');   // viewport-anchored — never floats
+    box.style.setProperty('left', '0', 'important');
+    box.style.setProperty('right', '0', 'important');
+    box.style.setProperty('bottom', '0', 'important');
+    box.style.setProperty('top', 'auto', 'important');
+    box.style.setProperty('width', 'auto', 'important');
+    box.style.setProperty('max-width', 'none', 'important');
+    box.style.setProperty('margin', '0', 'important');
+    box.style.setProperty('border', 'none', 'important');
+    box.style.setProperty('border-radius', '24px 24px 0 0', 'important');
+    box.style.setProperty('overflow', 'auto', 'important');
+    box.style.setProperty('box-shadow', '0 -8px 40px rgba(0,0,0,.28)', 'important');
+    box.style.setProperty('animation', 'none', 'important');
+    box.style.setProperty('transition', 'none', 'important');
+    box.style.setProperty('transform', 'translateY(100%)', 'important');
+    m.style.setProperty('transition', 'background .28s ease, backdrop-filter .28s ease', 'important');
+    m.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),0)', 'important');   // fade from transparent
+  }
+  m.classList.add('open');
+  m.setAttribute('aria-hidden', 'false');
+  if (isSheet && box) {
+    requestAnimationFrame(() => {
+      // Fade in the admin modal-backdrop scrim (not a hardcoded dim) — inline so it
+      // beats the page cascade, and follows the Dim/Blur/Frost/None + intensity setting.
+      m.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+      m.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+      m.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+      requestAnimationFrame(() => {
+        box.style.setProperty('transition', 'transform .4s cubic-bezier(.32,.72,0,1)', 'important');
+        box.style.setProperty('transform', 'translateY(0)', 'important');   // slide up
+      });
+    });
+  } else {
+    // Desktop: apply the admin scrim directly (inline, !important) so the backdrop is
+    // guaranteed — don't depend on the clearBackdrop MutationObserver having fired.
+    m.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+    m.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+    m.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+  }
+  if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = 'hidden';
+  setTimeout(() => { const h = document.getElementById('fs-height'); if (h) h.focus(); }, 60);
+}
+window.openFindSizeModal = openFindSizeModal;
+function closeFindSizeModal() {
+  const m = document.getElementById('find-size-modal');
+  if (!m) return;
+  const box = m.querySelector('.fs-box');
+  const isSheet = box && window.matchMedia && window.matchMedia('(max-width:900px)').matches && m.classList.contains('open');
+  const finish = () => {
+    m.classList.remove('open');
+    m.style.removeProperty('background');
+    m.style.removeProperty('transition');
+    if (box) { box.style.removeProperty('transform'); box.style.removeProperty('transition'); }
+    m.setAttribute('aria-hidden', 'true');
+    if (!document.querySelector('.modal.open')) {
+      if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = '';
+    }
+  };
+  if (isSheet) {
+    m.style.setProperty('background', 'rgba(9,9,11,0)', 'important');        // fade scrim out
+    box.style.setProperty('transition', 'transform .26s cubic-bezier(.32,.72,0,1)', 'important');
+    box.style.setProperty('transform', 'translateY(100%)', 'important');     // slide down
+    setTimeout(finish, 240);
+  } else {
+    finish();
+  }
+}
+window.closeFindSizeModal = closeFindSizeModal;
+// If the viewport changes (rotation) while the sheet is open, re-assert its
+// bottom anchor so it can't end up floating mid-screen.
+window.addEventListener('resize', function () {
+  const m = document.getElementById('find-size-modal');
+  if (!m || !m.classList.contains('open')) return;
+  const box = m.querySelector('.fs-box');
+  if (box && window.matchMedia && window.matchMedia('(max-width:900px)').matches) {
+    box.style.setProperty('position', 'fixed', 'important');
+    box.style.setProperty('left', '0', 'important');
+    box.style.setProperty('right', '0', 'important');
+    box.style.setProperty('bottom', '0', 'important');
+    box.style.setProperty('top', 'auto', 'important');
+    box.style.setProperty('transform', 'translateY(0)', 'important');
+  }
+});
+// iOS Safari keeps a zoomed-in VISUAL VIEWPORT after rotating landscape → portrait
+// (text-size-adjust:100% is set, so it's the scale, not text inflation). Fix:
+// momentarily pin maximum-scale so Safari re-fits to the new width, then release
+// so pinch-zoom still works. `orientationchange` fires BEFORE the layout settles,
+// so also react to the resize that follows a real WIDTH change (rotation) — not to
+// the keyboard opening (which only changes height).
+(function fixOrientationZoom() {
+  var vp = document.querySelector('meta[name="viewport"]');
+  if (!vp) return;
+  var base = vp.getAttribute('content').replace(/\s*,?\s*maximum-scale=[^,]*/gi, '');
+  var lastW = window.innerWidth, t;
+  function refit() {
+    clearTimeout(t);
+    vp.setAttribute('content', base + ', maximum-scale=1');
+    t = setTimeout(function () { vp.setAttribute('content', base); }, 600);
+  }
+  window.addEventListener('orientationchange', function () { setTimeout(refit, 60); });
+  window.addEventListener('resize', function () {
+    if (Math.abs(window.innerWidth - lastW) > 60) { lastW = window.innerWidth; refit(); }
+  });
+})();
+function runFindSize() {
+  const err = document.getElementById('fs-error');
+  const res = document.getElementById('fs-result');
+  err.textContent = ''; res.hidden = true;
+  const rawH = parseFloat(document.getElementById('fs-height').value);
+  const rawW = parseFloat(document.getElementById('fs-weight').value);
+  if (!(rawH > 0) || !(rawW > 0)) { err.textContent = 'Please enter a valid height and weight.'; return; }
+  const hUnit = fsActiveUnit('height'), wUnit = fsActiveUnit('weight');
+  const heightIn = hUnit === 'cm' ? rawH / 2.54 : rawH;
+  const weightLbs = wUnit === 'kg' ? rawW * 2.2046 : rawW;
+  if (heightIn < 48 || heightIn > 84) { err.textContent = hUnit === 'cm' ? 'Enter a height between 122 and 213 cm.' : 'Enter a height between 48 and 84 inches.'; return; }
+  if (weightLbs < 70 || weightLbs > 400) { err.textContent = wUnit === 'kg' ? 'Enter a weight between 32 and 181 kg.' : 'Enter a weight between 70 and 400 lb.'; return; }
+  let gender = (typeof getSizeGuideContext === 'function' && getSizeGuideContext() || {}).gender;
+  if (gender !== 'women' && gender !== 'men') gender = 'men';
+  const size = fsRecommendSize(gender, heightIn, weightLbs);
+  const hDisp = hUnit === 'cm' ? rawH + ' cm' : rawH + '"';
+  const wDisp = wUnit === 'kg' ? rawW + ' kg' : rawW + ' lb';
+  document.getElementById('fs-result-size').textContent = size;
+  document.getElementById('fs-result-text').textContent =
+    'Based on height ' + hDisp + ' and weight ' + wDisp + '. A starting point — size up for a looser fit, or check the full chart if you’re between sizes.';
+  res.hidden = false;
+}
+function fsOpenFullGuide() {
+  closeFindSizeModal();
+  if (window.openSizeGuideModal) window.openSizeGuideModal();
+  return false;
+}
+
 window.openSizeGuideModal = async function() {
   if (syncSizeGuideVisibility(getAvailableProductSizes())) return;
   const modal   = document.getElementById('size-guide-modal');
@@ -4197,9 +4355,9 @@ window.openSizeGuideModal = async function() {
   const params = buildSizeGuideParams();
 
   modal.classList.add('open');
-  modal.style.setProperty('background', 'transparent', 'important');
-  modal.style.setProperty('backdrop-filter', 'none', 'important');
-  modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+  modal.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+  modal.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+  modal.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
   // Defer the scroll lock to modal-lock.js (position:fixed + scroll compensation)
   // instead of a raw overflow:hidden — the dual lock shifted the page up on open.
   if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = 'hidden';
@@ -4953,9 +5111,19 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 (function() {
   function clearBackdrop(el) {
     if (!el || !el.classList || !el.classList.contains('modal')) return;
-    el.style.setProperty('background', 'transparent', 'important');
-    el.style.setProperty('backdrop-filter', 'none', 'important');
-    el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+    // The scrim (rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))) is set INLINE so it beats
+    // every stylesheet — including the old per-page rules and any cross-origin sheet.
+    // #mobile-menu (opaque drawer) and #payment-modal (white sheet) own their surface;
+    // a scrim would make them see-through, so keep those transparent.
+    if (el.id === 'mobile-menu' || el.id === 'payment-modal') {
+      el.style.setProperty('background', 'transparent', 'important');
+      el.style.setProperty('backdrop-filter', 'none', 'important');
+      el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+      return;
+    }
+    el.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+    el.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+    el.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
   }
 
   var attrObs = new MutationObserver(function(muts) {
@@ -4964,7 +5132,10 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 
   function observe(el) {
     clearBackdrop(el);
-    attrObs.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
+    // Watch only 'class' (open/close), NOT 'style' — clearBackdrop writes 'style', and
+    // on some browsers setting an identical value still re-fires the observer, which
+    // would loop and freeze the main thread (breaking taps on modals/accordions).
+    attrObs.observe(el, { attributes: true, attributeFilter: ['class'] });
   }
 
   function init() {

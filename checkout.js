@@ -529,6 +529,8 @@ function updateCartSummaryShipping(amount) {
     if (pmTotal)  pmTotal.textContent  = tot;
     if (pmToggle) pmToggle.textContent = tot;
   }
+  // Re-apply any active promo so shipping changes don't drop the discount.
+  try { if (typeof window.zwPromoUpdateSummaryTotals === 'function') window.zwPromoUpdateSummaryTotals(); } catch (_) {}
 }
 
 function refreshTaxDisplay() {
@@ -556,6 +558,9 @@ function refreshTaxDisplay() {
   if (pmTaxLbl)     pmTaxLbl.textContent     = state && tax > 0 ? `Tax (${state})` : 'Tax';
   if (pmTotal)      pmTotal.textContent      = `$${total.toFixed(2)}`;
   if (pmToggleTot)  pmToggleTot.textContent  = `$${total.toFixed(2)}`;
+  // We just wrote an undiscounted total; re-apply any active promo so the discount
+  // isn't wiped from the shown total when tax recomputes (e.g. on address entry).
+  try { if (typeof window.zwPromoUpdateSummaryTotals === 'function') window.zwPromoUpdateSummaryTotals(); } catch (_) {}
 }
 
 _pay.zipInput?.addEventListener('input', () => { updateDeliveryOptions(); maybeLoadRates(); if ((_pay.zipInput?.value || '').length >= 5) refreshTaxDisplay(); });

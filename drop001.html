@@ -98,6 +98,7 @@ document.documentElement.classList.add('zw-collflash');
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
   <link rel="stylesheet" href="storefront-cohesion.css?v=1ddba8e7">
 <script src="header-scroll.js?v=4a734678" defer></script>
+<script src="announcement-bar.js" defer></script>
 <script src="image-effects.js?v=1" defer></script>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=d7cd202c">
 <!-- Google tag: library loaded on browser idle by google-tag.js (deferred); inline block below only primes the dataLayer/config queue. -->
@@ -118,6 +119,10 @@ document.documentElement.classList.add('zw-collflash');
       --fw:var(--zw-font-head, var(--font-head));
       --fb:var(--zw-font-body, var(--font-body));
       --fm:var(--zw-font-mono, var(--font-mono));
+      /* One unified font for the whole filter sidebar/bar. Falls back to the Body
+         font, so it changes with Appearance → Fonts → Body; a dedicated
+         --zw-font-filter (admin control) overrides it independently when set. */
+      --font-filter: var(--zw-font-filter, var(--font-body));
       --muted: rgba(244,241,235,0.5);
       --border: rgba(244,241,235,0.1);
     }
@@ -331,23 +336,69 @@ document.documentElement.classList.add('zw-collflash');
     .plp-bar::before { content:''; position:absolute; top:0; bottom:0; left:50%; width:100vw; transform:translateX(-50%); background:var(--black); border-bottom:1px solid var(--border); box-shadow:0 6px 20px rgba(0,0,0,.16); z-index:-1; opacity:0; transition:opacity .35s ease; pointer-events:none; }
     html.zw-nav-hidden .plp-bar { top:0; }
     html.zw-nav-hidden .plp-bar::before { opacity:1; }
-    .plp-count { font-family:var(--font-mono); font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
-    .plp-sort-wrap { margin-left:auto; font-family:var(--font-mono); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:.5rem; }
-    .plp-sort { background:transparent; color:inherit; border:1px solid var(--border); font-family:var(--font-mono); font-size:.68rem; padding:.4rem .6rem; cursor:pointer; border-radius:0; }
-    .plp-filter-toggle { display:inline-flex; align-items:center; gap:.45rem; background:transparent; color:inherit; border:1px solid var(--border); font-family:var(--font-mono); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; padding:.45rem .8rem; cursor:pointer; transition:border-color .15s; }
+    .plp-count { font-family:var(--font-filter); font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+    .plp-sort-wrap { margin-left:auto; font-family:var(--font-filter); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:.5rem; }
+    .plp-sort { background:transparent; color:inherit; border:1px solid var(--border); font-family:var(--font-filter); font-size:.68rem; padding:.4rem .6rem; cursor:pointer; border-radius:0; }
+    .plp-filter-toggle { display:inline-flex; align-items:center; gap:.45rem; background:transparent; color:inherit; border:1px solid var(--border); font-family:var(--font-filter); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; padding:.45rem .8rem; cursor:pointer; transition:border-color .15s; }
     .plp-filter-toggle:hover { border-color:var(--muted); }
     .plp-filter-toggle svg { width:13px; height:13px; }
     /* Desktop: "Hide Filters" smoothly collapses the sidebar; the grid widens. */
-    @media (min-width:761px){ .plp-layout.plp-filters-off .plp-sidebar { flex-basis:0; margin-right:0; opacity:0; transform:translateX(-10px); pointer-events:none; } }
+    @media (min-width:1025px){ .plp-layout.plp-filters-off .plp-sidebar { flex-basis:0; margin-right:0; opacity:0; transform:translateX(-10px); pointer-events:none; } }
     .plp-layout { display:flex; align-items:flex-start; }
-    .plp-sidebar { flex:0 0 190px; margin-right:2.5rem; overflow:hidden; position:sticky; top:calc(var(--zw-nav-h,54px) + var(--zw-plpbar-h,50px) + 14px); transition:top .4s ease, flex-basis .4s cubic-bezier(.4,0,.2,1), margin-right .4s cubic-bezier(.4,0,.2,1), opacity .3s ease, transform .4s cubic-bezier(.4,0,.2,1); }
-    html.zw-nav-hidden .plp-sidebar { top:calc(var(--zw-plpbar-h,50px) + 14px); }
+    .plp-sidebar { flex:0 0 190px; margin-right:2.5rem; overflow-y:auto; overflow-x:hidden; position:sticky; top:calc(var(--zw-nav-h,54px) + var(--zw-plpbar-h,50px) + 14px); max-height:calc(100vh - var(--zw-nav-h,54px) - var(--zw-plpbar-h,50px) - 28px); scrollbar-width:thin; scrollbar-color:var(--border) transparent; transition:top .4s ease, flex-basis .4s cubic-bezier(.4,0,.2,1), margin-right .4s cubic-bezier(.4,0,.2,1), opacity .3s ease, transform .4s cubic-bezier(.4,0,.2,1); }
+    .plp-sidebar::-webkit-scrollbar { width:6px; }
+    .plp-sidebar::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+    .plp-sidebar::-webkit-scrollbar-thumb:hover { background:var(--muted); }
+    html.zw-nav-hidden .plp-sidebar { top:calc(var(--zw-plpbar-h,50px) + 14px); max-height:calc(100vh - var(--zw-plpbar-h,50px) - 28px); }
     .plp-main { flex:1; min-width:0; }
-    .plp-sidebar-head { font-family:var(--font-mono); font-size:.58rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:.7rem; }
+    .plp-sidebar-head { font-family:var(--font-filter); font-size:.58rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:.7rem; }
     .plp-cat-list { display:flex; flex-direction:column; }
-    .plp-cat-btn { background:transparent; border:0; text-align:left; color:inherit; font-family:var(--font-head); font-size:1.05rem; letter-spacing:.02em; padding:.42rem 0; cursor:pointer; opacity:.65; transition:opacity .15s; }
+    .plp-cat-btn { background:transparent; border:0; text-align:left; color:inherit; font-family:var(--font-filter); font-size:1.05rem; letter-spacing:.02em; padding:.42rem 0; cursor:pointer; opacity:.65; transition:opacity .15s; }
     .plp-cat-btn:hover { opacity:1; }
     .plp-cat-btn.active { opacity:1; font-weight:700; text-decoration:underline; text-underline-offset:4px; }
+    /* Facets: Gender / Color / Price (multi-select). Theme-safe: active states use
+       currentColor so they read on dark, light and super-light. */
+    /* Collapsible facet section (Nike-style): a divider, a header button with a
+       chevron, and a body that hides when .collapsed. */
+    .plp-facet { border-top:1px solid var(--border); padding-top:1.15rem; margin-top:1.15rem; }
+    #plp-sidebar > .plp-facet:first-child,
+    #plp-fm-facets > .plp-facet:first-child { border-top:0; padding-top:0; margin-top:0; }
+    .plp-facet-head { display:flex; align-items:center; justify-content:space-between; gap:.5rem; width:100%; background:none; border:0; padding:0; margin:0 0 .85rem; cursor:pointer; font-family:var(--font-filter); font-size:.58rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); transition:color .15s ease, margin-bottom .32s cubic-bezier(.4,0,.2,1); }
+    .plp-facet-head:hover { color:inherit; }
+    .plp-facet-chev { flex:0 0 auto; opacity:.75; transition:transform .32s cubic-bezier(.4,0,.2,1); }
+    .plp-facet.collapsed .plp-facet-chev { transform:rotate(-90deg); }
+    /* Smooth collapse: animate the body's grid row 1fr↔0fr (matches the real
+       content height, no fixed max-height) + a fade + the head's gap closing. */
+    .plp-facet-body { display:grid; grid-template-rows:1fr; transition:grid-template-rows .32s cubic-bezier(.4,0,.2,1), opacity .26s ease; }
+    .plp-facet-body > * { min-height:0; overflow:hidden; }
+    .plp-facet.collapsed .plp-facet-head { margin-bottom:0; }
+    .plp-facet.collapsed .plp-facet-body { grid-template-rows:0fr; opacity:0; }
+    @media (prefers-reduced-motion: reduce){ .plp-facet-head, .plp-facet-chev, .plp-facet-body { transition:none; } }
+    .plp-opts { display:flex; flex-direction:column; }
+    .plp-opt { display:flex; align-items:center; gap:.55rem; background:transparent; border:0; text-align:left; color:inherit; font-family:var(--font-filter); font-size:.98rem; letter-spacing:.02em; padding:.36rem 0; cursor:pointer; opacity:.7; width:100%; transition:opacity .15s; }
+    .plp-opt:hover { opacity:1; }
+    .plp-opt.active { opacity:1; font-weight:700; }
+    .plp-opt-check { position:relative; width:15px; height:15px; border:1.5px solid currentColor; border-radius:3px; flex:0 0 auto; opacity:.45; }
+    .plp-opt.active .plp-opt-check { opacity:1; color:var(--zw-mfn); }
+    .plp-opt.active .plp-opt-check::after { content:''; position:absolute; left:4px; top:0; width:4px; height:8px; border:solid currentColor; border-width:0 2px 2px 0; transform:rotate(45deg); }
+    .plp-colors { display:flex; flex-wrap:wrap; gap:.7rem .55rem; padding:5px; }   /* room so the active ring isn't clipped by the collapse overflow */
+    .plp-color { display:flex; flex-direction:column; align-items:center; gap:.3rem; background:none; border:0; padding:0; cursor:pointer; width:46px; opacity:.75; transition:opacity .15s; color:inherit; -webkit-appearance:none; appearance:none; }
+    .plp-color:hover { opacity:1; }
+    .plp-color-dot { width:27px; height:27px; border-radius:50%; border:1px solid var(--border); }
+    .plp-color.active { opacity:1; }
+    .plp-color.active .plp-color-dot { outline:2px solid var(--zw-mfn); outline-offset:2px; }
+    .plp-color-name { font-family:var(--font-filter); font-size:.5rem; letter-spacing:.05em; text-transform:uppercase; opacity:.7; text-align:center; line-height:1.1; }
+    .plp-color.active .plp-color-name { font-weight:600; opacity:1; }
+    /* Roomier bottom-sheets: the full-width sheet has space, so the swatches and
+       option rows are bigger / less cramped than the compact desktop sidebar. */
+    #plp-facet-sheet .plp-colors, #plp-filter-modal .plp-colors { gap:1.1rem .85rem; }
+    #plp-facet-sheet .plp-color, #plp-filter-modal .plp-color { width:64px; gap:.45rem; }
+    #plp-facet-sheet .plp-color-dot, #plp-filter-modal .plp-color-dot { width:42px; height:42px; }
+    #plp-facet-sheet .plp-color-name, #plp-filter-modal .plp-color-name { font-size:.58rem; opacity:.85; }
+    #plp-facet-sheet .plp-opt, #plp-filter-modal .plp-opt { font-size:1.15rem; padding:.7rem 0; opacity:.85; }
+    #plp-facet-sheet .plp-opt-check, #plp-filter-modal .plp-opt-check { width:18px; height:18px; }
+    .plp-clear-all { margin-top:1.7rem; background:none; border:0; padding:.2rem 0; color:inherit; opacity:.55; font-family:var(--font-filter); font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+    .plp-clear-all:hover { opacity:1; }
     /* Immersive grid swap: cards fade + rise in (staggered) when filters/sort change */
     @keyframes plpCardIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
     .products-grid.plp-animate-in > a { animation:plpCardIn .45s cubic-bezier(.22,.61,.36,1) both; }
@@ -366,34 +417,80 @@ document.documentElement.classList.add('zw-collflash');
        Visibility flips to hidden only after the slide-out finishes (delayed). */
     .plp-fm{ position:fixed; inset:0; z-index:600; visibility:hidden; transition:visibility 0s linear .45s; }
     .plp-fm.open{ visibility:visible; transition-delay:0s; }
-    .plp-fm::before{ content:''; position:absolute; inset:0; background:rgba(0,0,0,.55); opacity:0; transition:opacity .35s ease; }
+    .plp-fm::before{ content:''; position:absolute; inset:0; background:rgba(var(--zw-mbd-rgb),var(--zw-mbd-a)); backdrop-filter:var(--zw-mbd-blur,none); -webkit-backdrop-filter:var(--zw-mbd-blur,none); opacity:0; transition:opacity .35s ease; }
     .plp-fm.open::before{ opacity:1; }
     .plp-fm.plp-fm-dragging::before{ transition:none; opacity:var(--zw-fm-ov,1); }   /* follow the finger */
-    .plp-fm-sheet{ position:absolute; left:0; right:0; bottom:0; max-height:86vh; display:flex; flex-direction:column; background:var(--black); border-top-left-radius:18px; border-top-right-radius:18px; transform:translateY(100%); transition:transform .4s cubic-bezier(.32,.72,0,1); will-change:transform; }
+    .plp-fm-sheet{ position:absolute; left:0; right:0; bottom:0; max-height:86vh; display:flex; flex-direction:column; background:var(--black); color:var(--white); border-top-left-radius:18px; border-top-right-radius:18px; transform:translateY(100%); transition:transform .4s cubic-bezier(.32,.72,0,1); will-change:transform; }
     .plp-fm.open .plp-fm-sheet{ transform:translateY(0); }
     .plp-fm.plp-fm-dragging .plp-fm-sheet{ transition:none; }
     .plp-fm-grab{ width:38px; height:4px; border-radius:99px; background:var(--white); opacity:.3; margin:.55rem auto .1rem; flex-shrink:0; }
     .plp-fm-head{ display:flex; align-items:center; justify-content:space-between; padding:1.1rem 1.3rem; border-bottom:1px solid var(--border); flex-shrink:0; }
-    .plp-fm-title{ font-family:var(--font-head); font-size:1.5rem; font-weight:900; font-style:italic; letter-spacing:.03em; text-transform:uppercase; line-height:1; }
+    .plp-fm-title{ font-family:var(--font-filter); font-size:1.5rem; font-weight:900; font-style:italic; letter-spacing:.03em; text-transform:uppercase; line-height:1; }
     /* Square close button — matches the shared .mclose family on the other modals. */
     .plp-fm-x{ width:36px; height:36px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:rgba(244,241,235,.06); border:1.5px solid rgba(244,241,235,.25); border-radius:0; color:inherit; font-size:1.25rem; line-height:1; cursor:pointer; padding:0; }
     body.light-mode .plp-fm-x, body.super-light-mode .plp-fm-x{ background:rgba(9,9,11,.04); border-color:rgba(9,9,11,.18); }
     .plp-fm-body{ overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 1.3rem; flex:1; }
     .plp-fm-sec{ padding:1.1rem 0; border-bottom:1px solid var(--border); }
     .plp-fm-sec:last-child{ border-bottom:none; }
-    .plp-fm-label{ font-family:var(--font-mono); font-size:.6rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:.6rem; }
+    .plp-fm-label{ font-family:var(--font-filter); font-size:.6rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:.6rem; }
     .plp-fm-opt{ display:flex; align-items:center; gap:.75rem; padding:.62rem 0; font-family:var(--font-body); font-size:1.02rem; cursor:pointer; }
-    .plp-fm-opt input{ width:19px; height:19px; accent-color:var(--white); flex-shrink:0; }
-    .plp-fm-cat{ display:block; width:100%; text-align:left; background:none; border:none; color:inherit; cursor:pointer; padding:.6rem 0; font-family:var(--font-head); font-size:1.25rem; text-transform:uppercase; letter-spacing:.02em; opacity:.7; }
+    .plp-fm-opt input{ width:19px; height:19px; accent-color:var(--zw-mfn, var(--white)); flex-shrink:0; }
+    .plp-fm-cat{ display:block; width:100%; text-align:left; background:none; border:none; color:inherit; cursor:pointer; padding:.6rem 0; font-family:var(--font-filter); font-size:1.25rem; text-transform:uppercase; letter-spacing:.02em; opacity:.7; }
     .plp-fm-cat.active{ opacity:1; font-weight:700; text-decoration:underline; text-underline-offset:4px; }
     .plp-fm-foot{ padding:1rem 1.3rem calc(1rem + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--border); flex-shrink:0; }
-    .plp-fm-apply{ width:100%; padding:1.05rem; background:var(--white); color:var(--black); border:none; font-family:var(--font-mono); font-size:.7rem; letter-spacing:.16em; text-transform:uppercase; font-weight:600; cursor:pointer; }
-    @media (max-width:760px){ .plp-bar .plp-sort-wrap{ display:none; } }
+    .plp-fm-apply{ width:100%; padding:1.05rem; background:var(--white); color:var(--black); border:none; font-family:var(--font-filter); font-size:.7rem; letter-spacing:.16em; text-transform:uppercase; font-weight:600; cursor:pointer; }
+    @media (max-width:1024px){ .plp-bar .plp-sort-wrap{ display:none; } }
     @media (prefers-reduced-motion: reduce){ .plp-fm, .plp-fm-sheet, .plp-fm::before{ transition:none; } }
-    @media (max-width:760px) {
-      .plp-layout { flex-direction:column; gap:1rem; }
+    @media (max-width:1024px) {
+      /* Tablet + mobile: use the pill-bar filter instead of the desktop sidebar.
+         Column layout: the parent keeps align-items:flex-start, which would shrink
+         .plp-main to content width (→ the grid collapsed to nothing = blank page).
+         Force both the column and .plp-main to full width. */
+      .plp-layout { flex-direction:column; align-items:stretch; gap:1rem; }
+      .plp-main { width:100%; }
       .plp-sidebar { display:none; position:static; flex-basis:auto; width:100%; margin-right:0; margin-bottom:.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem; }
       .plp-sidebar.open { display:block; }
+    }
+    /* Tablet + mobile: Nike-style sticky horizontal pill bar (replaces the sidebar) */
+    .plp-pillbar { display:none; }
+    @media (max-width:1024px){
+      .plp-pillbar {
+        display:flex; gap:.5rem; overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
+        position:sticky; top:calc(var(--zw-nav-h,54px) + var(--zw-plpbar-h,50px)); z-index:40;
+        padding:.65rem .4rem; margin:0 -.4rem .2rem; -webkit-overflow-scrolling:touch;
+        background:var(--black); border-bottom:1px solid var(--border);
+        transition:top .4s ease;
+      }
+      html.zw-nav-hidden .plp-pillbar { top:var(--zw-plpbar-h,50px); }
+      .plp-pillbar::-webkit-scrollbar { display:none; }
+      .plp-pill {
+        flex:0 0 auto; display:inline-flex; align-items:center; gap:.4rem;
+        padding:.5rem .9rem; border:1px solid rgba(244,241,235,.3); border-radius:999px;
+        background:transparent; color:var(--white); font-family:var(--font-filter);
+        font-size:.74rem; letter-spacing:.03em; cursor:pointer; white-space:nowrap; line-height:1;
+        transition:border-color .15s ease, background .15s ease;
+      }
+      /* --border is near-white and invisible on the super-light/light page, which
+         is what made the pills look faded/borderless. Use an explicit adaptive
+         border instead. */
+      body.light-mode .plp-pill, body.super-light-mode .plp-pill { border-color:rgba(9,9,11,.28); }
+      .plp-pill svg { width:15px; height:15px; flex:0 0 auto; }
+      .plp-pill.active { border-color:var(--zw-mfn); background:color-mix(in srgb, var(--zw-mfn) 8%, transparent); font-weight:600; }
+      .plp-pill-filter { font-weight:600; }
+      .plp-bar .plp-filter-toggle { display:none; }   /* replaced by the Filter pill */
+      /* Keep the count/context bar sticky (shows "N Products" / category while you
+         scroll, like Nike) and stack the pill bar directly BELOW it (top offset =
+         nav + this bar's height) so they never overlap. */
+      .plp-bar { margin-bottom:0; }
+      /* The sticky bar's drop-shadow turns on when the nav hides (scroll-down) and
+         was casting DOWN onto the pill bar — that's why the filter looked faded on
+         scroll-down and fine on scroll-up. Drop it on mobile; a hairline separates
+         the bars instead. --border is near-white on the light page, so use an
+         explicit adaptive colour. */
+      .plp-bar::before { display:none !important; }
+      .plp-bar, .plp-pillbar { border-bottom:1px solid rgba(244,241,235,.14); }
+      body.light-mode .plp-bar, body.super-light-mode .plp-bar,
+      body.light-mode .plp-pillbar, body.super-light-mode .plp-pillbar { border-bottom-color:rgba(9,9,11,.1); }
     }
     .section-header {
       display: flex;
@@ -416,10 +513,16 @@ document.documentElement.classList.add('zw-collflash');
     }
     .products-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      /* --plp-cols (2/3/4) is set from the admin "Collection card size" setting;
+         defaults to 3. Tablet/mobile keep their own counts below. */
+      grid-template-columns: repeat(var(--plp-cols, 3), minmax(0, 1fr));
       gap: 1.5rem;
       background: transparent;
     }
+    /* min-width:0 so a wide nowrap swatch row scrolls inside its own column
+       instead of stretching that column wider than its siblings — which made
+       cards different sizes. Guarantees every card is the exact same width. */
+    .products-grid > a { min-width: 0; }
     .products-grid.single-item {
       display: block;
     }
@@ -430,13 +533,16 @@ document.documentElement.classList.add('zw-collflash');
       max-width: 450px;
     }
     .products-grid.two-items {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
     .product-card {
       background: transparent;
       position: relative;
       overflow: hidden;
       cursor: pointer;
+      /* Container context: swatches, text and spacing size in cqw (% of the card's
+         own width), so the internals scale with the card instead of staying fixed. */
+      container-type: inline-size;
     }
     .heart-btn {
       position:absolute;
@@ -484,7 +590,7 @@ document.documentElement.classList.add('zw-collflash');
       .heart-btn svg.heart-pop { animation: none; }
     }
     .product-img {
-      aspect-ratio: 3/4;
+      aspect-ratio: 1/1;   /* square grid tiles, Nike-style */
       background: transparent;
       display: flex;
       align-items: center;
@@ -492,6 +598,23 @@ document.documentElement.classList.add('zw-collflash');
       position: relative;
       overflow: hidden;
     }
+    /* Card image carousel (opt-in via admin) — horizontal swipe through the
+       selected colour's images/videos, On-Running style. */
+    /* touch-action:pan-x pan-y — horizontal swipe scrolls the carousel, vertical
+       swipe scrolls the PAGE (pan-x alone disabled vertical panning, freezing the
+       page whenever a finger landed on an image). */
+    .product-card .zw-card-carousel{ position:absolute; inset:0; display:flex; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y; }
+    .product-card .zw-card-carousel::-webkit-scrollbar{ display:none; }
+    .product-card .zw-cc-item{ flex:0 0 100%; width:100%; height:100%; object-fit:cover; object-position:center; scroll-snap-align:center; scroll-snap-stop:always; display:block; -webkit-user-drag:none; user-select:none; }
+    .product-card .zw-cc-dots{ position:absolute; left:0; right:0; bottom:8px; display:flex; gap:5px; justify-content:center; z-index:3; pointer-events:none; }
+    .product-card .zw-cc-dots span{ width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.55); box-shadow:0 0 2px rgba(0,0,0,.35); transition:transform .2s ease, background .2s ease; }
+    .product-card .zw-cc-dots span.on{ background:#fff; transform:scale(1.35); }
+    /* Desktop nav arrows — appear on hover on fine-pointer devices; touch uses swipe. */
+    .product-card .zw-cc-nav{ position:absolute; top:50%; transform:translateY(-50%); z-index:4; width:30px; height:30px; padding:0; border:none; border-radius:50%; background:rgba(255,255,255,.85); color:#111; font-size:19px; line-height:1; display:none; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 1px 5px rgba(0,0,0,.2); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
+    .product-card .zw-cc-prev{ left:8px; }
+    .product-card .zw-cc-next{ right:8px; }
+    .product-card .zw-cc-nav:hover{ background:#fff; }
+    @media (hover:hover) and (pointer:fine){ .product-card:hover .zw-cc-nav{ display:flex; } }
     .product-img-placeholder {
       display: flex;
       flex-direction: column;
@@ -513,6 +636,9 @@ document.documentElement.classList.add('zw-collflash');
       display: flex;
       align-items: center;
       justify-content: center;
+      /* Badges only — must NOT eat pointer/touch events, or this full-card layer
+         blocks the image carousel underneath (no swipe on mobile, no drag on desktop). */
+      pointer-events: none;
     }
     .coming-soon-badge {
       background: rgba(10,10,10,0.85);
@@ -524,29 +650,31 @@ document.documentElement.classList.add('zw-collflash');
       text-transform: uppercase;
       color: var(--white);
     }
+    /* Flex column + gap (not per-element margins) so any subset of name / category
+       / price collapses to even spacing; padding scales with the card. */
     .product-info {
-      padding: 0.85rem 0 0;
+      display: flex; flex-direction: column;
+      gap: clamp(.15rem, 1.1cqw, .5rem);
+      padding: clamp(.65rem, 3.4cqw, 1.3rem) 0 0;
       border-top: none;
     }
     .product-category {
-      font-size: 0.62rem;
+      font-size: clamp(.55rem, 2.5cqw, .8rem);
       letter-spacing: 0.07em;
       text-transform: uppercase;
       color: var(--white);
       opacity: 0.62;
       font-weight: 600;
-      margin-bottom: 0.22rem;
     }
     .product-name {
       font-family:var(--font-head);
-      font-size: 1.05rem;
+      font-size: clamp(.9rem, 4.6cqw, 1.6rem);
       letter-spacing: 0.02em;
       line-height: 1.15;
-      margin-bottom: 0.22rem;
     }
     .product-price {
       font-family: var(--font-head);
-      font-size: 1.05rem;
+      font-size: clamp(.9rem, 4.2cqw, 1.5rem);
       color: var(--white);
       font-weight: 700;
       letter-spacing: 0.01em;
@@ -554,16 +682,31 @@ document.documentElement.classList.add('zw-collflash');
     /* Variant photo thumbnails on the card (replace the Add-to-Bag button). The
        more-specific selector + !important beats the shared swatch CSS that hides
        them by default and on mobile. Tapping one previews that colorway. */
-    .product-card .zw-card-swatches{ display:flex !important; flex-wrap:wrap; gap:.4rem; margin-top:.6rem; }
+    /* One horizontal-scroll row at EVERY width — colours never wrap to a 2nd row;
+       extras scroll. min-width:0 on the card + row keeps it from stretching the
+       card/page instead of scrolling. */
+    .product-card{ min-width:0; }
+    .product-card .zw-card-swatches{ display:flex !important; flex-wrap:nowrap; gap:clamp(.3rem,1.6cqw,.7rem); margin-top:clamp(.4rem,2.2cqw,.9rem); padding-bottom:7px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; min-width:0; max-width:100%; }
+    .product-card .zw-card-swatches::-webkit-scrollbar{ display:none; }
+    .product-card .zw-card-swatch{ scroll-snap-align:start; }
     .product-card .zw-card-swatch{
-      width:42px; height:53px; flex:0 0 auto; padding:0; cursor:pointer; border-radius:2px;
+      width:clamp(42px, 13cqw, 76px); height:clamp(42px, 13cqw, 76px); flex:0 0 auto; padding:0; cursor:pointer; border-radius:0;   /* boxy + square, Nike-style */
       border:1px solid var(--border);
       background-size:cover !important; background-position:center !important; background-repeat:no-repeat !important;
+      position:relative;
       transition:border-color .15s ease;
     }
+    /* Nike-style selected indicator: a bar beneath the active colour thumbnail
+       (black on the light storefront, light on dark). */
+    .product-card .zw-card-swatch::after{ content:''; position:absolute; left:0; right:0; bottom:-7px; height:3px; background:transparent; transition:background .15s ease; }
     .product-card .zw-card-swatch:hover,
     .product-card .zw-card-swatch:focus-visible,
     .product-card .zw-card-swatch.active{ border-color:var(--white); box-shadow:none !important; transform:none !important; }
+    .product-card .zw-card-swatch.active::after{ background:var(--white); }
+    body.light-mode .product-card .zw-card-swatch:hover,
+    body.light-mode .product-card .zw-card-swatch:focus-visible,
+    body.light-mode .product-card .zw-card-swatch.active{ border-color:#09090b; }
+    body.light-mode .product-card .zw-card-swatch.active::after{ background:#09090b; }
     .product-card .zw-card-swatch.zw-swatch-more{
       display:flex; align-items:center; justify-content:center;
       font-size:.6rem; font-weight:600; color:var(--white);
@@ -618,14 +761,19 @@ document.documentElement.classList.add('zw-collflash');
     body.light-mode .quick-size-ph .qsp-close{ background:rgba(9,9,11,.04);border-color:rgba(9,9,11,.18);color:rgba(9,9,11,.55); }
     .quick-size-ph .qsp-close:hover{color:#f4f1eb}
     /* Color swatches */
-    .qcol-row{display:flex;flex-wrap:wrap;gap:.55rem;margin-bottom:.2rem}
+    .qcol-row{display:flex;flex-wrap:nowrap;gap:.55rem;margin-bottom:.2rem;padding-bottom:8px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;max-width:100%}
+    .qcol-row::-webkit-scrollbar{display:none}
+    .qcol-swatch{scroll-snap-align:start}
     .qcol-swatch{
-      width:40px;height:40px;border:2px solid rgba(244,241,235,.15);
-      border-radius:2px;
-      cursor:pointer;transition:all .15s;flex-shrink:0;
+      width:44px;height:44px;border:1px solid rgba(244,241,235,.18);
+      border-radius:0;   /* boxy, adidas-style */
+      cursor:pointer;transition:border-color .15s;flex-shrink:0;
+      position:relative;
       -webkit-tap-highlight-color:transparent;
     }
-    .qcol-swatch:hover,.qcol-swatch.active{border-color:#f4f1eb;box-shadow:0 0 0 1px #f4f1eb}
+    .qcol-swatch::after{content:'';position:absolute;left:0;right:0;bottom:-6px;height:3px;background:transparent;transition:background .15s}
+    .qcol-swatch:hover,.qcol-swatch.active{border-color:#f4f1eb;box-shadow:none}
+    .qcol-swatch.active::after{background:#f4f1eb}
     .qcol-name{font-size:.53rem;letter-spacing:.1em;color:rgba(244,241,235,.45);margin-top:.45rem;min-height:.8rem}
     /* Size buttons */
     .quick-size-row{display:flex;flex-wrap:wrap;gap:.45rem}
@@ -753,9 +901,13 @@ document.documentElement.classList.add('zw-collflash');
     .collection-option-grid{display:flex;flex-wrap:wrap;gap:.55rem}
     .collection-size{border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.76);min-height:38px;padding:0 .8rem;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
     /* Colour picker = product-photo thumbnail (matches the full product page). */
-    .collection-color{width:52px;height:65px;flex:0 0 auto;border:1px solid rgba(244,241,235,.2);border-radius:2px;background-color:transparent;background-size:cover;background-position:center top;background-repeat:no-repeat;padding:0;cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease}
+    .collection-color{width:68px;height:54px;flex:0 0 auto;border:1px solid rgba(244,241,235,.2);border-radius:0;background-color:transparent;background-size:cover;background-position:center top;background-repeat:no-repeat;padding:0;cursor:pointer;position:relative;transition:border-color .15s ease}
+    /* Nike/adidas-style selected bar under the active colour — matches the product
+       cards and the product page instead of the old rounded ring. */
+    .collection-color::after{content:'';position:absolute;left:0;right:0;bottom:-6px;height:3px;background:transparent;transition:background .15s ease}
     .collection-color:hover{border-color:rgba(244,241,235,.55)}
-    .collection-color.active{border-color:var(--white);box-shadow:0 0 0 1px var(--white)}
+    .collection-color.active{border-color:var(--white)}
+    .collection-color.active::after{background:var(--white)}
     .collection-size.active{border-color:var(--white);color:var(--white);background:rgba(244,241,235,.1)}
     .collection-size.sold-out{opacity:.35;cursor:not-allowed;text-decoration:line-through}
     .collection-empty-option{font-size:.68rem;color:rgba(244,241,235,.48);margin:0}
@@ -783,16 +935,18 @@ document.documentElement.classList.add('zw-collflash');
     body.light-mode .collection-option-head strong{color:rgba(9,9,11,.86)}
     body.light-mode .collection-size{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.74)}
     body.light-mode .collection-color{border-color:rgba(9,9,11,.18)}
-    body.light-mode .collection-color.active{border-color:#09090b;box-shadow:0 0 0 1px #09090b}
+    body.light-mode .collection-color.active{border-color:#09090b}
+    body.light-mode .collection-color.active::after{background:#09090b}
     body.light-mode .collection-size.active{border-color:#09090b;color:#09090b;background:rgba(9,9,11,.06)}
     body.light-mode .collection-thumb.active{border-color:#09090b;opacity:1}
     body.light-mode .collection-empty-option,body.light-mode .collection-review-message{color:rgba(9,9,11,.5)}
     body.light-mode .collection-review-actions button,body.light-mode .collection-review-actions a{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.68)}
     body.light-mode .qcol-swatch{border-color:rgba(9,9,11,.22)}
-    body.light-mode .qcol-swatch:hover,body.light-mode .qcol-swatch.active{border-color:#09090b;box-shadow:0 0 0 1px #09090b}
+    body.light-mode .qcol-swatch:hover,body.light-mode .qcol-swatch.active{border-color:#09090b;box-shadow:none}
+    body.light-mode .qcol-swatch.active::after{background:#09090b}
     body.light-mode .collection-review-confirm{background:#09090b!important;color:#f4f1eb!important;border-color:#09090b!important}
     body.super-light-mode { background:#FFFFFF !important; --black:#FFFFFF; --white:#09090b; --muted:rgba(9,9,11,.5); }
-    body.super-light-mode .nav { background:#FFFFFF; border-bottom-color:rgba(10,10,10,0.08); }
+    body.super-light-mode .nav { background:#FFFFFF; border-bottom-color:transparent; box-shadow:0 1px 12px rgba(9,9,11,.05); }
     body.super-light-mode .nav-logo-link img { filter:invert(1); }
     body.super-light-mode .collection-review-box{background:#FFFFFF;border-color:rgba(9,9,11,.08)}
     body.super-light-mode .collection-product-gallery{background:rgba(9,9,11,.015)}
@@ -859,7 +1013,29 @@ document.documentElement.classList.add('zw-collflash');
 
 
     @media (max-width: 768px) {
-      .products-grid { grid-template-columns: repeat(2, 1fr); gap: 1.2rem; }
+      /* TRUE edge-to-edge like Nike: the section has NO side padding, so the grid
+         cells run to the screen edges. Card CONTENT (swatches + name/price) is
+         inset with card padding, and the image bleeds back out to the card edge
+         with a negative margin — so photos touch the edges while text stays inset. */
+      .products-section { padding-left: 0; padding-right: 0; }
+      /* Full-bleed: force the grid to the full viewport width regardless of any
+         ancestor padding, so the images are guaranteed edge-to-edge. */
+      .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; width: 100vw; margin-left: calc(50% - 50vw); }
+      /* The card <a> fills the grid cell, so the image already reaches the screen
+         edge with NO padding/margin trickery. Just inset the text + swatch row so
+         they aren't jammed against the edge. */
+      .product-card { padding: 0; }
+      .product-card .product-info,
+      .product-card .zw-card-swatches { padding-left: 0.7rem; padding-right: 0.7rem; }
+      /* Give the count/context bar + pill bar the SAME full-bleed as the grid so
+         their backgrounds span exactly the same width as the images. Without this
+         they render at the section-box width while the grid escapes to 100vw, so
+         the bar looks narrower / "cut off" beside the full-bleed images. Content
+         stays inset with padding to match the card text inset. */
+      .plp-bar,
+      .plp-pillbar { width: 100vw; margin-left: calc(50% - 50vw); margin-right: 0; box-sizing: border-box; }
+      .plp-bar { padding-left: 1rem; padding-right: 1rem; }
+      .plp-pillbar { padding-left: 1rem; padding-right: 1rem; }
     }
 
     @media (max-width: 600px) {
@@ -874,17 +1050,13 @@ document.documentElement.classList.add('zw-collflash');
       .countdown { gap: 0.8rem; }
       .countdown-item { min-width: 60px; }
       .countdown-number { font-size: clamp(2rem, 12vw, 3.5rem); }
-      .products-section { padding: 3rem 1rem; }
-      .products-grid, .products-grid.two-items { 
-        display: flex;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        gap: 1rem;
-        padding-bottom: 1rem;
-        scrollbar-width: none;
+      .products-section { padding: 3rem 0; }
+      .products-grid, .products-grid.two-items {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 2px;
+        width: 100vw;
+        margin-left: calc(50% - 50vw);
       }
-      .products-grid::-webkit-scrollbar { display: none; }
-      .products-grid > a { flex: 0 0 85%; scroll-snap-align: start; }
       .product-card { padding: 0; }
       .notify-section { padding: 3rem 1rem; }
       .notify-form { flex-direction: column; gap: 0; }
@@ -1006,6 +1178,9 @@ document.documentElement.classList.add('zw-collflash');
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
 <script>(function(){try{var m=localStorage.getItem('zw_theme_mode')||'super-light';if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+<!-- Bag-panel class before the nav so cohesion.css hides the header login/account
+     link pre-paint instead of flashing on mobile (was only added later by features.js). -->
+<script>try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on')}catch(_){}</script>
 <script>
 // Load a neutral theme immediately; admin settings become the source of truth once fetched.
 (function() {
@@ -1031,6 +1206,25 @@ document.documentElement.classList.add('zw-collflash');
     try { localStorage.setItem('zw_card_cta', on ? 'color-swatches' : 'add-to-bag'); } catch (_) {}
   };
   try { window.__zwApplyCardMode(localStorage.getItem('zw_card_cta') || 'add-to-bag'); } catch (_) {}
+
+  // Collection grid density: Large=2 / Medium=3 / Small=4 across on desktop.
+  // Sets --plp-cols on <html>; cached for a flash-free first paint and refreshed
+  // by the site_settings fetch. Stored on product_card_cta (value.collection_cols).
+  window.__zwApplyCollectionCols = function (cols) {
+    var n = (Number(cols) === 2 || Number(cols) === 4) ? Number(cols) : 3;
+    document.documentElement.style.setProperty('--plp-cols', n);
+    try { localStorage.setItem('zw_plp_cols', String(n)); } catch (_) {}
+  };
+  try { window.__zwApplyCollectionCols(localStorage.getItem('zw_plp_cols') || 3); } catch (_) {}
+
+  // Card image fit: 'contain' shows the whole photo (zoom out) instead of cropping.
+  // Toggles body.zw-card-fit-contain (CSS in storefront-cohesion.css); cached for a
+  // flash-free first paint, refreshed by the site_settings fetch (product_card_cta).
+  window.__zwApplyCardFit = function (fit) {
+    if (document.body) document.body.classList.toggle('zw-card-fit-contain', fit === 'contain');
+    try { localStorage.setItem('zw_card_fit', fit === 'contain' ? 'contain' : 'cover'); } catch (_) {}
+  };
+  try { window.__zwApplyCardFit(localStorage.getItem('zw_card_fit') || 'cover'); } catch (_) {}
   window.__zwSyncThemeColor = function() {
     var m = document.body.classList.contains('super-light-mode') ? 'super-light'
           : document.body.classList.contains('light-mode') ? 'light' : 'dark';
@@ -1213,6 +1407,9 @@ document.documentElement.classList.add('zw-collflash');
       </label>
     </div>
 
+    <!-- Mobile: Nike-style sticky pill bar (Filter + one pill per facet) -->
+    <div class="plp-pillbar" id="plp-pillbar"></div>
+
     <!-- Mobile filter & sort bottom-sheet -->
     <div id="plp-filter-modal" class="plp-fm" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Filter and sort" onclick="if(event.target===this)window.__zwClosePlpFilterModal&&window.__zwClosePlpFilterModal()">
       <div class="plp-fm-sheet">
@@ -1230,9 +1427,27 @@ document.documentElement.classList.add('zw-collflash');
             <p class="plp-fm-label">Category</p>
             <div id="plp-fm-cats"></div>
           </div>
+          <div class="plp-fm-sec" id="plp-fm-facetsec">
+            <div id="plp-fm-facets"></div>
+          </div>
         </div>
         <div class="plp-fm-foot">
           <button type="button" class="plp-fm-apply" onclick="window.__zwClosePlpFilterModal&&window.__zwClosePlpFilterModal()">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile per-facet bottom-sheet (opened by a pill) -->
+    <div id="plp-facet-sheet" class="plp-fm" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Filter" onclick="if(event.target===this)window.__zwClosePlpFacetSheet&&window.__zwClosePlpFacetSheet()">
+      <div class="plp-fm-sheet">
+        <div class="plp-fm-grab" aria-hidden="true"></div>
+        <div class="plp-fm-head">
+          <span class="plp-fm-title" id="plp-facet-sheet-title">Filter</span>
+          <button type="button" class="plp-fm-x" aria-label="Close" onclick="window.__zwClosePlpFacetSheet&&window.__zwClosePlpFacetSheet()">&#215;</button>
+        </div>
+        <div class="plp-fm-body" id="plp-facet-sheet-body"></div>
+        <div class="plp-fm-foot">
+          <button type="button" class="plp-fm-apply" onclick="window.__zwClosePlpFacetSheet&&window.__zwClosePlpFacetSheet()">Done</button>
         </div>
       </div>
     </div>
@@ -1368,12 +1583,37 @@ function updateCollectionMeta(categoryLabel) {
   const categoryEl = document.getElementById('collection-category');
   const sectionTitleEl = document.querySelector('.section-header h2');
   const noteEl = document.querySelector('.notify-note');
-  if (labelEl) labelEl.textContent = categoryLabel ? `Zuwera - ${label}` : 'Zuwera - Collection';
+  const eb = (window.__zwCollPageCfg && window.__zwCollPageCfg.eyebrow) || 'Zuwera';
+  if (labelEl) labelEl.textContent = categoryLabel ? `${eb} - ${label}` : `${eb} - Collection`;
   if (categoryEl) categoryEl.textContent = label;
   if (sectionTitleEl) sectionTitleEl.textContent = categoryLabel ? `Release 001 - ${label}` : 'Release 001 - All Products';
   if (noteEl) noteEl.textContent = categoryLabel
     ? `Be first to know when ${label.toLowerCase()} go live. No spam, ever.`
     : 'Be first to know when the next release goes live. No spam, ever.';
+}
+
+// Applies the builder's collection_page header wording (title + countdown label).
+// The eyebrow (.drop-label) is handled by updateCollectionMeta on every render so
+// it can append the active category; here we set the one-time header pieces.
+function applyCollectionHeader(cfg) {
+  if (!cfg) return;
+  try {
+    if (cfg.title) {
+      const h = document.getElementById('collection-title');
+      if (h) {
+        for (let i = 0; i < h.childNodes.length; i++) {
+          const n = h.childNodes[i];
+          if (n.nodeType === 3 && n.textContent.trim()) { n.textContent = cfg.title + ' '; break; }
+        }
+      }
+    }
+    if (cfg.subtitle) {
+      const d = document.querySelector('.drop-date-label');
+      if (d) d.textContent = cfg.subtitle;
+    }
+    const labelEl = document.querySelector('.drop-label');
+    if (labelEl && cfg.eyebrow) labelEl.textContent = `${cfg.eyebrow} - Collection`;
+  } catch (_) {}
 }
 
 function productHref(product) {
@@ -1504,6 +1744,292 @@ function updateCountdown() {
       function plpEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
       function plpPrice(p){ return getCollectionEffectivePrice(p) || parseFloat(p && p.msrp) || 0; }
 
+      // ── Facets: Gender / Color / Price (multi-select; AND across facets, OR within) ──
+      const activeGenders = new Set(), activeColors = new Set(), activePrices = new Set(), activeSports = new Set(), activeMaterials = new Set(), activeBestFor = new Set();
+      const PLP_COLOR_BUCKETS = [
+        { key:'Black', dot:'#111111' }, { key:'Grey', dot:'#9a9a9a' }, { key:'White', dot:'#ffffff' },
+        { key:'Beige', dot:'#d8c4a0' }, { key:'Brown', dot:'#6b4423' }, { key:'Red', dot:'#d0021b' },
+        { key:'Maroon', dot:'#6e1420' }, { key:'Orange', dot:'#f5820b' }, { key:'Yellow', dot:'#f5d020' },
+        { key:'Olive', dot:'#7d7d1e' }, { key:'Green', dot:'#3aa655' }, { key:'Teal', dot:'#14b8a6' },
+        { key:'Blue', dot:'#2d7ff9' }, { key:'Navy', dot:'#1b2a4a' }, { key:'Purple', dot:'#7b3ff2' },
+        { key:'Pink', dot:'#ff6fa5' }
+      ];
+      const PLP_DEFAULT_PRICE_RANGES = [
+        { key:'0-25', label:'$0 – $25', min:0, max:25 },
+        { key:'25-50', label:'$25 – $50', min:25, max:50 },
+        { key:'50-100', label:'$50 – $100', min:50, max:100 },
+        { key:'100-150', label:'$100 – $150', min:100, max:150 },
+        { key:'150+', label:'$150+', min:150, max:Infinity }
+      ];
+      // Builder → Collection tab settings (site_settings.collection_page). Read live so
+      // a save (which re-runs renderPlpSidebar) applies without a page reload.
+      function plpCfg(){ return window.__zwCollPageCfg || {}; }
+      var _plpPriceCache = null;
+      function plpResetCfgCache(){ _plpPriceCache = null; }
+      // Custom price brackets: breakpoints "25,50,100,150" → $0–25 … Over $150.
+      // Price brackets. Two input styles (auto-detected):
+      //  · bare breakpoints "20,40,60"  → $0–$20, $20–$40, $40–$60, $60+
+      //  · explicit brackets "0-50, 50-100, 100+"  → any mix of ranges + "$X+"
+      //    (open-top). So you can add "$50+", multiple "$X+", overlapping, etc.
+      function plpParseBrackets(str){
+        var entries = String(str||'').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+        if (!entries.length) return PLP_DEFAULT_PRICE_RANGES;
+        var explicit = entries.some(function(e){ return /[-+]/.test(e); });
+        var out = [];
+        if (!explicit){
+          var nums = entries.map(function(e){ return parseFloat(e); }).filter(function(n){ return !isNaN(n) && n>0; });
+          nums = nums.filter(function(n,i){ return nums.indexOf(n)===i; }).sort(function(a,b){ return a-b; });
+          if (!nums.length) return PLP_DEFAULT_PRICE_RANGES;
+          var prev=0;
+          nums.forEach(function(n){ out.push({ key:prev+'-'+n, label:'$'+prev+' – $'+n, min:prev, max:n }); prev=n; });
+          out.push({ key:prev+'+', label:'$'+prev+'+', min:prev, max:Infinity });
+        } else {
+          entries.forEach(function(e){
+            var mp = e.match(/^\$?(\d+(?:\.\d+)?)\s*\+$/);
+            if (mp){ var a=parseFloat(mp[1]); out.push({ key:a+'+', label:'$'+a+'+', min:a, max:Infinity }); return; }
+            var mr = e.match(/^\$?(\d+(?:\.\d+)?)\s*-\s*\$?(\d+(?:\.\d+)?)$/);
+            if (mr){ var lo=parseFloat(mr[1]), hi=parseFloat(mr[2]); if (lo<hi) out.push({ key:lo+'-'+hi, label:'$'+lo+' – $'+hi, min:lo, max:hi }); return; }
+          });
+        }
+        return out.length ? out : PLP_DEFAULT_PRICE_RANGES;
+      }
+      function plpPriceRanges(){
+        if (!_plpPriceCache) _plpPriceCache = plpParseBrackets(plpCfg().price_breaks);
+        return _plpPriceCache;
+      }
+      function plpPriceByKey(key){ var rs=plpPriceRanges(); for (var i=0;i<rs.length;i++){ if (rs[i].key===key) return rs[i]; } return null; }
+      // Colour grouping: 'coarse' folds the extended buckets into broader ones.
+      const PLP_COARSE_MERGE = { Beige:'Brown', Maroon:'Red', Olive:'Green', Teal:'Blue', Navy:'Blue' };
+      function plpGrainBucket(b){ return (b && plpCfg().color_grain==='coarse' && PLP_COARSE_MERGE[b]) ? PLP_COARSE_MERGE[b] : b; }
+      function plpHexHsl(hex){
+        hex = String(hex==null?'':hex).trim().replace(/^#/,'');
+        if (hex.length === 3) hex = hex.split('').map(function(c){ return c+c; }).join('');
+        if (!/^[0-9a-f]{6}$/i.test(hex)) return null;
+        var r=parseInt(hex.slice(0,2),16)/255, g=parseInt(hex.slice(2,4),16)/255, b=parseInt(hex.slice(4,6),16)/255;
+        var mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2, s=0, h=0;
+        if (mx!==mn){ var d=mx-mn; s = l>0.5 ? d/(2-mx-mn) : d/(mx+mn); if(mx===r)h=(g-b)/d+(g<b?6:0); else if(mx===g)h=(b-r)/d+2; else h=(r-g)/d+4; h*=60; }
+        return { h:h, s:s, l:l };
+      }
+      // Map any swatch hex to one defined colour bucket (HSL: neutrals by lightness/
+      // saturation, then hue — warm-dark to Brown/Maroon, dark-blue to Navy, muted
+      // yellow-green to Olive, warm-light to Beige, light red/magenta to Pink).
+      function plpColorBucket(hex){
+        var c = plpHexHsl(hex); if (!c) return null;
+        var h=c.h, s=c.s, l=c.l;
+        if (l>=0.92) return 'White';
+        if (l<=0.10) return 'Black';
+        if (s<=0.12) return l>=0.82 ? 'White' : 'Grey';
+        if (h>=20 && h<=55 && l>=0.68 && s<=0.6) return 'Beige';
+        if (h>=10 && h<=45 && l<=0.42) return 'Brown';
+        if ((h>=345 || h<=12) && l<=0.30) return 'Maroon';
+        if (h>=55 && h<=95 && (l<=0.42 || s<=0.45)) return 'Olive';
+        if (h>=200 && h<=255 && l<=0.34) return 'Navy';
+        if ((h>=305 || h<=10) && l>=0.68 && s>=0.12) return 'Pink';
+        if (h<12 || h>=345) return 'Red';
+        if (h<40) return 'Orange';
+        if (h<65) return 'Yellow';
+        if (h<160) return 'Green';
+        if (h<195) return 'Teal';
+        if (h<255) return 'Blue';
+        if (h<305) return 'Purple';
+        return 'Pink';
+      }
+      function plpProductColors(p){
+        var out = {};
+        ((p && p.color_variants) || []).forEach(function(c){ var b = plpGrainBucket(plpColorBucket(c && c.hex_color)); if (b) out[b] = true; });
+        return out;
+      }
+      function plpExcluded(p){ var s=(p && p.status || '').toLowerCase(); return s==='legacy'||s==='archived'||s==='draft'; }
+      function plpFacetScope(p){ return !plpExcluded(p) && productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag); }
+      function plpGenderList(){
+        var order=['Men','Women','Unisex','Kids'], present={};
+        (_allProducts||[]).forEach(function(p){ if (plpExcluded(p) || !productMatchesTag(p, requestedTag)) return; var g=String(p.gender||'').trim(); if (g) present[g.toLowerCase()]=g; });
+        return order.filter(function(g){ return present[g.toLowerCase()]; }).map(function(g){ return present[g.toLowerCase()]; });
+      }
+      function plpColorFacetList(){
+        var count={};
+        (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; var bs=plpProductColors(p); for (var k in bs) count[k]=(count[k]||0)+1; });
+        var present = PLP_COLOR_BUCKETS.filter(function(b){ return count[b.key]; });
+        var off = plpCfg().colors_off;   // colours the admin hid, per-bucket
+        if (Array.isArray(off) && off.length){ var offm={}; off.forEach(function(k){ offm[String(k)]=true; }); present = present.filter(function(b){ return !offm[b.key]; }); }
+        var lim = parseInt(plpCfg().color_count, 10);   // legacy cap (kept for back-compat)
+        if (lim>0 && present.length>lim){
+          present = present.slice().sort(function(a,b){ return (count[b.key]||0)-(count[a.key]||0); }).slice(0, lim)   // keep the most common
+                            .sort(function(a,b){ return PLP_COLOR_BUCKETS.indexOf(a)-PLP_COLOR_BUCKETS.indexOf(b); });   // back to canonical order
+        }
+        return present;
+      }
+      function plpPriceFacetList(){
+        var present={}, ranges=plpPriceRanges();
+        (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; var pr=plpPrice(p); ranges.forEach(function(r){ if (pr>=r.min && pr<r.max) present[r.key]=true; }); });
+        return ranges.filter(function(r){ return present[r.key]; });
+      }
+      function plpProductSports(p){ return (p && Array.isArray(p.sports)) ? p.sports.filter(Boolean) : []; }
+      function plpSportFacetList(){
+        var present={}, order=[];
+        (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; plpProductSports(p).forEach(function(s){ s=String(s).trim(); if (s && !present[s.toLowerCase()]){ present[s.toLowerCase()]=true; order.push(s); } }); });
+        order.sort(function(a,b){ return a.localeCompare(b); });
+        return order;
+      }
+      // Best For (weather) — a fixed set, read from products.best_for (text[]).
+      function plpProductBestFor(p){ return (p && Array.isArray(p.best_for)) ? p.best_for.filter(Boolean) : []; }
+      const PLP_BEST_FOR = ['Warm Weather','Cold Weather','Wet Weather','Dry Weather'];
+      function plpBestForFacetList(){
+        var present={};
+        (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; plpProductBestFor(p).forEach(function(s){ present[String(s).trim().toLowerCase()]=true; }); });
+        return PLP_BEST_FOR.filter(function(s){ return present[s.toLowerCase()]; });
+      }
+      // Materials — derived from the product's material_composition free text
+      // (e.g. "80% Cotton, 20% Polyester") by matching known fabrics.
+      const PLP_MATERIALS = [
+        {name:'Cotton',k:['cotton']},{name:'Fleece',k:['fleece']},{name:'Wool',k:['wool','merino']},
+        {name:'Leather',k:['leather']},{name:'Denim',k:['denim']},{name:'Linen',k:['linen']},
+        {name:'Silk',k:['silk']},{name:'Cashmere',k:['cashmere']},{name:'Polyester',k:['polyester']},
+        {name:'Nylon',k:['nylon']},{name:'Spandex',k:['spandex','elastane','lycra']},{name:'Recycled',k:['recycled']},
+        {name:'Mesh',k:['mesh']},{name:'Bamboo',k:['bamboo']},{name:'Rayon',k:['rayon','viscose','modal']},{name:'Acrylic',k:['acrylic']}
+      ];
+      function plpProductMaterials(p){
+        var txt = String((p && p.material_composition) || '').toLowerCase(); if (!txt) return [];
+        var out=[]; PLP_MATERIALS.forEach(function(m){ if (m.k.some(function(kw){ return txt.indexOf(kw)!==-1; })) out.push(m.name); }); return out;
+      }
+      function plpMaterialFacetList(){
+        var present={};
+        (_allProducts||[]).forEach(function(p){ if (!plpFacetScope(p)) return; plpProductMaterials(p).forEach(function(m){ present[m]=true; }); });
+        var off = plpCfg().materials_off, offm={};   // materials the admin hid
+        if (Array.isArray(off)) off.forEach(function(k){ offm[String(k).toLowerCase()]=true; });
+        return PLP_MATERIALS.filter(function(m){ return present[m.name] && !offm[m.name.toLowerCase()]; }).map(function(m){ return m.name; });
+      }
+      // Collapsible facet (Nike-style): the header + chevron toggles the body.
+      // Collapsed state is remembered per session so a filter change (which
+      // re-renders the sidebar) doesn't spring every section back open.
+      const _plpCollapsed = new Set();
+      function plpFacetWrap(key, title, bodyHtml){
+        var col = _plpCollapsed.has(key);
+        return '<div class="plp-facet'+(col?' collapsed':'')+'" data-fkey="'+key+'">'
+          + '<button type="button" class="plp-facet-head" data-toggle="'+key+'"><span>'+plpEsc(title)+'</span>'
+          + '<svg class="plp-facet-chev" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>'
+          + '<div class="plp-facet-body">'+bodyHtml+'</div></div>';
+      }
+      function plpToggleCollapse(e){
+        var t = e.target.closest('[data-toggle]'); if (!t) return false;
+        var key = t.getAttribute('data-toggle'), facet = t.closest('.plp-facet'); if (!facet) return true;
+        if (_plpCollapsed.has(key)){ _plpCollapsed.delete(key); facet.classList.remove('collapsed'); }
+        else { _plpCollapsed.add(key); facet.classList.add('collapsed'); }
+        return true;
+      }
+      // Shared collapsible facets (Gender / Color / Sport / Price) — desktop sidebar + mobile sheet.
+      function plpFacetSectionsHtml(){
+        var html='', cfg=plpCfg();
+        var genders = (cfg.f_gender===false || requestedGender) ? [] : plpGenderList();
+        if (genders.length > 1){
+          var gb = '<div class="plp-opts">' + genders.map(function(g){ var on=activeGenders.has(g.toLowerCase()); return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="gender" data-val="'+plpEsc(g.toLowerCase())+'"><span class="plp-opt-check"></span>'+plpEsc(g)+'</button>'; }).join('') + '</div>';
+          html += plpFacetWrap('gender','Gender',gb);
+        }
+        var colors = cfg.f_color===false ? [] : plpColorFacetList();
+        if (colors.length){
+          var cb = '<div class="plp-colors">' + colors.map(function(b){ var on=activeColors.has(b.key); return '<button type="button" class="plp-color'+(on?' active':'')+'" data-facet="color" data-val="'+plpEsc(b.key)+'" title="'+plpEsc(b.key)+'"><span class="plp-color-dot" style="background:'+b.dot+'"></span><span class="plp-color-name">'+plpEsc(b.key)+'</span></button>'; }).join('') + '</div>';
+          html += plpFacetWrap('color','Color',cb);
+        }
+        var sports = cfg.f_sport===false ? [] : plpSportFacetList();
+        if (sports.length){
+          var sb = '<div class="plp-opts">' + sports.map(function(s){ var on=activeSports.has(s.toLowerCase()); return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="sport" data-val="'+plpEsc(s.toLowerCase())+'"><span class="plp-opt-check"></span>'+plpEsc(s)+'</button>'; }).join('') + '</div>';
+          html += plpFacetWrap('sport','Sport',sb);
+        }
+        var bestfor = cfg.f_bestfor===false ? [] : plpBestForFacetList();
+        if (bestfor.length){
+          var bf = '<div class="plp-opts">' + bestfor.map(function(s){ var on=activeBestFor.has(s.toLowerCase()); return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="bestfor" data-val="'+plpEsc(s.toLowerCase())+'"><span class="plp-opt-check"></span>'+plpEsc(s)+'</button>'; }).join('') + '</div>';
+          html += plpFacetWrap('bestfor','Best for',bf);
+        }
+        var materials = cfg.f_material===false ? [] : plpMaterialFacetList();
+        if (materials.length){
+          var mb = '<div class="plp-opts">' + materials.map(function(s){ var on=activeMaterials.has(s.toLowerCase()); return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="material" data-val="'+plpEsc(s.toLowerCase())+'"><span class="plp-opt-check"></span>'+plpEsc(s)+'</button>'; }).join('') + '</div>';
+          html += plpFacetWrap('material','Material',mb);
+        }
+        var prices = cfg.f_price===false ? [] : plpPriceFacetList();
+        if (prices.length > 1){
+          var pb = '<div class="plp-opts">' + prices.map(function(r){ var on=activePrices.has(r.key); return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="price" data-val="'+plpEsc(r.key)+'"><span class="plp-opt-check"></span>'+plpEsc(r.label)+'</button>'; }).join('') + '</div>';
+          html += plpFacetWrap('price','Shop by price',pb);
+        }
+        var n = activeGenders.size + activeColors.size + activePrices.size + activeSports.size + activeMaterials.size + activeBestFor.size + (activeCategory?1:0);
+        if (n) html += '<button type="button" class="plp-clear-all" data-facet="clear">Clear all ('+n+')</button>';
+        return html;
+      }
+      function plpFacetClick(e){
+        var b = e.target.closest('[data-facet]'); if (!b) return false;
+        var facet=b.getAttribute('data-facet'), val=b.getAttribute('data-val');
+        if (facet==='clear'){ activeGenders.clear(); activeColors.clear(); activePrices.clear(); activeSports.clear(); activeMaterials.clear(); activeBestFor.clear(); activeCategory=''; window.__zwApplyPlpFilters(); return true; }
+        var set = facet==='gender'?activeGenders : facet==='color'?activeColors : facet==='price'?activePrices : facet==='sport'?activeSports : facet==='material'?activeMaterials : facet==='bestfor'?activeBestFor : null;
+        if (!set) return false;
+        if (set.has(val)) set.delete(val); else set.add(val);
+        window.__zwApplyPlpFilters();
+        return true;
+      }
+      window.__zwApplyPlpFilters = function(){
+        _plpAnimateGrid(function(){ renderProducts(_allProducts); renderPlpSidebar(); });
+      };
+
+      // ── Mobile: sticky pill bar (Filter + one pill per facet) + per-facet sheet ──
+      function renderPlpPillBar(){
+        var host = document.getElementById('plp-pillbar'); if (!host) return;
+        var cfg = plpCfg();
+        var icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2.1" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2.1" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="18" r="2.1" fill="currentColor" stroke="none"/></svg>';
+        var total = (activeCategory?1:0)+activeGenders.size+activeColors.size+activeSports.size+activeBestFor.size+activeMaterials.size+activePrices.size;
+        var html = '<button type="button" class="plp-pill plp-pill-filter'+(total?' active':'')+'" data-pill="__all__">'+icon+'Filter'+(total?' ('+total+')':'')+'</button>';
+        var facets = [
+          { key:'category', label:'Category', on:(cfg.f_category!==false), count:(activeCategory?1:0), has:(plpCategoryList().length>1) },
+          { key:'gender',   label:'Gender',   on:(cfg.f_gender!==false && !requestedGender), count:activeGenders.size, has:(plpGenderList().length>1) },
+          { key:'color',    label:'Color',    on:(cfg.f_color!==false),    count:activeColors.size,    has:(plpColorFacetList().length>0) },
+          { key:'sport',    label:'Sport',    on:(cfg.f_sport!==false),    count:activeSports.size,    has:(plpSportFacetList().length>0) },
+          { key:'bestfor',  label:'Best for', on:(cfg.f_bestfor!==false),  count:activeBestFor.size,   has:(plpBestForFacetList().length>0) },
+          { key:'material', label:'Material', on:(cfg.f_material!==false), count:activeMaterials.size, has:(plpMaterialFacetList().length>0) },
+          { key:'price',    label:'Price',    on:(cfg.f_price!==false),    count:activePrices.size,    has:(plpPriceFacetList().length>1) }
+        ];
+        facets.forEach(function(f){ if (!f.on || !f.has) return; html += '<button type="button" class="plp-pill'+(f.count?' active':'')+'" data-pill="'+f.key+'">'+plpEsc(f.label)+(f.count?' ('+f.count+')':'')+'</button>'; });
+        host.innerHTML = html;
+        host.onclick = function(e){ var b=e.target.closest('[data-pill]'); if(!b) return; var k=b.getAttribute('data-pill'); if(k==='__all__') window.__zwOpenPlpFilterModal(); else window.__zwOpenPlpFacetSheet(k); };
+      }
+      // Option HTML for ONE facet (used by the per-facet sheet). Same classes /
+      // data-facet/data-val as the sidebar, so plpFacetClick handles the taps.
+      function plpFacetBodyHtml(key){
+        if (key==='category'){
+          var cats=plpCategoryList(), h='<div>';
+          h+='<button type="button" class="plp-fm-cat'+(!activeCategory?' active':'')+'" data-cat="">All '+plpEsc(plpScopeName())+'</button>';
+          cats.forEach(function(c){ var on=activeCategory&&activeCategory.toLowerCase()===c.toLowerCase(); h+='<button type="button" class="plp-fm-cat'+(on?' active':'')+'" data-cat="'+plpEsc(c)+'">'+plpEsc(c)+'</button>'; });
+          return h+'</div>';
+        }
+        if (key==='color'){ return '<div class="plp-colors">'+plpColorFacetList().map(function(b){ var on=activeColors.has(b.key); return '<button type="button" class="plp-color'+(on?' active':'')+'" data-facet="color" data-val="'+plpEsc(b.key)+'"><span class="plp-color-dot" style="background:'+b.dot+'"></span><span class="plp-color-name">'+plpEsc(b.key)+'</span></button>'; }).join('')+'</div>'; }
+        var listFn = key==='gender'?plpGenderList : key==='sport'?plpSportFacetList : key==='bestfor'?plpBestForFacetList : key==='material'?plpMaterialFacetList : key==='price'?plpPriceFacetList : null;
+        if (!listFn) return '';
+        var items = listFn();
+        return '<div class="plp-opts">'+items.map(function(it){
+          var val = key==='price' ? it.key : String(it).toLowerCase();
+          var label = key==='price' ? it.label : String(it);
+          var set = key==='gender'?activeGenders : key==='sport'?activeSports : key==='bestfor'?activeBestFor : key==='material'?activeMaterials : activePrices;
+          var on = set.has(val);
+          return '<button type="button" class="plp-opt'+(on?' active':'')+'" data-facet="'+key+'" data-val="'+plpEsc(val)+'"><span class="plp-opt-check"></span>'+plpEsc(label)+'</button>';
+        }).join('')+'</div>';
+      }
+      window.__zwOpenPlpFacetSheet = function(key){
+        var titles={category:'Category',gender:'Gender',color:'Colour',sport:'Sport',bestfor:'Best for',material:'Material',price:'Price'};
+        var t=document.getElementById('plp-facet-sheet-title'); if(t) t.textContent='Filter by '+(titles[key]||key);
+        var body=document.getElementById('plp-facet-sheet-body');
+        if(body){
+          body.innerHTML=plpFacetBodyHtml(key);
+          body.onclick=function(e){
+            var cb=e.target.closest('.plp-fm-cat'); if(cb){ window.__zwSetPlpCategory(cb.getAttribute('data-cat')||''); body.innerHTML=plpFacetBodyHtml(key); return; }
+            if(plpFacetClick(e)) body.innerHTML=plpFacetBodyHtml(key);   // re-render to refresh active states
+          };
+        }
+        var m=document.getElementById('plp-facet-sheet'); if(!m) return;
+        m.classList.add('open'); m.setAttribute('aria-hidden','false');
+        if(window.ZWModalScrollLock){ window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow='hidden'; }
+      };
+      window.__zwClosePlpFacetSheet = function(){
+        var m=document.getElementById('plp-facet-sheet'); if(!m) return;
+        m.classList.remove('open'); m.setAttribute('aria-hidden','true');
+        if(window.ZWModalScrollLock){ window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow=''; }
+      };
+
       function plpScopeName(){ return requestedGender || requestedTag || 'All'; }
       function plpCategoryList(){
         const seen = {}, cats = [];
@@ -1521,17 +2047,27 @@ function updateCountdown() {
         const aside = document.getElementById('plp-sidebar');
         if (!aside) return;
         const cats = plpCategoryList();
-        if (cats.length < 2) { aside.innerHTML = ''; renderPlpFilterModal(); return; }
-        let html = '<p class="plp-sidebar-head">Category</p><div class="plp-cat-list">';
-        html += '<button type="button" class="plp-cat-btn'+(!activeCategory?' active':'')+'" data-cat="">All '+plpEsc(plpScopeName())+'</button>';
-        cats.forEach(function(c){
-          const on = activeCategory && activeCategory.toLowerCase() === c.toLowerCase();
-          html += '<button type="button" class="plp-cat-btn'+(on?' active':'')+'" data-cat="'+plpEsc(c)+'">'+plpEsc(c)+'</button>';
-        });
-        html += '</div>';
+        let html = '';
+        if (cats.length >= 2 && plpCfg().f_category !== false){
+          let catBody = '<div class="plp-cat-list">';
+          catBody += '<button type="button" class="plp-cat-btn'+(!activeCategory?' active':'')+'" data-cat="">All '+plpEsc(plpScopeName())+'</button>';
+          cats.forEach(function(c){
+            const on = activeCategory && activeCategory.toLowerCase() === c.toLowerCase();
+            catBody += '<button type="button" class="plp-cat-btn'+(on?' active':'')+'" data-cat="'+plpEsc(c)+'">'+plpEsc(c)+'</button>';
+          });
+          catBody += '</div>';
+          html += plpFacetWrap('category', 'Category', catBody);
+        }
+        html += plpFacetSectionsHtml();
         aside.innerHTML = html;
-        aside.onclick = function(e){ const b = e.target.closest('.plp-cat-btn'); if (b) window.__zwSetPlpCategory(b.getAttribute('data-cat') || ''); };
+        aside.onclick = function(e){
+          if (plpToggleCollapse(e)) return;                       // header chevron → collapse/expand
+          const b = e.target.closest('.plp-cat-btn');
+          if (b) { window.__zwSetPlpCategory(b.getAttribute('data-cat') || ''); return; }
+          plpFacetClick(e);
+        };
         renderPlpFilterModal();
+        renderPlpPillBar();
       }
       // -- Mobile filter/sort bottom-sheet modal (so you can change category/sort
       //    from anywhere without scrolling back up to the sidebar) --
@@ -1551,10 +2087,17 @@ function updateCountdown() {
           catHost.innerHTML = html;
           catHost.onclick = function(e){ const b=e.target.closest('.plp-fm-cat'); if (b){ window.__zwSetPlpCategory(b.getAttribute('data-cat')||''); window.__zwClosePlpFilterModal(); } };
         }
+        const facetHost = document.getElementById('plp-fm-facets'), facetSec = document.getElementById('plp-fm-facetsec');
+        if (facetHost){
+          const fh = plpFacetSectionsHtml();
+          facetHost.innerHTML = fh;
+          if (facetSec) facetSec.style.display = fh ? '' : 'none';
+          facetHost.onclick = function(e){ if (plpToggleCollapse(e)) return; plpFacetClick(e); };   // multi-select — keep the sheet open
+        }
         _plpUpdateFilterCount();
       }
       function _plpUpdateFilterCount(){
-        var n = (activeCategory ? 1 : 0) + (activeSort && activeSort !== 'featured' ? 1 : 0);
+        var n = (activeCategory ? 1 : 0) + (activeSort && activeSort !== 'featured' ? 1 : 0) + activeGenders.size + activeColors.size + activePrices.size + activeSports.size;
         var el = document.getElementById('plp-filter-count-badge');
         if (el){ el.textContent = n ? String(n) : ''; el.style.display = n ? '' : 'none'; }
       }
@@ -1784,13 +2327,17 @@ function updateCountdown() {
       });
 
     try {
-      const { data } = await sb.from('site_settings').select('*').in('key', ['theme', 'brand', 'product_card_cta']);
+      const { data } = await sb.from('site_settings').select('*').in('key', ['theme', 'brand', 'product_card_cta', 'collection_page']);
       if (data) {
         data.forEach(row => {
           if (row.key === 'product_card_cta') {
             let cta = row.value;
             try { if (typeof cta === 'string') cta = JSON.parse(cta); } catch (_) {}
             window.__zwApplyCardMode((cta && cta.mode === 'color-swatches') ? 'color-swatches' : 'add-to-bag');
+            if (window.__zwApplyCollectionCols) window.__zwApplyCollectionCols(cta && cta.collection_cols);
+            if (window.__zwApplyCardFit) window.__zwApplyCardFit(cta && cta.card_fit === 'contain' ? 'contain' : 'cover');
+            window.__zwCardGalleryLoop = !!(cta && cta.card_loop);   // global gallery loop opt-in
+            window.__zwCardLoopStyle = (cta && /^(seamless|rewind|fade|instant)$/.test(cta.card_loop_style)) ? cta.card_loop_style : 'seamless';
           }
           else if (row.key === 'theme' && row.value) {
             const mode = row.value.mode === 'dark' ? 'dark' : row.value.mode === 'super-light' ? 'super-light' : 'light';
@@ -1801,8 +2348,25 @@ function updateCountdown() {
             const link = document.querySelector('link[rel="icon"]');
             if (link) { window.__zwApplyFavicon ? window.__zwApplyFavicon(row.value.favicon) : (link.href = row.value.favicon); }
           }
+          else if (row.key === 'collection_page') {
+            let cp = row.value;
+            try { if (typeof cp === 'string') cp = JSON.parse(cp); } catch (_) {}
+            window.__zwCollPageCfg = cp || null;
+          }
         });
       }
+      // The builder's Collection page config (collection_page) wins over the
+      // admin Product-Cards defaults, when the corresponding field is set.
+      const _cp = window.__zwCollPageCfg;
+      if (_cp) {
+        if (_cp.card_size && window.__zwApplyCollectionCols) window.__zwApplyCollectionCols(_cp.card_size);
+        if (_cp.card_fit && window.__zwApplyCardFit) window.__zwApplyCardFit(_cp.card_fit === 'contain' ? 'contain' : 'cover');
+        applyCollectionHeader(_cp);
+      }
+      // Re-render the filter sidebar now the config (column toggles / price
+      // brackets / colour count + grouping) is loaded, so it applies without a reload.
+      if (typeof plpResetCfgCache === 'function') plpResetCfgCache();
+      if (typeof renderPlpSidebar === 'function') renderPlpSidebar();
     } catch (e) {}
 
       let products;
@@ -1870,6 +2434,12 @@ function updateCountdown() {
           if (status === 'legacy' || status === 'archived' || status === 'draft') return false;
           if (activeCategory && categoryLabelFromProduct(p).toLowerCase() !== activeCategory.toLowerCase()) return false;
           if (!productMatchesQuery(p, requestedQuery)) return false;
+          if (activeGenders.size && !activeGenders.has(String(p.gender||'').trim().toLowerCase())) return false;
+          if (activeColors.size){ var _bs=plpProductColors(p), _cok=false; activeColors.forEach(function(k){ if(_bs[k]) _cok=true; }); if(!_cok) return false; }
+          if (activePrices.size){ var _pr=plpPrice(p), _pok=false; activePrices.forEach(function(key){ var r=plpPriceByKey(key); if(r && _pr>=r.min && _pr<r.max) _pok=true; }); if(!_pok) return false; }
+          if (activeSports.size){ var _sp=plpProductSports(p), _sok=false; for (var _si=0; _si<_sp.length; _si++){ if (activeSports.has(String(_sp[_si]).trim().toLowerCase())){ _sok=true; break; } } if(!_sok) return false; }
+          if (activeBestFor.size){ var _bf=plpProductBestFor(p), _bok=false; for (var _bi=0; _bi<_bf.length; _bi++){ if (activeBestFor.has(String(_bf[_bi]).trim().toLowerCase())){ _bok=true; break; } } if(!_bok) return false; }
+          if (activeMaterials.size){ var _mt=plpProductMaterials(p), _mok=false; for (var _mi=0; _mi<_mt.length; _mi++){ if (activeMaterials.has(String(_mt[_mi]).trim().toLowerCase())){ _mok=true; break; } } if(!_mok) return false; }
           return productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag);
         });
 
@@ -1926,7 +2496,6 @@ function updateCountdown() {
           const colors = (p.color_variants || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
           const imgs = p.product_images || [];
           const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          const MAX = 5;
           if (!colors.length) {
             // Single-image product: one thumbnail of the main image (keeps cards
             // consistent — no out-of-place Add-to-Bag button).
@@ -1935,26 +2504,37 @@ function updateCountdown() {
             if (!src) return '';
             return `<div class="zw-card-swatches" data-quick-add="${payload}"><button type="button" class="zw-card-swatch" data-img="${esc(src)}" aria-label="${esc(p.title || 'View')}" style="background-image:url('${esc(src)}')"></button></div>`;
           }
-          // Cap at MAX thumbnails + a "+N" overflow tile so every card stays the
-          // same height (variable counts wrapped to a 2nd row and broke alignment).
-          let html = colors.slice(0, MAX).map((c) => {
+          // All colours in a single horizontal-scroll row — no "+N" cap now that
+          // extra colours scroll (CSS: .zw-card-swatches overflow-x:auto) instead of
+          // wrapping to a 2nd row and breaking card alignment.
+          const _carOn = zwCardCarouselOn();
+          const _carVids = plpCfg().card_videos === true;
+          let html = colors.map((c, i) => {
             const ci = imgs.filter((im) => im.color_variant_id === c.id).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0];
             let src = (ci && ci.image_url) || fallbackImg || '';
             if (src && typeof optimizeImage === 'function') src = optimizeImage(src, 600);
             const nm = c.color_name || 'Color';
             const thumbStyle = src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`;
-            return `<button type="button" class="zw-card-swatch" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
+            const _cm = _carOn ? zwCardMedia(p, c.id, _carVids) : [];
+            const imgsAttr = (_carOn && _cm.length) ? ` data-imgs="${esc(encodeURIComponent(JSON.stringify(_cm)))}"` : '';
+            // Colour-facet bucket for this swatch — same key space as the filter
+            // (plpProductColors), so the active colour filter can auto-select the
+            // matching swatch after render (see the preview pass in renderProducts).
+            const _bkt = plpGrainBucket(plpColorBucket(c.hex_color)) || '';
+            // First swatch active on load — its colour is the one shown on the card,
+            // so the selected-bar (Nike-style) sits under it from the start.
+            return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-color-bucket="${esc(_bkt)}" data-img="${esc(src)}"${imgsAttr} title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
           }).join('');
-          if (colors.length > MAX) html += `<button type="button" class="zw-card-swatch zw-swatch-more" aria-label="${esc((colors.length - MAX) + ' more colors')}">+${colors.length - MAX}</button>`;
           return `<div class="zw-card-swatches" data-quick-add="${payload}">${html}</div>`;
         };
         grid.innerHTML = renderList.map(p => {
           const productName = p.title || p.name || 'Untitled';
           const productCategory = categoryLabelFromProduct(p);
+          window.zwSingularCat = window.zwSingularCat || function (c) { if (!c) return c; var s = String(c).trim(); if (/(pants|shorts|leggings|joggers|socks|jeans|tights|briefs|boxers|trousers|sunglasses|glasses|shoes|sneakers|boots|sandals|slides|gloves|overalls|pajamas|pyjamas)$/i.test(s)) return s; return /[^s]s$/i.test(s) ? s.slice(0, -1) : s; };
           const _g = String(p.gender || '').trim().toLowerCase();
           const _genderPrefix = _g === 'men' ? "Men's " : _g === 'women' ? "Women's " : _g === 'unisex' ? 'Unisex ' : _g === 'kids' ? "Kids' " : '';
-          const productType = (_genderPrefix + (productCategory || '')).trim();
-          const productPrice = getCollectionEffectivePrice(p) || parseFloat(p.msrp || 0) || 0;
+          const productType = (_genderPrefix + window.zwSingularCat(productCategory || '')).trim();
+          const productPrice = p.current_price || p.msrp || p.price;
           const badge = (p.status === 'coming_soon' || p.status === 'Coming Soon') ? 'Coming Soon' : (p.status === 'live' || p.status === 'Live' ? 'Available' : (p.status || 'Coming Soon'));
           let firstImg = p.image_url;
           if (p.product_images && p.product_images.length > 0) {
@@ -1963,12 +2543,17 @@ function updateCountdown() {
           }
           const originalImg = firstImg;
           firstImg = optimizeImage(firstImg, 600);
-          const imgHtml = firstImg
-            ? `<img src="${firstImg}" alt="${productName}" loading="lazy" width="400" height="500" style="width:100%;height:100%;object-fit:cover;aspect-ratio:4/5" onerror="if(this.src !== '${originalImg || ''}') this.src='${originalImg || ''}';">`
+          const _ccOn = zwCardCarouselOn();
+          const _firstColorId = ((p.color_variants || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0] || {}).id;
+          const _ccMedia = _ccOn ? zwCardMedia(p, _firstColorId, plpCfg().card_videos === true) : [];
+          const imgHtml = (_ccOn && _ccMedia.length > 1)
+            ? zwCarouselHtml(_ccMedia, productName)
+            : (firstImg
+            ? `<img src="${firstImg}" alt="${productName}" loading="lazy" width="400" height="500" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center" onerror="if(this.src !== '${originalImg || ''}') this.src='${originalImg || ''}';">`
             : `<div class="product-img-placeholder">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
                 <span>Image Coming Soon</span>
-              </div>`;
+              </div>`);
           const isLive = (p.status === 'live' || p.status === 'Live');
           const totalStock = p.totalStock;
           const isSoldOut = isLive && totalStock !== null && totalStock <= 0;
@@ -2011,6 +2596,7 @@ function updateCountdown() {
                     ${isSoldOut ? `<div class="stock-badge-sold-out"><span>Sold Out</span></div>` : ''}
                   </div>
                 </div>
+                ${isLive && !isSoldOut && hasSwatches ? zwColSwatchRow(p, quickAddPayload, originalImg) : ''}
                 <div class="product-info">
                   <p class="product-name">${productName}</p>
                   <p class="product-category">${productType}</p>
@@ -2020,7 +2606,7 @@ function updateCountdown() {
                     ? `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>`
                     : isSoldOut
                       ? `<span class="product-notify" style="opacity:.55">Sold Out</span>`
-                      : (hasSwatches ? zwColSwatchRow(p, quickAddPayload, originalImg) : '')
+                      : ''
                   }
                 </div>
                 ${isLive ? `<div class="quick-size-panel-col" id="${colCardId}">
@@ -2034,6 +2620,21 @@ function updateCountdown() {
             </a>`;
         }).join('');
         refreshCollectionFavoriteButtons();
+        zwObserveCardVideos();   // only play card videos that are actually on screen
+        // Colour filter → auto-select that colour on each card. For every card, pick
+        // the FIRST-clicked active colour the card actually has and preview its swatch
+        // (image + active state), so a shopper filtering by e.g. Pink sees the pink
+        // colourway on each product without clicking. Re-runs on every render, so it
+        // stays correct as filters change; clearing the colour filter restores defaults.
+        if (activeColors.size && typeof _zwPreviewSwatch === 'function') {
+          var _pvOrder = Array.from(activeColors);
+          grid.querySelectorAll('.zw-card-swatches').forEach(function (row) {
+            for (var _i = 0; _i < _pvOrder.length; _i++) {
+              var _sw = row.querySelector('.zw-card-swatch[data-color-bucket="' + _pvOrder[_i] + '"]');
+              if (_sw) { _zwPreviewSwatch(_sw); break; }
+            }
+          });
+        }
       }
     })();
   </script>
@@ -2116,7 +2717,12 @@ function updateCountdown() {
       images: productImage ? [productImage] : [],
       colors: [],
       sizes: [['One Size', 1]],
-      selectedColor: null,
+      // Seed the clicked colour as a stub so the modal's FIRST paint already shows it
+      // (name label + it blocks the colors[0] fallback in openCollectionReviewModal).
+      // The async fetch below replaces it with the full colour object (same name), so
+      // there's no "first colour, then the one you clicked" flash. Paired with passing
+      // the clicked swatch's image as productImage at the call site.
+      selectedColor: preselectColorName ? { color_name: preselectColorName } : null,
       selectedSize: null,
       weightLb: parseFloat(productWeightLb) || 0.5,
       quantity: 1
@@ -2199,16 +2805,323 @@ function updateCountdown() {
   }, true);
 
   // -- Nike-style card color swatches (swatch mode) --
+  // ── Card image carousel helpers (admin opt-in: card_carousel / card_videos) ──
+  function _ccEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // ── Card-video performance ──────────────────────────────────────────────────
+  // A grid full of autoplaying <video>s decodes them ALL at once — heavy CPU/GPU +
+  // battery, and janky scroll on phones (browsers can even refuse to play past a
+  // limit). Card videos ship WITHOUT `autoplay` and preload="metadata"; this
+  // IntersectionObserver plays one only while it's on screen and pauses it the moment
+  // it scrolls away, so at most the 2–4 visible cards ever decode at once.
+  var _zwCardVidObs = null;
+  function zwObserveCardVideos(){
+    if (!('IntersectionObserver' in window)) return;   // old browsers: leave as-is
+    if (!_zwCardVidObs) {
+      _zwCardVidObs = new IntersectionObserver(function(entries){
+        entries.forEach(function(en){
+          var v = en.target;
+          if (en.isIntersecting) { var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); }
+          else { try { v.pause(); } catch(_){} }
+        });
+      }, { threshold: 0.2, rootMargin: '100px 0px' });
+    }
+    document.querySelectorAll('.product-card video.zw-cc-item:not([data-vobs])').forEach(function(v){
+      v.dataset.vobs = '1';
+      v.removeAttribute('autoplay');   // the observer, not autoplay, controls playback
+      _zwCardVidObs.observe(v);
+    });
+  }
+  // Carousel on for the CURRENT viewport? Per-device flags (card_carousel_lg/md/sm)
+  // win; an unset device falls back to the legacy all-device `card_carousel` master.
+  // NB: read window.__zwCollPageCfg directly (what plpCfg() returns) — these helpers
+  // live at the script's top level, outside the collection IIFE where plpCfg is
+  // defined, so calling plpCfg() here throws ReferenceError and breaks the grid render.
+  function zwCardCarouselOn(){
+    var cfg = window.__zwCollPageCfg || {};
+    var w = window.innerWidth || document.documentElement.clientWidth || 0;
+    var key = w <= 640 ? 'card_carousel_sm' : (w <= 1024 ? 'card_carousel_md' : 'card_carousel_lg');
+    var v = cfg[key];
+    if (v === true) return true;
+    if (v === false) return false;
+    return cfg.card_carousel === true;
+  }
+  // Position dots default ON; admin can hide them (card_dots:false).
+  function zwCardDotsOn(){ return (window.__zwCollPageCfg || {}).card_dots !== false; }
+  // When on, switching colour keeps the SAME image position (image 3 → image 3 of
+  // the next colour) instead of resetting to the first shot. Default off.
+  function zwCardMirrorOn(){ return (window.__zwCollPageCfg || {}).card_mirror === true; }
+  // When on, the arrows wrap around: Next on the last image jumps to the first (and
+  // Prev on the first jumps to the last). Default off (arrows stop at the ends).
+  function zwCardLoopOn(){ return (window.__zwCollPageCfg || {}).card_loop === true || window.__zwCardGalleryLoop === true; }
+  function _ccIsVideo(im){ return (im && im.media_type === 'video') || /\.(mp4|webm|mov|m4v)(\?|$)/i.test((im && im.image_url) || ''); }
+  // Media (images + optional videos) for a colour, sorted; falls back to the
+  // product's uncoloured/all images when a colour has none of its own.
+  function zwCardMedia(p, colorId, includeVideos){
+    var imgs = (p && p.product_images) || [];
+    var list;
+    if (colorId){
+      list = imgs.filter(function(im){ return im.color_variant_id === colorId; });
+      if (!list.length) list = imgs.filter(function(im){ return !im.color_variant_id; });
+      if (!list.length) list = imgs.slice();
+    } else { list = imgs.slice(); }
+    list = list.slice().sort(function(a,b){ return (a.sort_order||0)-(b.sort_order||0); });
+    if (!includeVideos) list = list.filter(function(im){ return !_ccIsVideo(im); });
+    return list.map(function(im){ return { u: im.image_url, v: _ccIsVideo(im) }; }).filter(function(m){ return m.u; });
+  }
+  function zwCarouselSlides(media, name){
+    return media.map(function(m){
+      if (m.v) return '<video class="zw-cc-item" src="'+_ccEsc(m.u)+'" muted loop playsinline preload="metadata"></video>';
+      var src = (typeof optimizeImage === 'function') ? optimizeImage(m.u, 600) : m.u;
+      return '<img class="zw-cc-item" src="'+_ccEsc(src)+'" alt="'+_ccEsc(name)+'" loading="lazy" width="400" height="500">';
+    }).join('');
+  }
+  function zwCarouselHtml(media, name){
+    var dots = (zwCardDotsOn() && media.length > 1) ? '<div class="zw-cc-dots">'+media.map(function(_,i){ return '<span'+(i===0?' class="on"':'')+'></span>'; }).join('')+'</div>' : '';
+    var nav = media.length > 1 ? '<button type="button" class="zw-cc-nav zw-cc-prev" aria-label="Previous image" tabindex="-1">&lsaquo;</button><button type="button" class="zw-cc-nav zw-cc-next" aria-label="Next image" tabindex="-1">&rsaquo;</button>' : '';
+    return '<div class="zw-card-carousel" tabindex="-1">'+zwCarouselSlides(media, name)+'</div>'+nav+dots;
+  }
+  // Swap the carousel (and its dots) to a colour's media on swatch change.
+  function zwRebuildCardCarousel(card, sw){
+    var carousel = card && card.querySelector('.zw-card-carousel');
+    if (!carousel || !sw || !sw.dataset.imgs) return false;
+    var media; try { media = JSON.parse(decodeURIComponent(sw.dataset.imgs)); } catch(_){ return false; }
+    if (!media || !media.length) return false;
+    // Mirror mode: carry the current image index to the new colour (clamped to its
+    // shot count); otherwise snap back to the first image.
+    var w = carousel.clientWidth || 1;
+    var idx = zwCardMirrorOn() ? Math.min(Math.max(Math.round(carousel.scrollLeft / w), 0), media.length - 1) : 0;
+    var name = (card.querySelector('.product-name') || {}).textContent || '';
+    carousel.innerHTML = zwCarouselSlides(media, name);
+    zwObserveCardVideos();
+    try { carousel.scrollLeft = idx * w; } catch(_){}
+    var dots = card.querySelector('.zw-cc-dots');
+    if (dots) dots.innerHTML = media.length > 1 ? media.map(function(_,i){ return '<span'+(i===idx?' class="on"':'')+'></span>'; }).join('') : '';
+    return true;
+  }
+  // Keep the dots in sync while the shopper swipes (scroll doesn't bubble → capture),
+  // and snap-correct the strip once scrolling settles.
+  document.addEventListener('scroll', function(e){
+    var car = e.target && e.target.closest && e.target.closest('.zw-card-carousel');
+    if (!car || car.__ccWrap || !car.parentElement) return;   // frozen mid seamless-wrap
+    var w = car.clientWidth || 1, idx = Math.round(car.scrollLeft / w);
+    var dots = car.parentElement.querySelector('.zw-cc-dots');
+    if (dots) { var spans = dots.children; for (var i=0;i<spans.length;i++) spans[i].classList.toggle('on', i === idx); }
+    // Snap-correction: after scrolling stops, nudge exactly onto the nearest image so a
+    // drifted / sub-pixel scroll position can't leave a sliver of the NEXT image showing
+    // at the card edge. Only fires when off by >1.5px (a clean snap is left alone) and
+    // never during the seamless-loop wrap or our own correction scroll.
+    if (car.__ccSnapping) return;
+    if (car.__ccSnapT) clearTimeout(car.__ccSnapT);
+    car.__ccSnapT = setTimeout(function(){
+      if (car.__ccWrap) return;
+      var ww = car.clientWidth || 1, tgt = Math.round(car.scrollLeft / ww) * ww;
+      if (Math.abs(car.scrollLeft - tgt) > 1.5) {
+        car.__ccSnapping = 1;
+        try { car.scrollTo({ left: tgt, behavior: 'smooth' }); } catch(_){ car.scrollLeft = tgt; }
+        setTimeout(function(){ car.__ccSnapping = 0; }, 450);
+      }
+    }, 130);
+  }, true);
+
+  // ── Loop wrap: "seamless" (default) vs "rewind" ─────────────────────────────
+  // Seamless: glide ONE slide forward onto a throwaway clone of the first image,
+  // then silently snap the scroll back — last→first reads as a normal advance, not a
+  // rewind sweep. Rewind: the old behaviour (smooth-scroll all the way back).
+  function zwCardLoopStyle(){
+    var s = String(window.__zwCardLoopStyle || (window.__zwCollPageCfg || {}).card_loop_style || '').toLowerCase();
+    return /^(rewind|fade|instant)$/.test(s) ? s : 'seamless';
+  }
+  // Fade: dim the whole strip out, jump to the first/last shot, fade it back — a soft
+  // cross-dissolve wrap with no sideways travel.
+  function zwFadeWrap(car, toStart){
+    if (!car || car.__ccWrap) return;
+    var n = car.children.length, w = car.clientWidth || 1; if (n < 2) return;
+    car.__ccWrap = true;
+    var prevSnap = car.style.scrollSnapType;
+    car.style.scrollSnapType = 'none';
+    car.style.transition = 'opacity .17s ease';
+    car.style.opacity = '0';
+    setTimeout(function(){
+      car.scrollLeft = toStart ? 0 : (n - 1) * w;
+      car.style.opacity = '1';
+      var dots = car.parentElement && car.parentElement.querySelector('.zw-cc-dots');
+      if (dots){ var di = toStart ? 0 : (n - 1); for (var i = 0; i < dots.children.length; i++) dots.children[i].classList.toggle('on', i === di); }
+      setTimeout(function(){ car.style.transition = ''; car.style.scrollSnapType = prevSnap || ''; car.__ccWrap = false; }, 190);
+    }, 175);
+  }
+  // Instant: jump straight to the first/last shot, no motion.
+  function zwInstantWrap(car, toStart){
+    var n = car.children.length, w = car.clientWidth || 1; if (n < 2) return;
+    var prevSnap = car.style.scrollSnapType;
+    car.style.scrollSnapType = 'none';
+    car.scrollLeft = toStart ? 0 : (n - 1) * w;
+    car.style.scrollSnapType = prevSnap || '';
+    var dots = car.parentElement && car.parentElement.querySelector('.zw-cc-dots');
+    if (dots){ var di = toStart ? 0 : (n - 1); for (var i = 0; i < dots.children.length; i++) dots.children[i].classList.toggle('on', i === di); }
+  }
+  function zwSeamlessWrap(car, toStart){
+    if (!car || car.__ccWrap) return;
+    var n = car.children.length; if (n < 2) return;
+    var w = car.clientWidth || 1;
+    car.__ccWrap = true;
+    var prevSnap = car.style.scrollSnapType;
+    car.style.scrollSnapType = 'none';                     // manual scroll — don't let snap fight us
+    var clone = (toStart ? car.children[0] : car.children[n - 1]).cloneNode(true);
+    clone.setAttribute('data-cc-clone', '1');
+    var from, to, resetLeft;
+    if (toStart) { car.appendChild(clone); from = car.scrollLeft; to = n * w; resetLeft = 0; }
+    else { car.insertBefore(clone, car.children[0]); car.scrollLeft = w; from = w; to = 0; resetLeft = (n - 1) * w; }
+    // Animate scrollLeft ourselves over a fixed duration (easeOutCubic) so we control
+    // EXACTLY when it ends — native smooth-scroll would keep running past the clone
+    // removal and clamp back onto the last slide. One-slide glide onto the clone, then
+    // an instant reset onto the identical real slide → seamless.
+    var dur = 340, t0 = null;
+    function step(ts){
+      if (t0 === null) t0 = ts;
+      var p = Math.min(1, (ts - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      car.scrollLeft = from + (to - from) * e;
+      if (p < 1) { requestAnimationFrame(step); return; }
+      if (clone.parentNode) clone.parentNode.removeChild(clone);
+      car.scrollLeft = resetLeft;                          // synchronous → no flicker
+      car.style.scrollSnapType = prevSnap || '';
+      car.__ccWrap = false;
+      var dots = car.parentElement && car.parentElement.querySelector('.zw-cc-dots');
+      if (dots) { var di = toStart ? 0 : (n - 1); for (var i = 0; i < dots.children.length; i++) dots.children[i].classList.toggle('on', i === di); }
+    }
+    requestAnimationFrame(step);
+  }
+  function zwCardWrap(car, toStart){
+    var st = zwCardLoopStyle();
+    if (st === 'rewind') {
+      var w = car.clientWidth || 1, max = car.scrollWidth - w;
+      car.scrollTo({ left: toStart ? 0 : max, behavior: 'smooth' });
+    } else if (st === 'fade') { zwFadeWrap(car, toStart); }
+    else if (st === 'instant') { zwInstantWrap(car, toStart); }
+    else { zwSeamlessWrap(car, toStart); }
+  }
+
+  // Desktop nav-arrow clicks — advance one slide (touch users swipe instead).
+  document.addEventListener('click', function(e){
+    var nav = e.target && e.target.closest && e.target.closest('.zw-cc-nav');
+    if (!nav || !nav.parentElement) return;
+    e.preventDefault(); e.stopPropagation();
+    var car = nav.parentElement.querySelector('.zw-card-carousel'); if (!car) return;
+    var w = car.clientWidth || 1, max = car.children.length - 1;
+    var idx = Math.round(car.scrollLeft / w) + (nav.classList.contains('zw-cc-next') ? 1 : -1);
+    if (zwCardLoopOn()) {
+      if (idx > max) { zwCardWrap(car, true); return; }
+      if (idx < 0) { zwCardWrap(car, false); return; }
+    } else { idx = Math.max(0, Math.min(max, idx)); }
+    car.scrollTo({ left: idx * w, behavior: 'smooth' });
+  }, true);
+
+  // Loop on TOUCH — the arrows only show on desktop, so on touch a "next" swipe made
+  // while already on the LAST image wraps to the first (and "prev" on the first wraps
+  // to the last). Native scroll clamps at the ends, so that boundary swipe is free to
+  // repurpose. Only when the loop option is on.
+  (function(){
+    var t = null;
+    document.addEventListener('touchstart', function(e){
+      var car = e.target && e.target.closest && e.target.closest('.zw-card-carousel');
+      t = (car && car.children.length > 1) ? { car:car, x:e.touches[0].clientX, sl:car.scrollLeft } : null;
+    }, { passive:true });
+    document.addEventListener('touchend', function(e){
+      if (!t || !zwCardLoopOn()) { t = null; return; }
+      var car = t.car, startSl = t.sl, max = car.scrollWidth - car.clientWidth;
+      var dx = (e.changedTouches[0] ? e.changedTouches[0].clientX : t.x) - t.x;
+      t = null;
+      if (Math.abs(dx) < 30) return;                                   // not a deliberate swipe
+      if (dx < 0 && startSl >= max - 2) zwCardWrap(car, true);         // next at end → first
+      else if (dx > 0 && startSl <= 2) zwCardWrap(car, false);         // prev at start → last
+    }, { passive:true });
+  })();
+
+  // Mouse drag-to-scroll — the only way to advance the carousel with a mouse
+  // (scrollbar is hidden). Touch keeps native momentum scroll, so we skip it.
+  (function(){
+    var d = null;
+    document.addEventListener('pointerdown', function(e){
+      if (e.pointerType === 'touch') return;
+      var car = e.target && e.target.closest && e.target.closest('.zw-card-carousel');
+      if (!car || car.children.length < 2) return;
+      d = { car:car, x:e.clientX, sl:car.scrollLeft, moved:false };
+      car.style.scrollSnapType = 'none';
+      e.preventDefault();               // suppress native image ghost-drag
+    });
+    document.addEventListener('pointermove', function(e){
+      if (!d) return;
+      var dx = e.clientX - d.x;
+      if (Math.abs(dx) > 3) d.moved = true;
+      d.lastDx = dx;
+      d.car.scrollLeft = d.sl - dx;
+    });
+    function end(){
+      if (!d) return;
+      var car = d.car; car.style.scrollSnapType = '';
+      var w = car.clientWidth || 1, idx = Math.round(car.scrollLeft / w);
+      // Loop: a drag that starts on the last image and pulls further "next" wraps to
+      // the first (mirrors the touch swipe-wrap and the arrows).
+      var max = car.scrollWidth - car.clientWidth;
+      if (zwCardLoopOn() && d.moved && Math.abs(d.lastDx || 0) > 20) {
+        if (d.lastDx < 0 && d.sl >= max - 2) { zwCardWrap(car, true); idx = -1; }
+        else if (d.lastDx > 0 && d.sl <= 2) { zwCardWrap(car, false); idx = -1; }
+      }
+      if (idx >= 0) car.scrollTo({ left: idx * w, behavior:'smooth' });
+      if (d.moved){                     // a drag shouldn't also open the product page
+        var sup = function(ev){ ev.preventDefault(); ev.stopPropagation(); document.removeEventListener('click', sup, true); };
+        document.addEventListener('click', sup, true);
+        setTimeout(function(){ document.removeEventListener('click', sup, true); }, 80);
+      }
+      d = null;
+    }
+    document.addEventListener('pointerup', end);
+    document.addEventListener('pointercancel', end);
+  })();
+
   // Hover swaps the card photo to the color's image and KEEPS it (sticks on the
   // last colour hovered; a refresh re-renders the default). Click opens the bag
   // modal preselected to that color.
   function _zwSetActiveSwatch(sw) {
     var row = sw.closest('.zw-card-swatches');
     if (row) row.querySelectorAll('.zw-card-swatch').forEach(function (s) { s.classList.toggle('active', s === sw); });
+    // Reflect the shown colour in the card's product link so clicking THROUGH to the
+    // product page opens it on this colour (?color=name, which product.html deep-links)
+    // instead of always the first swatch. Works for hover, filter auto-select and tap.
+    _zwSetCardLinkColor(sw);
+  }
+  // Rewrite the card's <a href> to carry the active swatch's colour. The colour-less
+  // base href is stashed once in data-baseHref so switching colours (or back to the
+  // default) never stacks params. Middle-click / open-in-new-tab keep the colour too.
+  function _zwSetCardLinkColor(sw) {
+    var card = sw && sw.closest('.product-card');
+    var link = card && card.closest('a[href]');
+    if (!link) return;
+    if (!link.dataset.baseHref) link.dataset.baseHref = link.getAttribute('href') || '';
+    var base = link.dataset.baseHref;
+    if (!base) return;
+    var name = sw.classList.contains('zw-swatch-more') ? '' : (sw.dataset.colorName || '');
+    if (!name) { link.setAttribute('href', base); return; }
+    var sep = base.indexOf('?') >= 0 ? '&' : '?';
+    link.setAttribute('href', base + sep + 'color=' + encodeURIComponent(name));
+  }
+  // Programmatically preview a swatch's colour on its card — same effect as hovering
+  // it: rebuild the carousel for that colour (carousel mode) or swap the still image,
+  // then mark it active. Used by the collection colour filter to auto-select the
+  // filtered colour so the card shows it without the shopper clicking.
+  function _zwPreviewSwatch(sw) {
+    if (!sw) return;
+    var card = sw.closest('.product-card');
+    if (zwRebuildCardCarousel(card, sw)) { _zwSetActiveSwatch(sw); return; }
+    var img = card && card.querySelector('.product-img img');
+    if (img && sw.dataset.img) img.setAttribute('src', sw.dataset.img);
+    _zwSetActiveSwatch(sw);
   }
   document.addEventListener('mouseover', function (e) {
     var sw = e.target.closest('.zw-card-swatch'); if (!sw || sw.classList.contains('zw-swatch-more')) return;
-    var card = sw.closest('.product-card'); var img = card && card.querySelector('.product-img img');
+    var card = sw.closest('.product-card');
+    if (zwRebuildCardCarousel(card, sw)) { _zwSetActiveSwatch(sw); return; }
+    var img = card && card.querySelector('.product-img img');
     if (!img || !sw.dataset.img) return;
     img.setAttribute('src', sw.dataset.img);
     _zwSetActiveSwatch(sw);
@@ -2222,8 +3135,10 @@ function updateCountdown() {
     if (window.matchMedia && window.matchMedia('(max-width:760px)').matches) {
       if (!sw.classList.contains('zw-swatch-more')) {
         var mcard = sw.closest('.product-card');
-        var mimg = mcard && mcard.querySelector('.product-img img');
-        if (mimg && sw.dataset.img) mimg.setAttribute('src', sw.dataset.img);
+        if (!zwRebuildCardCarousel(mcard, sw)) {
+          var mimg = mcard && mcard.querySelector('.product-img img');
+          if (mimg && sw.dataset.img) mimg.setAttribute('src', sw.dataset.img);
+        }
         _zwSetActiveSwatch(sw);
       }
       return;
@@ -2232,7 +3147,9 @@ function updateCountdown() {
     var payload = {};
     try { payload = JSON.parse(decodeURIComponent(row.dataset.quickAdd || '{}')); }
     catch (_) { showToast('Unable to open product options'); return; }
-    colQuickAdd(payload.productId, payload.title, payload.price, payload.sku, payload.image, payload.weightLb, payload.panelId, null, sw.dataset.colorName || null);
+    // Pass the CLICKED swatch's image (not the product default) so the modal's first
+    // paint shows the colour the shopper clicked, not the first colour then a swap.
+    colQuickAdd(payload.productId, payload.title, payload.price, payload.sku, sw.dataset.img || payload.image, payload.weightLb, payload.panelId, null, sw.dataset.colorName || null);
   }, true);
 
   var _collectionReviewItem = null;
@@ -2329,6 +3246,10 @@ function updateCountdown() {
     document.querySelectorAll('.cart-count, .zw-mobile-bag-count').forEach(function(el) {
       el.textContent = total;
     });
+    // Bag feedback: reveal the header (if scrolled away) + dip the bag / pop the
+    // count — same as the homepage. Slight delay so it plays as the review modal
+    // closes rather than behind it.
+    window.setTimeout(function(){ if (typeof window.animateAddToBag === 'function') window.animateAddToBag(); }, 220);
     showToast('Added to bag');
   }
 

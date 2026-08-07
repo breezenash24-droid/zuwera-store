@@ -24,7 +24,7 @@
 
 /* ── Star display (read-only avg) ── */
 .review-stars-avg {
-  color: var(--zw-accent);
+  color: var(--zw-msoc,var(--zw-accent));
   font-size: 0.8rem;
   letter-spacing: 0.05em;
 }
@@ -65,7 +65,7 @@
   justify-content: space-between;
   margin-bottom: 0.3rem;
 }
-.review-item-stars { color: var(--zw-accent); font-size: 0.75rem; }
+.review-item-stars { color: var(--zw-msoc,var(--zw-accent)); font-size: 0.75rem; }
 .review-item-meta {
   font-family: var(--font-mono);
   font-size: 0.58rem;
@@ -113,7 +113,7 @@
 .review-mbox {
   background: #0f0f0f;
   border: 1px solid rgba(244,241,235,.08);
-  border-top: 2px solid var(--zw-accent);
+  border-top: 2px solid var(--zw-msoc,var(--zw-accent));
   position: relative;
   /* Flex column: the header is a fixed row (flex:0) and only .review-mbox-body
      scrolls — the same fixed-header pattern the size-guide / size-fit modals use.
@@ -165,7 +165,7 @@ body.super-light-mode #review-modal .review-mbox-hd { background: #FFFFFF; }
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  color: var(--zw-accent);
+  color: var(--zw-msoc,var(--zw-accent));
   font-family: var(--font-mono);
   font-size: 0.55rem;
   letter-spacing: 0.22em;
@@ -208,9 +208,9 @@ body.super-light-mode #review-modal .review-mbox-hd { background: #FFFFFF; }
   padding: 0 0.1rem;
   line-height: 1;
 }
-.review-mbox .star-selector button.lit     { color: var(--zw-accent); }
+.review-mbox .star-selector button.lit     { color: var(--zw-msoc,var(--zw-accent)); }
 .review-mbox .star-selector button:hover,
-.review-mbox .star-selector button.hover   { color: var(--zw-accent); transform: scale(1.15); }
+.review-mbox .star-selector button.hover   { color: var(--zw-msoc,var(--zw-accent)); transform: scale(1.15); }
 
 /* ── Review textarea ── */
 .review-mbox .review-body-field {
@@ -285,18 +285,18 @@ body.super-light-mode #review-modal .review-mbox-hd { background: #FFFFFF; }
 .review-summary-box { display: flex; flex-wrap: wrap; gap: 2rem; background: none; padding: 1.25rem 0; border: none; border-top: 1px solid rgba(244,241,235,0.09); border-bottom: 1px solid rgba(244,241,235,0.09); margin-bottom: 1.5rem; }
 .rs-left { text-align: center; min-width: 140px; display: flex; flex-direction: column; justify-content: center; border-right: 1px solid rgba(244,241,235,0.08); padding-right: 2rem; }
 .rs-right { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 1.2rem; }
-.rs-rating { font-size: 3.5rem; font-family: var(--font-head); color: var(--zw-accent); line-height: 1; }
-.rs-stars { color: var(--zw-accent); font-size: 1.2rem; margin: 0.2rem 0; }
+.rs-rating { font-size: 3.5rem; font-family: var(--font-head); color: var(--zw-msoc,var(--zw-accent)); line-height: 1; }
+.rs-stars { color: var(--zw-msoc,var(--zw-accent)); font-size: 1.2rem; margin: 0.2rem 0; }
 .rs-count { font-size: 0.8rem; color: rgba(244,241,235,0.5); margin-top: 0.2rem; }
 .rs-metric-title { font-size: 0.9rem; font-weight: 500; color: #f4f1eb; margin-bottom: 0.2rem; }
 .rs-metric-subtitle { font-size: 0.75rem; color: rgba(244,241,235,0.6); margin-bottom: 0.6rem; font-style: italic; }
 .rs-metric-bar { height: 4px; background: rgba(244,241,235,0.1); border-radius: 2px; position: relative; margin-bottom: 0.4rem; }
-.rs-metric-fill { position: absolute; top: 0; width: 12px; height: 12px; background: var(--zw-accent); border-radius: 50%; transform: translate(-50%, -4px); }
+.rs-metric-fill { position: absolute; top: 0; width: 12px; height: 12px; background: var(--zw-msoc,var(--zw-accent)); border-radius: 50%; transform: translate(-50%, -4px); }
 .rs-metric-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(244,241,235,0.5); text-transform: uppercase; letter-spacing: 0.05em; }
 .translate-btn { background: rgba(244,241,235,0.05); border: 1px solid rgba(244,241,235,0.2); color: #f4f1eb; padding: 0.8rem; font-size: 0.8rem; letter-spacing: 0.05em; border-radius: 4px; cursor: pointer; transition: all 0.2s; width: 100%; font-family: var(--font-body); text-transform: uppercase; margin-bottom: 1.5rem; }
-.translate-btn:hover { border-color: var(--zw-accent); color: var(--zw-accent); background: rgba(248,145,165,0.05); }
+.translate-btn:hover { border-color: var(--zw-msoc,var(--zw-accent)); color: var(--zw-msoc,var(--zw-accent)); background: rgba(248,145,165,0.05); }
 
-.review-mbox .review-slider { width: 100%; margin-top: 0.5rem; accent-color: var(--zw-accent); cursor: pointer; }
+.review-mbox .review-slider { width: 100%; margin-top: 0.5rem; accent-color: var(--zw-msoc,var(--zw-accent)); cursor: pointer; }
 .review-mbox .review-slider-wrap { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(244,241,235,0.4); margin-top: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .review-mbox .review-radio-group { display: flex; gap: 0.6rem; margin-top: 0.5rem; flex-wrap: wrap; }
 .review-mbox .review-radio-group input[type="radio"] { display: none; }
@@ -309,7 +309,7 @@ body.super-light-mode #review-modal .review-mbox-hd { background: #FFFFFF; }
   color: rgba(244,241,235,0.5); transition: all .2s; user-select: none;
   font-family: var(--font-body);
 }
-.review-mbox .review-radio-group input[type="radio"]:checked + label { border-color: var(--zw-accent); background: rgba(248,145,165,0.15); color: var(--zw-accent); }
+.review-mbox .review-radio-group input[type="radio"]:checked + label { border-color: var(--zw-msoc,var(--zw-accent)); background: rgba(248,145,165,0.15); color: var(--zw-msoc,var(--zw-accent)); }
 .review-mbox .review-radio-group label:hover { border-color: rgba(244,241,235,0.3); color: #f4f1eb; background: rgba(244,241,235,0.08); }
 
 .review-fit-toggle-row { margin-bottom: 1.5rem; }
@@ -324,7 +324,7 @@ body.super-light-mode #review-modal .review-mbox-hd { background: #FFFFFF; }
   text-transform: none;
   cursor: pointer;
 }
-.review-fit-toggle-label input[type="checkbox"] { width: auto; margin: 0; accent-color: var(--zw-accent); }
+.review-fit-toggle-label input[type="checkbox"] { width: auto; margin: 0; accent-color: var(--zw-msoc,var(--zw-accent)); }
 .review-advanced-legacy {
   padding: 1.2rem;
   background: rgba(244,241,235,0.02);
@@ -346,7 +346,7 @@ body.super-light-mode #review-modal .review-mbox-hd { background: #FFFFFF; }
 .review-list-mbox {
   background: #0f0f0f;
   border: 1px solid rgba(244,241,235,.08);
-  border-top: 2px solid var(--zw-accent);
+  border-top: 2px solid var(--zw-msoc,var(--zw-accent));
   position: relative;
   animation: modalIn .2s ease;
   max-width: 1400px;
@@ -445,7 +445,7 @@ body.super-light-mode .review-list-mbox > .review-list-close {
   cursor: pointer;
 }
 .review-list-select:focus,
-.review-list-translate:hover { border-color: var(--zw-accent); color: var(--zw-accent); }
+.review-list-translate:hover { border-color: var(--zw-msoc,var(--zw-accent)); color: var(--zw-msoc,var(--zw-accent)); }
 .review-list-translate { width: auto !important; margin-bottom: 0; padding: 0.8rem 1.5rem; }
 .review-list-mbox .review-summary-box { margin-bottom: 1.5rem; }
 .review-list-mbox .review-modal-card {
@@ -489,7 +489,7 @@ body.super-light-mode .review-list-mbox > .review-list-close {
   text-transform: none;
 }
 .review-list-mbox .review-card-action {
-  color: var(--zw-accent);
+  color: var(--zw-msoc,var(--zw-accent));
   font-family: var(--font-body);
   font-size: 0.75rem;
   letter-spacing: 0;
@@ -515,13 +515,13 @@ body.super-light-mode .review-list-mbox > .review-list-close {
 .review-list-mbox .review-admin-response {
   margin-top: 12px;
   padding: 12px;
-  border-left: 2px solid var(--admin-res-text, var(--zw-accent));
+  border-left: 2px solid var(--admin-res-text, var(--zw-msoc,var(--zw-accent)));
   border-radius: 4px;
   background: var(--admin-res-bg, rgba(248,145,165,0.08));
 }
 .review-list-mbox .review-admin-label {
   margin-bottom: 4px;
-  color: var(--admin-res-text, var(--zw-accent));
+  color: var(--admin-res-text, var(--zw-msoc,var(--zw-accent)));
   font-family: var(--font-head);
   font-size: 0.85rem;
   letter-spacing: 0.05em;
@@ -591,7 +591,10 @@ body.light-mode .review-mbox .star-selector button.hover { color: rgba(9,9,11,0.
 body.light-mode .review-mbox .review-radio-group label { background: rgba(9,9,11,0.04); border-color: rgba(9,9,11,0.15); color: rgba(9,9,11,0.6); }
 body.light-mode .review-mbox .review-radio-group label:hover { background: rgba(9,9,11,0.08); color: #09090b; }
 body.light-mode .review-mbox .review-radio-group input[type="radio"]:checked + label { border-color: #09090b; background: rgba(9,9,11,0.07); color: #09090b; }
-body.light-mode .review-advanced-legacy { background: #F0EEE9 !important; border-color: rgba(9,9,11,0.08) !important; }
+/* Was #F0EEE9 (the warm panel tint) which read as a dingy beige box inside the
+   white review modal. Use a barely-there neutral grey + a clearer border so the
+   optional-ratings block reads as an intentional grouped card, not a colour mismatch. */
+body.light-mode .review-advanced-legacy { background: rgba(9,9,11,0.02) !important; border-color: rgba(9,9,11,0.12) !important; }
 body.light-mode .review-mbox .review-slider-wrap { color: rgba(9,9,11,0.5); }
 body.light-mode .review-mbox .review-legacy-label,
 body.light-mode .review-fit-toggle-label { color: rgba(9,9,11,0.7); }

@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 1.4rem 2.5rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   position: sticky;
   top: 0;
   background: var(--black);
@@ -58,6 +58,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.8rem 1.5rem;
+}
+/* Tablet: stack the summary below the items so the bag/saved columns get the
+   full width instead of being squeezed into the narrow 1fr of a 2-col grid. */
+@media (max-width: 900px) {
+  .cart-page-body { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
   .cart-page-body { grid-template-columns: 1fr; padding: 2rem 1.2rem 4rem; }
@@ -112,11 +117,75 @@
 .favorites-msg { font-size: 0.88rem; color: var(--c45); line-height: 1.7; }
 .favorites-msg a { color: var(--white); text-decoration: underline; cursor: pointer; }
 .favorites-msg a:hover { opacity: 0.65; }
+/* ── Saved items: vertical product cards (matches the account page) ────────── */
+#cart-favs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  /* Cap the card width (small, not 1fr) so saved items stay clearly secondary to
+     the cart rows instead of stretching to fill the column. Tiles from the left;
+     more items wrap onto new rows. */
+  grid-template-columns: repeat(auto-fill, minmax(140px, 165px));
+  justify-content: start;
+  gap: 1.1rem;
+}
+.zw-saved-item {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(244,241,235,0.1);
+  background: rgba(244,241,235,0.02);
+}
+.zw-saved-item-img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  display: block;
+  background: rgba(244,241,235,0.06);
+}
+.zw-saved-item-img--empty {
+  align-items: center;
+  justify-content: center;
+  color: rgba(244,241,235,0.3);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.zw-saved-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  padding: 0.8rem 0.85rem 0.85rem;
+}
+.zw-saved-item-name {
+  font-size: 0.84rem;
+  line-height: 1.3;
+  font-weight: 500;
+  color: rgba(244,241,235,0.96);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.zw-saved-item-sub {
+  font-size: 0.62rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,0.45);
+}
+.zw-saved-item-price {
+  font-size: 0.8rem;
+  color: rgba(244,241,235,0.82);
+  margin-top: 0.05rem;
+  font-variant-numeric: tabular-nums;
+}
 .zw-saved-item-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.8rem;
+  gap: 0.45rem;
+  margin-top: 0.6rem;
 }
 .zw-saved-item-btn,
 .zw-saved-item-link {
@@ -124,12 +193,12 @@
   align-items: center;
   justify-content: center;
   min-height: 36px;
-  padding: 0 0.95rem;
+  padding: 0 0.6rem;
   border: 1px solid rgba(244,241,235,0.16);
   background: rgba(244,241,235,0.04);
   color: rgba(244,241,235,0.88);
-  font-size: 0.68rem;
-  letter-spacing: 0.09em;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
@@ -140,11 +209,14 @@
   opacity: 1;
   border-color: rgba(244,241,235,0.3);
 }
+/* "Add to Bag" gets its own full-width row on top; View + Remove split the row. */
 .zw-saved-item-btn--primary {
   background: var(--white);
   border-color: var(--white);
   color: var(--black);
   font-weight: 700;
+  order: -1;
+  flex: 1 1 100%;
 }
 .zw-saved-item-btn--primary:hover {
   opacity: 0.9;
@@ -152,6 +224,8 @@
 .zw-saved-item-btn--ghost {
   background: transparent;
   color: rgba(244,241,235,0.8);
+  flex: 1 1 calc(50% - 0.25rem);
+  min-width: 0;
 }
 
 /* ===================== CART SUMMARY ===================== */
@@ -245,28 +319,44 @@ body.light-mode .cart-shell-footer-nav a { color: rgba(9,9,11,0.66); }
 body.light-mode .cart-shell-footer-nav a:hover { color: #09090b; }
 body.light-mode .cart-shell-footer-copy { color: rgba(9,9,11,0.4); }
 body.light-mode .zw-saved-item-btn,
-body.light-mode .zw-saved-item-link {
+body.light-mode .zw-saved-item-link,
+body.super-light-mode .zw-saved-item-btn,
+body.super-light-mode .zw-saved-item-link {
   border-color: rgba(9,9,11,0.14);
   background: rgba(9,9,11,0.03);
   color: rgba(9,9,11,0.82);
 }
-body.light-mode .zw-saved-item-btn--primary {
+body.light-mode .zw-saved-item-btn--primary,
+body.super-light-mode .zw-saved-item-btn--primary {
   background: #09090b;
   border-color: #09090b;
   color: #E8E3DC;
 }
-body.light-mode .zw-saved-item-btn--primary:hover { background: #1a1a1a; }
+body.light-mode .zw-saved-item-btn--primary:hover,
+body.super-light-mode .zw-saved-item-btn--primary:hover { background: #1a1a1a; }
+/* Card text + image on light grounds — base colors are near-white (dark theme),
+   which is what made the subtitle/price invisible on the white bag page. */
+body.light-mode .zw-saved-item,
+body.super-light-mode .zw-saved-item { border-color: rgba(9,9,11,0.1); background: rgba(9,9,11,0.015); }
+body.light-mode .zw-saved-item-name,
+body.super-light-mode .zw-saved-item-name { color: #09090b; }
+body.light-mode .zw-saved-item-sub,
+body.super-light-mode .zw-saved-item-sub { color: rgba(9,9,11,0.5); }
+body.light-mode .zw-saved-item-price,
+body.super-light-mode .zw-saved-item-price { color: rgba(9,9,11,0.75); }
+body.light-mode .zw-saved-item-img,
+body.super-light-mode .zw-saved-item-img { background: rgba(9,9,11,0.06); }
+body.light-mode .zw-saved-item-img--empty,
+body.super-light-mode .zw-saved-item-img--empty { color: rgba(9,9,11,0.3); }
 @media (max-width: 760px) {
   .cart-shell-footer {
     padding: 1rem 1.2rem 1.6rem;
     flex-direction: column;
     align-items: flex-start;
   }
-  .zw-saved-item-btn,
-  .zw-saved-item-link {
-    flex: 1 1 calc(50% - 0.45rem);
-    min-width: 9rem;
-  }
+  /* Buttons stack via the .zw-saved-item-info container query, not the viewport. */
+  .zw-saved-item { gap: 0.85rem; }
+  .zw-saved-item-img { width: 78px; height: 98px; }
 }
 
 /* ─── BAG PAGE REDESIGN ──────────────────────────────────────────────────── */

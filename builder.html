@@ -52,8 +52,12 @@ body{display:flex;flex-direction:column}
 
 /* ── LEFT PANEL (tabs) ── */
 .lp{width:260px;flex-shrink:0;background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}
-.lp-tabs{display:flex;border-bottom:1px solid var(--bd);flex-shrink:0}
-.lp-tab{flex:1;background:none;border:none;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;padding:.62rem .2rem;cursor:pointer;transition:.1s;border-bottom:2px solid transparent;white-space:nowrap}
+/* Six tabs don't fit on one line in the ~335px editor panel (COLLECTION is the
+   long one) — a single flex row crammed + clipped them. A 3-col grid lays them
+   out as two tidy rows of three, equal width, no clipping, and it scales as tabs
+   are added. */
+.lp-tabs{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--bd);flex-shrink:0}
+.lp-tab{background:none;border:none;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.05em;text-transform:uppercase;padding:.6rem .3rem;cursor:pointer;transition:.1s;border-bottom:2px solid transparent;white-space:nowrap;min-width:0}
 .lp-tab.on{color:#f4f1eb;border-bottom-color:var(--ac)}
 .lp-tab:hover:not(.on){color:rgba(244,241,235,.7)}
 .lp-content{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0}
@@ -138,6 +142,22 @@ body{display:flex;flex-direction:column}
 .switch input:checked+.sw-sl{background:var(--ac);border-color:var(--ac)}
 .switch input:checked+.sw-sl::before{transform:translateX(13px);background:#fff}
 .fhint{font-size:.56rem;color:var(--mu);line-height:1.5}
+/* Collapsible editor groups (native <details>). Inputs inside a COLLAPSED group
+   stay in the DOM, so syncForm still reads them and the preview stays correct. */
+.ed-grp{border:1px solid var(--bd);border-radius:4px;margin:.35rem 0;background:rgba(255,255,255,.014)}
+.ed-grp>summary{list-style:none;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:.4rem;padding:.5rem .55rem;font-family:'IBM Plex Mono',monospace;font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ac)}
+.ed-grp>summary::-webkit-details-marker{display:none}
+.ed-grp>summary::after{content:'\25B8';opacity:.5;font-size:.7rem;transition:transform .15s}
+.ed-grp[open]>summary::after{transform:rotate(90deg)}
+.ed-grp>summary:hover{color:#f4f1eb}
+.ed-grp-b{display:flex;flex-direction:column;gap:.28rem;padding:.15rem .55rem .6rem}
+/* Per-device tab switcher for the layout controls (syncs with the top preview toggle) */
+.pf-tabs{display:flex;gap:2px;margin:.1rem 0 .45rem;background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:2px}
+.pf-tab{flex:1;border:none;background:transparent;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.06em;text-transform:uppercase;padding:.36rem .2rem;border-radius:3px;cursor:pointer;transition:background .12s,color .12s}
+.pf-tab:hover{color:#f4f1eb}
+.pf-tab.on{background:var(--ac);color:#0b0b0d}
+.pf-panel{display:none;flex-direction:column;gap:.28rem}
+.pf-panel.on{display:flex}
 .fgroup{background:var(--sf2);border:1px solid var(--bd);border-radius:3px;padding:.52rem;display:flex;flex-direction:column;gap:.38rem}
 .fgroup-lbl{font-family:'IBM Plex Mono',monospace;font-size:.46rem;letter-spacing:.13em;text-transform:uppercase;color:var(--ac)}
 .flist-item{background:var(--bg);border:1px solid var(--bd);border-radius:2px;padding:.42rem .5rem;margin-bottom:.28rem}
@@ -309,6 +329,7 @@ body{display:flex;flex-direction:column}
     <button class="lp-tab on" onclick="lpTab('content')" id="tab-content" title="Homepage sections">Content</button>
     <button class="lp-tab" onclick="lpTab('pages')"   id="tab-pages" title="Men / Women landing pages">Pages</button>
     <button class="lp-tab" onclick="lpTab('product')" id="tab-product" title="What shows under a product">Product</button>
+    <button class="lp-tab" onclick="lpTab('collection')" id="tab-collection" title="The release / all-products listing page">Collection</button>
     <button class="lp-tab" onclick="lpTab('design')"  id="tab-design" title="Theme & navigation">Design</button>
     <button class="lp-tab" onclick="lpTab('settings')" id="tab-settings" title="SEO & metadata">Settings</button>
   </div>
@@ -558,7 +579,7 @@ const SECT_DEFS={
   marquee:{items:'ZUWERA, RELEASE 001, FOR THOSE WHO DREAM, SEP 20 2026',speed:'normal',pad_top:0,pad_bot:0},
   about:{label:'About Zuwera',heading:'Built For\nMovement.',body:'Bold, athletic, and designed for those who dream big.\n\nRelease 001 is the beginning.',stats:[{value:'001',label:'First Release'},{value:'2026',label:'Launching'},{value:'3',label:'Styles'}],pad_top:0,pad_bot:0},
   release:{eyebrow:'Zuwera Release 001',title:'Release\n001',notify_on:true,notify_label:'Get Early Access',launch_date:'2026-09-20',pad_top:0,pad_bot:0},
-  products:{title:'Release 001',subtitle:'Releasing 09 / 20 / 2026',columns:2,lay_lg:'grid',col_lg:3,lay_md:'swipe',col_md:2,lay_sm:'swipe',col_sm:2,pad_top:0,pad_bot:0},
+  products:{title:'Release 001',subtitle:'Releasing 09 / 20 / 2026',show_title:true,show_subtitle:true,columns:2,lay_lg:'grid',col_lg:3,lay_md:'swipe',col_md:2,lay_sm:'swipe',col_sm:2,show_colors:true,show_reviews:true,show_name:true,show_cat:true,show_price:true,show_badge:true,color_snap:false,card_size:'auto',card_w:'',pad_top:0,pad_bot:0},
   recently_viewed:{heading:'Recently Viewed',count:5,show_time:false,pad_top:0,pad_bot:0},
   split:{image:'',image_side:'left',image_height:'500',label:'',heading:'',body:'',cta_text:'',cta_url:'',bg_color:'',pad_top:0,pad_bot:0},
   cta:{heading:'Ready to Move?',subtext:'Discover the first drop from Zuwera.',btn_text:'Shop Now',btn_url:'/drop001.html',btn_style:'solid',bg_color:'#09090b',text_color:'#f4f1eb',align:'center',pad_top:0,pad_bot:0},
@@ -774,6 +795,10 @@ const PDP_BLOCK_META = {
   journal:           { label:'From the journal',       tp:'journal',         icon:'📓', flag:null, desc:'Latest published journal posts' },
   newsletter:        { label:'Newsletter signup',      tp:'newsletter',      icon:'✉️', flag:null, desc:'“Stay in the loop” — signups land in Subscribers' },
 };
+// Card-grid blocks that support per-block Card options (size + hide text lines).
+// They render as .zwf-card rows via storefront-features.js. (more_from_release
+// uses a different renderer in product.html and isn't wired for these yet.)
+const PDP_CARD_BLOCKS = { recommendations:1, recently_viewed:1, new_arrivals:1 };
 // What a store shows before anyone touches this tab.
 const PDP_ORDER_DEFAULT = ['more_from_release','bundle','recently_viewed','recommendations','qa'];
 let pdpCfg = null, pdpFlags = null;
@@ -788,7 +813,10 @@ function pdpNormalize(v){
   saved.forEach(s=>{
     const id = s && String(s.id||'');
     if(!PDP_BLOCK_META[id] || seen.includes(id)) return;
-    seen.push(id); out.push({ id, on: s.on !== false });
+    seen.push(id);
+    const block = { id, on: s.on !== false };
+    if(s.cfg && typeof s.cfg === 'object') block.cfg = s.cfg;   // per-block card options
+    out.push(block);
   });
   return out;
 }
@@ -864,6 +892,36 @@ function paintProductTab(container){
       d.addEventListener('drop',e=>{ e.preventDefault(); d.classList.remove('drag-over'); pdpReorder(e.dataTransfer.getData('text/plain'), s.id); });
     }
     list.appendChild(d);
+
+    // Card-row blocks get an expandable Card-options panel (size + hide text).
+    if(PDP_CARD_BLOCKS[s.id] && s.on){
+      s.cfg = s.cfg || {};
+      const cfg = s.cfg;
+      const gear = document.createElement('button');
+      gear.type='button'; gear.className='vis-btn'; gear.title='Card options'; gear.textContent='⚙'; gear.style.opacity='.7';
+      const panel = document.createElement('div');
+      panel.className='pdp-block-cfg';
+      panel.style.cssText='display:none;flex-direction:column;gap:.28rem;padding:.5rem .6rem .6rem;margin:-.15rem 0 .45rem;border:1px solid var(--bd);border-top:none;border-radius:0 0 4px 4px;background:rgba(255,255,255,.02)';
+      panel.innerHTML =
+        `<div class="field"><label>Card size</label><select data-cfg="card_size">`
+        +`<option value="m"${(cfg.card_size||'m')==='m'?' selected':''}>Medium (default)</option>`
+        +`<option value="s"${cfg.card_size==='s'?' selected':''}>Small</option>`
+        +`<option value="l"${cfg.card_size==='l'?' selected':''}>Large</option>`
+        +`<option value="xl"${cfg.card_size==='xl'?' selected':''}>Extra Large</option>`
+        +`</select></div>`
+        +`<div class="tog2"><label>Show product name</label><label class="switch"><input type="checkbox" data-cfg="show_name" ${cfg.show_name!==false?'checked':''}><span class="sw-sl"></span></label></div>`
+        +`<div class="tog2"><label>Show category line</label><label class="switch"><input type="checkbox" data-cfg="show_cat" ${cfg.show_cat!==false?'checked':''}><span class="sw-sl"></span></label></div>`
+        +`<div class="tog2"><label>Show price</label><label class="switch"><input type="checkbox" data-cfg="show_price" ${cfg.show_price!==false?'checked':''}><span class="sw-sl"></span></label></div>`
+        +`<div class="fhint">Colour swatches &amp; review stars aren't shown on these rows yet.</div>`;
+      gear.addEventListener('click',e=>{ e.stopPropagation(); panel.style.display = panel.style.display==='none' ? 'flex' : 'none'; });
+      panel.querySelectorAll('[data-cfg]').forEach(el=>{
+        const apply=()=>{ cfg[el.dataset.cfg] = el.type==='checkbox' ? el.checked : el.value; };
+        el.addEventListener('change',apply); el.addEventListener('input',apply);
+      });
+      const acts = d.querySelector('.sec-acts');
+      if(acts) acts.insertBefore(gear, acts.firstChild); else d.appendChild(gear);
+      list.appendChild(panel);
+    }
   });
 
   // Gallery of blocks not currently on the page — same row vocabulary, plus a +.
@@ -926,6 +984,191 @@ async function pdpSave(){
   if(btn){ btn.disabled=false; btn.textContent='💾 Save Product Layout'; }
 }
 
+// ── COLLECTION TAB ──────────────────────────────────────────────────────────
+// Edits site_settings.collection_page — the release / all-products listing
+// (drop001.html). Header wording + product-grid look. Card size/fit here win
+// over the admin Product-Cards defaults; "Use store default" leaves them alone.
+const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'', card_carousel_lg:false, card_carousel_md:false, card_carousel_sm:false, card_dots:true, card_videos:false, card_mirror:false, card_loop:false, f_category:true, f_gender:true, f_color:true, f_sport:true, f_bestfor:true, f_material:true, f_price:true, price_breaks:'', color_count:'', color_grain:'standard', colors_off:[], materials_off:[] };
+// Mirror of drop001's PLP_MATERIALS names (for the per-material hide chips).
+const COLL_MATERIALS = ['Cotton','Fleece','Wool','Leather','Denim','Linen','Silk','Cashmere','Polyester','Nylon','Spandex','Recycled','Mesh','Bamboo','Rayon','Acrylic'];
+// Mirror of drop001's PLP_COLOR_BUCKETS so the chip swatches match the storefront.
+const COLL_COLOR_BUCKETS = [
+  {key:'Black',dot:'#111111'},{key:'Grey',dot:'#9a9a9a'},{key:'White',dot:'#ffffff'},
+  {key:'Beige',dot:'#d8c4a0'},{key:'Brown',dot:'#6b4423'},{key:'Red',dot:'#d0021b'},
+  {key:'Maroon',dot:'#6e1420'},{key:'Orange',dot:'#f5820b'},{key:'Yellow',dot:'#f5d020'},
+  {key:'Olive',dot:'#7d7d1e'},{key:'Green',dot:'#3aa655'},{key:'Teal',dot:'#14b8a6'},
+  {key:'Blue',dot:'#2d7ff9'},{key:'Navy',dot:'#1b2a4a'},{key:'Purple',dot:'#7b3ff2'},
+  {key:'Pink',dot:'#ff6fa5'}
+];
+let collectionCfg = null;
+
+async function renderCollectionTab(container){
+  container.innerHTML = '<div class="tab-pane"><div class="tab-hd">Collection page</div><div style="font-size:.6rem;color:var(--mu)">Loading…</div></div>';
+  if(!collectionCfg){
+    try{
+      const {data}=await sb.from('site_settings').select('value').eq('key','collection_page').maybeSingle();
+      let v=(data&&data.value)||{};
+      if(typeof v==='string'){ try{ v=JSON.parse(v); }catch(_){ v={}; } }
+      collectionCfg = Object.assign({}, COLL_DEFAULTS, v);
+      // Migrate the old single `card_carousel` toggle → per-device flags so an
+      // existing "on" config lights up all three device switches correctly.
+      if(v && v.card_carousel!==undefined && v.card_carousel_lg===undefined && v.card_carousel_md===undefined && v.card_carousel_sm===undefined){
+        collectionCfg.card_carousel_lg = collectionCfg.card_carousel_md = collectionCfg.card_carousel_sm = (v.card_carousel===true);
+      }
+      delete collectionCfg.card_carousel;
+    }catch(_){ collectionCfg = Object.assign({}, COLL_DEFAULTS); }
+  }
+  paintCollectionTab(container);
+}
+
+function paintCollectionTab(container){
+  const c = collectionCfg;
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  const fld = (label,key,val,hint) =>
+    `<div class="field"><label>${label}</label><input type="text" data-coll="${key}" value="${esc(val)}">`
+    + (hint?`<div class="fhint">${hint}</div>`:'') + `</div>`;
+  const sel = (label,key,val,opts) =>
+    `<div class="field"><label>${label}</label><select data-coll="${key}">`
+    + opts.map(o=>`<option value="${o[0]}"${String(val||'')===o[0]?' selected':''}>${o[1]}</option>`).join('')
+    + `</select></div>`;
+  const tog = (label,key) =>
+    `<div class="tog2"><label>${label}</label><label class="switch"><input type="checkbox" data-coll="${key}" ${c[key]!==false?'checked':''}><span class="sw-sl"></span></label></div>`;
+
+  const headerG = grp('Header text',
+    fld('Eyebrow','eyebrow', c.eyebrow, 'Small line above the title — the category is appended automatically.')
+    + fld('Title','title', c.title, 'The large title at the top of the page.')
+    + fld('Countdown label','subtitle', c.subtitle, 'The line just above the launch countdown.'));
+
+  const cardsG = grp('Product grid',
+    sel('Cards per row','card_size', c.card_size, [['','Use store default'],['2','2 — large'],['3','3 — medium'],['4','4 — small']])
+    + sel('Image fit','card_fit', c.card_fit, [['','Use store default'],['cover','Fill the frame (crop)'],['contain','Show the whole image']])
+    + tog('Swipe images — Desktop','card_carousel_lg')
+    + tog('Swipe images — Tablet','card_carousel_md')
+    + tog('Swipe images — Mobile','card_carousel_sm')
+    + tog('Show position dots','card_dots')
+    + tog('Include videos in the swipe','card_videos')
+    + tog('Keep image position when switching color','card_mirror')
+    + tog('Loop back to the first image','card_loop'),
+    false);
+
+  // Live price-bracket preview + per-colour show/hide chips.
+  const colorsOff = new Set(Array.isArray(c.colors_off) ? c.colors_off : []);
+  const materialsOff = new Set(Array.isArray(c.materials_off) ? c.materials_off : []);
+  const priceRangesFrom = (str) => {
+    const entries = String(str||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const DEF = ['$0 – $25','$25 – $50','$50 – $100','$100 – $150','$150+'];
+    if(!entries.length) return DEF;
+    const explicit = entries.some(e=>/[-+]/.test(e));
+    const out=[];
+    if(!explicit){
+      let nums = entries.map(e=>parseFloat(e)).filter(n=>!isNaN(n)&&n>0);
+      nums = nums.filter((n,i)=>nums.indexOf(n)===i).sort((a,b)=>a-b);
+      if(!nums.length) return DEF;
+      let prev=0; nums.forEach(n=>{ out.push('$'+prev+' – $'+n); prev=n; }); out.push('$'+prev+'+');
+    } else {
+      entries.forEach(e=>{
+        let mp=e.match(/^\$?(\d+(?:\.\d+)?)\s*\+$/); if(mp){ out.push('$'+parseFloat(mp[1])+'+'); return; }
+        let mr=e.match(/^\$?(\d+(?:\.\d+)?)\s*-\s*\$?(\d+(?:\.\d+)?)$/); if(mr){ let lo=parseFloat(mr[1]),hi=parseFloat(mr[2]); if(lo<hi) out.push('$'+lo+' – $'+hi); return; }
+      });
+    }
+    return out.length ? out : DEF;
+  };
+  const pricePreview = (str) => priceRangesFrom(str).map(r=>`<span class="coll-pchip">${r}</span>`).join('');
+  const colorChips = COLL_COLOR_BUCKETS.map(b =>
+    `<button type="button" class="coll-cchip${colorsOff.has(b.key)?' off':''}" data-cchip="${b.key}"><span class="coll-cdot" style="background:${b.dot}"></span>${b.key}</button>`).join('');
+  const materialChips = COLL_MATERIALS.map(m =>
+    `<button type="button" class="coll-cchip${materialsOff.has(m)?' off':''}" data-mchip="${m}">${m}</button>`).join('');
+
+  const filtersG = grp('Filters (sidebar)',
+    `<div class="coll-sub">Columns to show</div>`
+    + tog('Category','f_category') + tog('Gender','f_gender') + tog('Color','f_color') + tog('Sport','f_sport') + tog('Best for','f_bestfor') + tog('Material','f_material') + tog('Price','f_price')
+    + `<div class="fhint" style="margin:.1rem 0 .9rem">Turn a column off to hide it from the sidebar & mobile filter sheet.</div>`
+    + `<div class="coll-sub">Price brackets</div>`
+    + `<div class="field"><input type="text" data-coll="price_breaks" id="collPriceBreaks" value="${esc(c.price_breaks)}" placeholder="25, 50, 100  or  0-50, 50-100, 100+"></div>`
+    + `<div class="fhint">Two ways: type <b>breakpoints</b> (25, 50, 100) for auto ranges + a final "$X+", or write <b>exact brackets</b> (0-50, 50-100, 100+) to add open-ended "$X+" brackets like $50+ or $100+. Blank = default.</div>`
+    + `<div class="coll-preview-lbl">Brackets shown</div><div class="coll-pchips" id="collPricePreview">${pricePreview(c.price_breaks)}</div>`
+    + `<div class="coll-sub" style="margin-top:1rem">Colours</div>`
+    + sel('Grouping','color_grain', c.color_grain, [['coarse','Coarse — fewest, broadest groups'],['standard','Standard'],['fine','Fine — keep every shade']])
+    + `<div class="fhint" style="margin:.1rem 0 .5rem">Tap a colour to hide it from the filter. Grouping decides how similar shades merge.</div>`
+    + `<div class="coll-cchips" id="collColorChips">${colorChips}</div>`
+    + `<div class="coll-sub" style="margin-top:1rem">Materials</div>`
+    + `<div class="fhint" style="margin:.1rem 0 .5rem">Tap a material to hide it from the filter. (Materials are detected from each product's Material Composition; only ones actually used show on the page.)</div>`
+    + `<div class="coll-cchips" id="collMaterialChips">${materialChips}</div>`,
+    false);
+
+  container.innerHTML = `<div class="tab-pane">
+    <style>
+      .coll-sub{ font-size:.56rem; letter-spacing:.12em; text-transform:uppercase; color:var(--mu); font-weight:600; margin:.2rem 0 .5rem; }
+      .coll-cchips{ display:flex; flex-wrap:wrap; gap:.34rem; }
+      .coll-cchip{ display:inline-flex; align-items:center; gap:.35rem; padding:.26rem .5rem .26rem .34rem; border:1px solid var(--bd); border-radius:999px; background:none; color:inherit; font-size:.56rem; letter-spacing:.04em; text-transform:uppercase; cursor:pointer; transition:opacity .15s ease, border-color .15s ease; }
+      .coll-cchip:hover{ border-color:var(--mu); }
+      .coll-cdot{ width:13px; height:13px; border-radius:50%; border:1px solid rgba(150,150,150,.4); flex:0 0 auto; }
+      .coll-cchip.off{ opacity:.4; text-decoration:line-through; }
+      .coll-pchips{ display:flex; flex-wrap:wrap; gap:.3rem; margin:.1rem 0 .3rem; }
+      .coll-pchip{ font-size:.55rem; padding:.22rem .5rem; border:1px solid var(--bd); border-radius:3px; color:var(--mu); letter-spacing:.02em; white-space:nowrap; }
+      .coll-preview-lbl{ font-size:.5rem; letter-spacing:.1em; text-transform:uppercase; color:var(--mu); opacity:.65; margin:.35rem 0 .15rem; }
+    </style>
+    <div class="tab-hd">Collection page</div>
+    <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">The release / all-products listing page. Edit the header wording, the product grid, and the filter sidebar. Save to see it in the preview.</div>
+    ${headerG}${cardsG}${filtersG}
+    <button onclick="saveCollectionCfg()" class="apply-btn" id="collSaveBtn">💾 Save Collection Page</button>
+    <div id="collMsg" style="font-size:.58rem;color:var(--mu);min-height:1em"></div>
+    <button onclick="resetCollectionCfg()" class="tbtn tbtn-ghost" style="align-self:flex-start">Reset to default</button>
+  </div>`;
+
+  container.querySelectorAll('[data-coll]').forEach(el=>{
+    const apply=()=>{ collectionCfg[el.dataset.coll] = el.type==='checkbox' ? el.checked : el.value; };
+    el.addEventListener('change',apply); el.addEventListener('input',apply);
+  });
+  // Per-colour show/hide chips → collectionCfg.colors_off (array of hidden buckets).
+  container.querySelectorAll('[data-cchip]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const k=btn.getAttribute('data-cchip');
+      if(colorsOff.has(k)) colorsOff.delete(k); else colorsOff.add(k);
+      btn.classList.toggle('off');
+      collectionCfg.colors_off = Array.from(colorsOff);
+    });
+  });
+  // Per-material show/hide chips → collectionCfg.materials_off.
+  container.querySelectorAll('[data-mchip]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const k=btn.getAttribute('data-mchip');
+      if(materialsOff.has(k)) materialsOff.delete(k); else materialsOff.add(k);
+      btn.classList.toggle('off');
+      collectionCfg.materials_off = Array.from(materialsOff);
+    });
+  });
+  // Live-update the price-bracket preview as the breakpoints are typed.
+  const _pb=container.querySelector('#collPriceBreaks'), _pv=container.querySelector('#collPricePreview');
+  if(_pb && _pv) _pb.addEventListener('input',()=>{ _pv.innerHTML = pricePreview(_pb.value); });
+}
+
+async function saveCollectionCfg(){
+  const btn=document.getElementById('collSaveBtn'), msg=document.getElementById('collMsg');
+  if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
+  try{
+    const token=await getAccessToken(); if(!token) throw new Error('Session expired — sign in again.');
+    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({accessToken:token,key:'collection_page',value:collectionCfg})});
+    const j=await res.json().catch(()=>({}));
+    if(!res.ok||j.error) throw new Error(j.error||'Save failed');
+    if(msg) msg.textContent='Saved — live on the collection page.';
+    reloadCollectionPreview();
+  }catch(e){ if(msg) msg.textContent=e.message||'Save failed'; if(typeof showErr==='function') showErr(e.message); }
+  if(btn){ btn.disabled=false; btn.textContent='💾 Save Collection Page'; }
+}
+
+function resetCollectionCfg(){
+  collectionCfg = Object.assign({}, COLL_DEFAULTS);
+  paintCollectionTab(document.getElementById('lpContent'));
+}
+
+function collectionPreviewUrl(){ return '/drop001.html?builder=1'; }
+function reloadCollectionPreview(){
+  const f=document.getElementById('pvIframe'); if(!f) return;
+  f.src=collectionPreviewUrl()+'&_cb='+Date.now();
+}
+
 function renderDesignTab(container){
   container.innerHTML='<div class="design-subtabs"><button class="dsub'+(designSub==='theme'?' on':'')+'" onclick="setDesignSub(\'theme\')">Appearance</button><button class="dsub'+(designSub==='nav'?' on':'')+'" onclick="setDesignSub(\'nav\')">Navigation</button></div><div id="designSub"></div>';
   const sub=container.querySelector('#designSub');
@@ -961,6 +1204,7 @@ function renderLP(){
   else if(curTab==='settings'){renderSeoTab(el);}
   else if(curTab==='pages'){renderPagesTab(el);}
   else if(curTab==='product'){renderProductTab(el);}
+  else if(curTab==='collection'){renderCollectionTab(el);}
   else if(curTab==='theme'){renderThemeTab(el);}
   else if(curTab==='nav'){renderNavTab(el);}
   else if(curTab==='seo'){renderSeoTab(el);}
@@ -1321,12 +1565,8 @@ function renderPagesTab(container){
     <div class="tog2"><label>Show featured products</label><label class="switch"><input type="checkbox" data-lp="featured.enabled" ${feat.enabled!==false?'checked':''}><span class="sw-sl"></span></label></div>
     <div class="field"><label>Section heading</label><input data-lp="featured.heading" value="${he(feat.heading||'')}" placeholder="Featured"></div>
     ${featHtml}
-    <div class="fl" style="margin-top:.35rem">Layout per device</div>
-    <div class="fhint" style="margin-bottom:.35rem">“Swipe” shows one product at a time (scroll right for more); “Grid” tiles them in columns.</div>
-    ${lpLayRow('🖥️ Desktop','featured.lay_lg','featured.col_lg','featured.snap_lg',feat.lay_lg||'grid',String(feat.col_lg||3),feat.snap_lg||'smooth','featured.bar_lg',feat.bar_lg||(feat.bar_hover?'hover':'show'))}
-    ${lpLayRow('▭ Tablet','featured.lay_md','featured.col_md','featured.snap_md',feat.lay_md||'swipe',String(feat.col_md||2),feat.snap_md||'smooth','featured.bar_md',feat.bar_md||'show')}
-    ${lpLayRow('▯ Mobile','featured.lay_sm','featured.col_sm','featured.snap_sm',feat.lay_sm||'swipe',String(feat.col_sm||2),feat.snap_sm||'smooth','featured.bar_sm',feat.bar_sm||'show')}
-    <div class="field" style="margin-top:.3rem"><label>Scrollbar thickness</label><select data-lp="featured.bar_size">${lpSelOpt(feat.bar_size||'thin',LP_BARSIZEO)}</select></div>
+    ${lpPlatFields(feat)}
+    ${lpCardOptions(feat)}
     <div class="fdiv"></div>
 
     <div class="tab-hd">Page Sections</div>
@@ -1346,6 +1586,7 @@ function renderPagesTab(container){
     const sync=()=>lpSetPath(el.dataset.lp, el.type==='checkbox'?el.checked:el.value);
     el.addEventListener('input',sync); el.addEventListener('change',sync);
   });
+  syncPlatTabs();   // show the featured device panel matching the current preview device
   // Hero viewfinder: build the draggable tablet/mobile frames, and rebuild them
   // whenever a hero image or fit changes (Browse dispatches 'change' on these).
   ['lpHeroImg','lpHeroMobImg','lpHeroTabImg'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',initHeroViewfinders);});
@@ -1418,10 +1659,15 @@ function syncPreviewFrame(){
     });
     return;
   }
-  // leaving pages/product → put the homepage back
+  if(curTab==='collection'){
+    try{ if(new URL(f.src,location.origin).pathname.indexOf('drop001')!==-1) return; }catch(_){}
+    f.src=collectionPreviewUrl();
+    return;
+  }
+  // leaving pages/product/collection → put the homepage back
   try{
     const cur=new URL(f.src,location.origin);
-    if(cur.pathname.indexOf('landing')!==-1||cur.pathname.indexOf('/product/')===0) f.src='/index.html?builder=1';
+    if(cur.pathname.indexOf('landing')!==-1||cur.pathname.indexOf('/product/')===0||cur.pathname.indexOf('drop001')!==-1) f.src='/index.html?builder=1';
   }catch(_){ f.src='/index.html?builder=1'; }
 }
 function scrollPreviewToPdp(id){
@@ -1648,6 +1894,7 @@ function openEditor(s){
     el.addEventListener('input',()=>{syncForm(s);curApply();});
     el.addEventListener('change',()=>{syncForm(s);curApply();});
   });
+  syncPlatTabs();   // show the device panel matching the current preview device
   body.querySelectorAll('.img-btn[data-pick]').forEach(b=>b.addEventListener('click',()=>openMedia(b.dataset.pick)));
   body.querySelectorAll('input[type=range]').forEach(r=>{
     const d=body.querySelector(`[data-range-disp="${r.dataset.f}"]`);
@@ -1704,6 +1951,9 @@ const sel2=(k,l,v,opts)=>`<div class="field"><label>${l}</label><select data-k="
 const tog2=(k,l,checked)=>`<div class="tog2"><label>${l}</label><label class="switch"><input type="checkbox" data-f="${k}" ${checked?'checked':''}><span class="sw-sl"></span></label></div>`;
 const fdiv=()=>'<div class="fdiv"></div>';
 const fhd=t=>`<div class="fl" style="margin-top:.1rem">${t}</div>`;
+// Collapsible group wrapper (native <details>). Inputs inside a collapsed group
+// stay in the DOM, so syncForm still reads them and the preview stays correct.
+const grp=(title,inner,open=true)=>`<details class="ed-grp"${open?' open':''}><summary>${title}</summary><div class="ed-grp-b">${inner}</div></details>`;
 // Reusable per-device layout controls (Grid vs Swipe row, columns, scroll feel,
 // reveal-scrollbar-on-hover) for any section that renders a grid/row of cards or
 // images. Writes the data-f keys the renderers pass to window.zwApplyPlatLayout.
@@ -1712,12 +1962,23 @@ const PLAT_COLO=[['1','1'],['2','2'],['3','3'],['4','4']];
 const PLAT_SNAPO=[['smooth','Smooth (free scroll)'],['snap','One at a time (snap)']];
 const PLAT_BARO=[['show','Always show'],['hover','On hover / while scrolling'],['off','Hidden']];
 const PLAT_BARSIZEO=[['thin','Thin'],['medium','Medium'],['thick','Thick']];
-const platFields=(g,dLg='grid',dMd='grid',dSm='swipe')=>fhd('Layout per device')
-  +`<div class="fhint" style="margin-bottom:.35rem">“Swipe row” scrolls sideways with a scrollbar; “Grid” tiles in columns. “Scroll feel” = smooth free-scroll vs snapping one at a time.</div>`
-  +`<div class="fl" style="margin-top:.1rem">🖥️ Desktop</div>`+sel('lay_lg','Layout',g.lay_lg||dLg,PLAT_LAYO)+sel('col_lg','Columns (grid)',String(g.col_lg||g.columns||3),PLAT_COLO)+sel('snap_lg','Scroll feel (swipe)',g.snap_lg||'smooth',PLAT_SNAPO)+sel('bar_lg','Scrollbar (swipe)',g.bar_lg||(g.bar_hover?'hover':'show'),PLAT_BARO)
-  +`<div class="fl" style="margin-top:.1rem">▭ Tablet</div>`+sel('lay_md','Layout',g.lay_md||dMd,PLAT_LAYO)+sel('col_md','Columns (grid)',String(g.col_md||2),PLAT_COLO)+sel('snap_md','Scroll feel (swipe)',g.snap_md||'smooth',PLAT_SNAPO)+sel('bar_md','Scrollbar (swipe)',g.bar_md||'show',PLAT_BARO)
-  +`<div class="fl" style="margin-top:.1rem">▯ Mobile</div>`+sel('lay_sm','Layout',g.lay_sm||dSm,PLAT_LAYO)+sel('col_sm','Columns (grid)',String(g.col_sm||2),PLAT_COLO)+sel('snap_sm','Scroll feel (swipe)',g.snap_sm||'smooth',PLAT_SNAPO)+sel('bar_sm','Scrollbar (swipe)',g.bar_sm||'show',PLAT_BARO)
-  +sel('bar_size','Scrollbar thickness',g.bar_size||'thin',PLAT_BARSIZEO);
+const platFields=(g,dLg='grid',dMd='grid',dSm='swipe')=>{
+  const panel=(d,lay,col,snap,bar)=>`<div class="pf-panel" data-dev="${d}">`
+    +sel('lay_'+d,'Layout',lay,PLAT_LAYO)
+    +sel('col_'+d,'Columns (grid)',col,PLAT_COLO)
+    +sel('snap_'+d,'Scroll feel (swipe)',snap,PLAT_SNAPO)
+    +sel('bar_'+d,'Scrollbar (swipe)',bar,PLAT_BARO)
+    +`</div>`;
+  const inner=`<div class="fhint" style="margin-bottom:.35rem">Pick a device tab, then set how this row behaves there — it also switches the preview to that device. “Swipe row” scrolls sideways; “Grid” tiles in columns.</div>`
+    +`<div class="pf-tabs" data-pf-tabs><button type="button" class="pf-tab" data-dev="lg" onclick="pfDevice('lg')">🖥️ Desktop</button><button type="button" class="pf-tab" data-dev="md" onclick="pfDevice('md')">▭ Tablet</button><button type="button" class="pf-tab" data-dev="sm" onclick="pfDevice('sm')">▯ Mobile</button></div>`
+    +panel('lg',g.lay_lg||dLg,String(g.col_lg||g.columns||3),g.snap_lg||'smooth',g.bar_lg||(g.bar_hover?'hover':'show'))
+    +panel('md',g.lay_md||dMd,String(g.col_md||2),g.snap_md||'smooth',g.bar_md||'show')
+    +panel('sm',g.lay_sm||dSm,String(g.col_sm||2),g.snap_sm||'smooth',g.bar_sm||'show')
+    +`<div class="fdiv"></div>`
+    +sel('bar_size','Scrollbar thickness',g.bar_size||'thin',PLAT_BARSIZEO)
+    +tog2('arrows','Prev / next arrows (desktop)',g.arrows===true);
+  return grp('Layout &amp; scroll',inner,true);
+};
 /* Color field with a live hex input. Both the swatch and the text box share
    data-f="${k}" so either one writes the value back to the section setting
    (syncForm reads the last [data-f], i.e. the hex box). Picking the swatch
@@ -1745,6 +2006,40 @@ const LP_SNAPO=[['smooth','Smooth (free scroll)'],['snap','One at a time (snap)'
 const LP_BARO=[['show','Always show'],['hover','On hover / while scrolling'],['off','Hidden']];
 const LP_BARSIZEO=[['thin','Thin'],['medium','Medium'],['thick','Thick']];
 const lpSelOpt=(v,opts)=>opts.map(([val,txt])=>`<option value="${val}"${String(v)===val?' selected':''}>${txt}</option>`).join('');
+// data-lp checkbox toggle (mirrors tog2 but writes to the landing config).
+const lpTog=(path,label,checked)=>`<div class="tog2"><label>${label}</label><label class="switch"><input type="checkbox" data-lp="${path}" ${checked?'checked':''}><span class="sw-sl"></span></label></div>`;
+// Featured layout controls as per-device TABS inside a collapsible group — mirrors
+// the homepage products platFields and reuses the shared pfDevice/syncPlatTabs +
+// .pf-tabs/.pf-panel machinery (agnostic to data-f vs data-lp).
+const lpPlatFields=(feat)=>{
+  const panel=(d,layV,colV,snapV,barV)=>`<div class="pf-panel" data-dev="${d}">`
+    +`<div class="field"><label>Layout</label><select data-lp="featured.lay_${d}">${lpSelOpt(layV,LP_LAYO)}</select></div>`
+    +`<div class="field"><label>Columns (grid)</label><select data-lp="featured.col_${d}">${lpSelOpt(colV,LP_COLO)}</select></div>`
+    +`<div class="field"><label>Scroll feel (swipe)</label><select data-lp="featured.snap_${d}">${lpSelOpt(snapV,LP_SNAPO)}</select></div>`
+    +`<div class="field"><label>Scrollbar (swipe)</label><select data-lp="featured.bar_${d}">${lpSelOpt(barV,LP_BARO)}</select></div>`
+    +`</div>`;
+  const inner=`<div class="fhint" style="margin-bottom:.35rem">Pick a device tab, then set how this row behaves there — it also switches the preview to that device. “Swipe” shows one product at a time; “Grid” tiles in columns.</div>`
+    +`<div class="pf-tabs" data-pf-tabs><button type="button" class="pf-tab" data-dev="lg" onclick="pfDevice('lg')">🖥️ Desktop</button><button type="button" class="pf-tab" data-dev="md" onclick="pfDevice('md')">▭ Tablet</button><button type="button" class="pf-tab" data-dev="sm" onclick="pfDevice('sm')">▯ Mobile</button></div>`
+    +panel('lg',feat.lay_lg||'grid',String(feat.col_lg||3),feat.snap_lg||'smooth',feat.bar_lg||(feat.bar_hover?'hover':'show'))
+    +panel('md',feat.lay_md||'swipe',String(feat.col_md||2),feat.snap_md||'smooth',feat.bar_md||'show')
+    +panel('sm',feat.lay_sm||'swipe',String(feat.col_sm||2),feat.snap_sm||'smooth',feat.bar_sm||'show')
+    +`<div class="fdiv"></div>`
+    +`<div class="field"><label>Scrollbar thickness</label><select data-lp="featured.bar_size">${lpSelOpt(feat.bar_size||'thin',LP_BARSIZEO)}</select></div>`
+    +lpTog('featured.arrows','Prev / next arrows (desktop)',feat.arrows===true);
+  return grp('Layout &amp; scroll',inner,true);
+};
+// Card-option toggles for the featured cards (collapsible group). Colour swatches
+// + review stars are intentionally absent here — landing cards don't render those
+// yet (the landing product fetch has no color_variants/reviews); that's a follow-up.
+const lpCardOptions=(feat)=>grp('Card options',
+  lpTog('featured.show_heading','Show section heading',feat.show_heading!==false)
+  +lpTog('featured.show_name','Show product name',feat.show_name!==false)
+  +lpTog('featured.show_cat','Show category line',feat.show_cat!==false)
+  +lpTog('featured.show_price','Show price',feat.show_price!==false)
+  +lpTog('featured.show_badge','Show availability badge',feat.show_badge!==false)
+  +`<div class="fdiv"></div>`
+  +`<div class="field"><label>Card size (swipe carousel)</label><select data-lp="featured.card_size">${lpSelOpt(feat.card_size||'auto',[['auto','Auto'],['s','Small'],['m','Medium'],['l','Large'],['xl','Extra Large']])}</select></div>`
+,true);
 const lpLayRow=(label,layPath,colPath,snapPath,layV,colV,snapV,barPath,barV)=>`<div class="fl" style="margin-top:.1rem">${label}</div><div class="field"><label>Layout</label><select data-lp="${layPath}">${lpSelOpt(layV,LP_LAYO)}</select></div><div class="field"><label>Columns (grid mode)</label><select data-lp="${colPath}">${lpSelOpt(colV,LP_COLO)}</select></div><div class="field"><label>Scroll feel (swipe)</label><select data-lp="${snapPath}">${lpSelOpt(snapV,LP_SNAPO)}</select></div>${barPath?`<div class="field"><label>Scrollbar (swipe)</label><select data-lp="${barPath}">${lpSelOpt(barV,LP_BARO)}</select></div>`:''}`;
 /* NOTE: Section padding is rendered once, by the universal "Section Style"
    block in buildForm. It used to ALSO be rendered here as sliders, but both
@@ -1812,7 +2107,7 @@ function buildForm(s){
     case 'marquee': h+=`<div class="field"><label>Items (comma-separated)</label><textarea data-f="items" placeholder="ZUWERA, RELEASE 001, ...">${he(g.items)}</textarea><span class="fhint">Separate with commas</span></div>`+hfont(g)+sel('speed','Speed',g.speed||'normal',[['slow','Slow'],['normal','Normal'],['fast','Fast']])+padF(g);break;
     case 'about': h+=f('label','Eyebrow Label',g.label)+ta('heading','Heading',g.heading)+ta('body','Body (↵↵=paragraph)',g.body)+fdiv()+fhd('Stats')+arrField('stats','Stat',g.stats||[],[['value','Number','text'],['label','Label','text']])+padF(g);break;
     case 'release': h+=f('eyebrow','Eyebrow',g.eyebrow)+ta('title','Title (↵=line break)',g.title)+f('launch_date','Launch Date',g.launch_date,'date')+fdiv()+tog2('notify_on','Show Notify Form',g.notify_on)+f('notify_label','Form Label',g.notify_label)+padF(g);break;
-    case 'products': h+=f('title','Section Title',g.title)+f('subtitle','Subtitle',g.subtitle)+fdiv()+platFields(g,'grid','swipe','swipe')+padF(g);break;
+    case 'products': h+=f('title','Section Title',g.title)+tog2('show_title','Show section title on page',g.show_title!==false)+f('subtitle','Subtitle',g.subtitle)+tog2('show_subtitle','Show subtitle on page',g.show_subtitle!==false)+platFields(g,'grid','swipe','swipe')+grp('Card options',tog2('show_colors','Show colour swatches',g.show_colors!==false)+tog2('show_reviews','Show review stars',g.show_reviews!==false)+tog2('show_name','Show product name',g.show_name!==false)+tog2('show_cat','Show category line',g.show_cat!==false)+tog2('show_price','Show price',g.show_price!==false)+tog2('show_badge','Show availability badge',g.show_badge!==false)+tog2('color_snap','Colour scroll snaps one-at-a-time',g.color_snap===true)+fdiv()+sel('card_size','Card size (swipe carousel)',g.card_size||'auto',[['auto','Auto'],['s','Small'],['m','Medium'],['l','Large'],['xl','Extra Large']])+f('card_w','Custom card width — overrides preset (e.g. 380px, 32%)',g.card_w),true)+padF(g);break;
     case 'recently_viewed': h+=f('heading','Section Title',g.heading)+rangeF('count','How many products to show',g.count??5,1,12,'')+tog2('show_time','Show time each product was viewed',g.show_time)+`<div class="fhint">Auto-fills with each visitor's most recently viewed products. Hidden for anyone who hasn't viewed at least 2.</div>`+padF(g);break;
     case 'split': h+=imgField('image','Image',g.image)+sel('image_side','Image Side',g.image_side||'left',[['left','Image Left'],['right','Image Right']])+sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])+f('image_height','Image Height (px)',g.image_height,'number')+fdiv()+f('label','Eyebrow',g.label)+ta('heading','Heading',g.heading)+ta('body','Body',g.body)+fdiv()+f('cta_text','Button Text',g.cta_text)+f('cta_url','Button URL',g.cta_url)+padF(g);break;
     case 'cta': h+=ta('heading','Heading',g.heading)+ta('subtext','Subtext',g.subtext)+fdiv()+f('btn_text','Button Text',g.btn_text)+f('btn_url','Button URL',g.btn_url)+sel('btn_style','Button Style',g.btn_style||'solid',[['solid','Solid'],['outline','Outlined'],['ghost','Ghost']])+sel('align','Alignment',g.align||'center',[['center','Center'],['left','Left'],['right','Right']])+padF(g);break;
@@ -1958,9 +2253,8 @@ function buildForm(s){
     default: h+='<div style="padding:.4rem;color:var(--mu);font-size:.65rem">No settings available.</div>';
   }
   // ── Universal Section Style controls (appended to every section editor)
-  h+=`<div class="fdiv"></div>
-<div class="tab-hd" style="margin-top:.2rem;font-size:.55rem;">Section Style</div>
-${colorF('sec_bg','Background',g.sec_bg||(s.type==='color_block'?'':g.bg_color)||'')}
+  h+=grp('Section style',
+`${colorF('sec_bg','Background',g.sec_bg||(s.type==='color_block'?'':g.bg_color)||'')}
 <div class="fhint" style="margin-top:-.3rem">Leave blank for default background</div>
 ${colorF('text_color','Text Color',g.text_color||'')}
 <div class="fhint" style="margin-top:-.3rem">Leave blank to inherit the page text color</div>
@@ -1973,12 +2267,13 @@ ${colorF('text_color','Text Color',g.text_color||'')}
 </div>
 <div class="tog2"><label>Hide on Mobile</label><label class="switch"><input type="checkbox" data-f="hide_mobile" ${g.hide_mobile?'checked':''}><span class="sw-sl"></span></label></div>
 <div class="tog2"><label>Hide on Desktop</label><label class="switch"><input type="checkbox" data-f="hide_desktop" ${g.hide_desktop?'checked':''}><span class="sw-sl"></span></label></div>
-<div class="field"><label>Anchor ID (for #links)</label><input data-f="anchor_id" value="${he(g.anchor_id||'')}" placeholder="e.g. about"></div>
-<div class="fdiv"></div>
-<div class="fl">⏱ Schedule visibility (optional)</div>
-<div class="fhint" style="margin-bottom:.3rem">Show this section only within a date/time window (uses the shopper's local time). Leave blank for always on. For an exact site-wide launch, use “Schedule publish” in the top bar instead.</div>
+<div class="field"><label>Anchor ID (for #links)</label><input data-f="anchor_id" value="${he(g.anchor_id||'')}" placeholder="e.g. about"></div>`,
+  false);
+  h+=grp('⏱ Schedule visibility',
+`<div class="fhint" style="margin-bottom:.3rem">Show this section only within a date/time window (uses the shopper's local time). Leave blank for always on. For an exact site-wide launch, use “Schedule publish” in the top bar instead.</div>
 <div class="field"><label>Show from</label><input type="datetime-local" data-f="visible_from" value="${he(g.visible_from||'')}"></div>
-<div class="field"><label>Show until</label><input type="datetime-local" data-f="visible_until" value="${he(g.visible_until||'')}"></div>`;
+<div class="field"><label>Show until</label><input type="datetime-local" data-f="visible_until" value="${he(g.visible_until||'')}"></div>`,
+  false);
   h+=`${fdiv()}<button class="apply-btn" onclick="manualApply()">▶ Apply to Preview</button><button class="del-sec" onclick="removeSec('${s.id}')">🗑 Remove Section</button>`;
   return h;
 }
@@ -2172,6 +2467,23 @@ function setPvMode(m){
     iframe.style.height='100%';
   }
   document.getElementById('pvDims').textContent={desk:'1280px — Desktop',tab:'768px — Tablet',mob:'390px — Mobile'}[m]||m;
+  syncPlatTabs();   // keep the editor's device tabs in step with the preview device
+}
+// Per-device layout tabs (in platFields): show one device's controls at a time and
+// keep them in step with the top preview toggle. All three device panels stay in
+// the DOM either way, so syncForm reads every device's values regardless of which
+// tab is visible — the preview stays correct.
+function pfDevice(dev){
+  const mode={lg:'desk',md:'tab',sm:'mob'}[dev];
+  if(mode&&mode!==pvMode) setPvMode(mode); else syncPlatTabs(dev);
+}
+function syncPlatTabs(dev){
+  dev=dev||{desk:'lg',tab:'md',mob:'sm'}[pvMode]||'lg';
+  // Scoped to the whole editor panel (not just #edBody) so it also drives the
+  // Pages-tab featured layout tabs, which render into #lpContent. Only one editor
+  // surface is visible at a time, so there's no cross-talk.
+  document.querySelectorAll('[data-pf-tabs] .pf-tab').forEach(b=>b.classList.toggle('on',b.dataset.dev===dev));
+  document.querySelectorAll('.pf-panel').forEach(p=>p.classList.toggle('on',p.dataset.dev===dev));
 }
 function setTheme(t){pvTheme=t;document.querySelectorAll('#thTog button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));schedSend();}
 

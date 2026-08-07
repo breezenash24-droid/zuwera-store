@@ -88,6 +88,27 @@
       return wasHidden;
     };
 
+    // Shared add-to-bag acknowledgment for every page. The homepage/product page
+    // define their own (targeting #cart-btn); this guarded fallback covers the
+    // .zw-hdr-bag header used by the collection, account and bag pages so the
+    // animation fires everywhere you can add to bag. Reveals the header if it was
+    // scrolled away, then dips the bag icon + pops the count badge (CSS in
+    // storefront-cohesion.css; prefers-reduced-motion honored there).
+    if (typeof window.animateAddToBag !== 'function') {
+      window.animateAddToBag = function () {
+        var bag = document.querySelector('#cart-btn, .zw-hdr-bag');
+        if (!bag) return;
+        var pulse = function () {
+          bag.classList.remove('bag-dip'); void bag.offsetWidth; bag.classList.add('bag-dip');
+          var c = bag.querySelector('.cc, .cart-count, .zw-hdr-bag-count');
+          if (c) { c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
+          window.setTimeout(function () { bag.classList.remove('bag-dip'); }, 500);
+        };
+        var wasHidden = (typeof window.zwRevealHeader === 'function') && window.zwRevealHeader();
+        if (wasHidden) window.setTimeout(pulse, 380); else pulse();
+      };
+    }
+
     function update() {
       ticking = false;
       if (mode !== 'auto-hide') { show(); return; }
@@ -134,4 +155,60 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
+})();
+
+/* ── Auto-reload on new deploy ────────────────────────────────────────────────
+   /version.json carries a build id that bump-cache-version.js regenerates on every
+   deploy (any JS/CSS change) and serves no-store. This compares it against the value
+   seen at page load; when a newer build ships it reloads the tab so a returning /
+   long-open tab silently picks up the latest version — the "loads the correct version
+   every time" guarantee for tabs that were already open before the deploy.
+
+   It reloads ONLY at a safe moment — never with a modal/drawer open, mid-checkout, or
+   while the user is typing — so it can't interrupt a purchase or lose form input. It
+   re-checks when the tab regains focus (the common "left it open" case) and every 5
+   min. Absent version.json (older deploys) → it just no-ops. Loaded on every storefront
+   page via header-scroll.js; this IIFE is independent of the header logic above. */
+(function () {
+  var STORE = '__zw_reloaded_to';       // build id we've already reloaded to (sessionStorage)
+  var loaded = null;                     // build id at page load (baseline)
+  var pending = null;                    // build id of a detected-but-not-yet-applied deploy
+  var reloading = false;
+  function unsafe() {
+    try {
+      if (document.body && document.body.hasAttribute('data-scroll-locked')) return true; // modal open
+      if (/checkout/.test(location.pathname)) return true;                                 // mid-purchase
+      var ae = document.activeElement;
+      if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return true;                 // typing
+      if (document.querySelector('.zwf-bag.open, .zwf-search.open, .modal.open')) return true; // drawer/modal
+    } catch (_) {}
+    return false;
+  }
+  function doReload(build) {
+    if (reloading) return;
+    // Never reload twice for the same build — survives a bfcache restore, a double
+    // visibilitychange/focus fire, or product.html's own reload path. This is what
+    // makes it loop-PROOF: a reload can only ever happen for a build we haven't
+    // recorded yet.
+    try { if (sessionStorage.getItem(STORE) === build) return; sessionStorage.setItem(STORE, build); } catch (_) {}
+    reloading = true;
+    try { location.reload(); } catch (_) { reloading = false; }
+  }
+  function maybeReload() { if (pending && !unsafe()) doReload(pending); }
+  function check() {
+    fetch('/version.json?_=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (!j || !j.build) return;
+        if (loaded === null) { loaded = j.build; return; }        // establish baseline
+        if (j.build !== loaded) { pending = j.build; maybeReload(); } // new deploy detected
+      })
+      .catch(function () {});
+  }
+  check();
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') { check(); maybeReload(); }
+  });
+  window.addEventListener('focus', maybeReload);
+  setInterval(check, 5 * 60 * 1000);
 })();

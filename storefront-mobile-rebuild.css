@@ -5,7 +5,7 @@
 :root{
   --zw-mobile-gutter:clamp(1rem,4vw,1.35rem);
   --zw-mobile-section-gap:clamp(3.5rem,9vw,5rem);
-  --zw-mobile-card-gap:clamp(.9rem,3vw,1.15rem);
+  --zw-mobile-card-gap:clamp(2px,1vw,6px);   /* tight, Nike-style 2-up grid — images nearly fill the screen (was ~14-18px of empty space between cards) */
 }
 
 @media (max-width: 900px){
@@ -364,7 +364,10 @@
   }
 
   .product-layout{
-    grid-template-columns:1fr !important;
+    /* minmax(0,1fr) not 1fr: a plain 1fr track keeps min-width:auto, so a wide
+       nowrap child (the 7-colour swatch row = 7x31vw) stretched the whole page
+       instead of scrolling. minmax(0,…) lets the column stay viewport-width. */
+    grid-template-columns:minmax(0, 1fr) !important;
     gap:1.5rem !important;
   }
 
@@ -372,10 +375,31 @@
     position:static !important;
     gap:.75rem !important;
     margin-inline:calc(var(--zw-mobile-gutter) * -1);
+    min-width:0;   /* don't expand to the widest child (the swatch scroll row) */
   }
+  /* Every ancestor of the horizontal swatch row must allow shrinking below its
+     content, otherwise the nowrap row blows out the page width instead of
+     scrolling inside .color-swatches (overflow-x:auto). */
+  .colorway-section,
+  .colorway-section .color-swatches{ min-width:0; max-width:100%; }
 
   .gallery-main{
     aspect-ratio:4 / 5 !important;
+    height:auto !important;
+    min-height:0 !important;      /* flex items default to min-height:auto (= content),
+                                     so a tall child (e.g. the video on Zuwera Tech) was
+                                     stretching the frame past 4:5 and cropping the image. */
+    max-height:none !important;
+    flex:0 0 auto !important;
+  }
+  /* Pin the media absolutely inside the 4:5 frame so NO child can stretch it —
+     the frame's aspect-ratio alone governs the height. Arrows are hidden on mobile;
+     badge/heart/dots come later in the DOM so they still stack on top. */
+  #galleryMain > #mainImage,
+  #galleryMain > #mainVideo{
+    position:absolute !important; inset:0 !important;
+    width:100% !important; height:100% !important;
+    object-fit:cover !important;
   }
 
   .gallery-thumbnails{
@@ -573,11 +597,13 @@
     padding:1.25rem var(--zw-mobile-gutter) calc(1.75rem + env(safe-area-inset-bottom,0px)) !important;
   }
 
-  .zw-saved-item-btn,
-  .zw-saved-item-link{
-    flex:1 1 100% !important;
-    min-width:0 !important;
-  }
+  /* Saved items: two product cards per row on mobile (matches the account page). */
+  #cart-favs-list{ grid-template-columns:repeat(2, minmax(0,1fr)) !important; gap:.8rem !important; }
+  /* Compact action layout: "Add to Bag" full-width on top, then View + Remove
+     side by side beneath. Three stacked full-width buttons made each card too tall. */
+  .zw-saved-item-actions{ gap:.5rem !important; }
+  .zw-saved-item-btn--primary{ order:-1; flex:1 1 100% !important; min-width:0 !important; }
+  .zw-saved-item-btn--ghost{ flex:1 1 calc(50% - .3rem) !important; min-width:0 !important; padding:0 .5rem !important; }
 
   #cart-items-list li{
     gap:.8rem !important;

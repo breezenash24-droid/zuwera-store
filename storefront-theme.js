@@ -62,10 +62,16 @@
     'product-title': '.product-title, .product-subtitle',
     'product-detail': '.accordion-header, .accordion-body, .colorway-section .section-label',
     // Modals build their own markup, so none of the page's type reached them.
-    'modal':        '.zwf-modal-title, .zwf-modal-sub, .zwf-fit-btn, .zwf-fit-go, .zwf-fit-again, .quick-add-option-head, .quick-add-product-meta, .quick-add-empty-option',
+    // Split head vs body; must stay identical to admin-main.js SECTION_DEFS.
+    'modal':        '.mtitle, .review-mbox-title, .review-modal-title, .size-guide-title, #payment-modal-title, .calc-title, .zwf-modal-title, .zwf-fit-btn, .zwf-fit-go, .zwf-fit-again, .quick-add-option-head',
+    'modal-body':   '.msubtitle, .review-modal-copy, .review-modal-message, .size-guide-copy, .calc-subtitle, .zwf-modal-sub, .quick-add-product-meta, .quick-add-empty-option',
     'price':        '.pcard-price, .pcard-cat',
     'btn':          '.add-to-cart-btn, .pcard-add-btn, #checkout-btn, #pay-submit',
     'footer':       '.fcopy, .flinks a, .fig',
+    // Collection filter sidebar + mobile sheet + sort/count bar. Default (no
+    // override) leaves them on --font-filter (the Body font); must stay identical
+    // to admin-main.js SECTION_DEFS.
+    'filter':       '.plp-sidebar-head, .plp-cat-btn, .plp-facet-head, .plp-opt, .plp-color-name, .plp-clear-all, .plp-count, .plp-sort-wrap, .plp-sort, .plp-filter-toggle, .plp-fm-title, .plp-fm-label, .plp-fm-cat, .plp-fm-apply',
   };
 
   function _loadFontUrl(url) {
@@ -260,6 +266,106 @@
 
   function applySettingsRows(rows) {
     rows.forEach(function(row) {
+      // Modal accent mode lives inside the theme blob (theme.value.modal_accent =
+      // 'a' | 'b' | 'c'). Apply on every page — including the homepage, before the
+      // theme block's early-return below — since modals appear everywhere.
+      if (row.key === 'theme' && row.value) {
+        var _acc = String(row.value.modal_accent || 'a').toLowerCase();
+        if (_acc === 'a' || _acc === 'b' || _acc === 'c') {
+          var _mb = document.body;
+          _mb.classList.remove('zw-macc-a', 'zw-macc-b', 'zw-macc-c');
+          _mb.classList.add('zw-macc-' + _acc);
+        }
+      }
+      // Product-gallery animation (theme.gallery_anim = { load, scroll }). Sets the
+      // body attributes product.css keys the main-image animations on: the colorway/
+      // first-paint "load" animation and the arrow/swipe/thumbnail "scroll" animation.
+      // Absent/invalid → CSS defaults (fade / slide). Applied on every page; only the
+      // product page has the gallery, so it's a harmless no-op elsewhere.
+      if (row.key === 'theme' && row.value && row.value.gallery_anim) {
+        var _ga = row.value.gallery_anim, _gbody = document.body;
+        var _loadOk = { fade: 1, zoom: 1, blur: 1, rise: 1, none: 1 };
+        var _scrollOk = { slide: 1, fade: 1, zoom: 1, push: 1, none: 1 };
+        var _spOk = { normal: 1, fast: 1, slow: 1, slower: 1 };
+        var _gl = String(_ga.load || 'fade').toLowerCase();
+        var _gs = String(_ga.scroll || 'slide').toLowerCase();
+        // Split load/scroll speeds; fall back to the old single `speed` for configs
+        // saved before the split.
+        var _lsp = String(_ga.load_speed || _ga.speed || 'normal').toLowerCase();
+        var _ssp = String(_ga.scroll_speed || _ga.speed || 'normal').toLowerCase();
+        _gbody.setAttribute('data-gal-load', _loadOk[_gl] ? _gl : 'fade');
+        _gbody.setAttribute('data-gal-scroll', _scrollOk[_gs] ? _gs : 'slide');
+        _gbody.setAttribute('data-gal-load-speed', _spOk[_lsp] ? _lsp : 'normal');
+        _gbody.setAttribute('data-gal-scroll-speed', _spOk[_ssp] ? _ssp : 'normal');
+      }
+      // Modal backdrop treatment (theme.modal_backdrop). Resolve the treatment for
+      // THIS page group (home | shop | checkout | account) — a per-page override in
+      // .pages[group] (use:'custom') replaces the global per-device treatment — then
+      // set the body attributes the scrim vars in storefront-cohesion.css read:
+      //   data-mbd-lg|md|sm = dim|blur|frost|none, data-mbd-int = light|medium|heavy,
+      //   data-mbd-tint = neutral|brand, data-mbd-tap = on|off (tap-dim-to-close).
+      if (row.key === 'theme' && row.value && row.value.modal_backdrop) {
+        var _bd = row.value.modal_backdrop, _body = document.body, _okb = { dim: 1, blur: 1, frost: 1, none: 1 };
+        var _pth = (window.location.pathname || '').toLowerCase();
+        var _grp = (_pth === '/' || _pth === '' || /(^|\/)index\.html$/.test(_pth)) ? 'home'
+                 : /(bag|checkout|cart)\.html/.test(_pth) ? 'checkout'
+                 : /(account|about|journal|contact|polic|returns|sizeguide|faq)\.html/.test(_pth) ? 'account'
+                 : 'shop';
+        var _pg = _bd.pages && _bd.pages[_grp];
+        var _src = (_pg && _pg.use === 'custom') ? _pg : _bd;   // per-page override, else global
+        ['lg', 'md', 'sm'].forEach(function (dev) {
+          var v = String((_src && _src[dev]) || (_bd && _bd[dev]) || 'dim').toLowerCase();
+          _body.setAttribute('data-mbd-' + dev, _okb[v] ? v : 'dim');
+        });
+        var _int = String(_bd.intensity || 'medium').toLowerCase();
+        _body.setAttribute('data-mbd-int', /^(light|medium|heavy)$/.test(_int) ? _int : 'medium');
+        _body.setAttribute('data-mbd-tint', _bd.tint === 'brand' ? 'brand' : 'neutral');
+        _body.setAttribute('data-mbd-tap', _bd.close_on_tap === false ? 'off' : 'on');
+        // Per-modal overrides: _bd.modals[key] = 'global'|'dim'|'blur'|'frost'|'none'.
+        // Emit a <style> that sets the scrim vars on individual modal overlays so they
+        // override the global body vars for JUST those modals (CSS-only → works even
+        // for modals injected later). Intensity stays global (var(--zw-mbd-int)); the
+        // tint colour is baked in here so a per-modal dim/blur isn't polluted by the
+        // global treatment's rgb (e.g. a global frost sets the body rgb to white).
+        (function () {
+          var modals = _bd.modals || {};
+          var REG = {
+            login: '#zwlg-modal', language: '#zw-lang-modal', filter: '.plp-fm',
+            findsize: '.zwf-modal,#find-size-modal', sizefit: '#size-fit-modal',
+            reviews: '#all-reviews-modal,#review-modal', quickadd: '.quick-add-review-modal',
+            collectionreview: '.collection-review-modal', bag: '.zwf-bag', search: '.zwf-search'
+          };
+          var brand = '248,145,165', neutral = '9,9,11';
+          var base = (_bd.tint === 'brand') ? brand : neutral;
+          function decl(t) {
+            if (t === 'none') return '--zw-mbd-a:0;--zw-mbd-blur:none';
+            if (t === 'blur') return '--zw-mbd-rgb:' + base + ';--zw-mbd-a:calc(.14*var(--zw-mbd-int));--zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(140%)';
+            if (t === 'frost') return '--zw-mbd-rgb:' + (_bd.tint === 'brand' ? brand : '255,255,255') + ';--zw-mbd-a:calc(.4*var(--zw-mbd-int));--zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(120%)';
+            return '--zw-mbd-rgb:' + base + ';--zw-mbd-a:calc(.5*var(--zw-mbd-int));--zw-mbd-blur:none'; // dim
+          }
+          var css = '';
+          Object.keys(REG).forEach(function (k) {
+            var t = String(modals[k] || 'global').toLowerCase();   // global/absent → inherit body vars
+            if (/^(dim|blur|frost|none)$/.test(t)) css += REG[k] + '{' + decl(t) + '}';
+          });
+          var st = document.getElementById('zw-mbd-permodal');
+          if (!st) { st = document.createElement('style'); st.id = 'zw-mbd-permodal'; (document.head || document.documentElement).appendChild(st); }
+          st.textContent = css;
+        })();
+        // Tap-the-dim-to-close — best-effort across the shared .modal overlays: a
+        // direct click on the backdrop (not its content) closes the modal. Bound once.
+        if (!window.__zwMbdTapBound) {
+          window.__zwMbdTapBound = true;
+          document.addEventListener('click', function (e) {
+            if (document.body.getAttribute('data-mbd-tap') === 'off') return;
+            var m = e.target;
+            if (!m || !m.classList || !m.classList.contains('modal')) return; // only the backdrop itself
+            if (m.id === 'mobile-menu' || m.id === 'payment-modal') return;    // these manage their own close
+            var btn = m.querySelector('.mclose,.zwlg-close,.plp-fm-x,.collection-review-close,#zw-lang-close,[data-close],[aria-label="Close"]');
+            if (btn) btn.click(); else m.classList.remove('open', 'active', 'show');
+          }, false);
+        }
+      }
       if (row.key === 'theme') {
         var isHomepage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/');
         if (isHomepage || window.__ZW_BUILDER_PREVIEW__) return;

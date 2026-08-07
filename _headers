@@ -40,6 +40,11 @@
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
 
+# Build id for the client auto-reload — must never be cached so an open tab can
+# detect a new deploy (version-check in header-scroll.js).
+/version.json
+  Cache-Control: no-cache, no-store, must-revalidate
+
 /*.woff2
   Cache-Control: public, max-age=31536000, immutable
 

@@ -3,6 +3,8 @@
     config: null,
     promotion: null,
     code: '',
+    autoRef: '',       // referral code from a /?ref= link, auto-applied when the summary is ready
+    autoApplying: false,
   };
 
   function parseMoney(text) {
@@ -17,6 +19,20 @@
 
   function currentPromoCode() {
     return String(STATE.code || '').trim().toUpperCase();
+  }
+
+  // Prefill a friend's referral code (captured to localStorage from /?ref=CODE by
+  // nav-menu.js) into the promo box and arm the auto-apply. MUST run for the STATIC
+  // promo box too (checkout.html / bag.html): those pages ship the box in their
+  // HTML, so ensurePromoUi() takes the early-return branch and never reached the
+  // injected-only prefill — the code never followed the shopper to checkout.
+  function prefillRef(root) {
+    try {
+      const ref = localStorage.getItem('zw_ref');
+      if (!ref) return;
+      const input = (root || document).querySelector('#zw-promo-input');
+      if (input && !input.value) { input.value = ref; STATE.autoRef = String(ref).trim().toUpperCase(); }
+    } catch (_) {}
   }
 
   function getSummaryNodes() {
@@ -44,6 +60,7 @@
         btn.addEventListener('click', applyPromoFromInput);
         btn.__zwWired = true;
       }
+      prefillRef();   // static promo box (checkout.html/bag.html) — carry the referral code here too
       return;
     }
 
@@ -64,16 +81,10 @@
       <div id="zw-promo-message" style="font-family:var(--fm,inherit);font-size:.62rem;color:rgba(244,241,235,.5);letter-spacing:.03em;min-height:.9rem;"></div>
     `;
 
-    // Arrived from a friend's referral link (?ref=CODE)? Prefill their code so
-    // the shopper doesn't have to remember it. It's still validated server-side
-    // like any other promo — this only saves typing.
-    try {
-      const ref = localStorage.getItem('zw_ref');
-      if (ref) {
-        const input = shell.querySelector('#zw-promo-input');
-        if (input && !input.value) input.value = ref;
-      }
-    } catch (_) {}
+    // Arrived from a friend's referral link (?ref=CODE)? Prefill from the shell we
+    // just built (before it's in the DOM) — still validated server-side like any
+    // other promo; this only saves typing.
+    prefillRef(shell);
 
     const summary = host.closest('.cart-summary') || document.querySelector('.cart-summary');
     const totalRow = host.querySelector('.stotal, .total')
@@ -163,6 +174,17 @@
       row.style.display = discountCents > 0 ? 'flex' : 'none';
       value.textContent = `-${formatMoney(discountCents)}`;
     }
+    // Bag page has its own visible summary card; the checkout modal's #zw-promo-row
+    // isn't shown there, so a referral/promo discount was a silent total change.
+    // Populate a dedicated bag-card row (labelled with the code) so it's obvious.
+    const bagRow = document.getElementById('bag-discount-row');
+    if (bagRow) {
+      const bagVal = document.getElementById('bag-discount-value');
+      const bagLbl = document.getElementById('bag-discount-label');
+      bagRow.style.display = discountCents > 0 ? '' : 'none';
+      if (bagVal) bagVal.textContent = `-${formatMoney(discountCents)}`;
+      if (bagLbl) bagLbl.textContent = (discountCents > 0 && currentPromoCode()) ? `Discount · ${currentPromoCode()}` : 'Discount';
+    }
     if (message) {
       message.textContent = STATE.promotion
         ? `${STATE.promotion.label || STATE.promotion.code} applied.`
@@ -172,6 +194,22 @@
     const nextTotalText = subtotalCents ? formatMoney(totalCents) : '-';
     if (nodes.tax.textContent !== nextTaxText) nodes.tax.textContent = nextTaxText;
     if (nodes.total.textContent !== nextTotalText) nodes.total.textContent = nextTotalText;
+  }
+
+  // A friend arriving from /?ref=CODE gets the code prefilled — but prefilling the
+  // input does NOT set STATE.code, so without this the referral discount was never
+  // sent to create-payment-intent and they paid full price (the "link doesn't apply
+  // the discount" bug). Auto-apply it once the summary has a subtotal (findPromotion
+  // needs one to clear the minimum), retrying via the summary observer as the cart
+  // loads. Stops as soon as a promotion is applied or the shopper edits the field.
+  function tryAutoApplyRef() {
+    if (STATE.promotion || STATE.autoApplying || !STATE.autoRef) return;
+    const input = document.getElementById('zw-promo-input');
+    if (!input || String(input.value || '').trim().toUpperCase() !== STATE.autoRef) return;
+    const nodes = getSummaryNodes();
+    if (parseMoney(nodes.subtotal?.textContent || '') <= 0) return; // summary not ready yet
+    STATE.autoApplying = true;
+    applyPromoFromInput().finally(() => { STATE.autoApplying = false; });
   }
 
   async function applyPromoFromInput() {
@@ -255,7 +293,7 @@
   function observeSummary() {
     const nodes = getSummaryNodes();
     [nodes.subtotal, nodes.shipping, nodes.tax].filter(Boolean).forEach((node) => {
-      new MutationObserver(() => renderPromoSummary()).observe(node, { childList: true, subtree: true, characterData: true });
+      new MutationObserver(() => { renderPromoSummary(); tryAutoApplyRef(); }).observe(node, { childList: true, subtree: true, characterData: true });
     });
   }
 
@@ -267,9 +305,11 @@
     loadConfig().then(() => {
       ensurePromoUi();
       renderPromoSummary();
+      tryAutoApplyRef();
     }).catch(() => {
       ensurePromoUi(); // fallback: show promo UI even if config fails
       renderPromoSummary();
+      tryAutoApplyRef();
     });
   }
 

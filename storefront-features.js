@@ -127,6 +127,20 @@
       + '<div class="zwf-row">' + html + '</div></div>';
     return sec;
   }
+  // Apply a block's per-card controls (Page Builder → Product tab → Card options):
+  // card size (row column min-width) + hide name/category/price. No-op without cfg.
+  function applyRowCfg(sec, cfg) {
+    if (!sec || !cfg) return;
+    var row = sec.querySelector('.zwf-row');
+    var sizeMap = { s: '160px', l: '280px', xl: '360px' };  // 'm'/unset = default responsive
+    if (row) {
+      if (sizeMap[cfg.card_size]) row.style.setProperty('--zwf-card-min', sizeMap[cfg.card_size]);
+      else row.style.removeProperty('--zwf-card-min');
+    }
+    sec.classList.toggle('zwf-hide-name', cfg.show_name === false);
+    sec.classList.toggle('zwf-hide-cat', cfg.show_cat === false);
+    sec.classList.toggle('zwf-hide-price', cfg.show_price === false);
+  }
 
   /* ───────────────────────── styles (injected once) ───────────────────────── */
 
@@ -144,10 +158,12 @@
       // the hero and the marquee and left every strip title behind. Fallbacks keep
       // product pages (which never load storefront.js) exactly as they are.
       '.zwf-strip-title{font-family:var(--fw,inherit);font-weight:var(--zw-fw-head,900);font-style:var(--zw-fst-head,italic);text-transform:uppercase;letter-spacing:.06em;font-size:clamp(1.1rem,3vw,1.6rem);margin:0 0 1.2rem}',
-      '.zwf-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,1fr);gap:1rem;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;padding-bottom:.5rem;scrollbar-width:thin}',
-      '@media(min-width:900px){.zwf-row{grid-auto-columns:minmax(200px,1fr)}}',
+      '.zwf-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(var(--zwf-card-min,150px),1fr);gap:1rem;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;padding-bottom:.5rem;scrollbar-width:thin}',
+      '@media(min-width:900px){.zwf-row{grid-auto-columns:minmax(var(--zwf-card-min,200px),1fr)}}',
+      /* Per-block Card options (Page Builder → Product tab): hide card text lines */
+      '.zwf-hide-name .pcard-name,.zwf-hide-cat .pcard-cat,.zwf-hide-price .pcard-price{display:none!important}',
       '.zwf-card{scroll-snap-align:start;text-decoration:none;color:inherit;display:block}',
-      '.zwf-card-img{position:relative;aspect-ratio:3/4;background:rgba(128,128,128,.10);overflow:hidden;border-radius:2px}',
+      '.zwf-card-img{position:relative;aspect-ratio:1/1;background:rgba(128,128,128,.10);overflow:hidden;border-radius:2px}',
       '.zwf-card-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.7,.2,1)}',
       '.zwf-card:hover .zwf-card-img img{transform:scale(1.04)}',
       '.zwf-card-info{padding:.7rem .1rem 0}',
@@ -184,16 +200,22 @@
          an invisible click-catcher, clipped so the panel can hide above it. It
          doesn't fade either — one moving thing (the panel) reads smoother than a
          slide and a cross-fade fighting each other. */
-      '.zwf-search{position:fixed;inset:0;z-index:990;display:flex;flex-direction:column;background:transparent;pointer-events:none;overflow:hidden}',
-      '.zwf-search.open{pointer-events:auto}',
+      /* Backdrop follows the global modal-backdrop setting by default (the .open rule
+         reads the inherited --zw-mbd-* vars); admin "Individual modals → Search drawer"
+         can override or turn it Off. Blur/frost repaint per frame and can stutter the
+         slide on low-end devices — set Search to Dim or Off if so; Dim is paint-cheap. */
+      '.zwf-search{position:fixed;inset:0;z-index:990;display:flex;flex-direction:column;background:transparent;transition:background .3s ease,backdrop-filter .3s ease;pointer-events:none;overflow:hidden}',
+      '.zwf-search.open{pointer-events:auto;background:rgba(var(--zw-mbd-rgb),var(--zw-mbd-a));backdrop-filter:var(--zw-mbd-blur,none);-webkit-backdrop-filter:var(--zw-mbd-blur,none)}',
       /* translate3d + will-change keeps this on the compositor — no layout or
          paint per frame, so it stays at 60fps. */
-      '.zwf-search-panel{background:var(--ink,#09090b);color:var(--paper,#f4f1eb);width:100%;max-height:min(72vh,560px);display:flex;flex-direction:column;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));box-shadow:0 22px 48px rgba(0,0,0,.22)}',
+      /* Match the bag panel's theme-adaptive surface (--zw-page/--zw-ink) instead of
+         the always-dark --ink, so search isn't a black panel on the super-light theme. */
+      '.zwf-search-panel{background:var(--zw-page,#fff);color:var(--zw-ink,#09090b);width:100%;max-height:min(72vh,560px);display:flex;flex-direction:column;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));box-shadow:0 22px 48px rgba(0,0,0,.22)}',
       '.zwf-search.open .zwf-search-panel{transform:translate3d(0,0,0)}',
       /* ── bag panel ── shares the search panel's mechanics: no dim, no blur,
          compositor-only slide, clipped so it hides above. */
-      '.zwf-bag{position:fixed;inset:0;z-index:989;display:flex;flex-direction:column;background:transparent;pointer-events:none;overflow:hidden}',
-      '.zwf-bag.open{pointer-events:auto}',
+      '.zwf-bag{position:fixed;inset:0;z-index:989;display:flex;flex-direction:column;background:transparent;transition:background .3s ease,backdrop-filter .3s ease;pointer-events:none;overflow:hidden}',
+      '.zwf-bag.open{pointer-events:auto;background:rgba(var(--zw-mbd-rgb),var(--zw-mbd-a));backdrop-filter:var(--zw-mbd-blur,none);-webkit-backdrop-filter:var(--zw-mbd-blur,none)}',
       '.zwf-bag-panel{background:var(--zw-page,#fff);color:var(--zw-ink,#09090b);width:100%;max-height:min(76vh,620px);display:flex;flex-direction:column;overflow:hidden;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));box-shadow:0 22px 48px rgba(0,0,0,.18)}',
       '.zwf-bag.open .zwf-bag-panel{transform:translate3d(0,0,0)}',
       /* A parked panel must not cast a shadow. Both panels sit at -101%, so their
@@ -225,7 +247,10 @@
       '.zwf-bag-link{display:flex;align-items:center;gap:.7rem;padding:.5rem 0;text-decoration:none;color:inherit;font-family:var(--fb,inherit);font-size:.95rem}',
       '.zwf-bag-link:hover{opacity:.65}',
       '.zwf-bag-link svg{width:17px;height:17px;opacity:.55;flex-shrink:0}',
-      '.zwf-bag-count{margin-left:auto;min-width:1.35em;height:1.35em;padding:0 .45em;border-radius:1em;background:var(--zw-accent,#F891A5);color:#fff;font-family:var(--fm,var(--fb,inherit));font-size:.68rem;font-weight:600;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}',
+      '.zwf-bag-count{margin-left:auto;min-width:1.35em;height:1.35em;padding:0 .45em;border-radius:1em;background:var(--zw-accent,#F891A5);color:#09090b;font-family:var(--fm,var(--fb,inherit));font-size:.68rem;font-weight:600;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}',
+      // Accent mode: the saves badge is a filled pill, so it can\'t use currentColor
+      // like the text accents — give it a neutral ink fill in the mono modes (B/C).
+      'body.zw-macc-b .zwf-bag-count,body.zw-macc-c .zwf-bag-count{background:var(--zw-ink,#09090b);color:var(--zw-page,#fff)}',
       /* The account button moves INTO this panel, so hide the header one while
          the feature is on (both header systems). */
       'body.zwf-bagpanel-on :is(#login-btn,#account-btn,#hdr-login){display:none!important}',
@@ -279,12 +304,14 @@
       '.zwf-fit-btn:hover{opacity:1}',
 
       /* shared modal (fit finder) — cream panel that reads on both themes */
-      /* No dim. Same rule the search and bag panels follow — the page behind stays
-         exactly as it is. The box carries its own shadow and hairline instead, which
-         it needs anyway now that it's page-coloured: on super-light both the modal
-         and the page are pure white, so the dim was the only thing separating them. */
-      '.zwf-modal{position:fixed;inset:0;z-index:4100;display:flex;align-items:center;justify-content:center;padding:1.2rem;background:transparent;opacity:0;pointer-events:none;transition:opacity .22s ease}',
-      '.zwf-modal.open{opacity:1;pointer-events:auto}',
+      /* Backdrop follows the admin modal-backdrop system (Dim/Blur/Frost/None +
+         intensity + tint), exactly like the bag & search panels above: the scrim
+         is painted on `.open` from the inherited --zw-mbd-* vars. This is the modal
+         the "Find your size" button actually opens — the product page's
+         #find-size-modal is an unreferenced duplicate. The box keeps its own shadow
+         + hairline so it still reads on super-light even when None is chosen. */
+      '.zwf-modal{position:fixed;inset:0;z-index:4100;display:flex;align-items:center;justify-content:center;padding:1.2rem;background:transparent;opacity:0;pointer-events:none;transition:opacity .22s ease,background .22s ease,backdrop-filter .22s ease}',
+      '.zwf-modal.open{opacity:1;pointer-events:auto;background:rgba(var(--zw-mbd-rgb),var(--zw-mbd-a));backdrop-filter:var(--zw-mbd-blur,none);-webkit-backdrop-filter:var(--zw-mbd-blur,none)}',
       /* Page-coloured, not hardcoded cream. #f4f1eb is the dark theme's paper, so on
          super-light (white page) the modal read as a cream slab that belonged to a
          different site. --zw-page/--zw-ink are what the bag panel already uses, so it
@@ -327,6 +354,9 @@
       '.zwf-result{text-align:center;padding:.6rem 0 .2rem}',
       '.zwf-result-size{font-family:var(--fw,inherit);font-weight:900;font-style:italic;font-size:3.2rem;line-height:1;margin:.3rem 0}',
       '.zwf-result-note{font-family:var(--fb,inherit);font-size:.82rem;opacity:.6;margin:.2rem 0 1.4rem;line-height:1.5}',
+      /* "View full size guide" link inside the fit finder (opens the size-guide modal) */
+      '.zwf-fit-guide{display:block;width:100%;margin-top:.9rem;background:none;border:none;cursor:pointer;text-align:center;font-family:var(--fm,inherit);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;opacity:.6;text-decoration:underline;text-underline-offset:3px;color:inherit;padding:.2rem}',
+      '.zwf-fit-guide:hover{opacity:1}',
 
       /* support widget (floating) */
       '.zwf-support{position:fixed;right:20px;bottom:20px;z-index:900;display:flex;flex-direction:column;align-items:flex-end;gap:12px}',
@@ -353,19 +383,28 @@
   var CLEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
 
   function scoreProduct(p, tokens) {
-    var hay = [nameOf(p), p.subtitle, p.gender, p.colorway, p.category,
+    var hay = [nameOf(p), p.subtitle, p.gender, p.colorway, p.category, p.sku,
       Array.isArray(p.tags) ? p.tags.join(' ') : p.tags, p.material_composition]
       .join(' ').toLowerCase();
     var name = nameOf(p).toLowerCase();
-    var score = 0;
+    var score = 0, matched = 0;
     for (var i = 0; i < tokens.length; i++) {
       var t = tokens[i];
-      if (hay.indexOf(t) === -1) return 0;          // every token must match (AND)
-      if (name.indexOf(t) === 0) score += 3;        // title prefix
-      else if (name.indexOf(t) !== -1) score += 2;  // title contains
-      else score += 1;                              // matched elsewhere
+      // Friendlier matching: also try the singular ("jackets"→"jacket",
+      // "mens"→"men") so plural/possessive queries still hit, and DON'T bail when a
+      // token misses — rank by how many tokens matched instead of demanding all of
+      // them (AND→ranked OR). So "black hoodie" still surfaces hoodies even if none
+      // are black, with the best matches on top, instead of showing nothing.
+      var sing = (t.length > 3 && t.charAt(t.length - 1) === 's') ? t.slice(0, -1) : t;
+      var hit = hay.indexOf(t) !== -1 || (sing !== t && hay.indexOf(sing) !== -1);
+      if (!hit) continue;
+      matched++;
+      if (name.indexOf(t) === 0) score += 4;         // title starts with the word
+      else if (name.indexOf(t) !== -1) score += 3;   // title contains it
+      else score += 1;                               // matched a tag / category / etc.
     }
-    return score;
+    if (!matched) return 0;
+    return score + matched * 2;                       // reward matching more of the query
   }
 
   function initSearch() {
@@ -392,6 +431,11 @@
         // the last thing in the header.
         host = navRight;
         before = navRight.querySelector('#mobile-menu-btn, .hamburger-btn');
+      } else {
+        // checkout: custom .co-header-right with the bag pill (#co-bag-pill).
+        // Reuse the bag-icon class so the magnifier matches it, sat just before it.
+        var coRight = document.querySelector('.co-header-right');
+        if (coRight) { host = coRight; before = coRight.querySelector('#co-bag-pill'); cls = 'co-bag-icon'; }
       }
     }
     if (host) {
@@ -408,7 +452,9 @@
         btn.innerHTML = SEARCH_SVG;
         if (before) host.insertBefore(btn, before); else host.appendChild(btn);
       }
-      if (!btn.__zwSearchWired) { btn.__zwSearchWired = true; btn.addEventListener('click', openSearch); }
+      // Toggle: a second click on the magnifier closes the panel (the bag button
+      // already does this). Click-outside / scroll close still work as before.
+      if (!btn.__zwSearchWired) { btn.__zwSearchWired = true; btn.addEventListener('click', function () { if (isOpen(_overlay)) closeSearch(); else openSearch(); }); }
     }
 
     // "/" opens search (unless typing in a field).
@@ -704,10 +750,12 @@
       opts.container.innerHTML = '<div class="zwf-strip-inner">'
         + (heading ? '<h2 class="zwf-strip-title">' + esc(heading) + '</h2>' : '')
         + '<div class="zwf-row">' + rowHtml + '</div></div>';
+      applyRowCfg(opts.container, opts.cfg);
       return opts.container;
     }
     var sec = strip(heading, rowHtml);
     sec.setAttribute('data-zwf', 'recently-viewed');
+    applyRowCfg(sec, opts.cfg);
     insertBeforeFooter(sec);
     return sec;
   }
@@ -746,7 +794,7 @@
       .slice(0, n).map(function (x) { return x.p; });
   }
 
-  function renderRecommendations(current) {
+  function renderRecommendations(current, cfg) {
     if (!current) return;
     catalog().then(function (all) {
       var rel = pickRelated(all, current, 8);
@@ -754,6 +802,7 @@
       ensureStyles();
       var sec = strip('You may also like', rel.map(function (p) { return pcardCard(p, false); }).join(''));
       sec.setAttribute('data-zwf', 'recommendations');
+      applyRowCfg(sec, cfg);
       insertBeforeFooter(sec);
     });
   }
@@ -848,7 +897,7 @@
   /* ── optional block: new arrivals ──────────────────────────────────────────
      Newest products by created_at (falls back to the admin's sort order when a
      row has no timestamp), excluding the one being viewed. */
-  function renderNewArrivals(current) {
+  function renderNewArrivals(current, cfg) {
     catalog().then(function (all) {
       var list = all.filter(function (p) { return !current || String(p.id) !== String(current.id); });
       var dated = list.filter(function (p) { return p.created_at; });
@@ -861,6 +910,7 @@
       ensureStyles();
       var sec = strip('New arrivals', list.map(function (p) { return pcardCard(p, false); }).join(''));
       sec.setAttribute('data-zwf', 'new-arrivals');
+      applyRowCfg(sec, cfg);
       insertBeforeFooter(sec);
     });
   }
@@ -1011,7 +1061,9 @@
     var order = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
     var w = weightLb || 0;
     var idx = w < 120 ? 0 : w < 140 ? 1 : w < 165 ? 2 : w < 190 ? 3 : w < 220 ? 4 : w < 250 ? 5 : 6;
-    if (heightIn >= 74) idx++; else if (heightIn && heightIn <= 64) idx--;
+    // Height nudge: tall (6'0"+) sizes up, short (5'3"-) sizes down; average heights
+    // unchanged so weight leads. (Was only 6'2"+ up, which left 6'0-6'3" unadjusted.)
+    if (heightIn >= 72) idx++; else if (heightIn && heightIn <= 64) idx--;
     if (fit === 'relaxed') idx++; else if (fit === 'snug') idx--;
     idx = Math.max(0, Math.min(order.length - 1, idx));
     var rec = order[idx];
@@ -1138,7 +1190,8 @@
       + [['snug', 'Snug'], ['true', 'True to size'], ['relaxed', 'Relaxed']]
         .map(function (o) { return '<button type="button" data-fit="' + o[0] + '"' + (o[0] === _fitState.fit ? ' class="on"' : '') + '>' + o[1] + '</button>'; }).join('')
       + '</div></div>'
-      + '<button class="zwf-btn zwf-fit-go" type="button">See my size</button>';
+      + '<button class="zwf-btn zwf-fit-go" type="button">See my size</button>'
+      + '<button class="zwf-fit-guide" type="button">View full size guide →</button>';
   }
 
   function openFitFinder(sizes) {
@@ -1162,6 +1215,7 @@
     var body = _fitModal.querySelector('.zwf-fit-body');
     _fitState = { fit: 'true' };
     body.innerHTML = fitFormMarkup();
+    wireFitGuide(body);
     body.querySelectorAll('.zwf-seg button').forEach(function (b) {
       b.addEventListener('click', function () {
         _fitState.fit = b.getAttribute('data-fit');
@@ -1176,13 +1230,26 @@
       var rec = fitRecommend(h, w, _fitState.fit, _fitSizes);
       body.innerHTML = '<div class="zwf-result"><h3 class="zwf-modal-title">Your size</h3>'
         + '<div class="zwf-result-size">' + esc(rec) + '</div>'
-        + '<p class="zwf-result-note">A starting point based on your answers — fit varies by cut. Check the size guide if you’re between sizes.</p>'
-        + '<button class="zwf-btn zwf-fit-again" type="button">Start over</button></div>';
+        + '<p class="zwf-result-note">A starting point based on your answers — fit varies by cut.</p>'
+        + '<button class="zwf-btn zwf-fit-again" type="button">Start over</button>'
+        + '<button class="zwf-fit-guide" type="button">View full size guide →</button></div>';
       body.querySelector('.zwf-fit-again').addEventListener('click', function () { openFitFinder(_fitSizes); });
+      wireFitGuide(body);
     });
     requestAnimationFrame(function () { _fitModal.classList.add('open'); });
   }
   function closeFit() { if (_fitModal) _fitModal.classList.remove('open'); }
+  // "View full size guide" inside the fit finder → close this sheet, then open the
+  // product page's size-guide modal (window.openSizeGuideModal, defined on
+  // product.html). Guarded so it's a no-op anywhere that modal doesn't exist.
+  function wireFitGuide(scope) {
+    var g = scope && scope.querySelector('.zwf-fit-guide');
+    if (!g) return;
+    g.addEventListener('click', function () {
+      closeFit();
+      setTimeout(function () { if (typeof window.openSizeGuideModal === 'function') window.openSizeGuideModal(); }, 240);
+    });
+  }
 
   /* ───────────────────── feature: support widget ───────────────────── */
 
@@ -1382,15 +1449,15 @@
         // content because of a settings hiccup.
         var DEFAULT_PDP = [{ id: 'bundle', on: true }, { id: 'recently_viewed', on: true }, { id: 'recommendations', on: true }, { id: 'qa', on: true }];
         var run = {
-          bundle: function () { if (wantBundles) renderBundle(p); },
-          recently_viewed: function () { if (wantRV) renderRecentlyViewed(p.id); },
-          recommendations: function () { if (wantRec) renderRecommendations(p); },
-          qa: function () { if (wantQA) initQA(p); },
+          bundle: function (cfg) { if (wantBundles) renderBundle(p); },
+          recently_viewed: function (cfg) { if (wantRV) renderRecentlyViewed(p.id, { cfg: cfg }); },
+          recommendations: function (cfg) { if (wantRec) renderRecommendations(p, cfg); },
+          qa: function (cfg) { if (wantQA) initQA(p); },
           // Optional blocks — added from the builder's Product tab, so they carry
           // no separate feature flag: being in the layout IS the switch.
-          new_arrivals: function () { renderNewArrivals(p); },
-          journal: function () { renderJournalRow(); },
-          newsletter: function () { renderNewsletterBlock(); },
+          new_arrivals: function (cfg) { renderNewArrivals(p, cfg); },
+          journal: function (cfg) { renderJournalRow(); },
+          newsletter: function (cfg) { renderNewsletterBlock(); },
         };
         fetch('/api/product-page-config')
           .then(function (r) { return r.ok ? r.json() : null; })
@@ -1406,7 +1473,7 @@
             list.forEach(function (s) {
               if (!s || s.on === false) return;
               var fn = run[s.id];
-              if (fn) fn();
+              if (fn) fn(s.cfg || null);
             });
           });
       });
@@ -1434,6 +1501,44 @@
   // pages but not on product/index. The client reads the same 'zuwera-auth' session
   // correctly everywhere, so we consult it and re-render the panel when it answers.
   var _bagLiveUser = null;
+
+  // Admin-controlled bag-panel content (support email, per-row label + on/off) —
+  // site_settings.bag_panel, whitelisted for anon read (supabase-bag-panel.sql).
+  // Every field is optional: bagRow/bagSupportEmail fall back to today's hardcoded
+  // values, so the panel is unchanged until an admin saves something.
+  var _bagCfg = null;
+  function bagCfg() {
+    if (_bagCfg) return _bagCfg;
+    try { _bagCfg = JSON.parse(localStorage.getItem('zw_bag_panel') || 'null') || {}; } catch (_) { _bagCfg = {}; }
+    return _bagCfg;
+  }
+  function bagRow(key, def) {
+    var rows = (bagCfg().rows && typeof bagCfg().rows === 'object') ? bagCfg().rows : {};
+    var r = rows[key] || {};
+    var label = (r.label != null && String(r.label).trim()) ? String(r.label).trim() : def;
+    return { enabled: r.enabled !== false, label: label };
+  }
+  function bagSupportEmail() {
+    return String(bagCfg().supportEmail || '').trim() || 'nasirubreeze@zuwera.store';
+  }
+  // Instant apply from cache, then refresh from site_settings and re-render if open.
+  function loadBagCfg() {
+    var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+    try {
+      fetch('https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value&key=eq.bag_panel', { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }, cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (rows) {
+          if (!rows || !rows[0]) return;
+          var cfg = rows[0].value;
+          if (typeof cfg === 'string') { try { cfg = JSON.parse(cfg); } catch (_) {} }
+          if (!cfg || typeof cfg !== 'object') return;
+          _bagCfg = cfg;
+          try { localStorage.setItem('zw_bag_panel', JSON.stringify(cfg)); } catch (_) {}
+          if (_bagPanel) renderBagPanel();
+        })
+        .catch(function () {});
+    } catch (_) {}
+  }
 
   function bagCart() {
     try { return JSON.parse(localStorage.getItem('cart') || '[]') || []; } catch (_) { return []; }
@@ -1526,7 +1631,32 @@
     // linecap=round is load-bearing: the dot under the question mark is a
     // zero-length line, which renders nothing under the default butt cap.
     help:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 1 1 4 2.8c-.7.3-1.1 1-1.1 1.7v.5"/><line x1="12" y1="17.5" x2="12" y2="17.5"/></svg>',
+    // ── Extra icons the admin can pick for custom bag rows (all Feather-style,
+    //    round caps so dots render). Keep keys in sync with BAG_ICON_KEYS below. ──
+    heart:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>',
+    gift:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4"/><path d="M5 12v9h14v-9"/><line x1="12" y1="8" x2="12" y2="21"/><path d="M12 8H7.5a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8z"/><path d="M12 8h4.5a2.5 2.5 0 0 0 0-5C13 3 12 8 12 8z"/></svg>',
+    tag:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 12 22l-9-9V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.2" cy="7.2" r="1.1"/></svg>',
+    truck:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="13" height="10"/><path d="M14 9h4l3 3v4h-7z"/><circle cx="5.5" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg>',
+    star:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.1 8.6 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.6"/></svg>',
+    mail:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7 10-7"/></svg>',
+    home:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>',
+    user:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+    box:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><line x1="12" y1="13" x2="12" y2="21"/></svg>',
+    percent:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="7.5" cy="7.5" r="2"/><circle cx="16.5" cy="16.5" r="2"/></svg>',
+    calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="3" x2="8" y2="6"/><line x1="16" y1="3" x2="16" y2="6"/></svg>',
+    link:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>',
+    info:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8"/></svg>',
   };
+  // Icon keys the admin's custom-row picker offers (must exist in ICON above).
+  var BAG_ICON_KEYS = ['link', 'gift', 'tag', 'percent', 'star', 'heart', 'truck', 'box', 'mail', 'calendar', 'info', 'home', 'user', 'orders', 'saves', 'acct', 'help'];
+  function bagIcon(name) { return ICON[name] || ICON.link; }
+  // Only allow safe destinations for custom rows (site paths, http(s), mailto, tel).
+  function bagSafeUrl(u) {
+    var s = String(u || '').trim();
+    if (!s) return '';
+    if (/^(https?:\/\/|mailto:|tel:|\/)/i.test(s)) return s;
+    return '/' + s.replace(/^\/+/, '');
+  }
 
   function buildBagPanel() {
     if (_bagOverlay) return;
@@ -1540,7 +1670,22 @@
     _bagOverlay.innerHTML = '<div class="zwf-bag-panel"><div class="zwf-bag-inner"></div></div>';
     document.body.appendChild(_bagOverlay);
     _bagPanel = _bagOverlay.querySelector('.zwf-bag-inner');
-    _bagOverlay.addEventListener('click', function (e) { if (e.target === _bagOverlay) closeBag(); });
+    _bagOverlay.addEventListener('click', function (e) {
+      if (e.target === _bagOverlay) { closeBag(); return; }
+      // "Sign in" must open the login modal IN PLACE, not navigate to /?auth=signin
+      // (the homepage). The bag panel hides the header login button and the
+      // hamburger is nav-only (#236), so this link is the PRIMARY login entry on
+      // mobile — bouncing to the homepage is why signing in "didn't work" on every
+      // page except account (which has its own in-place auth wall). Close the bag,
+      // open the shared zwlg modal right here; the href stays as a no-JS fallback.
+      var lg = e.target.closest && e.target.closest('[data-zw-login]');
+      if (lg && typeof window.zwOpenLogin === 'function') {
+        e.preventDefault();
+        e.stopPropagation();
+        closeBag();
+        window.zwOpenLogin('signin');
+      }
+    });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && _bagOverlay.classList.contains('open')) closeBag();
     });
@@ -1567,11 +1712,19 @@
       : (function () { try { return parseInt(localStorage.getItem('zw_fav_count') || '0', 10) || 0; } catch (_) { return 0; } })();
     if (!(favCount > 0)) favCount = 0;
     var savesBadge = favCount ? '<span class="zwf-bag-count">' + (favCount > 99 ? '99+' : favCount) + '</span>' : '';
+    var rOrders = bagRow('orders', 'Orders'), rSaves = bagRow('saves', 'Your saves'), rAccount = bagRow('account', 'Account');
     var links = user
-      ? '<a class="zwf-bag-link" href="/account.html#orders">' + ICON.orders + 'Orders</a>'
-        + '<a class="zwf-bag-link" href="/account.html#saved">' + ICON.saves + 'Your saves' + savesBadge + '</a>'
-        + '<a class="zwf-bag-link" href="/account.html#profile">' + ICON.acct + 'Account</a>'
+      ? (rOrders.enabled ? '<a class="zwf-bag-link" href="/account.html#orders">' + ICON.orders + esc(rOrders.label) + '</a>' : '')
+        + (rSaves.enabled ? '<a class="zwf-bag-link" href="/account.html#saved">' + ICON.saves + esc(rSaves.label) + savesBadge + '</a>' : '')
+        + (rAccount.enabled ? '<a class="zwf-bag-link" href="/account.html#profile">' + ICON.acct + esc(rAccount.label) + '</a>' : '')
       : '<a class="zwf-bag-link" data-zw-login href="/?auth=signin&next=' + encodeURIComponent(location.pathname) + '">' + ICON.acct + 'Sign in</a>';
+    var rSupport = bagRow('support', 'Support');
+    var supportRow = rSupport.enabled ? '<a class="zwf-bag-link" href="mailto:' + esc(bagSupportEmail()) + '">' + ICON.help + esc(rSupport.label) + '</a>' : '';
+    // Admin-defined custom rows: label + chosen icon + preset link (bag_panel.custom).
+    var customRows = (Array.isArray(bagCfg().custom) ? bagCfg().custom : [])
+      .filter(function (r) { return r && r.enabled !== false && String(r.label || '').trim() && String(r.url || '').trim(); })
+      .map(function (r) { return '<a class="zwf-bag-link" href="' + esc(bagSafeUrl(r.url)) + '">' + bagIcon(r.icon) + esc(String(r.label).trim()) + '</a>'; })
+      .join('');
 
     _bagPanel.innerHTML = '<div class="zwf-bag-hd"><h2>Bag' + (cart.length ? ' · ' + bagMoney(total) : '') + '</h2>'
       // An empty bag has nothing to review — Start shopping goes to the catalogue,
@@ -1580,7 +1733,8 @@
       + items
       + '<div class="zwf-bag-links"><h3>' + (user ? esc(user.name) : 'My profile') + '</h3>'
       + links
-      + '<a class="zwf-bag-link" href="mailto:nasirubreeze@zuwera.store">' + ICON.help + 'Support</a>'
+      + customRows
+      + supportRow
       + '</div>';
   }
 
@@ -1618,6 +1772,7 @@
     ensureStyles();
     document.body.classList.add('zwf-bagpanel-on');   // hides the header account button
     bagBootstrapSession();   // resolve the signed-in user from the live client (all pages)
+    loadBagCfg();            // pull admin-controlled labels / support email / row toggles
 
     // The bag is wired three different ways:
     //   index    — inline onclick → window.__zwOpenCart() → location.assign('/bag.html')
@@ -1629,10 +1784,11 @@
     // phase on document runs before all three, and stopping propagation there
     // means none of them ever fire. One hook, no per-page special-casing.
     document.addEventListener('click', function (e) {
-      var t = e.target && e.target.closest && e.target.closest('#cart-btn, .zw-hdr-bag');
+      var t = e.target && e.target.closest && e.target.closest('#cart-btn, .zw-hdr-bag, #co-bag-pill');
       if (!t) return;
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;  // new-tab still works
-      if (/\/bag(\.html)?$/.test(location.pathname)) return;               // already on the bag page
+      // (Previously skipped on /bag; the bag button there now opens the panel too,
+      // for quick access to the mini-cart + Orders/Saves/Account links.)
       e.preventDefault();
       e.stopPropagation();
       if (_bagOverlay && _bagOverlay.classList.contains('open')) closeBag(); else openBag();

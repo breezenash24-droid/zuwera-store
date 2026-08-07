@@ -5,6 +5,20 @@
   const MAX_MOBILE_WIDTH = 760;
   const CLOUDINARY_NAME_RE = /^[a-z0-9_-]{2,64}$/i;
   let cloudinaryCloudName = DEFAULT_CLOUDINARY_CLOUD_NAME;
+  // Secondary optimizer, used ONLY as a fallback when a Cloudinary image fails to load
+  // (Cloudinary over quota / down / a transform error). 'wsrv' = images.weserv.nl, a
+  // free, Cloudflare-backed image CDN that needs no account. Server can turn it off via
+  // /api/image-config (site_settings.IMAGE_FALLBACK='off'). Default on — it's a safety
+  // net that only ever activates on a broken image, so it can't hurt.
+  let fallbackProvider = 'wsrv';
+
+  // Build a wsrv.nl optimized URL for an already-absolute image URL.
+  function wsrvUrl(absoluteUrl, width) {
+    const w = normalizeWidth(width);
+    // wsrv wants the source without the scheme; 'ssl:' marks an https origin.
+    const src = String(absoluteUrl || '').replace(/^https:\/\//i, 'ssl:').replace(/^http:\/\//i, '');
+    return `https://images.weserv.nl/?url=${encodeURIComponent(src)}&w=${w}&output=webp&q=80`;
+  }
 
   function setCloudinaryCloudName(value) {
     const next = String(value || '').trim();
@@ -47,6 +61,38 @@
     return `https://res.cloudinary.com/${cloudinaryCloudName}/image/fetch/f_auto,q_auto:eco,w_${safeWidth}/${encodeURI(absoluteUrl)}`;
   }
 
+  // Fallback chain for a broken optimized <img>: Cloudinary → wsrv.nl → the raw original.
+  // Delegated capture listener (image 'error' events don't bubble). Each <img> is marked
+  // so it retries at most twice and can never loop.
+  function installImgFallback() {
+    if (typeof document === 'undefined') return;
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (!img || img.tagName !== 'IMG') return;
+      const step = img.dataset.zwFb || '0';
+      if (step === '2') return;                               // already exhausted
+      const src = img.currentSrc || img.src || '';
+      if (step === '0') {
+        if (!fallbackProvider) return;                        // fallback turned off by config
+        if (src.indexOf('res.cloudinary.com') === -1) return; // only OUR Cloudinary output
+        const i = src.indexOf('/image/fetch/');
+        if (i === -1) return;
+        const after = src.slice(i + 13);                      // strip '/image/fetch/'
+        const s = after.indexOf('/');                         // then the transforms segment
+        if (s === -1) return;
+        let orig = after.slice(s + 1);
+        try { orig = decodeURI(orig); } catch (_) {}
+        img.dataset.zwOrig = orig;
+        img.dataset.zwFb = '1';
+        img.src = wsrvUrl(absoluteImageUrl(orig), img.getAttribute('width') || 800);
+      } else if (step === '1') {
+        img.dataset.zwFb = '2';                               // last resort: unoptimized original
+        if (img.dataset.zwOrig) img.src = img.dataset.zwOrig;
+      }
+    }, true);
+  }
+  installImgFallback();
+
   async function loadImageConfig() {
     if (typeof fetch !== 'function') return null;
     try {
@@ -56,6 +102,7 @@
       });
       if (!resp.ok) return null;
       const data = await resp.json();
+      if (data && 'fallback' in data) fallbackProvider = data.fallback || null;
       const cloudName = data?.cloudinary?.cloudName || data?.cloudName;
       if (setCloudinaryCloudName(cloudName)) return data;
     } catch (_) {}
@@ -69,7 +116,9 @@
     normalizeWidth,
     absoluteImageUrl,
     setCloudinaryCloudName,
-    optimizeImage
+    optimizeImage,
+    wsrvUrl,
+    get fallbackProvider() { return fallbackProvider; }
   };
 
   window.optimizeImage = optimizeImage;

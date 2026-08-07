@@ -807,24 +807,24 @@ function favoriteCardHtml(favorite, detail, options) {
   const name = detail?.title || favorite.product_name || 'Saved Item';
   const href = detail?.href || favoriteHref(productId, name);
   const cartPayload = buildFavoriteCartPayload(detail || buildFavoriteFallbackDetail(productId, favorite), favorite);
-  const subtitle = detail?.subtitle ? `<div style="font-size:0.66rem;letter-spacing:0.08em;text-transform:uppercase;color:rgba(245,245,240,0.36);margin-top:0.2rem;">${escapeFavoriteHtml(detail.subtitle)}</div>` : '';
+  const subtitle = detail?.subtitle ? `<div class="zw-saved-item-sub">${escapeFavoriteHtml(detail.subtitle)}</div>` : '';
   const imageHtml = detail?.image
-    ? `<img src="${favoriteOptimizeImage(detail.image, 180)}" alt="${escapeFavoriteHtml(name)}" style="width:68px;height:86px;object-fit:cover;border:1px solid rgba(245,245,240,0.08);flex-shrink:0;" onerror="if(this.src !== '${detail.image}') this.src='${detail.image}';">`
-    : `<div style="width:68px;height:86px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(245,245,240,0.08);color:rgba(245,245,240,0.28);font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;flex-shrink:0;">No Image</div>`;
+    ? `<img src="${favoriteOptimizeImage(detail.image, 180)}" alt="${escapeFavoriteHtml(name)}" class="zw-saved-item-img" onerror="if(this.src !== '${detail.image}') this.src='${detail.image}';">`
+    : `<div class="zw-saved-item-img zw-saved-item-img--empty">No Image</div>`;
   const displayPrice = favoriteEffectivePrice(detail, favorite.price);
   const priceHtml = displayPrice > 0
-    ? `<div style="font-size:0.82rem;color:rgba(245,245,240,0.72);margin-top:0.45rem;">$${displayPrice.toFixed(2)}</div>`
+    ? `<div class="zw-saved-item-price">$${displayPrice.toFixed(2)}</div>`
     : '';
   const listTag = mode === 'account' ? 'div' : 'li';
   return `
-    <${listTag} style="display:flex;gap:0.85rem;align-items:flex-start;padding:${mode === 'account' ? '0.95rem 0' : '0.75rem 0'};border-bottom:1px solid rgba(245,245,240,0.07);">
+    <${listTag} class="zw-saved-item zw-saved-item--${mode}">
       ${imageHtml}
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:0.88rem;line-height:1.35;">${escapeFavoriteHtml(name)}</div>
+      <div class="zw-saved-item-info">
+        <div class="zw-saved-item-name">${escapeFavoriteHtml(name)}</div>
         ${subtitle}
         ${priceHtml}
         <div class="zw-saved-item-actions">
-          <a href="${href}" class="zw-saved-item-link zw-saved-item-btn zw-saved-item-btn--ghost">View Product</a>
+          <a href="${href}" class="zw-saved-item-link zw-saved-item-btn zw-saved-item-btn--ghost">View</a>
           <button
             type="button"
             data-favorite-add="${escapeFavoriteHtml(productId)}"
@@ -941,6 +941,7 @@ window.addFavoriteToCart = async function(productId, payload, btn) {
 
     localStorage.setItem('cart', JSON.stringify(cart));
     if (typeof loadCartCount === 'function') loadCartCount();
+    if (typeof window.animateAddToBag === 'function') window.animateAddToBag();
     if (typeof window.renderProductCartItems === 'function') window.renderProductCartItems();
     if (typeof renderCart === 'function') renderCart();
     if (typeof openCart === 'function') openCart();

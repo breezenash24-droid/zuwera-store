@@ -39,6 +39,18 @@
                         }).join('');
                       }
 
+                      // Footer totals — computed across the FULL filtered set (every page,
+                      // not just this one), so the number matches whatever's searched above.
+                      const shipSum = orders.reduce((s, o) => s + parseFloat(o.shipping || 0), 0);
+                      const totSum  = orders.reduce((s, o) => s + parseFloat(o.total    || 0), 0);
+                      const paidCnt = orders.filter(o => parseFloat(o.shipping || 0) > 0).length;
+                      const lblEl = sectionEl('ship-foot-label');
+                      const totEl = sectionEl('ship-foot-total');
+                      const otEl  = sectionEl('ship-foot-ordertotal');
+                      if (lblEl) lblEl.textContent = `${paidCnt.toLocaleString()} paid shipment${paidCnt === 1 ? '' : 's'} · you paid`;
+                      if (totEl) totEl.textContent = fmt$(shipSum);
+                      if (otEl)  otEl.textContent  = fmt$(totSum);
+
                       // Pagination
                       const pages = Math.ceil(orders.length / PAGE_SIZE);
                       const pag = sectionEl('ship-pagination');

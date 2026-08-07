@@ -34,8 +34,19 @@ window.__zwApplyCardMode = function (mode) {
   if (!document.body) document.addEventListener('DOMContentLoaded', set);
   try { localStorage.setItem('zw_card_cta', on ? 'color-swatches' : 'add-to-bag'); } catch (_) {}
 };
+// Card image fit: 'contain' shows the whole photo (zoom out); default 'cover' crops
+// to fill. Toggles body.zw-card-fit-contain (CSS in storefront-cohesion.css). Cached
+// for a flash-free first paint, refreshed by loadSiteSettings.
+window.__zwApplyCardFit = function (fit) {
+  var contain = fit === 'contain';
+  function set() { if (document.body) document.body.classList.toggle('zw-card-fit-contain', contain); }
+  set();
+  if (!document.body) document.addEventListener('DOMContentLoaded', set);
+  try { localStorage.setItem('zw_card_fit', contain ? 'contain' : 'cover'); } catch (_) {}
+};
 (function () {
   try { window.__zwApplyCardMode(localStorage.getItem('zw_card_cta') || 'add-to-bag'); } catch (_) {}
+  try { window.__zwApplyCardFit(localStorage.getItem('zw_card_fit') || 'cover'); } catch (_) {}
 })();
 
 (function normalizeHomepageCopy() {
@@ -167,7 +178,65 @@ function showToast(msg) {
     wrap.setAttribute('data-bar-md', m(cfg.bar_md, 'show'));
     wrap.setAttribute('data-bar-sm', m(cfg.bar_sm, 'show'));
     wrap.setAttribute('data-bar-size', (cfg.bar_size === 'medium' || cfg.bar_size === 'thick') ? cfg.bar_size : 'thin');
+    wrap.setAttribute('data-arrows', cfg.arrows ? 'on' : 'off');   // Nike-style prev/next buttons
     wrap.classList.remove('zw-bar-hover'); // superseded by data-bar-* attributes
+  };
+
+  // Nike-style prev/next arrows for a swipe row: free-scroll stays (wheel/drag/bar),
+  // and each arrow nudges the row by exactly one card (first child width + gap).
+  // Arrows live in the .zw-swipe-wrap and are shown by CSS only when enabled
+  // (data-arrows="on"), the row is scrollable, and the device has hover (desktop).
+  // Self-guarded so it binds once per wrap. Global so landing-sections.js can reuse.
+  window.zwEnsureSwipeArrows = window.zwEnsureSwipeArrows || function (wrap, grid) {
+    if (!wrap || !grid || wrap._zwArrowsBound) return;
+    wrap._zwArrowsBound = true;
+    var prev = document.createElement('button');
+    prev.type = 'button'; prev.className = 'zw-swipe-arrow zw-swipe-prev'; prev.setAttribute('aria-label', 'Previous');
+    prev.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
+    var next = document.createElement('button');
+    next.type = 'button'; next.className = 'zw-swipe-arrow zw-swipe-next'; next.setAttribute('aria-label', 'Next');
+    next.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+    // Nike-style: mount the arrows in the section HEADER, on the SAME row as the
+    // title (far right). That keeps them in clear space, never crowding the cards.
+    // Only fall back to a reserved band above the row when there's no header.
+    var head = wrap.previousElementSibling;
+    if (!(head && head.classList && head.classList.contains('sec-head'))) {
+      head = wrap.parentElement ? wrap.parentElement.querySelector(':scope > .sec-head') : null;
+    }
+    var group = null;
+    if (head) {
+      group = document.createElement('div');
+      group.className = 'zw-arrow-group';
+      group.appendChild(prev); group.appendChild(next);
+      head.appendChild(group);
+      head.classList.add('zw-has-arrows');
+      wrap.classList.add('zw-arrows-in-head');   // CSS drops the band when arrows live in the header
+    } else {
+      wrap.appendChild(prev); wrap.appendChild(next);
+    }
+    var step = function () {
+      var first = grid.firstElementChild;
+      var w = first ? first.getBoundingClientRect().width : grid.clientWidth * 0.8;
+      var cs = getComputedStyle(grid);
+      var gap = parseFloat(cs.columnGap || cs.gap) || 16;
+      return w + gap;
+    };
+    prev.addEventListener('click', function () { grid.scrollBy({ left: -step(), behavior: 'smooth' }); });
+    next.addEventListener('click', function () { grid.scrollBy({ left: step(), behavior: 'smooth' }); });
+    var upd = function () {
+      var max = grid.scrollWidth - grid.clientWidth;
+      var scrollable = max > 2;
+      prev.disabled = grid.scrollLeft <= 2;
+      next.disabled = grid.scrollLeft >= max - 2;
+      // Header-mounted arrows show only when the row can actually scroll AND the
+      // section has arrows enabled (the CSS media query still gates them to hover
+      // devices; touch users just swipe). Wrap-mounted (fallback) arrows are gated
+      // entirely by CSS, so leave them alone here.
+      if (group) group.classList.toggle('zw-show', scrollable && wrap.getAttribute('data-arrows') === 'on');
+    };
+    grid.addEventListener('scroll', function () { requestAnimationFrame(upd); }, { passive: true });
+    window.addEventListener('resize', function () { requestAnimationFrame(upd); }, { passive: true });
+    requestAnimationFrame(upd); setTimeout(upd, 360);
   };
 
   // Shared per-platform layout setter for a products/featured grid. Reads the
@@ -190,6 +259,29 @@ function showToast(msg) {
     grid.style.setProperty('--col-lg', col(cfg.col_lg, col(cfg.columns, 3)));
     grid.style.setProperty('--col-md', col(cfg.col_md, 2));
     grid.style.setProperty('--col-sm', col(cfg.col_sm, 2));
+    // Per-section card controls (Page Builder → Products section):
+    //  · show_colors:false  → product-only cards (hide the colour swatch row)
+    //  · show_reviews:false → hide the star rating / review-count line
+    //  · show_name:false    → hide the product name
+    //  · show_cat:false     → hide the category / description line
+    //  · show_price:false   → hide the price
+    //  · show_badge:false   → hide the availability badge (Available / Coming Soon)
+    //  · color_snap:true    → colour scroll snaps one-at-a-time (else free scroll)
+    grid.classList.toggle('zw-hide-colors', cfg.show_colors === false);
+    grid.classList.toggle('zw-hide-reviews', cfg.show_reviews === false);
+    grid.classList.toggle('zw-hide-name', cfg.show_name === false);
+    grid.classList.toggle('zw-hide-cat', cfg.show_cat === false);
+    grid.classList.toggle('zw-hide-price', cfg.show_price === false);
+    grid.classList.toggle('zw-hide-badge', cfg.show_badge === false);
+    grid.classList.toggle('zw-swatch-snap', cfg.color_snap === true);
+    // Card size (swipe carousels): a preset [desktop, tablet, mobile] width, or a
+    // custom width typed by the user (applied at every breakpoint).
+    const _cardW = { s:['clamp(240px,26%,300px)','54vw','74vw'], m:['clamp(300px,32%,380px)','64vw','84vw'], l:['clamp(360px,40%,470px)','74vw','90vw'], xl:['clamp(440px,50%,580px)','84vw','94vw'] };
+    const _cwCustom = (cfg.card_w || '').toString().trim();
+    const _cw = _cwCustom ? [_cwCustom, _cwCustom, _cwCustom] : (_cardW[cfg.card_size] || null);
+    ['--zw-card-w-lg','--zw-card-w-md','--zw-card-w-sm'].forEach((v, i) => {
+      if (_cw) grid.style.setProperty(v, _cw[i]); else grid.style.removeProperty(v);
+    });
     if (window.zwEnsureSwipeBar) window.zwEnsureSwipeBar(grid);
     // Per-device scrollbar visibility (show / reveal-on-hover / hidden) + thickness.
     const _w = grid.closest('.zw-swipe-wrap');
@@ -232,13 +324,23 @@ function showToast(msg) {
     if (!grid._zwBarBound) {
       grid.addEventListener('scroll', sync, { passive: true });
       window.addEventListener('resize', sync, { passive: true });
-      // Reveal-while-scrolling for "hover" mode on touch (no pointer hover): show
-      // the bar during a scroll gesture, then fade it out ~0.9s after it settles.
-      let _barScrollT;
-      grid.addEventListener('scroll', () => {
+      // Reveal on ACTIVITY for "hover / while scrolling" mode: any scroll of the
+      // row, or pointer movement over it, shows the bar — which then fades ~0.9s
+      // after activity stops, so it never sits visible the whole time the cursor
+      // merely rests over the row (which is what plain CSS :hover did). Movement is
+      // the trigger, not entry, so an idle hover fades out; leaving fades it fast.
+      // Harmless in "show"/"off" modes — only the hover-mode CSS reacts to it.
+      let _barActT;
+      const _pulseBar = () => {
         wrap.classList.add('zw-bar-scrolling');
-        clearTimeout(_barScrollT);
-        _barScrollT = setTimeout(() => wrap.classList.remove('zw-bar-scrolling'), 900);
+        clearTimeout(_barActT);
+        _barActT = setTimeout(() => wrap.classList.remove('zw-bar-scrolling'), 900);
+      };
+      grid.addEventListener('scroll', _pulseBar, { passive: true });
+      wrap.addEventListener('pointermove', _pulseBar, { passive: true });
+      wrap.addEventListener('pointerleave', () => {
+        clearTimeout(_barActT);
+        _barActT = setTimeout(() => wrap.classList.remove('zw-bar-scrolling'), 200);
       }, { passive: true });
       // Drag the thumb → scroll the row proportionally.
       let dragging = false, startX = 0, startLeft = 0;
@@ -262,6 +364,7 @@ function showToast(msg) {
         const r = bar.getBoundingClientRect();
         grid.scrollTo({ left: ((e.clientX - r.left) / r.width) * (grid.scrollWidth - grid.clientWidth), behavior: 'smooth' });
       });
+      if (window.zwEnsureSwipeArrows) window.zwEnsureSwipeArrows(wrap, grid);
       grid._zwBarBound = true;
     }
     requestAnimationFrame(sync); setTimeout(sync, 350);
@@ -664,6 +767,11 @@ function showToast(msg) {
 
       // Style overrides moved to the bottom of the function so they don't get erased by cssText
       if (s.anchor_id) el.id = s.anchor_id;
+      // Hide-on-device targets the element by id. Static sections (products, about,
+      // release…) map to pre-existing markup with no id, so a Hide toggle would
+      // silently do nothing unless an Anchor ID was also set. Fall back to sec.id so
+      // the toggle works on its own. (Dynamic sections already get el.id = sec.id.)
+      if ((s.hide_mobile || s.hide_desktop) && !el.id) el.id = sec.id;
       if (s.hide_mobile) {
         let mobileHideStyle = document.getElementById('zw-builder-mobile-hide-' + el.id);
         if (!mobileHideStyle) {
@@ -818,6 +926,13 @@ function showToast(msg) {
           const secSub = el.closest('.drop-wrap')?.querySelector('.sec-head span') || el.querySelector('.sec-head span');
           if (secHead && s.title !== undefined) secHead.textContent = s.title;
           if (secSub && s.subtitle !== undefined) secSub.textContent = s.subtitle;
+          // Per-element heading visibility (Page Builder → Products): hide the
+          // title and/or subtitle, and collapse the whole heading block (incl. its
+          // divider) when both are off, so no empty bordered strip is left.
+          if (secHead) secHead.style.display = (s.show_title === false) ? 'none' : '';
+          if (secSub) secSub.style.display = (s.show_subtitle === false) ? 'none' : '';
+          const _secHeadEl = (secHead || secSub) ? (secHead || secSub).closest('.sec-head') : null;
+          if (_secHeadEl) _secHeadEl.style.display = (s.show_title === false && s.show_subtitle === false) ? 'none' : '';
           // Per-platform layout: grid vs one-at-a-time swipe for desktop/tablet/
           // mobile, driven by data attrs + --col vars the CSS reads per breakpoint.
           const _pgrid = document.getElementById('products-grid');
@@ -1587,16 +1702,36 @@ function showToast(msg) {
       // Use !important so a chosen section background reliably beats the
       // light/super-light mode rules (e.g. .drop-wrap { background:var(--ink) }),
       // which otherwise win over a plain inline style for built-in sections.
-      if (s.sec_bg) el.style.setProperty('background', s.sec_bg, 'important');
-      else el.style.removeProperty('background'); // clear when unset so mode bg returns
+      // The products section is a centered max-width column, so a plain inline
+      // background would only paint that column (a "weird half-width band"). For
+      // it we drive a full-bleed ::before via --zw-secbg + .zw-secbg instead;
+      // every other section is full-width, so the direct background is right there.
+      const _bgBleed = el.classList.contains('products-section');
+      if (s.sec_bg) {
+        if (_bgBleed) {
+          el.style.setProperty('--zw-secbg', s.sec_bg);
+          el.classList.add('zw-secbg');
+          el.style.removeProperty('background');
+        } else {
+          el.style.setProperty('background', s.sec_bg, 'important');
+        }
+      } else {
+        el.style.removeProperty('background'); // clear when unset so mode bg returns
+        el.style.removeProperty('--zw-secbg');
+        el.classList.remove('zw-secbg');
+      }
       if (s.pad_top) el.style.paddingTop = s.pad_top + 'px';
       if (s.pad_bot) el.style.paddingBottom = s.pad_bot + 'px';
 
       // Universal text color (opt-in). Sections that set color via cssText
       // (cta/banner) ship a text_color default, so the else-branch only clears
-      // an inline override on sections that never set color themselves.
+      // an inline override on sections that never set color themselves. The
+      // zw-sec-tc class cascades the chosen color onto child text that hardcodes
+      // its own color (product cards, headings) — otherwise those win and the
+      // chosen Text Color appears to "do nothing".
       if (s.text_color) {
         el.style.setProperty('color', s.text_color, 'important');
+        el.classList.add('zw-sec-tc');
         el.classList.remove('zw-on-light');
       } else if (s.sec_bg && _zwIsLightColor(s.sec_bg)) {
         // Light section background but no text color chosen → force dark text so it
@@ -1605,9 +1740,11 @@ function showToast(msg) {
         // darkens child text that hardcodes its own light color (e.g. product cards).
         el.style.setProperty('color', '#09090b', 'important');
         el.classList.add('zw-on-light');
+        el.classList.remove('zw-sec-tc');
       } else {
         el.style.removeProperty('color');
         el.classList.remove('zw-on-light');
+        el.classList.remove('zw-sec-tc');
       }
       // Universal heading-size override (opt-in). Only applied when set — when
       // blank, each section's own responsive heading size (re-rendered into the
@@ -1997,216 +2134,7 @@ window.addEventListener('scroll', () => {
 const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 let _sb = null; // set in DOMContentLoaded once supabase-client.js has run
-let _announcementBarScrollHandler = null;
-
-function teardownAnnouncementBarScroll() {
-  if (_announcementBarScrollHandler) {
-    window.removeEventListener('scroll', _announcementBarScrollHandler);
-    _announcementBarScrollHandler = null;
-  }
-}
-
-// Fold (collapse) or unfold the bar's OWN height so it pushes the nav + page
-// content up/down into the reclaimed space, instead of sliding away as an overlay.
-// max-height (not height:auto) so both directions animate; padding folds with it;
-// the real height is measured each time so the fold matches the bar exactly.
-function zwSetBarFold(barEl, hidden) {
-  if (!barEl) return;
-  if (hidden) {
-    if (!barEl.style.maxHeight || barEl.style.maxHeight === 'none') {
-      barEl.style.maxHeight = barEl.offsetHeight + 'px';
-      void barEl.offsetHeight;                 // commit the start height before collapsing
-    }
-    barEl.style.maxHeight = '0px';
-    barEl.style.paddingTop = '0px';
-    barEl.style.paddingBottom = '0px';
-    barEl.style.opacity = '0';
-    barEl.style.pointerEvents = 'none';
-  } else {
-    barEl.style.paddingTop = '';
-    barEl.style.paddingBottom = '';
-    barEl.style.opacity = '1';
-    barEl.style.pointerEvents = '';
-    const wasCollapsed = barEl.style.maxHeight === '0px';
-    barEl.style.maxHeight = 'none';             // uncap to read the true height
-    const full = barEl.offsetHeight;
-    if (wasCollapsed) { barEl.style.maxHeight = '0px'; void barEl.offsetHeight; }
-    barEl.style.maxHeight = full + 'px';        // animate 0 -> full (or just set on first show)
-  }
-}
-
-function setAnnouncementBarLayout(barEl, navEl, isVisible) {
-  // Mobile: bar top is handled by CSS variable --nav-h, no JS needed
-  // Desktop: nav pushed below bar via nav.style.top; spacer holds bar height in flow
-  const spacerEl = document.getElementById('bar-spacer');
-  if (window.matchMedia('(max-width:900px)').matches) {
-    // Bar sits below the nav via CSS on mobile; clear any desktop nav offset
-    // (e.g. left behind after a resize across the breakpoint) and drop the spacer.
-    if (navEl) navEl.style.top = '';
-    if (spacerEl) spacerEl.style.height = '0';
-    // Position the fixed bar flush under the nav by measuring the nav's REAL
-    // height (safe-area + padding + button all vary by device) and feeding it to
-    // --zw-bar-top. The old CSS-only formula drifted from the actual nav height,
-    // leaving the bar "floating" with a gap below the header.
-    if (navEl) {
-      const navH = Math.round(navEl.getBoundingClientRect().height);
-      if (navH) document.documentElement.style.setProperty('--zw-bar-top', navH + 'px');
-    }
-  } else {
-    document.documentElement.style.removeProperty('--zw-bar-top');
-    const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
-    if (navEl) navEl.style.top = barH + 'px';
-    if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
-  }
-  // The header height just changed (bar shown/hidden, nav repositioned) — re-pad
-  // the builder layout's top section so it stays clear of the header.
-  try { if (window.__zwApplyTopOffset) window.__zwApplyTopOffset(); } catch (_) {}
-}
-
-// Keep the mobile bar flush under the nav across resize / orientation changes by
-// re-measuring the nav height into --zw-bar-top (mobile only, no desktop effects).
-function zwSyncMobileBarTop() {
-  if (!window.matchMedia('(max-width:900px)').matches) { document.documentElement.style.removeProperty('--zw-bar-top'); return; }
-  const navEl = document.getElementById('nav');
-  if (navEl) { const h = Math.round(navEl.getBoundingClientRect().height); if (h) document.documentElement.style.setProperty('--zw-bar-top', h + 'px'); }
-}
-window.addEventListener('resize', zwSyncMobileBarTop, { passive: true });
-if (document.readyState !== 'loading') zwSyncMobileBarTop();
-else document.addEventListener('DOMContentLoaded', zwSyncMobileBarTop);
-
-function applyAnnouncementBar(mode, msgText) {
-  const barEl = document.getElementById('bar');
-  const navEl = document.getElementById('nav');
-  if (!barEl) return;
-  const normalizedMode = String(mode || 'on').trim().toLowerCase();
-  const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
-
-  teardownAnnouncementBarScroll();
-  barEl.style.opacity = '1';
-  barEl.style.pointerEvents = '';
-  barEl.style.transform = '';
-  barEl.style.maxHeight = '';        // clear any leftover fold from a previous mode
-  barEl.style.paddingTop = '';
-  barEl.style.paddingBottom = '';
-  if (navEl) navEl.style.transform = ''; // safety: clear any stale nav transform from earlier versions
-
-  const textEl = document.getElementById('announcementText');
-  const fallbackText = (barEl.dataset.defaultText || (textEl ? textEl.textContent : '') || '').trim();
-  if (!barEl.dataset.defaultText) barEl.dataset.defaultText = fallbackText;
-  if (textEl) {
-    const nextText = (typeof msgText === 'string' ? msgText : '').trim();
-    textEl.textContent = nextText || fallbackText;
-  }
-
-  if (normalizedMode === 'off') {
-    if (isMobileViewport) {
-      // On mobile, hide via display:none (no slide) to avoid leaving a gap
-      barEl.style.display = 'none';
-      barEl.style.transform = 'none';
-      barEl.style.opacity = '1';
-      barEl.style.pointerEvents = '';
-    } else {
-      barEl.style.display = 'none';
-    }
-    setAnnouncementBarLayout(barEl, navEl, false);
-    return;
-  }
-
-  barEl.style.display = 'flex';
-  setAnnouncementBarLayout(barEl, navEl, true);
-
-  // Smooth the spacer's height changes on scroll hide/show — but only enable the
-  // transition AFTER the initial layout has painted, so the bar's first
-  // appearance (0 -> height, once settings load) doesn't animate a push-down.
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    const sp = document.getElementById('bar-spacer');
-    if (sp) sp.style.transition = 'height .25s cubic-bezier(.32,.72,0,1)';
-  }));
-
-  if (normalizedMode !== 'scroll' && normalizedMode !== 'scrolloff') return;
-
-  if (isMobileViewport) {
-    // Mobile: the bar's transform is CSS-locked (anti-flicker), so animate
-    // OPACITY instead of a slide. 'scroll' hides on scroll-down and reappears at
-    // the top / on scroll-up; 'scrolloff' hides once on the first scroll-down and
-    // stays gone (the handler detaches) until the page is reopened. Mirrors the
-    // desktop path and the product page so all four modes behave consistently.
-    barEl.style.transition = 'opacity .3s ease';
-    let lastScrollY = window.scrollY;
-    let isHidden = false;
-    const scrollActivationAt = Date.now() + 150;
-    const syncAnnouncementState = (hidden) => {
-      barEl.style.opacity = hidden ? '0' : '1';
-      barEl.style.pointerEvents = hidden ? 'none' : '';
-    };
-    syncAnnouncementState(false);
-    _announcementBarScrollHandler = function() {
-      const currentY = window.scrollY;
-      if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { lastScrollY = currentY; return; }
-      if (Date.now() < scrollActivationAt) { lastScrollY = currentY; return; }
-      const scrollingDown = currentY > lastScrollY + 6;
-      const scrollingUp = currentY < lastScrollY - 6;
-      // 'scroll' reappears at the top / on scroll-up; 'scrolloff' stays gone.
-      if (normalizedMode !== 'scrolloff' && (currentY <= 16 || scrollingUp)) {
-        if (isHidden) { isHidden = false; syncAnnouncementState(false); }
-      } else if (currentY > 40 && scrollingDown) {
-        if (!isHidden) {
-          isHidden = true; syncAnnouncementState(true);
-          if (normalizedMode === 'scrolloff') teardownAnnouncementBarScroll();
-        }
-      }
-      lastScrollY = currentY;
-    };
-    window.addEventListener('scroll', _announcementBarScrollHandler, { passive: true });
-    return;
-  }
-
-  // Content-push: the bar FOLDS its height while the nav (transition:top) and the
-  // spacer collapse in lockstep, so the page pushes up to fill — no overlay slide.
-  // All three pieces share this exact duration/easing so they move as one; opacity
-  // matches the fold so the text never shows in a half-height bar on reveal.
-  // Ease-out (fast start, gentle settle) so it feels snappy, not laggy like `ease`.
-  barEl.style.transition = 'max-height 0.25s cubic-bezier(.32,.72,0,1), padding 0.25s cubic-bezier(.32,.72,0,1), opacity 0.25s cubic-bezier(.32,.72,0,1)';
-  let lastScrollY = window.scrollY;
-  let isHidden = false;
-  const scrollActivationAt = Date.now() + 150;
-  let _barHideTimer = null;
-  const spacerEl = document.getElementById('bar-spacer');
-  const syncAnnouncementState = (hidden) => {
-    clearTimeout(_barHideTimer);
-    if (hidden) {
-      zwSetBarFold(barEl, true);
-      if (spacerEl) spacerEl.style.height = '0';
-      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); }, 290);
-    } else {
-      barEl.style.display = 'flex';
-      void barEl.offsetHeight;
-      zwSetBarFold(barEl, false);
-      if (spacerEl) spacerEl.style.height = barEl.offsetHeight + 'px';
-    }
-    setAnnouncementBarLayout(barEl, navEl, !hidden);
-  };
-  syncAnnouncementState(false);
-  _announcementBarScrollHandler = function() {
-    const currentY = window.scrollY;
-    if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { lastScrollY = currentY; return; }
-    if (Date.now() < scrollActivationAt) { lastScrollY = currentY; return; }
-    const scrollingDown = currentY > lastScrollY + 6;
-    const scrollingUp = currentY < lastScrollY - 6;
-    // 'scroll' reappears at the top / on scroll-up; 'scrolloff' hides once and
-    // detaches, so it stays gone until the page is reopened.
-    if (normalizedMode !== 'scrolloff' && (currentY <= 16 || scrollingUp)) {
-      if (isHidden) { isHidden = false; syncAnnouncementState(false); }
-    } else if (currentY > 40 && scrollingDown) {
-      if (!isHidden) {
-        isHidden = true; syncAnnouncementState(true);
-        if (normalizedMode === 'scrolloff') teardownAnnouncementBarScroll();
-      }
-    }
-    lastScrollY = currentY;
-  };
-  window.addEventListener('scroll', _announcementBarScrollHandler, { passive: true });
-}
+/* Announcement bar is now driven entirely by the shared announcement-bar.js module (loaded on this page) - no per-page handler here. */
 
 /* -- SHIPPING POLICY (default until Supabase loads) -- */
 window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
@@ -2228,7 +2156,6 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       _settingsTimeout
     ]);
     if (!resp.ok) {
-      applyAnnouncementBar('scroll', '');
       return;
     }
     const data = await resp.json();
@@ -2244,6 +2171,9 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       let cta = settings.product_card_cta;
       try { if (typeof cta === 'string') cta = JSON.parse(cta); } catch (_) {}
       window.__zwApplyCardMode((cta && cta.mode === 'color-swatches') ? 'color-swatches' : 'add-to-bag');
+      window.__zwApplyCardFit(cta && cta.card_fit === 'contain' ? 'contain' : 'cover');
+      window.__zwCardGalleryLoop = !!(cta && cta.card_loop);   // gallery loop opt-in (quick-add modal etc.)
+      window.__zwCardLoopStyle = (cta && /^(seamless|rewind|fade|instant)$/.test(cta.card_loop_style)) ? cta.card_loop_style : 'seamless';
     }
 
     // 1. brand
@@ -2372,27 +2302,6 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       }
     }
 
-    // 5. announcement_bar
-    let announcementApplied = false;
-    if (settings.announcement_bar !== undefined) {
-      let v = settings.announcement_bar;
-      try {
-        if (typeof v === 'string') v = JSON.parse(v);
-      } catch(e) {}
-      
-      let mode = 'scroll';
-      let msgText = '';
-      if (typeof v === 'object' && v !== null) {
-        mode = v.mode || (v.enabled === false ? 'off' : 'scroll');
-        msgText = Object.prototype.hasOwnProperty.call(v, 'main') ? (v.main ?? '') : '';
-      } else {
-        msgText = v;
-      }
-
-      applyAnnouncementBar(mode, msgText);
-      announcementApplied = true;
-    }
-    if (!announcementApplied) applyAnnouncementBar('scroll', '');
 
     // Apply builder_theme overrides to bar bg/color â€” only when builder is NOT active
     // (when active, themeSettings are already merged into the published config above)
@@ -2433,11 +2342,21 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       window.__zwApplyThemeRows([{ key: 'fonts', value: settings.fonts }]);
     }
 
+    // 8. theme — modal accent + backdrop. The homepage sets __zwSkipThemeFetch so
+    //    storefront-theme.js never runs applySettingsRows here; feed it the theme
+    //    row directly. applySettingsRows early-returns before the mode block on the
+    //    homepage, so this applies ONLY the modal accent/backdrop (mode is handled
+    //    by the homepage's own inline theme paint) — body[data-mbd-*] + zw-macc.
+    if (settings.theme && window.__zwApplyThemeRows) {
+      let _th = settings.theme;
+      try { if (typeof _th === 'string') _th = JSON.parse(_th); } catch (_) {}
+      window.__zwApplyThemeRows([{ key: 'theme', value: _th }]);
+    }
+
     // If in builder preview, re-apply builder config now that Supabase is done
     if (window.__zwReapplyBuilder) window.__zwReapplyBuilder();
   } catch (e) {
     console.log('Settings load skipped:', e);
-    applyAnnouncementBar('scroll', '');
     if (window.__zwReapplyBuilder) window.__zwReapplyBuilder();
   }
 })();
@@ -2620,6 +2539,13 @@ function collectCategoryLabels(products) {
 
 function renderCategoryNavigation(products) {
   if (window.__zwCustomNavApplied) return;
+  // A custom nav (site_settings.nav_menu → Men/Women/New) is cached: index.html's
+  // pre-paint script set html.zw-customnav from localStorage. nav-menu.js will render
+  // that custom menu, so DON'T write the auto product-category links here — otherwise
+  // on a returning/hard-refresh load they flash in #nav-category-links before nav-menu
+  // overwrites them. (First-ever load has no cache → falls through; those stay hidden
+  // via html:not(.zw-nav-ready) until nav-menu settles, so no flash there either.)
+  try { if (document.documentElement.classList.contains('zw-customnav')) return; } catch (_) {}
   const labels = collectCategoryLabels(products);
   const desktop = document.getElementById('nav-category-links');
   const mobile = document.getElementById('mobile-category-links');
@@ -2839,7 +2765,6 @@ function zwCardSwatchRow(p, quickAddPayload, fallbackImg) {
   const colors = (p.color_variants || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const imgs = p.product_images || [];
   const esc = (s) => escapeHomeFavoriteHtml(String(s == null ? '' : s));
-  const MAX = 5;
   if (!colors.length) {
     // Single-image product: show one thumbnail of the main image so the card
     // stays consistent (no out-of-place Add-to-Bag button).
@@ -2848,16 +2773,16 @@ function zwCardSwatchRow(p, quickAddPayload, fallbackImg) {
     if (!src) return '';
     return `<div class="zw-card-swatches" data-quick-add="${quickAddPayload}"><button type="button" class="zw-card-swatch" data-img="${esc(src)}" aria-label="${esc(p.title || 'View')}" style="background-image:url('${esc(src)}')"></button></div>`;
   }
-  // Cap at MAX thumbnails + a "+N" overflow tile so every card is the same height.
-  let html = colors.slice(0, MAX).map((c) => {
+  // All colours in one row (scrolls on mobile) — first swatch active on load so the
+  // selected-bar sits under the colour the card is showing.
+  let html = colors.map((c, i) => {
     const ci = imgs.filter((im) => im.color_variant_id === c.id).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0];
     let src = (ci && ci.image_url) || fallbackImg || '';
     if (src && typeof window.optimizeImage === 'function') src = window.optimizeImage(src, 600);
     const nm = c.color_name || 'Color';
     const thumbStyle = src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`;
-    return `<button type="button" class="zw-card-swatch" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
+    return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
   }).join('');
-  if (colors.length > MAX) html += `<button type="button" class="zw-card-swatch zw-swatch-more" aria-label="${esc((colors.length - MAX) + ' more colors')}">+${colors.length - MAX}</button>`;
   return `<div class="zw-card-swatches" data-quick-add="${quickAddPayload}">${html}</div>`;
 }
 
@@ -2894,9 +2819,10 @@ function renderProductCards(products, grid) {
   grid.innerHTML = renderList.map(p => {
     const productName = p.title || p.name || 'Untitled';
     const productCategory = categoryLabelFromProduct(p);
+    window.zwSingularCat = window.zwSingularCat || function (c) { if (!c) return c; var s = String(c).trim(); if (/(pants|shorts|leggings|joggers|socks|jeans|tights|briefs|boxers|trousers|sunglasses|glasses|shoes|sneakers|boots|sandals|slides|gloves|overalls|pajamas|pyjamas)$/i.test(s)) return s; return /[^s]s$/i.test(s) ? s.slice(0, -1) : s; };
     const _g = String(p.gender || '').trim().toLowerCase();
     const _genderPrefix = _g === 'men' ? "Men's " : _g === 'women' ? "Women's " : _g === 'unisex' ? 'Unisex ' : _g === 'kids' ? "Kids' " : '';
-    const productType = (_genderPrefix + (productCategory || '')).trim();
+    const productType = (_genderPrefix + window.zwSingularCat(productCategory || '')).trim();
     const productPrice = getEffectiveListPrice(p) || parseFloat(p.msrp || 0) || parseFloat(p.price || 0) || 0;
     const badge = (p.status === 'coming_soon' || p.status === 'Coming Soon') ? 'Coming Soon' : (p.status === 'live' || p.status === 'Live' ? 'Available' : (p.status || 'Coming Soon'));
     let firstImg = p.image_url;
@@ -2937,6 +2863,7 @@ function renderProductCards(products, grid) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </button>
         </div>
+        ${hasSwatches ? zwCardSwatchRow(p, quickAddPayload, firstImg) : ''}
         <div class="pcard-info">
           <p class="pcard-name">${escapeHomeFavoriteHtml(productName)}</p>
           <p class="pcard-cat">${escapeHomeFavoriteHtml(productType)}</p>
@@ -2946,7 +2873,6 @@ function renderProductCards(products, grid) {
             <span id="cnt-${domId}">${_revCache[p.id] ? zwReviewCountText(_revCache[p.id].count, _revCache[p.id].avg) : ''}</span>
           </button>
           ${isLive ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}"><span class="pcard-add-desktop-label">Add to Bag</span></button>` : ''}
-          ${hasSwatches ? zwCardSwatchRow(p, quickAddPayload, firstImg) : ''}
         </div>
         ${isLive ? `<div class="quick-size-panel" id="qsp-${domId}">
           <div class="quick-size-panel-header">
@@ -2998,7 +2924,14 @@ function _initAuth() {
       setTimeout(async () => {
         try {
           const { data, error } = await _sb.auth.getUser();
-          if (error || !data?.user || data.user.id !== expectedUserId) {
+          // Only sign out if we DEFINITIVELY confirm a different user — never on
+          // errors. A transient getUser() network failure must not delete a valid
+          // session: the homepage runs this right after sign-in, and treating a
+          // flaky mobile request as "invalid session" nuked the just-created
+          // session and bounced the user back to logged-out. account.html loads
+          // neither storefront.js nor auth.js, which is why only it "worked".
+          // (auth.js already uses this safe check — storefront.js had drifted.)
+          if (!error && data?.user && data.user.id !== expectedUserId) {
             await _sb.auth.signOut().catch(()=>{});
             localStorage.removeItem('zuwera-auth');
             _user = null;
@@ -4581,9 +4514,17 @@ function scrollToNotify() {
 (function() {
   function clearBackdrop(el) {
     if (!el || !el.classList || !el.classList.contains('modal')) return;
-    el.style.setProperty('background', 'transparent', 'important');
-    el.style.setProperty('backdrop-filter', 'none', 'important');
-    el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+    // Scrim set INLINE so it beats every stylesheet (incl. cross-origin). #mobile-menu
+    // (opaque drawer) and #payment-modal (white sheet) own their surface — keep transparent.
+    if (el.id === 'mobile-menu' || el.id === 'payment-modal') {
+      el.style.setProperty('background', 'transparent', 'important');
+      el.style.setProperty('backdrop-filter', 'none', 'important');
+      el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+      return;
+    }
+    el.style.setProperty('background', 'rgba(var(--zw-mbd-rgb),var(--zw-mbd-a))', 'important');
+    el.style.setProperty('backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
+    el.style.setProperty('-webkit-backdrop-filter', 'var(--zw-mbd-blur,none)', 'important');
   }
 
   var attrObs = new MutationObserver(function(muts) {
@@ -4592,7 +4533,10 @@ function scrollToNotify() {
 
   function observe(el) {
     clearBackdrop(el);
-    attrObs.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
+    // Watch only 'class' (open/close), NOT 'style' — clearBackdrop writes 'style' and on
+    // some browsers re-setting an identical value re-fires the observer → loop → frozen
+    // main thread (taps on modals/accordions stop working).
+    attrObs.observe(el, { attributes: true, attributeFilter: ['class'] });
   }
 
   function init() {

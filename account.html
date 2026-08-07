@@ -716,6 +716,9 @@
 </head>
 <body>
 <script>(function(){try{var m=localStorage.getItem('zw_theme_mode')||'super-light';if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+<!-- Bag-panel class before the nav so cohesion.css hides the header login/account
+     link pre-paint instead of flashing on mobile (was only added later by features.js). -->
+<script>try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on')}catch(_){}</script>
 <div id="toast"></div>
 
 <!-- NAV -->
@@ -1402,6 +1405,23 @@ async function loadSaved() {
       .order('created_at', { ascending: false });
     if (loading) loading.style.display = 'none';
     if (!data?.length) { if (empty) empty.style.display = 'block'; return; }
+    // favorites.price can be null when an item was saved without a price snapshot
+    // (e.g. the Zuwera Flower Tee), so no price rendered. Fall back to the product's
+    // real price — same idea as the bag page's product-detail lookup.
+    const _needPrice = data.filter(f => f.product_id && !(parseFloat(f.price) > 0)).map(f => f.product_id);
+    if (_needPrice.length) {
+      try {
+        const { data: _prods } = await _sb.from('products').select('id,current_price,price').in('id', _needPrice);
+        const _byId = {};
+        (_prods || []).forEach(p => { _byId[p.id] = p; });
+        data.forEach(f => {
+          if (parseFloat(f.price) > 0) return;
+          const p = _byId[f.product_id];
+          const real = p ? (p.current_price != null && p.current_price !== '' ? p.current_price : p.price) : null;
+          if (real != null && real !== '') f.price = real;
+        });
+      } catch (_) {}
+    }
     list.dataset.loaded = '1';
     _savedRows = {};
     data.forEach(f => { if (f.product_id) _savedRows[f.product_id] = f; });
@@ -2091,5 +2111,6 @@ document.addEventListener('DOMContentLoaded', function() { _sb = window.sb; init
      with that removed this is what freezes the page behind the search/bag
      panels here, exactly as it does for every other modal. -->
 <script src="modal-lock.js?v=1" defer></script>
+<script src="announcement-bar.js" defer></script>
 </body>
 </html>

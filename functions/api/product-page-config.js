@@ -6,7 +6,8 @@
  * read whitelist, so we read it server-side with the service key and expose only
  * the layout (no secrets).
  *
- * Shape: { sections: [ { id, on } ] }  — array order is display order.
+ * Shape: { sections: [ { id, on, cfg? } ] }  — array order is display order.
+ * `cfg` (optional) carries per-block card controls (card_size, show_name, …).
  */
 
 import { cors, json } from './_commerce.js';
@@ -47,7 +48,9 @@ export function parsePdpConfig(v) {
     const id = s && String(s.id || '');
     if (!PDP_BLOCKS.includes(id) || seen.includes(id)) return;
     seen.push(id);
-    out.push({ id, on: s.on !== false });
+    const block = { id, on: s.on !== false };
+    if (s.cfg && typeof s.cfg === 'object') block.cfg = s.cfg;   // per-block card controls
+    out.push(block);
   });
   return { sections: out };
 }

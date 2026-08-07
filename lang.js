@@ -366,7 +366,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between;
              padding:1.4rem 1.6rem 1rem; border-bottom:1px solid rgba(244,241,235,0.07); flex-shrink:0;">
           <div>
-            <div style="font-family:var(--font-head),'Barlow Condensed',sans-serif;font-size:1.5rem;letter-spacing:0.1em;color:#f4f1eb;">
+            <div style="font-family:var(--zw-font-head,'Barlow Condensed',sans-serif);font-size:1.5rem;letter-spacing:0.1em;color:#f4f1eb;">
               Choose Language
             </div>
             <div style="font-size:0.72rem;color:rgba(244,241,235,0.4);letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;">
@@ -391,7 +391,7 @@
               autocomplete="off" spellcheck="false"
               style="width:100%;background:rgba(244,241,235,0.05);border:1px solid rgba(244,241,235,0.1);
               color:#f4f1eb;border-radius:6px;padding:0.55rem 0.75rem 0.55rem 2rem;
-              font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;
+              font-size:0.82rem;font-family:var(--zw-font-body,'DM Sans',sans-serif);outline:none;
               transition:border-color 0.2s;box-sizing:border-box;">
           </div>
         </div>
@@ -411,7 +411,7 @@
           <button id="zw-lang-reset" style="
             font-size:0.68rem;color:rgba(244,241,235,0.35);background:none;border:none;
             cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;padding:0;
-            font-family:'DM Sans',sans-serif; transition:color 0.2s;
+            font-family:var(--zw-font-body,'DM Sans',sans-serif); transition:color 0.2s;
           " onmouseenter="this.style.color='#F891A5'" onmouseleave="this.style.color='rgba(244,241,235,0.35)'">
             Reset to English
           </button>
@@ -461,10 +461,10 @@
         onmouseleave="if(this.dataset.code!=='${currentLang}'){this.style.background='rgba(244,241,235,0.03)';this.style.borderColor='rgba(244,241,235,0.07)';}">
           <span style="font-size:1.4rem;line-height:1;flex-shrink:0;">${lang.flag}</span>
           <div style="min-width:0;">
-            <div style="font-size:0.82rem;font-weight:500;font-family:'DM Sans',sans-serif;
+            <div style="font-size:0.82rem;font-weight:500;font-family:var(--zw-font-body,'DM Sans',sans-serif);
                  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
                  color:${active ? '#F891A5' : '#f4f1eb'};">${lang.native}</div>
-            <div style="font-size:0.65rem;color:rgba(244,241,235,0.35);font-family:'DM Sans',sans-serif;
+            <div style="font-size:0.65rem;color:rgba(244,241,235,0.35);font-family:var(--zw-font-body,'DM Sans',sans-serif);
                  letter-spacing:0.04em;">${lang.english}</div>
           </div>
           ${active ? `<svg style="margin-left:auto;flex-shrink:0;" width="12" height="12" viewBox="0 0 24 24"
@@ -568,7 +568,7 @@
         background: none; border: 1px solid rgba(244,241,235,0.12);
         color: rgba(244,241,235,0.55); border-radius: 20px;
         padding: 0.35rem 0.75rem; font-size: 0.65rem;
-        font-family: 'DM Sans', sans-serif; letter-spacing: 0.08em;
+        font-family: var(--zw-font-body,'DM Sans',sans-serif); letter-spacing: 0.08em;
         text-transform: uppercase; cursor: pointer;
         transition: color 0.2s, border-color 0.2s, background 0.2s;
         margin-top: 0.75rem;
@@ -587,7 +587,7 @@
         width: 100%; min-height: 42px; margin: 0; padding: 0.65rem 0.45rem;
         justify-content: center; border: 0; border-radius: 0;
         border-right: 0 !important; background: rgba(244,241,235,0.014);
-        font-family: 'IBM Plex Mono', 'DM Sans', sans-serif;
+        font-family: var(--zw-font-mono,'IBM Plex Mono','DM Sans',sans-serif);
         font-size: 0.62rem; letter-spacing: 0.2em;
       }
       .zw-mobile-socials .zw-mobile-lang-trigger svg,

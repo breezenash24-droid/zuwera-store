@@ -73,6 +73,14 @@ html body.zwf-bagpanel-on :is(#login-btn,#account-btn,#hdr-login){display:none !
 .zwf-search-btn{background:none !important;border:none !important;cursor:pointer;display:inline-flex !important;align-items:center;justify-content:center;padding:.35rem !important;min-width:0 !important;width:auto !important;height:auto !important;font-size:0 !important;color:inherit}
 .zwf-search-btn svg{width:20px;height:20px;display:block}
 .zwf-search-btn::before{content:none !important;display:none !important}
+/* ── Modal accent mode (admin-toggleable, Appearance → Modal accent) ─────────
+   Two vars skin every pop-up modal. --zw-mfn = FUNCTIONAL modals (filters,
+   login); --zw-msoc = SOCIAL modals (reviews, size & fit). No body class = mode
+   A (pink everywhere). B: functional goes mono, social stays pink. C: all mono.
+   "Mono" resolves to currentColor, i.e. the element's own text colour. */
+:root{ --zw-mfn:var(--zw-accent,#F891A5); --zw-msoc:var(--zw-accent,#F891A5); }
+body.zw-macc-b{ --zw-mfn:currentColor; }
+body.zw-macc-c{ --zw-mfn:currentColor; --zw-msoc:currentColor; }
 .zw-hdr-group{display:inline-flex;align-items:center;gap:.4rem}
 .zw-hdr-action{font-family:var(--zw-font-mono) !important;font-size:.6rem !important;letter-spacing:.18em !important;text-transform:uppercase !important;color:rgba(244,241,235,.55) !important;text-decoration:none !important;padding:.55rem .9rem !important;transition:color .2s !important;display:inline-flex;align-items:center;line-height:1}
 .zw-hdr-action:hover{color:var(--paper) !important}
@@ -83,6 +91,19 @@ html body.zwf-bagpanel-on :is(#login-btn,#account-btn,#hdr-login){display:none !
 body.light-mode .zw-hdr-action,body.super-light-mode .zw-hdr-action{color:rgba(9,9,11,.55) !important}
 body.light-mode .zw-hdr-bag,body.super-light-mode .zw-hdr-bag{border-color:rgba(9,9,11,.2) !important}
 body.light-mode .zw-hdr-bag:hover,body.super-light-mode .zw-hdr-bag:hover{border-color:rgba(9,9,11,.5) !important}
+/* Add-to-bag acknowledgment for the .zw-hdr-bag header (collection / account / bag
+   pages) — mirrors the homepage's #cart-btn/.cc "dip + pop". header-scroll.js
+   toggles .bag-dip on the icon and .pop on the count badge. */
+@keyframes zwHdrBagDip{
+  0%{transform:translateY(0) scale(1,1)}
+  35%{transform:translateY(3px) scale(1.08,.86)}
+  70%{transform:translateY(-1px) scale(.97,1.03)}
+  100%{transform:translateY(0) scale(1,1)}
+}
+@keyframes zwHdrCcPop{0%{transform:scale(1)}40%{transform:scale(1.6)}70%{transform:scale(.92)}100%{transform:scale(1)}}
+.zw-hdr-bag.bag-dip svg{animation:zwHdrBagDip .4s cubic-bezier(.34,1.3,.5,1);transform-origin:center bottom}
+.zw-hdr-bag-count.pop,.cart-count.pop{animation:zwHdrCcPop .4s cubic-bezier(.36,.07,.19,.97);transform-origin:center}
+@media (prefers-reduced-motion: reduce){ .zw-hdr-bag.bag-dip svg,.zw-hdr-bag-count.pop,.cart-count.pop{animation:none} }
 /* Keep the account/login + Bag visible on mobile too (was hidden, leaving only a
    hamburger). Tighten the account-link padding so it fits the narrow header. */
 @media(max-width:760px){.zw-hdr-action{padding-left:.5rem !important;padding-right:.5rem !important}}
@@ -388,9 +409,9 @@ body.light-mode .cart-shell-footer-copy{
 .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#all-reviews-modal),
 .collection-review-modal,
 #zw-lang-modal{
-  background:none !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
+  background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important;
+  backdrop-filter:var(--zw-mbd-blur, none) !important;
+  -webkit-backdrop-filter:var(--zw-mbd-blur, none) !important;
   pointer-events:auto;
   align-items:center !important;
   justify-content:center !important;
@@ -399,14 +420,15 @@ body.light-mode .cart-shell-footer-copy{
   overscroll-behavior:contain;
 }
 
-/* all-reviews overlay: dimmed backdrop on mobile, transparent on desktop */
+/* all-reviews overlay — follow the admin modal-backdrop scrim (excluded from the
+   .modal scrim by :not(#all-reviews-modal), so applied by id here). */
 #all-reviews-modal{
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
+  background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important;
+  backdrop-filter:var(--zw-mbd-blur, none) !important;
+  -webkit-backdrop-filter:var(--zw-mbd-blur, none) !important;
 }
 @media(min-width:901px){
   #all-reviews-modal{
-    background:none !important;
     align-items:center !important;
     justify-content:center !important;
     padding:clamp(1rem, 3vw, 2rem) !important;
@@ -416,9 +438,9 @@ body.light-mode .cart-shell-footer-copy{
 body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#all-reviews-modal),
 body.light-mode .collection-review-modal,
 body.light-mode #zw-lang-modal{
-  background:none !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
+  background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important;
+  backdrop-filter:var(--zw-mbd-blur, none) !important;
+  -webkit-backdrop-filter:var(--zw-mbd-blur, none) !important;
 }
 
 /* ── SYMMETRIC MODAL MOTION ─────────────────────────────────────────────
@@ -470,11 +492,54 @@ body.light-mode #zw-lang-modal{
 
    ONE exception, deliberate: reviews.js's .rvp-lightbox keeps rgba(0,0,0,.9). It's
    a photo viewer — the dark surround is the point, and it isn't a .modal. */
+/* ── Modal backdrop treatment (admin-toggleable) ───────────────────────────────
+   The scrim behind every modal is computed from three inherited custom props so
+   the whole system is one rgba() + one blur, not a per-combo matrix:
+     --zw-mbd-rgb  tint colour   (neutral 9,9,11  |  brand accent  |  white for frost)
+     --zw-mbd-a    tint opacity  (treatment base × intensity)
+     --zw-mbd-blur backdrop blur (none | blur(px)×intensity saturate)
+   storefront-theme.js sets, on <body>: data-mbd-lg|md|sm = dim|blur|frost|none
+   (resolved per page group), data-mbd-int = light|medium|heavy, data-mbd-tint =
+   neutral|brand. These drive the vars; the use sites (.modal, login/filter
+   ::before) just paint rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) + the blur.
+   Default (no attrs, e.g. a page the JS didn't reach) = a medium neutral dim. */
+:root{ --zw-mbd-int:1; --zw-mbd-rgb:9,9,11; --zw-mbd-a:.5; --zw-mbd-blur:none; }
+body[data-mbd-int="light"]{ --zw-mbd-int:.6; }
+body[data-mbd-int="heavy"]{ --zw-mbd-int:1.5; }
+/* Per-device treatment. Only one media query is live at a time, so the active
+   device's rule wins. Frost sets a white tint below; the brand tint is placed
+   AFTER these rules so it wins the equal-specificity source-order tie → a pink
+   frost/dim/blur instead of white. */
+@media (min-width:1025px){
+  body[data-mbd-lg="dim"]  { --zw-mbd-a:calc(.5*var(--zw-mbd-int)); --zw-mbd-blur:none; }
+  body[data-mbd-lg="blur"] { --zw-mbd-a:calc(.14*var(--zw-mbd-int)); --zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(140%); }
+  body[data-mbd-lg="frost"]{ --zw-mbd-rgb:255,255,255; --zw-mbd-a:calc(.4*var(--zw-mbd-int)); --zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(120%); }
+  body[data-mbd-lg="none"] { --zw-mbd-a:0; --zw-mbd-blur:none; }
+}
+@media (min-width:641px) and (max-width:1024px){
+  body[data-mbd-md="dim"]  { --zw-mbd-a:calc(.5*var(--zw-mbd-int)); --zw-mbd-blur:none; }
+  body[data-mbd-md="blur"] { --zw-mbd-a:calc(.14*var(--zw-mbd-int)); --zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(140%); }
+  body[data-mbd-md="frost"]{ --zw-mbd-rgb:255,255,255; --zw-mbd-a:calc(.4*var(--zw-mbd-int)); --zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(120%); }
+  body[data-mbd-md="none"] { --zw-mbd-a:0; --zw-mbd-blur:none; }
+}
+@media (max-width:640px){
+  body[data-mbd-sm="dim"]  { --zw-mbd-a:calc(.5*var(--zw-mbd-int)); --zw-mbd-blur:none; }
+  body[data-mbd-sm="blur"] { --zw-mbd-a:calc(.14*var(--zw-mbd-int)); --zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(140%); }
+  body[data-mbd-sm="frost"]{ --zw-mbd-rgb:255,255,255; --zw-mbd-a:calc(.4*var(--zw-mbd-int)); --zw-mbd-blur:blur(calc(16px*var(--zw-mbd-int))) saturate(120%); }
+  body[data-mbd-sm="none"] { --zw-mbd-a:0; --zw-mbd-blur:none; }
+}
+/* Brand tint — AFTER the treatment rules so it wins the source-order tie against
+   frost's white (equal specificity). Pink dim / blur / frost. */
+body[data-mbd-tint="brand"]{ --zw-mbd-rgb:248,145,165; }
+/* Frost on a LIGHT page: a white frost over a white/super-light page is invisible, so
+   use a dark smoked-glass frost instead (higher specificity wins; brand tint is
+   excluded so a pink frost still wins). Dark theme keeps the white frost. */
+:is(body.light-mode, body.super-light-mode):is([data-mbd-lg="frost"], [data-mbd-md="frost"], [data-mbd-sm="frost"]):not([data-mbd-tint="brand"]){ --zw-mbd-rgb:24,24,28; }
 .modal,
 #zw-lang-modal{
-  background:transparent !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
+  background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important;
+  backdrop-filter:var(--zw-mbd-blur, none) !important;
+  -webkit-backdrop-filter:var(--zw-mbd-blur, none) !important;
 }
 .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog,.cbox){
   transition:transform var(--zw-motion-modal) var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1)),
@@ -733,9 +798,11 @@ body.super-light-mode #zw-lang-box{
 }
 
 #size-fit-modal{
-  background:none !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
+  /* Follow the admin modal-backdrop scrim (this modal is excluded from the .modal
+     scrim by :not(.modal--review), so it needs the vars applied by id). */
+  background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important;
+  backdrop-filter:var(--zw-mbd-blur, none) !important;
+  -webkit-backdrop-filter:var(--zw-mbd-blur, none) !important;
   align-items:center !important;
   justify-content:center !important;
   padding:clamp(1rem, 3vw, 2rem) !important;
@@ -795,6 +862,10 @@ body.super-light-mode #zw-lang-box{
     width:calc(50% - 1.2rem);
     vertical-align:top;
     box-sizing:border-box;
+    /* The generic `.review-form-row + .review-form-row{margin-top:1rem}` rule
+       adds a top margin to the 2nd (comfort) box but not the 1st (fit) box, so
+       side-by-side they sit ~1rem out of line. Zero it so both tops align. */
+    margin-top:0;
   }
   #review-modal .review-advanced-legacy > .review-form-row:first-child{
     margin-right:2rem;
@@ -803,6 +874,7 @@ body.super-light-mode #zw-lang-box{
     display:block;
     width:100%;
     margin-right:0;
+    margin-top:1.4rem;   /* re-separate the full-width recommend row from the sliders */
   }
 }
 
@@ -873,6 +945,22 @@ body.light-mode .pbox .mclose{
   color:#F4F1EB !important;
 }
 
+/* ── One standardized modal close button ─────────────────────────────────────
+   Every modal's close had drifted — some near-solid (.82–.95), some translucent
+   (.05–.08). Unify the SURFACE across all of them (size stays per-modal). Placed
+   last so it wins over the rules above via source order. */
+.mclose, .collection-review-close, #zw-lang-close, .plp-fm-x, .zwlg-close, .pbox .mclose{
+  background:rgba(9,9,11,.7) !important;
+  border:1px solid rgba(244,241,235,.16) !important;
+  color:var(--zw-paper,#f4f1eb) !important;
+  backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
+}
+body.light-mode .mclose, body.light-mode .collection-review-close, body.light-mode #zw-lang-close, body.light-mode .plp-fm-x, body.light-mode .zwlg-close, body.light-mode .pbox .mclose,
+body.super-light-mode .mclose, body.super-light-mode .collection-review-close, body.super-light-mode #zw-lang-close, body.super-light-mode .plp-fm-x, body.super-light-mode .zwlg-close, body.super-light-mode .pbox .mclose{
+  background:rgba(9,9,11,.06) !important;
+  border-color:rgba(9,9,11,.18) !important;
+  color:#09090b !important;
+}
 
 .hamburger-btn,
 #mobile-menu-btn{
@@ -1020,8 +1108,14 @@ body.light-mode :is(.pcard,.product-card):hover{
 }
 
 :is(.pcard-img,.product-img){
-  aspect-ratio:3/4;
+  aspect-ratio:1/1;   /* square grid tiles, Nike-style — shorter cards, more per screen. Product PAGE image (.main-image/.gallery-main) and related cards (inline 4/5) are unaffected. */
   background:#f4f1eb !important;
+}
+/* The card image fills the square edge-to-edge (no pillarbox/empty space). A stray
+   aspect-ratio on the <img> used to leave gaps on iOS Safari; force a clean fill. */
+:is(.pcard-img,.product-img) > img{
+  width:100% !important; height:100% !important;
+  object-fit:cover !important; aspect-ratio:auto !important;
 }
 
 body.light-mode :is(.pcard-img,.product-img){
@@ -1187,13 +1281,13 @@ body.light-mode .heart-btn{
     display:flex !important;
   }
 
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal){
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(#find-size-modal){
     align-items:stretch !important;
     justify-content:flex-end !important;
     padding:0 !important;
   }
 
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal) > :is(.mbox,.collection-review-box,.pbox,.review-mbox,.review-list-mbox){
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(#find-size-modal) > :is(.mbox,.collection-review-box,.pbox,.review-mbox,.review-list-mbox){
     width:100% !important;
     max-width:100% !important;
     min-height:100dvh !important;
@@ -1208,10 +1302,10 @@ body.light-mode .heart-btn{
   /* Native-feel bottom sheet: the full-screen mobile modal slides up from the
      bottom edge (and back down on close) instead of a small nudge + scale.
      The shared box transition above carries the transform in both directions. */
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(#find-size-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
     transition:transform .35s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)), opacity .2s ease !important;
     }
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(.open) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(#find-size-modal):not(.open) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
     transform:translateY(100%) !important;
     opacity:1 !important;
     }
@@ -3127,6 +3221,13 @@ body.light-mode .zw-mobile-menu-secondary{
   -webkit-mask-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6"><rect x="2.5" y="8" width="19" height="8" rx="1"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/></svg>');
   mask-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6"><rect x="2.5" y="8" width="19" height="8" rx="1"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/></svg>');
 }
+/* Auth link (Sign In / Account) — keyed by its stable class, since the JS swaps
+   the href between /?auth=signin and /account.html, and neither matched an icon
+   rule, leaving an un-masked solid box. The person glyph reads for both states. */
+#mobile-menu .zw-mobile-secondary-link.zw-mobile-auth-link::before{
+  -webkit-mask-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M6.7 19a5.5 5.5 0 0 1 10.6 0"/></svg>');
+  mask-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M6.7 19a5.5 5.5 0 0 1 10.6 0"/></svg>');
+}
 /* The bag link's count sits at the far right, not next to the icon. */
 #mobile-menu .zw-mobile-secondary-link .zw-mobile-bag-count{
   margin-left:auto!important;
@@ -3390,9 +3491,12 @@ body.light-mode .collection-review-modal,
 body.super-light-mode .modal:not(#mobile-menu):not(#payment-modal):not(#cart-modal),
 body.super-light-mode .quick-add-review-modal,
 body.super-light-mode .collection-review-modal{
-  background:transparent !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
+  /* Modal-backdrop scrim (admin-toggleable). This is the highest-specificity rule
+     for these overlays, so it — not the base .modal rule — is what actually paints.
+     "None" resolves --zw-mbd-a to 0 → transparent, restoring the floating-card look. */
+  background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a)) !important;
+  backdrop-filter:var(--zw-mbd-blur, none) !important;
+  -webkit-backdrop-filter:var(--zw-mbd-blur, none) !important;
 }
 
 /* ── Desktop light/super-light explicit overrides ── */
@@ -3634,7 +3738,10 @@ body.light-mode .quick-add-gallery-arrow{background:rgba(9,9,11,.55);border-colo
    container and stops a sticky `top` toggle from re-evaluating). Reduced-motion
    keeps the header shown. */
 nav#nav, header.nav, nav.nav, nav.zw-nav{
-  transition: transform .35s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)), background .35s, border-color .35s, box-shadow .35s, padding .35s !important;
+  /* `top .3s` added so the header RISES smoothly into the announcement bar's space as
+     the bar slides out (was missing → the nav's top jumped instantly). Matches the bar
+     slide duration for a synced push. reduced-motion is handled by the global guard. */
+  transition: top .3s cubic-bezier(.32,.72,0,1), transform .35s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)), background .35s, border-color .35s, box-shadow .35s, padding .35s !important;
 }
 nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-nav.zw-nav-hidden{
   transform: translateY(-110%) !important;
@@ -3735,6 +3842,25 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
 .zw-navitem:hover > .zw-mega, .zw-navitem:focus-within > .zw-mega{
   opacity:1; visibility:visible; pointer-events:auto; transform:translateY(0);
   transition:opacity .2s ease, transform .2s ease;
+}
+/* Backdrop behind the open mega panel — follows the admin modal-backdrop scrim
+   (--zw-mbd-* vars: Dim/Blur/Frost/None + intensity + tint) so the page BELOW the
+   header dims/blurs like every modal. A nav ::after covering from just under the
+   header (--zw-megatop) to the viewport bottom, sitting one layer under the panel
+   (z 218 < panel 219) so the nav + panel stay lit and read as one surface. Toggled
+   by `:has()` on any mega item's hover/focus (same mechanism as the border rule
+   below). pointer-events:none so it's purely visual — never blocks the page or eats
+   the hover that keeps the panel open. */
+:is(nav#nav,.nav,header.nav)::after{
+  content:''; position:fixed; top:var(--zw-megatop, 92px); left:0; right:0; bottom:0;
+  background:rgba(var(--zw-mbd-rgb), var(--zw-mbd-a));
+  -webkit-backdrop-filter:var(--zw-mbd-blur, none); backdrop-filter:var(--zw-mbd-blur, none);
+  opacity:0; visibility:hidden; pointer-events:none; z-index:218;
+  transition:opacity .2s ease, visibility 0s linear .2s;
+}
+:is(nav#nav,.nav,header.nav):has(.zw-navitem.zw-has-mega:hover)::after,
+:is(nav#nav,.nav,header.nav):has(.zw-navitem.zw-has-mega:focus-within)::after{
+  opacity:1; visibility:visible; transition:opacity .2s ease;
 }
 .zw-mega-col{ display:flex; flex-direction:column; gap:.7rem; min-width:150px; }
 .zw-mega-col h4{
@@ -3936,6 +4062,12 @@ video.zw-hc-media, picture.zw-hc-media img { object-position: var(--zwh-pos, cen
 .zw-mg-media-wrap { position:relative; overflow:hidden; }
 .zw-mg-media { display:block; width:100%; object-fit:cover; transition:transform .5s ease; }
 .zw-mg-card:hover .zw-mg-media { transform:scale(var(--zw-zoom-media, 1.03)); }
+/* Fallback columns for the media-grid tiles: the base .zw-plat-grid has no
+   grid-template-columns, so if the per-device layout (data-lg/md/sm + --col-*)
+   hasn't been applied yet — e.g. in the builder preview — the tiles collapse to a
+   single vertical column. Auto-fit keeps them tiling horizontally by default; the
+   per-device [data-*="grid"] / [data-*="swipe"] rules override this when applied. */
+.zw-mg-track { grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); }
 
 .zw-mg-label { font-family:var(--fm,var(--fb)); font-size:.9rem; font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-top:.8rem; }
 .zw-mg-label-overlay-bottom { position:absolute; bottom:1.5rem; left:1.5rem; right:1.5rem; margin:0; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,.5); z-index:2; }
@@ -4037,8 +4169,13 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
   .zw-plat-grid[data-lg="grid"]{ display:grid !important;
     grid-template-columns:repeat(var(--col-lg,3), minmax(0,1fr)) !important; gap:1.5rem !important; overflow:visible !important; }
   .zw-plat-grid[data-lg="swipe"]{ display:flex !important; flex-wrap:nowrap !important; overflow-x:auto !important;
-    scroll-snap-type:none !important; gap:1.25rem !important; padding-bottom:1rem !important; scrollbar-width:none !important; }
-  .zw-plat-grid[data-lg="swipe"] > *{ flex:0 0 clamp(280px, 30%, 360px) !important; width:auto !important;
+    scroll-snap-type:none !important; gap:1.25rem !important; padding-bottom:1rem !important; scrollbar-width:none !important;
+    /* Full-bleed like Nike: the row runs edge-to-edge but the first/last card rest
+       at the page gutter, so nothing "disappears" off the left. */
+    margin-left:calc(50% - 50vw) !important; margin-right:calc(50% - 50vw) !important;
+    padding-left:var(--zw-space-page, 5vw) !important; padding-right:var(--zw-space-page, 5vw) !important;
+    scroll-padding-left:var(--zw-space-page, 5vw) !important; scroll-behavior:smooth !important; }
+  .zw-plat-grid[data-lg="swipe"] > *{ flex:0 0 var(--zw-card-w-lg, clamp(280px, 30%, 360px)) !important; width:auto !important;
     min-width:0 !important; max-width:none !important; scroll-snap-align:none !important; margin:0 !important; }
 }
 /* Tablet */
@@ -4049,7 +4186,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
     scroll-snap-type:none !important; grid-template-columns:none !important; gap:1rem !important;
     margin-left:calc(50% - 50vw) !important; margin-right:calc(50% - 50vw) !important; padding:0 9vw 1.2rem !important;
     scrollbar-width:none !important; -webkit-overflow-scrolling:touch !important; }
-  .zw-plat-grid[data-md="swipe"] > *{ flex:0 0 62vw !important; width:62vw !important; min-width:0 !important; max-width:none !important; scroll-snap-align:none !important; margin:0 !important; }
+  .zw-plat-grid[data-md="swipe"] > *{ flex:0 0 var(--zw-card-w-md, 62vw) !important; width:var(--zw-card-w-md, 62vw) !important; min-width:0 !important; max-width:none !important; scroll-snap-align:none !important; margin:0 !important; }
 }
 /* Mobile */
 @media (max-width:640px){
@@ -4059,7 +4196,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
     scroll-snap-type:none !important; grid-template-columns:none !important; gap:1rem !important;
     margin-left:calc(50% - 50vw) !important; margin-right:calc(50% - 50vw) !important; padding:0 9vw 1.2rem !important;
     scrollbar-width:none !important; -webkit-overflow-scrolling:touch !important; }
-  .zw-plat-grid[data-sm="swipe"] > *{ flex:0 0 82vw !important; width:82vw !important; min-width:0 !important; max-width:none !important; scroll-snap-align:none !important; margin:0 !important; }
+  .zw-plat-grid[data-sm="swipe"] > *{ flex:0 0 var(--zw-card-w-sm, 82vw) !important; width:var(--zw-card-w-sm, 82vw) !important; min-width:0 !important; max-width:none !important; scroll-snap-align:none !important; margin:0 !important; }
 }
 /* Per-device swipe scroll mode: default is smooth/free (scroll-snap-type:none in
    the swipe rules above, with small multi-card widths). When the builder sets
@@ -4069,15 +4206,15 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
    wins when enabled. */
 @media (min-width:1025px){
   .zw-plat-grid[data-lg="swipe"][data-snap-lg="on"]{ scroll-snap-type:x mandatory !important; }
-  .zw-plat-grid[data-lg="swipe"][data-snap-lg="on"] > *{ flex:0 0 66% !important; width:66% !important; scroll-snap-align:center !important; }
+  .zw-plat-grid[data-lg="swipe"][data-snap-lg="on"] > *{ flex:0 0 var(--zw-card-w-lg, 66%) !important; width:var(--zw-card-w-lg, 66%) !important; scroll-snap-align:center !important; }
 }
 @media (min-width:641px) and (max-width:1024px){
   .zw-plat-grid[data-md="swipe"][data-snap-md="on"]{ scroll-snap-type:x mandatory !important; }
-  .zw-plat-grid[data-md="swipe"][data-snap-md="on"] > *{ flex:0 0 80vw !important; width:80vw !important; scroll-snap-align:center !important; }
+  .zw-plat-grid[data-md="swipe"][data-snap-md="on"] > *{ flex:0 0 var(--zw-card-w-md, 80vw) !important; width:var(--zw-card-w-md, 80vw) !important; scroll-snap-align:center !important; }
 }
 @media (max-width:640px){
   .zw-plat-grid[data-sm="swipe"][data-snap-sm="on"]{ scroll-snap-type:x mandatory !important; }
-  .zw-plat-grid[data-sm="swipe"][data-snap-sm="on"] > *{ flex:0 0 86vw !important; width:86vw !important; scroll-snap-align:center !important; }
+  .zw-plat-grid[data-sm="swipe"][data-snap-sm="on"] > *{ flex:0 0 var(--zw-card-w-sm, 86vw) !important; width:var(--zw-card-w-sm, 86vw) !important; scroll-snap-align:center !important; }
 }
 
 /* ── Swipe scrollbar for products/featured rows ──────────────────────────────
@@ -4086,10 +4223,14 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
    mode). In grid mode ("products with rows") there's no horizontal overflow, so
    JS never adds .zw-has-swipe and the bar stays hidden. Wrapped in .zw-swipe-wrap. */
 .zw-swipe-wrap{ position:relative; }
+/* Nike-style rail: a wide, quiet track with a thumb that FILLS the track height
+   (top:0; height:100%) so it reads as a solid pill sliding in a groove — not a
+   lozenge floating over a hairline. Spans the content column so it lines up with
+   the row above it instead of a narrow centred stub. */
 .zw-swipe-bar{
   display:none; position:relative; height:4px; border-radius:var(--zw-radius-pill, 999px); cursor:pointer;
-  width:min(760px, 92%); margin:1.5rem auto 0; touch-action:none;
-  background:rgba(244,241,235,.16);
+  width:100%; max-width:1180px; margin:1.4rem auto 0; touch-action:none;
+  background:rgba(244,241,235,.14);
 }
 .zw-swipe-wrap.zw-has-swipe > .zw-swipe-bar{ display:block; }
 /* Reveal-on-hover (desktop only): when .zw-bar-hover is set, the bar keeps its
@@ -4101,18 +4242,18 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
   .zw-swipe-wrap.zw-has-swipe.zw-bar-hover:focus-within > .zw-swipe-bar{ opacity:1; }
 }
 .zw-swipe-thumb{
-  position:absolute; top:-3px; left:0; height:10px; min-width:26px; border-radius:var(--zw-radius-pill, 999px);
-  background:rgba(244,241,235,.6); cursor:grab; transition:background .2s ease;
+  position:absolute; top:0; left:0; height:100%; min-width:44px; border-radius:var(--zw-radius-pill, 999px);
+  background:rgba(244,241,235,.55); cursor:grab; transition:background .2s ease;
 }
-.zw-swipe-thumb:hover{ background:rgba(244,241,235,.85); }
+.zw-swipe-thumb:hover{ background:rgba(244,241,235,.8); }
 .zw-swipe-thumb.zw-dragging{ cursor:grabbing; background:rgba(244,241,235,.95); }
-/* Light themes: dark bar on light background */
+/* Light themes: dark thumb on a faint track */
 body.light-mode .zw-swipe-bar,
-body.super-light-mode .zw-swipe-bar{ background:rgba(9,9,11,.12); }
+body.super-light-mode .zw-swipe-bar{ background:rgba(9,9,11,.10); }
 body.light-mode .zw-swipe-thumb,
-body.super-light-mode .zw-swipe-thumb{ background:rgba(9,9,11,.55); }
+body.super-light-mode .zw-swipe-thumb{ background:rgba(9,9,11,.45); }
 body.light-mode .zw-swipe-thumb:hover,
-body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.8); }
+body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.72); }
 
 /* ── Per-device scrollbar controls (builder) ─────────────────────────────────
    The wrap carries data-bar-lg / -md / -sm = show | hover | off (one per
@@ -4124,29 +4265,80 @@ body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.8); }
 @media (min-width:1025px){ .zw-swipe-wrap[data-bar-lg="off"] > .zw-swipe-bar{ display:none !important; } }
 @media (min-width:641px) and (max-width:1024px){ .zw-swipe-wrap[data-bar-md="off"] > .zw-swipe-bar{ display:none !important; } }
 @media (max-width:640px){ .zw-swipe-wrap[data-bar-sm="off"] > .zw-swipe-bar{ display:none !important; } }
-/* Reveal mode: hidden until hover (desktop) or while scrolling (touch) */
+/* Reveal mode ("On hover / while scrolling"): the bar is hidden, then fades in
+   only while there's ACTIVITY — the row is scrolled or the pointer is moving over
+   it (storefront.js pulses .zw-bar-scrolling, which auto-clears ~0.9s after
+   activity stops). We deliberately do NOT reveal on plain :hover, so the bar
+   doesn't sit visible the entire time the cursor merely rests over the row.
+   :focus-within is kept so keyboard users can still surface it. */
 @media (min-width:1025px){
   .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"] > .zw-swipe-bar{ opacity:0; transition:opacity .25s ease; }
-  .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"]:hover > .zw-swipe-bar,
   .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"]:focus-within > .zw-swipe-bar,
   .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"].zw-bar-scrolling > .zw-swipe-bar{ opacity:1; }
 }
 @media (min-width:641px) and (max-width:1024px){
   .zw-swipe-wrap.zw-has-swipe[data-bar-md="hover"] > .zw-swipe-bar{ opacity:0; transition:opacity .25s ease; }
-  .zw-swipe-wrap.zw-has-swipe[data-bar-md="hover"]:hover > .zw-swipe-bar,
+  .zw-swipe-wrap.zw-has-swipe[data-bar-md="hover"]:focus-within > .zw-swipe-bar,
   .zw-swipe-wrap.zw-has-swipe[data-bar-md="hover"].zw-bar-scrolling > .zw-swipe-bar{ opacity:1; }
 }
 @media (max-width:640px){
   .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"] > .zw-swipe-bar{ opacity:0; transition:opacity .25s ease; }
-  .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"]:hover > .zw-swipe-bar,
+  .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"]:focus-within > .zw-swipe-bar,
   .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"].zw-bar-scrolling > .zw-swipe-bar{ opacity:1; }
 }
-/* Thickness (thin is the default 4px bar / 10px thumb; top:-3px keeps every
-   thumb vertically centred on its bar) */
+/* Thickness (thin is the default 4px). The thumb is height:100%, so it fills
+   whatever track height we set here — no separate thumb sizing needed. */
 .zw-swipe-wrap[data-bar-size="medium"] > .zw-swipe-bar{ height:6px; }
-.zw-swipe-wrap[data-bar-size="medium"] > .zw-swipe-bar > .zw-swipe-thumb{ height:12px; }
 .zw-swipe-wrap[data-bar-size="thick"] > .zw-swipe-bar{ height:9px; }
-.zw-swipe-wrap[data-bar-size="thick"] > .zw-swipe-bar > .zw-swipe-thumb{ height:15px; }
+
+/* ── Swipe prev/next arrows (Nike-style, opt-in) ─────────────────────────────
+   Free scroll (wheel/drag/bar) always works; these just nudge one card at a time.
+   Built by zwEnsureSwipeArrows; shown only when the section enables them
+   (data-arrows="on"), the row is actually scrollable (.zw-has-swipe), AND the
+   device has a pointer that can hover (desktop) — touch users just swipe. */
+.zw-swipe-arrow{
+  /* Nike-style: the two arrows sit together at the top-right, in a CLEAR BAND above
+     the product row (the band is reserved via the wrap's padding-top below) — so
+     they clear the section's faint heading rule and never touch the images. */
+  display:none; position:absolute; top:.1rem; z-index:5;
+  width:2.9rem; height:2.9rem; border-radius:var(--zw-radius-pill, 999px);   /* Nike-sized */
+  align-items:center; justify-content:center; cursor:pointer;
+  /* Identical to the hero carousel controls (.zw-hc-prev/next/pause): white chip,
+     dark glyph, same shadow — so every carousel control shares one colour. */
+  border:none; background:#fff;
+  color:#111; box-shadow:0 4px 12px rgba(0,0,0,.15);
+  transition:background .15s ease, opacity .15s ease, transform .15s ease;
+}
+.zw-swipe-arrow svg{ width:1.3rem; height:1.3rem; }
+.zw-swipe-prev{ right:3.4rem; left:auto; }   /* left of the pair */
+.zw-swipe-next{ right:0; left:auto; }          /* far right, at the content edge */
+.zw-swipe-arrow:hover{ background:#f0f0f0; transform:translateY(-1px); }
+.zw-swipe-arrow:disabled{ opacity:.32; cursor:default; pointer-events:none; }   /* greyed at the ends, like Nike */
+
+/* Preferred placement: the arrows are mounted in the section header, on the SAME
+   row as the title (far right) — so they sit in open space and never crowd the
+   product cards. zwEnsureSwipeArrows builds .zw-arrow-group and adds .zw-show when
+   the row can scroll + arrows are enabled; the media query keeps them to
+   hover-capable (desktop) devices, touch users just swipe. */
+/* display:flex is asserted here (not just inherited from a page's base .sec-head)
+   so the header stays a single right-aligned row wherever the arrows appear —
+   including tablet/mobile SWIPE mode, where some pages' .sec-head isn't flex and
+   the arrow group would otherwise drop BELOW the title on the left. */
+.sec-head.zw-has-arrows{ display:flex !important; flex-wrap:nowrap; align-items:center; margin-bottom:1.25rem; }   /* round buttons align to the title; a little air above the cards */
+.sec-head.zw-has-arrows h2{ margin-right:auto; min-width:0; }           /* push the arrow group to the far right of the row */
+.zw-arrow-group{ display:none; align-items:center; gap:.55rem; flex:0 0 auto; margin-left:1rem; }
+.zw-arrow-group .zw-swipe-arrow{ position:static; top:auto; right:auto; left:auto; }   /* inline in the header, not absolute in a band */
+@media (hover:hover){
+  .zw-arrow-group.zw-show{ display:flex; }
+  .zw-arrow-group.zw-show > .zw-swipe-arrow{ display:flex; }
+  /* Fallback (a carousel with no section header): reserve a clear band above the
+     row and show the wrap-mounted arrows there, as before. */
+  .zw-swipe-wrap.zw-has-swipe[data-arrows="on"]:not(.zw-arrows-in-head){ padding-top:3.1rem; }
+  .zw-swipe-wrap.zw-has-swipe[data-arrows="on"]:not(.zw-arrows-in-head) > .zw-swipe-arrow{ display:flex; }
+}
+/* No dark-theme override: the arrows stay white in every theme, exactly like the
+   always-white hero carousel controls — so every control shares one colour. A
+   white chip reads well on a dark product row too (same as on the hero images). */
 
 /* ── Unified nav logo theming ─────────────────────────────────────────────
    The nav logo class is NOT a reliable colour hint — .nav-logo, .nav-logo-link
@@ -4189,6 +4381,31 @@ body.super-light-mode img[src*="wordmark-nav"]{ filter:none !important; }
   .sec-head,.sec-head *,.about-label,.about-body,.about-body *,.stat-n,.stat-l,
   .zw-eyebrow,.eyebrow,[class*="-label"],[class*="-title"]):not(button):not(a.btn):not(.btn){
   color:#09090b !important;
+}
+
+/* ── Explicit section Text Color ──────────────────────────────────────────
+   storefront.js adds .zw-sec-tc to a section that has a CHOSEN Text Color (and
+   sets that color on the section itself). Cascade it onto child text that
+   hardcodes its own color (product cards, headings, labels) — otherwise those
+   theme rules win and the chosen color appears to do nothing. Mirrors
+   .zw-on-light but inherits the chosen color instead of forcing dark. */
+.zw-sec-tc :is(h1,h2,h3,h4,p,li,.pcard-name,.pcard-cat,.pcard-price,
+  .sec-head,.sec-head *,.about-label,.about-body,.about-body *,.stat-n,.stat-l,
+  .zw-eyebrow,.eyebrow,[class*="-label"],[class*="-title"]):not(button):not(a.btn):not(.btn){
+  color:inherit !important;
+}
+
+/* ── Product-card image fit ───────────────────────────────────────────────
+   Default is object-fit:cover (crop the photo to fill the square — the tight,
+   Nike-style look). When the admin picks "Fit — show the whole image", each page
+   sets body.zw-card-fit-contain and the card photos zoom OUT to show the whole
+   frame, on a soft ground so any letterboxing reads as intentional. Covers every
+   card surface: homepage, collection, landing, and the product-page rows. */
+body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img) img{
+  object-fit:contain !important;
+}
+body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img){
+  background:rgba(128,128,128,.10);
 }
 
 

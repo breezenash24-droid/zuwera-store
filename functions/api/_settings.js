@@ -16,7 +16,11 @@ const ALLOWED_KEYS = new Set([
   'CLOUDINARY_API_SECRET',
   'RESEND_API_KEY',
   'BREVO_API_KEY',
-  'STRIPE_SECRET_KEY',
+  // NOTE: STRIPE_SECRET_KEY is intentionally NOT here. It's a crown-jewel secret that
+  // every payment path reads straight from env.STRIPE_SECRET_KEY (Cloudflare), so it's
+  // locked to Cloudflare env vars — it can't be overridden/hijacked from the admin, and
+  // any attempt to write it is rejected + fires a security alert. (SUPABASE_SERVICE_ROLE_KEY
+  // and STRIPE_WEBHOOK_SECRET are likewise deliberately absent / env-only.)
   'SHIPPO_API_KEY',
   'SHIPPO_FROM_NAME',
   'SHIPPO_FROM_STREET1',
@@ -46,6 +50,9 @@ const ALLOWED_KEYS = new Set([
   'TWILIO_FROM_NUMBER',
   // PostHog (analytics)
   'POSTHOG_API_KEY',
+  // Scheduled-email cron shared secrets (set here → no Cloudflare redeploy needed)
+  'REVIEW_REQUEST_TOKEN',
+  'ABANDONED_CART_TOKEN',
 ]);
 
 export { ALLOWED_KEYS };
