@@ -43,6 +43,15 @@ export async function onRequestPost({ request, env }) {
     const itemCount = cart.reduce((s, i) => s + (i.qty || 1), 0);
     const subtotalCents = Math.round(cart.reduce((s, i) => s + (i.price || 0) * (i.qty || 1), 0) * 100);
 
+    // Cheap anti-abuse: a genuine abandoned cart always has priced items with real
+    // product ids. Silently drop empty-value / id-less payloads (spray bots) instead of
+    // storing them and later emailing the address — return ok so the bot gets no signal.
+    // (High-volume abuse is best capped with a Cloudflare WAF rate-limit rule on
+    // POST /api/abandoned-cart, e.g. ~5/min per IP — see the deploy security note.)
+    if (subtotalCents <= 0 || !cart.some((i) => i.id && String(i.id).length >= 3)) {
+      return json({ ok: true, skipped: 'implausible cart' }, 200, cors(env));
+    }
+
     const key = serviceKey(env);
     if (!env.SUPABASE_URL || !key) return json({ ok: false, error: 'not configured' }, 500, cors(env));
     const H = { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' };

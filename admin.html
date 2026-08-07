@@ -1833,8 +1833,16 @@
                         <tbody id="ship-orders-tbody">
                           <tr class="empty-row"><td colspan="6">Loading…</td></tr>
                         </tbody>
+                        <tfoot>
+                          <tr style="border-top:2px solid var(--border);">
+                            <td colspan="4" style="padding:12px;text-align:right;font-weight:600;color:var(--text-secondary);"><span id="ship-foot-label">—</span></td>
+                            <td style="padding:12px;text-align:right;color:var(--accent);font-weight:700;font-size:15px;" id="ship-foot-total">—</td>
+                            <td style="padding:12px;text-align:right;color:var(--text-secondary);font-weight:600;" id="ship-foot-ordertotal">—</td>
+                          </tr>
+                        </tfoot>
                       </table>
                     </div>
+                    <p style="margin:10px 2px 0;font-size:.74rem;color:var(--text-secondary);">Totals reflect what's shown — searching or filtering above updates them.</p>
                     <div id="ship-pagination" style="display:flex;gap:8px;justify-content:center;margin-top:16px;"></div>
                   </div>
 

@@ -473,9 +473,14 @@ async function resolveShipping({ shippingRate, address, subtotalCents, catalogIt
     }
   }
 
-  // Without a verified token, fall back to the client-sent rate amount rather than
-  // the policy standard rate, so customers pay the Shippo-quoted price.
+  // Without a verified (signed) token we fall back to the client-sent rate so customers
+  // pay the exact Shippo-quoted price — BUT a real rate is never $0 or negative, so a
+  // zeroed/tampered amount is rejected rather than trusted (closes the "$0 shipping"
+  // exploit). Set CHECKOUT_RATE_SECRET to sign+verify rates and reject ALL unsigned ones.
   const fallbackCents = shippingRate?.amount ? toCents(shippingRate.amount) : 0;
+  if (shippingRate?.objectId && !signedRate && !qualifiesFree && fallbackCents <= 0) {
+    throw new Error('Invalid shipping rate — please reload shipping options.');
+  }
   const actualShippingCents = signedRate
     ? rateAmountCents
     : (shippingRate?.objectId ? fallbackCents : policy.standardCents);

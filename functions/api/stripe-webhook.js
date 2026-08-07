@@ -21,6 +21,7 @@
 
 import Stripe from 'stripe';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { mutateSetting } from './_commerce.js';
 import { loopsFallback } from './_email.js';
 import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } from './_email-theme.js';
 import { buildUserData, sendCapiEvents } from './_capi.js';
@@ -576,54 +577,30 @@ async function decrementInventory(meta, env) {
 
 // ─── Increment promo code usage count ──────────────────────────────────────────
 async function incrementPromoUsage(code, env) {
-  const serviceKey = getSupabaseServiceKey(env);
-  if (!env.SUPABASE_URL || !serviceKey || !code) return;
+  if (!env.SUPABASE_URL || !getSupabaseServiceKey(env) || !code) return;
   const normalized = code.trim().toLowerCase();
 
   try {
-    const res = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?key=eq.commerce_config&select=value&limit=1`, {
-      headers: {
-        apikey: serviceKey,
-        Authorization: 'Bearer ' + serviceKey,
-      }
+    // Atomic compare-and-swap increment. A plain read-modify-write here loses
+    // updates under concurrent checkouts (both read usageCount=N, both write N+1),
+    // letting a maxUsage-capped code slip past its limit. mutateSetting retries on a
+    // rev conflict and falls back to a plain write if the rev column isn't deployed.
+    let matched = false;
+    await mutateSetting(env, 'commerce_config', (cfg) => {
+      const config = cfg && typeof cfg === 'object' ? cfg : {};
+      if (!Array.isArray(config.promotions)) return config;
+      return {
+        ...config,
+        promotions: config.promotions.map((promo) => {
+          if (promo.code && promo.code.trim().toLowerCase() === normalized) {
+            matched = true;
+            return { ...promo, usageCount: (parseInt(promo.usageCount || 0, 10) || 0) + 1 };
+          }
+          return promo;
+        }),
+      };
     });
-    if (!res.ok) {
-      console.warn('incrementPromoUsage: failed to fetch commerce_config:', await res.text());
-      return;
-    }
-    const rows = await res.json().catch(() => []);
-    if (!rows.length) return;
-
-    const config = rows[0]?.value || {};
-    if (!Array.isArray(config.promotions)) return;
-
-    let updated = false;
-    config.promotions = config.promotions.map(promo => {
-      if (promo.code && promo.code.trim().toLowerCase() === normalized) {
-        promo.usageCount = (parseInt(promo.usageCount || 0, 10) || 0) + 1;
-        updated = true;
-      }
-      return promo;
-    });
-
-    if (!updated) return;
-
-    const saveRes = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?key=eq.commerce_config`, {
-      method: 'POST',
-      headers: {
-        apikey: serviceKey,
-        Authorization: 'Bearer ' + serviceKey,
-        'Content-Type': 'application/json',
-        Prefer: 'resolution=merge-duplicates,return=minimal'
-      },
-      body: JSON.stringify([{ key: 'commerce_config', value: config }])
-    });
-
-    if (!saveRes.ok) {
-      console.warn('incrementPromoUsage: failed to save commerce_config:', await saveRes.text());
-    } else {
-      console.log(`Promo code usage incremented: ${code}`);
-    }
+    if (matched) console.log(`Promo code usage incremented: ${code}`);
   } catch (e) {
     console.warn('incrementPromoUsage error:', e.message);
   }
