@@ -283,7 +283,7 @@ const checks = [
     name: 'Cloudinary storefront config comes from admin-managed settings',
     pass: () => /fetch\('\/api\/image-config'/.test(files.imageUtils)
       && /setCloudinaryCloudName/.test(files.imageUtils)
-      && /fetchSiteSettings\(\['CLOUDINARY_CLOUD_NAME'\]/.test(files.imageConfig)
+      && /fetchSiteSettings\(\['CLOUDINARY_CLOUD_NAME'/.test(files.imageConfig)
       && /resolveSetting\('CLOUDINARY_CLOUD_NAME'/.test(files.imageConfig)
       && /CLOUDINARY_CLOUD_NAME/.test(files.admin),
   },
