@@ -1546,40 +1546,7 @@
                 rows += apiRow('Verified domains', domainList);
             }
             if (s.note) rows += `<p class="api-note">${s.note}</p>`;
-            rows += `
-              <div style="margin-top:12px;">
-                <button class="btn btn-secondary" style="font-size:.75rem;padding:6px 12px;" onclick="sendTestEmail()">▶ Send test email</button>
-                <div id="resend-test-result" style="display:none;margin-top:10px;font-size:.8rem;padding:10px;border-radius:6px;"></div>
-              </div>`;
             return rows;
-        }
-
-        async function sendTestEmail() {
-            const resultEl = document.getElementById('resend-test-result');
-            if (!resultEl) return;
-            resultEl.style.display = 'block';
-            resultEl.style.background = 'var(--bg-secondary)';
-            resultEl.style.border = '1px solid var(--border)';
-            resultEl.style.color = 'var(--text-secondary)';
-            resultEl.textContent = 'Sending test email…';
-            try {
-                const resp = await fetch('/api/test-email', { method: 'POST' });
-                const data = await resp.json().catch(() => ({}));
-                if (resp.ok && data.resend_ok) {
-                    resultEl.style.background = 'rgba(34,197,94,.08)';
-                    resultEl.style.border = '1px solid rgba(34,197,94,.3)';
-                    resultEl.style.color = '#22c55e';
-                    resultEl.textContent = `✓ Test email sent to ${data.to_email}. Check your inbox.`;
-                } else {
-                    resultEl.style.background = 'rgba(239,68,68,.08)';
-                    resultEl.style.border = '1px solid rgba(239,68,68,.3)';
-                    resultEl.style.color = 'var(--error)';
-                    resultEl.textContent = '✗ ' + (data.resend_response?.message || data.error || `HTTP ${resp.status}`);
-                }
-            } catch (e) {
-                resultEl.style.color = 'var(--error)';
-                resultEl.textContent = '✗ Network error: ' + e.message;
-            }
         }
 
         function buildBrevoRows(s) {
