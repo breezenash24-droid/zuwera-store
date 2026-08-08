@@ -44,10 +44,44 @@ window.__zwApplyCardFit = function (fit) {
   if (!document.body) document.addEventListener('DOMContentLoaded', set);
   try { localStorage.setItem('zw_card_fit', contain ? 'contain' : 'cover'); } catch (_) {}
 };
+// Second-image hover swap: pointing at a card shows the product's next photo,
+// the way adidas and On do it. Toggles body.zw-card-hover (CSS in
+// storefront-cohesion.css). Cached like the two above so the class is on the
+// body before the first paint — set after it, the alt image would fade in on a
+// card the cursor was already resting over.
+window.__zwApplyCardHover = function (on) {
+  var yes = on === true || on === 'true';
+  function set() { if (document.body) document.body.classList.toggle('zw-card-hover', yes); }
+  set();
+  if (!document.body) document.addEventListener('DOMContentLoaded', set);
+  try { localStorage.setItem('zw_card_hover', yes ? '1' : '0'); } catch (_) {}
+};
 (function () {
   try { window.__zwApplyCardMode(localStorage.getItem('zw_card_cta') || 'add-to-bag'); } catch (_) {}
   try { window.__zwApplyCardFit(localStorage.getItem('zw_card_fit') || 'cover'); } catch (_) {}
+  try { window.__zwApplyCardHover(localStorage.getItem('zw_card_hover') === '1'); } catch (_) {}
 })();
+
+/**
+ * The photo a card swaps to on hover: the first one that isn't the cover shot
+ * and isn't a video. Videos are skipped because the swap is a still-to-still
+ * cross-fade — a <video> would need loading, autoplay and muting rules of its
+ * own, and a poster-less one flashes black. Returns '' when the product has
+ * only one usable photo, and the card then renders no alt image at all rather
+ * than a hover that swaps a picture for itself.
+ */
+window.__zwCardAltImage = function (product, coverUrl) {
+  var rows = (product && product.product_images) || [];
+  if (!rows.length) return '';
+  var sorted = rows.slice().sort(function (a, b) { return (a.sort_order || 0) - (b.sort_order || 0); });
+  for (var i = 0; i < sorted.length; i++) {
+    var row = sorted[i], url = row && row.image_url;
+    if (!url || url === coverUrl) continue;
+    if (row.media_type === 'video' || /\.(mp4|webm|mov)(\?.*)?$/i.test(url)) continue;
+    return url;
+  }
+  return '';
+};
 
 (function normalizeHomepageCopy() {
   const heroYear = document.querySelector('.hero-year');
@@ -2166,6 +2200,7 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       window.__zwApplyCardFit(cta && cta.card_fit === 'contain' ? 'contain' : 'cover');
       window.__zwCardGalleryLoop = !!(cta && cta.card_loop);   // gallery loop opt-in (quick-add modal etc.)
       window.__zwCardLoopStyle = (cta && /^(seamless|rewind|fade|instant)$/.test(cta.card_loop_style)) ? cta.card_loop_style : 'seamless';
+      window.__zwApplyCardHover(!!(cta && cta.card_hover));
     }
 
     // 1. brand
@@ -2823,8 +2858,18 @@ function renderProductCards(products, grid) {
       if (p.product_images[0].image_url) firstImg = p.product_images[0].image_url;
     }
     const _cardImgSrc = firstImg && typeof window.optimizeImage === 'function' ? window.optimizeImage(firstImg, 600) : firstImg;
+    // Hover swap. Rendered whether or not the setting is on — the toggle is a
+    // body class, so flipping it takes effect on the cards already on screen
+    // instead of only on the next render. alt="" and aria-hidden: it is the
+    // same product, and announcing a second identical name would just make the
+    // grid twice as long to listen through.
+    const _altImg = window.__zwCardAltImage ? window.__zwCardAltImage(p, firstImg) : '';
+    const _altSrc = _altImg && typeof window.optimizeImage === 'function' ? window.optimizeImage(_altImg, 600) : _altImg;
+    const altHtml = _altImg
+      ? `<img class="pcard-img-alt" src="${_altSrc}" alt="" aria-hidden="true" loading="lazy">`
+      : '';
     const imgHtml = firstImg
-      ? `<img src="${_cardImgSrc}" alt="${escapeHomeFavoriteHtml(productName)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:top center">`
+      ? `<img src="${_cardImgSrc}" alt="${escapeHomeFavoriteHtml(productName)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:top center">${altHtml}`
       : `<div class="pcard-img-placeholder">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
             <p>Image Coming Soon</p>
