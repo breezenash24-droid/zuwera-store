@@ -70,7 +70,7 @@
 <!-- Stylesheets -->
 <link rel="stylesheet" href="base.css?v=0db3d715">
 <link rel="stylesheet" href="nav.css?v=ebdd5ccc">
-<link rel="stylesheet" href="product.css?v=a555d70d">
+<link rel="stylesheet" href="product.css?v=40ac69b3">
 <link rel="stylesheet" href="cart.css?v=38b9bf99">
 <!-- reviews.css styles only below-the-fold review content + hidden review
      modals, so load it non-render-blocking (matches index.html). reviews-vibe.css
@@ -2881,13 +2881,21 @@ function isVideoMedia(item) {
 
 function getImagesForColor(colorVariantId) {
   const all = currentProduct.allImages || currentProduct.images || [];
-  if (!colorVariantId) {
-    const shared = all.filter(m => !m.color_variant_id);
-    return shared.length ? shared : all;
+  const shared = all.filter(m => !m.color_variant_id);
+
+  if (colorVariantId) {
+    const specific = all.filter(m => m.color_variant_id === colorVariantId);
+    if (specific.length) return [...specific, ...shared];
   }
-  const specific = all.filter(m => m.color_variant_id === colorVariantId);
-  const shared   = all.filter(m => !m.color_variant_id);
-  return specific.length ? [...specific, ...shared] : (shared.length ? shared : all);
+  if (shared.length) return shared;
+
+  // Last resort: ONE colourway's set — never `all`. Both branches used to fall
+  // back to `all`, so a colour with no photos of its own and no shared photos
+  // rendered every colourway's media in one gallery: 47 items on a product with
+  // six per colour, mixing in videos that belong to other colours. Falling back
+  // to the first colourway keeps the gallery coherent instead.
+  const firstId = all.find(m => m.color_variant_id)?.color_variant_id;
+  return firstId ? all.filter(m => m.color_variant_id === firstId) : all;
 }
 
 // Touch listener guard — only attach once, not once per renderGallery() call

@@ -469,6 +469,28 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
   align-items: start;
 }
 
+/* The dead band under the photos: the grid row is as tall as the TALLER column,
+   and with the accordions moved out the buy column often still outruns the
+   gallery — leaving the gallery cell padded with nothing between the arrows and
+   whatever comes next. Two things close it.
+   1) The buy column sticks, so it scrolls with the photos instead of forcing the
+      row taller than them.
+   2) The gallery cell stops stretching, so the row is sized by the photos. */
+.product-layout:has(.gallery-section[data-layout="dual"]) .info-section {
+  position: sticky;
+  top: 100px;
+  align-self: start;
+}
+.gallery-section[data-layout="dual"] { align-self: start; }
+
+@media (max-width: 1024px) {
+  /* Sticky needs a viewport taller than the column to be useful; below this the
+     buy column is nearly full-height and sticking it just traps scroll. */
+  .product-layout:has(.gallery-section[data-layout="dual"]) .info-section {
+    position: static;
+  }
+}
+
 /* The buy column is narrower here than in the single-image layout, and
    .size-grid's auto-fill responds to the VIEWPORT, not to its container — so at
    the same screen width it dropped from five buttons a row to three and read as
@@ -837,7 +859,7 @@ body.light-mode .color-swatch.active::after { background: #09090b; }
    not as a run of edge-to-edge lines. */
 .accordions-section.accordions-below {
   max-width: 1100px;
-  margin: 3.5rem auto 0;
+  margin: 1.25rem auto 0;
   padding: 0 2rem;
   width: 100%;
 }
