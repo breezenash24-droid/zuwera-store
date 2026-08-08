@@ -83,6 +83,11 @@
       prefix: 'WELCOME',
     },
 
+    // Email the code to the person as well as showing it. The wording lives in
+    // Appearance → Emails → "Email popup welcome" (one source of truth, themed
+    // like every other email); this is only whether it sends.
+    welcomeEmail: { on: false },
+
     // Whichever fires first wins. Every one of these is a real pattern stores
     // use; all are optional and 0/false switches one off.
     trigger: {
@@ -132,7 +137,7 @@
   function normalize(raw) {
     var r = (raw && typeof raw === 'object') ? raw : {};
     var d = DEFAULTS;
-    var logo = r.logo || {}, image = r.image || {}, disc = r.discount || {};
+    var logo = r.logo || {}, image = r.image || {}, disc = r.discount || {}, mail = r.welcomeEmail || {};
     var trig = r.trigger || {}, rules = r.rules || {}, dev = rules.devices || {}, pages = rules.pages || {};
 
     var out = {
@@ -166,6 +171,8 @@
         expiryDays: Math.max(0, num(disc.expiryDays, d.discount.expiryDays)),
         prefix: String(pick(disc.prefix, d.discount.prefix)).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12),
       },
+
+      welcomeEmail: { on: bool(mail.on, d.welcomeEmail.on) },
 
       trigger: {
         delay: Math.max(0, num(trig.delay, d.trigger.delay)),

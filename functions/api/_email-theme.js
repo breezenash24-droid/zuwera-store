@@ -114,6 +114,11 @@ const CONTENT_DEFAULTS = {
   return_status:      { subject: 'An update on your return', kicker: 'Return update', heading: 'Your return', intro: '', footer: '' },
   review_request:     { subject: 'How was your Zuwera order?', kicker: 'Your thoughts', heading: 'How did we do?', intro: '{name}your order has had a few days to settle in. A quick review — a line or two, and a photo if you have one — helps other athletes shop with confidence.', footer: "You're receiving this because you ordered from zuwera.store. Thanks for being part of it." },
   abandoned_cart:     { subject: 'You left something in your bag', kicker: 'Still in your bag', heading: 'You left something behind', intro: 'Your bag is still here — grab your picks before they sell out.', footer: "You're receiving this because you started a checkout at zuwera.store. If this wasn't you, ignore this email." },
+  // Sent when someone signs up through the email popup. {code} is the discount
+  // code they were given and {discount} reads as "10% off" / "$15 off"; both are
+  // empty when the popup is running in email-only mode, so the default wording
+  // has to make sense either way.
+  popup_welcome:      { subject: 'Welcome in — here is your code', kicker: 'Welcome', heading: 'You are on the list', intro: 'Thanks for signing up. Here is your code — use it at checkout.', footer: "You're receiving this because you signed up at zuwera.store. Unsubscribe any time." },
 };
 
 export function getEmailContent(cache, type) {
