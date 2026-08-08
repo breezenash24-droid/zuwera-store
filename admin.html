@@ -292,6 +292,11 @@
                     <span class="mob-drawer-item-icon">${p.icon}</span>${esc(p.label)}
                 </button>`
             ).join('');
+            /* Preview link: only for roles that can edit pages. Re-evaluated on
+               every nav render, so it appears/disappears when the real role
+               arrives from /api/admin-access rather than flashing for everyone. */
+            const pvBtn = document.getElementById('previewUnpublishedBtn');
+            if (pvBtn) pvBtn.style.display = can('builder_edit') ? 'flex' : 'none';
         }
         renderAdminNav();
         </script>
@@ -300,6 +305,14 @@
         <div class="main-content">
             <header class="header">
                 <h1 class="header-title" id="pageTitle">Dashboard</h1>
+                <!-- Rendered hidden. renderAdminNav() reveals it only for roles
+                     that carry builder_edit — staff who cannot edit pages are
+                     never shown a link to unpublished ones. The server checks
+                     the same permission when minting the token, so hiding the
+                     button is the courtesy, not the control. -->
+                <button id="previewUnpublishedBtn" onclick="openUnpublishedPreview()" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--text-secondary);font-size:.8rem;cursor:pointer;align-items:center;gap:8px;font-family:inherit;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor=''">
+                    👁 Preview unpublished
+                </button>
                 <button onclick="openSearch()" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--text-secondary);font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor=''">
                     🔍 Search <kbd style="background:var(--bg-primary);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:.7rem;">Ctrl K</kbd>
                 </button>

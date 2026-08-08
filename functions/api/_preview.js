@@ -1,0 +1,90 @@
+/**
+ * Shared helpers for the admin preview link.
+ *
+ * A preview token is a short-lived, signed statement that "an admin with these
+ * permissions asked for a preview". It is signed with an HMAC over the
+ * service-role key, which never leaves the server — so a token cannot be forged
+ * from the browser, and the key cannot be recovered from a token.
+ *
+ * It is deliberately NOT a session: it carries no user identity beyond the id
+ * that minted it, grants nothing except reading unpublished storefront content,
+ * and expires on its own. Someone who is handed the link can look at the draft
+ * homepage until it lapses; they cannot act as the admin who created it.
+ *
+ * Format:  <base64url(payload)>.<base64url(hmac)>
+ * Payload: { sub, perms, exp }  — minter, granting permissions, expiry (epoch s)
+ */
+
+const LABEL = 'zw-preview-v1';                 // domain separation for the HMAC
+export const PREVIEW_TTL_SECONDS = 60 * 60 * 2; // 2 hours — long enough to review, short enough to not linger
+
+function signingKeyMaterial(env) {
+  // The service key is the only server-only secret every deployment already
+  // has. Mixing in a constant label means this HMAC can never collide with any
+  // other use of the same key.
+  const key = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '';
+  return key ? LABEL + '|' + key : '';
+}
+
+function b64url(bytes) {
+  let s = '';
+  const arr = bytes instanceof Uint8Array ? bytes : new TextEncoder().encode(bytes);
+  for (let i = 0; i < arr.length; i++) s += String.fromCharCode(arr[i]);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function b64urlDecode(str) {
+  const pad = str.replace(/-/g, '+').replace(/_/g, '/');
+  return atob(pad + '='.repeat((4 - (pad.length % 4)) % 4));
+}
+
+async function hmac(env, message) {
+  const material = signingKeyMaterial(env);
+  if (!material) return null;
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(material),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
+  return b64url(new Uint8Array(sig));
+}
+
+/** Mint a token for an admin. `perms` is the list that granted the preview. */
+export async function mintPreviewToken(env, { sub, perms }) {
+  const payload = {
+    sub: String(sub || ''),
+    perms: Array.isArray(perms) ? perms.slice(0, 20) : [],
+    exp: Math.floor(Date.now() / 1000) + PREVIEW_TTL_SECONDS,
+  };
+  const body = b64url(JSON.stringify(payload));
+  const sig = await hmac(env, body);
+  if (!sig) return null;
+  return body + '.' + sig;
+}
+
+/**
+ * Verify a token. Returns its payload, or null for anything that isn't a valid,
+ * unexpired token. Every failure returns the same null — a caller must not be
+ * able to tell "bad signature" from "expired" from "malformed".
+ */
+export async function verifyPreviewToken(env, token) {
+  try {
+    const parts = String(token || '').split('.');
+    if (parts.length !== 2) return null;
+    const expected = await hmac(env, parts[0]);
+    if (!expected) return null;
+
+    // Constant-time compare. A length check first is fine — both are fixed-size
+    // base64url of a SHA-256, so a length mismatch leaks nothing.
+    if (expected.length !== parts[1].length) return null;
+    let diff = 0;
+    for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ parts[1].charCodeAt(i);
+    if (diff !== 0) return null;
+
+    const payload = JSON.parse(b64urlDecode(parts[0]));
+    if (!payload || typeof payload.exp !== 'number') return null;
+    if (payload.exp < Math.floor(Date.now() / 1000)) return null;
+    return payload;
+  } catch (_) {
+    return null;
+  }
+}

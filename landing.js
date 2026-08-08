@@ -383,12 +383,22 @@
     if (loadedCfg) applyPageTheme(loadedCfg);  // flash-free from cache
 
     // Refresh config from server (so builder edits show without a hard cache).
-    fetch(SB + 'site_settings?select=value&key=eq.' + key, { headers: H })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (rows) {
+    // Under an admin preview link the drafts come from /api/preview-config,
+    // which verifies the signed token server-side; otherwise this is the normal
+    // anon read of whichever key `preview` selected above.
+    (window.__zwPreviewReady || Promise.resolve(null))
+      .then(function (pv) {
+        if (pv && pv.landing_pages) return { rows: [{ value: pv.landing_pages }], fromPreview: true };
+        return fetch(SB + 'site_settings?select=value&key=eq.' + key, { headers: H })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (rows) { return { rows: rows, fromPreview: false }; });
+      })
+      .then(function (res) {
+        var rows = res && res.rows;
         var v = rows && rows[0] && rows[0].value;
         if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
         if (v && typeof v === 'object') {
+          if (res.fromPreview) preview = true;   // don't cache a draft as if it were live
           if (!preview) { try { localStorage.setItem('zw_landing_pages', JSON.stringify(v)); } catch (_) {} }
           if (v[slug]) { loadedCfg = v[slug]; applyPageTheme(loadedCfg); if (window.__zwProducts) buildPage(window.__zwProducts, gender, loadedCfg); }
           else { applyPageTheme(null); }  // page deleted/never set → clear any cached override

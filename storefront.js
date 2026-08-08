@@ -2229,6 +2229,20 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       if (b && b.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', b.admin_res_text);
     }
 
+    // Admin preview link (?zwpreview=<token>): swap the published homepage for
+    // the builder's draft before anything below reads it, so the page renders
+    // through the SAME path publishing will use — no second renderer to
+    // disagree with what actually ships. Resolves instantly to null on a normal
+    // load, so this costs an ordinary visitor nothing.
+    try {
+      const preview = await (window.__zwPreviewReady || Promise.resolve(null));
+      if (preview && preview.page_builder) {
+        settings.page_builder_published = preview.page_builder;
+        if (preview.builder_theme) settings.builder_theme = preview.builder_theme;
+        if (preview.builder_nav) settings.builder_nav = preview.builder_nav;
+      }
+    } catch (_) {}
+
     // 2. page_builder_published (or draft page_builder if previewing)
     const isPreview = new URLSearchParams(window.location.search).get('builder') === '1';
     if (isPreview) {
