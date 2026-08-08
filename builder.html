@@ -870,14 +870,18 @@ async function renderProductTab(container){
 function paintProductTab(container){
   const inLayout = pdpCfg.map(s=>s.id);
   const available = Object.keys(PDP_BLOCK_META).filter(id=>inLayout.indexOf(id)<0);
-  const gsel=(k,l,v,opts,hint='')=>`<div class="field"><label>${l}</label><select data-pdpg="${k}" onchange="pdpGallerySet('${k}',this.value)">${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select>${hint?`<span class="fhint">${hint}</span>`:''}</div>`;
+  // `off` greys a control out when the chosen layout makes it inert, rather than
+  // leaving it looking live and doing nothing — which is exactly how the Arrows
+  // setting read once the dual filmstrip started forcing them underneath.
+  const gsel=(k,l,v,opts,hint='',off='')=>`<div class="field"${off?' style="opacity:.45"':''}><label>${l}</label><select data-pdpg="${k}" onchange="pdpGallerySet('${k}',this.value)"${off?' disabled':''}>${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select>${off?`<span class="fhint">${off}</span>`:(hint?`<span class="fhint">${hint}</span>`:'')}</div>`;
+  const dualOff = G.layout==='dual' ? 'Not used by “Two side by side” — it pages with the arrows under the photos.' : '';
   const G=pdpGallery||pdpGalleryNormalize(null);
   container.innerHTML = `<div class="tab-pane">
     <div class="tab-hd">Gallery</div>
     <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">How the product photos are arranged. Leave these as they are for the current look — every option is optional.</div>
     ${gsel('layout','Image area',G.layout,[['single','One image with arrows (current)'],['dual','Two side by side — page across']],'“Two side by side” shows two large photos at once and pages sideways through the rest. The arrows move to a row under the photos with a position counter, and drive the strip — so the Arrows and Thumbnails settings below don’t apply in this mode.')}
-    ${gsel('thumbs','Thumbnails',G.thumbs,[['bottom','Below the photo (current)'],['left','Left rail, scaled down'],['none','Hidden']])}
-    ${gsel('arrows','Arrows',G.arrows,[['overlay','Over the photo (current)'],['below','In a row underneath'],['none','Hidden']],'Same arrows either way — they just move.')}
+    ${gsel('thumbs','Thumbnails',G.thumbs,[['bottom','Below the photo (current)'],['left','Left rail, scaled down'],['none','Hidden']],'',dualOff)}
+    ${gsel('arrows','Arrows',G.arrows,[['overlay','Over the photo (current)'],['below','In a row underneath'],['none','Hidden']],'Same arrows either way — they just move.',dualOff)}
     <div class="tab-hd" style="margin-top:.4rem">Quick-add modal</div>
     <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">The small product popup opened from a collection card. Set separately — a left rail can suit the page but crowd the popup.</div>
     ${gsel('modal_thumbs','Thumbnails',G.modal_thumbs,[['bottom','Below the photo (current)'],['left','Left rail, scaled down'],['none','Hidden']])}
