@@ -344,6 +344,21 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
 
    Thumbnails and the mobile dot pill are hidden: the strip already shows where
    you are, and the counter says it in words. */
+/* Dual always stacks: strip, then the arrow row underneath.
+   The "left rail" thumbnail option turns .gallery-section into a flex ROW, and
+   with the rail hidden here that left the arrow row as a second column sitting
+   BESIDE the photos — arrows floating to the right, strip squeezed to about half
+   the space it should have. The rail has nothing to lay out in this mode, so the
+   row direction is overridden rather than left to whichever option is selected.
+   (These rules come after the [data-thumbs="left"] block and match its
+   specificity, so source order settles it.) */
+.gallery-section[data-layout="dual"] {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+.gallery-section[data-layout="dual"] .gallery-dual { width: 100%; }
+
 .gallery-section[data-layout="dual"] .gallery-thumbnails,
 .gallery-section[data-layout="dual"] .gallery-dots { display: none !important; }
 /* The single-image arrows sit inside .gallery-main, which is hidden in this
@@ -372,7 +387,12 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
 .gallery-dual img,
 .gallery-dual video {
   width: 100%;
-  aspect-ratio: 4/5;
+  /* Sized off the VIEWPORT, not an aspect ratio. Locked to 4/5 the photos were
+     only as tall as half the column was wide — which is why two side by side
+     came out small. A viewport-relative height makes them fill the screen the
+     way this arrangement is meant to, and stays right whatever the column ends
+     up being. */
+  height: min(80vh, 900px);
   object-fit: cover;
   display: block;
   background: #0f0f0f;
@@ -407,9 +427,12 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
 }
 
 /* The filmstrip wants room — two photos side by side in a half-width column are
-   too small to read. Give the gallery the larger share, like On does. */
+   too small to read. Give the gallery the larger share, and pull the gap in:
+   the photos should dominate the page here, with the buy column alongside. */
 .product-layout:has(.gallery-section[data-layout="dual"]) {
-  grid-template-columns: 1.55fr 1fr;
+  grid-template-columns: minmax(0, 1.9fr) minmax(320px, 1fr);
+  gap: 2rem;
+  align-items: start;
 }
 /* Sticky fights a wide filmstrip (the column is taller than the viewport). */
 .gallery-section[data-layout="dual"] { position: static; }
@@ -430,6 +453,10 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
      strip stays a horizontal scroller, so swiping still works as expected. */
   .gallery-dual > * { flex: 0 0 100%; }
   .product-layout:has(.gallery-section[data-layout="dual"]) { grid-template-columns: 1fr; }
+  /* 80vh is too tall once it's one photo per screen — the buy button ends up
+     pushed well below the fold. */
+  .gallery-dual img,
+  .gallery-dual video { height: min(62vh, 560px); }
 }
 
 /* Carousel position indicator (Nike-style frosted pill of dots) — overlaid on
