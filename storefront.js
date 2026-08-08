@@ -1249,24 +1249,16 @@ function showToast(msg) {
         }
         case 'video': {
           el.className = 'builder-video-section';
-          el.style.cssText = 'padding:3rem 2.5rem;max-width:900px;margin:0 auto';
+          // max_width lets a vertical clip (Shorts/TikTok/Reels) sit in a
+          // narrower column than the 900px default meant for 16:9.
+          const vMax = s.max_width ? (s.max_width === 'full' ? 'none' : s.max_width + 'px') : '900px';
+          el.style.cssText = `padding:3rem 2.5rem;max-width:${vMax};margin:0 auto`;
           if (s.sec_bg) el.style.background = s.sec_bg;
-          let videoSrc = '';
-          const url = s.url||'';
-          const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
-          const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
-          if (ytMatch) {
-            const params = new URLSearchParams({rel:'0'});
-            if (s.autoplay) params.set('autoplay','1');
-            if (s.muted) params.set('mute','1');
-            if (!s.controls) params.set('controls','0');
-            videoSrc = `https://www.youtube.com/embed/${ytMatch[1]}?${params}`;
-          } else if (vimeoMatch) {
-            videoSrc = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
-          }
-          el.innerHTML = videoSrc
-            ? `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden"><iframe src="${videoSrc}" style="position:absolute;inset:0;width:100%;height:100%;border:none" allowfullscreen allow="autoplay"></iframe></div>${s.caption?`<p style="text-align:center;opacity:.45;font-size:.8rem;margin-top:1rem">${s.caption}</p>`:''}`
-            : `<div style="background:rgba(244,241,235,.05);border:1px dashed rgba(244,241,235,.15);padding:4rem;text-align:center;opacity:.4;font-size:.8rem">Paste a YouTube or Vimeo URL in the editor</div>`;
+          // Platform detection + embed markup live in video-embed.js so the
+          // homepage and landing renderers cannot drift apart.
+          el.innerHTML = window.ZWVideoEmbed
+            ? window.ZWVideoEmbed.html(s)
+            : `<div style="background:rgba(244,241,235,.05);border:1px dashed rgba(244,241,235,.15);padding:4rem;text-align:center;opacity:.4;font-size:.8rem">Video embed unavailable</div>`;
           break;
         }
         case 'countdown': {

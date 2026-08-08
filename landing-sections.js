@@ -493,16 +493,13 @@
       }
       case 'video': {
         el.className = 'builder-video-section';
-        el.style.cssText = 'padding:3rem 2.5rem;max-width:900px;margin:0 auto';
-        var url = s.url || '';
-        var ytM = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
-        var vmM = url.match(/vimeo\.com\/(\d+)/);
-        var vsrc = '';
-        if (ytM) { var p = new URLSearchParams({ rel: '0' }); if (s.autoplay) p.set('autoplay', '1'); if (s.muted) p.set('mute', '1'); if (!s.controls) p.set('controls', '0'); vsrc = 'https://www.youtube.com/embed/' + ytM[1] + '?' + p; }
-        else if (vmM) { vsrc = 'https://player.vimeo.com/video/' + vmM[1]; }
-        el.innerHTML = vsrc
-          ? '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden"><iframe src="' + vsrc + '" style="position:absolute;inset:0;width:100%;height:100%;border:none" allowfullscreen allow="autoplay"></iframe></div>' + (s.caption ? '<p style="text-align:center;opacity:.45;font-size:.8rem;margin-top:1rem">' + s.caption + '</p>' : '')
-          : '<div style="background:rgba(244,241,235,.05);border:1px dashed rgba(244,241,235,.15);padding:4rem;text-align:center;opacity:.4;font-size:.8rem">Add a YouTube or Vimeo URL</div>';
+        var vMax = s.max_width ? (s.max_width === 'full' ? 'none' : s.max_width + 'px') : '900px';
+        el.style.cssText = 'padding:3rem 2.5rem;max-width:' + vMax + ';margin:0 auto';
+        // Shared with the homepage renderer — see video-embed.js. Both used to
+        // carry their own YouTube/Vimeo regexes, which had already drifted.
+        el.innerHTML = window.ZWVideoEmbed
+          ? window.ZWVideoEmbed.html(s, '<div style="background:rgba(244,241,235,.05);border:1px dashed rgba(244,241,235,.15);padding:4rem;text-align:center;opacity:.4;font-size:.8rem">Add a YouTube, TikTok, Instagram, Vimeo or .mp4 URL</div>')
+          : '<div style="background:rgba(244,241,235,.05);border:1px dashed rgba(244,241,235,.15);padding:4rem;text-align:center;opacity:.4;font-size:.8rem">Video embed unavailable</div>';
         return true;
       }
       case 'gallery': {
