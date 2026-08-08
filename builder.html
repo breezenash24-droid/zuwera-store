@@ -442,6 +442,9 @@ body{display:flex;flex-direction:column}
 
 <script src="/supabase.min.js?v=4b6a655b"></script>
 <script src="/supabase-client.js?v=0bf64814"></script>
+<!-- Shared video-embed resolver. Loaded (not deferred) so buildForm can call
+     ZWVideoEmbed.detect() for the live "platform detected" hint in the editor. -->
+<script src="/video-embed.js?v=0462ce95"></script>
 <script>
 'use strict';
 const SUPA_URL='https://qfgnrsifcwdubkolsgsq.supabase.co';
@@ -556,7 +559,7 @@ const TYPES={
   testimonials:{icon:'⭐',cat:'marketing',desc:'Customer testimonials'},
   banner:{icon:'📢',cat:'marketing',desc:'Full-width colored banner'},
   gallery:{icon:'🖼️',cat:'marketing',desc:'Image grid / lookbook'},
-  video:{icon:'▶️',cat:'marketing',desc:'Video embed (YouTube/Vimeo)'},
+  video:{icon:'▶️',cat:'marketing',desc:'Video embed — YouTube, Shorts, TikTok, Reels, Vimeo or an uploaded file'},
   countdown:{icon:'⏱️',cat:'marketing',desc:'Standalone countdown timer'},
   numbers:{icon:'🔢',cat:'marketing',desc:'Impact stats / social proof numbers'},
   press:{icon:'📰',cat:'marketing',desc:'Press & media mention strip'},
@@ -587,7 +590,7 @@ const SECT_DEFS={
   testimonials:{heading:'What They Say',items:[{quote:'Best jacket I\'ve owned.',author:'Alex M.',rating:5},{quote:'Quality is unreal.',author:'Jordan P.',rating:5}],pad_top:0,pad_bot:0},
   banner:{text:'Free shipping on orders $100+',link_text:'Shop now →',link_url:'/drop001.html',sec_bg:'#09090b',text_color:'#f4f1eb',pad_top:0,pad_bot:0},
   gallery:{heading:'',images:[{src:'',alt:'',link:''}],columns:3,aspect:'square',pad_top:0,pad_bot:0},
-  video:{url:'',autoplay:false,muted:true,controls:true,caption:'',pad_top:0,pad_bot:0},
+  video:{url:'',aspect:'auto',max_width:'900',autoplay:false,muted:true,controls:true,loop:false,caption:'',pad_top:0,pad_bot:0},
   countdown:{heading:'Launching In',launch_date:'2026-09-20T00:00:00',show_labels:true,align:'center',pad_top:0,pad_bot:0},
   numbers:{heading:'By The Numbers',items:[{value:'001',label:'First Drop'},{value:'Sept 20',label:'Launch Date'},{value:'3',label:'Styles'}],pad_top:0,pad_bot:0},
   press:{heading:'As Seen In',items:[{name:'GQ'},{name:'Complex'},{name:'Highsnobiety'},{name:'Sole Collector'}],pad_top:0,pad_bot:0},
@@ -2151,7 +2154,34 @@ function buildForm(s){
     case 'testimonials': h+=f('heading','Heading',g.heading)+fdiv()+arrField('items','Review',g.items||[],[['quote','Quote','textarea'],['author','Author','text'],['rating','Rating (1–5)','number']])+padF(g);break;
     case 'banner': h+=f('text','Banner Text',g.text)+fdiv()+f('link_text','Link Text',g.link_text)+f('link_url','Link URL',g.link_url)+padF(g);break;
     case 'gallery': h+=f('heading','Section Heading',g.heading)+sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])+sel('aspect','Aspect Ratio',g.aspect||'square',[['square','Square'],['portrait','Portrait 3:4'],['wide','Wide 16:9']])+fdiv()+platFields(g,'grid','grid','swipe')+fdiv()+arrField('images','Image',g.images||[],[['src','Image (upload or URL)','image'],['alt','Alt Text','text'],['link','Link (optional)','text']])+padF(g);break;
-    case 'video': h+=`<div class="field"><label>Video URL</label><input data-f="url" value="${he(g.url)}" placeholder="YouTube or Vimeo URL"><span class="fhint">Paste a YouTube or Vimeo URL</span></div>`+f('caption','Caption (optional)',g.caption)+tog2('controls','Show Controls',g.controls!==false)+tog2('autoplay','Autoplay',g.autoplay)+tog2('muted','Muted',g.muted!==false)+padF(g);break;
+    case 'video': {
+      // Live platform read-out under the URL box, so it's obvious the link was
+      // understood — and which shape it will take — before opening the preview.
+      const vi=(window.ZWVideoEmbed&&window.ZWVideoEmbed.detect)?window.ZWVideoEmbed.detect(g.url):null;
+      const vName={youtube:'YouTube',tiktok:'TikTok',instagram:'Instagram',vimeo:'Vimeo',file:'Uploaded video file'};
+      const vShape={'16x9':'16:9 wide','9x16':'9:16 vertical','1x1':'square','4x5':'4:5 portrait','4x3':'4:3'};
+      const vNote=g.url
+        ? (vi?`<span class="fhint" style="color:#4ade80">✓ ${vName[vi.platform]} detected — ${vShape[vi.aspect]||vi.aspect} by default</span>`
+             :`<span class="fhint" style="color:#f87171">Link not recognised. Supported: YouTube (incl. Shorts), TikTok, Instagram post/reel, Vimeo, or a direct .mp4/.webm/.mov file.</span>`)
+        : `<span class="fhint">Paste a YouTube, YouTube Shorts, TikTok, Instagram reel/post, Vimeo or .mp4 link</span>`;
+      // TikTok and Instagram embeds expose no playback flags — their players own
+      // autoplay/controls — so say so rather than showing toggles that do nothing.
+      const vLocked=vi&&(vi.platform==='tiktok'||vi.platform==='instagram');
+      h+=grp('Video',
+          `<div class="field"><label>Video URL</label><input data-f="url" value="${he(g.url)}" placeholder="https://youtube.com/watch?v=… or https://tiktok.com/@user/video/…">${vNote}</div>`
+          +sel('aspect','Shape',g.aspect||'auto',[['auto','Auto — match the platform'],['16x9','Wide 16:9'],['9x16','Vertical 9:16 (Shorts / TikTok / Reels)'],['1x1','Square 1:1'],['4x5','Portrait 4:5'],['4x3','Classic 4:3']])
+          +sel('max_width','Max Width',g.max_width||'900',[['420','Narrow (420px) — best for vertical'],['700','Medium (700px)'],['900','Standard (900px)'],['1200','Wide (1200px)'],['full','Full width']])
+          +f('caption','Caption (optional)',g.caption))
+        +grp('Playback',
+          vLocked
+            ? `<div class="fhint" style="padding:.2rem 0 .4rem">${vName[vi.platform]} controls its own playback — autoplay, controls and loop are handled by their player and are ignored here.</div>`
+              +tog2('controls','Show Controls',g.controls!==false)+tog2('autoplay','Autoplay',g.autoplay)+tog2('muted','Muted',g.muted!==false)+tog2('loop','Loop',g.loop)
+            : tog2('controls','Show Controls',g.controls!==false)+tog2('autoplay','Autoplay',g.autoplay)+tog2('muted','Muted',g.muted!==false)+tog2('loop','Loop',g.loop)
+              +`<span class="fhint">Autoplay always plays muted — browsers block sound until the visitor interacts.</span>`
+          ,false)
+        +padF(g);
+      break;
+    }
     case 'countdown': h+=f('heading','Heading',g.heading)+`<div class="field"><label>Launch Date & Time</label><input type="datetime-local" data-f="launch_date" value="${he(g.launch_date)}"></div>`+sel('align','Alignment',g.align||'center',[['center','Center'],['left','Left']])+tog2('show_labels','Show Unit Labels',g.show_labels!==false)+padF(g);break;
     case 'color_block': {
       h+=fhd('Color & Shape')

@@ -31,3 +31,9 @@ Thumbs.db
 
 # Local Netlify folder
 .netlify
+
+# Build id written by scripts/bump-cache-version.js on every postinstall.
+# It changes on every run, so committing it made every parallel branch conflict
+# on it. Cloudflare regenerates it during the build, and header-scroll.js
+# no-ops when /version.json is absent, so it never needs to be in git.
+version.json
