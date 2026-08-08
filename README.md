@@ -1,39 +1,122 @@
-# Zuwera Website
+# Zuwera Store
 
-## How to Run Locally
-1. Open `index.html` in your browser (no build step needed).
-2. Products, cart drawer, and login modal are all functional.
+A custom, self-hosted e-commerce platform: storefront, checkout, and a full
+admin back office. No Shopify, no WooCommerce, no per-transaction platform fee —
+the whole stack is code in this repository plus managed services you own.
 
-## Deploy to Netlify
-1. Go to [Netlify](https://www.netlify.com/).
-2. Drag & drop this folder into the Netlify dashboard.
-3. Site goes live immediately.
-4. Optionally connect a custom domain in Site Settings.
+- **[SETUP.md](SETUP.md)** — deploy a working instance from scratch
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — how the pieces fit together
 
-## File Structure
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Hosting / CDN / edge | Cloudflare Pages |
+| Server-side API | Cloudflare Pages Functions (`functions/api/`, 68 endpoints) |
+| Database / auth / storage | Supabase (PostgreSQL, RLS, Auth) |
+| Payments | Stripe (Payment Intents + webhooks), Apple Pay |
+| Shipping | Shippo and Veeqo (rate-shopped per request) |
+| Transactional email | Resend, with Brevo and Loops as failover |
+| Media | Cloudflare R2 and Cloudinary |
+| Analytics | PostHog, Meta CAPI, Google Tag |
+| Translation | DeepL |
+
+The frontend is **vanilla JavaScript** — no framework, no bundler, no build step
+for application code. Pages are plain `.html` files served from the repository
+root; shared behaviour lives in root-level `.js` modules loaded with `defer`.
+
+## Running locally
+
+```bash
+npm install          # also runs the postinstall build chain (see below)
+npx wrangler pages dev .
 ```
-zuwera-website/
-├─ index.html       — Main page (semantic HTML, accessible modals)
-├─ style.css        — All styles (CSS variables, responsive, animations)
-├─ main.js          — Cart logic, modal handling, toast notifications
-├─ assets/
-│   ├─ logo.png     — Replace with your logo
-│   ├─ hero.mp4     — Replace with your hero video
-│   ├─ product1.jpg — Replace with product photos
-│   ├─ product2.jpg
-│   ├─ product3.jpg
-│   └─ product4.jpg
-├─ netlify.toml     — Netlify deployment config
-└─ README.md
+
+Opening `index.html` directly in a browser renders the storefront shell, but
+anything that calls `/api/*` (checkout, shipping rates, admin actions) needs the
+Wrangler dev server, since those routes are Cloudflare Functions.
+
+A local instance still talks to whatever Supabase and Stripe projects the
+environment variables point at. Point it at test/dev projects, or you will be
+reading and writing production data. See [SETUP.md](SETUP.md).
+
+## Build chain
+
+There is no bundler. `postinstall` runs three scripts in order:
+
+```
+stamp-config-defaults.js   inline non-secret defaults into config
+minify-inplace.js          minify root .js/.css  (only when CF_PAGES is set)
+bump-cache-version.js      content-hash every asset, rewrite ?v= references
 ```
 
-## What Was Fixed
-- **Hero text invisible bug** — removed `color:black` from the global `*` reset; hero `h1` now correctly renders white
-- **Semantic HTML** — wrapped nav in `<nav>`, products in `<article>`, added `aria` attributes throughout
-- **Cart modal** — full cart with item list, remove buttons, running total, and checkout flow
-- **No more `alert()`** — replaced with a smooth toast notification system
-- **Login validation** — email format check, password length check, inline error messages
-- **Modal accessibility** — `role="dialog"`, `aria-modal`, Escape key closes, backdrop click closes
-- **`netlify.toml` duplication** — removed duplicate content that would cause parse errors
-- **CSS specificity issues** — proper scoped color rules, no more conflicting overrides
-- **Responsive layout** — mobile-friendly grid and nav down to 320px
+`bump-cache-version.js` matters more than it looks. `_headers` serves `/*.js` and
+`/*.css` as `immutable, max-age=31536000`, so a reference without a fresh `?v=`
+hash is pinned in browser caches for a year. The stamper rewrites both
+`src=`/`href=` attributes and JS string literals that already carry a `?v=`.
+
+**Cloudflare Pages serves the repository root, not `dist/`.** `dist/` is a local
+build artifact, gitignored, and not what ships.
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `npm run audit:repo` | Syntax-checks every JS file and inline script, validates asset and `/api` references |
+| `npm run deployment-checklist` | ~40 assertions about wiring that static analysis cannot catch |
+| `npm run ci` | Both of the above |
+| `npm run checkout-cart-smoke` | Smoke test for cart and checkout maths |
+| `npm run bump-cache` | Re-stamp asset hashes by hand |
+
+### Testing, stated honestly
+
+There is **no unit or integration test suite** — no `*.test.js`, no test runner.
+What exists is static analysis (`repo-audit.js`), a set of wiring assertions
+(`deployment-checklist.js`), and one 108-line checkout smoke script. CI runs
+these plus gitleaks secret scanning on every push.
+
+That is meaningfully better than nothing and meaningfully less than a test suite.
+Treat any change to payments, stock, or auth as needing manual verification
+against a test Stripe key and a non-production Supabase project.
+
+## Repository layout
+
+```
+*.html                 storefront + admin pages, served from root
+*.js                   shared frontend modules (vanilla, loaded with defer)
+storefront-cohesion.css shared design system — the largest single stylesheet
+functions/api/         Cloudflare Pages Functions (server-side, 68 endpoints)
+scripts/               build and verification tooling
+supabase-*.sql         schema and RLS policies, run by hand (see SETUP.md)
+backup-tools/          scheduled data export to Sheets + a private repo
+_headers               security headers and cache policy
+_routes.json           tells Pages which paths invoke Functions
+```
+
+## Admin
+
+`admin.html` is a single-page back office covering products, variants,
+inventory, orders, returns, customers, promotions, loyalty, feature flags, and
+storefront content. Access is gated by `profiles.admin_role` (RBAC), enforced
+both client-side and in RLS policies, with TOTP MFA and an audit log.
+
+`builder.html` is a separate visual page builder for storefront layout.
+
+## Known rough edges
+
+Kept here deliberately, because finding them by surprise is worse:
+
+- **Storefront content lives in `site_settings`**, a single JSONB key/value
+  table. Anon reads are gated by a per-key allow-list policy; a new public key
+  must be added to that allow-list or the page silently falls back to defaults.
+  See the header comments in `supabase-feature-flags-public-read.sql`.
+- **~1,400 hardcoded references** to the Zuwera brand, `zuwera.store`, and a
+  specific Supabase project ref. Re-skinning this for another brand is a real
+  search-and-replace exercise, not a config change.
+- **30 `supabase-*.sql` files** with no manifest and no migration tool. The run
+  order is documented in [SETUP.md](SETUP.md); `supabase-master-schema.sql`
+  begins with `DROP TABLE ... CASCADE` and must never be run against a database
+  with data in it.
+- **Environment variables have accumulated aliases** — several settings are read
+  under two or three different names. [SETUP.md](SETUP.md) lists the canonical
+  one for each.
