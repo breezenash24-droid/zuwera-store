@@ -7,7 +7,8 @@
      arrows:       'overlay' | 'below' | 'none', // product page arrows
      modal_thumbs: 'none' | 'bottom' | 'left', // quick-add modal thumbnails
      modal_arrows: 'below' | 'overlay' | 'none',
-     modal_style:  'product' | 'compact'         // quick-add modal look
+     modal_style:  'product' | 'compact',        // quick-add modal look
+     modal_layout: 'dual' | 'single'             // filmstrip, or one image + arrows
    }
 
    The gallery arrangement defaults to today's (single image, thumbnails beneath,
@@ -31,7 +32,7 @@
   var CACHE = 'zw_pdp_gallery';
   var DEFAULTS = {
     layout: 'single', thumbs: 'bottom', arrows: 'overlay',
-    modal_thumbs: 'none', modal_arrows: 'below', modal_style: 'product'
+    modal_thumbs: 'none', modal_arrows: 'below', modal_style: 'product', modal_layout: 'dual'
   };
   var cfg = null;
   var waiting = [];
@@ -95,6 +96,83 @@
       for (var j = 0; j < kids.length; j++) (main || section).appendChild(kids[j]);
       row.remove();
     }
+  }
+
+  /**
+   * Render a horizontal filmstrip — two photos in view, paged sideways — into a
+   * container. This is the product page's dual arrangement, made reusable so the
+   * quick-add modals can show the same thing.
+   *
+   * The modals were showing ONE image with a thumbnail rail beside it, which is
+   * where their wasted space came from: a rail taller than the photo, a photo
+   * narrower than its column, and an arrow row stranded under both. A strip uses
+   * the full width and needs no rail.
+   *
+   * Returns a paging function the caller wires its arrows to, or null when there
+   * is nothing to page.
+   *
+   * @param {Element} host    element to render the strip into
+   * @param {string[]} images image/video URLs, already filtered to the colourway
+   * @param {object} [opts]   { isVideo(url), alt, onIndex(idx) }
+   */
+  function renderStrip(host, images, opts) {
+    if (!host || !images || !images.length) return null;
+    opts = opts || {};
+    var isVideo = opts.isVideo || function (u) { return /\.(mp4|webm|mov)(\?|#|$)/i.test(u); };
+
+    host.innerHTML = '';
+    host.classList.add('zw-strip');
+    images.forEach(function (url, i) {
+      var node;
+      if (isVideo(url)) {
+        node = document.createElement('video');
+        node.src = url; node.muted = true; node.loop = true;
+        node.playsInline = true; node.preload = 'metadata';
+      } else {
+        node = document.createElement('img');
+        node.src = url;
+        node.alt = (opts.alt || 'Product') + ' view ' + (i + 1);
+        node.loading = i < 2 ? 'eager' : 'lazy';
+        node.decoding = 'async';
+      }
+      host.appendChild(node);
+    });
+
+    // Measured, not assumed: the flex-basis differs between two-up and the
+    // one-up fallback on narrow screens, and the gap counts.
+    function step() {
+      var first = host.firstElementChild;
+      if (!first) return host.clientWidth / 2;
+      return first.getBoundingClientRect().width + parseFloat(getComputedStyle(host).gap || 0);
+    }
+    function index() {
+      var s = step();
+      return s ? Math.round(host.scrollLeft / s) : 0;
+    }
+    function page(dir) { host.scrollBy({ left: dir * step(), behavior: 'smooth' }); }
+
+    if (!host._zwStripBound) {
+      host._zwStripBound = true;
+      host.addEventListener('scroll', function () {
+        if (opts.onIndex) opts.onIndex(index(), host.scrollWidth - host.clientWidth <= host.scrollLeft + 1);
+      }, { passive: true });
+    }
+
+    // Only play a clip while it is actually on screen — otherwise every video in
+    // the strip decodes at once and keeps running off to the side.
+    if (host._zwStripObs) { try { host._zwStripObs.disconnect(); } catch (_) {} }
+    if ('IntersectionObserver' in window) {
+      host._zwStripObs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          var v = en.target;
+          if (en.isIntersecting) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+          else { try { v.pause(); } catch (_) {} }
+        });
+      }, { root: host, threshold: 0.35 });
+      host.querySelectorAll('video').forEach(function (v) { host._zwStripObs.observe(v); });
+    }
+
+    return { page: page, index: index, total: images.length };
   }
 
   /**
@@ -229,5 +307,6 @@
     // parts of the info column, and so it can be exercised in isolation.
     applyAccordionPlacement: applyAccordionPlacement,
     setNavCount: setNavCount,
+    renderStrip: renderStrip,
   };
 })();

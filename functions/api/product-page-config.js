@@ -55,6 +55,7 @@ const GALLERY_OPTS = {
   // 'product' makes the quick-add modal adopt the product page's type + spacing
   // instead of its own compact scale.
   modal_style:  ['product', 'compact'],
+  modal_layout: ['dual', 'single'],
 };
 
 export function parseGalleryConfig(g) {
