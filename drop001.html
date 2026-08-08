@@ -2534,6 +2534,14 @@ function updateCountdown() {
           }
         });
       }
+      // Under an admin preview link the collection config comes from the draft
+      // (served by /api/preview-config under the key the storefront already
+      // reads), so previewing the Collection tab shows unpublished work rather
+      // than what is already live.
+      try {
+        const _pv = await (window.__zwPreviewReady || Promise.resolve(null));
+        if (_pv && _pv.collection_page) window.__zwCollPageCfg = _pv.collection_page;
+      } catch (_) {}
       // The builder's Collection page config (collection_page) wins over the
       // admin Product-Cards defaults, when the corresponding field is set.
       const _cp = window.__zwCollPageCfg;
