@@ -226,30 +226,49 @@
    * re-binding. Its original position is remembered so switching back restores
    * it exactly, including if it wasn't the last child.
    */
+  // The move only makes sense while the layout is genuinely TWO columns. Stacked
+  // to one column, putting the accordions inside .gallery-section pushes them
+  // above the whole buy section — title, price, size, Add to Bag all ended up
+  // below Size & Fit and Reviews on a phone. Same breakpoint the CSS uses.
+  var TWO_COL = '(min-width: 901px)';
+  function isTwoColumn() {
+    try { return window.matchMedia(TWO_COL).matches; } catch (_) { return true; }
+  }
+
   function applyAccordionPlacement(layout) {
     var acc = document.querySelector('.accordions-section');
     var layoutEl = document.querySelector('.product-layout');
     if (!acc || !layoutEl || !layoutEl.parentElement) return;
 
-    if (layout === 'dual') {
+    if (layout === 'dual' && isTwoColumn()) {
       var galleryEl = document.querySelector('.gallery-section');
-    if (!galleryEl) return;
-    if (acc.parentElement === galleryEl) return;                 // already moved
+      if (!galleryEl) return;
+      if (acc.parentElement === galleryEl) return;               // already moved
       acc._zwHome = { parent: acc.parentElement, next: acc.nextElementSibling };
       acc.classList.add('accordions-below');
-      // INTO the layout grid, not after it. Sitting after the whole layout, the
-      // stack was capped and centred while the photos began at the far left —
-      // so the band directly under the photos stayed empty and the accordions
-      // started a couple of hundred pixels further in. As a grid item in column
-      // one it lands right beneath the photos and lines up with them, which is
-      // where On puts theirs.
+      // Into the GALLERY COLUMN itself, not a second grid row. As its own row it
+      // had to line up with the buy column, so whenever that column ran taller
+      // than the photos the grid stretched row 1 and left a band of nothing.
+      // Inside .gallery-section (already flex-direction:column) the accordions
+      // simply follow the arrows and absorb that height themselves.
       galleryEl.appendChild(acc);
     } else if (acc._zwHome) {
+      // Covers both "switched back to single" and "narrowed to one column".
       acc.classList.remove('accordions-below');
       acc._zwHome.parent.insertBefore(acc, acc._zwHome.next);
       acc._zwHome = null;
     }
   }
+
+  // Re-run on the breakpoint crossing, so rotating a tablet or resizing a window
+  // moves the stack back into the buy column instead of leaving it stranded
+  // above Add to Bag.
+  try {
+    var mq = window.matchMedia(TWO_COL);
+    var onBp = function () { if (cfg) applyAccordionPlacement(cfg.layout); };
+    if (mq.addEventListener) mq.addEventListener('change', onBp);
+    else if (mq.addListener) mq.addListener(onBp);              // older Safari
+  } catch (_) {}
 
   function applyProductPage(g) {
     // The dual filmstrip is paged BY the arrows, so they always sit in the row
