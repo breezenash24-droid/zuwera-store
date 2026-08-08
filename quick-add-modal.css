@@ -316,3 +316,15 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
   padding:2.4rem 2.4rem 2.4rem;
   justify-content:flex-start;
 }
+
+/* Position counter in the arrow row (pdp-gallery.js setNavCount). With the
+   thumbnails hidden — the default — this is the only indication of how many
+   photos there are, so it is not optional decoration. .gallery-dual-count is
+   styled in product.css, which this modal doesn't load, hence the repeat. */
+.mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery .gallery-dual-count{
+  font-size:.75rem;
+  letter-spacing:.08em;
+  opacity:.55;
+  font-variant-numeric:tabular-nums;   /* stops the row twitching as it counts */
+  margin-left:.35rem;
+}

@@ -937,6 +937,14 @@ document.documentElement.classList.add('zw-collflash');
       position:static;transform:none;width:34px;height:34px;
     }
     .collection-product-gallery[data-arrows="none"] .collection-gallery-arrow{display:none}
+    /* Position counter in the arrow row (pdp-gallery.js setNavCount). With the
+       thumbnails hidden — the default — this is the only indication of how many
+       photos there are. .gallery-dual-count lives in product.css, which this
+       page does not load, hence the repeat. */
+    .collection-product-gallery .gallery-dual-count{
+      font-size:.75rem;letter-spacing:.08em;opacity:.55;
+      font-variant-numeric:tabular-nums;margin-left:.35rem;
+    }
 
     /* ── MODAL LOOK: "Match the product page" ──────────────────────────────
        Builder → Product → Gallery → Quick-add modal → Look. Default stays
@@ -3414,6 +3422,12 @@ function updateCountdown() {
         );
         var colBox = media.closest('.collection-product-box');
         if (colBox) colBox.setAttribute('data-modal-style', colCfg.modal_style || 'compact');
+        // Position counter beside the arrows. With thumbnails hidden (the
+        // default) this is the only thing telling you how many photos there are,
+        // so it goes in AFTER applyTo, which rebuilds the row's contents.
+        window.ZWPdpGallery.setNavCount(
+          media.closest('.collection-product-gallery'), currentIndex, images.length
+        );
       }
       var touchStartX = 0;
       media.ontouchstart = function(event) {
