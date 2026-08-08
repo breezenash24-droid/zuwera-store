@@ -1051,6 +1051,7 @@
                 if (typeof loadReturnAddressCard === 'function') loadReturnAddressCard();
             } else if (page === 'apis') {
                 loadApiStatus();
+                loadIntegrations();
             } else if (page === 'meta') {
                 loadMetaStatus();
             } else if (page === 'audit') {
@@ -1337,7 +1338,228 @@
                     { name: 'ABANDONED_CART_TOKEN',  label: 'Abandoned-cart token', type: 'text', placeholder: 'any long random string', warn: 'Paste the SAME value as an "x-cron-token" header in your cron job.' },
                 ]
             },
+            slack: {
+                label: 'Slack',
+                keys: [{ name: 'SLACK_WEBHOOK_URL', label: 'Incoming Webhook URL', type: 'password', placeholder: 'https://hooks.slack.com/services/…', warn: 'Slack → your workspace → Apps → Incoming Webhooks → Add to Slack → pick a channel → copy the URL.' }]
+            },
+            discord: {
+                label: 'Discord',
+                keys: [{ name: 'DISCORD_WEBHOOK_URL', label: 'Webhook URL', type: 'password', placeholder: 'https://discord.com/api/webhooks/…', warn: 'Discord → Server Settings → Integrations → Webhooks → New Webhook → copy the URL.' }]
+            },
         };
+
+        /* ─── More Integrations ("the store") ──────────────────────────────────
+           A browsable catalog of optional services. Two kinds:
+
+             kind:'storefront'  a PUBLIC id that a <script> on the storefront
+                                needs. Saved to site_settings.integrations and
+                                injected by integrations.js. Nothing secret.
+             kind:'server'      a SECRET (webhook URL). Saved through the masked
+                                key store via /api/update-api-key, exactly like
+                                every other key on this page, and reuses the
+                                existing key modal — `service` names the
+                                API_KEY_DEFS entry.
+
+           `free` is what the vendor's no-cost tier actually gives you, so the
+           card can answer "will this cost me anything?" without a site visit. */
+        const ZW_INTEGRATION_CATALOG = [
+            { key:'clarity',   kind:'storefront', icon:'🔥', name:'Microsoft Clarity', cat:'Analytics',
+              blurb:'Heatmaps and session recordings — watch where shoppers hesitate or drop off.',
+              free:'Free forever, unlimited traffic', idLabel:'Project ID', idHint:'e.g. abcd1234ef',
+              steps:['Sign up at clarity.microsoft.com','Add a new project for your store domain','Settings → Setup → copy the Project ID'] },
+
+            /* NOT here on purpose:
+               • Google Analytics 4 — already installed and hardcoded in
+                 google-tag.js (G-DCVWDZ8ZBC) alongside the Google Ads tag. A
+                 second entry here would load gtag.js twice and double-count
+                 every pageview and purchase. Manage it on Ads & Tracking.
+               • Meta Pixel / Conversions API — same, see meta-pixel.js.
+               • Google Search Console — the verification meta tag is already in
+                 index.html, which is the only page that needs it.
+               • PostHog — has its own key entry in the API key list above. */
+
+            { key:'plausible', kind:'storefront', icon:'🌱', name:'Plausible', cat:'Analytics',
+              blurb:'Lightweight, cookie-free analytics. No consent banner needed, which keeps EU pages simpler.',
+              free:'Paid, 30-day trial', idLabel:'Domain', idHint:'yourstore.com',
+              steps:['Sign up at plausible.io','Add your site','Enter the exact domain you registered'] },
+
+            { key:'sentry',    kind:'storefront', icon:'🐛', name:'Sentry', cat:'Monitoring',
+              blurb:'Catches JavaScript errors in real shoppers\' browsers, with stack traces — so you hear about a broken checkout before a customer emails.',
+              free:'5k errors/month', idLabel:'Browser DSN', idHint:'https://…@o0.ingest.sentry.io/0',
+              steps:['sentry.io → create a Browser JavaScript project','Settings → Client Keys (DSN)','Copy the DSN — it is public, not a secret'] },
+
+            { key:'crisp',     kind:'storefront', icon:'💬', name:'Crisp Chat', cat:'Support',
+              blurb:'Live chat widget with a shared inbox, so shoppers can ask before they buy.',
+              free:'2 seats free', idLabel:'Website ID', idHint:'8a7f…-…',
+              steps:['Sign up at crisp.chat','Settings → Website Settings → Setup instructions','Copy the Website ID'] },
+
+            { key:'tawk',      kind:'storefront', icon:'🗨️', name:'Tawk.to', cat:'Support',
+              blurb:'Live chat with unlimited agents. The free alternative to Crisp — pick one, not both.',
+              free:'Free, unlimited agents', idLabel:'Property / Widget ID', idHint:'5f1a…/1f2b…',
+              steps:['Sign up at tawk.to','Administration → Channels → Chat Widget','Copy the two ids from the embed URL as propertyId/widgetId'] },
+
+            { key:'trustpilot',kind:'storefront', icon:'⭐', name:'Trustpilot', cat:'Social proof',
+              blurb:'Loads the Trustpilot widget script so review widgets render anywhere you place one.',
+              free:'Free plan available', idLabel:'Business Unit ID', idHint:'optional — leave blank to just load the script',
+              optionalId:true,
+              steps:['Sign up at business.trustpilot.com','Integrations → TrustBox','Enable, then place a TrustBox snippet in a content block'] },
+
+            { key:'pinterest', kind:'storefront', icon:'📌', name:'Pinterest Tag', cat:'Ads',
+              blurb:'Conversion tracking and retargeting for Pinterest ads. Strong fit for apparel.',
+              free:'Free (ads cost extra)', idLabel:'Tag ID', idHint:'2612345678901',
+              steps:['ads.pinterest.com → Ads → Conversions','Create a Pinterest Tag','Copy the Tag ID'] },
+
+            { key:'tiktok',    kind:'storefront', icon:'🎵', name:'TikTok Pixel', cat:'Ads',
+              blurb:'Conversion tracking for TikTok ads.',
+              free:'Free (ads cost extra)', idLabel:'Pixel ID', idHint:'C7ABC…',
+              steps:['ads.tiktok.com → Assets → Events','Web Events → Set up → Manual install','Copy the Pixel ID'] },
+
+            { key:'slack',     kind:'server', service:'slack', icon:'💼', name:'Slack Alerts', cat:'Notifications',
+              blurb:'Posts a message to a channel on every paid order — the fastest way to feel your store working.',
+              free:'Free', idLabel:'Incoming Webhook URL',
+              steps:['Slack → Apps → search "Incoming Webhooks"','Add to Slack, pick a channel','Copy the webhook URL'] },
+
+            { key:'discord',   kind:'server', service:'discord', icon:'🎮', name:'Discord Alerts', cat:'Notifications',
+              blurb:'Same order alerts, posted to a Discord channel.',
+              free:'Free', idLabel:'Webhook URL',
+              steps:['Server Settings → Integrations → Webhooks','New Webhook, pick a channel','Copy the webhook URL'] },
+        ];
+
+        let _integrations = {};          // site_settings.integrations
+        let _currentIntegration = null;
+
+        async function loadIntegrations() {
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'integrations').maybeSingle();
+                let v = data?.value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = {}; } }
+                _integrations = (v && typeof v === 'object') ? v : {};
+            } catch (_) { _integrations = {}; }
+            renderIntegrationStore();
+        }
+
+        function integrationConfigured(item) {
+            if (item.kind === 'server') {
+                const def = API_KEY_DEFS[item.service];
+                return !!(def && def.keys.some(k => _maskedKeys[k.name]));
+            }
+            const e = _integrations[item.key];
+            return !!(e && (e.id || item.optionalId) && e.enabled !== false);
+        }
+
+        function renderIntegrationStore(filter) {
+            const grid = document.getElementById('integration-grid');
+            if (!grid) return;
+            const q = String(filter ?? document.getElementById('integration-search')?.value ?? '').trim().toLowerCase();
+            const items = ZW_INTEGRATION_CATALOG.filter(it => !q
+                || it.name.toLowerCase().includes(q)
+                || it.cat.toLowerCase().includes(q)
+                || it.blurb.toLowerCase().includes(q));
+
+            if (!items.length) { grid.innerHTML = `<div style="color:var(--text-secondary);padding:20px;">No integrations match “${escapeHtml(q)}”.</div>`; return; }
+
+            grid.innerHTML = items.map(it => {
+                const on = integrationConfigured(it);
+                return `
+                <div class="integration-card${on ? ' is-on' : ''}">
+                  <div class="integration-card-top">
+                    <span class="integration-icon">${it.icon}</span>
+                    <div style="min-width:0;">
+                      <div class="integration-name">${escapeHtml(it.name)}</div>
+                      <div class="integration-cat">${escapeHtml(it.cat)}</div>
+                    </div>
+                    <span class="integration-state${on ? ' on' : ''}">${on ? 'Connected' : 'Not set up'}</span>
+                  </div>
+                  <div class="integration-blurb">${escapeHtml(it.blurb)}</div>
+                  <div class="integration-foot">
+                    <span class="integration-free">${escapeHtml(it.free)}</span>
+                    <button class="btn ${on ? 'btn-secondary' : 'btn-primary'}" onclick="openIntegrationSetup('${it.key}')">${on ? 'Manage' : 'Set up'}</button>
+                  </div>
+                </div>`;
+            }).join('');
+        }
+
+        function openIntegrationSetup(key) {
+            const item = ZW_INTEGRATION_CATALOG.find(i => i.key === key);
+            if (!item) return;
+
+            // Server-secret integrations reuse the existing masked key editor —
+            // secrets must never round-trip through site_settings.
+            if (item.kind === 'server') { openKeyEdit(item.service); return; }
+
+            _currentIntegration = item;
+            const cur = _integrations[item.key] || {};
+            document.getElementById('int-setup-title').textContent = item.name;
+            document.getElementById('int-setup-icon').textContent = item.icon;
+            document.getElementById('int-setup-blurb').textContent = item.blurb;
+            document.getElementById('int-setup-steps').innerHTML = item.steps.map((s, i) =>
+                `<li><span>${i + 1}</span>${escapeHtml(s)}</li>`).join('');
+            document.getElementById('int-setup-idlabel').textContent = item.idLabel + (item.optionalId ? ' (optional)' : '');
+            const input = document.getElementById('int-setup-id');
+            input.value = cur.id || '';
+            input.placeholder = item.idHint || '';
+            document.getElementById('int-setup-enabled').checked = cur.enabled !== false;
+            document.getElementById('int-setup-status').textContent = '';
+            document.getElementById('int-setup-remove').style.display = cur.id || cur.enabled ? '' : 'none';
+            document.getElementById('integration-setup-modal').classList.add('open');
+        }
+
+        function closeIntegrationSetup() {
+            document.getElementById('integration-setup-modal').classList.remove('open');
+            _currentIntegration = null;
+        }
+
+        async function saveIntegration() {
+            const item = _currentIntegration;
+            if (!item) return;
+            const btn = document.getElementById('int-setup-save');
+            const status = document.getElementById('int-setup-status');
+            const id = document.getElementById('int-setup-id').value.trim();
+            const enabled = document.getElementById('int-setup-enabled').checked;
+
+            if (!id && !item.optionalId) { status.textContent = 'Enter the ' + item.idLabel + ' first.'; status.style.color = 'var(--error)'; return; }
+
+            btn.disabled = true; btn.textContent = 'Saving…';
+            try {
+                // Read-modify-write on one small admin-owned blob. Concurrency here
+                // is two admins editing integrations in the same moment, which the
+                // last-write-wins outcome handles acceptably; anything customer-
+                // facing uses mutateSetting instead.
+                const next = { ..._integrations, [item.key]: { enabled, id } };
+                const { error } = await sb.from('site_settings').upsert({ key: 'integrations', value: next }, { onConflict: 'key' });
+                if (error) throw error;
+                _integrations = next;
+                void logAdminAudit('settings.update', 'site_settings', 'integrations', { integration: item.key, enabled });
+                status.style.color = 'var(--success, #4ade80)';
+                status.textContent = 'Saved — live on the storefront within a minute.';
+                renderIntegrationStore();
+                setTimeout(closeIntegrationSetup, 900);
+            } catch (err) {
+                status.style.color = 'var(--error)';
+                status.textContent = 'Could not save: ' + (err?.message || 'unknown error');
+            } finally {
+                btn.disabled = false; btn.textContent = 'Save';
+            }
+        }
+
+        async function removeIntegration() {
+            const item = _currentIntegration;
+            if (!item) return;
+            if (!confirm(`Disconnect ${item.name}? Its script stops loading on the storefront.`)) return;
+            const next = { ..._integrations };
+            delete next[item.key];
+            try {
+                const { error } = await sb.from('site_settings').upsert({ key: 'integrations', value: next }, { onConflict: 'key' });
+                if (error) throw error;
+                _integrations = next;
+                void logAdminAudit('settings.update', 'site_settings', 'integrations', { integration: item.key, removed: true });
+                showToast(item.name + ' disconnected', 'success');
+                renderIntegrationStore();
+                closeIntegrationSetup();
+            } catch (err) {
+                showToast('Could not disconnect: ' + (err?.message || 'error'), 'error');
+            }
+        }
 
         // Cached masked key map populated when the page loads
         let _maskedKeys = {};

@@ -473,13 +473,75 @@
         .api-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; gap: 8px; flex-wrap: wrap; }
         .api-card-footer .api-link { margin-top: 0; }
 
+        /* ── More Integrations (the browsable catalog on the APIs page) ────── */
+        .integration-store-head {
+            display: flex; align-items: flex-end; justify-content: space-between;
+            gap: 16px; flex-wrap: wrap; margin-bottom: 16px;
+        }
+        .integration-store-head input:focus { outline: none; border-color: var(--accent); }
+        .integration-grid {
+            display: grid; gap: 14px;
+            grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+        }
+        .integration-card {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 10px; padding: 16px;
+            display: flex; flex-direction: column; gap: 10px;
+            transition: border-color .15s, transform .15s;
+        }
+        .integration-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        /* Connected cards keep the accent edge so the grid reads at a glance as
+           "what's on" without needing to scan every badge. */
+        .integration-card.is-on { border-color: rgba(74,222,128,.42); }
+        .integration-card-top { display: flex; align-items: flex-start; gap: 10px; }
+        .integration-icon { font-size: 1.5rem; line-height: 1; flex-shrink: 0; }
+        .integration-name { font-weight: 700; font-size: .93rem; }
+        .integration-cat { font-size: .74rem; color: var(--text-secondary); margin-top: 2px; }
+        .integration-state {
+            margin-left: auto; flex-shrink: 0; font-size: .68rem; font-weight: 600;
+            padding: 3px 8px; border-radius: 20px; white-space: nowrap;
+            background: var(--border); color: var(--text-secondary);
+        }
+        .integration-state.on { background: rgba(74,222,128,.15); color: #4ade80; }
+        .integration-blurb {
+            font-size: .81rem; color: var(--text-secondary); line-height: 1.55; flex: 1;
+        }
+        .integration-foot {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; flex-wrap: wrap;
+        }
+        .integration-free { font-size: .74rem; color: var(--text-secondary); opacity: .85; }
+        .integration-foot .btn { padding: 6px 14px; font-size: .8rem; }
+
+        /* Numbered setup steps inside the integration modal */
+        .int-steps { list-style: none; margin: 0 0 20px; padding: 0; }
+        .int-steps li {
+            display: flex; align-items: flex-start; gap: 10px;
+            font-size: .82rem; color: var(--text-secondary);
+            line-height: 1.55; margin-bottom: 8px;
+        }
+        .int-steps li span {
+            flex-shrink: 0; width: 19px; height: 19px; border-radius: 50%;
+            background: var(--border); color: var(--text-primary);
+            font-size: .68rem; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; margin-top: 1px;
+        }
+        .int-toggle {
+            display: flex; align-items: center; gap: 9px;
+            font-size: .84rem; color: var(--text-secondary);
+            cursor: pointer; margin-bottom: 4px;
+        }
+        .int-toggle input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+
         /* Key edit modal */
-        #api-key-modal {
+        #api-key-modal,
+        #integration-setup-modal {
             display: none; position: fixed; inset: 0; z-index: 2000;
             background: rgba(0,0,0,.65);
             align-items: center; justify-content: center;
         }
-        #api-key-modal.open { display: flex; }
+        #api-key-modal.open,
+        #integration-setup-modal.open { display: flex; }
         .api-key-modal-box {
             background: var(--bg-secondary); border: 1px solid var(--border);
             border-radius: 14px; padding: 28px; width: 100%; max-width: 460px;

@@ -53,6 +53,11 @@ const ALLOWED_KEYS = new Set([
   // Scheduled-email cron shared secrets (set here → no Cloudflare redeploy needed)
   'REVIEW_REQUEST_TOKEN',
   'ABANDONED_CART_TOKEN',
+  // Order-alert webhooks (admin → APIs → More Integrations). These are secrets:
+  // anyone holding the URL can post into the channel, so they live here rather
+  // than in site_settings.integrations, which is anon-readable by design.
+  'SLACK_WEBHOOK_URL',
+  'DISCORD_WEBHOOK_URL',
 ]);
 
 export { ALLOWED_KEYS };

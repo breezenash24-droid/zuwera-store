@@ -43,7 +43,7 @@
     <!-- Render-blocking on purpose (matches the storefront): cached woff2 means
          no font swap on every admin visit after the first. -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-    <link rel="stylesheet" href="admin.css?v=cf7c1e3c">
+    <link rel="stylesheet" href="admin.css?v=dae22c54">
 <script src="error-reporter.js?v=6622e7d7" defer></script>
 </head>
 <body>
@@ -504,6 +504,23 @@
                             <strong>Google Merchant Center:</strong> Products → Feeds → + → Scheduled fetch → paste URL, set daily.<br>
                             <strong>Meta Commerce Manager:</strong> Catalog → Data sources → Data feed → Scheduled feed → paste URL.
                         </div>
+                    </div>
+
+                    <!-- ── More Integrations (browsable catalog) ────────────────── -->
+                    <div style="margin-top:32px;">
+                        <div class="integration-store-head">
+                            <div>
+                                <h3 style="margin:0;font-size:1.05rem;">🧩 More Integrations</h3>
+                                <p style="color:var(--text-secondary);font-size:.85rem;margin:6px 0 0;max-width:640px;">
+                                    Optional services you can connect to your store. Each one needs a single ID pasted in —
+                                    no redeploy, live within a minute. Most have a free tier.
+                                </p>
+                            </div>
+                            <input id="integration-search" type="search" placeholder="Search integrations…"
+                                   oninput="renderIntegrationStore()" autocomplete="off"
+                                   style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.85rem;color:inherit;min-width:200px;">
+                        </div>
+                        <div id="integration-grid" class="integration-grid"></div>
                     </div>
 
                     <!-- Setup guide -->
@@ -3548,7 +3565,7 @@
     </div>
 
     <script src="modal-lock.js?v=088ff918"></script>
-    <script src="/supabase.min.js?v=043941ba"></script>
+    <script src="/supabase.min.js?v=4b6a655b"></script>
     <script>
         // Ensure Turnstile's onload callback exists before the external script executes.
         window.__zwAdminTsLoadedEarly = false;
@@ -3559,7 +3576,7 @@
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwAdminTsLoad&render=explicit" defer async></script>
     <div id="zw-admin-ts-widget" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" aria-hidden="true"></div>
 
-    <script src="admin-main.js?v=b6f9b486"></script>
+    <script src="admin-main.js?v=22f987eb"></script>
     <script src="commerce-admin.js?v=d967ea62"></script>
 <!-- API Key Editor Modal -->
 <div id="api-key-modal">
@@ -3573,6 +3590,40 @@
             <button class="akm-save" id="akm-save-btn" onclick="saveKeyModal()">Save</button>
         </div>
         <div class="api-key-modal-status" id="akm-status"></div>
+    </div>
+</div>
+
+<!-- Integration Setup Modal — storefront integrations only.
+     Server-secret ones (Slack/Discord) route to the masked key editor above. -->
+<div id="integration-setup-modal">
+    <div class="api-key-modal-box" style="position:relative;">
+        <button class="modal-close-btn" onclick="closeIntegrationSetup()" title="Close" style="top:12px;right:12px;">✕</button>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+            <span id="int-setup-icon" style="font-size:1.7rem;line-height:1;"></span>
+            <div class="api-key-modal-title" id="int-setup-title" style="margin:0;"></div>
+        </div>
+        <div class="api-key-modal-sub" id="int-setup-blurb"></div>
+
+        <ol class="int-steps" id="int-setup-steps"></ol>
+
+        <div class="api-key-field">
+            <label for="int-setup-id" id="int-setup-idlabel"></label>
+            <div class="api-key-field-wrap">
+                <input id="int-setup-id" type="text" autocomplete="off" spellcheck="false">
+            </div>
+        </div>
+
+        <label class="int-toggle">
+            <input type="checkbox" id="int-setup-enabled" checked>
+            <span>Enabled on the storefront</span>
+        </label>
+
+        <div class="api-key-modal-actions">
+            <button class="akm-cancel" id="int-setup-remove" onclick="removeIntegration()" style="color:var(--error);">Disconnect</button>
+            <button class="akm-cancel" onclick="closeIntegrationSetup()">Cancel</button>
+            <button class="akm-save" id="int-setup-save" onclick="saveIntegration()">Save</button>
+        </div>
+        <div class="api-key-modal-status" id="int-setup-status"></div>
     </div>
 </div>
 
