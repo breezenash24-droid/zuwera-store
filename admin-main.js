@@ -2309,6 +2309,18 @@
            layout. The frame is then scaled to fit the panel. */
         let _popViewWidth = 1180;
         let _popViewState = 'ask';
+        // The storefront's own theme (site_settings.theme.mode), so the frame can
+        // reproduce it. Read once per admin session.
+        let _popStoreTheme = 'dark';
+        (async () => {
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'theme').maybeSingle();
+                let v = data?.value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
+                const m = v && v.mode;
+                _popStoreTheme = (m === 'light' || m === 'super-light') ? m : 'dark';
+            } catch (_) {}
+        })();
 
         function popViewerFrameDoc() {
             const frame = document.getElementById('popViewFrame');
@@ -2331,6 +2343,13 @@
             doc.body.innerHTML = '';
             doc.body.style.margin = '0';
             doc.documentElement.style.background = 'transparent';
+            // Carry the STORE's theme into the frame. "Follow the store theme"
+            // resolves off body.light-mode / body.super-light-mode, and a bare
+            // frame has neither — so the preview always drew the dark treatment
+            // while a super-light storefront showed the light one. That mismatch
+            // is what made the popup's colour look like it was picked at random.
+            doc.body.className = _popStoreTheme === 'super-light' ? 'light-mode super-light-mode'
+                : _popStoreTheme === 'light' ? 'light-mode' : '';
             // The popup inherits the store's typography through CSS vars it does
             // not own, so carry the admin's font stylesheets in — otherwise the
             // preview silently falls back to the CSS defaults and misreports the
@@ -2340,6 +2359,38 @@
                 c.rel = 'stylesheet'; c.href = l.href;
                 doc.head.appendChild(c);
             });
+            // Apply the store's typography the same way the storefront does: the
+            // three role vars, then the per-section overrides for the two popup
+            // entries in Appearance → Typography. Without this the viewer showed
+            // the popup's CSS fallbacks and quietly misreported the type a
+            // shopper actually gets.
+            try {
+                const fs = (typeof _fontsState !== 'undefined') ? _fontsState : null;
+                if (fs && fs.roles) {
+                    const set = (n, v) => v && doc.documentElement.style.setProperty(n, v);
+                    set('--zw-font-head', fs.roles.head && fs.roles.head.stack);
+                    set('--zw-font-body', fs.roles.body && fs.roles.body.stack);
+                    set('--zw-font-mono', fs.roles.mono && fs.roles.mono.stack);
+                    const urls = [fs.roles.head, fs.roles.body, fs.roles.mono].map(r => r && r.url).filter(Boolean);
+                    const parts = [];
+                    (SECTION_DEFS || []).forEach(s => {
+                        if (!/^popup/.test(s.id)) return;
+                        const ov = fs.sections && fs.sections[s.id];
+                        if (!ov || !ov.stack) return;
+                        parts.push(s.cssSel + '{font-family:' + ov.stack + '!important}');
+                        if (ov.url) urls.push(ov.url);
+                    });
+                    urls.forEach(u => {
+                        const l = doc.createElement('link'); l.rel = 'stylesheet'; l.href = u;
+                        doc.head.appendChild(l);
+                    });
+                    if (parts.length) {
+                        const st = doc.createElement('style');
+                        st.textContent = parts.join('');
+                        doc.head.appendChild(st);
+                    }
+                }
+            } catch (_) {}
 
             const cfg = popupReadForm();
             const height = Math.round(_popViewWidth * (_popViewWidth < 500 ? 1.9 : 0.62));

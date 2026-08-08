@@ -314,7 +314,10 @@
 
     card = el('div', 'zwp-card', root);
 
-    els.close = el('button', 'zwp-close', card);
+    // .mclose is the site's shared close control — on the storefront the global
+    // rules in storefront-cohesion.css take this over, so the popup's X is the
+    // same button as every other modal's rather than a one-off.
+    els.close = el('button', 'zwp-close mclose', card);
     els.close.type = 'button';
     els.close.setAttribute('aria-label', 'Close');
     els.close.innerHTML = '&times;';
@@ -338,11 +341,15 @@
     els.sub = el('p', 'zwp-sub', els.ask);
 
     els.form = el('form', 'zwp-form', body);
+    // novalidate: the browser's own bubble ("Please fill out this field.") fired
+    // first and blocked submit, so the popup's own wording never got a chance to
+    // run. Validation still happens — in submit() below, where the message can
+    // say something useful and sit in the layout instead of in a grey tooltip.
+    els.form.setAttribute('novalidate', 'novalidate');
     els.input = el('input', 'zwp-input', els.form);
     els.input.type = 'email';
     els.input.name = 'email';
     els.input.autocomplete = 'email';
-    els.input.required = true;
     els.btn = el('button', 'zwp-btn', els.form);
     els.btn.type = 'submit';
 
@@ -525,8 +532,22 @@
     var c = root._cfg || get();
     var email = String(els.input.value || '').trim();
     els.err.textContent = '';
+    // Say what is wrong and what to do about it. "Please fill out this field"
+    // tells someone staring at an empty box the one thing they already know.
+    if (!email) {
+      els.err.textContent = c.mode === 'discount'
+        ? 'Pop your email in above and the code is yours.'
+        : 'Pop your email in above to join the list.';
+      els.input.focus();
+      return;
+    }
+    if (email.indexOf('@') === -1) {
+      els.err.textContent = 'That is missing an @ — an email address looks like name@example.com.';
+      els.input.focus();
+      return;
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      els.err.textContent = 'Please enter a valid email address.';
+      els.err.textContent = 'That address looks incomplete — check for a typo after the @.';
       els.input.focus();
       return;
     }
