@@ -897,12 +897,32 @@ document.documentElement.classList.add('zw-collflash');
        The base .collection-product-gallery rule is (0,1,0) and these are
        (0,2,0), so they win — unlike the quick-add modal, where the base rule
        carries a (0,4,0) prefix and the first attempt at this silently lost. */
-    .collection-product-gallery[data-thumbs="left"]{flex-direction:row;align-items:stretch;flex-wrap:wrap}
-    .collection-product-gallery[data-thumbs="left"] .collection-thumbs{
-      order:-1;flex:0 0 68px;width:68px;flex-direction:column;
-      overflow-x:hidden;overflow-y:auto;padding:.5rem;
+    /* GRID, not a wrapping flex row. The first version wrapped so the arrow row
+       could span full width — but that let the MEDIA pane wrap onto its own line
+       too, leaving a tall empty box with the photo pushed below it. A 2-column
+       grid gives the arrow row a full-width cell with no wrapping possible. */
+    .collection-product-gallery[data-thumbs="left"]{
+      display:grid;
+      grid-template-columns:74px minmax(0,1fr);
+      grid-template-rows:minmax(0,1fr) auto;
+      gap:.5rem;padding:.5rem;
     }
-    .collection-product-gallery[data-thumbs="left"] .collection-review-media{flex:1 1 auto;min-width:0}
+    .collection-product-gallery[data-thumbs="left"] .collection-thumbs{
+      grid-column:1;grid-row:1;flex-direction:column;flex-wrap:nowrap;
+      /* min-height:0 lets the rail scroll inside its cell instead of stretching
+         the grid to the height of every thumbnail stacked. */
+      min-height:0;overflow-y:auto;overflow-x:hidden;padding:0;
+    }
+    /* Authored 64px wide for the horizontal strip; in the rail they overflowed. */
+    .collection-product-gallery[data-thumbs="left"] .collection-thumb{
+      width:100%;height:auto;aspect-ratio:64/76;
+    }
+    .collection-product-gallery[data-thumbs="left"] .collection-review-media{
+      grid-column:2;grid-row:1;min-width:0;min-height:0;
+    }
+    .collection-product-gallery[data-thumbs="left"] .gallery-nav-below{
+      grid-column:1 / -1;grid-row:2;
+    }
     .collection-product-gallery[data-thumbs="none"] .collection-thumbs{display:none}
     /* Arrow row: flex:0 0 auto or the media pane (flex:1 1 auto) inside
        overflow:hidden squeezes it to nothing. */
@@ -916,9 +936,9 @@ document.documentElement.classList.add('zw-collflash');
     .collection-product-gallery[data-arrows="none"] .collection-gallery-arrow{display:none}
     @media(max-width:900px){
       /* A 68px rail plus the photo is too tight in a bottom sheet. */
-      .collection-product-gallery[data-thumbs="left"]{flex-direction:column;flex-wrap:nowrap}
+      .collection-product-gallery[data-thumbs="left"]{display:flex;flex-direction:column;flex-wrap:nowrap;padding:0}
       .collection-product-gallery[data-thumbs="left"] .collection-thumbs{
-        order:0;flex:0 0 auto;width:auto;flex-direction:row;overflow-x:auto;overflow-y:hidden;
+        order:0;flex:0 0 auto;width:auto;flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:.7rem;
       }
     }
     .collection-thumb{

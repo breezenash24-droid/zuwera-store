@@ -289,20 +289,29 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
    ================================================================ */
 
 /* ── Thumbnails as a vertical rail on the left (the Nike arrangement) ── */
+/* GRID, not a flex row. As a row, .gallery-nav-below became a third COLUMN
+   squeezed beside the rail and the photo (which is how the arrows ended up
+   floating to the right of the filmstrip), and making it wrap instead let the
+   photo itself drop onto its own line. A 2-column grid gives the arrow row a
+   full-width cell and neither failure is possible. */
 .gallery-section[data-thumbs="left"] {
-  flex-direction: row;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: var(--zw-thumb-rail, 74px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-items: start;
   gap: .75rem;
 }
+.gallery-section[data-thumbs="left"] .gallery-main { grid-column: 2; grid-row: 1; }
+.gallery-section[data-thumbs="left"] .gallery-nav-below { grid-column: 1 / -1; grid-row: 2; }
 .gallery-section[data-thumbs="left"] .gallery-thumbnails {
-  order: -1;                       /* rail sits before the main image */
-  flex: 0 0 var(--zw-thumb-rail, 74px);
-  width: var(--zw-thumb-rail, 74px);
+  grid-column: 1;
+  grid-row: 1;
   grid-template-columns: 1fr;      /* one per row instead of the auto-fill strip */
   gap: .5rem;
-  /* Cap to the image height so a product with many angles scrolls its rail
-     instead of stretching the column past the photo. */
-  max-height: calc(var(--zw-thumb-rail, 74px) * 8);
+  /* min-height:0 lets the rail scroll inside its grid cell rather than
+     stretching the row to the height of every thumbnail stacked. */
+  min-height: 0;
+  max-height: 100%;
   overflow-y: auto;
   scrollbar-width: thin;
 }
@@ -447,17 +456,31 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
    with dead margins either side — the page reads as condensed. This arrangement
    is meant to fill the viewport, so the cap lifts for it. */
 .product-container:has(.gallery-section[data-layout="dual"]) {
-  max-width: min(1800px, calc(100vw - 4rem));
-  padding: 0 2rem;
+  max-width: min(1920px, calc(100vw - 2.5rem));
+  padding: 0 1.25rem;
 }
 
 /* The filmstrip wants room — two photos side by side in a half-width column are
    too small to read. Give the gallery the larger share, and pull the gap in:
    the photos should dominate the page here, with the buy column alongside. */
 .product-layout:has(.gallery-section[data-layout="dual"]) {
-  grid-template-columns: minmax(0, 2.15fr) minmax(340px, 1fr);
-  gap: 2.5rem;
+  grid-template-columns: minmax(0, 2.5fr) minmax(300px, 0.9fr);
+  gap: 1.75rem;
   align-items: start;
+}
+
+/* The buy column is narrower here than in the single-image layout, and
+   .size-grid's auto-fill responds to the VIEWPORT, not to its container — so at
+   the same screen width it dropped from five buttons a row to three and read as
+   cramped. Tighter track + gap restores a full row. Same for the colourway
+   swatches, which were wrapping early for the same reason. */
+.product-layout:has(.gallery-section[data-layout="dual"]) .size-grid {
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  gap: .5rem;
+}
+.product-layout:has(.gallery-section[data-layout="dual"]) .size-btn {
+  padding-left: .35rem;
+  padding-right: .35rem;
 }
 /* Sticky fights a wide filmstrip (the column is taller than the viewport). */
 .gallery-section[data-layout="dual"] { position: static; }
@@ -466,10 +489,13 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
   /* Compact widths keep the existing single-image carousel: a left rail or a
      2-up grid both leave the photo too small to read on a phone. */
   .gallery-section[data-thumbs="left"] { flex-direction: column; }
+  /* Back to the plain stacked column on a phone — reset the grid, not just its
+     children, or the rail cell survives at 74px. */
+  .gallery-section[data-thumbs="left"] {
+    display: flex;
+    flex-direction: column;
+  }
   .gallery-section[data-thumbs="left"] .gallery-thumbnails {
-    order: 0;
-    width: auto;
-    flex: initial;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     max-height: none;
     overflow-y: visible;

@@ -218,20 +218,22 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
    lost the cascade and the left rail silently never applied. Anything added
    here needs the same prefix.
    ================================================================ */
+/* GRID, not a wrapping flex row: wrapping let the media pane drop onto its own
+   line, leaving an empty box with the photo pushed below it. */
 .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery[data-thumbs="left"]{
-  flex-direction:row;
-  align-items:stretch;
+  display:grid;
+  grid-template-columns:74px minmax(0,1fr);
+  grid-template-rows:minmax(0,1fr) auto;
+  gap:.5rem;padding:.5rem;
 }
 .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery[data-thumbs="left"] .quick-add-thumbs{
-  order:-1;                        /* rail before the image */
-  flex:0 0 68px; width:68px;
-  flex-direction:column;
-  overflow-x:hidden; overflow-y:auto;
-  padding:.5rem;
+  grid-column:1;grid-row:1;flex-direction:column;flex-wrap:nowrap;
+  min-height:0;overflow-y:auto;overflow-x:hidden;padding:0;
 }
-.mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery[data-thumbs="left"] .quick-add-review-media{
-  flex:1 1 auto; min-width:0;
-}
+/* Authored 64px wide for the horizontal strip; in the rail they overflowed. */
+.mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery[data-thumbs="left"] .quick-add-thumb{width:100%;height:auto;aspect-ratio:64/76}
+.mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery[data-thumbs="left"] .quick-add-review-media{grid-column:2;grid-row:1;min-width:0;min-height:0}
+.mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery[data-thumbs="left"] .gallery-nav-below{grid-column:1 / -1;grid-row:2}
 .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery[data-thumbs="none"] .quick-add-thumbs{
   display:none;
 }
@@ -265,8 +267,9 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
   /* A 68px rail plus the image is too tight inside a bottom sheet — fall back to
      the strip underneath, same as the product page does. */
   .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery[data-thumbs="left"]{
-    flex-direction:column; flex-wrap:nowrap;
+    display:flex;flex-direction:column;flex-wrap:nowrap;padding:0;
   }
+  .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery[data-thumbs="left"] .quick-add-thumb{width:64px;height:76px;aspect-ratio:auto}
   .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery[data-thumbs="left"] .quick-add-thumbs{
     order:0; flex:0 0 auto; width:auto; flex-direction:row;
     overflow-x:auto; overflow-y:hidden;
