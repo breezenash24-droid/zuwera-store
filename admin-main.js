@@ -8784,6 +8784,8 @@
                     let b = row.value;
                     try { if (typeof b === 'string') b = JSON.parse(b); } catch(e){}
                     if (b) {
+                        const nameInput = document.getElementById('brandName');
+                        if (nameInput) nameInput.value = b.name || '';
                         const favInput = document.getElementById('faviconImage');
                         const favPreview = favInput.parentElement.querySelector('.image-preview');
                         document.getElementById('adminResBg').value = b.admin_res_bg || '#2a1419';
@@ -9102,6 +9104,7 @@
 
         async function saveBrandSettings() {
             const brandData = { 
+                name: (document.getElementById('brandName') || {}).value || '',
                 favicon: document.getElementById('faviconImage').value,
                 admin_res_bg: document.getElementById('adminResBg').value,
                 admin_res_text: document.getElementById('adminResText').value
