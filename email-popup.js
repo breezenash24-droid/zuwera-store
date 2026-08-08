@@ -45,7 +45,9 @@
   var CSS_HREF = '/email-popup.css?v=1';   // hash re-stamped by bump-cache-version.js
   var SEEN_KEY = 'zw_popup_seen';          // epoch ms of the last time it showed
   var DONE_KEY = 'zw_popup_done';          // set once this browser has signed up
+  var KNOWN_KEY = 'zw_known_email';        // the site has this visitor's address
   var VIEWS_KEY = 'zw_popup_views';        // page views this session
+  var AUTH_KEY = 'zuwera-auth';            // customer session (auth.js storageKey)
 
   var LAYOUTS = ['center', 'split', 'corner', 'bar', 'full', 'drawer'];
   var BLOCKING = { center: 1, split: 1, full: 1, drawer: 1 };
@@ -86,6 +88,10 @@
 
     rules: {
       frequencyDays: 30,
+      // Don't ask for an address the store already has. Signed-in shoppers,
+      // anyone who used the footer form, and anyone who has ordered are all
+      // people for whom this popup is pure friction.
+      skipKnown: true,
       devices: { desktop: true, mobile: true },
       // Keyed like the announcement bar's page map, so both admin screens read
       // the same way. Anything not listed falls back to `other`.
@@ -161,6 +167,7 @@
 
       rules: {
         frequencyDays: Math.max(0, num(rules.frequencyDays, d.rules.frequencyDays)),
+        skipKnown: bool(rules.skipKnown, d.rules.skipKnown),
         devices: { desktop: bool(dev.desktop, true), mobile: bool(dev.mobile, true) },
         pages: {},
       },
@@ -211,10 +218,45 @@
     try { return Number(sessionStorage.getItem(VIEWS_KEY) || 0); } catch (_) { return 1; }
   }
 
+  /**
+   * Does the store already have this visitor's address? Returns the reason it
+   * thinks so, or '' — asking someone to "join the list" when they are signed
+   * in to an account, or bought last week, reads as a store that doesn't know
+   * who its customers are.
+   *
+   * Three signals, all local, because a cross-device check needs an address to
+   * look up and an anonymous visitor hasn't given one:
+   *   • zw_known_email — set wherever the site captures an address (this popup,
+   *     the footer form, checkout). markKnown() below is the shared hook.
+   *   • a customer session — their address is on the account already.
+   *   • zw_popup_done — they used this very popup.
+   */
+  function knownVisitor() {
+    if (store(KNOWN_KEY) === '1') return 'already on the list';
+    try {
+      var raw = localStorage.getItem(AUTH_KEY);
+      if (raw) {
+        var s = JSON.parse(raw);
+        // supabase-js has kept the session under a couple of shapes; check both
+        // rather than pin this to one library version.
+        var user = (s && s.user) || (s && s.currentSession && s.currentSession.user);
+        if (user && user.email) return 'signed in';
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  /** Record that the store now has this visitor's address. */
+  function markKnown() { put(KNOWN_KEY, '1'); }
+
   /** Every reason the popup should stay away, in one place. */
   function blockedReason(c) {
     if (!c.enabled) return 'disabled';
     if (store(DONE_KEY) === '1') return 'already signed up';
+    if (c.rules.skipKnown) {
+      var known = knownVisitor();
+      if (known) return 'we already have their email — ' + known;
+    }
     var pages = c.rules.pages, key = pageKey();
     var allowed = (key in pages) ? pages[key] : pages.other;
     if (!allowed) return 'page off';
@@ -231,17 +273,22 @@
 
   var root = null, card = null, els = {}, lastFocus = null, isPreview = false;
 
-  function loadCss() {
-    if (document.getElementById('zwp-css')) return;
-    var link = document.createElement('link');
+  function loadCss(doc) {
+    doc = doc || document;
+    if (doc.getElementById('zwp-css')) return;
+    var link = doc.createElement('link');
     link.id = 'zwp-css';
     link.rel = 'stylesheet';
     link.href = CSS_HREF;
-    (document.head || document.documentElement).appendChild(link);
+    (doc.head || doc.documentElement).appendChild(link);
   }
 
+  // The document the next build() writes into. The live popup uses the page's
+  // own; the admin viewer points this at its preview frame so it renders the
+  // SAME markup a shopper gets rather than a second copy that could drift.
+  var buildDoc = null;
   function el(tag, cls, parent) {
-    var n = document.createElement(tag);
+    var n = (buildDoc || document).createElement(tag);
     if (cls) n.className = cls;
     if (parent) parent.appendChild(n);
     return n;
@@ -302,8 +349,13 @@
     els.copy.type = 'button';
     els.copy.textContent = 'Copy';
 
-    document.body.appendChild(root);
-    wire();
+    (buildDoc || document).body.appendChild(root);
+    // Only the live popup gets behaviour. A preview build must stay inert: its
+    // handlers would close over the module's root/card, which are swapped back
+    // the moment renderInto returns, so a click on the preview's close button
+    // would act on the REAL popup instead — and the keydown listener would pile
+    // up another copy on every redraw.
+    if (!buildDoc) wire();
   }
 
   function paint(c) {
@@ -475,6 +527,7 @@
       .then(function (data) {
         if (!data || !data.ok) throw new Error((data && data.error) || 'Something went wrong. Please try again.');
         put(DONE_KEY, '1');
+        markKnown();
         // Hand the code to the bag/checkout promo box. Both pages rehydrate
         // sessionStorage.zw_promo_code through their normal Apply path, so the
         // discount is server-validated like any other code — nothing here can
@@ -586,5 +639,47 @@
     close: close,
     LAYOUTS: LAYOUTS,
     blockedReason: blockedReason,
+    /**
+     * Render the popup into ANOTHER document — the admin's preview frame — and
+     * leave it there. No triggers, no fetch, no storage, no scroll lock: this
+     * only draws.
+     *
+     * It exists so the admin viewer shows the real thing. A hand-written mock
+     * of the popup in the admin would be a second implementation of the same
+     * markup, and the first time someone changed one and not the other the
+     * preview would start lying about what shoppers see.
+     *
+     * @param {Document} targetDoc  a same-origin document to draw into
+     * @param {object}   raw        config as the editor currently has it
+     * @param {object}   [opts]     { done: true } to show the post-signup state
+     */
+    renderInto: function (targetDoc, raw, opts) {
+      if (!targetDoc || !targetDoc.body) return null;
+      var c = normalize(raw);
+      loadCss(targetDoc);
+      // Draw into the frame, then hand the module back its own document so the
+      // live popup on this page is unaffected.
+      var keepRoot = root, keepCard = card, keepEls = els, keepOpen = openNow;
+      root = null; card = null; els = {}; buildDoc = targetDoc;
+      try {
+        build();
+        paint(c);
+        root.classList.add('zwp-mount', 'zwp-open');
+        root._cfg = c;
+        if (opts && opts.done) {
+          showDone(c, c.mode === 'discount'
+            ? (c.discount.source === 'shared' ? (c.discount.code || 'YOURCODE') : (c.discount.prefix + '4K7QP'))
+            : '');
+        }
+        return root;
+      } finally {
+        buildDoc = null;
+        root = keepRoot; card = keepCard; els = keepEls; openNow = keepOpen;
+      }
+    },
+    // Shared hook for every other place the site captures an address (footer
+    // signup, checkout), so none of them has to know this module's storage keys.
+    markKnown: markKnown,
+    knownVisitor: knownVisitor,
   };
 })();

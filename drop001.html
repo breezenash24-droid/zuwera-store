@@ -949,15 +949,26 @@ document.documentElement.classList.add('zw-collflash');
       min-height:0;max-height:none;aspect-ratio:auto;align-items:flex-start;flex:0 0 auto;
     }
     .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip::-webkit-scrollbar{display:none}
-    /* ONE photo per view, not two. The modal column is far narrower than the
-       product page, so a half-width slot plus object-fit:cover cropped hard and
-       the photos read as stretched — and part of a third showed at each edge.
-       Full width with the shots' own 4/5 ratio keeps them undistorted; the
-       strip still slides one photo at a time. */
+    /* ONE photo per view, and the WHOLE photo.
+
+       The previous version set width:100%, aspect-ratio:4/5 AND
+       max-height:min(72vh,640px) on the same box. Those three cannot all hold:
+       a 728px-wide pane at 4/5 wants 910px of height, the cap allows 640, and
+       the browser resolves the conflict by shrinking the slot to 512×640. That
+       produced BOTH symptoms at once — object-fit:cover cropped a portrait
+       photo to fit, cutting the top or bottom off, and the slot no longer
+       filled the pane so 200-odd pixels of the NEXT photo showed beside it.
+
+       So: one definite height, no competing ratio, and `contain` — the whole
+       shot, never cropped. Product photos here are portrait, so they sit
+       centred with a little of the pane's own background either side, which is
+       what On and Nike do in their modals too. `cover` belongs on the product
+       page, where the slot is half of a very wide grid and already close to the
+       photos' own ratio, so it has almost nothing to crop. */
     .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip > *{
-      flex:0 0 100%;scroll-snap-align:center;min-width:0;
-      width:100%;height:auto;aspect-ratio:4/5;max-height:min(72vh,640px);
-      object-fit:cover;object-position:center top;display:block;
+      flex:0 0 100%;scroll-snap-align:start;min-width:0;
+      width:100%;height:min(78vh,760px);aspect-ratio:auto;max-height:none;
+      object-fit:contain;object-position:center;display:block;
     }
     .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip > video{background:transparent}
     .collection-product-gallery[data-layout="dual"] .gallery-nav-below{
@@ -981,9 +992,10 @@ document.documentElement.classList.add('zw-collflash');
     body.light-mode .collection-product-gallery[data-layout="dual"] .gallery-dual-count,
     body.super-light-mode .collection-product-gallery[data-layout="dual"] .gallery-dual-count{color:#09090b}
     @media(max-width:900px){
-      /* One photo per swipe on a phone — two would be postage stamps. */
+      /* Shorter on a phone. `height`, not `max-height`: with a definite height
+         above, a cap here would just be the same over-constraint again. */
       .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip > *{
-        max-height:min(56vh,460px);
+        height:min(56vh,460px);
       }
     }
     /* Arrow row: flex:0 0 auto or the media pane (flex:1 1 auto) inside

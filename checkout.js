@@ -713,6 +713,11 @@ function showOrderConfirmed(orderNumber, email, paymentIntentId) {
     `Thank you for your purchase. A confirmation has been sent to ${email || 'your email'}.`;
   _openModal('payment-success');
 
+  // Someone who just checked out has given us their address. The signup popup
+  // shouldn't greet them with "join the list for 10% off your first order" on
+  // the next page they open.
+  if (email && window.ZWEmailPopup && window.ZWEmailPopup.markKnown) window.ZWEmailPopup.markKnown();
+
   const _purchaseTotal = cartItems.reduce((s, i) => s + (parseFloat(i.price) * i.quantity), 0);
 
   if (typeof gtag === 'function') {
