@@ -6,12 +6,15 @@
      thumbs:       'bottom' | 'left' | 'none',   // product page thumbnails
      arrows:       'overlay' | 'below' | 'none', // product page arrows
      modal_thumbs: 'bottom' | 'left' | 'none',   // quick-add modal
-     modal_arrows: 'overlay',
-     modal_style:  'compact' | 'product'        // quick-add modal look | 'below' | 'none'
+     modal_arrows: 'overlay' | 'below' | 'none',
+     modal_style:  'product' | 'compact'         // quick-add modal look
    }
 
-   Everything defaults to today's arrangement (single image, thumbnails beneath,
-   arrows over the photo), so a store that never opens the setting sees no change.
+   The gallery arrangement defaults to today's (single image, thumbnails beneath,
+   arrows over the photo). modal_style is the one exception: it defaults to
+   'product', so the quick-add popup takes the product page's type and spacing
+   rather than its own scale — the two were reading as different designs.
+   Choosing 'compact' puts the old look back.
 
    The arrows are NEVER re-created for the 'below' option — the existing button
    nodes are MOVED into a row, so their click handlers, SVG icons and styling all
@@ -28,7 +31,7 @@
   var CACHE = 'zw_pdp_gallery';
   var DEFAULTS = {
     layout: 'single', thumbs: 'bottom', arrows: 'overlay',
-    modal_thumbs: 'bottom', modal_arrows: 'overlay', modal_style: 'compact'
+    modal_thumbs: 'bottom', modal_arrows: 'overlay', modal_style: 'product'
   };
   var cfg = null;
   var waiting = [];
