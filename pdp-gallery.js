@@ -154,7 +154,9 @@
     if (!acc || !layoutEl || !layoutEl.parentElement) return;
 
     if (layout === 'dual') {
-      if (acc.parentElement === layoutEl) return;                 // already moved
+      var galleryEl = document.querySelector('.gallery-section');
+    if (!galleryEl) return;
+    if (acc.parentElement === galleryEl) return;                 // already moved
       acc._zwHome = { parent: acc.parentElement, next: acc.nextElementSibling };
       acc.classList.add('accordions-below');
       // INTO the layout grid, not after it. Sitting after the whole layout, the
@@ -163,7 +165,7 @@
       // started a couple of hundred pixels further in. As a grid item in column
       // one it lands right beneath the photos and lines up with them, which is
       // where On puts theirs.
-      layoutEl.appendChild(acc);
+      galleryEl.appendChild(acc);
     } else if (acc._zwHome) {
       acc.classList.remove('accordions-below');
       acc._zwHome.parent.insertBefore(acc, acc._zwHome.next);

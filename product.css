@@ -864,14 +864,12 @@ body.light-mode .color-swatch.active::after { background: #09090b; }
    column and drops it here, full width under the photos. Capped and centred so
    the rows don't stretch to ~1800px of text — the accordions read as a band,
    not as a run of edge-to-edge lines. */
-/* A grid item in the gallery column, directly under the photos — not a centred
-   block below the whole layout. Centring it left the band beneath the photos
-   empty while the accordions started ~250px further right; here they align with
-   the photo edges and fill that space. The buy column keeps row 1 to itself, so
-   Add to Bag still sits beside the images. */
+/* Stacked inside .gallery-section (already flex-direction:column), NOT a second
+   grid row. As its own row it had to line up with the buy column, so whenever
+   the buy column ran taller than the photos the grid stretched row 1 and left a
+   band of nothing under the arrows. Inside the gallery column the accordions
+   just follow the arrows and absorb that height themselves. */
 .accordions-section.accordions-below {
-  grid-column: 1;
-  grid-row: 2;
   width: 100%;
   max-width: none;
   margin: 1.75rem 0 0;
