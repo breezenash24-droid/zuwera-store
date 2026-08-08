@@ -1806,7 +1806,7 @@
           if (!w) {
             if (textEl) textEl.textContent = 'Enter a weight to get a starting size.';
             if (sizeEl) sizeEl.textContent = '';
-            if (result) result.classList.add('show');
+            if (result) result.classList.add('visible');
             return;
           }
           // No product context here (the guide is a standalone page), so the
@@ -1815,7 +1815,7 @@
           const rec = window.ZWFitFinder.recommend(h, w, fit, null);
           if (sizeEl) sizeEl.textContent = rec;
           if (textEl) textEl.textContent = 'A starting point based on your height, weight and preferred fit. Check the chart below to confirm.';
-          if (result) result.classList.add('show');
+          if (result) result.classList.add('visible');
         });
       };
       render();
