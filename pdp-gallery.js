@@ -112,13 +112,16 @@
     if (!acc || !layoutEl || !layoutEl.parentElement) return;
 
     if (layout === 'dual') {
-      if (acc.parentElement === layoutEl.parentElement) return;   // already moved
+      if (acc.parentElement === layoutEl) return;                 // already moved
       acc._zwHome = { parent: acc.parentElement, next: acc.nextElementSibling };
       acc.classList.add('accordions-below');
-      // nextElementSibling, not nextSibling: the latter is usually a whitespace
-      // text node, and anchoring to it dropped the stack below "More from this
-      // release" instead of directly under the layout.
-      layoutEl.parentElement.insertBefore(acc, layoutEl.nextElementSibling);
+      // INTO the layout grid, not after it. Sitting after the whole layout, the
+      // stack was capped and centred while the photos began at the far left —
+      // so the band directly under the photos stayed empty and the accordions
+      // started a couple of hundred pixels further in. As a grid item in column
+      // one it lands right beneath the photos and lines up with them, which is
+      // where On puts theirs.
+      layoutEl.appendChild(acc);
     } else if (acc._zwHome) {
       acc.classList.remove('accordions-below');
       acc._zwHome.parent.insertBefore(acc, acc._zwHome.next);
