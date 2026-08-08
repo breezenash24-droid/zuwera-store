@@ -118,18 +118,16 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
 /* Kick off data fetches as early as possible — before CSS/JS blocks parsing —
    so both are already in-flight when storefront.js runs later. */
 (function(){
-  var SUPA='https://qfgnrsifcwdubkolsgsq.supabase.co';
-  var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-  var h={headers:{apikey:ANON,Authorization:'Bearer '+ANON},cache:'no-store'};
-  window.__zwProductsEarlyFetch=fetch(
-    SUPA+'/rest/v1/products?select=*,product_images(*),color_variants(*)&status=neq.Legacy&status=neq.Draft&order=sort_order.asc',
-    h
-  );
-  /* site_settings early fetch — builder config, theme, brand all arrive before
-     storefront.js even begins executing, eliminating the settings-apply flash. */
-  window.__zwSettingsEarlyFetch=fetch(
-    SUPA+'/rest/v1/site_settings?select=*',h
-  );
+  /* Both go through our own API now rather than straight to Supabase, so
+     Cloudflare answers them from its edge cache and Supabase sees one read per
+     cache window instead of one per visitor. These two calls were 132 KB of
+     Supabase egress on EVERY homepage load, with cache:'no-store' making sure
+     none of it was ever reused — which is how a store with two monthly active
+     users put 5.68 GB through a 5 GB tier. */
+  window.__zwProductsEarlyFetch=fetch('/api/catalog');
+  /* Settings early fetch — builder config, theme, brand all arrive before
+     storefront.js begins executing, eliminating the settings-apply flash. */
+  window.__zwSettingsEarlyFetch=fetch('/api/storefront-settings');
 })();
 </script>
 <!-- JSON-LD Structured Data -->
