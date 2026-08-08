@@ -3,7 +3,11 @@
 
   const TRACKED_SELECTORS = [
     '.modal',
-    '[role="dialog"]:not(#zw-lang-modal)',
+    // data-zw-nolock opts an overlay out of the scroll lock. The admin's email
+    // popup preview is a real dialog rendered over the admin page for review —
+    // locking the page it is being previewed on would make the preview itself
+    // the reason you can't reach the settings you are previewing.
+    '[role="dialog"]:not(#zw-lang-modal):not([data-zw-nolock])',
     '#zw-lang-modal.open',
     '#payment-success',
     '#apple-pay-qr-modal',

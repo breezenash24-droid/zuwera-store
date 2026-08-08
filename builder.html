@@ -264,7 +264,7 @@ body{display:flex;flex-direction:column}
    storefront-cohesion.css, so the sitewide guard never reaches it — honor the OS
    preference here too (mirrors storefront-cohesion.css:3399). */
 @media (prefers-reduced-motion: reduce){
-  *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
+  *,*::before,*::after{ animation-duration:1ms !important; animation-iteration-count:1 !important; transition-duration:1ms !important; scroll-behavior:auto !important; }
 }
 </style>
 </head>
@@ -1593,7 +1593,7 @@ function renderPagesTab(container){
     <div class="tab-hd">Landing Pages</div>
     <div class="fhint" style="margin-bottom:.5rem">The page shown when a shopper clicks a gender (Men, Women…) or a tag (e.g. New) in the nav. Leave anything blank to auto-build it from your products.</div>
     <div class="field"><label>Editing page</label><select id="lpPageSel" onchange="landingSelect(this.value)">${opts}</select></div>
-    <div class="field"><label>Page name</label><input data-lp="label" placeholder="${he(lpAutoLabel(landingSlug))}"><div class="fhint" style="margin-top:.2rem">What this page is called in the builder and in its browser tab title. Leave blank to use the page slug (<code>${he(landingSlug)}</code>). The slug itself stays in the URL and nav links.</div></div>
+    <div class="field"><label>Page name</label><input id="lpLabelInput" data-lp="label" value="${he(lpCfg().label||'')}" placeholder="${he(lpAutoLabel(landingSlug))}"><div class="fhint" style="margin-top:.2rem">What this page is called in the builder and in its browser tab title. Leave blank to use the page slug (<code>${he(landingSlug)}</code>). The slug itself stays in the URL and nav links.</div></div>
     <div class="field"><button class="add-item-btn" style="white-space:nowrap" onclick="landingDeletePage()">✕ Delete this page</button><div class="fhint" style="margin-top:.2rem">Removes its saved settings. The page rebuilds itself from your products next time it is opened.</div></div>
     <div class="field"><label>Add a custom page</label><div style="display:flex;gap:.3rem"><input id="lpNewSlug" placeholder="e.g. sale"><button class="add-item-btn" style="white-space:nowrap" onclick="landingAddSlug()">+ Add</button></div></div>
     <div class="field"><label>Page theme</label><select data-lp="theme">${themeOpts}</select><div class="fhint" style="margin-top:.2rem">Overrides the site Appearance theme for this page only. Use “Save draft &amp; preview” to see it.</div></div>
@@ -1653,6 +1653,18 @@ function renderPagesTab(container){
   container.querySelectorAll('[data-lp]').forEach(el=>{
     const sync=()=>lpSetPath(el.dataset.lp, el.type==='checkbox'?el.checked:el.value);
     el.addEventListener('input',sync); el.addEventListener('change',sync);
+  });
+  // Renaming a page has to show up in the page picker straight away. It used to
+  // take a full renderLP() to redraw those options — and this input had no
+  // `value`, so that redraw wiped what had just been typed and the rename read
+  // as "nothing happened". The option text is patched in place instead: no
+  // re-render, so the caret stays put mid-word.
+  const _lpLabel=document.getElementById('lpLabelInput');
+  if(_lpLabel)_lpLabel.addEventListener('input',()=>{
+    const sel=document.getElementById('lpPageSel');
+    if(!sel)return;
+    const opt=[...sel.options].find(o=>o.value===landingSlug);
+    if(opt)opt.textContent=lpPageLabel(landingSlug);
   });
   syncPlatTabs();   // show the featured device panel matching the current preview device
   // Hero viewfinder: build the draggable tablet/mobile frames, and rebuild them

@@ -1153,18 +1153,31 @@ body.light-mode :is(.pcard-img,.product-img){
   position:absolute; inset:0;
   opacity:0;
   pointer-events:none;          /* clicks belong to the card underneath */
-  transition:opacity .35s ease, transform .5s ease;
+  /* Instant by default. A fade reads as lag on a grid you are sweeping the
+     cursor across — the photo should already be the other one by the time you
+     notice. Admin → Product Cards can dial in a fade; that sets
+     --zw-card-hover-ms. The transform half is the card's own hover zoom, which
+     has to be restated here because this rule replaces the transition
+     shorthand it would otherwise inherit from the `img` rule above. */
+  transition:opacity var(--zw-card-hover-ms, 0ms) ease, transform .5s ease;
 }
 /* hover:hover only. On a touchscreen :hover latches after a tap and the alt
    image would stay stuck over the card until something else was tapped. */
 @media (hover:hover) and (pointer:fine){
+  /* !important because the element carries an inline opacity:0 — a deliberate
+     fallback so a missing or late stylesheet hides the alt image rather than
+     stacking it over the cover shot. Inline beats a plain rule, so the reveal
+     has to outrank it. This is overriding our own fallback, not fighting
+     another stylesheet. */
   body.zw-card-hover :is(.pcard,.product-card):hover > :is(.pcard-img,.product-img) > :is(.pcard-img-alt,.product-img-alt),
   body.zw-card-hover :is(.pcard,.product-card):hover :is(.pcard-img,.product-img) > :is(.pcard-img-alt,.product-img-alt){
-    opacity:1;
+    opacity:1 !important;
   }
 }
 @media (prefers-reduced-motion: reduce){
-  :is(.pcard-img,.product-img) > :is(.pcard-img-alt,.product-img-alt){ transition:opacity .01ms linear; }
+  /* 1ms, not 1ms: clean-css turns 1ms into `NaNs`, which is an invalid
+     value the browser drops. Verified in the deployed stylesheet. */
+  :is(.pcard-img,.product-img) > :is(.pcard-img-alt,.product-img-alt){ transition:opacity 1ms linear; }
 }
 
 :is(.pcard-info,.product-info){
@@ -2371,7 +2384,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel::befor
 @media (prefers-reduced-motion: reduce){
   #mobile-menu.zw-mobile-menu.open > .zw-mobile-menu-panel,
   #mobile-menu.zw-mobile-menu.closing > .zw-mobile-menu-panel{
-    animation-duration:.01ms !important;
+    animation-duration:1ms !important;
   }
 }
 
@@ -3728,14 +3741,14 @@ body.light-mode .quick-add-gallery-arrow{background:rgba(9,9,11,.55);border-colo
 
 /* 1) Universal reduced-motion guard. Several pages (about, returns, policies,
    account, sizeguide, bag) had NO reduced-motion handling; this honours the OS
-   "Reduce motion" setting everywhere. Keeps a hair of duration (0.01ms, not 0)
+   "Reduce motion" setting everywhere. Keeps a hair of duration (1ms, not 0)
    so transitionend/animationend handlers (e.g. the product accordion's height
    release) still fire. */
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{
-    animation-duration:0.01ms !important;
+    animation-duration:1ms !important;
     animation-iteration-count:1 !important;
-    transition-duration:0.01ms !important;
+    transition-duration:1ms !important;
     scroll-behavior:auto !important;
   }
 }
