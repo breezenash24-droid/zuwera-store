@@ -119,24 +119,43 @@ async function readPopupSettings(env, H) {
   return parsePopupSettings(v);
 }
 
-/** Insert or re-subscribe. Same rules as /api/subscribe, which owns the table. */
+/**
+ * Insert or re-subscribe. Same rules as /api/subscribe, which owns the table.
+ *
+ * Returns true only if the address is now definitely on the list. The first
+ * version ignored the write result entirely, which is the worst possible
+ * failure for this endpoint: newsletter_subscribers is admin-only under RLS, so
+ * a deployment without a real service-role key would have the insert rejected,
+ * the shopper would still be thanked and handed a discount code, and the
+ * address — the entire point of the exercise — would be gone. Silence is not an
+ * option on the capture path.
+ */
 async function subscribe(env, H, email, source) {
   const base = `${env.SUPABASE_URL}/rest/v1/newsletter_subscribers`;
-  const existing = await fetch(`${base}?select=id,status&email=eq.${encodeURIComponent(email)}&limit=1`, { headers: H, cache: 'no-store' })
-    .then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  const lookup = await fetch(`${base}?select=id,status&email=eq.${encodeURIComponent(email)}&limit=1`, { headers: H, cache: 'no-store' });
+  if (!lookup.ok) return false;
+  const existing = await lookup.json().catch(() => []);
+
   if (existing && existing[0]) {
     if (existing[0].status === 'unsubscribed') {
-      await fetch(`${base}?id=eq.${existing[0].id}`, {
+      const res = await fetch(`${base}?id=eq.${existing[0].id}`, {
         method: 'PATCH', headers: { ...H, Prefer: 'return=minimal' },
         body: JSON.stringify({ status: 'subscribed', unsubscribed_at: null }),
       });
+      return res.ok;
     }
-    return;
+    return true;   // already subscribed — nothing to do, and that is a success
   }
-  await fetch(base, {
+
+  const res = await fetch(base, {
     method: 'POST', headers: { ...H, Prefer: 'return=minimal' },
     body: JSON.stringify({ email, source }),
   });
+  if (res.ok) return true;
+  // A duplicate means someone else inserted it between the lookup and here.
+  // They are on the list, which is all this promised.
+  const txt = await res.text().catch(() => '');
+  return /duplicate|unique/i.test(txt);
 }
 
 export async function onRequestOptions({ env }) {
@@ -159,7 +178,13 @@ export async function onRequestPost({ request, env }) {
     // The signup always lands, even with the popup switched off — an address in
     // hand is worth keeping, and a shopper who just typed it should not get an
     // error because someone toggled a setting mid-session.
-    await subscribe(env, H, email, source);
+    const captured = await subscribe(env, H, email, source);
+    if (!captured) {
+      // Do not hand out a code for an address that was not saved. The shopper
+      // sees a real error and can retry; the admin sees nothing appear in
+      // Subscribers, which is the truth rather than a silent hole.
+      return json({ ok: false, error: 'We could not save your email just now. Please try again.' }, 502, cors(env));
+    }
 
     if (!s.enabled || s.mode !== 'discount') return json({ ok: true }, 200, cors(env));
 
