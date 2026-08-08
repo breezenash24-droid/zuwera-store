@@ -365,6 +365,12 @@
         // the gallery, because it retunes the body typography too.
         var qaBox = media.closest('.quick-add-product-box');
         if (qaBox) qaBox.setAttribute('data-modal-style', qaCfg.modal_style || 'compact');
+        // Position counter beside the arrows. With thumbnails hidden (the
+        // default) this is the only thing telling you how many photos there are,
+        // so it goes in AFTER applyTo, which rebuilds the row's contents.
+        window.ZWPdpGallery.setNavCount(
+          media.closest('.quick-add-product-gallery'), currentIndex, images.length
+        );
       }
       var touchStartX = 0;
       media.ontouchstart = function (event) { touchStartX = (event.changedTouches && event.changedTouches[0] && event.changedTouches[0].screenX) || 0; };

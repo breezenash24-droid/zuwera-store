@@ -829,7 +829,7 @@ function pdpNormalize(v){
    would be rejected on read can't be written here. */
 const PDP_GALLERY_OPTS = {
   layout:['single','dual'], thumbs:['bottom','left','none'], arrows:['overlay','below','none'],
-  modal_thumbs:['bottom','left','none'], modal_arrows:['overlay','below','none'],
+  modal_thumbs:['none','bottom','left'], modal_arrows:['below','overlay','none'],
   modal_style:['product','compact'],
 };
 function pdpGalleryNormalize(g){
@@ -888,8 +888,8 @@ function paintProductTab(container){
     ${gsel('arrows','Arrows',G.arrows,[['overlay','Over the photo (current)'],['below','In a row underneath'],['none','Hidden']],'Same arrows either way — they just move.',dualOff)}
     <div class="tab-hd" style="margin-top:.4rem">Quick-add modal</div>
     <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">The small product popup opened from a collection card. Set separately — a left rail can suit the page but crowd the popup.</div>
-    ${gsel('modal_thumbs','Thumbnails',G.modal_thumbs,[['bottom','Below the photo (current)'],['left','Left rail, scaled down'],['none','Hidden']])}
-    ${gsel('modal_arrows','Arrows',G.modal_arrows,[['overlay','Over the photo (current)'],['below','In a row underneath'],['none','Hidden']])}
+    ${gsel('modal_thumbs','Thumbnails',G.modal_thumbs,[['none','Hidden (default) \u2014 arrows + counter only'],['bottom','Below the photo'],['left','Left rail, scaled down']])}
+    ${gsel('modal_arrows','Arrows',G.modal_arrows,[['below','In a row underneath (default), with an n/total counter'],['overlay','Over the photo'],['none','Hidden']])}
     ${gsel('modal_style','Look',G.modal_style,[['product','Match the product page (default)'],['compact','Its own compact style']],'“Match the product page” gives the popup the same headings, price, swatch and size styling as a full product page, so the two don’t read as different designs. Switch back here any time.')}
     <div style="font-size:.58rem;color:var(--mu);line-height:1.6;margin:-.2rem 0 .4rem">On phones both fall back to the strip underneath — a left rail leaves the photo too small to read.</div>
     <div class="tab-hd" style="margin-top:.4rem">Under the product</div>

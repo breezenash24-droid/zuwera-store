@@ -5,8 +5,8 @@
      layout:       'single' | 'dual',            // product page image area
      thumbs:       'bottom' | 'left' | 'none',   // product page thumbnails
      arrows:       'overlay' | 'below' | 'none', // product page arrows
-     modal_thumbs: 'bottom' | 'left' | 'none',   // quick-add modal
-     modal_arrows: 'overlay' | 'below' | 'none',
+     modal_thumbs: 'none' | 'bottom' | 'left', // quick-add modal thumbnails
+     modal_arrows: 'below' | 'overlay' | 'none',
      modal_style:  'product' | 'compact'         // quick-add modal look
    }
 
@@ -31,7 +31,7 @@
   var CACHE = 'zw_pdp_gallery';
   var DEFAULTS = {
     layout: 'single', thumbs: 'bottom', arrows: 'overlay',
-    modal_thumbs: 'bottom', modal_arrows: 'overlay', modal_style: 'product'
+    modal_thumbs: 'none', modal_arrows: 'below', modal_style: 'product'
   };
   var cfg = null;
   var waiting = [];
@@ -95,6 +95,45 @@
       for (var j = 0; j < kids.length; j++) (main || section).appendChild(kids[j]);
       row.remove();
     }
+  }
+
+  /**
+   * Put an "n/total" position counter in the arrow row, so a gallery without
+   * thumbnails still says where you are. Kept here rather than in each modal
+   * because all three surfaces show the same thing — and because the counter has
+   * to be re-appended AFTER applyTo on every render: applyTo rebuilds the row's
+   * contents, so a counter added once ends up in front of the arrows instead of
+   * after them.
+   *
+   * @param {Element} section  the gallery container applyTo was given
+   * @param {number}  index    zero-based position of the visible image
+   * @param {number}  total    how many images are in this set
+   */
+  function setNavCount(section, index, total) {
+    if (!section) return;
+    var row = section.querySelector('.gallery-nav-below');
+    if (!row) return;
+    var el = row.querySelector('.gallery-dual-count');
+    if (!(total > 1)) {
+      // One image needs no counter — "1/1" is noise — and no arrows either. The
+      // modals only build arrows when there's more than one photo, so any still
+      // in the row are stale from the previous product. Remove only nodes
+      // WITHOUT an id: the product page's #prevImg/#nextImg are persistent and
+      // deleting them would leave it with no way to page at all.
+      if (el) el.remove();
+      var kids = [].slice.call(row.children || []);
+      for (var i = 0; i < kids.length; i++) {
+        if (!kids[i].id) kids[i].remove();
+      }
+      if (!row.firstChild) row.remove();
+      return;
+    }
+    if (!el) {
+      el = document.createElement('span');
+      el.className = 'gallery-dual-count';
+    }
+    el.textContent = (Math.min(Math.max(index, 0), total - 1) + 1) + '/' + total;
+    row.appendChild(el);          // always last, after the arrows
   }
 
   /**
@@ -187,5 +226,6 @@
     // Exposed so the placement can be re-asserted after the page re-renders
     // parts of the info column, and so it can be exercised in isolation.
     applyAccordionPlacement: applyAccordionPlacement,
+    setNavCount: setNavCount,
   };
 })();
