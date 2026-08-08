@@ -30,7 +30,7 @@ export const ROLE_LABELS = {
 // Every admin page id (matches ADMIN_PAGES in admin.html).
 export const PAGE_IDS = [
   'dashboard', 'analytics', 'finance', 'products', 'legacy', 'sizecharts',
-  'reviews', 'questions', 'bundles', 'loyalty', 'journal', 'subscribers', 'emails', 'commerce', 'meta', 'orders', 'receipts', 'shipping', 'returns', 'users',
+  'reviews', 'questions', 'bundles', 'loyalty', 'journal', 'subscribers', 'emails', 'popup', 'commerce', 'meta', 'orders', 'receipts', 'shipping', 'returns', 'users',
   'website', 'settings', 'tax', 'apis', 'audit', 'flags'
 ];
 
@@ -45,6 +45,10 @@ export const PAGE_WRITE_PERM = {
   journal: 'builder_edit',
   subscribers: 'builder_edit',
   emails: 'builder_edit',
+  // The popup hands out discount codes, so editing it is a coupon capability —
+  // not a content one. A content editor can reword the storefront; they should
+  // not be able to start giving away 40%.
+  popup: 'coupon_write',
   commerce: 'coupon_write',
   meta: 'settings_write',
   receipts: 'order_write', shipping: 'order_write',
@@ -61,7 +65,7 @@ const V = 'view', E = 'edit';
 export const ROLE_PRESET_LEVELS = {
   manager: {
     dashboard: V, analytics: V, finance: E, products: E, legacy: E, sizecharts: E,
-    reviews: E, questions: E, bundles: E, loyalty: E, journal: E, subscribers: E, emails: E, commerce: E, meta: E, orders: V, receipts: E, shipping: E, returns: E,
+    reviews: E, questions: E, bundles: E, loyalty: E, journal: E, subscribers: E, emails: E, popup: E, commerce: E, meta: E, orders: V, receipts: E, shipping: E, returns: E,
     users: E, website: E, settings: E, tax: E, audit: V, flags: E
   },
   finance: {
@@ -71,7 +75,9 @@ export const ROLE_PRESET_LEVELS = {
     dashboard: V, products: V, orders: V, receipts: E, shipping: E, returns: E
   },
   content: {
-    dashboard: V, products: E, sizecharts: E, reviews: E, questions: E, bundles: E, journal: E, website: E, settings: E
+    // View-only on the popup: a content editor can see how it is worded without
+    // being able to change what it gives away (see PAGE_WRITE_PERM above).
+    dashboard: V, products: E, sizecharts: E, reviews: E, questions: E, bundles: E, journal: E, website: E, settings: E, popup: V
   },
   viewer: Object.fromEntries(PAGE_IDS.map(p => [p, V]))
 };

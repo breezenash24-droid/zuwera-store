@@ -1,0 +1,353 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   email-popup.css — the six popup orientations.
+
+   Injected by email-popup.js, and only once a popup is actually going to show,
+   so a store with the feature off pays nothing for it.
+
+   Deliberately self-contained: every rule is scoped under .zwp-root and nothing
+   here reads a page class, a cohesion rule or a modal selector. The site's
+   existing modal CSS is two overlapping @media blocks that fight each other
+   through :not() specificity tricks (see the quick-add modal), and a popup that
+   has to appear over ANY page is the worst possible thing to route through that.
+   The only outside contract is the font vars and the .zwp-* classes the
+   typography system targets.
+
+   Fonts come from the shared vars, so the popup follows the store's type
+   automatically, and Appearance → Typography → "Email Popup" / "Email Popup
+   Body" can override it per-section like any other surface.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.zwp-root {
+  /* Dark by default — matches the storefront's own default. */
+  --zwp-bg: #09090b;
+  --zwp-fg: #F4F1EB;
+  --zwp-muted: rgba(244, 241, 235, .6);
+  --zwp-line: rgba(244, 241, 235, .16);
+  --zwp-field: rgba(244, 241, 235, .06);
+  --zwp-accent: #F4F1EB;
+  --zwp-accent-fg: #09090b;
+  --zwp-scrim: rgba(9, 9, 11, .68);
+  --zwp-radius: 0px;
+  --zwp-shadow: 0 24px 70px rgba(0, 0, 0, .45);
+
+  position: fixed;
+  inset: 0;
+  z-index: 800;               /* over the site's modals (≤720), under consent (9990) */
+  display: none;
+  /* The root spans the viewport so the blocking layouts can centre inside it,
+     but it must never swallow clicks meant for the page: the corner and bar
+     orientations are non-blocking by design. Only the painted parts take
+     pointer events. */
+  pointer-events: none;
+  font-family: var(--zw-font-body, var(--font-body, 'Barlow', sans-serif));
+}
+/* Mounting and revealing are two separate steps. Flipping display and opacity
+   in the same style recalculation runs no transition at all — the browser has
+   nothing to animate from — so .zwp-mount takes the popup out of display:none
+   and .zwp-open, applied a reflow later, is what actually fades it in. */
+.zwp-root.zwp-mount { display: block; }
+
+/* Light + super-light storefront themes, and the admin's explicit choice. */
+.zwp-root[data-theme="light"],
+body.light-mode .zwp-root[data-theme="auto"],
+body.super-light-mode .zwp-root[data-theme="auto"] {
+  --zwp-bg: #ffffff;
+  --zwp-fg: #09090b;
+  --zwp-muted: rgba(9, 9, 11, .58);
+  --zwp-line: rgba(9, 9, 11, .14);
+  --zwp-field: rgba(9, 9, 11, .04);
+  --zwp-accent: #09090b;
+  --zwp-accent-fg: #F4F1EB;
+  --zwp-scrim: rgba(9, 9, 11, .42);
+  --zwp-shadow: 0 24px 70px rgba(0, 0, 0, .18);
+}
+
+/* ── scrim ────────────────────────────────────────────────────────────────── */
+.zwp-scrim {
+  position: absolute; inset: 0;
+  background: var(--zwp-scrim);
+  opacity: 0;
+  transition: opacity .32s ease;
+  pointer-events: auto;
+}
+.zwp-open .zwp-scrim { opacity: 1; }
+/* Non-blocking orientations: no scrim, page stays fully usable behind them. */
+.zwp-root[data-layout="corner"] .zwp-scrim,
+.zwp-root[data-layout="bar"] .zwp-scrim { display: none; }
+
+/* ── card ─────────────────────────────────────────────────────────────────── */
+.zwp-card {
+  position: absolute;
+  box-sizing: border-box;
+  background: var(--zwp-bg);
+  color: var(--zwp-fg);
+  border-radius: var(--zwp-radius);
+  box-shadow: var(--zwp-shadow);
+  pointer-events: auto;
+  overflow: hidden;
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  opacity: 0;
+  transition: opacity .32s ease, transform .38s cubic-bezier(.22, .61, .36, 1);
+}
+.zwp-open .zwp-card { opacity: 1; transform: none; }
+
+.zwp-body { padding: 2.5rem 2.25rem; display: flex; flex-direction: column; gap: .85rem; }
+
+.zwp-close {
+  position: absolute; top: .55rem; right: .6rem;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 0; cursor: pointer;
+  color: var(--zwp-fg); opacity: .55;
+  font-size: 1.35rem; line-height: 1;
+  border-radius: 50%;
+  transition: opacity .2s ease, background .2s ease;
+  z-index: 2;
+}
+.zwp-close:hover { opacity: 1; background: var(--zwp-field); }
+
+.zwp-logo { display: block; width: auto; max-width: 60%; object-fit: contain; margin-bottom: .35rem; }
+
+.zwp-title {
+  margin: 0;
+  font-family: var(--zw-font-head, var(--font-head, 'Barlow Condensed', sans-serif));
+  font-size: clamp(1.6rem, 1.15rem + 1.6vw, 2.35rem);
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: -.01em;
+  text-transform: uppercase;
+}
+.zwp-sub { margin: 0; font-size: .95rem; line-height: 1.6; color: var(--zwp-muted); }
+
+/* ── form ─────────────────────────────────────────────────────────────────── */
+.zwp-form { display: flex; flex-direction: column; gap: .6rem; margin-top: .5rem; }
+.zwp-input {
+  width: 100%; box-sizing: border-box;
+  padding: .9rem 1rem;
+  background: var(--zwp-field);
+  border: 1px solid var(--zwp-line);
+  border-radius: var(--zwp-radius);
+  color: var(--zwp-fg);
+  font-family: inherit; font-size: .95rem;
+  transition: border-color .2s ease;
+}
+.zwp-input::placeholder { color: var(--zwp-muted); }
+.zwp-input:focus { outline: none; border-color: var(--zwp-accent); }
+.zwp-btn {
+  padding: .95rem 1.25rem;
+  background: var(--zwp-accent);
+  color: var(--zwp-accent-fg);
+  border: 1px solid var(--zwp-accent);
+  border-radius: var(--zwp-radius);
+  font-family: var(--zw-font-mono, var(--font-mono, 'IBM Plex Mono', monospace));
+  font-size: .72rem; font-weight: 600;
+  letter-spacing: .16em; text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity .2s ease;
+}
+.zwp-btn:hover { opacity: .85; }
+.zwp-btn[disabled] { opacity: .5; cursor: default; }
+
+.zwp-err { margin: 0; font-size: .82rem; color: #ff6b5e; min-height: 1em; }
+.zwp-root[data-theme="light"] .zwp-err,
+body.light-mode .zwp-root[data-theme="auto"] .zwp-err,
+body.super-light-mode .zwp-root[data-theme="auto"] .zwp-err { color: #c0392b; }
+
+.zwp-fine { margin: .2rem 0 0; font-size: .72rem; line-height: 1.5; color: var(--zwp-muted); }
+.zwp-decline {
+  margin-top: .1rem; padding: 0;
+  background: none; border: 0; cursor: pointer;
+  color: var(--zwp-muted);
+  font-family: inherit; font-size: .78rem;
+  text-decoration: underline; text-underline-offset: 3px;
+  align-self: flex-start;
+}
+.zwp-decline:hover { color: var(--zwp-fg); }
+
+/* ── success state ────────────────────────────────────────────────────────── */
+.zwp-done { display: none; }
+/* display:contents so the heading and subtext still lay out as direct children
+   of .zwp-body's flex column. It lives in the stylesheet, not as an inline
+   style, because an inline display would outrank the .zwp-is-done rule below
+   and the ask would stay on screen behind the success message. */
+.zwp-ask { display: contents; }
+.zwp-card.zwp-is-done .zwp-form,
+.zwp-card.zwp-is-done .zwp-fine,
+.zwp-card.zwp-is-done .zwp-err,
+.zwp-card.zwp-is-done .zwp-decline,
+.zwp-card.zwp-is-done .zwp-ask { display: none; }
+.zwp-card.zwp-is-done .zwp-done { display: flex; flex-direction: column; gap: .85rem; }
+
+.zwp-code {
+  display: flex; align-items: stretch; gap: .5rem;
+  margin-top: .35rem;
+}
+.zwp-code code {
+  flex: 1 1 auto;
+  display: flex; align-items: center; justify-content: center;
+  padding: .85rem 1rem;
+  border: 1px dashed var(--zwp-line);
+  border-radius: var(--zwp-radius);
+  background: var(--zwp-field);
+  font-family: var(--zw-font-mono, var(--font-mono, 'IBM Plex Mono', monospace));
+  font-size: 1.05rem; font-weight: 600; letter-spacing: .16em;
+  color: var(--zwp-fg);
+  word-break: break-all;
+}
+.zwp-copy {
+  flex: 0 0 auto; padding: 0 1.1rem;
+  background: transparent; color: var(--zwp-fg);
+  border: 1px solid var(--zwp-line); border-radius: var(--zwp-radius);
+  font-family: var(--zw-font-mono, var(--font-mono, 'IBM Plex Mono', monospace));
+  font-size: .68rem; letter-spacing: .14em; text-transform: uppercase;
+  cursor: pointer; transition: border-color .2s ease;
+}
+.zwp-copy:hover { border-color: var(--zwp-accent); }
+
+/* ═══ 1. centre ═══════════════════════════════════════════════════════════ */
+.zwp-root[data-layout="center"] .zwp-card {
+  top: 50%; left: 50%;
+  width: min(460px, calc(100vw - 2rem));
+  transform: translate(-50%, calc(-50% + 14px));
+}
+.zwp-root[data-layout="center"].zwp-open .zwp-card { transform: translate(-50%, -50%); }
+
+/* ═══ 2. side image — photo beside the form ═══════════════════════════════ */
+.zwp-root[data-layout="split"] .zwp-card {
+  top: 50%; left: 50%;
+  width: min(860px, calc(100vw - 2rem));
+  transform: translate(-50%, calc(-50% + 14px));
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+}
+.zwp-root[data-layout="split"].zwp-open .zwp-card { transform: translate(-50%, -50%); }
+.zwp-root[data-layout="split"] .zwp-media { min-height: 100%; }
+.zwp-root[data-layout="split"] .zwp-body { justify-content: center; }
+/* Photo on the right instead of the left. */
+.zwp-root[data-layout="split"][data-media="right"] .zwp-media { order: 2; }
+
+.zwp-media { display: none; background: var(--zwp-field); }
+.zwp-root[data-layout="split"] .zwp-media,
+.zwp-root[data-layout="full"] .zwp-media { display: block; }
+.zwp-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* ═══ 3. corner — small card, page stays usable ═══════════════════════════ */
+.zwp-root[data-layout="corner"] .zwp-card {
+  right: 1.25rem; bottom: 1.25rem;
+  width: min(370px, calc(100vw - 2.5rem));
+  transform: translateY(18px);
+}
+.zwp-root[data-layout="corner"] .zwp-body { padding: 1.75rem 1.6rem; gap: .7rem; }
+.zwp-root[data-layout="corner"] .zwp-title { font-size: clamp(1.3rem, 1.1rem + .6vw, 1.6rem); }
+.zwp-root[data-layout="corner"] .zwp-sub { font-size: .88rem; }
+.zwp-root[data-layout="corner"][data-side="left"] .zwp-card { right: auto; left: 1.25rem; }
+
+/* ═══ 4. bottom bar — full width, one line on desktop ═════════════════════ */
+.zwp-root[data-layout="bar"] .zwp-card {
+  left: 0; right: 0; bottom: 0;
+  width: 100%;
+  max-height: none;
+  border-radius: 0;
+  border-top: 1px solid var(--zwp-line);
+  transform: translateY(100%);
+}
+.zwp-root[data-layout="bar"] .zwp-body {
+  flex-direction: row; align-items: center; gap: 1.5rem;
+  padding: 1.15rem clamp(1rem, 4vw, 3rem);
+  max-width: 1600px; margin: 0 auto; width: 100%;
+}
+.zwp-root[data-layout="bar"] .zwp-title { font-size: 1.35rem; white-space: nowrap; }
+.zwp-root[data-layout="bar"] .zwp-sub { flex: 1 1 auto; font-size: .85rem; }
+.zwp-root[data-layout="bar"] .zwp-form {
+  flex-direction: row; margin-top: 0; flex: 0 1 460px; align-items: center;
+}
+.zwp-root[data-layout="bar"] .zwp-input { flex: 1 1 auto; padding: .7rem .9rem; }
+.zwp-root[data-layout="bar"] .zwp-btn { flex: 0 0 auto; padding: .78rem 1.35rem; }
+.zwp-root[data-layout="bar"] .zwp-fine,
+.zwp-root[data-layout="bar"] .zwp-decline { display: none; }
+.zwp-root[data-layout="bar"] .zwp-logo { max-width: 120px; margin: 0; }
+.zwp-root[data-layout="bar"] .zwp-err { position: absolute; bottom: .15rem; left: clamp(1rem, 4vw, 3rem); }
+
+/* ═══ 5. full-bleed takeover ══════════════════════════════════════════════ */
+.zwp-root[data-layout="full"] .zwp-card {
+  inset: 0; width: 100%; height: 100%;
+  max-height: none; border-radius: 0;
+  display: grid; grid-template-columns: 1fr 1fr;
+  transform: scale(1.01);
+}
+.zwp-root[data-layout="full"] .zwp-body {
+  justify-content: center; padding: clamp(2rem, 6vw, 5rem);
+  max-width: 620px;
+}
+.zwp-root[data-layout="full"] .zwp-title { font-size: clamp(2.2rem, 1.4rem + 3.2vw, 4rem); }
+.zwp-root[data-layout="full"][data-media="right"] .zwp-media { order: 2; }
+/* No photo set: one column rather than half an empty card. Both two-column
+   orientations need this — a split card with no image was 860px wide with 430
+   of them blank. */
+.zwp-root[data-layout="split"]:not([data-has-media="1"]) .zwp-card {
+  grid-template-columns: 1fr; width: min(480px, calc(100vw - 2rem));
+}
+.zwp-root[data-layout="full"]:not([data-has-media="1"]) .zwp-card { grid-template-columns: 1fr; }
+.zwp-root[data-layout="full"]:not([data-has-media="1"]) .zwp-body { margin: 0 auto; text-align: center; align-items: center; }
+.zwp-root[data-layout="full"]:not([data-has-media="1"]) .zwp-decline { align-self: center; }
+
+/* ═══ 6. side drawer — full height, slides in from the edge ═══════════════ */
+.zwp-root[data-layout="drawer"] .zwp-card {
+  top: 0; right: 0; bottom: 0;
+  width: min(430px, 100vw);
+  max-height: none; border-radius: 0;
+  display: flex; flex-direction: column; justify-content: center;
+  transform: translateX(100%);
+}
+.zwp-root[data-layout="drawer"][data-side="left"] .zwp-card {
+  right: auto; left: 0; transform: translateX(-100%);
+}
+
+/* ── shared open transforms for the sliding orientations ─────────────────── */
+.zwp-root[data-layout="corner"].zwp-open .zwp-card,
+.zwp-root[data-layout="bar"].zwp-open .zwp-card,
+.zwp-root[data-layout="drawer"].zwp-open .zwp-card { transform: none; }
+.zwp-root[data-layout="full"].zwp-open .zwp-card { transform: scale(1); }
+
+/* ── phones ──────────────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  /* Two-column orientations have no room for a photo column: the form wins and
+     the image becomes a banner above it. */
+  .zwp-root[data-layout="split"] .zwp-card,
+  .zwp-root[data-layout="full"] .zwp-card { grid-template-columns: 1fr; }
+  .zwp-root[data-layout="split"] .zwp-media,
+  .zwp-root[data-layout="full"] .zwp-media { max-height: 34vh; order: 0; }
+  .zwp-root[data-layout="split"][data-media="right"] .zwp-media,
+  .zwp-root[data-layout="full"][data-media="right"] .zwp-media { order: 0; }
+  .zwp-root[data-layout="full"] .zwp-body { max-width: none; }
+
+  /* A drawer on a phone is a bottom sheet — the same shape the rest of the
+     site's modals take at this width. */
+  .zwp-root[data-layout="drawer"] .zwp-card,
+  .zwp-root[data-layout="drawer"][data-side="left"] .zwp-card {
+    top: auto; left: 0; right: 0; bottom: 0;
+    width: 100%; max-height: 88dvh;
+    transform: translateY(100%);
+  }
+
+  /* The bar stacks rather than squeezing a headline, a sentence and a form
+     onto one line. */
+  .zwp-root[data-layout="bar"] .zwp-body { flex-direction: column; align-items: stretch; gap: .7rem; }
+  .zwp-root[data-layout="bar"] .zwp-title { white-space: normal; font-size: 1.2rem; }
+  .zwp-root[data-layout="bar"] .zwp-err { position: static; }
+
+  .zwp-body { padding: 2rem 1.4rem; }
+  .zwp-root[data-layout="corner"] .zwp-card { right: .75rem; left: .75rem; bottom: .75rem; width: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zwp-scrim, .zwp-card { transition: none !important; }
+  .zwp-card, .zwp-open .zwp-card { transform: none !important; }
+  /* Centring is a transform on these two, so it cannot simply be dropped. */
+  .zwp-root[data-layout="center"] .zwp-card,
+  .zwp-root[data-layout="split"] .zwp-card { transform: translate(-50%, -50%) !important; }
+}
