@@ -21,6 +21,13 @@
 -- migration. Idempotent: re-running simply re-sets the same allow-list.
 -- 2026-07-29: added 'collection_page' (builder Collection tab config, read by
 -- drop001.html with the anon key) via the add_collection_page_public_read migration.
+--
+-- KEEP IN SYNC: supabase-image-effects.sql, supabase-bag-panel.sql. Those two file
+-- also ALTER this policy and so must carry this exact list; they were stuck at the
+-- 17- and 18-key versions predating 'feature_flags'/'collection_page', so running
+-- either of them after this one silently revoked those keys — flags and the
+-- collection page reverting to defaults with no error. Adding a new public key
+-- means adding it to all three.
 ALTER POLICY "Public read content keys" ON public.site_settings
 USING (key = ANY (ARRAY[
   'announcement_bar','brand','fonts','hero','legal_policies','shipping_policy',
