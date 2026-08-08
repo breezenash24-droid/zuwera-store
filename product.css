@@ -401,7 +401,7 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
      came out small. A viewport-relative height makes them fill the screen the
      way this arrangement is meant to, and stays right whatever the column ends
      up being. */
-  height: min(80vh, 900px);
+  height: min(88vh, 1040px);
   object-fit: cover;
   display: block;
   background: #0f0f0f;
@@ -464,7 +464,7 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
    too small to read. Give the gallery the larger share, and pull the gap in:
    the photos should dominate the page here, with the buy column alongside. */
 .product-layout:has(.gallery-section[data-layout="dual"]) {
-  grid-template-columns: minmax(0, 2.5fr) minmax(300px, 0.9fr);
+  grid-template-columns: minmax(0, 2.85fr) minmax(290px, 0.85fr);
   gap: 1.75rem;
   align-items: start;
 }
@@ -497,7 +497,11 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
    cramped. Tighter track + gap restores a full row. Same for the colourway
    swatches, which were wrapping early for the same reason. */
 .product-layout:has(.gallery-section[data-layout="dual"]) .size-grid {
-  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  /* auto-FIT, not auto-fill. auto-fill keeps the leftover tracks it creates, and
+     because the max is 1fr each empty track still claims width — which is why
+     blank cells appeared between the size buttons. auto-fit collapses them so
+     the real buttons share the row. */
+  grid-template-columns: repeat(auto-fit, minmax(46px, 1fr));
   gap: .5rem;
 }
 .product-layout:has(.gallery-section[data-layout="dual"]) .size-btn {
