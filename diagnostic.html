@@ -72,7 +72,7 @@
       <div id="diag-auth-error"></div>
     </div>
   </div>
-  <script src="/supabase.min.js?v=9c6ea73a"></script>
+  <script src="/supabase.min.js?v=043941ba"></script>
   <script>
   (function() {
     const _sbDiag = window.supabase.createClient(
@@ -158,7 +158,7 @@ const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
 const STATIC_ASSETS = [
-  '/supabase.min.js?v=9c6ea73a',
+  '/supabase.min.js?v=043941ba',
   '/sw.js',
   '/stripe-client-config.js',
   '/manifest.json',
@@ -484,7 +484,7 @@ async function checkAssetHeaders() {
 /* ── 5. HTTP Response Headers ──────────────────────────── */
 async function checkHeaders() {
   createSection('headers', '5. HTTP Response Headers');
-  const paths = ['/', '/sw.js', '/supabase.min.js?v=9c6ea73a', '/storefront-cohesion.css?v=531497a1'];
+  const paths = ['/', '/sw.js', '/supabase.min.js?v=043941ba', '/storefront-cohesion.css?v=531497a1'];
   for (const path of paths) {
     try {
       const r = await fetchWithTimeout(path + '?_diag=' + Date.now(), { method: 'HEAD', cache: 'no-store' }, 6000);
