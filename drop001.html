@@ -932,6 +932,41 @@ document.documentElement.classList.add('zw-collflash');
     }
     .collection-product-gallery[data-thumbs="left"] .collection-thumbs::-webkit-scrollbar{display:none}
     .collection-product-gallery[data-thumbs="none"] .collection-thumbs{display:none}
+
+    /* ── Filmstrip (modal_layout: dual) ────────────────────────────────────
+       Two photos in view, paged sideways — the product page arrangement. This
+       replaces one-image-plus-rail, which is where the modal wasted most of its
+       space: a rail taller than the photo, a photo narrower than its column and
+       an arrow row stranded beneath both. */
+    .collection-product-gallery[data-layout="dual"]{display:flex;flex-direction:column;padding:0}
+    .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip{
+      display:flex;gap:.4rem;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;
+      scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior-x:contain;
+      /* the single-image caps do not apply to a strip */
+      min-height:0;max-height:none;aspect-ratio:auto;align-items:stretch;flex:1 1 auto;
+    }
+    .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip::-webkit-scrollbar{display:none}
+    .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip > *{
+      flex:0 0 calc(50% - .2rem);scroll-snap-align:start;min-width:0;
+      width:auto;height:min(72vh,620px);object-fit:cover;object-position:center top;display:block;
+    }
+    .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip > video{background:transparent}
+    .collection-product-gallery[data-layout="dual"] .gallery-nav-below{
+      justify-content:flex-start;gap:.9rem;padding:.8rem .9rem 0;flex:0 0 auto;
+    }
+    /* Bare glyphs under the strip, not circular buttons over a photo. */
+    .collection-product-gallery[data-layout="dual"] .gallery-nav-below .collection-gallery-arrow{
+      position:static;transform:none;background:transparent;border:none;border-radius:0;
+      width:auto;height:auto;padding:.2rem .3rem;font-size:1.5rem;line-height:1;opacity:.75;
+      box-shadow:none;backdrop-filter:none;color:inherit;
+    }
+    .collection-product-gallery[data-layout="dual"] .gallery-nav-below .collection-gallery-arrow:hover{background:transparent;opacity:1}
+    @media(max-width:900px){
+      /* One photo per swipe on a phone — two would be postage stamps. */
+      .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip > *{
+        flex:0 0 100%;height:min(56vh,460px);
+      }
+    }
     /* Arrow row: flex:0 0 auto or the media pane (flex:1 1 auto) inside
        overflow:hidden squeezes it to nothing. */
     .collection-product-gallery .gallery-nav-below{
@@ -3398,6 +3433,50 @@ function updateCountdown() {
           mediaEl = '<img src="' + collectionEscapeAttr(current) + '" alt="' + collectionEscapeAttr(item.title) + '" ' + imgStyle + '>';
         }
       }
+      // Filmstrip: every photo for this colourway, two in view, paged sideways —
+      // the same arrangement as the product page. Replaces the one-image-plus-rail
+      // layout that left the modal mostly empty space.
+      var colCfgEarly = window.ZWPdpGallery ? window.ZWPdpGallery.get() : null;
+      if (colCfgEarly && colCfgEarly.modal_layout === 'dual' && images.length && window.ZWPdpGallery.renderStrip) {
+        var gal = media.closest('.collection-product-gallery');
+        if (gal) gal.setAttribute('data-layout', 'dual');
+        var strip = window.ZWPdpGallery.renderStrip(media, images, {
+          isVideo: collectionIsVideo,
+          alt: item.title,
+          onIndex: function (i) {
+            if (window.ZWPdpGallery.setNavCount) window.ZWPdpGallery.setNavCount(gal, i, images.length);
+          }
+        });
+        media._zwStrip = strip;
+        // The strip replaced the media's contents, so there are no arrows for
+        // applyTo to relocate — build the nav row here and wire it to the strip.
+        if (gal) {
+          gal.setAttribute('data-thumbs', 'none');
+          gal.setAttribute('data-arrows', colCfgEarly.modal_arrows === 'none' ? 'none' : 'below');
+          var row = gal.querySelector('.gallery-nav-below');
+          if (!row) { row = document.createElement('div'); row.className = 'gallery-nav-below'; gal.appendChild(row); }
+          row.innerHTML = '';
+          if (images.length > 1 && colCfgEarly.modal_arrows !== 'none') {
+            [['prev', -1, '‹'], ['next', 1, '›']].forEach(function (a) {
+              var btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'collection-gallery-arrow ' + a[0];
+              btn.setAttribute('aria-label', a[0] === 'prev' ? 'Previous product image' : 'Next product image');
+              btn.textContent = a[2];
+              btn.addEventListener('click', function (ev) {
+                ev.preventDefault(); ev.stopPropagation();
+                strip.page(a[1]);
+              });
+              row.appendChild(btn);
+            });
+          }
+        }
+        if (window.ZWPdpGallery.setNavCount) window.ZWPdpGallery.setNavCount(gal, currentIndex, images.length);
+        var colBoxEarly = media.closest('.collection-product-box');
+        if (colBoxEarly) colBoxEarly.setAttribute('data-modal-style', colCfgEarly.modal_style || 'compact');
+        return;
+      }
+
       media.innerHTML = current
         ? (hasMultipleImages ? '<button type="button" class="collection-gallery-arrow prev" data-gallery-step="-1" aria-label="Previous product image">&#10094;</button>' : '') +
           mediaEl +

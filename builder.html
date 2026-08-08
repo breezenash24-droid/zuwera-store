@@ -830,7 +830,7 @@ function pdpNormalize(v){
 const PDP_GALLERY_OPTS = {
   layout:['single','dual'], thumbs:['bottom','left','none'], arrows:['overlay','below','none'],
   modal_thumbs:['none','bottom','left'], modal_arrows:['below','overlay','none'],
-  modal_style:['product','compact'],
+  modal_style:['product','compact'], modal_layout:['dual','single'],
 };
 function pdpGalleryNormalize(g){
   const out={};
@@ -890,6 +890,7 @@ function paintProductTab(container){
     <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">The small product popup opened from a collection card. Set separately — a left rail can suit the page but crowd the popup.</div>
     ${gsel('modal_thumbs','Thumbnails',G.modal_thumbs,[['none','Hidden (default) \u2014 arrows + counter only'],['bottom','Below the photo'],['left','Left rail, scaled down']])}
     ${gsel('modal_arrows','Arrows',G.modal_arrows,[['below','In a row underneath (default), with an n/total counter'],['overlay','Over the photo'],['none','Hidden']])}
+    ${gsel('modal_layout','Image area',G.modal_layout,[['dual','Two side by side \u2014 page across (default)'],['single','One image with arrows']],'Matches the product page: two photos at once, paged sideways with a position counter. \u201cOne image\u201d is the older popup gallery, where the thumbnail and arrow settings below apply.')}
     ${gsel('modal_style','Look',G.modal_style,[['product','Match the product page (default)'],['compact','Its own compact style']],'“Match the product page” gives the popup the same headings, price, swatch and size styling as a full product page, so the two don’t read as different designs. Switch back here any time.')}
     <div style="font-size:.58rem;color:var(--mu);line-height:1.6;margin:-.2rem 0 .4rem">On phones both fall back to the strip underneath — a left rail leaves the photo too small to read.</div>
     <div class="tab-hd" style="margin-top:.4rem">Under the product</div>
