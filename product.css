@@ -464,7 +464,7 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
    too small to read. Give the gallery the larger share, and pull the gap in:
    the photos should dominate the page here, with the buy column alongside. */
 .product-layout:has(.gallery-section[data-layout="dual"]) {
-  grid-template-columns: minmax(0, 2.85fr) minmax(290px, 0.85fr);
+  grid-template-columns: minmax(0, 2.5fr) minmax(380px, 1fr);
   gap: 1.75rem;
   align-items: start;
 }
@@ -491,23 +491,15 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
   }
 }
 
-/* The buy column is narrower here than in the single-image layout, and
-   .size-grid's auto-fill responds to the VIEWPORT, not to its container — so at
-   the same screen width it dropped from five buttons a row to three and read as
-   cramped. Tighter track + gap restores a full row. Same for the colourway
-   swatches, which were wrapping early for the same reason. */
-.product-layout:has(.gallery-section[data-layout="dual"]) .size-grid {
-  /* auto-FIT, not auto-fill. auto-fill keeps the leftover tracks it creates, and
-     because the max is 1fr each empty track still claims width — which is why
-     blank cells appeared between the size buttons. auto-fit collapses them so
-     the real buttons share the row. */
-  grid-template-columns: repeat(auto-fit, minmax(46px, 1fr));
-  gap: .5rem;
-}
-.product-layout:has(.gallery-section[data-layout="dual"]) .size-btn {
-  padding-left: .35rem;
-  padding-right: .35rem;
-}
+/* NOTE: deliberately NO .size-grid override here.
+   Two earlier attempts retuned the track sizing for the narrower buy column and
+   both looked wrong, because `.product-page .size-grid` (inline in product.html,
+   so it isn't visible from this file) already sets
+   `repeat(auto-fit, minmax(84px, max-content))` WITH `justify-content:start`.
+   Replacing only the tracks left the alignment behind, producing a row that
+   matched neither layout — the uneven, gappy size picker.
+   Dual now uses the page's own size rule untouched, so the buy column looks
+   identical in both arrangements. The column is given more room instead. */
 /* Sticky fights a wide filmstrip (the column is taller than the viewport). */
 .gallery-section[data-layout="dual"] { position: static; }
 

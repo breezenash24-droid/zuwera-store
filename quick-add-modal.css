@@ -275,3 +275,41 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
     overflow-x:auto; overflow-y:hidden;
   }
 }
+
+/* ============ MODAL LOOK: "Match the product page" =================
+   Builder → Product → Gallery → Quick-add modal → Look. Default stays
+   'compact' (this file's own scale), so nothing changes unless it's switched.
+
+   This borrows the PRODUCT PAGE's type and spacing rather than restyling the
+   modal from scratch — the point is that the two stop reading as different
+   designs. Same (0,4,0)+ prefix as the rest of this file, since the
+   product-modal block outranks bare class selectors.
+   ================================================================ */
+.mbox.quick-add-review-box.quick-add-product-box[data-modal-style="product"] .quick-add-review-title{
+  font-family:var(--fw);
+  font-style:italic;
+  font-weight:800;
+  letter-spacing:.01em;
+  font-size:clamp(1.9rem,3.2vw,2.9rem);
+  line-height:1.02;
+  text-transform:uppercase;
+}
+.mbox.quick-add-review-box.quick-add-product-box[data-modal-style="product"] .quick-add-product-meta{
+  font-size:.95rem;
+  letter-spacing:.02em;
+}
+/* The page separates each block with a hairline rather than a boxed card. */
+.mbox.quick-add-review-box.quick-add-product-box[data-modal-style="product"] .quick-add-option-block{
+  border:none;
+  border-top:1px solid var(--c15,rgba(244,241,235,.12));
+  padding:1.25rem 0 0;
+  margin-top:1.25rem;
+}
+.mbox.quick-add-review-box.quick-add-product-box[data-modal-style="product"] .quick-add-option-head{
+  font-size:.62rem;
+  letter-spacing:.16em;
+}
+.mbox.quick-add-review-box.quick-add-product-box[data-modal-style="product"] .quick-add-review-body{
+  padding:2.4rem 2.4rem 2.4rem;
+  justify-content:flex-start;
+}

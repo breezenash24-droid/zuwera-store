@@ -361,6 +361,10 @@
           qaCfg.modal_thumbs, qaCfg.modal_arrows, null,
           '.quick-add-gallery-arrow'
         );
+        // Whole-modal look (compact | product) — stamped on the box rather than
+        // the gallery, because it retunes the body typography too.
+        var qaBox = media.closest('.quick-add-product-box');
+        if (qaBox) qaBox.setAttribute('data-modal-style', qaCfg.modal_style || 'compact');
       }
       var touchStartX = 0;
       media.ontouchstart = function (event) { touchStartX = (event.changedTouches && event.changedTouches[0] && event.changedTouches[0].screenX) || 0; };
