@@ -5192,24 +5192,11 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   }
 })();
 </script>
+<!-- zw-login.js claims window.openAuthModal itself (it loads after auth.js, both
+     deferred), so the inline reroute that used to sit here is gone. This also
+     keeps the old workaround for the product-page #auth-modal freeze: that modal
+     is simply never opened any more. One login entry point — see zw-login.js. -->
 <script src="zw-login.js?v=8ffae84d" defer></script>
-<script>
-/* The product page's own auth modal (auth.js #auth-modal) freezes the page on
-   open. Route every openAuthModal caller — the Login button, "save product",
-   and early-access prompts — through the self-contained zw-login modal instead.
-   openAuthModal is a global function in the classic-script auth.js, so
-   reassigning window.openAuthModal redirects all callers (including auth.js's
-   own login-button listener). auth.js still owns header + favourite state, and
-   zw-login signs in through the same window.sb client. */
-document.addEventListener('DOMContentLoaded', function () {
-  if (window.zwOpenLogin) {
-    window.openAuthModal = function (tab) {
-      window.zwOpenLogin(tab === 'signup' ? 'signup' : (tab === 'forgot' ? 'forgot' : 'signin'));
-      return false;
-    };
-  }
-});
-</script>
 <script src="/nav-menu.js?v=2abb3b12" defer></script>
 </body>
 </html>

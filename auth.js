@@ -89,7 +89,18 @@ if (_sb) {
 
     updateHeaderForAuth();
     if (event === 'PASSWORD_RECOVERY') {
-      openAuthModal('update-password');
+      // confirm.html owns the set-a-new-password flow (its own form +
+      // updateUser call) and is what resetPasswordForEmail's redirectTo points
+      // at, so a recovery token normally never reaches this page. This used to
+      // call openAuthModal('update-password') and open the in-page #auth-modal
+      // — a panel that only ever existed in index.html and bag.html, and that
+      // is now unreachable because login dispatch routes through zw-login.js
+      // (which has no update-password tab). Send the user to the one page that
+      // can actually complete the reset, carrying the recovery token in the
+      // hash so Supabase can pick the session back up there.
+      if (!/\/confirm\.html/.test(location.pathname)) {
+        location.replace('/confirm.html' + (location.hash || ''));
+      }
     }
     if (_currentUser) {
       void loadFavorites();

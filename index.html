@@ -2644,23 +2644,10 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
   // refreshCheckoutCardTheme()
 })();
 </script>
+<!-- zw-login.js claims window.openAuth/__zwOpenAuth itself (it loads after
+     storefront.js, both deferred), so the inline reroute that used to sit here
+     is gone. One login entry point, defined in one place — see zw-login.js. -->
 <script src="zw-login.js?v=8ffae84d" defer></script>
-<script>
-/* Use the shared zw-login modal so every page's login is identical. storefront.js
-   exposes a global openAuth() (called by the login button via __zwOpenAuth, and
-   directly by the cart/favourites/deferred-?auth prompts) — reassigning the
-   global reroutes every caller to the self-contained zw-login modal. */
-document.addEventListener('DOMContentLoaded', function () {
-  if (window.zwOpenLogin) {
-    var reroute = function (tab) {
-      window.zwOpenLogin(tab === 'signup' ? 'signup' : (tab === 'forgot' ? 'forgot' : 'signin'));
-      return false;
-    };
-    window.openAuth = reroute;
-    window.__zwOpenAuth = reroute;
-  }
-});
-</script>
 
 <script src="/nav-menu.js?v=2abb3b12" defer></script>
 </body>

@@ -1359,21 +1359,10 @@ window.__zwOpenAuth = function(tab) {
 <script src="modal-lock.js?v=d1fe635d"></script>
 <script src="storefront-theme.js?v=5762e141" defer></script>
 <script src="lang.js?v=5a87b132" defer></script>
+<!-- zw-login.js claims window.openAuthModal/__zwOpenAuth itself (it loads after
+     auth.js, both deferred), so the inline reroute that used to sit here is gone.
+     One login entry point, defined in one place — see zw-login.js. -->
 <script src="zw-login.js?v=d30a7000" defer></script>
-<script>
-/* Use the shared zw-login modal so every page's login is identical. bag's login
-   button is wired by auth.js (openAuthModal); it also exposes __zwOpenAuth.
-   Route both to the self-contained zw-login modal. */
-document.addEventListener('DOMContentLoaded', function () {
-  if (window.zwOpenLogin) {
-    window.openAuthModal = function (tab) {
-      window.zwOpenLogin(tab === 'signup' ? 'signup' : (tab === 'forgot' ? 'forgot' : 'signin'));
-      return false;
-    };
-    window.__zwOpenAuth = window.openAuthModal;
-  }
-});
-</script>
 <script src="/nav-menu.js?v=2abb3b12" defer></script>
 <script src="/storefront-features.js?v=1" defer></script>
 <script src="announcement-bar.js" defer></script>

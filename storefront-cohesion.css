@@ -820,17 +820,12 @@ body.super-light-mode #zw-lang-box{
   padding:2rem 1.6rem 1.8rem !important;
 }
 
-/* Auth + account modals keep a fixed dialog width on desktop
-   (var(--zw-panel-width) above), but on mobile/tablet they must match the
-   bottom-sheet width every other compact modal uses — otherwise they float
-   as a small centered card instead of an edge-to-edge sheet. */
-@media(max-width:900px){
-  #auth-modal > .mbox,
-  #account-modal > .mbox{
-    width:100% !important;
-    max-width:100% !important;
-  }
-}
+/* NOTE: a `@media(max-width:900px)` patch forcing #auth-modal/#account-modal to
+   width:100% used to sit here. It could never take effect — at (1,1,0) it was
+   outranked by the (4,5,0) !important width on the general modal-box rule above,
+   the same trap documented at the #review-modal desktop override below. Compact
+   width for every modal is now owned by the MODAL REDESIGN block at the end of
+   this file, which sets it at matching specificity. */
 
 #review-modal > .review-mbox{
   padding:2rem 1.7rem 1.8rem !important;
@@ -1281,34 +1276,18 @@ body.light-mode .heart-btn{
     display:flex !important;
   }
 
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(#find-size-modal){
-    align-items:stretch !important;
-    justify-content:flex-end !important;
-    padding:0 !important;
-  }
+  /* NOTE: the legacy full-screen (100dvh) compact-modal rules that used to live
+     here were removed — see the "MODAL REDESIGN" block near the end of this file,
+     which is now the SINGLE source of truth for every compact modal.
 
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(#find-size-modal) > :is(.mbox,.collection-review-box,.pbox,.review-mbox,.review-list-mbox){
-    width:100% !important;
-    max-width:100% !important;
-    min-height:100dvh !important;
-    height:100dvh !important;
-    max-height:100dvh !important;
-    border-radius:0 !important;
-    border-left:none !important;
-    border-top:2px solid var(--zw-accent) !important;
-    overflow-y:auto;
-    }
-
-  /* Native-feel bottom sheet: the full-screen mobile modal slides up from the
-     bottom edge (and back down on close) instead of a small nudge + scale.
-     The shared box transition above carries the transform in both directions. */
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(#find-size-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
-    transition:transform .35s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)), opacity .2s ease !important;
-    }
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(#find-size-modal):not(.open) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
-    transform:translateY(100%) !important;
-    opacity:1 !important;
-    }
+     Why they went: this block was written when all modals were full-screen at
+     ≤900px, then hollowed out one `:not(#id)` at a time as each modal migrated to
+     the bottom-sheet treatment. By the end its exclusion chain matched exactly one
+     element (#returns-modal), while its 8-ID specificity still silently outranked
+     the newer block for anything it did match — so the redesign block's own
+     "Overrides the full-screen rules above" comment was never actually true.
+     Keeping both meant every modal's compact width depended on which of two
+     unrelated exclusion lists happened to name it. One block now owns it. */
 
   .collection-review-modal{
     align-items:stretch !important;
@@ -3359,8 +3338,29 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
    ───────────────────────────────────────────────────────────────────────── */
 @media(max-width:900px){
 
+  /* Edge-to-edge sheet width. This block used to omit `width` on the assumption
+     that the legacy full-screen block earlier in this file had already set it to
+     100% — but that block excluded a growing list of modals (#auth-modal,
+     #account-modal, #review-modal, #find-size-modal …), so those kept their
+     DESKTOP dialog width (var(--zw-panel-width), set at ~line 563) while getting
+     sheet shape, motion and bottom-anchoring here. On phones that reads as
+     roughly full-width so it looked fine; at tablet widths (700–900px) it
+     rendered as a small floating card pinned to the bottom edge.
+
+     Two rules because line 563 sets width at specificity (4,5,0) !important:
+     the general rule below (3,2,0) cannot outrank it, so the mirrored selector
+     that follows matches 563 exactly and wins on source order instead. Earlier
+     per-ID patches (#auth-modal/#account-modal at (1,1,0)) never could win and
+     have been removed. */
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#all-reviews-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.collection-review-box){
+    width:100% !important;
+    max-width:100% !important;
+  }
+
   /* All standard modals: bottom sheet with rounded top corners */
   .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal) > :is(.mbox,.review-mbox,.review-list-mbox,.collection-review-box,.review-dialog){
+    width:100% !important;
+    max-width:100% !important;
     min-height:0 !important;
     height:auto !important;
     /* max-height matches overlay padding-top so modal never goes behind nav */
@@ -3389,6 +3389,8 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
 
   /* Quick-add product modal: also bottom sheet */
   .quick-add-review-modal > .mbox.quick-add-product-box{
+    width:100% !important;
+    max-width:100% !important;
     min-height:0 !important;
     height:auto !important;
     max-height:var(--zw-sheet-max) !important;
