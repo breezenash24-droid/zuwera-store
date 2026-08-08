@@ -376,21 +376,39 @@
     });
   }
 
-  window.zwOpenLogin = openModal;
+  /* ── SINGLE LOGIN ENTRY POINT ────────────────────────────────────────────
+     Every login trigger on the storefront resolves here. Zuwera accumulated
+     three login-modal implementations — storefront.js's `openAuth`/#auth-modal
+     (homepage), auth.js's `openAuthModal`/#auth-modal (product/bag), and this
+     component's #zwlg-modal — and pages papered over it with per-page inline
+     shims that reassigned `window.openAuthModal` to point back here. That left
+     dispatch depending on load order: `zwOpenAuth` used to prefer the page's own
+     #auth-modal when one existed, so a click on a favourite/review-login button
+     that landed BEFORE the page's bottom-of-body shim ran would open the stale
+     modal instead of this one.
 
-  // Universal "require login" opener for JS triggers (heart/favorite buttons, save
-  // buttons) that used to hard-redirect to the homepage (index.html?auth=signin).
-  // Prefers the page's own in-place #auth-modal where it exists (index/product), so
-  // the heart matches that page's header login; everywhere else it falls back to
-  // this on-page zwlg-modal. Loaded on every customer page, so it never navigates.
-  window.zwOpenAuth = function (tab) {
-    tab = tab || 'signin';
-    if (typeof window.openAuthModal === 'function' && document.getElementById('auth-modal')) {
-      window.openAuthModal(tab);
-      return;
-    }
+     zw-login.js loads after auth.js/storefront.js on every page (all `defer`, so
+     document order), so claiming the legacy globals here overrides auth.js's
+     top-level `function openAuthModal` and makes the entry point unconditional —
+     no shims, no ordering race. The legacy #auth-modal markup and its handlers
+     are now unreachable; see the note in auth.js.
+
+     Tabs: 'signin' | 'signup' | 'forgot'. Password RECOVERY is not handled here —
+     Supabase redirects those links to confirm.html, which owns that flow. */
+  function openLogin(tab) {
+    tab = (tab === 'signup' || tab === 'forgot') ? tab : 'signin';
     openModal(tab);
-  };
+    // The per-page shims this replaces returned false, and index.html's login
+    // button is `onclick="return window.__zwOpenAuth ? window.__zwOpenAuth('signin') : true"`
+    // — keep returning false so that inline handler still cancels the default.
+    return false;
+  }
+
+  window.zwOpenLogin  = openLogin;
+  window.zwOpenAuth   = openLogin;
+  window.openAuthModal = openLogin;
+  window.__zwOpenAuth = openLogin;
+  window.openAuth     = openLogin;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bind, { once: true });

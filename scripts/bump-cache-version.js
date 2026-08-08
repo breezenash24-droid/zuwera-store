@@ -64,14 +64,31 @@ for (const entry of fs.readdirSync(root)) {
 // group), and hashes[name] means only files we actually ship from root are touched.
 const assetRef = /((?:src|href)=")(\/?)([\w.-]+\.(?:js|css))(?:\?v=[A-Za-z0-9_-]+)?(")/g;
 
+// Assets injected from JAVASCRIPT rather than markup. index.html lazy-loads
+// Supabase this way (`var SB = '/supabase.min.js?v=…'`), and a comment there
+// claimed string form was chosen "so bump-cache-version.js still rewrites their
+// hashes" — the opposite of the truth: assetRef anchors on src="/href=", so it
+// never saw them. Both refs had drifted from the real file hashes, and _headers
+// serves /*.js as `immutable, max-age=31536000`, so returning homepage visitors
+// were pinned to a cached Supabase client that could never be updated — on the
+// page whose lazily-created client already has session-handling history.
+//
+// Deliberately narrower than assetRef: an existing ?v= is REQUIRED. A bare
+// quoted "foo.js" is far more likely to be an ordinary string than an asset
+// reference, and hashes[name] alone isn't enough to tell them apart.
+const jsStringRef = /(['"])(\/?)([\w.-]+\.(?:js|css))\?v=[A-Za-z0-9_.-]+\1/g;
+
 let changedFiles = 0;
 for (const file of htmlFiles) {
   const fp = path.join(root, file);
   if (!fs.existsSync(fp)) continue;
 
   const original = fs.readFileSync(fp, 'utf8');
-  const updated = original.replace(assetRef, (match, attr, slash, name, close) => {
+  let updated = original.replace(assetRef, (match, attr, slash, name, close) => {
     return hashes[name] ? `${attr}${slash}${name}?v=${hashes[name]}${close}` : match;
+  });
+  updated = updated.replace(jsStringRef, (match, q, slash, name) => {
+    return hashes[name] ? `${q}${slash}${name}?v=${hashes[name]}${q}` : match;
   });
 
   if (updated !== original) {
