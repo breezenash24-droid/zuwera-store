@@ -480,10 +480,15 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
   position: sticky;
   top: 100px;
   align-self: start;
-  /* Span both rows so the buy column stays stuck while the accordions (row 2)
-     are being read. Confined to row 1 it would scroll away the moment the
-     photos ended, taking Add to Bag with it. */
-  grid-row: 1 / -1;
+  /* Row 1 ONLY — deliberately not `1 / -1`.
+     Spanning both rows made this column's height count against the SUM of the
+     rows, so the browser padded row 1 (the gallery row) to fit it: a ~300px band
+     of nothing between the arrows and the accordions. Confined to row 1, the row
+     is sized by the photos, which are taller than the buy column, and the band
+     disappears. The cost is that the sticky column releases when the photos end
+     rather than holding through the accordions — a fair trade for not shipping a
+     permanent gap. */
+  grid-row: 1;
   grid-column: 2;
 }
 .gallery-section[data-layout="dual"] { align-self: start; }
