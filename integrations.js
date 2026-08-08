@@ -3,15 +3,13 @@
 
    site_settings.integrations = {
      clarity:    { enabled: true, id: 'abc123' },
-     ga4:        { enabled: true, id: 'G-XXXXXXXXXX' },
      sentry:     { enabled: true, id: 'https://…@o0.ingest.sentry.io/0' },
      crisp:      { enabled: true, id: '…' },
      tawk:       { enabled: true, id: '5f…/1f…' },
      pinterest:  { enabled: true, id: '2612…' },
      tiktok:     { enabled: true, id: 'C7…' },
      plausible:  { enabled: true, id: 'example.com' },
-     trustpilot: { enabled: true, id: '5f…' },
-     gsc:        { enabled: true, id: '<verification token>' }
+     trustpilot: { enabled: true, id: '5f…' }
    }
 
    Every entry is a single public identifier — nothing secret goes in here, and
@@ -60,13 +58,6 @@
              '(window,document,"clarity","script","' + id + '");');
     },
 
-    // Google Analytics 4. google-tag.js already handles Google Ads conversions;
-    // this is the analytics property, which is a separate measurement id.
-    ga4: function (id) {
-      script('https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(id));
-      inline('window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}' +
-             'gtag("js",new Date());gtag("config","' + id + '");');
-    },
 
     // Sentry — browser error monitoring. `id` is the public DSN.
     sentry: function (id) {
@@ -136,14 +127,6 @@
       });
     },
 
-    // Google Search Console — a verification <meta> rather than a script.
-    gsc: function (id) {
-      if (document.querySelector('meta[name="google-site-verification"]')) return;
-      var m = document.createElement('meta');
-      m.name = 'google-site-verification';
-      m.content = id;
-      document.head.appendChild(m);
-    }
   };
 
   function apply(cfg) {

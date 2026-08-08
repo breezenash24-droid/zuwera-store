@@ -1368,10 +1368,15 @@
               free:'Free forever, unlimited traffic', idLabel:'Project ID', idHint:'e.g. abcd1234ef',
               steps:['Sign up at clarity.microsoft.com','Add a new project for your store domain','Settings → Setup → copy the Project ID'] },
 
-            { key:'ga4',       kind:'storefront', icon:'📊', name:'Google Analytics 4', cat:'Analytics',
-              blurb:'Traffic, acquisition and conversion reporting. Separate from Google Ads tracking, which is already wired up.',
-              free:'Free', idLabel:'Measurement ID', idHint:'G-XXXXXXXXXX',
-              steps:['analytics.google.com → Admin → Data streams','Add a web stream for your domain','Copy the Measurement ID (starts with G-)'] },
+            /* NOT here on purpose:
+               • Google Analytics 4 — already installed and hardcoded in
+                 google-tag.js (G-DCVWDZ8ZBC) alongside the Google Ads tag. A
+                 second entry here would load gtag.js twice and double-count
+                 every pageview and purchase. Manage it on Ads & Tracking.
+               • Meta Pixel / Conversions API — same, see meta-pixel.js.
+               • Google Search Console — the verification meta tag is already in
+                 index.html, which is the only page that needs it.
+               • PostHog — has its own key entry in the API key list above. */
 
             { key:'plausible', kind:'storefront', icon:'🌱', name:'Plausible', cat:'Analytics',
               blurb:'Lightweight, cookie-free analytics. No consent banner needed, which keeps EU pages simpler.',
@@ -1408,11 +1413,6 @@
               blurb:'Conversion tracking for TikTok ads.',
               free:'Free (ads cost extra)', idLabel:'Pixel ID', idHint:'C7ABC…',
               steps:['ads.tiktok.com → Assets → Events','Web Events → Set up → Manual install','Copy the Pixel ID'] },
-
-            { key:'gsc',       kind:'storefront', icon:'🔎', name:'Google Search Console', cat:'SEO',
-              blurb:'Adds the verification meta tag so you can claim the domain and see what you rank for.',
-              free:'Free', idLabel:'Verification token', idHint:'content value from the HTML tag method',
-              steps:['search.google.com/search-console → add a URL-prefix property','Choose the HTML tag method','Copy ONLY the content="…" value'] },
 
             { key:'slack',     kind:'server', service:'slack', icon:'💼', name:'Slack Alerts', cat:'Notifications',
               blurb:'Posts a message to a channel on every paid order — the fastest way to feel your store working.',
