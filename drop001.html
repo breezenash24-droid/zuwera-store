@@ -915,6 +915,9 @@ document.documentElement.classList.add('zw-collflash');
          tallest item in the row, so the row grew to fit seven stacked thumbs and
          left a band of dead space under the photo. Capped, it scrolls instead. */
       min-height:0;max-height:min(580px,68dvh);overflow-y:auto;overflow-x:hidden;padding:0;
+      /* Native scrollbar arrows inside the rail read as broken UI. Still
+         scrollable and swipeable; only the chrome is hidden. */
+      scrollbar-width:none;-ms-overflow-style:none;
     }
     /* Authored 64px wide for the horizontal strip; in the rail they overflowed. */
     .collection-product-gallery[data-thumbs="left"] .collection-thumb{
@@ -926,6 +929,7 @@ document.documentElement.classList.add('zw-collflash');
     .collection-product-gallery[data-thumbs="left"] .gallery-nav-below{
       grid-column:1 / -1;grid-row:2;
     }
+    .collection-product-gallery[data-thumbs="left"] .collection-thumbs::-webkit-scrollbar{display:none}
     .collection-product-gallery[data-thumbs="none"] .collection-thumbs{display:none}
     /* Arrow row: flex:0 0 auto or the media pane (flex:1 1 auto) inside
        overflow:hidden squeezes it to nothing. */

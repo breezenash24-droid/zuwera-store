@@ -2983,6 +2983,13 @@ function renderDualGallery() {
       node.loading = idx < 2 ? 'eager' : 'lazy';
       node.decoding = 'async';
     }
+    // Same class the single-image gallery uses for its load animation, so the
+    // admin's Gallery Animation setting (body[data-gal-load]) drives the strip
+    // too. Without it the dual layout built its images with no animation at all.
+    // Staggered slightly so the strip resolves left-to-right instead of every
+    // photo popping at once.
+    node.classList.add('zw-img-in');
+    node.style.animationDelay = Math.min(idx, 5) * 45 + 'ms';
     strip.appendChild(node);
   });
 

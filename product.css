@@ -115,7 +115,8 @@
 }
 
 /* Colorway switch / first paint: soft fade + settle. */
-.main-image.zw-img-in { animation: zwMainImgIn .4s cubic-bezier(.22,.61,.36,1) both; }
+.main-image.zw-img-in, .gallery-dual :is(img,video).zw-img-in,
+.gallery-dual :is(img,video).zw-img-in { animation: zwMainImgIn .4s cubic-bezier(.22,.61,.36,1) both; }
 @keyframes zwMainImgIn {
   from { opacity: 0; transform: scale(1.04); }
   to   { opacity: 1; transform: scale(1); }
@@ -140,10 +141,10 @@
    animation-NAME, so duration/easing/fill from the base shorthand carry over.
    Unset → the defaults above (fade / slide). */
 /* Load animation variants */
-body[data-gal-load="zoom"] .main-image.zw-img-in { animation-name: zwGalLoadZoom; }
-body[data-gal-load="blur"] .main-image.zw-img-in { animation-name: zwGalLoadBlur; }
-body[data-gal-load="rise"] .main-image.zw-img-in { animation-name: zwGalLoadRise; }
-body[data-gal-load="none"] .main-image.zw-img-in { animation: none; }
+body[data-gal-load="zoom"] .main-image.zw-img-in, .gallery-dual :is(img,video).zw-img-in { animation-name: zwGalLoadZoom; }
+body[data-gal-load="blur"] .main-image.zw-img-in, .gallery-dual :is(img,video).zw-img-in { animation-name: zwGalLoadBlur; }
+body[data-gal-load="rise"] .main-image.zw-img-in, .gallery-dual :is(img,video).zw-img-in { animation-name: zwGalLoadRise; }
+body[data-gal-load="none"] .main-image.zw-img-in, .gallery-dual :is(img,video).zw-img-in { animation: none; }
 @keyframes zwGalLoadZoom { from { opacity: 0; transform: scale(1.14); } to { opacity: 1; transform: scale(1); } }
 @keyframes zwGalLoadBlur { from { opacity: 0; filter: blur(16px); }      to { opacity: 1; filter: blur(0); } }
 @keyframes zwGalLoadRise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: translateY(0); } }
@@ -167,9 +168,9 @@ body[data-gal-scroll="none"] .main-image.zw-slide-prev { animation: none; }
    the split load/scroll styles. Only overrides animation-duration, so it composes with
    any style above. Unset / "normal" = the base .4s. */
 /* Load speed (colorway switch / first paint) */
-body[data-gal-load-speed="fast"]   .main-image.zw-img-in { animation-duration: .22s; }
-body[data-gal-load-speed="slow"]   .main-image.zw-img-in { animation-duration: .65s; }
-body[data-gal-load-speed="slower"] .main-image.zw-img-in { animation-duration: .95s; }
+body[data-gal-load-speed="fast"]   .main-image.zw-img-in, .gallery-dual :is(img,video).zw-img-in { animation-duration: .22s; }
+body[data-gal-load-speed="slow"]   .main-image.zw-img-in, .gallery-dual :is(img,video).zw-img-in { animation-duration: .65s; }
+body[data-gal-load-speed="slower"] .main-image.zw-img-in, .gallery-dual :is(img,video).zw-img-in { animation-duration: .95s; }
 /* Scroll speed (arrows / swipe / thumbnails) */
 body[data-gal-scroll-speed="fast"]   .main-image.zw-slide-next,
 body[data-gal-scroll-speed="fast"]   .main-image.zw-slide-prev { animation-duration: .22s; }
@@ -180,7 +181,7 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
 
 @media (prefers-reduced-motion: reduce) {
   /* !important so it beats the higher-specificity body[data-gal-*] selectors above. */
-  .main-image.zw-img-in,
+  .main-image.zw-img-in, .gallery-dual :is(img,video).zw-img-in,
   .main-image.zw-slide-next,
   .main-image.zw-slide-prev { animation: none !important; }
 }
