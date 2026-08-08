@@ -39,9 +39,34 @@ function serviceKey(env) {
  * reappeared on the next read. Unknown ids are dropped so a retired block can't
  * break the page. No saved layout at all → the default five.
  */
+/**
+ * Gallery arrangement (Builder → Product → Gallery). Every value is validated
+ * against a known set rather than passed through, because these land straight in
+ * DOM attributes on the storefront. Anything unrecognised falls back to the
+ * current arrangement, so a bad or partial save can never leave the gallery in
+ * an unstyled state.
+ */
+const GALLERY_OPTS = {
+  layout:       ['single', 'dual'],
+  thumbs:       ['bottom', 'left', 'none'],
+  arrows:       ['overlay', 'below', 'none'],
+  modal_thumbs: ['bottom', 'left', 'none'],
+  modal_arrows: ['overlay', 'below', 'none'],
+};
+
+export function parseGalleryConfig(g) {
+  const out = {};
+  for (const [key, allowed] of Object.entries(GALLERY_OPTS)) {
+    const val = g && typeof g[key] === 'string' ? g[key] : '';
+    out[key] = allowed.includes(val) ? val : allowed[0];
+  }
+  return out;
+}
+
 export function parsePdpConfig(v) {
+  const gallery = parseGalleryConfig(v && v.gallery);
   const saved = (v && Array.isArray(v.sections)) ? v.sections : null;
-  if (!saved) return { sections: DEFAULTS.sections.map((s) => ({ ...s })) };
+  if (!saved) return { sections: DEFAULTS.sections.map((s) => ({ ...s })), gallery };
   const seen = [];
   const out = [];
   saved.forEach((s) => {
@@ -52,7 +77,7 @@ export function parsePdpConfig(v) {
     if (s.cfg && typeof s.cfg === 'object') block.cfg = s.cfg;   // per-block card controls
     out.push(block);
   });
-  return { sections: out };
+  return { sections: out, gallery };
 }
 
 export async function onRequestOptions({ env }) {
@@ -62,7 +87,7 @@ export async function onRequestOptions({ env }) {
 export async function onRequestGet({ env }) {
   try {
     const key = serviceKey(env);
-    if (!env.SUPABASE_URL || !key) return json(DEFAULTS, 200, cors(env));
+    if (!env.SUPABASE_URL || !key) return json(parsePdpConfig(null), 200, cors(env));
     const rows = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.product_page&limit=1`, {
       headers: { apikey: key, Authorization: 'Bearer ' + key }, cache: 'no-store',
     }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
@@ -70,6 +95,6 @@ export async function onRequestGet({ env }) {
     if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
     return json(parsePdpConfig(v), 200, cors(env));
   } catch (e) {
-    return json(DEFAULTS, 200, cors(env));
+    return json(parsePdpConfig(null), 200, cors(env));
   }
 }

@@ -444,7 +444,7 @@ body{display:flex;flex-direction:column}
 <script src="/supabase-client.js?v=0bf64814"></script>
 <!-- Shared video-embed resolver. Loaded (not deferred) so buildForm can call
      ZWVideoEmbed.detect() for the live "platform detected" hint in the editor. -->
-<script src="/video-embed.js?v=98a6d2d0"></script>
+<script src="/video-embed.js?v=0462ce95"></script>
 <script>
 'use strict';
 const SUPA_URL='https://qfgnrsifcwdubkolsgsq.supabase.co';
@@ -804,7 +804,7 @@ const PDP_BLOCK_META = {
 const PDP_CARD_BLOCKS = { recommendations:1, recently_viewed:1, new_arrivals:1 };
 // What a store shows before anyone touches this tab.
 const PDP_ORDER_DEFAULT = ['more_from_release','bundle','recently_viewed','recommendations','qa'];
-let pdpCfg = null, pdpFlags = null;
+let pdpCfg = null, pdpFlags = null, pdpGallery = null;
 
 // A saved layout is taken literally so REMOVALS STICK. This used to append any
 // missing block, which made delete impossible — it came straight back on reload.
@@ -824,6 +824,29 @@ function pdpNormalize(v){
   return out;
 }
 
+/* Gallery arrangement. Validated against the same option lists the API enforces
+   (parseGalleryConfig in functions/api/product-page-config.js) so a value that
+   would be rejected on read can't be written here. */
+const PDP_GALLERY_OPTS = {
+  layout:['single','dual'], thumbs:['bottom','left','none'], arrows:['overlay','below','none'],
+  modal_thumbs:['bottom','left','none'], modal_arrows:['overlay','below','none'],
+};
+function pdpGalleryNormalize(g){
+  const out={};
+  for(const k in PDP_GALLERY_OPTS){
+    const allowed=PDP_GALLERY_OPTS[k];
+    out[k]=(g && allowed.indexOf(g[k])>=0) ? g[k] : allowed[0];
+  }
+  return out;
+}
+function pdpGallerySet(k,v){
+  if(!PDP_GALLERY_OPTS[k] || PDP_GALLERY_OPTS[k].indexOf(v)<0) return;
+  pdpGallery = pdpGalleryNormalize(Object.assign({}, pdpGallery, {[k]:v}));
+  const msg=document.getElementById('pdpMsg');
+  if(msg) msg.textContent='Unsaved — hit Save Product Layout to apply.';
+}
+window.pdpGallerySet = pdpGallerySet;
+
 async function renderProductTab(container){
   container.innerHTML = '<div class="tab-pane"><div class="tab-hd">Under the product</div><div style="font-size:.6rem;color:var(--mu)">Loading…</div></div>';
   if(!pdpCfg){
@@ -835,10 +858,11 @@ async function renderProductTab(container){
       let v = cfgRes && cfgRes.data && cfgRes.data.value;
       if(typeof v==='string'){ try{ v=JSON.parse(v); }catch(_){ v=null; } }
       pdpCfg = pdpNormalize(v);
+      pdpGallery = pdpGalleryNormalize(v && v.gallery);
       let fl = flagRes && flagRes.data && flagRes.data.value;
       if(typeof fl==='string'){ try{ fl=JSON.parse(fl); }catch(_){ fl=null; } }
       pdpFlags = fl || {};
-    }catch(_){ pdpCfg = pdpNormalize(null); pdpFlags = {}; }
+    }catch(_){ pdpCfg = pdpNormalize(null); pdpGallery = pdpGalleryNormalize(null); pdpFlags = {}; }
   }
   paintProductTab(container);
 }
@@ -846,8 +870,20 @@ async function renderProductTab(container){
 function paintProductTab(container){
   const inLayout = pdpCfg.map(s=>s.id);
   const available = Object.keys(PDP_BLOCK_META).filter(id=>inLayout.indexOf(id)<0);
+  const gsel=(k,l,v,opts,hint='')=>`<div class="field"><label>${l}</label><select data-pdpg="${k}" onchange="pdpGallerySet('${k}',this.value)">${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select>${hint?`<span class="fhint">${hint}</span>`:''}</div>`;
+  const G=pdpGallery||pdpGalleryNormalize(null);
   container.innerHTML = `<div class="tab-pane">
-    <div class="tab-hd">Under the product</div>
+    <div class="tab-hd">Gallery</div>
+    <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">How the product photos are arranged. Leave these as they are for the current look — every option is optional.</div>
+    ${gsel('layout','Image area',G.layout,[['single','One image with arrows (current)'],['dual','Two side by side — scroll for more']],'“Two side by side” lays every photo out in a 2-up grid instead of one you page through. Arrows and thumbnails are hidden in that mode.')}
+    ${gsel('thumbs','Thumbnails',G.thumbs,[['bottom','Below the photo (current)'],['left','Left rail, scaled down'],['none','Hidden']])}
+    ${gsel('arrows','Arrows',G.arrows,[['overlay','Over the photo (current)'],['below','In a row underneath'],['none','Hidden']],'Same arrows either way — they just move.')}
+    <div class="tab-hd" style="margin-top:.4rem">Quick-add modal</div>
+    <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">The small product popup opened from a collection card. Set separately — a left rail can suit the page but crowd the popup.</div>
+    ${gsel('modal_thumbs','Thumbnails',G.modal_thumbs,[['bottom','Below the photo (current)'],['left','Left rail, scaled down'],['none','Hidden']])}
+    ${gsel('modal_arrows','Arrows',G.modal_arrows,[['overlay','Over the photo (current)'],['below','In a row underneath'],['none','Hidden']])}
+    <div style="font-size:.58rem;color:var(--mu);line-height:1.6;margin:-.2rem 0 .4rem">On phones both fall back to the strip underneath — a left rail leaves the photo too small to read.</div>
+    <div class="tab-hd" style="margin-top:.4rem">Under the product</div>
     <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">Everything that stacks below a product page. Eye hides a block, ✕ removes it, drag to reorder. Fewer blocks = a calmer page.</div>
     <div class="sec-list" id="pdpList" style="padding:0;overflow:visible"></div>
     ${available.length ? `<div class="tab-hd" style="margin-top:.4rem">Add a block</div>
@@ -978,7 +1014,7 @@ async function pdpSave(){
   try{
     const token=await getAccessToken(); if(!token) throw new Error('Session expired — sign in again.');
     const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({accessToken:token,key:'product_page',value:{sections:pdpCfg}})});
+      body:JSON.stringify({accessToken:token,key:'product_page',value:{sections:pdpCfg,gallery:pdpGallery}})});
     const j=await res.json().catch(()=>({}));
     if(!res.ok||j.error) throw new Error(j.error||'Save failed');
     if(msg) msg.textContent='Saved — live on product pages.';

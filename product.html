@@ -70,7 +70,7 @@
 <!-- Stylesheets -->
 <link rel="stylesheet" href="base.css?v=0db3d715">
 <link rel="stylesheet" href="nav.css?v=ebdd5ccc">
-<link rel="stylesheet" href="product.css?v=9ddff2e3">
+<link rel="stylesheet" href="product.css?v=0b34a03f">
 <link rel="stylesheet" href="cart.css?v=38b9bf99">
 <!-- reviews.css styles only below-the-fold review content + hidden review
      modals, so load it non-render-blocking (matches index.html). reviews-vibe.css
@@ -1647,6 +1647,10 @@ body.super-light-mode { background: #FFFFFF !important; }
 <!-- supabase.min.js now loaded deferred from <head> -->
 <!-- Turnstile invisible widget (shared across all forms on this page) -->
 <div id="zw-ts-widget" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" aria-hidden="true"></div>
+<!-- Gallery arrangement (Builder → Product → Gallery). Not deferred: it applies
+     the cached arrangement before first paint so the gallery doesn't visibly
+     rearrange after load. -->
+<script src="pdp-gallery.js?v=c175a115"></script>
 <script src="auth.js?v=0358208d" defer></script>
 <script>
 
@@ -2889,6 +2893,60 @@ function getImagesForColor(colorVariantId) {
 // Touch listener guard — only attach once, not once per renderGallery() call
 let _galleryTouchSetup = false;
 
+/**
+ * "Dual" gallery arrangement — all images laid out two-up rather than one main
+ * image with arrows. Builds into a sibling of .gallery-main so the original
+ * single-image markup stays intact and switching back needs no re-render.
+ * No-ops (and cleans up after itself) in every other arrangement.
+ */
+function renderDualGallery() {
+  const section = document.querySelector('.gallery-section');
+  const main = document.getElementById('galleryMain');
+  if (!section) return;
+  const g = window.ZWPdpGallery ? window.ZWPdpGallery.get() : null;
+  const on = g && g.layout === 'dual';
+  let grid = section.querySelector('.gallery-dual');
+
+  if (!on) { if (grid) grid.remove(); if (main) main.style.display = ''; return; }
+
+  if (!grid) {
+    grid = document.createElement('div');
+    grid.className = 'gallery-dual';
+    section.insertBefore(grid, main ? main.nextSibling : null);
+  }
+  if (main) main.style.display = 'none';   // the single-image area is unused here
+
+  const media = (currentProduct.images || []);
+  grid.innerHTML = '';
+  media.forEach((item, idx) => {
+    const url = item.image_url || '';
+    const isVideo = /\.(mp4|webm|mov)(\?|#|$)/i.test(url);
+    let node;
+    if (isVideo) {
+      node = document.createElement('video');
+      node.src = url; node.muted = true; node.loop = true;
+      node.playsInline = true; node.autoplay = true; node.preload = 'metadata';
+    } else {
+      node = document.createElement('img');
+      // First pair is above the fold on most screens; the rest can lazy-load.
+      node.src = typeof optimizeImage === 'function' ? optimizeImage(url, 900) : url;
+      node.onerror = function () { if (this.src !== url) this.src = url; };
+      node.alt = item.alt_text || `${currentProduct.title || 'Product'} view ${idx + 1}`;
+      node.loading = idx < 2 ? 'eager' : 'lazy';
+      node.decoding = 'async';
+    }
+    grid.appendChild(node);
+  });
+}
+
+// The gallery usually renders before the config request resolves, so re-run once
+// it lands. Cached config makes this a no-op on a repeat visit.
+if (window.ZWPdpGallery) {
+  window.ZWPdpGallery.ready(function () {
+    if (window.currentProduct && currentProduct.images) { try { renderDualGallery(); } catch (_) {} }
+  });
+}
+
 function renderGallery() {
   const mainImage = document.getElementById('mainImage');
   const mainVideo = document.getElementById('mainVideo');
@@ -2907,6 +2965,11 @@ function renderGallery() {
   // first paint and colorway switches → use the soft fade, not the slide.
   currentImageIndex = Math.max(0, Math.min(currentImageIndex, currentProduct.images.length - 1));
   updateMainImage(currentImageIndex, 'fade');
+
+  // Dual layout: every image in a 2-up grid you scroll, instead of one image you
+  // page through. Rebuilt on each renderGallery so a colourway switch swaps the
+  // set. CSS hides the thumbnails, arrows and dots in this mode.
+  renderDualGallery();
 
   document.getElementById('prevImg').onclick = () => updateMainImage(currentImageIndex - 1);
   document.getElementById('nextImg').onclick = () => updateMainImage(currentImageIndex + 1);

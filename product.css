@@ -276,6 +276,110 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
   display: block;
 }
 
+/* ============ GALLERY LAYOUT OPTIONS ============================
+   Admin → Builder → Product → Gallery writes site_settings.product_page.gallery,
+   and product.html stamps it onto .gallery-section as data-thumbs / data-arrows /
+   data-layout. Everything below is opt-in: with no attributes set the gallery
+   renders exactly as before (thumbnails underneath, arrows over the image), so an
+   existing store sees no change until someone picks a different option.
+
+   The arrows are never re-created for the "below" option — product.html moves the
+   SAME #prevImg/#nextImg nodes into a row, so their click handlers, SVGs and
+   styling carry over untouched.
+   ================================================================ */
+
+/* ── Thumbnails as a vertical rail on the left (the Nike arrangement) ── */
+.gallery-section[data-thumbs="left"] {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: .75rem;
+}
+.gallery-section[data-thumbs="left"] .gallery-thumbnails {
+  order: -1;                       /* rail sits before the main image */
+  flex: 0 0 var(--zw-thumb-rail, 74px);
+  width: var(--zw-thumb-rail, 74px);
+  grid-template-columns: 1fr;      /* one per row instead of the auto-fill strip */
+  gap: .5rem;
+  /* Cap to the image height so a product with many angles scrolls its rail
+     instead of stretching the column past the photo. */
+  max-height: calc(var(--zw-thumb-rail, 74px) * 8);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.gallery-section[data-thumbs="left"] .gallery-main {
+  flex: 1 1 auto;
+  min-width: 0;                    /* let the image shrink inside the flex row */
+}
+
+/* ── No thumbnails (arrows / swipe only) ── */
+.gallery-section[data-thumbs="none"] .gallery-thumbnails { display: none; }
+
+/* ── Arrows in a row under the gallery instead of over the photo ── */
+.gallery-nav-below {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding-top: .25rem;
+}
+.gallery-section[data-arrows="below"] .gallery-nav-below .gallery-arrow {
+  position: static;                /* out of the overlay, into normal flow */
+  transform: none;
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--c15, rgba(244, 241, 235, .15));
+}
+.gallery-section[data-arrows="below"] .gallery-nav-below .gallery-arrow:hover {
+  background: var(--c15, rgba(244, 241, 235, .15));
+}
+/* When the rail is on the left, the arrow row belongs under the photo — not
+   under the rail — so it spans the full section and clears the rail column. */
+.gallery-section[data-thumbs="left"] .gallery-nav-below { width: 100%; }
+.gallery-section[data-arrows="none"] .gallery-arrow { display: none !important; }
+
+/* ── Dual: two photos side by side, no single "main" image ──
+   The On-style arrangement — every image laid out in a 2-up grid you scroll,
+   rather than one image you page through. Arrows and thumbnails are redundant
+   here, so both are hidden regardless of the other two options. */
+.gallery-section[data-layout="dual"] .gallery-thumbnails,
+.gallery-section[data-layout="dual"] .gallery-arrow,
+.gallery-section[data-layout="dual"] .gallery-nav-below,
+.gallery-section[data-layout="dual"] .gallery-dots { display: none !important; }
+.gallery-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .5rem;
+}
+.gallery-dual img,
+.gallery-dual video {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 4/5;
+  object-fit: cover;
+  display: block;
+  background: #0f0f0f;
+}
+/* An odd number of images leaves a gap, so the last one spans both columns —
+   which also gives the hero shot the full width it usually deserves. */
+.gallery-dual > :last-child:nth-child(odd) { grid-column: 1 / -1; aspect-ratio: 16/10; }
+.gallery-dual > :last-child:nth-child(odd) img,
+.gallery-dual > :last-child:nth-child(odd) video { aspect-ratio: 16/10; }
+
+@media (max-width: 900px) {
+  /* Compact widths keep the existing single-image carousel: a left rail or a
+     2-up grid both leave the photo too small to read on a phone. */
+  .gallery-section[data-thumbs="left"] { flex-direction: column; }
+  .gallery-section[data-thumbs="left"] .gallery-thumbnails {
+    order: 0;
+    width: auto;
+    flex: initial;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    max-height: none;
+    overflow-y: visible;
+  }
+  .gallery-dual { grid-template-columns: 1fr; }
+  .gallery-dual > :last-child:nth-child(odd) { aspect-ratio: 4/5; }
+}
+
 /* Carousel position indicator (Nike-style frosted pill of dots) — overlaid on
    the main image. Hidden on desktop (the thumbnail strip shows position there);
    shown on mobile where the angle strip is removed. */
