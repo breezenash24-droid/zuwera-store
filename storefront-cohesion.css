@@ -1135,6 +1135,38 @@ body.light-mode :is(.pcard-img,.product-img){
   :is(.pcard,.product-card):hover :is(.pcard-img,.product-img) img{ transform:none !important; }
 }
 
+/* ── Second-image hover swap ────────────────────────────────────────────────
+   Pointing at a card cross-fades to the product's next photo, the way adidas
+   and On do it. Admin → Settings → Product Cards sets body.zw-card-hover; the
+   alt image is in the markup either way, so flipping the toggle takes effect on
+   the cards already on screen.
+
+   Note the CHILD selector. The rule above at :is(.pcard-img,.product-img) img
+   is (0,1,1) and sets `transition:transform .5s ease` — a flat .pcard-img-alt
+   at (0,1,0) would lose, the opacity transition would be dropped, and the swap
+   would snap instead of fading. Going through the parent puts this at (0,2,0),
+   which is also why the transform half has to be restated here.
+
+   The card's own hover zoom applies to both images (it targets `img`), so they
+   scale together and the swap doesn't jump. */
+:is(.pcard-img,.product-img) > :is(.pcard-img-alt,.product-img-alt){
+  position:absolute; inset:0;
+  opacity:0;
+  pointer-events:none;          /* clicks belong to the card underneath */
+  transition:opacity .35s ease, transform .5s ease;
+}
+/* hover:hover only. On a touchscreen :hover latches after a tap and the alt
+   image would stay stuck over the card until something else was tapped. */
+@media (hover:hover) and (pointer:fine){
+  body.zw-card-hover :is(.pcard,.product-card):hover > :is(.pcard-img,.product-img) > :is(.pcard-img-alt,.product-img-alt),
+  body.zw-card-hover :is(.pcard,.product-card):hover :is(.pcard-img,.product-img) > :is(.pcard-img-alt,.product-img-alt){
+    opacity:1;
+  }
+}
+@media (prefers-reduced-motion: reduce){
+  :is(.pcard-img,.product-img) > :is(.pcard-img-alt,.product-img-alt){ transition:opacity .01ms linear; }
+}
+
 :is(.pcard-info,.product-info){
   padding:1.2rem !important;
   border-top:1px solid var(--zw-line-dark) !important;

@@ -8501,6 +8501,8 @@
                 if (loopChk) loopChk.checked = !!(v && v.card_loop);
                 const loopStyleSel = document.getElementById('settCardLoopStyle');
                 if (loopStyleSel) loopStyleSel.value = (v && /^(seamless|rewind|fade|instant)$/.test(v.card_loop_style)) ? v.card_loop_style : 'seamless';
+                const hoverChk = document.getElementById('settCardHover');
+                if (hoverChk) hoverChk.checked = !!(v && v.card_hover);
             } else if (row.key === 'nav_menu') {
                 let v = row.value;
                 try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
@@ -8610,13 +8612,14 @@
         const card_loop = !!(document.getElementById('settCardLoop') && document.getElementById('settCardLoop').checked);
         const loopStyleEl = document.getElementById('settCardLoopStyle');
         const card_loop_style = (loopStyleEl && /^(seamless|rewind|fade|instant)$/.test(loopStyleEl.value)) ? loopStyleEl.value : 'seamless';
+        const card_hover = !!(document.getElementById('settCardHover') && document.getElementById('settCardHover').checked);
         const { error } = await sb.from('site_settings').upsert(
-            { key: 'product_card_cta', value: { mode, collection_cols, card_fit, card_loop, card_loop_style }, updated_at: new Date().toISOString() },
+            { key: 'product_card_cta', value: { mode, collection_cols, card_fit, card_loop, card_loop_style, card_hover }, updated_at: new Date().toISOString() },
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving card style', 'error'); console.error(error); }
         else {
-            await logAdminAudit('settings.update', 'site_settings', 'product_card_cta', { mode, collection_cols, card_fit, card_loop, card_loop_style });
+            await logAdminAudit('settings.update', 'site_settings', 'product_card_cta', { mode, collection_cols, card_fit, card_loop, card_loop_style, card_hover });
             showToast('Card style saved!', 'success');
         }
     });

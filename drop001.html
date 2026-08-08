@@ -1375,6 +1375,14 @@ document.documentElement.classList.add('zw-collflash');
     try { localStorage.setItem('zw_card_fit', fit === 'contain' ? 'contain' : 'cover'); } catch (_) {}
   };
   try { window.__zwApplyCardFit(localStorage.getItem('zw_card_fit') || 'cover'); } catch (_) {}
+  // Second-image hover swap (admin Product Cards → "Show the next photo on
+  // hover"). Cached so the body class is set before first paint.
+  window.__zwApplyCardHover = function (on) {
+    var yes = on === true || on === 'true';
+    if (document.body) document.body.classList.toggle('zw-card-hover', yes);
+    try { localStorage.setItem('zw_card_hover', yes ? '1' : '0'); } catch (_) {}
+  };
+  try { window.__zwApplyCardHover(localStorage.getItem('zw_card_hover') === '1'); } catch (_) {}
   window.__zwSyncThemeColor = function() {
     var m = document.body.classList.contains('super-light-mode') ? 'super-light'
           : document.body.classList.contains('light-mode') ? 'light' : 'dark';
@@ -2488,6 +2496,7 @@ function updateCountdown() {
             if (window.__zwApplyCardFit) window.__zwApplyCardFit(cta && cta.card_fit === 'contain' ? 'contain' : 'cover');
             window.__zwCardGalleryLoop = !!(cta && cta.card_loop);   // global gallery loop opt-in
             window.__zwCardLoopStyle = (cta && /^(seamless|rewind|fade|instant)$/.test(cta.card_loop_style)) ? cta.card_loop_style : 'seamless';
+            window.__zwCardHoverSwap = !!(cta && cta.card_hover);     // global hover-swap default
           }
           else if (row.key === 'theme' && row.value) {
             const mode = row.value.mode === 'dark' ? 'dark' : row.value.mode === 'super-light' ? 'super-light' : 'light';
@@ -2513,6 +2522,11 @@ function updateCountdown() {
         if (_cp.card_fit && window.__zwApplyCardFit) window.__zwApplyCardFit(_cp.card_fit === 'contain' ? 'contain' : 'cover');
         applyCollectionHeader(_cp);
       }
+      // Hover swap resolves AFTER the loop, not inside it: the two rows arrive
+      // in whatever order the query returns them, so deciding inside the
+      // product_card_cta branch would read a collection_page override that
+      // hadn't been parsed yet on half the page loads.
+      if (window.__zwApplyCardHover) window.__zwApplyCardHover(zwCardHoverOn());
       // Re-render the filter sidebar now the config (column toggles / price
       // brackets / colour count + grouping) is loaded, so it applies without a reload.
       if (typeof plpResetCfgCache === 'function') plpResetCfgCache();
@@ -2696,10 +2710,27 @@ function updateCountdown() {
           const _ccOn = zwCardCarouselOn();
           const _firstColorId = ((p.color_variants || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0] || {}).id;
           const _ccMedia = _ccOn ? zwCardMedia(p, _firstColorId, plpCfg().card_videos === true) : [];
+          // Hover swap for the plain-image card. When the carousel is on it
+          // already holds every photo, so hover scrolls that instead (see the
+          // hover handlers below) and no second <img> is needed.
+          //
+          // Picked with zwCardMedia, this page's own image helper, rather than
+          // the homepage's __zwCardAltImage — storefront.js isn't loaded here,
+          // and zwCardMedia is colour-aware, so the alt shot belongs to the
+          // colourway the card is showing instead of to the product at large.
+          // Videos are excluded: the swap is a still-to-still cross-fade.
+          const _altList = zwCardMedia(p, _firstColorId, false);
+          let _altRaw = '';
+          for (let _ai = 0; _ai < _altList.length; _ai++) {
+            if (_altList[_ai].u && _altList[_ai].u !== originalImg) { _altRaw = _altList[_ai].u; break; }
+          }
+          const _altHtml = _altRaw
+            ? `<img class="product-img-alt" src="${optimizeImage(_altRaw, 600)}" alt="" aria-hidden="true" loading="lazy" width="400" height="500">`
+            : '';
           const imgHtml = (_ccOn && _ccMedia.length > 1)
             ? zwCarouselHtml(_ccMedia, productName)
             : (firstImg
-            ? `<img src="${firstImg}" alt="${productName}" loading="lazy" width="400" height="500" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center" onerror="if(this.src !== '${originalImg || ''}') this.src='${originalImg || ''}';">`
+            ? `<img src="${firstImg}" alt="${productName}" loading="lazy" width="400" height="500" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center" onerror="if(this.src !== '${originalImg || ''}') this.src='${originalImg || ''}';">${_altHtml}`
             : `<div class="product-img-placeholder">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
                 <span>Image Coming Soon</span>
@@ -3001,6 +3032,16 @@ function updateCountdown() {
   // When on, switching colour keeps the SAME image position (image 3 → image 3 of
   // the next colour) instead of resetting to the first shot. Default off.
   function zwCardMirrorOn(){ return (window.__zwCollPageCfg || {}).card_mirror === true; }
+  // Second-image hover swap. The builder's Collection page can override the
+  // global Product-Cards setting in EITHER direction, so an explicit true/false
+  // there wins and anything else falls through to the global — unlike card_loop,
+  // which ORs the two and therefore can't be switched off for one page.
+  function zwCardHoverOn(){
+    var v = (window.__zwCollPageCfg || {}).card_hover;
+    if (v === 'on' || v === true) return true;
+    if (v === 'off' || v === false) return false;
+    return window.__zwCardHoverSwap === true;   // '' / unset → follow the store default
+  }
   // When on, the arrows wrap around: Next on the last image jumps to the first (and
   // Prev on the first jumps to the last). Default off (arrows stop at the ends).
   function zwCardLoopOn(){ return (window.__zwCollPageCfg || {}).card_loop === true || window.__zwCardGalleryLoop === true; }
@@ -3031,6 +3072,54 @@ function updateCountdown() {
     var nav = media.length > 1 ? '<button type="button" class="zw-cc-nav zw-cc-prev" aria-label="Previous image" tabindex="-1">&lsaquo;</button><button type="button" class="zw-cc-nav zw-cc-next" aria-label="Next image" tabindex="-1">&rsaquo;</button>' : '';
     return '<div class="zw-card-carousel" tabindex="-1">'+zwCarouselSlides(media, name)+'</div>'+nav+dots;
   }
+  /* ── Hover swap on carousel cards ──────────────────────────────────────────
+     The carousel already holds every photo, so pointing at the card slides it
+     to the next one instead of cross-fading a second <img> over it.
+
+     Two rules keep this from fighting the shopper:
+       • it only advances from the FIRST slide, and
+       • it only rewinds a card still sitting exactly where it put it.
+     So someone who paged on to photo 4 with the arrows keeps photo 4 when the
+     cursor leaves — without the position check, every mouseout would yank them
+     back to photo 1 mid-browse.
+
+     Bound once on the grid rather than per card: the grid re-renders on every
+     filter change, and per-card listeners would be re-attached each time.
+     mouseover/mouseout bubble (mouseenter/mouseleave do not), which is what
+     makes one delegated pair possible. */
+  (function bindCardHoverSwap(){
+    function slideTo(card, idx){
+      var car = card.querySelector('.zw-card-carousel');
+      if (!car) return;
+      var w = car.clientWidth || 0;
+      if (!w) return;
+      try { car.scrollTo({ left: idx * w, behavior: 'smooth' }); }
+      catch (_) { car.scrollLeft = idx * w; }
+    }
+    document.addEventListener('mouseover', function (e) {
+      if (!zwCardHoverOn()) return;
+      var card = e.target && e.target.closest && e.target.closest('.product-card');
+      if (!card || (e.relatedTarget && card.contains(e.relatedTarget))) return;   // moved within the card
+      var car = card.querySelector('.zw-card-carousel');
+      if (!car || car.children.length < 2) return;
+      var w = car.clientWidth || 1;
+      if (Math.round(car.scrollLeft / w) !== 0) return;    // shopper is already past photo 1
+      card.__zwHoverMoved = 1;
+      slideTo(card, 1);
+    });
+    document.addEventListener('mouseout', function (e) {
+      var card = e.target && e.target.closest && e.target.closest('.product-card');
+      if (!card || !card.__zwHoverMoved) return;
+      if (e.relatedTarget && card.contains(e.relatedTarget)) return;              // still inside
+      card.__zwHoverMoved = 0;
+      var car = card.querySelector('.zw-card-carousel');
+      if (!car) return;
+      var w = car.clientWidth || 1;
+      if (Math.round(car.scrollLeft / w) !== 1) return;   // shopper moved on; leave it alone
+      slideTo(card, 0);
+    });
+  })();
+
   // Swap the carousel (and its dots) to a colour's media on swatch change.
   function zwRebuildCardCarousel(card, sw){
     var carousel = card && card.querySelector('.zw-card-carousel');

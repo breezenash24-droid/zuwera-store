@@ -1037,7 +1037,7 @@ async function pdpSave(){
 // Edits site_settings.collection_page — the release / all-products listing
 // (drop001.html). Header wording + product-grid look. Card size/fit here win
 // over the admin Product-Cards defaults; "Use store default" leaves them alone.
-const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'', card_carousel_lg:false, card_carousel_md:false, card_carousel_sm:false, card_dots:true, card_videos:false, card_mirror:false, card_loop:false, f_category:true, f_gender:true, f_color:true, f_sport:true, f_bestfor:true, f_material:true, f_price:true, price_breaks:'', color_count:'', color_grain:'standard', colors_off:[], materials_off:[] };
+const COLL_DEFAULTS = { eyebrow:'Zuwera', title:'Collection', subtitle:'Launching In', card_size:'', card_fit:'', card_carousel_lg:false, card_carousel_md:false, card_carousel_sm:false, card_dots:true, card_videos:false, card_mirror:false, card_loop:false, card_hover:'', f_category:true, f_gender:true, f_color:true, f_sport:true, f_bestfor:true, f_material:true, f_price:true, price_breaks:'', color_count:'', color_grain:'standard', colors_off:[], materials_off:[] };
 // Mirror of drop001's PLP_MATERIALS names (for the per-material hide chips).
 const COLL_MATERIALS = ['Cotton','Fleece','Wool','Leather','Denim','Linen','Silk','Cashmere','Polyester','Nylon','Spandex','Recycled','Mesh','Bamboo','Rayon','Acrylic'];
 // Mirror of drop001's PLP_COLOR_BUCKETS so the chip swatches match the storefront.
@@ -1097,7 +1097,11 @@ function paintCollectionTab(container){
     + tog('Show position dots','card_dots')
     + tog('Include videos in the swipe','card_videos')
     + tog('Keep image position when switching color','card_mirror')
-    + tog('Loop back to the first image','card_loop'),
+    + tog('Loop back to the first image','card_loop')
+    // Three-state, not a toggle: a plain on/off would write a value on first
+    // save and then outrank the store-wide setting for good, so this page could
+    // never follow the default again.
+    + sel('Show the next photo on hover','card_hover', c.card_hover, [['','Use store default'],['on','On'],['off','Off']]),
     false);
 
   // Live price-bracket preview + per-colour show/hide chips.
