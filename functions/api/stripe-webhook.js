@@ -21,6 +21,7 @@
 
 import Stripe from 'stripe';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { sendOrderAlerts } from './_order-alerts.js';
 import { mutateSetting } from './_commerce.js';
 import { loopsFallback } from './_email.js';
 import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } from './_email-theme.js';
@@ -173,6 +174,18 @@ export async function onRequestPost({ request, env }) {
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
+
+    // Chat alerts (admin → APIs → More Integrations). Deliberately AFTER the
+    // try/catch above, so it only runs once fulfilment has actually succeeded,
+    // and deliberately not awaited into the response path — a Slack outage must
+    // never turn a paid, fulfilled order into a 500 that Stripe then retries.
+    // Same fire-and-forget shape as logWebhookEvent above.
+    sendOrderAlerts(env, {
+      orderNumber: meta.order_number || pi.id.slice(-8).toUpperCase(),
+      totalCents:  pi.amount || 0,
+      email:       meta.customer_email || '',
+      items:       (() => { try { return JSON.parse(meta.items || '[]'); } catch { return []; } })(),
+    }).catch(e => console.warn('order alerts failed (non-fatal):', e.message));
   }
 
   if (event.type === 'payment_intent.payment_failed') {

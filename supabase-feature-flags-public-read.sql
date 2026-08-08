@@ -33,5 +33,6 @@ USING (key = ANY (ARRAY[
   'announcement_bar','brand','fonts','hero','legal_policies','shipping_policy',
   'theme','technologies','tax_rate_overrides','about_page','faq','header_behavior',
   'product_card_cta','nav_menu','landing_pages','landing_pages_published',
-  'image_effects','bag_panel','feature_flags','collection_page'
+  'image_effects','bag_panel','feature_flags','collection_page',
+  'integrations'
 ]));
