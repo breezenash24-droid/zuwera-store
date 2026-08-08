@@ -981,6 +981,61 @@
                     </div>
                     <p class="zw-page-intro">Create sizing guides for your products. Customers can view these when choosing their size at checkout. Add a chart per garment type (e.g. tops, bottoms).</p>
                     <div id="pageFlags-sizecharts" style="margin:14px 0 22px;"></div>
+
+                    <!-- ── Find Your Size rules ─────────────────────────────
+                         Drives BOTH the product-page "Find your size" popup and
+                         the same form inside the size guide — they share one
+                         table, so a shopper can't get two different answers. -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:22px;">
+                        <div style="font-weight:700;margin-bottom:6px;">📐 Find Your Size — recommendation rules</div>
+                        <div style="font-size:.85rem;color:var(--text-secondary);line-height:1.7;margin-bottom:16px;max-width:760px;">
+                            What size a shopper is told to start with. Weight decides the size; height and preferred fit nudge it up or down.
+                            The last row is the catch-all for anyone above every other weight — it has no upper limit and can't be removed.
+                            Used by the popup on the product page <em>and</em> the same form in the size guide.
+                        </div>
+                        <div id="fitBands"></div>
+                        <button class="btn btn-secondary" id="fitAddBand" style="margin-top:10px;">+ Add weight band</button>
+
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-top:20px;">
+                            <div class="form-group" style="margin:0;">
+                                <label>Size up at or above (height, in)</label>
+                                <input type="number" id="fitTallOver" class="form-input" step="1">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label>Size down at or below (height, in)</label>
+                                <input type="number" id="fitShortUnder" class="form-input" step="1">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label>"Relaxed" adjusts by</label>
+                                <input type="number" id="fitRelaxed" class="form-input" step="1">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label>"Snug" adjusts by</label>
+                                <input type="number" id="fitSnug" class="form-input" step="1">
+                            </div>
+                        </div>
+
+                        <!-- Live check: the same function the storefront runs, so what
+                             this previews is what a shopper actually gets. -->
+                        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+                            <div style="font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px;">Try it</div>
+                            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                                <div class="form-group" style="margin:0;"><label>Height (in)</label><input type="number" id="fitTryH" class="form-input" value="70" style="width:110px;"></div>
+                                <div class="form-group" style="margin:0;"><label>Weight (lb)</label><input type="number" id="fitTryW" class="form-input" value="175" style="width:110px;"></div>
+                                <div class="form-group" style="margin:0;"><label>Fit</label>
+                                    <select id="fitTryFit" class="form-select" style="width:150px;">
+                                        <option value="snug">Snug</option>
+                                        <option value="true" selected>True to size</option>
+                                        <option value="relaxed">Relaxed</option>
+                                    </select>
+                                </div>
+                                <div style="padding-bottom:8px;font-size:.9rem;">→ <strong id="fitTryOut" style="font-size:1.1rem;">—</strong></div>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" id="fitSaveBtn" style="margin-top:18px;">💾 Save recommendation rules</button>
+                        <span id="fitSaveMsg" style="font-size:.85rem;color:var(--text-secondary);margin-left:12px;"></span>
+                    </div>
                     <div class="search-filter">
                         <select id="sizeChartCategoryFilter" class="form-select" style="width: 250px;">
                             <option value="men_tops">Men's Tops</option>
@@ -3576,6 +3631,7 @@
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwAdminTsLoad&render=explicit" defer async></script>
     <div id="zw-admin-ts-widget" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" aria-hidden="true"></div>
 
+    <script src="fit-finder.js?v=1"></script>
     <script src="admin-main.js?v=22f987eb"></script>
     <script src="commerce-admin.js?v=d967ea62"></script>
 <!-- API Key Editor Modal -->

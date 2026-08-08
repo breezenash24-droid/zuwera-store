@@ -1029,6 +1029,7 @@
                 loadLegacy();
             } else if (page === 'sizecharts') {
                 loadSizeCharts();
+                loadFitRules();
             } else if (page === 'reviews') {
                 loadAdminReviews();
             } else if (page === 'users') {
@@ -2030,6 +2031,110 @@
                 </div>
               </div>`;
         }
+
+
+        /* ─── Find Your Size rules (site_settings.fit_finder) ───────────────
+           One table drives the product-page popup AND the size guide's form, so
+           a shopper cannot be told two different sizes for the same numbers.
+           The "Try it" preview calls the SAME function the storefront runs
+           (ZWFitFinder.recommend) rather than a second copy that could drift. */
+        let _fitRules = null;
+
+        async function loadFitRules() {
+            if (!_fitRules) {
+                try {
+                    const { data } = await sb.from('site_settings').select('value').eq('key', 'fit_finder').maybeSingle();
+                    let v = data?.value;
+                    if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                    _fitRules = window.ZWFitFinder ? window.ZWFitFinder.normalizeRules(v) : null;
+                } catch (_) { _fitRules = null; }
+            }
+            if (!_fitRules && window.ZWFitFinder) _fitRules = window.ZWFitFinder.normalizeRules(null);
+            paintFitRules();
+        }
+
+        function paintFitRules() {
+            const host = document.getElementById('fitBands');
+            if (!host || !_fitRules) return;
+            const ORDER = (window.ZWFitFinder && window.ZWFitFinder.ORDER) || ['XS','S','M','L','XL','XXL','3XL'];
+            host.innerHTML = _fitRules.bands.map((b, i) => {
+                const last = b.max === null || !isFinite(b.max);
+                const maxCell = last
+                    ? '<span style="width:110px;font-size:.85rem;color:var(--text-secondary);">no limit</span>'
+                    : '<input type="number" class="form-input" style="width:110px;" value="' + b.max + '" data-fitmax="' + i + '">';
+                const del = last ? ''
+                    : '<button class="btn btn-secondary" data-fitdel="' + i + '" style="padding:4px 10px;">✕</button>';
+                return '<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">'
+                    + '<span style="font-size:.8rem;color:var(--text-secondary);width:84px;">' + (last ? 'Everyone else' : 'Under') + '</span>'
+                    + maxCell
+                    + '<span style="font-size:.8rem;color:var(--text-secondary);">lb →</span>'
+                    + '<select class="form-select" style="width:110px;" data-fitsize="' + i + '">'
+                    + ORDER.map(o => '<option value="' + o + '"' + (o === b.size ? ' selected' : '') + '>' + o + '</option>').join('')
+                    + '</select>' + del + '</div>';
+            }).join('');
+            const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+            set('fitTallOver', _fitRules.tallOver);
+            set('fitShortUnder', _fitRules.shortUnder);
+            set('fitRelaxed', _fitRules.relaxed);
+            set('fitSnug', _fitRules.snug);
+            fitTry();
+        }
+
+        function fitReadForm() {
+            if (!_fitRules) return null;
+            const bands = _fitRules.bands.map((b, i) => {
+                const maxEl = document.querySelector('[data-fitmax="' + i + '"]');
+                const sizeEl = document.querySelector('[data-fitsize="' + i + '"]');
+                return { max: maxEl ? Number(maxEl.value) : null, size: sizeEl ? sizeEl.value : b.size };
+            });
+            const n = id => Number((document.getElementById(id) || {}).value);
+            const raw = { bands, tallOver: n('fitTallOver'), shortUnder: n('fitShortUnder'), relaxed: n('fitRelaxed'), snug: n('fitSnug') };
+            return window.ZWFitFinder ? window.ZWFitFinder.normalizeRules(raw) : raw;
+        }
+
+        function fitTry() {
+            const out = document.getElementById('fitTryOut');
+            if (!out || !window.ZWFitFinder || !_fitRules) return;
+            const rules = fitReadForm();
+            const prev = window.ZWFitFinder.getRules();
+            window.ZWFitFinder.setRules(rules);        // preview through the real function
+            out.textContent = window.ZWFitFinder.recommend(
+                Number((document.getElementById('fitTryH') || {}).value) || 0,
+                Number((document.getElementById('fitTryW') || {}).value) || 0,
+                (document.getElementById('fitTryFit') || {}).value, null);
+            window.ZWFitFinder.setRules(prev);         // restore the live rules
+        }
+
+        document.addEventListener('input', e => {
+            if (!e.target || !e.target.id) return;
+            if (e.target.closest('#fitBands') ||
+                ['fitTallOver','fitShortUnder','fitRelaxed','fitSnug','fitTryH','fitTryW'].includes(e.target.id)) fitTry();
+        });
+        document.addEventListener('change', e => {
+            if (e.target && (e.target.id === 'fitTryFit' || (e.target.closest && e.target.closest('#fitBands')))) fitTry();
+        });
+        document.addEventListener('click', async e => {
+            if (!e.target || !e.target.closest) return;
+            const del = e.target.closest('[data-fitdel]');
+            if (del) { _fitRules = fitReadForm(); _fitRules.bands.splice(Number(del.dataset.fitdel), 1); paintFitRules(); return; }
+            if (e.target.id === 'fitAddBand') {
+                _fitRules = fitReadForm();
+                // Insert BEFORE the catch-all, which must stay last.
+                _fitRules.bands.splice(_fitRules.bands.length - 1, 0, { max: 200, size: 'L' });
+                paintFitRules(); return;
+            }
+            if (e.target.id === 'fitSaveBtn') {
+                const msg = document.getElementById('fitSaveMsg');
+                const value = fitReadForm();
+                try {
+                    const { error } = await sb.from('site_settings').upsert({ key: 'fit_finder', value }, { onConflict: 'key' });
+                    if (error) throw error;
+                    _fitRules = value;
+                    void logAdminAudit('settings.update', 'site_settings', 'fit_finder', value);
+                    if (msg) msg.textContent = 'Saved — live on the product page and the size guide.';
+                } catch (err) { if (msg) msg.textContent = 'Could not save: ' + ((err && err.message) || 'error'); }
+            }
+        });
 
         // ─── API Key Editor Modal ─────────────────────────────────────────────────
 

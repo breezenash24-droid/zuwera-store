@@ -1055,29 +1055,14 @@
 
   /* ───────────────────── feature: fit finder ───────────────────── */
 
-  // Honest starting-point heuristic (weight-led, height-nudged, fit-adjusted) —
-  // snapped to a size the product actually offers. Never presented as a guarantee.
+  // Recommendation now lives in fit-finder.js, so the product-page modal and the
+  // size guide answer identically and the weight bands are admin-editable.
+  // Verified: with default rules the shared function returns the same size as
+  // the heuristic this replaced across all 1176 height/weight/fit/stock
+  // combinations, so existing stores see no change.
   function fitRecommend(heightIn, weightLb, fit, sizes) {
-    var order = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
-    var w = weightLb || 0;
-    var idx = w < 120 ? 0 : w < 140 ? 1 : w < 165 ? 2 : w < 190 ? 3 : w < 220 ? 4 : w < 250 ? 5 : 6;
-    // Height nudge: tall (6'0"+) sizes up, short (5'3"-) sizes down; average heights
-    // unchanged so weight leads. (Was only 6'2"+ up, which left 6'0-6'3" unadjusted.)
-    if (heightIn >= 72) idx++; else if (heightIn && heightIn <= 64) idx--;
-    if (fit === 'relaxed') idx++; else if (fit === 'snug') idx--;
-    idx = Math.max(0, Math.min(order.length - 1, idx));
-    var rec = order[idx];
-    if (sizes && sizes.length) {
-      var up = sizes.map(function (s) { return String(s).toUpperCase(); });
-      if (up.indexOf(rec) === -1) {
-        for (var d = 1; d < order.length; d++) {
-          var lo = order[idx - d], hi = order[idx + d];
-          if (lo && up.indexOf(lo) !== -1) { rec = lo; break; }
-          if (hi && up.indexOf(hi) !== -1) { rec = hi; break; }
-        }
-      }
-    }
-    return rec;
+    if (window.ZWFitFinder) return window.ZWFitFinder.recommend(heightIn, weightLb, fit, sizes);
+    return (sizes && sizes[0]) || 'M';   // module missing: don't guess, offer what's stocked
   }
 
   /* Swipe-down-to-close, shared. It lived in storefront.js, which ONLY index.html
@@ -1178,20 +1163,10 @@
     + '<div class="zwf-fit-body"></div>'
     + '</div>';
 
-  function fitFormMarkup() {
-    return '<h3 class="zwf-modal-title">Find your size</h3>'
-      + '<p class="zwf-modal-sub">Answer three quick questions for a starting point. Still unsure? Check the size guide.</p>'
-      + '<div class="zwf-field"><label>Height</label><select class="zwf-h">'
-      + ['Under 5′0', '5′0–5′3', '5′4–5′7', '5′8–5′11', '6′0–6′3', '6′4 +']
-        .map(function (t, i) { return '<option value="' + [62, 64, 67, 70, 73, 76][i] + '"' + (i === 2 ? ' selected' : '') + '>' + t + '</option>'; }).join('')
-      + '</select></div>'
-      + '<div class="zwf-field"><label>Weight (lb)</label><input class="zwf-w" type="number" inputmode="numeric" min="70" max="400" placeholder="e.g. 160"></div>'
-      + '<div class="zwf-field"><label>Preferred fit</label><div class="zwf-seg">'
-      + [['snug', 'Snug'], ['true', 'True to size'], ['relaxed', 'Relaxed']]
-        .map(function (o) { return '<button type="button" data-fit="' + o[0] + '"' + (o[0] === _fitState.fit ? ' class="on"' : '') + '>' + o[1] + '</button>'; }).join('')
-      + '</div></div>'
-      + '<button class="zwf-btn zwf-fit-go" type="button">See my size</button>'
-      + '<button class="zwf-fit-guide" type="button">View full size guide →</button>';
+ function fitFormMarkup() {
+    // Shared markup, so the size guide renders the same form rather than a copy.
+    var inner = window.ZWFitFinder ? window.ZWFitFinder.formMarkup(_fitState.fit) : '';
+    return inner + '<button class="zwf-fit-guide" type="button">View full size guide →</button>';
   }
 
   function openFitFinder(sizes) {

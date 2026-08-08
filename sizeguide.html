@@ -908,7 +908,11 @@
 <script src="/posthog-init.js?v=653a267b" defer></script>
 <style>body.super-light-mode{--bg:#FFFFFF;}</style>
 <!-- Suppress nav/hamburger when loaded inside the product-page iframe modal -->
-<style>html.in-iframe .nav,html.in-iframe header.nav,html.in-iframe #mobile-menu{display:none!important}</style>
+<!-- Page chrome that must not render when this page is embedded in the product
+     page's size-guide modal. #bar / #bar-spacer are the announcement bar: it was
+     missing from this list, so the store-wide announcement rendered INSIDE the
+     modal, in the middle of the Find Your Size panel. -->
+<style>html.in-iframe .nav,html.in-iframe header.nav,html.in-iframe #mobile-menu,html.in-iframe #bar,html.in-iframe #bar-spacer{display:none!important}</style>
 <script>(function(){try{if(window.self!==window.top)document.documentElement.classList.add('in-iframe');}catch(e){document.documentElement.classList.add('in-iframe');}})()</script>
 <script src="consent.js?v=2e7601ab" defer></script>
 </head>
@@ -1007,111 +1011,18 @@
       </div>
 
       <!-- CALCULATOR -->
+      <!-- Find Your Size — rendered by fit-finder.js, the SAME markup and the
+           SAME recommendation the product page modal uses. This section used to
+           be its own calculator (gender / category / height+unit / weight+unit /
+           chest) which asked different questions and could return a different
+           size for the same shopper. One form, one answer. -->
       <section class="calculator">
-      <h2 class="calc-title">Find Your Size</h2>
-      <p class="calc-subtitle">Enter your details below for a recommended starting size.</p>
-
-      <div class="calc-grid">
-        <div class="calc-field" id="calcGenderField">
-          <label class="calc-label">Gender</label>
-          <select id="calcGender" class="calc-select">
-            <option value="">Select Gender</option>
-            <option value="men">Men</option>
-            <option value="women">Women</option>
-            <option value="kids">Kids</option>
-          </select>
+        <div class="zwf-fit-body" id="sizeGuideFinder"></div>
+        <div class="calc-result" id="calcResult">
+          <div class="calc-result-title" id="calcResultTitle">Your recommended size</div>
+          <div class="calc-result-size" id="calcResultSize"></div>
+          <div class="calc-result-text" id="calcResultText"></div>
         </div>
-
-        <div class="calc-field" id="calcCategoryField">
-          <label class="calc-label">Category</label>
-          <select id="calcCategory" class="calc-select">
-            <option value="">Select Category</option>
-            <option value="tops">Tops</option>
-            <option value="bottoms">Bottoms</option>
-            <option value="sports_bras">Sports Bras</option>
-            <option value="hats">Hats</option>
-          </select>
-        </div>
-
-        <div class="calc-field" id="heightField" style="display: none;">
-          <label class="calc-label">Height
-            <div class="calc-toggles">
-              <button class="calc-toggle-btn active" data-unit="in">IN</button>
-              <button class="calc-toggle-btn" data-unit="cm">CM</button>
-            </div>
-          </label>
-          <input type="number" id="calcHeight" class="calc-input" placeholder="e.g., 70" step="0.5">
-        </div>
-
-        <div class="calc-field" id="weightField" style="display: none;">
-          <label class="calc-label">Weight
-            <div class="calc-toggles">
-              <button class="calc-toggle-btn active" data-unit="lbs">LBS</button>
-              <button class="calc-toggle-btn" data-unit="kg">KG</button>
-            </div>
-          </label>
-          <input type="number" id="calcWeight" class="calc-input" placeholder="e.g., 180" step="1">
-        </div>
-
-        <div class="calc-field" id="chestField" style="display: none;">
-          <label class="calc-label">Chest (inches)</label>
-          <input type="number" id="calcChest" class="calc-input" placeholder="e.g., 40" step="0.5">
-        </div>
-
-        <div class="calc-field" id="waistField" style="display: none;">
-          <label class="calc-label">Waist (inches)</label>
-          <input type="number" id="calcWaist" class="calc-input" placeholder="e.g., 34" step="0.5">
-        </div>
-
-        <div class="calc-field" id="hipsField" style="display: none;">
-          <label class="calc-label">Hips (inches)</label>
-          <input type="number" id="calcHips" class="calc-input" placeholder="e.g., 40" step="0.5">
-        </div>
-
-        <div class="calc-field" id="ageField" style="display: none;">
-          <label class="calc-label">Age</label>
-          <input type="number" id="calcAge" class="calc-input" placeholder="e.g., 12" min="7" max="15">
-        </div>
-
-        <div class="calc-field" id="bandField" style="display: none;">
-          <label class="calc-label">Band Size</label>
-          <select id="calcBandSize" class="calc-select">
-            <option value="">Select Band</option>
-            <option value="28">28</option>
-            <option value="30">30</option>
-            <option value="32">32</option>
-            <option value="34">34</option>
-            <option value="36">36</option>
-            <option value="38">38</option>
-            <option value="40">40</option>
-          </select>
-        </div>
-
-        <div class="calc-field" id="cupField" style="display: none;">
-          <label class="calc-label">Cup Size</label>
-          <select id="calcCupSize" class="calc-select">
-            <option value="">Select Cup</option>
-            <option value="A">A</option>
-            <option value="B">B</option>
-            <option value="C">C</option>
-            <option value="D">D</option>
-            <option value="E">E</option>
-          </select>
-        </div>
-
-        <div class="calc-field" id="headCircField" style="display: none;">
-          <label class="calc-label">Head Circumference (inches)</label>
-          <input type="number" id="calcHeadCirc" class="calc-input" placeholder="e.g., 22" step="0.25">
-        </div>
-      </div>
-
-      <button class="calc-button" id="calcSubmit">Find Your Size</button>
-
-      <div class="calc-result" id="calcResult">
-        <div class="calc-result-title" id="calcResultTitle">Your recommended size</div>
-        <div class="calc-result-size" id="calcResultSize"></div>
-        <div class="calc-result-text" id="calcResultText"></div>
-      </div>
       </section>
     </div>
 
@@ -1865,28 +1776,53 @@
       });
     }
 
-    // ------ CALCULATOR ------
+    // ------ FIND YOUR SIZE ------
+    // Renders fit-finder.js's form — the same markup and the same recommendation
+    // the product page's modal uses. This was a separate calculator (gender /
+    // category / height+unit / weight+unit / chest) that asked different
+    // questions and could hand the same shopper a different size.
     function setupCalculator() {
-      const genderSelect = document.getElementById('calcGender');
-      const categorySelect = document.getElementById('calcCategory');
-      const calcSubmit = document.getElementById('calcSubmit');
+      const host = document.getElementById('sizeGuideFinder');
+      if (!host || !window.ZWFitFinder) return;
 
-      genderSelect.addEventListener('change', updateCalculatorFields);
-      categorySelect.addEventListener('change', updateCalculatorFields);
-      calcSubmit.addEventListener('click', performCalculation);
+      let fit = 'true';
+      const render = () => {
+        host.innerHTML = window.ZWFitFinder.formMarkup(fit);
 
-      // Unit toggles
-      document.querySelectorAll('.calc-toggles').forEach(toggles => {
-        toggles.addEventListener('click', e => {
-          if (e.target.classList.contains('calc-toggle-btn')) {
-            toggles.querySelectorAll('.calc-toggle-btn').forEach(btn => btn.classList.remove('active'));
-            e.target.classList.add('active');
-          }
+        host.querySelectorAll('.zwf-seg button').forEach(b => {
+          b.addEventListener('click', () => {
+            fit = b.dataset.fit;
+            host.querySelectorAll('.zwf-seg button').forEach(x => x.classList.toggle('on', x === b));
+          });
         });
-      });
+
+        host.querySelector('.zwf-fit-go').addEventListener('click', () => {
+          const h = parseInt(host.querySelector('.zwf-h').value, 10) || 0;
+          const w = parseInt(host.querySelector('.zwf-w').value, 10) || 0;
+          const result = document.getElementById('calcResult');
+          const sizeEl = document.getElementById('calcResultSize');
+          const textEl = document.getElementById('calcResultText');
+          if (!w) {
+            if (textEl) textEl.textContent = 'Enter a weight to get a starting size.';
+            if (sizeEl) sizeEl.textContent = '';
+            if (result) result.classList.add('show');
+            return;
+          }
+          // No product context here (the guide is a standalone page), so the
+          // recommendation isn't snapped to a stock list — it returns the size
+          // the chart itself implies.
+          const rec = window.ZWFitFinder.recommend(h, w, fit, null);
+          if (sizeEl) sizeEl.textContent = rec;
+          if (textEl) textEl.textContent = 'A starting point based on your height, weight and preferred fit. Check the chart below to confirm.';
+          if (result) result.classList.add('show');
+        });
+      };
+      render();
     }
 
     function updateCalculatorFields() {
+      // Orphaned with the old calculator; still called from the tab handler.
+      if (!document.getElementById('calcGender')) return;
       const genderSelect = document.getElementById('calcGender');
       const categorySelect = document.getElementById('calcCategory');
       
@@ -1941,6 +1877,7 @@
     }
 
     function performCalculation() {
+      if (!document.getElementById('calcGender')) return;
       const gender = document.getElementById('calcGender').value;
       const category = document.getElementById('calcCategory').value;
       const result = document.getElementById('calcResult');
@@ -2223,6 +2160,12 @@
     }
 
     function updatePlaceholdersFromSize() {
+      // The measurement inputs this filled (chest / waist / hips / height /
+      // head) belonged to the old calculator and no longer exist — the Find
+      // Your Size form asks height, weight and fit only. Bail rather than let
+      // the first getElementById(null).placeholder throw and take the rest of
+      // the page init down with it.
+      if (!document.getElementById('calcChest')) return;
       // Set defaults first
       document.getElementById('calcChest').placeholder = 'e.g., 40';
       document.getElementById('calcWaist').placeholder = 'e.g., 34';
@@ -2610,6 +2553,7 @@
 <script src="/supabase-client.js?v=0bf64814" defer></script>
 <script src="zw-login.js?v=5a23b163" defer></script>
 <script src="/nav-menu.js?v=5c1c1e4d" defer></script>
+<script src="fit-finder.js?v=1" defer></script>
 <script src="/storefront-features.js?v=51a446cd" defer></script>
 <script src="announcement-bar.js?v=d2bbbb66" defer></script>
 <script src="integrations.js?v=7f9fbde2" defer></script>
