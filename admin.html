@@ -503,6 +503,26 @@
                     <div id="apis-loading" style="color:var(--text-secondary);padding:24px 0;text-align:center;">Checking all services…</div>
                     <div id="api-grid" class="api-grid" style="display:none;"></div>
 
+                    <!-- Supabase free-tier usage ─────────────────────────────
+                         Two sources: what we can measure from the project with
+                         the service key, and what only Supabase's billing side
+                         knows (egress). The panel says which is which rather
+                         than presenting an estimate as a reading. -->
+                    <div style="margin-top:28px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px;">
+                            <div style="font-weight:700;">🗄️ Supabase — what's left of the free tier</div>
+                            <button class="btn btn-secondary btn-sm" onclick="loadSupabaseUsage()">↻ Check now</button>
+                        </div>
+                        <div style="font-size:.85rem;color:var(--text-secondary);line-height:1.7;margin-bottom:14px;">
+                            Exceeding a quota gets the project restricted, so this is worth watching. Egress is billing-side telemetry &mdash; it cannot be computed from the database, so reading it needs a
+                            <a href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noopener" style="color:var(--accent);">Personal Access Token</a>
+                            set as <code style="background:var(--border);padding:1px 5px;border-radius:4px;">SUPABASE_ACCESS_TOKEN</code> in your Cloudflare environment variables. Everything else is read directly and always works.
+                        </div>
+                        <div id="supabaseUsage" style="font-size:.85rem;">
+                            <span style="color:var(--text-secondary);">Press &ldquo;Check now&rdquo;.</span>
+                        </div>
+                    </div>
+
                     <!-- Product Feed (Google Merchant / Meta Shopping) -->
                     <div style="margin-top:28px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
                         <div style="font-weight:700;margin-bottom:10px;">🛍️ Product Feed — Google &amp; Instagram Shopping</div>

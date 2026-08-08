@@ -2584,6 +2584,79 @@
             }
         }
 
+        /* ─── Supabase free-tier usage ───────────────────────────────────────
+           Reads /api/supabase-usage, which returns two things: figures measured
+           straight from the project (always available) and Supabase's own
+           billing figures (only with a Personal Access Token). The panel keeps
+           them visibly separate — an estimate presented as a reading is how you
+           end up confidently over quota. */
+        async function loadSupabaseUsage() {
+            const host = document.getElementById('supabaseUsage');
+            if (!host) return;
+            host.innerHTML = '<span style="color:var(--text-secondary);">Checking…</span>';
+            try {
+                const { data } = await sb.auth.getSession();
+                const accessToken = data && data.session && data.session.access_token;
+                const resp = await fetch('/api/supabase-usage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken }),
+                });
+                const j = await resp.json().catch(() => null);
+                if (!j || !j.ok) throw new Error((j && j.error) || 'Could not read usage.');
+
+                const mb = (b) => (b / 1048576).toFixed(1) + ' MB';
+                const bar = (label, used, limit, unit, note) => {
+                    const pct = limit ? Math.min(100, (used / limit) * 100) : 0;
+                    const colour = pct >= 100 ? '#ef4444' : pct >= 80 ? '#f59e0b' : '#4ade80';
+                    return '<div style="margin-bottom:14px;">'
+                        + '<div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:4px;">'
+                        + '<span>' + label + '</span>'
+                        + '<span style="color:var(--text-secondary);">' + used + unit + ' of ' + limit + unit + '</span></div>'
+                        + '<div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">'
+                        + '<div style="height:100%;width:' + pct.toFixed(1) + '%;background:' + colour + ';"></div></div>'
+                        + (note ? '<div style="font-size:.76rem;color:var(--text-secondary);margin-top:4px;">' + note + '</div>' : '')
+                        + '</div>';
+                };
+
+                let html = '';
+                const b = j.billing || {};
+                if (b.available && b.data) {
+                    html += '<div style="font-weight:600;margin-bottom:10px;">From Supabase billing</div>';
+                    html += '<pre style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:12px;overflow:auto;max-height:280px;font-size:.76rem;">'
+                        + escapeHtml(JSON.stringify(b.data, null, 2)) + '</pre>';
+                } else {
+                    const why = b.reason === 'no_token'
+                        ? 'No <code>SUPABASE_ACCESS_TOKEN</code> set, so egress and billed database size cannot be read from here. Everything below is measured directly instead.'
+                        : 'A token is set but Supabase\'s usage endpoint did not answer (it is not part of their documented stable API). Egress is only visible on the Supabase dashboard for now.';
+                    html += '<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:10px 12px;margin-bottom:16px;line-height:1.6;">'
+                        + '⚠️ ' + why + '</div>';
+                }
+
+                const m = j.measured || {};
+                const st = m.storage || {};
+                html += '<div style="font-weight:600;margin:4px 0 10px;">Measured from your project</div>';
+                html += bar('Storage', (st.bytes / 1073741824).toFixed(3), j.freeTier.storage_gb, ' GB',
+                    (st.objects || 0) + ' files across ' + (st.buckets || 0) + ' buckets — ' + mb(st.bytes || 0));
+
+                const rows = m.rows || {};
+                html += '<div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;color:var(--text-secondary);">'
+                    + Object.keys(rows).map(k => '<span>' + k.replace(/_/g, ' ') + ': <strong style="color:var(--text-primary);">'
+                        + (rows[k] === null ? '—' : rows[k]) + '</strong></span>').join('')
+                    + '</div>';
+
+                html += '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);font-size:.8rem;color:var(--text-secondary);line-height:1.7;">'
+                    + 'Your product images are hotlinked from brand CDNs, not stored here, so they cost no Supabase egress. '
+                    + 'Storefront reads now go through <code>/api/catalog</code>, <code>/api/stock</code> and <code>/api/storefront-settings</code>, '
+                    + 'which Cloudflare caches at its edge — so Supabase serves them once per cache window rather than once per visitor.'
+                    + '</div>';
+
+                host.innerHTML = html;
+            } catch (err) {
+                host.innerHTML = '<span style="color:#ef4444;">' + escapeHtml((err && err.message) || 'Could not read usage.') + '</span>';
+            }
+        }
+
         // ─── API Key Editor Modal ─────────────────────────────────────────────────
 
         function openKeyEdit(service) {

@@ -2183,19 +2183,20 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
     // way we avoid issuing a duplicate network request.
     const earlyFetch = window.__zwSettingsEarlyFetch || null;
     const resp = await Promise.race([
-      earlyFetch || fetch(`${SUPABASE_URL}/rest/v1/site_settings?select=*`, {
-        cache: 'no-store',
-        headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` }
-      }),
+      earlyFetch || fetch('/api/storefront-settings'),
       _settingsTimeout
     ]);
     if (!resp.ok) {
       return;
     }
-    const data = await resp.json();
-    
-    // Store settings in a local object to process sequentially
+    const payload = await resp.json();
+
+    // /api/storefront-settings returns { ok, settings:{key:value} }. The old
+    // direct Supabase read returned an array of rows; both shapes are accepted
+    // so a cached page mid-deploy can't end up with no settings at all.
     const settings = {};
+    const data = Array.isArray(payload) ? payload
+      : Object.keys((payload && payload.settings) || {}).map(k => ({ key: k, value: payload.settings[k] }));
     data.forEach(row => {
       settings[row.key] = row.value;
     });
@@ -2680,14 +2681,14 @@ async function _doLoadProducts() {
     window.__zwProductsEarlyFetch = null;
     const _timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 9000));
     const productsResp = await Promise.race([
-      earlyFetch || fetch(
-        `${SUPABASE_URL}/rest/v1/products?select=*,product_images(*),color_variants(*)&status=neq.Legacy&status=neq.Draft&order=sort_order.asc`,
-        fetchOpts
-      ),
+      earlyFetch || fetch('/api/catalog'),
       _timeout
     ]);
     if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
-    let products = await productsResp.json();
+    const _payload = await productsResp.json();
+    // { ok, products } from /api/catalog; a bare array from the old direct
+    // Supabase read. Both accepted so a page cached mid-deploy still renders.
+    let products = Array.isArray(_payload) ? _payload : (_payload && _payload.products);
     if (!Array.isArray(products)) products = [];
     
     const normalizedProducts = products.map((product) => ({

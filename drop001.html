@@ -2563,18 +2563,34 @@ function updateCountdown() {
 
       let products;
       try {
-        const headers = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` };
-        const [productsResp, imagesResp, sizesResp, colorsResp] = await Promise.all([
-          fetch(`${SUPABASE_URL}/rest/v1/products?select=*&order=sort_order.asc`, { headers }),
-          fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&order=sort_order.asc`, { headers }),
-          fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=product_id,stock_quantity`, { headers, cache: 'no-store' }),
-          fetch(`${SUPABASE_URL}/rest/v1/color_variants?select=*&order=sort_order.asc`, { headers })
+        // Two calls instead of four, both through our own API so Cloudflare can
+        // serve them from its edge. These were 108 KB of Supabase egress on
+        // every collection page load. Stock is the separate call on purpose:
+        // the catalogue can sit on a 5-minute cache, stock cannot.
+        const [catResp, stockResp] = await Promise.all([
+          fetch('/api/catalog'),
+          fetch('/api/stock'),
         ]);
-        if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
-        products = await productsResp.json();
-        const imageRows = imagesResp.ok ? await imagesResp.json() : [];
-        const sizeRows = sizesResp.ok ? await sizesResp.json() : [];
-        const colorRows = colorsResp.ok ? await colorsResp.json() : [];
+        if (!catResp.ok) throw new Error(`HTTP ${catResp.status}`);
+        const _cat = await catResp.json();
+        const _catProducts = (Array.isArray(_cat) ? _cat : (_cat && _cat.products)) || [];
+        const _stock = stockResp.ok ? await stockResp.json().catch(() => null) : null;
+        const sizeRows = (Array.isArray(_stock) ? _stock : (_stock && _stock.sizes)) || [];
+
+        // /api/catalog nests images and colourways inside each product; this page
+        // works from flat lists, so unpack rather than reshape the whole renderer.
+        products = _catProducts.map((p) => {
+          const { product_images, color_variants, ...rest } = p;
+          return rest;
+        });
+        const imageRows = [];
+        const colorRows = [];
+        _catProducts.forEach((p) => {
+          (p.product_images || []).forEach((im) => imageRows.push({ ...im, product_id: im.product_id || p.id }));
+          (p.color_variants || []).forEach((cv) => colorRows.push({ ...cv, product_id: cv.product_id || p.id }));
+        });
+        imageRows.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+        colorRows.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
         // Aggregate total stock per product
         const stockByProductId = {};
