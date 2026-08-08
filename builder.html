@@ -874,8 +874,11 @@ function paintProductTab(container){
   // leaving it looking live and doing nothing — which is exactly how the Arrows
   // setting read once the dual filmstrip started forcing them underneath.
   const gsel=(k,l,v,opts,hint='',off='')=>`<div class="field"${off?' style="opacity:.45"':''}><label>${l}</label><select data-pdpg="${k}" onchange="pdpGallerySet('${k}',this.value)"${off?' disabled':''}>${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select>${off?`<span class="fhint">${off}</span>`:(hint?`<span class="fhint">${hint}</span>`:'')}</div>`;
-  const dualOff = G.layout==='dual' ? 'Not used by “Two side by side” — it pages with the arrows under the photos.' : '';
   const G=pdpGallery||pdpGalleryNormalize(null);
+  // Must come AFTER G — reading it above put this in G's temporal dead zone, so
+  // paintProductTab threw and the tab sat on "Loading…" forever. `node --check`
+  // and the repo audit both pass on that: it is a runtime error, not a syntax one.
+  const dualOff = G.layout==='dual' ? 'Not used by “Two side by side” — it pages with the arrows under the photos.' : '';
   container.innerHTML = `<div class="tab-pane">
     <div class="tab-hd">Gallery</div>
     <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">How the product photos are arranged. Leave these as they are for the current look — every option is optional.</div>

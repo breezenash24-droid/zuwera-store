@@ -411,15 +411,31 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
   opacity: .5;
   font-variant-numeric: tabular-nums;   /* stops the row twitching as it counts */
 }
+/* Bare glyphs, not the circular buttons used over a photo. Sitting on the page
+   background rather than on top of an image, the ring and fill read as heavy
+   chrome — On's equivalent is just the arrow. Same buttons and same icons, only
+   the decoration comes off. */
 .gallery-section[data-layout="dual"] .gallery-nav-below .gallery-arrow {
   position: static;
   transform: none;
   background: transparent;
   color: inherit;
-  border: 1px solid var(--c15, rgba(244, 241, 235, .15));
+  border: none;
+  border-radius: 0;
+  width: auto;
+  height: auto;
+  padding: .35rem .2rem;
+  opacity: .75;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.gallery-section[data-layout="dual"] .gallery-nav-below .gallery-arrow svg {
+  width: 22px;
+  height: 22px;
 }
 .gallery-section[data-layout="dual"] .gallery-nav-below .gallery-arrow:hover {
-  background: var(--c15, rgba(244, 241, 235, .15));
+  background: transparent;
+  opacity: 1;
 }
 .gallery-section[data-layout="dual"] .gallery-nav-below .gallery-arrow[disabled] {
   opacity: .3;
