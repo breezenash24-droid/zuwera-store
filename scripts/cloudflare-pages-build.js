@@ -37,6 +37,10 @@ const files = [
   'diagnostic.html',
   'drop001.html',
   'error-reporter.js',
+  'email-popup.css',
+
+  'email-popup.js',
+
   'favicon-utils.js',
   'favicon.ico',
   'flags.js',

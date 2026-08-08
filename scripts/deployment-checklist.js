@@ -165,6 +165,27 @@ const checks = [
     },
   },
   {
+    // ALTER POLICY REPLACES the site_settings public-read allow-list rather than
+    // appending to it, so every file carrying that policy must hold the SAME
+    // complete list. Running an out-of-date one silently revokes whatever the
+    // others added, with no error anywhere — it has already cost feature flags,
+    // the bag panel and the collection page once each. A drifted copy is
+    // invisible until a storefront feature quietly stops working, so it is
+    // checked here rather than left to the comments in those files.
+    name: 'site_settings public-read allow-list is identical in every SQL file',
+    pass: () => {
+      const fs2 = require('fs');
+      const root2 = path.resolve(__dirname, '..');
+      const lists = fs2.readdirSync(root2)
+        .filter((f) => f.endsWith('.sql'))
+        .map((f) => fs2.readFileSync(path.join(root2, f), 'utf8'))
+        .map((s) => s.match(/ALTER POLICY "Public read content keys"[\s\S]*?ARRAY\[([\s\S]*?)\]\)\)/))
+        .filter(Boolean)
+        .map((m) => (m[1].match(/'[^']+'/g) || []).sort().join(','));
+      return lists.length > 1 && lists.every((l) => l === lists[0]);
+    },
+  },
+  {
     name: 'Typography selector maps agree (admin SECTION_DEFS === storefront SECTION_SELECTORS)',
     pass: () => {
       const store = {};

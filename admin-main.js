@@ -1060,6 +1060,8 @@
                 loadRecentPRs();
             } else if (page === 'flags') {
                 loadFeatureFlags();
+            } else if (page === 'popup') {
+                loadPopupSettings();
             } else if (page === 'questions') {
                 loadQuestions();
             } else if (page === 'loyalty') {
@@ -2133,6 +2135,189 @@
                     void logAdminAudit('settings.update', 'site_settings', 'fit_finder', value);
                     if (msg) msg.textContent = 'Saved — live on the product page and the size guide.';
                 } catch (err) { if (msg) msg.textContent = 'Could not save: ' + ((err && err.message) || 'error'); }
+            }
+        });
+
+        /* ─── Email popup (site_settings.email_popup) ────────────────────────
+           Edits the config that email-popup.js reads on the storefront. The
+           shapes are never duplicated here: the defaults, the normaliser and
+           the preview all come from ZWEmailPopup itself, so this screen cannot
+           drift from what shoppers actually get. Same reason the Find Your Size
+           editor previews through ZWFitFinder.recommend. */
+        const POPUP_PAGE_LABELS = {
+            home: 'Home', product: 'Product pages', drop001: 'Collection',
+            landing: 'Landing pages', journal: 'Journal', about: 'About',
+            sizeguide: 'Size guide', policies: 'Policies', bag: 'Bag',
+            checkout: 'Checkout', confirm: 'Order confirmation',
+            account: 'Account', other: 'Any other page',
+        };
+        let _popupCfg = null;
+
+        async function loadPopupSettings() {
+            // email-popup.js is deferred; the page can be opened before it lands.
+            if (!window.ZWEmailPopup) { setTimeout(loadPopupSettings, 150); return; }
+            if (!_popupCfg) {
+                try {
+                    const { data } = await sb.from('site_settings').select('value').eq('key', 'email_popup').maybeSingle();
+                    let v = data?.value;
+                    if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                    _popupCfg = v || {};
+                } catch (_) { _popupCfg = {}; }
+            }
+            paintPopupForm(window.ZWEmailPopup.normalize(_popupCfg));
+        }
+
+        function paintPopupForm(c) {
+            const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+            const chk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
+
+            chk('popEnabled', c.enabled);
+            set('popMode', c.mode);
+            const lay = document.querySelector(`input[name="popLayout"][value="${c.layout}"]`);
+            if (lay) lay.checked = true;
+            set('popSide', c.side); set('popMedia', c.media);
+            set('popTheme', c.theme); set('popRadius', c.radius);
+
+            set('popHeading', c.heading); set('popSub', c.sub);
+            set('popPlaceholder', c.placeholder); set('popButton', c.button);
+            set('popFine', c.fine); set('popDecline', c.decline);
+            set('popSuccessHeading', c.successHeading);
+            set('popSuccessSub', c.successSub); set('popSuccessSignup', c.successSignup);
+
+            chk('popLogoOn', c.logo.on); set('popLogoUrl', c.logo.url); set('popLogoHeight', c.logo.height);
+            set('popImageUrl', c.image.url);
+            // The shared upload row shows a thumbnail; seed it from the saved URL.
+            document.querySelectorAll('#popup .image-row').forEach(row => {
+                const url = (row.querySelector('.product-image-url') || {}).value;
+                const img = row.querySelector('.image-preview');
+                if (img) { if (url) { img.src = url; img.style.display = 'block'; } else { img.style.display = 'none'; } }
+            });
+
+            set('popDiscSource', c.discount.source); set('popDiscCode', c.discount.code);
+            set('popDiscPrefix', c.discount.prefix); set('popDiscType', c.discount.type);
+            set('popDiscValue', c.discount.value); set('popDiscMin', c.discount.minSubtotal);
+            set('popDiscExpiry', c.discount.expiryDays);
+
+            set('popTrigDelay', c.trigger.delay); set('popTrigScroll', c.trigger.scroll);
+            set('popTrigViews', c.trigger.minViews); chk('popTrigExit', c.trigger.exitIntent);
+
+            set('popFreqDays', c.rules.frequencyDays);
+            chk('popDevDesktop', c.rules.devices.desktop); chk('popDevMobile', c.rules.devices.mobile);
+
+            const host = document.getElementById('popPages');
+            if (host) {
+                host.innerHTML = Object.keys(c.rules.pages).map(k => {
+                    const label = POPUP_PAGE_LABELS[k] || k;
+                    return '<label class="pop-check"><input type="checkbox" data-poppage="' + k + '"'
+                        + (c.rules.pages[k] ? ' checked' : '') + '> ' + label + '</label>';
+                }).join('');
+            }
+            syncPopupFields();
+        }
+
+        /** Hide the parts of the form that the current choices make meaningless. */
+        function syncPopupFields() {
+            const val = id => (document.getElementById(id) || {}).value;
+            const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+            const layout = (document.querySelector('input[name="popLayout"]:checked') || {}).value || 'center';
+
+            show('popDiscountSect', val('popMode') === 'discount');
+            show('popSharedCodeWrap', val('popDiscSource') === 'shared');
+            show('popPrefixWrap', val('popDiscSource') === 'unique');
+
+            // Edge/photo-side only apply to some orientations. Dimming rather than
+            // hiding keeps the grid from reflowing every time the layout changes.
+            const sideOn = (layout === 'corner' || layout === 'drawer');
+            const mediaOn = (layout === 'split' || layout === 'full');
+            const dim = (id, on) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.disabled = !on;
+                const group = el.closest('.form-group');
+                if (group) group.style.opacity = on ? '1' : '.45';
+            };
+            dim('popSide', sideOn);
+            dim('popMedia', mediaOn);
+
+            const hint = document.getElementById('popDiscValueHint');
+            if (hint) hint.textContent = val('popDiscType') === 'fixed' ? 'Dollars off the order.' : 'Percent off the order.';
+        }
+
+        function popupReadForm() {
+            const val = id => (document.getElementById(id) || {}).value;
+            const on = id => !!(document.getElementById(id) || {}).checked;
+            const pages = {};
+            document.querySelectorAll('[data-poppage]').forEach(el => { pages[el.dataset.poppage] = el.checked; });
+            const raw = {
+                enabled: on('popEnabled'),
+                mode: val('popMode'),
+                layout: (document.querySelector('input[name="popLayout"]:checked') || {}).value,
+                side: val('popSide'), media: val('popMedia'),
+                theme: val('popTheme'), radius: val('popRadius'),
+                logo: { on: on('popLogoOn'), url: val('popLogoUrl'), height: val('popLogoHeight') },
+                image: { url: val('popImageUrl') },
+                heading: val('popHeading'), sub: val('popSub'),
+                placeholder: val('popPlaceholder'), button: val('popButton'),
+                fine: val('popFine'), decline: val('popDecline'),
+                successHeading: val('popSuccessHeading'),
+                successSub: val('popSuccessSub'), successSignup: val('popSuccessSignup'),
+                discount: {
+                    source: val('popDiscSource'), code: val('popDiscCode'), prefix: val('popDiscPrefix'),
+                    type: val('popDiscType'), value: val('popDiscValue'),
+                    minSubtotal: val('popDiscMin'), expiryDays: val('popDiscExpiry'),
+                },
+                trigger: {
+                    delay: val('popTrigDelay'), scroll: val('popTrigScroll'),
+                    minViews: val('popTrigViews'), exitIntent: on('popTrigExit'),
+                },
+                rules: {
+                    frequencyDays: val('popFreqDays'),
+                    devices: { desktop: on('popDevDesktop'), mobile: on('popDevMobile') },
+                    pages,
+                },
+            };
+            // Normalising through the storefront module means the saved row is
+            // always in the shape the popup expects, whatever the form contains.
+            return window.ZWEmailPopup ? window.ZWEmailPopup.normalize(raw) : raw;
+        }
+
+        document.addEventListener('input', e => {
+            if (e.target && e.target.closest && e.target.closest('#popup')) syncPopupFields();
+        });
+        document.addEventListener('change', e => {
+            if (e.target && e.target.closest && e.target.closest('#popup')) syncPopupFields();
+        });
+        document.addEventListener('click', async e => {
+            if (!e.target || !e.target.closest) return;
+
+            if (e.target.id === 'popPreviewBtn') {
+                if (!window.ZWEmailPopup) return;
+                // The real popup, with the values currently on screen. preview:true
+                // stops it recording a "seen" timestamp or actually subscribing.
+                window.ZWEmailPopup.open(popupReadForm(), { preview: true });
+                return;
+            }
+
+            if (e.target.id === 'popSaveBtn') {
+                const msg = document.getElementById('popSaveMsg');
+                const value = popupReadForm();
+                if (msg) msg.textContent = 'Saving…';
+                // A discount popup with no code set would collect emails and then
+                // show an empty box where the reward should be.
+                if (value.enabled && value.mode === 'discount'
+                    && value.discount.source === 'shared' && !value.discount.code) {
+                    if (msg) msg.textContent = 'Add a code first, or switch to unique codes — a discount popup with no code has nothing to give.';
+                    return;
+                }
+                try {
+                    const { error } = await sb.from('site_settings').upsert({ key: 'email_popup', value }, { onConflict: 'key' });
+                    if (error) throw error;
+                    _popupCfg = value;
+                    void logAdminAudit('settings.update', 'site_settings', 'email_popup', value);
+                    if (msg) msg.textContent = value.enabled ? 'Saved — live on the storefront.' : 'Saved. The popup is switched off.';
+                } catch (err) {
+                    if (msg) msg.textContent = 'Could not save: ' + ((err && err.message) || 'error');
+                }
             }
         });
 
@@ -9197,6 +9382,11 @@
             { id: 'product-detail', label: 'Product Details',  role: 'body', sample: 'SIZE & FIT · FABRIC',        cssSel: '.accordion-header, .accordion-body, .colorway-section .section-label', previewEl: null, previewAll: false },
             { id: 'modal',        label: 'Modal Titles',      role: 'head', sample: 'FIND MY SIZE',              cssSel: '.mtitle, .review-mbox-title, .review-modal-title, .size-guide-title, #payment-modal-title, .calc-title, .zwf-modal-title, .zwf-fit-btn, .zwf-fit-go, .zwf-fit-again, .quick-add-option-head', previewEl: null, previewAll: false },
             { id: 'modal-body',   label: 'Modal Body Text',   role: 'body', sample: 'Enter your details below.', cssSel: '.msubtitle, .review-modal-copy, .review-modal-message, .size-guide-copy, .calc-subtitle, .zwf-modal-sub, .quick-add-product-meta, .quick-add-empty-option', previewEl: null, previewAll: false },
+            // Email signup popup. Builds its own markup, so like the modals above
+            // it inherits nothing from the page. cssSel MUST stay identical to
+            // SECTION_SELECTORS in storefront-theme.js.
+            { id: 'popup',        label: 'Email Popup',       role: 'head', sample: 'TAKE 10% OFF',               cssSel: '.zwp-title, .zwp-btn, .zwp-copy',                  previewEl: null, previewAll: false },
+            { id: 'popup-body',   label: 'Email Popup Body',  role: 'body', sample: 'Join for early access.',     cssSel: '.zwp-sub, .zwp-input, .zwp-input::placeholder, .zwp-fine, .zwp-decline, .zwp-err', previewEl: null, previewAll: false },
             { id: 'price',        label: 'Prices & Labels',   role: 'mono', sample: '$89.00 · SIZE M',             cssSel: '.pcard-price, .pcard-cat',                         previewEl: '.fp-card-price,.fp-card-cat', previewAll: true  },
             { id: 'btn',          label: 'Buttons & CTAs',    role: 'mono', sample: 'ADD TO BAG',                  cssSel: '.add-to-cart-btn, .pcard-add-btn, #checkout-btn, #pay-submit', previewEl: '.fp-cta', previewAll: false },
             { id: 'footer',       label: 'Footer',            role: 'mono', sample: 'RETURNS · PRIVACY · TERMS',   cssSel: '.fcopy, .flinks a, .fig',                          previewEl: null,                       previewAll: false },

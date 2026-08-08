@@ -65,6 +65,11 @@
     // Split head vs body; must stay identical to admin-main.js SECTION_DEFS.
     'modal':        '.mtitle, .review-mbox-title, .review-modal-title, .size-guide-title, #payment-modal-title, .calc-title, .zwf-modal-title, .zwf-fit-btn, .zwf-fit-go, .zwf-fit-again, .quick-add-option-head',
     'modal-body':   '.msubtitle, .review-modal-copy, .review-modal-message, .size-guide-copy, .calc-subtitle, .zwf-modal-sub, .quick-add-product-meta, .quick-add-empty-option',
+    // The email signup popup (email-popup.js). It builds its own markup like the
+    // modals do, so nothing on the page reaches it; these are the only handle.
+    // Must stay identical to admin-main.js SECTION_DEFS.
+    'popup':        '.zwp-title, .zwp-btn, .zwp-copy',
+    'popup-body':   '.zwp-sub, .zwp-input, .zwp-input::placeholder, .zwp-fine, .zwp-decline, .zwp-err',
     'price':        '.pcard-price, .pcard-cat',
     'btn':          '.add-to-cart-btn, .pcard-add-btn, #checkout-btn, #pay-submit',
     'footer':       '.fcopy, .flinks a, .fig',
