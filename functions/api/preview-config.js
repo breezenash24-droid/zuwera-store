@@ -15,7 +15,15 @@ import { verifyPreviewToken } from './_preview.js';
 
 // The draft halves of the two published/draft pairs. Everything else in the
 // admin applies the moment it is saved and has no draft to preview.
-const DRAFT_KEYS = ['page_builder', 'landing_pages', 'builder_theme', 'builder_nav'];
+const DRAFT_KEYS = [
+  'page_builder', 'landing_pages', 'builder_theme', 'builder_nav',
+  'product_page_draft', 'collection_page_draft',
+];
+
+// Draft keys whose value the storefront expects to find under a different name.
+// The preview hands back the live key's name holding the draft's contents, so
+// the page renders through its normal path without knowing it is a preview.
+const DRAFT_ALIAS = { product_page_draft: 'product_page', collection_page_draft: 'collection_page' };
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -59,7 +67,7 @@ export async function onRequestGet({ request, env }) {
       if (!row || DRAFT_KEYS.indexOf(row.key) === -1) return;   // belt and braces
       let v = row.value;
       if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
-      settings[row.key] = v;
+      settings[DRAFT_ALIAS[row.key] || row.key] = v;
     });
 
     return json({ ok: true, settings, expiresAt: new Date(claims.exp * 1000).toISOString() });

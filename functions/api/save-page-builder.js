@@ -8,7 +8,16 @@ import { resolvePerms, permsHave } from './_rbac.js';
 
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
-const ALLOWED_KEYS = ['page_builder','builder_theme','builder_nav','builder_history','builder_templates','builder_layouts','page_builder_published','landing_pages','landing_pages_published','scheduled_publish','product_page','collection_page'];
+// product_page_draft / collection_page_draft are the draft halves added so the
+// Product and Collection tabs behave like the Content and Pages tabs: Save keeps
+// it private, Publish makes it live. Note the naming is the opposite way round
+// from page_builder: the LIVE key keeps its original name so the storefront
+// reads exactly what it always did — no fallback logic, and no new key needing
+// a change to the anon-read RLS policy.
+const ALLOWED_KEYS = ['page_builder','builder_theme','builder_nav','builder_history','builder_templates','builder_layouts','page_builder_published','landing_pages','landing_pages_published','scheduled_publish','product_page','collection_page','product_page_draft','collection_page_draft'];
+
+// Draft key → the live key it publishes to.
+const DRAFT_TO_LIVE = { product_page_draft: 'product_page', collection_page_draft: 'collection_page' };
 
 function cors(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -86,6 +95,14 @@ export async function onRequestPost({ request, env }) {
     }
     if (key === 'landing_pages' && published) {
       rows.push({ key: 'landing_pages_published', value });
+    }
+    // The Product and Collection tabs: a plain save writes only the draft, and
+    // publishing copies it onto the live key the storefront reads. Before this,
+    // their Save button wrote straight to the live key while the Content and
+    // Pages tabs saved drafts — so "Save" meant two different things depending
+    // on which tab you were on, and Publish did nothing for two of them.
+    if (DRAFT_TO_LIVE[key] && published) {
+      rows.push({ key: DRAFT_TO_LIVE[key], value });
     }
 
     const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?on_conflict=key`, {

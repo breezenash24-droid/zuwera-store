@@ -854,10 +854,14 @@ async function renderProductTab(container){
   if(!pdpCfg){
     try{
       const [cfgRes, flagRes] = await Promise.all([
-        sb.from('site_settings').select('value').eq('key','product_page').maybeSingle(),
+        sb.from('site_settings').select('value').in('key',['product_page_draft','product_page']),
         sb.from('site_settings').select('value').eq('key','feature_flags').maybeSingle(),
       ]);
-      let v = cfgRes && cfgRes.data && cfgRes.data.value;
+      // Prefer the draft; fall back to the live value so the tab opens on the
+      // current settings rather than blank defaults the first time.
+      const _rows = (cfgRes && cfgRes.data) || [];
+      const _pick = (k) => (_rows.find(r => r.key === k) || {}).value;
+      let v = _pick('product_page_draft') !== undefined ? _pick('product_page_draft') : _pick('product_page');
       if(typeof v==='string'){ try{ v=JSON.parse(v); }catch(_){ v=null; } }
       pdpCfg = pdpNormalize(v);
       pdpGallery = pdpGalleryNormalize(v && v.gallery);
@@ -1019,19 +1023,19 @@ function pdpReorder(fromId, toId){
   paintProductTab(document.getElementById('lpContent'));
 }
 function pdpReset(){ pdpCfg = pdpNormalize(null); paintProductTab(document.getElementById('lpContent')); }
-async function pdpSave(){
+async function pdpSave(publish){
   const btn=document.getElementById('pdpSaveBtn'), msg=document.getElementById('pdpMsg');
   if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
   try{
     const token=await getAccessToken(); if(!token) throw new Error('Session expired — sign in again.');
     const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({accessToken:token,key:'product_page',value:{sections:pdpCfg,gallery:pdpGallery}})});
+      body:JSON.stringify({accessToken:token,key:'product_page_draft',value:{sections:pdpCfg,gallery:pdpGallery},published:!!publish})});
     const j=await res.json().catch(()=>({}));
     if(!res.ok||j.error) throw new Error(j.error||'Save failed');
-    if(msg) msg.textContent='Saved — live on product pages.';
+    if(msg) msg.textContent=publish?'Published — live on product pages.':'Draft saved. Press Publish to make it live.';
     reloadProductPreview();   // show what was just saved, not what loaded first
   }catch(e){ if(msg) msg.textContent=e.message||'Save failed'; if(typeof showErr==='function') showErr(e.message); }
-  if(btn){ btn.disabled=false; btn.textContent='💾 Save Product Layout'; }
+  if(btn){ btn.disabled=false; btn.textContent='💾 Save Draft'; }
 }
 
 // ── COLLECTION TAB ──────────────────────────────────────────────────────────
@@ -1056,8 +1060,11 @@ async function renderCollectionTab(container){
   container.innerHTML = '<div class="tab-pane"><div class="tab-hd">Collection page</div><div style="font-size:.6rem;color:var(--mu)">Loading…</div></div>';
   if(!collectionCfg){
     try{
-      const {data}=await sb.from('site_settings').select('value').eq('key','collection_page').maybeSingle();
-      let v=(data&&data.value)||{};
+      const {data}=await sb.from('site_settings').select('key,value').in('key',['collection_page_draft','collection_page']);
+      const _cr=data||[]; const _cp=(k)=>(_cr.find(r=>r.key===k)||{}).value;
+      // Draft first, live as the fallback — otherwise the tab would open on
+      // blank defaults the first time instead of the settings already in use.
+      let v=(_cp('collection_page_draft')!==undefined?_cp('collection_page_draft'):_cp('collection_page'))||{};
       if(typeof v==='string'){ try{ v=JSON.parse(v); }catch(_){ v={}; } }
       collectionCfg = Object.assign({}, COLL_DEFAULTS, v);
       // Migrate the old single `card_carousel` toggle → per-device flags so an
@@ -1197,19 +1204,19 @@ function paintCollectionTab(container){
   if(_pb && _pv) _pb.addEventListener('input',()=>{ _pv.innerHTML = pricePreview(_pb.value); });
 }
 
-async function saveCollectionCfg(){
+async function saveCollectionCfg(publish){
   const btn=document.getElementById('collSaveBtn'), msg=document.getElementById('collMsg');
   if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
   try{
     const token=await getAccessToken(); if(!token) throw new Error('Session expired — sign in again.');
     const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({accessToken:token,key:'collection_page',value:collectionCfg})});
+      body:JSON.stringify({accessToken:token,key:'collection_page_draft',value:collectionCfg,published:!!publish})});
     const j=await res.json().catch(()=>({}));
     if(!res.ok||j.error) throw new Error(j.error||'Save failed');
-    if(msg) msg.textContent='Saved — live on the collection page.';
+    if(msg) msg.textContent=publish?'Published — live on the collection page.':'Draft saved. Press Publish to make it live.';
     reloadCollectionPreview();
   }catch(e){ if(msg) msg.textContent=e.message||'Save failed'; if(typeof showErr==='function') showErr(e.message); }
-  if(btn){ btn.disabled=false; btn.textContent='💾 Save Collection Page'; }
+  if(btn){ btn.disabled=false; btn.textContent='💾 Save Draft'; }
 }
 
 function resetCollectionCfg(){
@@ -2729,9 +2736,13 @@ async function cancelScheduledPublish(){
 }
 
 async function publishPage(skipLayoutGuard){
-  // On the Pages tab the top Publish publishes the LANDING page you're viewing
-  // (not the homepage) — otherwise landing edits silently never go live.
+  // Publish means the same thing on every tab: make what you have been editing
+  // live. It used to mean "publish the homepage", which is why pressing it on
+  // the Product or Collection tab appeared to do nothing — those tabs wrote
+  // straight to the live key on Save instead, so Publish had nothing to do.
   if(curTab==='pages'){ await saveLandingPages(true); return; }
+  if(curTab==='product'){ await pdpSave(true); return; }
+  if(curTab==='collection'){ await saveCollectionCfg(true); return; }
   // Layout guard: publishing while editing a NON-live layout replaces the live
   // homepage with this design — make sure that's intentional. (Set Live in the
   // Layouts modal already confirmed, so it passes skipLayoutGuard=true.)

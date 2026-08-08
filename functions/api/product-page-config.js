@@ -11,6 +11,7 @@
  */
 
 import { cors, json } from './_commerce.js';
+import { verifyPreviewToken } from './_preview.js';
 
 // Every block that CAN appear under a product. `more_from_release` is rendered by
 // product.html itself and always sits first; the rest are injected by
@@ -88,14 +89,30 @@ export async function onRequestOptions({ env }) {
   return new Response(null, { status: 204, headers: cors(env) });
 }
 
-export async function onRequestGet({ env }) {
+export async function onRequestGet({ request, env }) {
   try {
     const key = serviceKey(env);
     if (!env.SUPABASE_URL || !key) return json(parsePdpConfig(null), 200, cors(env));
-    const rows = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.product_page&limit=1`, {
+
+    // Under a valid admin preview token, serve the DRAFT instead of the live
+    // config — otherwise a preview of the product page would show what is
+    // already published, which is the one thing a preview must not do.
+    let wanted = 'product_page';
+    const token = new URL(request.url).searchParams.get('zwpreview');
+    if (token && await verifyPreviewToken(env, token)) wanted = 'product_page_draft';
+
+    const rows = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.${wanted}&limit=1`, {
       headers: { apikey: key, Authorization: 'Bearer ' + key }, cache: 'no-store',
     }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
     let v = rows && rows[0] && rows[0].value;
+    // A preview with no draft saved yet falls back to live rather than showing
+    // defaults, which would look like the preview had broken the page.
+    if (wanted === 'product_page_draft' && (v === undefined || v === null)) {
+      const live = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.product_page&limit=1`, {
+        headers: { apikey: key, Authorization: 'Bearer ' + key }, cache: 'no-store',
+      }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
+      v = live && live[0] && live[0].value;
+    }
     if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
     return json(parsePdpConfig(v), 200, cors(env));
   } catch (e) {

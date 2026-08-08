@@ -2566,6 +2566,13 @@
                 const j = await resp.json().catch(() => null);
                 if (!j || !j.ok || !j.token) throw new Error((j && j.error) || 'Could not create a preview link.');
 
+                // Carry the chosen banner colour to the preview tab. Same-origin
+                // localStorage, so the storefront picks it up without needing
+                // another setting round-trip or a query parameter.
+                try {
+                    const cEl = document.getElementById('settPreviewBarColour');
+                    if (cEl && cEl.value) localStorage.setItem('zw_preview_bar_colour', cEl.value);
+                } catch (_) {}
                 const url = location.origin + '/?zwpreview=' + encodeURIComponent(j.token);
                 if (tab) tab.location = url; else window.open(url, '_blank');
                 showToast('Preview opened — builder drafts only. Everything else in the admin is already live.', 'success');
@@ -8759,6 +8766,11 @@
                 if (loopStyleSel) loopStyleSel.value = (v && /^(seamless|rewind|fade|instant)$/.test(v.card_loop_style)) ? v.card_loop_style : 'seamless';
                 const hoverChk = document.getElementById('settCardHover');
                 if (hoverChk) hoverChk.checked = !!(v && v.card_hover);
+                const pvcLoad = document.getElementById('settPreviewBarColour');
+                if (pvcLoad && v && /^#[0-9a-f]{3,8}$/i.test(v.preview_bar_colour || '')) {
+                    pvcLoad.value = v.preview_bar_colour;
+                    try { localStorage.setItem('zw_preview_bar_colour', v.preview_bar_colour); } catch (_) {}
+                }
                 const hoverMsSel = document.getElementById('settCardHoverMs');
                 // Snap an older/hand-edited value onto the nearest option rather
                 // than silently resetting it to instant.
@@ -8879,8 +8891,11 @@
         const card_hover = !!(document.getElementById('settCardHover') && document.getElementById('settCardHover').checked);
         const hoverMsEl = document.getElementById('settCardHoverMs');
         const card_hover_ms = Math.max(0, Math.min(2000, Number(hoverMsEl && hoverMsEl.value) || 0));
+        const pvcEl = document.getElementById('settPreviewBarColour');
+        const preview_bar_colour = (pvcEl && /^#[0-9a-f]{3,8}$/i.test(pvcEl.value)) ? pvcEl.value : '#1d4ed8';
+        try { localStorage.setItem('zw_preview_bar_colour', preview_bar_colour); } catch (_) {}
         const { error } = await sb.from('site_settings').upsert(
-            { key: 'product_card_cta', value: { mode, collection_cols, card_fit, card_loop, card_loop_style, card_hover, card_hover_ms }, updated_at: new Date().toISOString() },
+            { key: 'product_card_cta', value: { mode, collection_cols, card_fit, card_loop, card_loop_style, card_hover, card_hover_ms, preview_bar_colour }, updated_at: new Date().toISOString() },
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving card style', 'error'); console.error(error); }

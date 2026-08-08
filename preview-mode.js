@@ -60,17 +60,30 @@
   function banner(text, isError, expiresAt) {
     function build() {
       if (document.getElementById('zw-preview-bar')) return;
+      // Admin-chosen colour (Admin → Settings → Preview bar). Falls back to a
+      // blue that is obviously not part of the storefront's palette.
+      var colour = isError ? '#7f1d1d' : '#1d4ed8';
+      try {
+        var saved = localStorage.getItem('zw_preview_bar_colour');
+        if (!isError && saved && /^#[0-9a-f]{3,8}$/i.test(saved)) colour = saved;
+      } catch (_) {}
+
       var bar = document.createElement('div');
       bar.id = 'zw-preview-bar';
       bar.setAttribute('role', 'status');
       bar.style.cssText = [
-        'position:fixed', 'top:0', 'left:0', 'right:0', 'z-index:2147483000',
+        'position:fixed', 'top:0', 'left:0', 'right:0',
+        // Above everything, including the announcement bar (230) and the site's
+        // own modals — the whole point is to review the real page furniture, so
+        // the bar must never be the thing hiding it.
+        'z-index:2147483000',
         'display:flex', 'align-items:center', 'justify-content:center', 'gap:1rem',
         'padding:.5rem 1rem', 'box-sizing:border-box',
-        'background:' + (isError ? '#7f1d1d' : '#1d4ed8'), 'color:#fff',
+        'background:' + colour, 'color:#fff',
         "font-family:var(--zw-font-mono,'IBM Plex Mono',monospace)",
         'font-size:.68rem', 'letter-spacing:.14em', 'text-transform:uppercase',
         'box-shadow:0 1px 8px rgba(0,0,0,.3)',
+        'transition:transform .25s ease',
       ].join(';');
 
       var label = document.createElement('span');
@@ -93,11 +106,51 @@
       bar.appendChild(exit);
 
       document.body.appendChild(bar);
-      // Push the page down rather than covering the header. The announcement
-      // bar and the nav are both fixed to the top, so they would sit under this
-      // otherwise.
-      document.documentElement.style.setProperty('scroll-padding-top', bar.offsetHeight + 'px');
-      document.body.style.paddingTop = bar.offsetHeight + 'px';
+
+      // Collapse to a tab. The bar sits above the announcement bar and the nav
+      // by design, which is exactly what you want until you are trying to LOOK
+      // at the announcement bar — so it folds away to a small handle and comes
+      // back on a click. The choice is remembered for the session, so it stays
+      // out of the way as you click through the site.
+      var tab = document.createElement('button');
+      tab.type = 'button';
+      tab.id = 'zw-preview-tab';
+      tab.setAttribute('aria-label', 'Show preview banner');
+      tab.textContent = '▾ PREVIEW';
+      tab.style.cssText = [
+        'position:fixed', 'top:0', 'left:50%', 'transform:translateX(-50%)',
+        'z-index:2147483001', 'display:none', 'border:0', 'cursor:pointer',
+        'padding:.2rem .8rem', 'border-radius:0 0 6px 6px',
+        'background:' + colour, 'color:#fff',
+        "font-family:var(--zw-font-mono,'IBM Plex Mono',monospace)",
+        'font-size:.6rem', 'letter-spacing:.14em',
+      ].join(';');
+      document.body.appendChild(tab);
+
+      function setCollapsed(on) {
+        bar.style.transform = on ? 'translateY(-100%)' : '';
+        tab.style.display = on ? 'block' : 'none';
+        // Give the page its space back when the bar is away, so what sits under
+        // it can be judged at its real position.
+        document.body.style.paddingTop = on ? '' : bar.offsetHeight + 'px';
+        document.documentElement.style.setProperty('scroll-padding-top', on ? '0px' : bar.offsetHeight + 'px');
+        try { sessionStorage.setItem('zw_preview_collapsed', on ? '1' : '0'); } catch (_) {}
+      }
+
+      var hide = document.createElement('button');
+      hide.type = 'button';
+      hide.setAttribute('aria-label', 'Hide preview banner');
+      hide.textContent = '▴ HIDE';
+      hide.style.cssText = 'background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff;font:inherit;cursor:pointer;padding:.1rem .5rem;border-radius:3px';
+      hide.addEventListener('click', function () { setCollapsed(true); });
+      bar.appendChild(hide);
+      tab.addEventListener('click', function () { setCollapsed(false); });
+
+      // Push the page down rather than covering the header, unless the admin
+      // already folded it away earlier in this session.
+      var wasCollapsed = false;
+      try { wasCollapsed = sessionStorage.getItem('zw_preview_collapsed') === '1'; } catch (_) {}
+      setCollapsed(wasCollapsed);
     }
     if (document.body) build();
     else document.addEventListener('DOMContentLoaded', build, { once: true });
