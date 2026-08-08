@@ -2974,8 +2974,12 @@ function renderDualGallery() {
   if (row && !count) {
     count = document.createElement('span');
     count.className = 'gallery-dual-count';
-    row.appendChild(count);
   }
+  // Re-append AFTER applyTo, every time. applyTo moves the arrows to the end of
+  // the row on each call, so a counter appended once ends up in front of them on
+  // the second render (colourway switch, config settle, resize) — reading
+  // "1/17 ‹ ›" instead of "‹ › 1/17". Pushing it last each time pins the order.
+  if (row && count) row.appendChild(count);
 
   const step = () => {
     const first = strip.firstElementChild;
