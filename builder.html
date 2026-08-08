@@ -875,7 +875,7 @@ function paintProductTab(container){
   container.innerHTML = `<div class="tab-pane">
     <div class="tab-hd">Gallery</div>
     <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">How the product photos are arranged. Leave these as they are for the current look — every option is optional.</div>
-    ${gsel('layout','Image area',G.layout,[['single','One image with arrows (current)'],['dual','Two side by side — scroll for more']],'“Two side by side” lays every photo out in a 2-up grid instead of one you page through. Arrows and thumbnails are hidden in that mode.')}
+    ${gsel('layout','Image area',G.layout,[['single','One image with arrows (current)'],['dual','Two side by side — page across']],'“Two side by side” shows two large photos at once and pages sideways through the rest. The arrows move to a row under the photos with a position counter, and drive the strip — so the Arrows and Thumbnails settings below don’t apply in this mode.')}
     ${gsel('thumbs','Thumbnails',G.thumbs,[['bottom','Below the photo (current)'],['left','Left rail, scaled down'],['none','Hidden']])}
     ${gsel('arrows','Arrows',G.arrows,[['overlay','Over the photo (current)'],['below','In a row underneath'],['none','Hidden']],'Same arrows either way — they just move.')}
     <div class="tab-hd" style="margin-top:.4rem">Quick-add modal</div>

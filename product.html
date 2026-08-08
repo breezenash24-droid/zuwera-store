@@ -2932,7 +2932,16 @@ function renderDualGallery() {
   }
   if (main) main.style.display = 'none';   // the single-image area is unused here
 
-  const media = (currentProduct.images || []);
+  // Re-derive from the selected colourway rather than trusting whatever
+  // currentProduct.images holds right now. It is assigned twice during load —
+  // an unfiltered fallback at fetch time, then the colour-filtered set once the
+  // images resolve — so a strip built in that window showed every image on the
+  // product (both colourways) instead of the ones for the colour on screen.
+  // Calling getImagesForColor is exactly what the thumbnails and main image do,
+  // so the strip can no longer disagree with them.
+  const media = (typeof getImagesForColor === 'function')
+    ? getImagesForColor((typeof selectedColor !== 'undefined' && selectedColor) ? selectedColor.id : null)
+    : (currentProduct.images || []);
   strip.innerHTML = '';
   media.forEach((item, idx) => {
     const url = item.image_url || '';
@@ -3011,7 +3020,13 @@ function renderDualGallery() {
 // it lands. Cached config makes this a no-op on a repeat visit.
 if (window.ZWPdpGallery) {
   window.ZWPdpGallery.ready(function () {
-    if (window.currentProduct && currentProduct.images) { try { renderDualGallery(); } catch (_) {} }
+    // Wait for allImages — it is only set once the real image rows resolve.
+    // Keying off currentProduct.images instead would fire against the fetch-time
+    // fallback and build the strip from the wrong set. renderGallery calls this
+    // again anyway once the images land, so skipping early costs nothing.
+    if (window.currentProduct && currentProduct.allImages) {
+      try { renderDualGallery(); } catch (_) {}
+    }
   });
 }
 
