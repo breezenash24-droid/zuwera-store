@@ -379,6 +379,10 @@
         applyThemeMode(mode);
       }
       if (row.key === 'brand') {
+        // Publish the store name for anything building a document title. It was
+        // hardcoded per page ('| ZUWERA' in landing.js), which a licensee could
+        // not change from the admin at all.
+        window.ZW_BRAND_NAME = (row.value && row.value.name) || '';
         var faviconUrl = row.value && row.value.favicon;
         if (faviconUrl && window.__zwApplyFavicon) window.__zwApplyFavicon(faviconUrl);
       }

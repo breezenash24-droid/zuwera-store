@@ -1414,7 +1414,11 @@ function lpMatchTag(p,want){if(!want)return true;want=String(want).toLowerCase()
 function lpPageFilter(){return landingSlug.indexOf('tag:')===0?{type:'tag',value:landingSlug.slice(4)}:{type:'gender',value:landingSlug};}
 function lpMatchFilter(p){const f=lpPageFilter();return f.type==='tag'?lpMatchTag(p,f.value):lpMatchGender(p,f.value);}
 function lpScopeName(){const f=lpPageFilter();return String(f.value||'').replace(/\b\w/g,c=>c.toUpperCase());}
-function lpPageLabel(slug){return slug.indexOf('tag:')===0?('Tag: '+slug.slice(4).replace(/\b\w/g,c=>c.toUpperCase())):(slug.charAt(0).toUpperCase()+slug.slice(1));}
+function lpAutoLabel(slug){return slug.indexOf('tag:')===0?('Tag: '+slug.slice(4).replace(/\b\w/g,c=>c.toUpperCase())):(slug.charAt(0).toUpperCase()+slug.slice(1));}
+// A landing page can carry its own display name. Without one the label is
+// derived from the slug, which is fine for Men/Women but leaves a licensee
+// unable to rename anything — the slug is baked into nav links and URLs.
+function lpPageLabel(slug){var c=landingPages[slug];var n=c&&typeof c==='object'?String(c.label||'').trim():'';return n||lpAutoLabel(slug);}
 function lpCfg(){let c=landingPages[landingSlug];if(!c||typeof c!=='object'){c={};landingPages[landingSlug]=c;}c.hero=c.hero||{};c.categories=c.categories||{};c.featured=c.featured||{};if(!Array.isArray(c.sections))c.sections=[];return c;}
 function lpSetPath(path,val){const c=lpCfg();const parts=path.split('.');let o=c;for(let i=0;i<parts.length-1;i++){o[parts[i]]=o[parts[i]]||{};o=o[parts[i]];}o[parts[parts.length-1]]=val;markLpDirty();}
 let _lpDirty=false; function markLpDirty(){_lpDirty=true;const b=document.getElementById('lpSaveHint');if(b)b.textContent='Unsaved changes';schedLandingPreview();}
@@ -1428,6 +1432,15 @@ function lpFeatToggle(id){const f=lpCfg().featured;f.productIds=f.productIds||[]
 function lpFeatChecked(id){const ids=lpCfg().featured.productIds||[];return ids.some(x=>String(x)===String(id));}
 function lpSetMode(v){lpSetPath('featured.mode',v);renderLP();}
 function landingSelect(slug){landingSlug=slug;closeEd();renderLP();if(curTab==='pages')reloadLandingPreview();}
+function landingDeletePage(){
+  var label=lpPageLabel(landingSlug);
+  if(!confirm('Delete "'+label+'"?\n\nIts saved hero, categories, featured products and sections are removed. '+
+     'The page still works — it rebuilds itself from your products.'))return;
+  delete landingPages[landingSlug];
+  var rest=Object.keys(landingPages);
+  landingSlug=rest.length?rest[0]:'men';
+  markLpDirty();renderLP();if(curTab==='pages')reloadLandingPreview();
+}
 function landingAddSlug(){const el=document.getElementById('lpNewSlug');if(!el)return;const s=String(el.value||'').trim().toLowerCase().replace(/[^a-z0-9-]/g,'');if(!s)return;landingPages[s]=landingPages[s]||{};landingSlug=s;renderLP();}
 function landingLoadProducts(){if(landingProducts||landingProductsLoading)return;landingProductsLoading=true;try{const sb=getSb();if(!sb){landingProducts=[];landingProductsLoading=false;return;}sb.from('products').select('id,title,gender,subtitle,tags,status,sort_order').order('sort_order',{ascending:true}).then(r=>{landingProducts=(r&&r.data)||[];landingProductsLoading=false;if(curTab==='pages')renderLP();},()=>{landingProducts=[];landingProductsLoading=false;if(curTab==='pages')renderLP();});}catch(_){landingProducts=[];landingProductsLoading=false;}}
 
@@ -1576,6 +1589,8 @@ function renderPagesTab(container){
     <div class="tab-hd">Landing Pages</div>
     <div class="fhint" style="margin-bottom:.5rem">The page shown when a shopper clicks a gender (Men, Women…) or a tag (e.g. New) in the nav. Leave anything blank to auto-build it from your products.</div>
     <div class="field"><label>Editing page</label><select id="lpPageSel" onchange="landingSelect(this.value)">${opts}</select></div>
+    <div class="field"><label>Page name</label><input data-lp="label" placeholder="${he(lpAutoLabel(landingSlug))}"><div class="fhint" style="margin-top:.2rem">What this page is called in the builder and in its browser tab title. Leave blank to use the page slug (<code>${he(landingSlug)}</code>). The slug itself stays in the URL and nav links.</div></div>
+    <div class="field"><button class="add-item-btn" style="white-space:nowrap" onclick="landingDeletePage()">✕ Delete this page</button><div class="fhint" style="margin-top:.2rem">Removes its saved settings. The page rebuilds itself from your products next time it is opened.</div></div>
     <div class="field"><label>Add a custom page</label><div style="display:flex;gap:.3rem"><input id="lpNewSlug" placeholder="e.g. sale"><button class="add-item-btn" style="white-space:nowrap" onclick="landingAddSlug()">+ Add</button></div></div>
     <div class="field"><label>Page theme</label><select data-lp="theme">${themeOpts}</select><div class="fhint" style="margin-top:.2rem">Overrides the site Appearance theme for this page only. Use “Save draft &amp; preview” to see it.</div></div>
     <div class="fdiv"></div>

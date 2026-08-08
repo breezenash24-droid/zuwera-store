@@ -230,7 +230,11 @@
         window.ZWLandingSections.applyFonts(heroEl, heroCfg.font_head, heroCfg.font_body);
       }
     }
-    document.title = (gLabel ? gLabel + ' — Shop ' : 'Shop ') + '| ZUWERA';
+    // Page name and brand both come from settings. The brand was hardcoded here
+    // as '| ZUWERA', which a licensee could not change from the admin at all.
+    var pageName = String(cfg.label || '').trim() || gLabel;
+    var brandName = (window.ZW_BRAND_NAME || '').trim();
+    document.title = (pageName ? pageName + ' — Shop' : 'Shop') + (brandName ? ' | ' + brandName : '');
 
     /* ---- SHOP BY CATEGORY ---- */
     var catCfg = cfg.categories || {};
