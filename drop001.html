@@ -942,13 +942,21 @@ document.documentElement.classList.add('zw-collflash');
     .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip{
       display:flex;gap:.4rem;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;
       scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior-x:contain;
-      /* the single-image caps do not apply to a strip */
-      min-height:0;max-height:none;aspect-ratio:auto;align-items:stretch;flex:1 1 auto;
+      /* Single-image caps do not apply to a strip. Hug the photos: flex:1 1 auto
+         stretched this to whatever height the buy column had, leaving a white
+         band under the strip. */
+      min-height:0;max-height:none;aspect-ratio:auto;align-items:flex-start;flex:0 0 auto;
     }
     .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip::-webkit-scrollbar{display:none}
+    /* ONE photo per view, not two. The modal column is far narrower than the
+       product page, so a half-width slot plus object-fit:cover cropped hard and
+       the photos read as stretched — and part of a third showed at each edge.
+       Full width with the shots' own 4/5 ratio keeps them undistorted; the
+       strip still slides one photo at a time. */
     .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip > *{
-      flex:0 0 calc(50% - .2rem);scroll-snap-align:start;min-width:0;
-      width:auto;height:min(72vh,620px);object-fit:cover;object-position:center top;display:block;
+      flex:0 0 100%;scroll-snap-align:center;min-width:0;
+      width:100%;height:auto;aspect-ratio:4/5;max-height:min(72vh,640px);
+      object-fit:cover;object-position:center top;display:block;
     }
     .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip > video{background:transparent}
     .collection-product-gallery[data-layout="dual"] .gallery-nav-below{
@@ -958,13 +966,23 @@ document.documentElement.classList.add('zw-collflash');
     .collection-product-gallery[data-layout="dual"] .gallery-nav-below .collection-gallery-arrow{
       position:static;transform:none;background:transparent;border:none;border-radius:0;
       width:auto;height:auto;padding:.2rem .3rem;font-size:1.5rem;line-height:1;opacity:.75;
-      box-shadow:none;backdrop-filter:none;color:inherit;
+      box-shadow:none;backdrop-filter:none;
+      /* Explicit, not inherit. The base arrow is color:#fff so it stays legible
+         ON a photo; under the strip it sits on the modal surface, and inherit
+         resolved to white — white arrows on a white modal, which is why they
+         looked absent. Same per-theme pattern the thumbnails use below. */
+      color:#F4F1EB;
     }
     .collection-product-gallery[data-layout="dual"] .gallery-nav-below .collection-gallery-arrow:hover{background:transparent;opacity:1}
+    .collection-product-gallery[data-layout="dual"] .gallery-dual-count{color:#F4F1EB;opacity:.6}
+    body.light-mode .collection-product-gallery[data-layout="dual"] .gallery-nav-below .collection-gallery-arrow,
+    body.super-light-mode .collection-product-gallery[data-layout="dual"] .gallery-nav-below .collection-gallery-arrow,
+    body.light-mode .collection-product-gallery[data-layout="dual"] .gallery-dual-count,
+    body.super-light-mode .collection-product-gallery[data-layout="dual"] .gallery-dual-count{color:#09090b}
     @media(max-width:900px){
       /* One photo per swipe on a phone — two would be postage stamps. */
       .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip > *{
-        flex:0 0 100%;height:min(56vh,460px);
+        max-height:min(56vh,460px);
       }
     }
     /* Arrow row: flex:0 0 auto or the media pane (flex:1 1 auto) inside
