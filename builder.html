@@ -285,6 +285,7 @@ body{display:flex;flex-direction:column}
   <button class="tbtn tbtn-ghost" onclick="redo()" title="Redo (Ctrl+Y)">↪ Redo</button>
   <button class="tbtn tbtn-ghost" id="lyBtn" onclick="openLayouts()" title="Saved page layouts — edit inactive designs & choose which is live">🗂 Layouts</button>
   <button class="tbtn tbtn-ghost" onclick="saveDraft()" title="Save a private draft">💾 Save Draft</button>
+  <button class="tbtn tbtn-ghost" onclick="openUnpublishedPreview()" title="Open the real site showing your unpublished draft, in a new tab">👁 Preview live</button>
   <button class="tbtn tbtn-solid" onclick="publishPage()" title="Make your changes live">🚀 Publish</button>
   <div class="more-wrap">
     <button class="tbtn tbtn-ghost" id="moreBtn" onclick="toggleMore(event)" aria-haspopup="true" aria-expanded="false">More ▾</button>
@@ -2991,6 +2992,34 @@ function closeQrModal(){
 }
 
 function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='on'+(type?' '+type:'');clearTimeout(_tt);_tt=setTimeout(()=>el.className='',2500);}
+
+/* Open the real storefront showing this draft. Distinct from the editor's own
+   preview pane, which renders inside the builder's chrome at a simulated width
+   — this is the actual site, at the real viewport, with the real scripts, which
+   is the only way to catch things the pane cannot show. Save the draft first,
+   or the preview shows the last saved one rather than what is on screen. */
+async function openUnpublishedPreview(){
+  const tab=window.open('','_blank');   // opened on the click, before any await
+  try{
+    // Always save first. The preview reads the SAVED draft, so previewing
+    // without saving would quietly show the previous one — the worst kind of
+    // preview, because it looks like it worked. saveDraft() also does the right
+    // thing per tab: the Pages tab saves the landing draft, everything else the
+    // homepage draft.
+    await saveDraft();
+    const token=await getAccessToken();
+    if(!token)throw new Error('Session expired — reopen the builder from the admin.');
+    const r=await fetch('/api/preview-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token})});
+    const j=await r.json().catch(()=>null);
+    if(!j||!j.ok||!j.token)throw new Error((j&&j.error)||'Could not create a preview link.');
+    const url=location.origin+'/?zwpreview='+encodeURIComponent(j.token);
+    if(tab)tab.location=url;else window.open(url,'_blank');
+    toast('Preview opened in a new tab');
+  }catch(e){
+    if(tab)tab.close();
+    toast((e&&e.message)||'Could not open the preview','err');
+  }
+}
 function showErr(msg){document.getElementById('errMsg').textContent=msg;document.getElementById('errBox').classList.add('on');}
 
 function onKey(e){

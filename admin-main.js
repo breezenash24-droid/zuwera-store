@@ -2482,6 +2482,48 @@
             }
         });
 
+        /* ─── Preview unpublished changes ────────────────────────────────────
+           Opens the real storefront with a short-lived signed token so the
+           builder's DRAFT homepage and landing pages render in place of the
+           published ones. The token is minted by /api/preview-token, which
+           independently re-checks that the caller is an admin with builder_edit
+           — the hidden button is a courtesy, the server call is the control.
+
+           What this previews is what "Publish" gates: builder content. Settings
+           saved elsewhere in the admin apply the moment they are saved and have
+           no draft to preview, which the toast says out loud so nobody waits
+           for a change that already went live. */
+        async function openUnpublishedPreview() {
+            const btn = document.getElementById('previewUnpublishedBtn');
+            const restore = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '👁 Preparing…'; }
+            // Opened up front: browsers block window.open() once it is no longer
+            // attributable to the click, and minting the token is a round trip.
+            const tab = window.open('', '_blank');
+            try {
+                const { data } = await sb.auth.getSession();
+                const accessToken = data && data.session && data.session.access_token;
+                if (!accessToken) throw new Error('Your session expired. Sign in again.');
+
+                const resp = await fetch('/api/preview-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken }),
+                });
+                const j = await resp.json().catch(() => null);
+                if (!j || !j.ok || !j.token) throw new Error((j && j.error) || 'Could not create a preview link.');
+
+                const url = location.origin + '/?zwpreview=' + encodeURIComponent(j.token);
+                if (tab) tab.location = url; else window.open(url, '_blank');
+                showToast('Preview opened — builder drafts only. Everything else in the admin is already live.', 'success');
+            } catch (err) {
+                if (tab) tab.close();
+                showToast((err && err.message) || 'Could not create a preview link.', 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = restore; }
+            }
+        }
+
         // ─── API Key Editor Modal ─────────────────────────────────────────────────
 
         function openKeyEdit(service) {
