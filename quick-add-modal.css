@@ -228,7 +228,10 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
 }
 .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery[data-thumbs="left"] .quick-add-thumbs{
   grid-column:1;grid-row:1;flex-direction:column;flex-wrap:nowrap;
-  min-height:0;overflow-y:auto;overflow-x:hidden;padding:0;
+  /* Same cap as .quick-add-review-media. Uncapped, the rail became the tallest
+     item in the row and the row grew to fit every stacked thumb, leaving dead
+     space under the photo. Capped, it scrolls instead. */
+  min-height:0;max-height:min(680px,78dvh);overflow-y:auto;overflow-x:hidden;padding:0;
 }
 /* Authored 64px wide for the horizontal strip; in the rail they overflowed. */
 .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery[data-thumbs="left"] .quick-add-thumb{width:100%;height:auto;aspect-ratio:64/76}

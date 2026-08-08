@@ -69,7 +69,7 @@ document.documentElement.classList.add('zw-collflash');
   <link rel="canonical" href="https://zuwera.store/drop001.html">
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=5dc05f38" defer></script>
-<script src="pdp-gallery.js?v=14b2aeb0" defer></script>
+<script src="pdp-gallery.js?v=090eb4ce" defer></script>
   <script src="/storefront-features.js?v=51a446cd" defer></script>
   <script src="/meta-pixel.js?v=bc559c9f" defer></script>
   <script src="/google-tag.js?v=fdfca537" defer></script>
@@ -911,7 +911,10 @@ document.documentElement.classList.add('zw-collflash');
       grid-column:1;grid-row:1;flex-direction:column;flex-wrap:nowrap;
       /* min-height:0 lets the rail scroll inside its cell instead of stretching
          the grid to the height of every thumbnail stacked. */
-      min-height:0;overflow-y:auto;overflow-x:hidden;padding:0;
+      /* Same cap as .collection-review-media above. Without it the rail was the
+         tallest item in the row, so the row grew to fit seven stacked thumbs and
+         left a band of dead space under the photo. Capped, it scrolls instead. */
+      min-height:0;max-height:min(580px,68dvh);overflow-y:auto;overflow-x:hidden;padding:0;
     }
     /* Authored 64px wide for the horizontal strip; in the rail they overflowed. */
     .collection-product-gallery[data-thumbs="left"] .collection-thumb{

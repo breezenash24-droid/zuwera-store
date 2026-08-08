@@ -54,7 +54,7 @@ const GALLERY_OPTS = {
   modal_arrows: ['overlay', 'below', 'none'],
   // 'product' makes the quick-add modal adopt the product page's type + spacing
   // instead of its own compact scale.
-  modal_style:  ['compact', 'product'],
+  modal_style:  ['product', 'compact'],
 };
 
 export function parseGalleryConfig(g) {
