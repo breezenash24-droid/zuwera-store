@@ -480,6 +480,11 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
   position: sticky;
   top: 100px;
   align-self: start;
+  /* Span both rows so the buy column stays stuck while the accordions (row 2)
+     are being read. Confined to row 1 it would scroll away the moment the
+     photos ended, taking Add to Bag with it. */
+  grid-row: 1 / -1;
+  grid-column: 2;
 }
 .gallery-section[data-layout="dual"] { align-self: start; }
 
@@ -853,20 +858,35 @@ body.light-mode .color-swatch.active::after { background: #09090b; }
    column and drops it here, full width under the photos. Capped and centred so
    the rows don't stretch to ~1800px of text — the accordions read as a band,
    not as a run of edge-to-edge lines. */
+/* A grid item in the gallery column, directly under the photos — not a centred
+   block below the whole layout. Centring it left the band beneath the photos
+   empty while the accordions started ~250px further right; here they align with
+   the photo edges and fill that space. The buy column keeps row 1 to itself, so
+   Add to Bag still sits beside the images. */
 .accordions-section.accordions-below {
-  max-width: 1100px;
-  margin: 1.25rem auto 0;
-  padding: 0 2rem;
+  grid-column: 1;
+  grid-row: 2;
   width: 100%;
+  max-width: none;
+  margin: 1.75rem 0 0;
+  padding: 0;
 }
 .accordions-section.accordions-below .accordion-header {
   padding-top: 1.35rem;
   padding-bottom: 1.35rem;
 }
 @media (max-width: 900px) {
+  /* Single-column at this width, so the explicit row/column placement would
+     collide with the buy column instead of stacking. Hand it back to auto flow. */
   .accordions-section.accordions-below {
-    margin-top: 2.25rem;
-    padding: 0 1.25rem;
+    grid-column: auto;
+    grid-row: auto;
+    margin-top: 1.5rem;
+    padding: 0;
+  }
+  .product-layout:has(.gallery-section[data-layout="dual"]) .info-section {
+    grid-row: auto;
+    grid-column: auto;
   }
 }
 
