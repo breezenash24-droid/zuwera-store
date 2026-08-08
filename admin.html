@@ -1577,11 +1577,40 @@
                             <div id="popPages" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:2px 18px;"></div>
                             <div class="pop-hint">Checkout is off by default on purpose: interrupting someone who is already paying costs more than the signup is worth.</div>
                         </div>
+                        <div class="form-group" style="margin-top:18px;">
+                            <label class="form-label">People you already have an email for</label>
+                            <label class="pop-check"><input type="checkbox" id="popSkipKnown"> Don&rsquo;t show it to them</label>
+                            <div class="pop-hint">Covers anyone signed in to an account, anyone who used a newsletter form, and anyone who has checked out on this device. Asking a customer to &ldquo;join the list for 10% off your first order&rdquo; reads as a store that doesn&rsquo;t know who they are.</div>
+                        </div>
+                    </div>
+
+                    <!-- 8 · Viewer ────────────────────────────────────────────
+                         Draws the REAL popup (email-popup.js → renderInto) inside
+                         a frame at a true device width, so the media queries that
+                         turn the drawer into a bottom sheet actually run. -->
+                    <div class="pop-sect">
+                        <h3>8 &nbsp;·&nbsp; Viewer</h3>
+                        <p class="pop-lead">Exactly what a shopper sees, drawn with the storefront&rsquo;s own popup code at a real device width. It redraws as you edit above &mdash; nothing here is saved until you press Save.</p>
+                        <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+                            <div style="display:flex;gap:6px;" id="popViewDevices">
+                                <button type="button" class="btn btn-secondary btn-sm" data-popview="1180">Desktop</button>
+                                <button type="button" class="btn btn-secondary btn-sm" data-popview="820">Tablet</button>
+                                <button type="button" class="btn btn-secondary btn-sm" data-popview="390">Phone</button>
+                            </div>
+                            <div style="display:flex;gap:6px;" id="popViewStates">
+                                <button type="button" class="btn btn-secondary btn-sm" data-popstate="ask">What they see</button>
+                                <button type="button" class="btn btn-secondary btn-sm" data-popstate="done">After they sign up</button>
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-sm" id="popViewOverlay">Open it over this page</button>
+                        </div>
+                        <div id="popViewStage" style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:8px;background:var(--bg-primary);">
+                            <iframe id="popViewFrame" title="Email popup preview" style="border:0;display:block;transform-origin:0 0;background:transparent;"></iframe>
+                        </div>
+                        <div id="popViewWho" style="margin-top:14px;font-size:.85rem;line-height:1.7;"></div>
                     </div>
 
                     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:40px;">
                         <button class="btn btn-primary" id="popSaveBtn">Save popup</button>
-                        <button class="btn btn-secondary" id="popPreviewBtn">Preview it</button>
                         <span id="popSaveMsg" style="font-size:.85rem;color:var(--text-secondary);"></span>
                     </div>
                 </div>

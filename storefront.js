@@ -4529,6 +4529,10 @@ async function zwHomeNewsletterSubmit() {
   } catch (_) { if (input) input.style.borderColor = '#e07060'; return; }
   if (form) form.style.display = 'none';
   if (success) success.style.display = 'block';
+  // The store now has this address, so the signup popup shouldn't ask for it
+  // again on the next page. Goes through the module's own hook rather than
+  // writing its storage key from here.
+  if (window.ZWEmailPopup && window.ZWEmailPopup.markKnown) window.ZWEmailPopup.markKnown();
   if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: 'newsletter', source: 'home_footer' });
   if (window.zwPixel) zwPixel.lead('newsletter');
 }

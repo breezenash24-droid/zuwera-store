@@ -2165,6 +2165,7 @@
                 } catch (_) { _popupCfg = {}; }
             }
             paintPopupForm(window.ZWEmailPopup.normalize(_popupCfg));
+            renderPopupViewer();
         }
 
         function paintPopupForm(c) {
@@ -2202,6 +2203,7 @@
             set('popTrigViews', c.trigger.minViews); chk('popTrigExit', c.trigger.exitIntent);
 
             set('popFreqDays', c.rules.frequencyDays);
+            chk('popSkipKnown', c.rules.skipKnown);
             chk('popDevDesktop', c.rules.devices.desktop); chk('popDevMobile', c.rules.devices.mobile);
 
             const host = document.getElementById('popPages');
@@ -2272,6 +2274,7 @@
                 },
                 rules: {
                     frequencyDays: val('popFreqDays'),
+                    skipKnown: on('popSkipKnown'),
                     devices: { desktop: on('popDevDesktop'), mobile: on('popDevMobile') },
                     pages,
                 },
@@ -2281,19 +2284,130 @@
             return window.ZWEmailPopup ? window.ZWEmailPopup.normalize(raw) : raw;
         }
 
+        /* ── Viewer ───────────────────────────────────────────────────────────
+           Draws the real popup into a frame at a true device width. A frame,
+           not a div: the popup is position:fixed and its orientations change at
+           @media (max-width:700px), so it needs a viewport of its own — inside
+           a div it would read the ADMIN's width and never show the phone
+           layout. The frame is then scaled to fit the panel. */
+        let _popViewWidth = 1180;
+        let _popViewState = 'ask';
+
+        function popViewerFrameDoc() {
+            const frame = document.getElementById('popViewFrame');
+            if (!frame) return null;
+            const doc = frame.contentDocument;
+            if (!doc) return null;
+            if (!doc.body) { doc.open(); doc.write('<!doctype html><html><head></head><body></body></html>'); doc.close(); }
+            return frame.contentDocument;
+        }
+
+        function renderPopupViewer() {
+            const frame = document.getElementById('popViewFrame');
+            const stage = document.getElementById('popViewStage');
+            if (!frame || !stage || !window.ZWEmailPopup) return;
+            const doc = popViewerFrameDoc();
+            if (!doc) return;
+
+            // Fresh body each redraw — renderInto appends, and stacking previews
+            // would leave older ones behind the newest.
+            doc.body.innerHTML = '';
+            doc.body.style.margin = '0';
+            doc.documentElement.style.background = 'transparent';
+            // The popup inherits the store's typography through CSS vars it does
+            // not own, so carry the admin's font stylesheets in — otherwise the
+            // preview silently falls back to the CSS defaults and misreports the
+            // type a shopper actually sees.
+            document.querySelectorAll('link[rel="stylesheet"][href*="fonts.googleapis"]').forEach(l => {
+                const c = doc.createElement('link');
+                c.rel = 'stylesheet'; c.href = l.href;
+                doc.head.appendChild(c);
+            });
+
+            const cfg = popupReadForm();
+            const height = Math.round(_popViewWidth * (_popViewWidth < 500 ? 1.9 : 0.62));
+            frame.style.width = _popViewWidth + 'px';
+            frame.style.height = height + 'px';
+
+            // Scale down to fit the panel; never scale UP past 1:1, or a phone
+            // preview would be shown bigger than a phone.
+            const avail = stage.clientWidth || 900;
+            const scale = Math.min(1, avail / _popViewWidth);
+            frame.style.transform = 'scale(' + scale + ')';
+            stage.style.height = Math.round(height * scale) + 'px';
+
+            window.ZWEmailPopup.renderInto(doc, cfg, { done: _popViewState === 'done' });
+
+            document.querySelectorAll('#popViewDevices [data-popview]').forEach(b => {
+                b.classList.toggle('btn-primary', Number(b.dataset.popview) === _popViewWidth);
+                b.classList.toggle('btn-secondary', Number(b.dataset.popview) !== _popViewWidth);
+            });
+            document.querySelectorAll('#popViewStates [data-popstate]').forEach(b => {
+                b.classList.toggle('btn-primary', b.dataset.popstate === _popViewState);
+                b.classList.toggle('btn-secondary', b.dataset.popstate !== _popViewState);
+            });
+            paintPopupAudience(cfg);
+        }
+
+        /** Plain-language answer to "would this actually show, and to whom?" */
+        function paintPopupAudience(cfg) {
+            const host = document.getElementById('popViewWho');
+            if (!host || !window.ZWEmailPopup) return;
+            const lines = [];
+            const dot = (colour, text) =>
+                '<div style="display:flex;gap:8px;align-items:flex-start;"><span style="color:' + colour + ';">&#9679;</span><span>' + text + '</span></div>';
+
+            if (!cfg.enabled) {
+                lines.push(dot('var(--text-secondary)', '<strong>Switched off.</strong> Nobody sees this yet — turn it on in section 1.'));
+            } else {
+                const shown = Object.keys(cfg.rules.pages).filter(k => cfg.rules.pages[k]);
+                const hidden = Object.keys(cfg.rules.pages).filter(k => !cfg.rules.pages[k]);
+                const label = k => (POPUP_PAGE_LABELS[k] || k);
+                lines.push(dot('#4ade80', '<strong>Live.</strong> Shows on ' + shown.map(label).join(', ') + '.'));
+                if (hidden.length) lines.push(dot('var(--text-secondary)', 'Not on ' + hidden.map(label).join(', ') + '.'));
+                const dev = cfg.rules.devices;
+                if (!dev.desktop || !dev.mobile) {
+                    lines.push(dot('var(--text-secondary)', dev.desktop ? 'Desktop only.' : 'Phone and tablet only.'));
+                }
+                lines.push(dot('var(--text-secondary)',
+                    cfg.rules.skipKnown
+                        ? 'Hidden from anyone you already have an email for — signed-in customers, newsletter signups and past checkouts.'
+                        : '<strong>Shown to everyone</strong>, including customers whose email you already have.'));
+                if (cfg.rules.frequencyDays > 0) {
+                    lines.push(dot('var(--text-secondary)', 'Someone who dismisses it is left alone for ' + cfg.rules.frequencyDays + ' days.'));
+                }
+            }
+            // What this very browser would get, run through the storefront's own
+            // gate rather than a re-implementation of the rules.
+            const why = window.ZWEmailPopup.blockedReason(cfg);
+            lines.push(dot(why ? '#fbbf24' : '#4ade80',
+                why ? 'On this browser right now it would <strong>not</strong> appear — ' + why + '.'
+                    : 'On this browser right now it <strong>would</strong> appear.'));
+            host.innerHTML = lines.join('');
+        }
+
         document.addEventListener('input', e => {
-            if (e.target && e.target.closest && e.target.closest('#popup')) syncPopupFields();
+            if (e.target && e.target.closest && e.target.closest('#popup')) { syncPopupFields(); renderPopupViewer(); }
         });
         document.addEventListener('change', e => {
-            if (e.target && e.target.closest && e.target.closest('#popup')) syncPopupFields();
+            if (e.target && e.target.closest && e.target.closest('#popup')) { syncPopupFields(); renderPopupViewer(); }
+        });
+        window.addEventListener('resize', () => {
+            if (document.getElementById('popup')?.classList.contains('active')) renderPopupViewer();
         });
         document.addEventListener('click', async e => {
             if (!e.target || !e.target.closest) return;
 
-            if (e.target.id === 'popPreviewBtn') {
+            const devBtn = e.target.closest('#popViewDevices [data-popview]');
+            if (devBtn) { _popViewWidth = Number(devBtn.dataset.popview) || 1180; renderPopupViewer(); return; }
+            const stBtn = e.target.closest('#popViewStates [data-popstate]');
+            if (stBtn) { _popViewState = stBtn.dataset.popstate; renderPopupViewer(); return; }
+
+            if (e.target.id === 'popViewOverlay') {
                 if (!window.ZWEmailPopup) return;
-                // The real popup, with the values currently on screen. preview:true
-                // stops it recording a "seen" timestamp or actually subscribing.
+                // The same popup, over the admin at full size — for judging how
+                // much of the screen it takes. preview:true stops it recording a
+                // "seen" timestamp or actually subscribing anyone.
                 window.ZWEmailPopup.open(popupReadForm(), { preview: true });
                 return;
             }

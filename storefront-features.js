@@ -983,7 +983,11 @@
       })
         .then(function (r) { return r.json(); })
         .then(function (j) {
-          if (j && j.ok) form.outerHTML = '<p class="zwf-nl-done">&#10003; You\'re on the list.</p>';
+          if (j && j.ok) {
+            form.outerHTML = '<p class="zwf-nl-done">&#10003; You\'re on the list.</p>';
+            // Stops the signup popup asking for an address the store just got.
+            if (window.ZWEmailPopup && window.ZWEmailPopup.markKnown) window.ZWEmailPopup.markKnown();
+          }
           else input.style.borderColor = '#e05252';
         })
         .catch(function () { input.style.borderColor = '#e05252'; });
