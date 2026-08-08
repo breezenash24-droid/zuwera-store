@@ -2200,7 +2200,9 @@
             set('popDiscExpiry', c.discount.expiryDays);
 
             set('popTrigDelay', c.trigger.delay); set('popTrigScroll', c.trigger.scroll);
-            set('popTrigViews', c.trigger.minViews); chk('popTrigExit', c.trigger.exitIntent);
+            set('popTrigViews', c.trigger.minViews); set('popTrigIdle', c.trigger.idle);
+            chk('popTrigExit', c.trigger.exitIntent);
+            chk('popTrigReturn', c.trigger.onReturn); chk('popTrigBack', c.trigger.onBack);
 
             set('popFreqDays', c.rules.frequencyDays);
             chk('popSkipKnown', c.rules.skipKnown);
@@ -2217,10 +2219,23 @@
             syncPopupFields();
         }
 
-        /** Hide the parts of the form that the current choices make meaningless. */
+        /**
+         * Hide the parts of the form that the current choices make meaningless.
+         *
+         * Every write here is guarded by a read: this runs on EVERY keystroke,
+         * and re-applying a style or a disabled flag that is already correct
+         * still churns the DOM around the field being typed into. Between that
+         * and the viewer redraw below, typing a sentence meant losing the caret
+         * after almost every letter.
+         */
         function syncPopupFields() {
             const val = id => (document.getElementById(id) || {}).value;
-            const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+            const show = (id, on) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const want = on ? '' : 'none';
+                if (el.style.display !== want) el.style.display = want;
+            };
             const layout = (document.querySelector('input[name="popLayout"]:checked') || {}).value || 'center';
 
             show('popDiscountSect', val('popMode') === 'discount');
@@ -2234,9 +2249,10 @@
             const dim = (id, on) => {
                 const el = document.getElementById(id);
                 if (!el) return;
-                el.disabled = !on;
+                if (el.disabled === on) el.disabled = !on;
                 const group = el.closest('.form-group');
-                if (group) group.style.opacity = on ? '1' : '.45';
+                const want = on ? '1' : '.45';
+                if (group && group.style.opacity !== want) group.style.opacity = want;
             };
             dim('popSide', sideOn);
             dim('popMedia', mediaOn);
@@ -2271,6 +2287,7 @@
                 trigger: {
                     delay: val('popTrigDelay'), scroll: val('popTrigScroll'),
                     minViews: val('popTrigViews'), exitIntent: on('popTrigExit'),
+                    idle: val('popTrigIdle'), onReturn: on('popTrigReturn'), onBack: on('popTrigBack'),
                 },
                 rules: {
                     frequencyDays: val('popFreqDays'),
@@ -2386,11 +2403,41 @@
             host.innerHTML = lines.join('');
         }
 
+        /**
+         * Redraw the viewer, but not on every keystroke.
+         *
+         * Rebuilding the preview frame's document mid-word is what was taking
+         * the caret away — you could not type a whole word, let alone a
+         * sentence. Waiting for a pause means the frame is rebuilt once when you
+         * stop typing instead of once per letter. The caret is also captured and
+         * restored around the redraw, so even if something in the frame steals
+         * focus the field you were in gets it straight back, with the cursor
+         * where you left it rather than at the end of the text.
+         */
+        let _popViewTimer = null;
+        function queuePopupViewer(delay) {
+            if (_popViewTimer) clearTimeout(_popViewTimer);
+            _popViewTimer = setTimeout(() => {
+                _popViewTimer = null;
+                const active = document.activeElement;
+                const isField = active && /^(INPUT|TEXTAREA)$/.test(active.tagName);
+                const start = isField ? active.selectionStart : null;
+                const end = isField ? active.selectionEnd : null;
+                renderPopupViewer();
+                if (isField && document.activeElement !== active && active.isConnected) {
+                    active.focus();
+                    try { if (start !== null) active.setSelectionRange(start, end); } catch (_) {}
+                }
+            }, delay === undefined ? 300 : delay);
+        }
+
         document.addEventListener('input', e => {
-            if (e.target && e.target.closest && e.target.closest('#popup')) { syncPopupFields(); renderPopupViewer(); }
+            if (e.target && e.target.closest && e.target.closest('#popup')) { syncPopupFields(); queuePopupViewer(); }
         });
         document.addEventListener('change', e => {
-            if (e.target && e.target.closest && e.target.closest('#popup')) { syncPopupFields(); renderPopupViewer(); }
+            // A select or checkbox is a deliberate, finished choice — redraw
+            // promptly rather than making the admin wait out a typing pause.
+            if (e.target && e.target.closest && e.target.closest('#popup')) { syncPopupFields(); queuePopupViewer(30); }
         });
         window.addEventListener('resize', () => {
             if (document.getElementById('popup')?.classList.contains('active')) renderPopupViewer();
@@ -8617,6 +8664,14 @@
                 if (loopStyleSel) loopStyleSel.value = (v && /^(seamless|rewind|fade|instant)$/.test(v.card_loop_style)) ? v.card_loop_style : 'seamless';
                 const hoverChk = document.getElementById('settCardHover');
                 if (hoverChk) hoverChk.checked = !!(v && v.card_hover);
+                const hoverMsSel = document.getElementById('settCardHoverMs');
+                // Snap an older/hand-edited value onto the nearest option rather
+                // than silently resetting it to instant.
+                if (hoverMsSel) {
+                    const want = Math.max(0, Number((v && v.card_hover_ms) || 0));
+                    const opts = [...hoverMsSel.options].map(o => Number(o.value));
+                    hoverMsSel.value = String(opts.reduce((a, b) => Math.abs(b - want) < Math.abs(a - want) ? b : a, opts[0]));
+                }
             } else if (row.key === 'nav_menu') {
                 let v = row.value;
                 try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
@@ -8727,13 +8782,15 @@
         const loopStyleEl = document.getElementById('settCardLoopStyle');
         const card_loop_style = (loopStyleEl && /^(seamless|rewind|fade|instant)$/.test(loopStyleEl.value)) ? loopStyleEl.value : 'seamless';
         const card_hover = !!(document.getElementById('settCardHover') && document.getElementById('settCardHover').checked);
+        const hoverMsEl = document.getElementById('settCardHoverMs');
+        const card_hover_ms = Math.max(0, Math.min(2000, Number(hoverMsEl && hoverMsEl.value) || 0));
         const { error } = await sb.from('site_settings').upsert(
-            { key: 'product_card_cta', value: { mode, collection_cols, card_fit, card_loop, card_loop_style, card_hover }, updated_at: new Date().toISOString() },
+            { key: 'product_card_cta', value: { mode, collection_cols, card_fit, card_loop, card_loop_style, card_hover, card_hover_ms }, updated_at: new Date().toISOString() },
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving card style', 'error'); console.error(error); }
         else {
-            await logAdminAudit('settings.update', 'site_settings', 'product_card_cta', { mode, collection_cols, card_fit, card_loop, card_loop_style, card_hover });
+            await logAdminAudit('settings.update', 'site_settings', 'product_card_cta', { mode, collection_cols, card_fit, card_loop, card_loop_style, card_hover, card_hover_ms });
             showToast('Card style saved!', 'success');
         }
     });

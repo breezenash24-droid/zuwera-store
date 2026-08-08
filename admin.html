@@ -1549,10 +1549,16 @@
                                 <div class="pop-hint">0 shows it on the first page they land on.</div>
                             </div>
                             <div class="form-group" style="margin:0;">
-                                <label class="form-label">On the way out</label>
-                                <label class="pop-check"><input type="checkbox" id="popTrigExit"> Open when the mouse leaves for the tab bar</label>
-                                <div class="pop-hint">Desktop only — a phone has no pointer to leave the window.</div>
+                                <label class="form-label" for="popTrigIdle">After sitting still (seconds)</label>
+                                <input type="number" class="form-input" id="popTrigIdle" min="0" step="1">
+                                <div class="pop-hint">No mouse, key, tap or scroll for this long. 0 switches it off.</div>
                             </div>
+                        </div>
+                        <div class="form-group" style="margin-top:16px;">
+                            <label class="form-label">Moments</label>
+                            <label class="pop-check"><input type="checkbox" id="popTrigExit"> When the mouse leaves for the tab bar <span style="color:var(--text-secondary);">&mdash; desktop only, a phone has no pointer to leave the window</span></label>
+                            <label class="pop-check"><input type="checkbox" id="popTrigReturn"> When they come back from another tab <span style="color:var(--text-secondary);">&mdash; works on phones too, where exit intent cannot</span></label>
+                            <label class="pop-check"><input type="checkbox" id="popTrigBack"> When they press Back <span style="color:var(--text-secondary);">&mdash; catches one Back press, then stops. Repeatedly trapping Back is hostile and gets sites reported</span></label>
                         </div>
                     </div>
 
@@ -1604,7 +1610,14 @@
                             <button type="button" class="btn btn-secondary btn-sm" id="popViewOverlay">Open it over this page</button>
                         </div>
                         <div id="popViewStage" style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:8px;background:var(--bg-primary);">
-                            <iframe id="popViewFrame" title="Email popup preview" style="border:0;display:block;transform-origin:0 0;background:transparent;"></iframe>
+                            <!-- pointer-events:none so the wheel passes through to
+                                 the admin page. The popup inside is position:fixed
+                                 with a full-bleed scrim, so with pointer events on
+                                 it swallowed every scroll that crossed it and the
+                                 settings page could not be scrolled at all. It is a
+                                 viewer; "Open it over this page" is there for
+                                 actually clicking through it. -->
+                            <iframe id="popViewFrame" title="Email popup preview" style="border:0;display:block;transform-origin:0 0;background:transparent;pointer-events:none;"></iframe>
                         </div>
                         <div id="popViewWho" style="margin-top:14px;font-size:.85rem;line-height:1.7;"></div>
                     </div>
@@ -2587,6 +2600,16 @@
                         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;">
                             <label for="settCardHover" style="font-size:.85rem;font-weight:600;color:var(--text-primary);cursor:pointer;">Show the next photo on hover <span style="font-weight:400;color:var(--text-secondary);">— pointing at a product card cross-fades to its second image, the way adidas and On do it. Products with only one photo are unaffected, and touchscreens are left alone.</span></label>
                             <input type="checkbox" id="settCardHover" style="width:20px;height:20px;flex:0 0 auto;cursor:pointer;accent-color:var(--zw-accent,#F891A5);">
+                        </div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;">
+                            <label for="settCardHoverMs" style="font-size:.85rem;font-weight:600;color:var(--text-primary);">Hover swap speed <span style="font-weight:400;color:var(--text-secondary);">&mdash; how long the change takes. <strong>0 is instant</strong>, which is what most stores use: a fade reads as lag when you sweep across a grid.</span></label>
+                            <select id="settCardHoverMs" class="form-input" style="width:auto;min-width:220px;">
+                                <option value="0">Instant (default)</option>
+                                <option value="120">Very quick &mdash; 0.12s</option>
+                                <option value="250">Quick &mdash; 0.25s</option>
+                                <option value="350">Gentle &mdash; 0.35s</option>
+                                <option value="600">Slow &mdash; 0.6s</option>
+                            </select>
                         </div>
                         <button type="button" class="btn btn-primary btn-sm" id="saveCardCtaBtn" style="margin-top:16px;">Save Card Style</button>
                     </div>

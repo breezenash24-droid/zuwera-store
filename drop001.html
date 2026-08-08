@@ -1389,12 +1389,18 @@ document.documentElement.classList.add('zw-collflash');
   try { window.__zwApplyCardFit(localStorage.getItem('zw_card_fit') || 'cover'); } catch (_) {}
   // Second-image hover swap (admin Product Cards → "Show the next photo on
   // hover"). Cached so the body class is set before first paint.
-  window.__zwApplyCardHover = function (on) {
+  window.__zwApplyCardHover = function (on, ms) {
     var yes = on === true || on === 'true';
+    var t = Math.max(0, Math.min(2000, Number(ms) || 0));
     if (document.body) document.body.classList.toggle('zw-card-hover', yes);
-    try { localStorage.setItem('zw_card_hover', yes ? '1' : '0'); } catch (_) {}
+    document.documentElement.style.setProperty('--zw-card-hover-ms', t + 'ms');
+    window.__zwCardHoverMs = t;
+    try {
+      localStorage.setItem('zw_card_hover', yes ? '1' : '0');
+      localStorage.setItem('zw_card_hover_ms', String(t));
+    } catch (_) {}
   };
-  try { window.__zwApplyCardHover(localStorage.getItem('zw_card_hover') === '1'); } catch (_) {}
+  try { window.__zwApplyCardHover(localStorage.getItem('zw_card_hover') === '1', localStorage.getItem('zw_card_hover_ms')); } catch (_) {}
   window.__zwSyncThemeColor = function() {
     var m = document.body.classList.contains('super-light-mode') ? 'super-light'
           : document.body.classList.contains('light-mode') ? 'light' : 'dark';
@@ -2509,6 +2515,7 @@ function updateCountdown() {
             window.__zwCardGalleryLoop = !!(cta && cta.card_loop);   // global gallery loop opt-in
             window.__zwCardLoopStyle = (cta && /^(seamless|rewind|fade|instant)$/.test(cta.card_loop_style)) ? cta.card_loop_style : 'seamless';
             window.__zwCardHoverSwap = !!(cta && cta.card_hover);     // global hover-swap default
+            window.__zwCardHoverMsCfg = cta && cta.card_hover_ms;
           }
           else if (row.key === 'theme' && row.value) {
             const mode = row.value.mode === 'dark' ? 'dark' : row.value.mode === 'super-light' ? 'super-light' : 'light';
@@ -2538,7 +2545,7 @@ function updateCountdown() {
       // in whatever order the query returns them, so deciding inside the
       // product_card_cta branch would read a collection_page override that
       // hadn't been parsed yet on half the page loads.
-      if (window.__zwApplyCardHover) window.__zwApplyCardHover(zwCardHoverOn());
+      if (window.__zwApplyCardHover) window.__zwApplyCardHover(zwCardHoverOn(), window.__zwCardHoverMsCfg);
       // Re-render the filter sidebar now the config (column toggles / price
       // brackets / colour count + grouping) is loaded, so it applies without a reload.
       if (typeof plpResetCfgCache === 'function') plpResetCfgCache();
@@ -2736,8 +2743,11 @@ function updateCountdown() {
           for (let _ai = 0; _ai < _altList.length; _ai++) {
             if (_altList[_ai].u && _altList[_ai].u !== originalImg) { _altRaw = _altList[_ai].u; break; }
           }
+          // Positioning inline — see the note on the homepage card. Two in-flow
+          // images inside .product-img shrink to half the card each.
           const _altHtml = _altRaw
-            ? `<img class="product-img-alt" src="${optimizeImage(_altRaw, 600)}" alt="" aria-hidden="true" loading="lazy" width="400" height="500">`
+            ? `<img class="product-img-alt" src="${optimizeImage(_altRaw, 600)}" alt="" aria-hidden="true" loading="lazy" width="400" height="500"`
+              + ` style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0">`
             : '';
           const imgHtml = (_ccOn && _ccMedia.length > 1)
             ? zwCarouselHtml(_ccMedia, productName)
@@ -3105,7 +3115,10 @@ function updateCountdown() {
       if (!car) return;
       var w = car.clientWidth || 0;
       if (!w) return;
-      try { car.scrollTo({ left: idx * w, behavior: 'smooth' }); }
+      // The carousel card has to honour the same timing as the cross-fade one,
+      // or the two grids feel different: 0ms means jump, anything else glides.
+      var smooth = Number(window.__zwCardHoverMs || 0) > 0;
+      try { car.scrollTo({ left: idx * w, behavior: smooth ? 'smooth' : 'auto' }); }
       catch (_) { car.scrollLeft = idx * w; }
     }
     document.addEventListener('mouseover', function (e) {

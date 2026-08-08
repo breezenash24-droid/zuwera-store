@@ -969,7 +969,7 @@ body.light-mode .color-swatch.active::after { background: #09090b; }
    could then clip dynamically-added content. */
 @media (prefers-reduced-motion: reduce) {
   .accordion-header svg,
-  .accordion-body { transition-duration: 0.01ms; }
+  .accordion-body { transition-duration: 1ms; }
 }
 
 .accordion-body p {

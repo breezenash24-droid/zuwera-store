@@ -38,10 +38,9 @@
   // builder would be unusable while it sat over the preview.
   try { if (window.top !== window.self) return; } catch (_) { return; }   // cross-origin frame
 
-  var SUPA = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
-  // Public, RLS-gated anon key (same one shipped in supabase-client.js).
-  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-
+  // No Supabase URL or anon key here on purpose: the config comes from
+  // /api/popup-config now (see the fetch at the bottom), which also means this
+  // module carries none of the project's infrastructure identifiers.
   var CSS_HREF = '/email-popup.css?v=1';   // hash re-stamped by bump-cache-version.js
   var SEEN_KEY = 'zw_popup_seen';          // epoch ms of the last time it showed
   var DONE_KEY = 'zw_popup_done';          // set once this browser has signed up
@@ -84,7 +83,17 @@
       prefix: 'WELCOME',
     },
 
-    trigger: { delay: 8, scroll: 0, exitIntent: true, minViews: 0 },
+    // Whichever fires first wins. Every one of these is a real pattern stores
+    // use; all are optional and 0/false switches one off.
+    trigger: {
+      delay: 8,          // seconds on the page
+      scroll: 0,         // percent of the page scrolled
+      exitIntent: true,  // pointer leaves through the top of the window
+      minViews: 0,       // only after N pages this session
+      idle: 0,           // seconds with no mouse, key, touch or scroll
+      onReturn: false,   // they switched to another tab and came back
+      onBack: false,     // they pressed Back
+    },
 
     rules: {
       frequencyDays: 30,
@@ -163,6 +172,9 @@
         scroll: Math.max(0, Math.min(100, num(trig.scroll, d.trigger.scroll))),
         exitIntent: bool(trig.exitIntent, d.trigger.exitIntent),
         minViews: Math.max(0, num(trig.minViews, d.trigger.minViews)),
+        idle: Math.max(0, num(trig.idle, d.trigger.idle)),
+        onReturn: bool(trig.onReturn, d.trigger.onReturn),
+        onBack: bool(trig.onBack, d.trigger.onBack),
       },
 
       rules: {
@@ -375,6 +387,12 @@
       card.setAttribute('aria-modal', 'true');
       card.setAttribute('aria-labelledby', 'zwp-title');
       card.removeAttribute('aria-label');
+      // A preview must not freeze the page it is being previewed ON. modal-lock
+      // watches [role="dialog"] and would lock the admin's scroll until the
+      // preview was dismissed, which is not what a preview is for. On the
+      // storefront the lock is correct and this attribute is never set.
+      if (isPreview || buildDoc) card.setAttribute('data-zw-nolock', '1');
+      else card.removeAttribute('data-zw-nolock');
     } else {
       card.setAttribute('role', 'region');
       card.removeAttribute('aria-modal');
@@ -576,11 +594,30 @@
       cleanup();
       open(null);
     }
+    var idleTimer = null;
+    var ACTIVITY = ['mousemove', 'keydown', 'touchstart', 'scroll', 'click'];
     function cleanup() {
       if (timer) { clearTimeout(timer); timer = null; }
+      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
       window.removeEventListener('scroll', onScroll);
       document.removeEventListener('mouseout', onExit);
+      document.removeEventListener('visibilitychange', onReturn);
+      window.removeEventListener('popstate', onBack);
+      ACTIVITY.forEach(function (t) { document.removeEventListener(t, onActivity, true); });
     }
+    // Idle: nothing from the shopper for N seconds. Reading a long product page
+    // without touching anything is a different moment from arriving, so stores
+    // often want a different trigger for it.
+    function onActivity() {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(fire, c.trigger.idle * 1000);
+    }
+    // Coming back to the tab after being away.
+    function onReturn() { if (!document.hidden) fire(); }
+    // Back-button intent. A history entry is pushed once so the first Back lands
+    // here instead of leaving the site; the popup opens and the entry is spent.
+    // Deliberately one-shot — hijacking Back repeatedly is hostile.
+    function onBack() { fire(); }
     function onScroll() {
       var h = document.documentElement.scrollHeight - window.innerHeight;
       if (h <= 0) return;
@@ -596,11 +633,21 @@
     if (c.trigger.delay > 0) timer = setTimeout(fire, c.trigger.delay * 1000);
     if (c.trigger.scroll > 0) window.addEventListener('scroll', onScroll, { passive: true });
     // Exit intent needs a mouse. On a phone there's no pointer to leave the
-    // window, and the delay/scroll triggers cover that case.
+    // window, and the other triggers cover that case.
     if (c.trigger.exitIntent && !isMobile()) document.addEventListener('mouseout', onExit);
+    if (c.trigger.idle > 0) {
+      ACTIVITY.forEach(function (t) { document.addEventListener(t, onActivity, true); });
+      onActivity();
+    }
+    if (c.trigger.onReturn) document.addEventListener('visibilitychange', onReturn);
+    if (c.trigger.onBack) {
+      try { history.pushState({ zwp: 1 }, '', location.href); } catch (_) {}
+      window.addEventListener('popstate', onBack);
+    }
     // Nothing configured at all would mean a popup that never shows; treat that
     // as "as soon as the page settles" rather than silently doing nothing.
-    if (c.trigger.delay <= 0 && c.trigger.scroll <= 0 && !c.trigger.exitIntent) setTimeout(fire, 1200);
+    if (c.trigger.delay <= 0 && c.trigger.scroll <= 0 && !c.trigger.exitIntent
+        && c.trigger.idle <= 0 && !c.trigger.onReturn && !c.trigger.onBack) setTimeout(fire, 1200);
   }
 
   function settle(raw) {
@@ -614,13 +661,15 @@
     arm(cfg);
   }
 
-  fetch(SUPA + '/rest/v1/site_settings?select=value&key=eq.email_popup', {
-    headers: { apikey: ANON, Authorization: 'Bearer ' + ANON },
-    cache: 'no-store',
-  })
-    .then(function (r) { return r.ok ? r.json() : []; })
-    .then(function (rows) {
-      var v = rows && rows[0] ? rows[0].value : null;
+  // Through the API, not straight from Supabase. site_settings public-read is
+  // whitelisted per key and 'email_popup' was never added to the live policy, so
+  // the anon read returned nothing and the popup silently stayed on its
+  // defaults — configured perfectly in the admin, never once shown. The endpoint
+  // reads it with the service key, so no SQL migration is load-bearing.
+  fetch('/api/popup-config', { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (data) {
+      var v = data && data.config ? data.config : null;
       if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () { settle(v); }, { once: true });

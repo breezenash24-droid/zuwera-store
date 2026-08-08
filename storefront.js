@@ -49,17 +49,25 @@ window.__zwApplyCardFit = function (fit) {
 // storefront-cohesion.css). Cached like the two above so the class is on the
 // body before the first paint — set after it, the alt image would fade in on a
 // card the cursor was already resting over.
-window.__zwApplyCardHover = function (on) {
+window.__zwApplyCardHover = function (on, ms) {
   var yes = on === true || on === 'true';
+  var t = Math.max(0, Math.min(2000, Number(ms) || 0));
   function set() { if (document.body) document.body.classList.toggle('zw-card-hover', yes); }
   set();
   if (!document.body) document.addEventListener('DOMContentLoaded', set);
-  try { localStorage.setItem('zw_card_hover', yes ? '1' : '0'); } catch (_) {}
+  // On documentElement, not body: the var has to resolve before body exists on
+  // the cached first-paint call.
+  document.documentElement.style.setProperty('--zw-card-hover-ms', t + 'ms');
+  window.__zwCardHoverMs = t;
+  try {
+    localStorage.setItem('zw_card_hover', yes ? '1' : '0');
+    localStorage.setItem('zw_card_hover_ms', String(t));
+  } catch (_) {}
 };
 (function () {
   try { window.__zwApplyCardMode(localStorage.getItem('zw_card_cta') || 'add-to-bag'); } catch (_) {}
   try { window.__zwApplyCardFit(localStorage.getItem('zw_card_fit') || 'cover'); } catch (_) {}
-  try { window.__zwApplyCardHover(localStorage.getItem('zw_card_hover') === '1'); } catch (_) {}
+  try { window.__zwApplyCardHover(localStorage.getItem('zw_card_hover') === '1', localStorage.getItem('zw_card_hover_ms')); } catch (_) {}
 })();
 
 /**
@@ -2200,7 +2208,7 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       window.__zwApplyCardFit(cta && cta.card_fit === 'contain' ? 'contain' : 'cover');
       window.__zwCardGalleryLoop = !!(cta && cta.card_loop);   // gallery loop opt-in (quick-add modal etc.)
       window.__zwCardLoopStyle = (cta && /^(seamless|rewind|fade|instant)$/.test(cta.card_loop_style)) ? cta.card_loop_style : 'seamless';
-      window.__zwApplyCardHover(!!(cta && cta.card_hover));
+      window.__zwApplyCardHover(!!(cta && cta.card_hover), cta && cta.card_hover_ms);
     }
 
     // 1. brand
@@ -2865,8 +2873,16 @@ function renderProductCards(products, grid) {
     // grid twice as long to listen through.
     const _altImg = window.__zwCardAltImage ? window.__zwCardAltImage(p, firstImg) : '';
     const _altSrc = _altImg && typeof window.optimizeImage === 'function' ? window.optimizeImage(_altImg, 600) : _altImg;
+    // The positioning is INLINE, not left to the stylesheet. .pcard-img is a
+    // flex box and cohesion forces width:100%!important on its images, so two
+    // in-flow images shrink to half the card each — which is exactly what the
+    // grid showed when the alt image was in flow. Inline styles apply the
+    // instant the HTML parses, so the alt image can never be laid out beside
+    // the cover shot, whatever the stylesheet is doing. If the CSS were missing
+    // entirely the card would simply show one photo and hover would do nothing.
     const altHtml = _altImg
-      ? `<img class="pcard-img-alt" src="${_altSrc}" alt="" aria-hidden="true" loading="lazy">`
+      ? `<img class="pcard-img-alt" src="${_altSrc}" alt="" aria-hidden="true" loading="lazy"`
+        + ` style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0">`
       : '';
     const imgHtml = firstImg
       ? `<img src="${_cardImgSrc}" alt="${escapeHomeFavoriteHtml(productName)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:top center">${altHtml}`
