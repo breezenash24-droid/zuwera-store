@@ -70,7 +70,7 @@
 <!-- Stylesheets -->
 <link rel="stylesheet" href="base.css?v=0db3d715">
 <link rel="stylesheet" href="nav.css?v=ebdd5ccc">
-<link rel="stylesheet" href="product.css?v=40ac69b3">
+<link rel="stylesheet" href="product.css?v=e5033841">
 <link rel="stylesheet" href="cart.css?v=38b9bf99">
 <!-- reviews.css styles only below-the-fold review content + hidden review
      modals, so load it non-render-blocking (matches index.html). reviews-vibe.css
@@ -2939,6 +2939,16 @@ function renderDualGallery() {
     section.insertBefore(strip, main ? main.nextSibling : null);
   }
   if (main) main.style.display = 'none';   // the single-image area is unused here
+  // display:none does NOT stop playback — a <video> keeps running (and holding a
+  // decoder) while hidden. The single-image view's video element is unused in
+  // this arrangement, so stop it and release the source rather than leaving it
+  // playing behind the strip.
+  const hiddenVid = document.getElementById('mainVideo');
+  if (hiddenVid) {
+    try { hiddenVid.pause(); } catch (_) {}
+    hiddenVid.removeAttribute('src');
+    try { hiddenVid.load(); } catch (_) {}
+  }
 
   // Re-derive from the selected colourway rather than trusting whatever
   // currentProduct.images holds right now. It is assigned twice during load —
@@ -2958,7 +2968,12 @@ function renderDualGallery() {
     if (isVideo) {
       node = document.createElement('video');
       node.src = url; node.muted = true; node.loop = true;
-      node.playsInline = true; node.autoplay = true; node.preload = 'metadata';
+      node.playsInline = true; node.preload = 'metadata';
+      // Deliberately NOT autoplay. Every video in the strip used to start at
+      // once — including ones scrolled off to the side — so a clip kept running
+      // (and decoding) behind whatever you were actually looking at. The
+      // observer below plays only what's in view.
+      node.dataset.zwStripVideo = '1';
     } else {
       node = document.createElement('img');
       node.src = typeof optimizeImage === 'function' ? optimizeImage(url, 900) : url;
@@ -3025,6 +3040,27 @@ function renderDualGallery() {
     strip.addEventListener('scroll', sync, { passive: true });
     window.addEventListener('resize', sync);
   }
+
+  // Play a strip video only while it is actually in view, pause it the moment it
+  // scrolls out. Same approach the collection grid uses for card videos, and the
+  // reason none of them bleed through from off-screen any more. Rebuilt with the
+  // strip, so the observer is recreated rather than accumulating targets.
+  if (strip._zwVidObs) { try { strip._zwVidObs.disconnect(); } catch (_) {} }
+  if ('IntersectionObserver' in window) {
+    strip._zwVidObs = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        const v = en.target;
+        if (en.isIntersecting) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+        else { try { v.pause(); } catch (_) {} }
+      });
+    }, { root: strip, threshold: 0.35 });
+    strip.querySelectorAll('video[data-zw-strip-video]').forEach(v => strip._zwVidObs.observe(v));
+  } else {
+    // No observer support: play the first video only, rather than all of them.
+    const first = strip.querySelector('video[data-zw-strip-video]');
+    if (first) { const p = first.play(); if (p && p.catch) p.catch(() => {}); }
+  }
+
   sync();
 }
 
