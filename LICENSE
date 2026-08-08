@@ -1,0 +1,46 @@
+Copyright (c) 2026 Zuwera. All rights reserved.
+
+PROPRIETARY AND CONFIDENTIAL
+
+This software and its source code are proprietary. No licence is granted by
+publication, by access to this repository, or by the absence of an explicit
+prohibition.
+
+You may not copy, modify, merge, publish, distribute, sublicense, sell, or
+create derivative works from any part of this software, in whole or in part,
+except under a separate written agreement signed by the copyright holder.
+
+Any such agreement governs, and its terms take precedence over this file.
+
+NO WARRANTY
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN
+CONNECTION WITH THE SOFTWARE OR ITS USE.
+
+THIRD-PARTY COMPONENTS
+
+This repository contains third-party software that is NOT covered by the terms
+above and remains under its own licence:
+
+  supabase.min.js   Supabase JS client and bundled dependencies.
+                    MIT Licence, Copyright (c) Supabase, Inc. and contributors.
+                    https://github.com/supabase/supabase-js
+
+Build-time dependencies declared in package.json (terser, clean-css, stripe and
+their transitive dependencies) are likewise governed by their own licences —
+MIT, BSD-2-Clause, and BSD-3-Clause as of this writing. Run
+`npm ls --all` to enumerate the current set.
+
+Nothing in this file grants, restricts, or otherwise alters any right in that
+third-party software.
+
+----
+
+NOTE FOR THE COPYRIGHT HOLDER: replace "Zuwera" above with the legal person or
+entity that owns the copyright before relying on this file in a transaction. A
+trading name is not necessarily the right holder, and a purchaser's counsel will
+ask which entity is conveying the rights.
