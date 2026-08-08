@@ -299,6 +299,13 @@
     .pfield input:focus { border-color: rgba(244,241,235,.45); }
     body.light-mode .pfield input { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.16); color: #09090b; }
     body.light-mode .pfield input:focus { border-color: rgba(9,9,11,.45); }
+    /* Placeholders have to be unmistakably NOT typed text. These read as real
+       example values ("Jane Smith", "New York", "10001"), and at the browser's
+       default placeholder contrast a whole empty address looked filled in — so
+       shipping and tax showing "—" read as a broken calculation rather than the
+       correct answer for an address that had not been entered yet. */
+    .pfield input::placeholder { color: rgba(244,241,235,.32); font-style: italic; }
+    body.light-mode .pfield input::placeholder { color: rgba(9,9,11,.30); font-style: italic; }
     body.light-mode .pfield label { color: var(--sub); }
     /* Delivery method options — match the square, bordered look of the inputs */
     .co-delivery-hint { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--sub); margin-bottom: .4rem; }
