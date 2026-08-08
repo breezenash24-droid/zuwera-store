@@ -349,6 +349,19 @@
           quickAddMoveGallery(item, Number(button.dataset.galleryStep) || 1);
         });
       });
+      // Apply the admin's modal gallery arrangement (Builder → Product →
+      // Gallery). Runs AFTER the click handlers are bound, because applyTo moves
+      // these same button nodes rather than rebuilding them — the arrows are
+      // recreated by the innerHTML above on every render, so this has to re-run
+      // each time too.
+      if (window.ZWPdpGallery) {
+        var qaCfg = window.ZWPdpGallery.get();
+        window.ZWPdpGallery.applyTo(
+          media.closest('.quick-add-product-gallery'),
+          qaCfg.modal_thumbs, qaCfg.modal_arrows, null,
+          '.quick-add-gallery-arrow'
+        );
+      }
       var touchStartX = 0;
       media.ontouchstart = function (event) { touchStartX = (event.changedTouches && event.changedTouches[0] && event.changedTouches[0].screenX) || 0; };
       media.ontouchend = function (event) {

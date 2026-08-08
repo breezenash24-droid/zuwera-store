@@ -204,3 +204,42 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
     height:38px;
   }
 }
+
+/* ============ QUICK-ADD GALLERY ARRANGEMENT ======================
+   Mirrors the product page options (Builder → Product → Gallery), applied by
+   pdp-gallery.js as data-thumbs / data-arrows on .quick-add-product-gallery.
+   Opt-in: with no attributes the modal renders exactly as before.
+   ================================================================ */
+.quick-add-product-gallery[data-thumbs="left"]{
+  display:flex; flex-direction:row; align-items:stretch;
+}
+.quick-add-product-gallery[data-thumbs="left"] .quick-add-thumbs{
+  order:-1;                       /* rail before the image */
+  flex:0 0 64px; width:64px;
+  flex-direction:column;
+  overflow-x:hidden; overflow-y:auto;
+  padding:.5rem;
+}
+.quick-add-product-gallery[data-thumbs="left"] .quick-add-review-media{
+  flex:1 1 auto; min-width:0;
+}
+.quick-add-product-gallery[data-thumbs="none"] .quick-add-thumbs{ display:none; }
+
+/* Arrows in a row beneath the image rather than floating over it. */
+.quick-add-product-gallery .gallery-nav-below{
+  display:flex; align-items:center; justify-content:center;
+  gap:.6rem; padding:.5rem 0;
+}
+.quick-add-product-gallery[data-arrows="below"] .gallery-nav-below .quick-add-gallery-arrow{
+  position:static; transform:none;
+}
+.quick-add-product-gallery[data-arrows="none"] .quick-add-gallery-arrow{ display:none !important; }
+
+@media (max-width:900px){
+  /* A 64px rail plus the image is too tight inside a bottom sheet — fall back to
+     the standard strip underneath, same as the product page does. */
+  .quick-add-product-gallery[data-thumbs="left"]{ flex-direction:column; }
+  .quick-add-product-gallery[data-thumbs="left"] .quick-add-thumbs{
+    order:0; flex:initial; width:auto; flex-direction:row; overflow-x:auto; overflow-y:hidden;
+  }
+}
