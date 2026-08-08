@@ -3489,7 +3489,7 @@ function updateCountdown() {
             });
           }
         }
-        if (window.ZWPdpGallery.setNavCount) window.ZWPdpGallery.setNavCount(gal, currentIndex, images.length);
+        if (window.ZWPdpGallery.setNavCount) window.ZWPdpGallery.setNavCount(gal, currentIndex, images.length, { prune: true });
         var colBoxEarly = media.closest('.collection-product-box');
         if (colBoxEarly) colBoxEarly.setAttribute('data-modal-style', colCfgEarly.modal_style || 'compact');
         return;
@@ -3528,7 +3528,7 @@ function updateCountdown() {
         // default) this is the only thing telling you how many photos there are,
         // so it goes in AFTER applyTo, which rebuilds the row's contents.
         window.ZWPdpGallery.setNavCount(
-          media.closest('.collection-product-gallery'), currentIndex, images.length
+          media.closest('.collection-product-gallery'), currentIndex, images.length, { prune: true }
         );
       }
       var touchStartX = 0;

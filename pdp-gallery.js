@@ -151,10 +151,20 @@
     }
     function page(dir) { host.scrollBy({ left: dir * step(), behavior: 'smooth' }); }
 
+    // The listener is bound once per host, but this function runs again on every
+    // render — a modal opens with the product card's single photo and re-renders
+    // with the colourway's full set the moment the fetches land. Binding once
+    // meant the handler kept the FIRST call's opts for good, so it went on
+    // reporting a total of one for a seven-photo product. The first scroll then
+    // told setNavCount there was nothing to page and it removed the arrows and
+    // the counter. Keep the current opts on the host and read them at event
+    // time, so the handler always describes what is actually in the strip.
+    host._zwStripOpts = opts;
     if (!host._zwStripBound) {
       host._zwStripBound = true;
       host.addEventListener('scroll', function () {
-        if (opts.onIndex) opts.onIndex(index(), host.scrollWidth - host.clientWidth <= host.scrollLeft + 1);
+        var o = host._zwStripOpts;
+        if (o && o.onIndex) o.onIndex(index(), host.scrollWidth - host.clientWidth <= host.scrollLeft + 1);
       }, { passive: true });
     }
 
@@ -186,22 +196,32 @@
    * @param {Element} section  the gallery container applyTo was given
    * @param {number}  index    zero-based position of the visible image
    * @param {number}  total    how many images are in this set
+   * @param {object}  [opts]   { prune: true } to also clear arrows left over
+   *                           from a previous product. RENDER CALLERS ONLY.
    */
-  function setNavCount(section, index, total) {
+  function setNavCount(section, index, total, opts) {
     if (!section) return;
     var row = section.querySelector('.gallery-nav-below');
     if (!row) return;
     var el = row.querySelector('.gallery-dual-count');
     if (!(total > 1)) {
-      // One image needs no counter — "1/1" is noise — and no arrows either. The
-      // modals only build arrows when there's more than one photo, so any still
-      // in the row are stale from the previous product. Remove only nodes
-      // WITHOUT an id: the product page's #prevImg/#nextImg are persistent and
-      // deleting them would leave it with no way to page at all.
+      // One image needs no counter — "1/1" is noise.
       if (el) el.remove();
-      var kids = [].slice.call(row.children || []);
-      for (var i = 0; i < kids.length; i++) {
-        if (!kids[i].id) kids[i].remove();
+      // Clearing the ARROWS as well is a render-time decision, and only the
+      // caller that just rebuilt the surface can make it: the modals build
+      // arrows only when there's more than one photo, so any still in the row
+      // are stale from the previous product. Nodes WITHOUT an id only — the
+      // product page's #prevImg/#nextImg are persistent, and deleting those
+      // would leave it no way to page at all.
+      //
+      // A scroll handler must never reach this: it reports where the strip is,
+      // not what the gallery holds, and one stale count from it deleted live,
+      // wired arrows that nothing was going to recreate.
+      if (opts && opts.prune) {
+        var kids = [].slice.call(row.children || []);
+        for (var i = 0; i < kids.length; i++) {
+          if (!kids[i].id) kids[i].remove();
+        }
       }
       if (!row.firstChild) row.remove();
       return;

@@ -369,7 +369,7 @@
         // default) this is the only thing telling you how many photos there are,
         // so it goes in AFTER applyTo, which rebuilds the row's contents.
         window.ZWPdpGallery.setNavCount(
-          media.closest('.quick-add-product-gallery'), currentIndex, images.length
+          media.closest('.quick-add-product-gallery'), currentIndex, images.length, { prune: true }
         );
       }
       var touchStartX = 0;
