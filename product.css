@@ -805,6 +805,27 @@ body.light-mode .color-swatch.active::after { background: #09090b; }
   flex-direction: column;
 }
 
+/* Dual arrangement only: pdp-gallery.js moves this stack out of the narrow buy
+   column and drops it here, full width under the photos. Capped and centred so
+   the rows don't stretch to ~1800px of text — the accordions read as a band,
+   not as a run of edge-to-edge lines. */
+.accordions-section.accordions-below {
+  max-width: 1100px;
+  margin: 3.5rem auto 0;
+  padding: 0 2rem;
+  width: 100%;
+}
+.accordions-section.accordions-below .accordion-header {
+  padding-top: 1.35rem;
+  padding-bottom: 1.35rem;
+}
+@media (max-width: 900px) {
+  .accordions-section.accordions-below {
+    margin-top: 2.25rem;
+    padding: 0 1.25rem;
+  }
+}
+
 .accordion {
   border-bottom: 1px solid var(--c10);
 }
