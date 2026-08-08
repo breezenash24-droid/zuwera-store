@@ -2894,10 +2894,16 @@ function getImagesForColor(colorVariantId) {
 let _galleryTouchSetup = false;
 
 /**
- * "Dual" gallery arrangement — all images laid out two-up rather than one main
- * image with arrows. Builds into a sibling of .gallery-main so the original
- * single-image markup stays intact and switching back needs no re-render.
- * No-ops (and cleans up after itself) in every other arrangement.
+ * "Dual" gallery arrangement — a horizontal filmstrip with two photos in view,
+ * paged sideways by the arrows, rather than one image you page through in place.
+ *
+ * The arrows are the entire control surface here, so they are NOT hidden the way
+ * they are in the other arrangements: they move into a row under the strip with
+ * a position counter beside them, and page it one photo at a time.
+ *
+ * Builds into a sibling of .gallery-main so the original single-image markup
+ * stays intact — switching back needs no re-render. No-ops (and cleans up after
+ * itself) in every other arrangement.
  */
 function renderDualGallery() {
   const section = document.querySelector('.gallery-section');
@@ -2905,19 +2911,29 @@ function renderDualGallery() {
   if (!section) return;
   const g = window.ZWPdpGallery ? window.ZWPdpGallery.get() : null;
   const on = g && g.layout === 'dual';
-  let grid = section.querySelector('.gallery-dual');
+  let strip = section.querySelector('.gallery-dual');
+  const prev = document.getElementById('prevImg');
+  const next = document.getElementById('nextImg');
 
-  if (!on) { if (grid) grid.remove(); if (main) main.style.display = ''; return; }
+  if (!on) {
+    if (strip) strip.remove();
+    const stale = section.querySelector('.gallery-dual-count');
+    if (stale) stale.remove();
+    if (main) main.style.display = '';
+    if (prev) prev.disabled = false;
+    if (next) next.disabled = false;
+    return;
+  }
 
-  if (!grid) {
-    grid = document.createElement('div');
-    grid.className = 'gallery-dual';
-    section.insertBefore(grid, main ? main.nextSibling : null);
+  if (!strip) {
+    strip = document.createElement('div');
+    strip.className = 'gallery-dual';
+    section.insertBefore(strip, main ? main.nextSibling : null);
   }
   if (main) main.style.display = 'none';   // the single-image area is unused here
 
   const media = (currentProduct.images || []);
-  grid.innerHTML = '';
+  strip.innerHTML = '';
   media.forEach((item, idx) => {
     const url = item.image_url || '';
     const isVideo = /\.(mp4|webm|mov)(\?|#|$)/i.test(url);
@@ -2928,15 +2944,67 @@ function renderDualGallery() {
       node.playsInline = true; node.autoplay = true; node.preload = 'metadata';
     } else {
       node = document.createElement('img');
-      // First pair is above the fold on most screens; the rest can lazy-load.
       node.src = typeof optimizeImage === 'function' ? optimizeImage(url, 900) : url;
       node.onerror = function () { if (this.src !== url) this.src = url; };
       node.alt = item.alt_text || `${currentProduct.title || 'Product'} view ${idx + 1}`;
+      // The first two are in view immediately; the rest load as you page across.
       node.loading = idx < 2 ? 'eager' : 'lazy';
       node.decoding = 'async';
     }
-    grid.appendChild(node);
+    strip.appendChild(node);
   });
+
+  // Put the arrows (and a counter) in a row beneath the strip. ZWPdpGallery
+  // MOVES the existing buttons, so their handlers survive — but those handlers
+  // page the single-image view, so they get re-pointed at the strip below.
+  if (window.ZWPdpGallery) {
+    window.ZWPdpGallery.applyTo(section, g.thumbs, 'below', 'dual', '.gallery-arrow');
+  }
+  const row = section.querySelector('.gallery-nav-below');
+  let count = section.querySelector('.gallery-dual-count');
+  if (row && !count) {
+    count = document.createElement('span');
+    count.className = 'gallery-dual-count';
+    row.appendChild(count);
+  }
+
+  const step = () => {
+    const first = strip.firstElementChild;
+    if (!first) return strip.clientWidth / 2;
+    // Measured, not assumed: the flex-basis differs between desktop (two in
+    // view) and the ≤900px fallback (one), and the gap counts.
+    return first.getBoundingClientRect().width + parseFloat(getComputedStyle(strip).gap || 0);
+  };
+  const sync = () => {
+    const s = step();
+    // maxScroll is the furthest the strip can go — 0 when everything already fits.
+    const maxScroll = strip.scrollWidth - strip.clientWidth;
+    const atEnd = strip.scrollLeft >= maxScroll - 1;
+    const idx = s ? Math.round(strip.scrollLeft / s) : 0;
+    // The counter names the LEFTMOST photo in view — except at the far end,
+    // where the strip stops with the last two showing and the leftmost is N-1.
+    // Reporting N-1 there reads as "there's more" when there isn't, so the last
+    // position counts as the last photo.
+    if (count) {
+      // `maxScroll > 0` guard: with few enough photos to fit, atEnd is true from
+      // the start, and without this a 2-image product would open reading "2/2".
+      const shown = (atEnd && maxScroll > 0 && media.length)
+        ? media.length
+        : Math.min(idx + 1, media.length);
+      count.textContent = `${shown}/${media.length}`;
+    }
+    if (prev) prev.disabled = strip.scrollLeft <= 1;
+    if (next) next.disabled = atEnd;
+  };
+
+  if (prev) prev.onclick = () => { strip.scrollBy({ left: -step(), behavior: 'smooth' }); };
+  if (next) next.onclick = () => { strip.scrollBy({ left:  step(), behavior: 'smooth' }); };
+  if (!strip._zwSyncBound) {
+    strip._zwSyncBound = true;
+    strip.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync);
+  }
+  sync();
 }
 
 // The gallery usually renders before the config request resolves, so re-run once
@@ -2966,13 +3034,15 @@ function renderGallery() {
   currentImageIndex = Math.max(0, Math.min(currentImageIndex, currentProduct.images.length - 1));
   updateMainImage(currentImageIndex, 'fade');
 
-  // Dual layout: every image in a 2-up grid you scroll, instead of one image you
-  // page through. Rebuilt on each renderGallery so a colourway switch swaps the
-  // set. CSS hides the thumbnails, arrows and dots in this mode.
-  renderDualGallery();
-
   document.getElementById('prevImg').onclick = () => updateMainImage(currentImageIndex - 1);
   document.getElementById('nextImg').onclick = () => updateMainImage(currentImageIndex + 1);
+
+  // MUST come after the two lines above: in the dual arrangement the arrows page
+  // the filmstrip instead of the single image, and renderDualGallery re-points
+  // their onclick. Called earlier, these assignments would overwrite it and the
+  // arrows would silently drive the hidden single-image view.
+  // Rebuilt on every renderGallery so a colourway switch swaps the strip's set.
+  renderDualGallery();
 
   // Mobile swipe — attach ONCE. Re-registering on every renderGallery() call
   // (e.g. every color switch) stacks listeners, causing one swipe to fire N times.
