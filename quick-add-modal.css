@@ -232,7 +232,12 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
      item in the row and the row grew to fit every stacked thumb, leaving dead
      space under the photo. Capped, it scrolls instead. */
   min-height:0;max-height:min(680px,78dvh);overflow-y:auto;overflow-x:hidden;padding:0;
+  /* The native scrollbar renders arrow buttons inside the rail, which read as
+     broken UI next to the thumbnails. The rail is still scrollable and still
+     swipeable; only the chrome is hidden. */
+  scrollbar-width:none;-ms-overflow-style:none;
 }
+.mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery[data-thumbs="left"] .quick-add-thumbs::-webkit-scrollbar{display:none}
 /* Authored 64px wide for the horizontal strip; in the rail they overflowed. */
 .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery[data-thumbs="left"] .quick-add-thumb{width:100%;height:auto;aspect-ratio:64/76}
 .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery[data-thumbs="left"] .quick-add-review-media{grid-column:2;grid-row:1;min-width:0;min-height:0}
