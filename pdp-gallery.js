@@ -63,9 +63,26 @@
         row.className = 'gallery-nav-below';
         section.appendChild(row);
       }
-      // Move (not clone) so listeners survive. Order matters: prev then next.
-      var btns = section.querySelectorAll(arrowSel);
-      for (var i = 0; i < btns.length; i++) row.appendChild(btns[i]);
+      // Only arrows OUTSIDE the row are "fresh". The modals rebuild their arrow
+      // markup with innerHTML on every render, but the previous set had already
+      // been moved into the row — so it survives that rebuild. Appending
+      // everything querySelectorAll found (row + media) put the old ones back
+      // AND added the new ones, growing the row by two per render: ten arrows
+      // after five renders.
+      var all = section.querySelectorAll(arrowSel);
+      var fresh = [];
+      for (var i = 0; i < all.length; i++) {
+        if (!row.contains(all[i])) fresh.push(all[i]);
+      }
+      if (fresh.length) {
+        // Something rebuilt them: the ones sitting in the row are now stale
+        // duplicates with dead handlers, so drop them and take the new set.
+        while (row.firstChild) row.removeChild(row.firstChild);
+        for (var j = 0; j < fresh.length; j++) row.appendChild(fresh[j]);
+      }
+      // else: nothing was rebuilt (the product page reuses #prevImg/#nextImg),
+      // so the row already holds the live arrows — leave them alone. Clearing
+      // here would delete them for good, since nothing recreates them.
     } else if (row) {
       // Switching back: return the arrows to the image before dropping the row.
       // Where the arrows live when they're overlaid, per surface: product page,
