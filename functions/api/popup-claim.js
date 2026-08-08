@@ -31,6 +31,9 @@
  */
 
 import { cors, json, mutateSetting } from './_commerce.js';
+import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } from './_email-theme.js';
+import { logEmail } from './_email-log.js';
+import { fetchSiteSettings, resolveSetting } from './_settings.js';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // no I/O/0/1
 const POPUP_LABEL = 'Popup';                                 // marks what we minted
@@ -66,7 +69,81 @@ export function parsePopupSettings(v) {
     minSubtotal: nonNeg(d.minSubtotal, 0),
     expiryDays: Math.floor(nonNeg(d.expiryDays, 30)),
     prefix: String(d.prefix || 'WELCOME').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12) || 'WELCOME',
+    welcomeEmail: !!(v.welcomeEmail && v.welcomeEmail.on === true),
   };
+}
+
+/** "10% off" / "$15 off" — the phrase the email and the code description share. */
+function discountLabel(s) {
+  return s.type === 'fixed' ? `$${s.value} off` : `${s.value}% off`;
+}
+
+/**
+ * The welcome email. Goes through the same theme, shell and log as every other
+ * email the store sends, so it inherits the fonts, colours and logo set in
+ * Appearance → Emails rather than being a one-off that drifts from them.
+ *
+ * Best-effort by design: the signup has already succeeded and the code is
+ * already on screen by the time this runs. A mail provider being down must not
+ * turn a successful capture into an error the shopper sees.
+ */
+async function sendWelcomeEmail(env, { to, code, label }) {
+  // Same key set every other email function loads, so the theme, the logo and
+  // the editable copy all resolve exactly as they do elsewhere.
+  const cache = await fetchSiteSettings(
+    ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL', 'fonts', 'brand', 'email_theme', 'email_settings'],
+    env
+  );
+  const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'orders@zuwera.store';
+  const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
+  const brevoKey = resolveSetting('BREVO_API_KEY', env, cache);
+  if (!resendKey && !brevoKey) return false;
+
+  const a = getEmailAppearance(cache);
+  const c = getEmailContent(cache, 'popup_welcome');
+  const vars = { code: code || '', discount: label || '' };
+
+  const codeBlock = code
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:4px 0 18px;">
+         <div style="display:inline-block;padding:14px 26px;border:1px dashed ${a.border};border-radius:6px;font-family:${a.fontMono};font-size:20px;letter-spacing:.18em;color:${a.text};">${String(code).replace(/[<>&]/g, '')}</div>
+       </td></tr></table>`
+    : '';
+
+  const html = renderEmailShell(a, {
+    kicker: fillTemplate(c.kicker, vars),
+    heading: fillTemplate(c.heading, vars),
+    intro: fillTemplate(c.intro, vars),
+    bodyHtml: codeBlock,
+    footer: fillTemplate(c.footer, vars),
+  });
+  const subject = fillTemplate(c.subject, vars);
+
+  let provider = '';
+  if (resendKey) {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [to], subject, html }),
+    }).catch(() => null);
+    if (r && r.ok) provider = 'resend';
+  }
+  if (!provider && brevoKey) {
+    const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sender: { name: 'Zuwera', email: fromEmail }, to: [{ email: to }], subject, htmlContent: html }),
+    }).catch(() => null);
+    if (r && r.ok) provider = 'brevo';
+  }
+
+  // Logged either way. A welcome email that silently never sends is the kind of
+  // thing nobody notices for months; in Admin → Emails it shows as failed.
+  await logEmail(env, {
+    type: 'popup_welcome', recipient: to, subject,
+    status: provider ? 'sent' : 'failed', provider: provider || '',
+    meta: { code: code || '' },
+  }).catch(() => {});
+  return !!provider;
 }
 
 /** 'YYYY-MM-DD', or '' for never — the format validate-promo parses. */
@@ -162,7 +239,7 @@ export async function onRequestOptions({ env }) {
   return new Response(null, { status: 204, headers: cors(env) });
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
   try {
     const body = await request.json().catch(() => ({}));
     const email = String(body.email || '').trim().toLowerCase();
@@ -186,7 +263,22 @@ export async function onRequestPost({ request, env }) {
       return json({ ok: false, error: 'We could not save your email just now. Please try again.' }, 502, cors(env));
     }
 
-    if (!s.enabled || s.mode !== 'discount') return json({ ok: true }, 200, cors(env));
+    if (!s.enabled || s.mode !== 'discount') {
+      if (s.welcomeEmail) {
+        const p = sendWelcomeEmail(env, { to: email, code: '', label: '' }).catch(() => {});
+        if (typeof waitUntil === 'function') waitUntil(p);
+      }
+      return json({ ok: true }, 200, cors(env));
+    }
+
+    // Fire the welcome email in the background. The shopper already has their
+    // code on screen; making them wait on a mail provider would be the tail
+    // wagging the dog, and a provider outage must not fail a good signup.
+    const mail = (code) => {
+      if (!s.welcomeEmail) return;
+      const p = sendWelcomeEmail(env, { to: email, code, label: discountLabel(s) }).catch(() => {});
+      if (typeof waitUntil === 'function') waitUntil(p);
+    };
 
     if (s.source === 'shared') {
       if (!s.code) return json({ ok: true }, 200, cors(env));   // no code set yet
@@ -200,6 +292,7 @@ export async function onRequestPost({ request, env }) {
         }
         return { ...cfg, promotions: promos };
       });
+      mail(s.code);
       return json({ ok: true, code: s.code }, 200, cors(env));
     }
 
@@ -228,6 +321,7 @@ export async function onRequestPost({ request, env }) {
 
     // At the cap the signup still counts; there just isn't a code to hand out.
     // Better than handing over one that checkout would reject.
+    mail(minted ? code : '');
     return json(minted ? { ok: true, code } : { ok: true }, 200, cors(env));
   } catch (e) {
     return json({ ok: false, error: (e && e.message) || 'failed' }, 500, cors(env));

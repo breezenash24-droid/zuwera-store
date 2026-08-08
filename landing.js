@@ -374,8 +374,15 @@
     var tag = qp('tag');
     var gender = tag ? '' : (qp('page') || qp('gender')).toLowerCase();
     var slug = tag ? ('tag:' + tag.toLowerCase()) : gender;
-    var preview = !!qp('preview');            // builder preview → read the draft
-    var key = preview ? 'landing_pages' : 'landing_pages_published';
+    var preview = !!qp('preview');            // builder preview pane
+    // ALWAYS the published key on the anon read. ?preview=1 used to switch this
+    // to the draft, and 'landing_pages' is anon-readable — so anyone who added
+    // ?preview=1 to a landing URL could read unpublished pages. Nothing needed
+    // that: the builder's pane gets its config pushed over postMessage
+    // (ZW_LANDING_PREVIEW below), which is the live in-editor state and more
+    // current than the saved draft anyway, and the admin preview link supplies
+    // drafts through /api/preview-config, which verifies a signed token.
+    var key = 'landing_pages_published';
     _slug = slug; _preview = preview; _tag = tag;
     // Shared config: whichever fetch (config / products) resolves last rebuilds
     // with the freshest data. Starts from cache (live) or null (preview).

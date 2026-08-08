@@ -2198,6 +2198,7 @@
             set('popDiscPrefix', c.discount.prefix); set('popDiscType', c.discount.type);
             set('popDiscValue', c.discount.value); set('popDiscMin', c.discount.minSubtotal);
             set('popDiscExpiry', c.discount.expiryDays);
+            chk('popWelcomeEmail', c.welcomeEmail.on);
 
             set('popTrigDelay', c.trigger.delay); set('popTrigScroll', c.trigger.scroll);
             set('popTrigViews', c.trigger.minViews); set('popTrigIdle', c.trigger.idle);
@@ -2284,6 +2285,7 @@
                     type: val('popDiscType'), value: val('popDiscValue'),
                     minSubtotal: val('popDiscMin'), expiryDays: val('popDiscExpiry'),
                 },
+                welcomeEmail: { on: on('popWelcomeEmail') },
                 trigger: {
                     delay: val('popTrigDelay'), scroll: val('popTrigScroll'),
                     minViews: val('popTrigViews'), exitIntent: on('popTrigExit'),

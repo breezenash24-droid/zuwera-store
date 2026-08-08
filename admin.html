@@ -1541,6 +1541,11 @@
                                 <div class="pop-hint">0 to never expire. Expired popup codes are cleaned up automatically.</div>
                             </div>
                         </div>
+                        <div class="form-group" style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border);">
+                            <label class="form-label">Welcome email</label>
+                            <label class="pop-check"><input type="checkbox" id="popWelcomeEmail"> Email them the code as well as showing it</label>
+                            <div class="pop-hint">A code on screen is gone the moment the tab closes. Emailing it means it survives, and it gives you a reason to land in their inbox on day one. Word it in <strong>Appearance &rarr; Emails &rarr; &ldquo;Email popup welcome&rdquo;</strong> &mdash; it uses your email fonts, colours and logo like every other email, and every send is logged in <strong>Marketing &rarr; Emails</strong>. Needs Resend or Brevo connected under APIs.</div>
+                        </div>
                     </div>
 
                     <!-- 6 · When -->
@@ -3106,7 +3111,9 @@
                                     <option value="back_in_stock">Back in stock</option>
                                     <option value="review_request">Review request</option>
                                     <option value="abandoned_cart">Abandoned cart</option>
+                                    <option value="popup_welcome">Email popup welcome</option>
                                 </select>
+                                <p style="font-size:.76rem;color:var(--text-secondary);margin-top:6px;opacity:.85"><strong>Email popup welcome</strong> uses <code>{code}</code> (the discount code) and <code>{discount}</code> (&ldquo;10% off&rdquo;). Both are empty when the popup is collecting emails without an offer, so keep the wording sensible either way. Whether it sends at all is the toggle in <strong>Marketing &rarr; Email Popup</strong>.</p>
                                 <p style="font-size:.76rem;color:var(--text-secondary);margin-top:6px;opacity:.85">Leave a field blank to use the default. Placeholders: <code>{order}</code>, <code>{product}</code>, <code>{size}</code>, <code>{name}</code> where relevant.<br><span style="opacity:.85">Your fonts, colours and logo apply to <em>every</em> email. The shipped &amp; return-status emails word themselves automatically (by shipping/return stage), so only the look is themed — they aren't listed here.</span></p>
                             </div>
                             <div class="form-group">
