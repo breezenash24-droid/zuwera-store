@@ -75,9 +75,14 @@
   }
 
   function applyProductPage(g) {
+    // The dual filmstrip is paged BY the arrows, so they always sit in the row
+    // beneath it — the 'overlay' and 'none' choices don't apply there. Forcing it
+    // here rather than relying on renderDualGallery running last means the cached
+    // path and the network path can't fight over where the arrows live.
+    var arrows = g.layout === 'dual' ? 'below' : g.arrows;
     applyTo(
       document.querySelector('.gallery-section'),
-      g.thumbs, g.arrows, g.layout,
+      g.thumbs, arrows, g.layout,
       '.gallery-arrow'
     );
   }

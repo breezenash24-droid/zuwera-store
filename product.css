@@ -336,33 +336,83 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
 .gallery-section[data-thumbs="left"] .gallery-nav-below { width: 100%; }
 .gallery-section[data-arrows="none"] .gallery-arrow { display: none !important; }
 
-/* ── Dual: two photos side by side, no single "main" image ──
-   The On-style arrangement — every image laid out in a 2-up grid you scroll,
-   rather than one image you page through. Arrows and thumbnails are redundant
-   here, so both are hidden regardless of the other two options. */
+/* ── Dual: a horizontal filmstrip, two photos in view at a time ──
+   Two large images side by side that you page through sideways with the arrows,
+   NOT a vertical grid of every photo. The arrows are the whole control surface
+   here, so unlike the other arrangements they always stay visible — they move to
+   a row under the strip with a position counter beside them.
+
+   Thumbnails and the mobile dot pill are hidden: the strip already shows where
+   you are, and the counter says it in words. */
 .gallery-section[data-layout="dual"] .gallery-thumbnails,
-.gallery-section[data-layout="dual"] .gallery-arrow,
-.gallery-section[data-layout="dual"] .gallery-nav-below,
 .gallery-section[data-layout="dual"] .gallery-dots { display: none !important; }
+/* The single-image arrows sit inside .gallery-main, which is hidden in this
+   mode — only the ones relocated into the nav row below should show. */
+.gallery-section[data-layout="dual"] .gallery-main .gallery-arrow { display: none !important; }
+
 .gallery-dual {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: .5rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  /* The arrows drive this, so the scrollbar is just noise — but keep it
+     swipeable, which is how it works on a phone. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-x: contain;
+}
+.gallery-dual::-webkit-scrollbar { display: none; }
+
+.gallery-dual > * {
+  flex: 0 0 calc(50% - 0.25rem);   /* exactly two in view, minus half the gap */
+  scroll-snap-align: start;
+  min-width: 0;
 }
 .gallery-dual img,
 .gallery-dual video {
   width: 100%;
-  height: 100%;
   aspect-ratio: 4/5;
   object-fit: cover;
   display: block;
   background: #0f0f0f;
 }
-/* An odd number of images leaves a gap, so the last one spans both columns —
-   which also gives the hero shot the full width it usually deserves. */
-.gallery-dual > :last-child:nth-child(odd) { grid-column: 1 / -1; aspect-ratio: 16/10; }
-.gallery-dual > :last-child:nth-child(odd) img,
-.gallery-dual > :last-child:nth-child(odd) video { aspect-ratio: 16/10; }
+
+/* Arrow row for the filmstrip: bottom-left, counter alongside. */
+.gallery-section[data-layout="dual"] .gallery-nav-below {
+  justify-content: flex-start;
+  gap: 1rem;
+  padding-top: .9rem;
+}
+.gallery-dual-count {
+  font-family: var(--fm, var(--fb));
+  font-size: .78rem;
+  letter-spacing: .08em;
+  opacity: .5;
+  font-variant-numeric: tabular-nums;   /* stops the row twitching as it counts */
+}
+.gallery-section[data-layout="dual"] .gallery-nav-below .gallery-arrow {
+  position: static;
+  transform: none;
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--c15, rgba(244, 241, 235, .15));
+}
+.gallery-section[data-layout="dual"] .gallery-nav-below .gallery-arrow:hover {
+  background: var(--c15, rgba(244, 241, 235, .15));
+}
+.gallery-section[data-layout="dual"] .gallery-nav-below .gallery-arrow[disabled] {
+  opacity: .3;
+  cursor: default;
+}
+
+/* The filmstrip wants room — two photos side by side in a half-width column are
+   too small to read. Give the gallery the larger share, like On does. */
+.product-layout:has(.gallery-section[data-layout="dual"]) {
+  grid-template-columns: 1.55fr 1fr;
+}
+/* Sticky fights a wide filmstrip (the column is taller than the viewport). */
+.gallery-section[data-layout="dual"] { position: static; }
 
 @media (max-width: 900px) {
   /* Compact widths keep the existing single-image carousel: a left rail or a
@@ -376,8 +426,10 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
     max-height: none;
     overflow-y: visible;
   }
-  .gallery-dual { grid-template-columns: 1fr; }
-  .gallery-dual > :last-child:nth-child(odd) { aspect-ratio: 4/5; }
+  /* One photo in view per swipe on a phone — two would be postage stamps. The
+     strip stays a horizontal scroller, so swiping still works as expected. */
+  .gallery-dual > * { flex: 0 0 100%; }
+  .product-layout:has(.gallery-section[data-layout="dual"]) { grid-template-columns: 1fr; }
 }
 
 /* Carousel position indicator (Nike-style frosted pill of dots) — overlaid on
