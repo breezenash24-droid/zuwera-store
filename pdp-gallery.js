@@ -6,7 +6,8 @@
      thumbs:       'bottom' | 'left' | 'none',   // product page thumbnails
      arrows:       'overlay' | 'below' | 'none', // product page arrows
      modal_thumbs: 'bottom' | 'left' | 'none',   // quick-add modal
-     modal_arrows: 'overlay' | 'below' | 'none'
+     modal_arrows: 'overlay',
+     modal_style:  'compact' | 'product'        // quick-add modal look | 'below' | 'none'
    }
 
    Everything defaults to today's arrangement (single image, thumbnails beneath,
@@ -27,7 +28,7 @@
   var CACHE = 'zw_pdp_gallery';
   var DEFAULTS = {
     layout: 'single', thumbs: 'bottom', arrows: 'overlay',
-    modal_thumbs: 'bottom', modal_arrows: 'overlay'
+    modal_thumbs: 'bottom', modal_arrows: 'overlay', modal_style: 'compact'
   };
   var cfg = null;
   var waiting = [];
