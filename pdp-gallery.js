@@ -67,10 +67,44 @@
       for (var i = 0; i < btns.length; i++) row.appendChild(btns[i]);
     } else if (row) {
       // Switching back: return the arrows to the image before dropping the row.
-      var main = section.querySelector('.gallery-main, .quick-add-media, .quick-add-gallery');
+      // Where the arrows live when they're overlaid, per surface: product page,
+      // quick-add modal, collection quick-add modal.
+      var main = section.querySelector('.gallery-main, .quick-add-review-media, .collection-review-media');
       var kids = row.querySelectorAll(arrowSel);
       for (var j = 0; j < kids.length; j++) (main || section).appendChild(kids[j]);
       row.remove();
+    }
+  }
+
+  /**
+   * In the dual arrangement the photos take most of the width, which leaves the
+   * buy column narrow and the page ending abruptly under the strip. Move the
+   * accordion stack (size & fit, materials, shipping, reviews…) out of that
+   * column and run it full width beneath the layout — the arrangement On uses,
+   * and what stops the page looking unfinished.
+   *
+   * The element is MOVED, not re-rendered: the accordions' inline onclick and
+   * the #reviewsContent target both survive being reparented, so nothing needs
+   * re-binding. Its original position is remembered so switching back restores
+   * it exactly, including if it wasn't the last child.
+   */
+  function applyAccordionPlacement(layout) {
+    var acc = document.querySelector('.accordions-section');
+    var layoutEl = document.querySelector('.product-layout');
+    if (!acc || !layoutEl || !layoutEl.parentElement) return;
+
+    if (layout === 'dual') {
+      if (acc.parentElement === layoutEl.parentElement) return;   // already moved
+      acc._zwHome = { parent: acc.parentElement, next: acc.nextElementSibling };
+      acc.classList.add('accordions-below');
+      // nextElementSibling, not nextSibling: the latter is usually a whitespace
+      // text node, and anchoring to it dropped the stack below "More from this
+      // release" instead of directly under the layout.
+      layoutEl.parentElement.insertBefore(acc, layoutEl.nextElementSibling);
+    } else if (acc._zwHome) {
+      acc.classList.remove('accordions-below');
+      acc._zwHome.parent.insertBefore(acc, acc._zwHome.next);
+      acc._zwHome = null;
     }
   }
 
@@ -85,6 +119,7 @@
       g.thumbs, arrows, g.layout,
       '.gallery-arrow'
     );
+    applyAccordionPlacement(g.layout);
   }
 
   function get() { return cfg ? cfg : normalize(null); }
@@ -123,5 +158,10 @@
     })
     .catch(function () { settle(cached); });
 
-  window.ZWPdpGallery = { get: get, ready: ready, applyTo: applyTo, DEFAULTS: DEFAULTS };
+  window.ZWPdpGallery = {
+    get: get, ready: ready, applyTo: applyTo, DEFAULTS: DEFAULTS,
+    // Exposed so the placement can be re-asserted after the page re-renders
+    // parts of the info column, and so it can be exercised in isolation.
+    applyAccordionPlacement: applyAccordionPlacement,
+  };
 })();

@@ -69,6 +69,7 @@ document.documentElement.classList.add('zw-collflash');
   <link rel="canonical" href="https://zuwera.store/drop001.html">
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=5dc05f38" defer></script>
+<script src="pdp-gallery.js?v=4d663561" defer></script>
   <script src="/storefront-features.js?v=51a446cd" defer></script>
   <script src="/meta-pixel.js?v=bc559c9f" defer></script>
   <script src="/google-tag.js?v=fdfca537" defer></script>
@@ -887,6 +888,39 @@ document.documentElement.classList.add('zw-collflash');
     .collection-review-label{display:block;font-size:.52rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.34);margin-bottom:.35rem}
     .collection-review-value{display:block;font-size:.78rem;color:rgba(244,241,235,.86);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .collection-thumbs{display:flex;gap:.5rem;padding:.7rem;overflow-x:auto}
+
+    /* ── COLLECTION QUICK-ADD GALLERY ARRANGEMENT ──────────────────────────
+       Mirrors the product page + quick-add modal options (Builder → Product →
+       Gallery → Quick-add modal), applied by pdp-gallery.js as data-thumbs /
+       data-arrows on .collection-product-gallery. Opt-in: with no attributes
+       this modal renders exactly as before.
+       The base .collection-product-gallery rule is (0,1,0) and these are
+       (0,2,0), so they win — unlike the quick-add modal, where the base rule
+       carries a (0,4,0) prefix and the first attempt at this silently lost. */
+    .collection-product-gallery[data-thumbs="left"]{flex-direction:row;align-items:stretch;flex-wrap:wrap}
+    .collection-product-gallery[data-thumbs="left"] .collection-thumbs{
+      order:-1;flex:0 0 68px;width:68px;flex-direction:column;
+      overflow-x:hidden;overflow-y:auto;padding:.5rem;
+    }
+    .collection-product-gallery[data-thumbs="left"] .collection-review-media{flex:1 1 auto;min-width:0}
+    .collection-product-gallery[data-thumbs="none"] .collection-thumbs{display:none}
+    /* Arrow row: flex:0 0 auto or the media pane (flex:1 1 auto) inside
+       overflow:hidden squeezes it to nothing. */
+    .collection-product-gallery .gallery-nav-below{
+      display:flex;align-items:center;justify-content:center;gap:.6rem;padding:.55rem 0;flex:0 0 auto;
+    }
+    .collection-product-gallery[data-thumbs="left"] .gallery-nav-below{flex:0 0 100%;width:100%}
+    .collection-product-gallery[data-arrows="below"] .gallery-nav-below .collection-gallery-arrow{
+      position:static;transform:none;width:34px;height:34px;
+    }
+    .collection-product-gallery[data-arrows="none"] .collection-gallery-arrow{display:none}
+    @media(max-width:900px){
+      /* A 68px rail plus the photo is too tight in a bottom sheet. */
+      .collection-product-gallery[data-thumbs="left"]{flex-direction:column;flex-wrap:nowrap}
+      .collection-product-gallery[data-thumbs="left"] .collection-thumbs{
+        order:0;flex:0 0 auto;width:auto;flex-direction:row;overflow-x:auto;overflow-y:hidden;
+      }
+    }
     .collection-thumb{
       width:64px;height:76px;flex:0 0 auto;border:1px solid rgba(244,241,235,.1);
       background:rgba(244,241,235,.04);padding:0;opacity:.55;cursor:pointer;
@@ -3315,6 +3349,22 @@ function updateCountdown() {
           collectionMoveGallery(item, Number(button.dataset.galleryStep) || 1);
         });
       });
+      // Apply the admin's quick-add gallery arrangement (Builder → Product →
+      // Gallery → Quick-add modal). This modal is a SEPARATE implementation from
+      // quick-add-modal.js — same shape, different class names — so wiring the
+      // setting into that file alone left the collection page unaffected, which
+      // is why the modal settings appeared to do nothing here.
+      // Runs after the click handlers are bound: applyTo MOVES these button
+      // nodes rather than rebuilding them, and the innerHTML above recreates
+      // them on every render, so this has to re-run each time too.
+      if (window.ZWPdpGallery) {
+        var colCfg = window.ZWPdpGallery.get();
+        window.ZWPdpGallery.applyTo(
+          media.closest('.collection-product-gallery'),
+          colCfg.modal_thumbs, colCfg.modal_arrows, null,
+          '.collection-gallery-arrow'
+        );
+      }
       var touchStartX = 0;
       media.ontouchstart = function(event) {
         touchStartX = event.changedTouches && event.changedTouches[0] ? event.changedTouches[0].screenX : 0;
