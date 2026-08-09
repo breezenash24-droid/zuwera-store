@@ -1441,6 +1441,12 @@
               docs:'https://dashboard.stripe.com/settings/payments/apple_pay',
               steps:['Stripe Dashboard → Settings → Payment methods → Apple Pay','Add your domain and download the verification file','Put it at /.well-known/apple-developer-merchantid-domain-association','Stripe verifies the domain and the button appears on supported devices'] },
 
+            { key:'apple_pay_qr', kind:'toggle', icon:'', name:'Apple Pay on Chrome & Edge', cat:'Payments',
+              blurb:'Apple Pay normally only exists inside Safari — on a Windows laptop in Chrome it simply never appears, which is most desktop shoppers. Turn this on and it appears there too, as a QR code the customer scans with their iPhone to approve the payment on the phone where the card already lives. It also lays the wallet row out side by side, so Apple Pay and Google Pay can both be offered instead of whichever one the browser picked. Safari, iPhone and iPad are unaffected — same button, ordinary Apple Pay sheet.',
+              free:'No extra fee — same Stripe rate as a card',
+              docs:'https://dashboard.stripe.com/settings/payments/apple_pay',
+              steps:['Set up Apple Pay first (the card above) — this needs that same verified domain','Turn the switch on here and save','Reload the bag or checkout in desktop Chrome: an Apple Pay button appears','Clicking it shows the QR code; scanning it needs an iPhone on iOS 18 or later','Leave it off and checkout keeps the older single-wallet button, unchanged'] },
+
             /* ── Search ────────────────────────────────────────────────────── */
 
             { key:'algolia',    kind:'guide', icon:'🔎', name:'Algolia', cat:'Search',
@@ -1495,6 +1501,9 @@
             // A 'guide' has nothing stored here — it is set up entirely on the
             // provider's own dashboard — so it never claims to be connected.
             if (item.kind === 'guide') return false;
+            // A 'toggle' is a switch this admin owns outright: no ID to paste,
+            // so the switch itself is the whole answer.
+            if (item.kind === 'toggle') return !!(_integrations[item.key] || {}).enabled;
             if (item.kind === 'server') {
                 const def = API_KEY_DEFS[item.service];
                 return !!(def && def.keys.some(k => _maskedKeys[k.name]));
@@ -1561,13 +1570,13 @@
                       <div class="integration-name">${escapeHtml(it.name)}</div>
                       <div class="integration-cat">${escapeHtml(it.cat)}</div>
                     </div>
-                    <span class="integration-state${on ? ' on' : ''}">${it.kind === 'guide' ? 'Set up elsewhere' : (on ? 'Connected' : 'Not set up')}</span>
+                    <span class="integration-state${on ? ' on' : ''}">${it.kind === 'guide' ? 'Set up elsewhere' : it.kind === 'toggle' ? (on ? 'On' : 'Off') : (on ? 'Connected' : 'Not set up')}</span>
                   </div>
                   <div class="integration-blurb">${escapeHtml(it.blurb)}</div>
                   <div class="integration-foot">
                     <span class="integration-free">${escapeHtml(it.free)}</span>
                     ${it.tucked ? `<button class="btn btn-secondary" onclick="moveApiCard('${it.tucked}','up')">⤒ Move back up</button>` : ''}
-                    <button class="btn btn-secondary" onclick="openIntegrationSetup('${it.key}')">${it.kind === 'guide' ? 'How it works' : (on ? 'Manage' : 'Set up')}</button>
+                    <button class="btn btn-secondary" onclick="openIntegrationSetup('${it.key}')">${it.kind === 'guide' ? 'How it works' : on ? 'Manage' : it.kind === 'toggle' ? 'Turn on' : 'Set up'}</button>
                   </div>
                 </div>`;
             }).join('');
@@ -1624,6 +1633,33 @@
 
             _currentIntegration = item;
             const cur = _integrations[item.key] || {};
+
+            /* A toggle borrows both halves of this dialog: the guide's cost line
+               and provider link (the Stripe-side setup it depends on) above the
+               switch that actually turns it on. The one thing it has no use for
+               is the ID field — there is nothing to paste. */
+            if (item.kind === 'toggle') {
+                document.getElementById('int-setup-title').textContent = item.name;
+                document.getElementById('int-setup-icon').textContent = item.icon;
+                document.getElementById('int-setup-blurb').textContent = item.blurb;
+                document.getElementById('int-setup-steps').innerHTML = item.steps.map((s, i) =>
+                    `<li><span>${i + 1}</span>${escapeHtml(s)}</li>`).join('');
+                document.getElementById('int-setup-cost').textContent = item.free;
+                const gdocs = document.getElementById('int-setup-docs');
+                gdocs.href = item.docs || '#';
+                gdocs.textContent = 'Open ' + item.name + ' →';
+                gdocs.style.display = item.docs ? '' : 'none';
+                document.getElementById('int-setup-guide').style.display = '';
+                document.getElementById('int-setup-idfield').style.display = 'none';
+                document.getElementById('int-setup-enabled').checked = cur.enabled === true;
+                const rm = document.getElementById('int-setup-remove');
+                rm.textContent = 'Turn off';
+                rm.style.display = cur.enabled ? '' : 'none';
+                document.getElementById('int-setup-status').textContent = '';
+                document.getElementById('integration-setup-modal').classList.add('open');
+                return;
+            }
+            document.getElementById('int-setup-remove').textContent = 'Disconnect';
             document.getElementById('int-setup-title').textContent = item.name;
             document.getElementById('int-setup-icon').textContent = item.icon;
             document.getElementById('int-setup-blurb').textContent = item.blurb;
@@ -1652,7 +1688,7 @@
             const id = document.getElementById('int-setup-id').value.trim();
             const enabled = document.getElementById('int-setup-enabled').checked;
 
-            if (!id && !item.optionalId) { status.textContent = 'Enter the ' + item.idLabel + ' first.'; status.style.color = 'var(--error)'; return; }
+            if (!id && !item.optionalId && item.kind !== 'toggle') { status.textContent = 'Enter the ' + item.idLabel + ' first.'; status.style.color = 'var(--error)'; return; }
 
             btn.disabled = true; btn.textContent = 'Saving…';
             try {
@@ -1660,7 +1696,10 @@
                 // is two admins editing integrations in the same moment, which the
                 // last-write-wins outcome handles acceptably; anything customer-
                 // facing uses mutateSetting instead.
-                const next = { ..._integrations, [item.key]: { enabled, id } };
+                // A toggle stores the switch and nothing else — the ID input is
+                // hidden for it and would otherwise carry over whatever the last
+                // integration left sitting in it.
+                const next = { ..._integrations, [item.key]: item.kind === 'toggle' ? { enabled } : { enabled, id } };
                 const { error } = await sb.from('site_settings').upsert({ key: 'integrations', value: next }, { onConflict: 'key' });
                 if (error) throw error;
                 _integrations = next;
@@ -1680,7 +1719,10 @@
         async function removeIntegration() {
             const item = _currentIntegration;
             if (!item) return;
-            if (!confirm(`Disconnect ${item.name}? Its script stops loading on the storefront.`)) return;
+            const warning = item.kind === 'toggle'
+                ? `Turn off ${item.name}? Checkout goes back to the older single-wallet button.`
+                : `Disconnect ${item.name}? Its script stops loading on the storefront.`;
+            if (!confirm(warning)) return;
             const next = { ..._integrations };
             delete next[item.key];
             try {

@@ -98,7 +98,25 @@ async function initStripe() {
   return stripeInitPromise;
 }
 
+/* Paid with a wallet on the bag page. That page has no success screen and no
+   purchase analytics — this one owns both — so it hands the order over and sends
+   the customer here, cart still intact so the tracking has something to count. */
+function consumeWalletOrderHandoff() {
+  let order;
+  try {
+    const raw = sessionStorage.getItem('zw_wallet_order');
+    if (!raw) return false;
+    sessionStorage.removeItem('zw_wallet_order');
+    order = JSON.parse(raw);
+  } catch (_) { return false; }
+  if (!order || !order.orderNumber) return false;
+  showOrderConfirmed(order.orderNumber, order.email || '', order.paymentIntentId || '');
+  return true;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  // Before Stripe: the payment already happened, there is nothing left to mount.
+  if (consumeWalletOrderHandoff()) return;
   initStripe()
     .then(() => {
       // The inline wallet init runs before Stripe is ready and no-ops; sync
@@ -229,6 +247,7 @@ const _pay = {
   totalEl:      document.getElementById('summary-total'),
   taxEl:        document.getElementById('summary-tax'),
   prBtn:        document.getElementById('payment-request-btn'),
+  expressBtn:   document.getElementById('express-checkout-btn'),
   divider:      document.getElementById('pay-divider'),
 };
 
@@ -242,8 +261,25 @@ let prTaxCents = 0;
 // so promo changes after init are reflected when the sheet recalculates.
 let prSubtotalCents = 0;
 
+/* Which wallet button to mount. The Payment Request Button below is the default;
+   express-wallet.js is the opt-in replacement that can also show Apple Pay in
+   Chrome, Edge and Firefox (by QR code) and draws every available wallet side by
+   side instead of only one. See that file for why they differ. */
 function initPaymentRequest(subtotalCents) {
   if (!stripe) return;
+  prSubtotalCents = subtotalCents;
+  if (!window.ZWExpressWallet) { initPaymentRequestButton(prSubtotalCents); return; }
+  // Both paths are idempotent, so the repeat calls a promo apply/remove triggers
+  // land as an amount update. They read prSubtotalCents rather than the captured
+  // argument — the total can move again while the flag is still in flight.
+  window.ZWExpressWallet.enabled().then((on) => {
+    if (!stripe) return;
+    if (on) initExpressCheckout(prSubtotalCents);
+    else initPaymentRequestButton(prSubtotalCents);
+  });
+}
+
+function initPaymentRequestButton(subtotalCents) {
   prSubtotalCents = subtotalCents;
   // If a paymentRequest already exists (user opened checkout a second time,
   // or a promo was applied/removed), update the amount instead of creating a
@@ -365,6 +401,34 @@ function initPaymentRequest(subtotalCents) {
       _pay.divider.style.display = 'block';
     }
   }).catch(err => console.warn('Apple/Google Pay unavailable:', err));
+}
+
+// ===================== EXPRESS CHECKOUT (APPLE PAY QR) =====================
+// The opt-in wallet path, wired to the shared module. Same order, same server,
+// same emails — the only thing that changes is which Stripe element draws the
+// button, and that element is the one Apple Pay can reach from a browser that
+// is not Safari.
+let expressWallet = null;
+
+function initExpressCheckout(subtotalCents) {
+  prSubtotalCents = subtotalCents;
+  if (expressWallet) { expressWallet.update(subtotalCents); return; }   // promo moved the total
+  expressWallet = window.ZWExpressWallet.mount({
+    stripe,
+    container: '#express-checkout-btn',
+    subtotalCents,
+    getItems: () => cartItems,
+    getPromoCode: () => window.zwGetActivePromoCode?.() || '',
+    getAccessToken: () => getCheckoutAuthPayload().then((a) => a.accessToken),
+    onReady: (available) => {
+      if (!available) return;   // no wallet here — leave the card form to stand alone
+      _pay.expressBtn.style.display = 'block';
+      _pay.expressBtn.setAttribute('aria-hidden', 'false');
+      _pay.divider.style.display = 'block';
+    },
+    onError: (message) => { if (_pay.errEl) _pay.errEl.textContent = message; },
+    onSuccess: ({ orderNumber, email, paymentIntentId }) => showOrderConfirmed(orderNumber, email, paymentIntentId),
+  });
 }
 
 // ===================== LIVE SHIPPING RATES =====================
