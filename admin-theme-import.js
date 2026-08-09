@@ -104,33 +104,6 @@
   }
 
   // ── Shopify's names for things ───────────────────────────────────────────
-  /* Colour settings, newest naming first. Online Store 2.0 themes group colours
-     into schemes; older ones use flat colors_* ids. Both are read, because a
-     store's zip can be either and the merchant does not know which. */
-  function pickColours(current) {
-    var c = {};
-    var schemes = current.color_schemes;
-    if (schemes && typeof schemes === 'object') {
-      var first = schemes['scheme-1'] || schemes[Object.keys(schemes)[0]];
-      var st = first && (first.settings || first);
-      if (st) {
-        c.bg = st.background;
-        c.fg = st.text;
-        c.ink = st.button;
-        c.paper = st.button_label;
-        c.accent = st.secondary_button_label || st.button;
-      }
-    }
-    // Flat ids win only where the scheme gave nothing — a configured scheme is
-    // the more recent intent.
-    c.bg = c.bg || current.colors_background_1;
-    c.fg = c.fg || current.colors_text;
-    c.accent = c.accent || current.colors_accent_1;
-    c.ink = c.ink || current.colors_accent_1;
-    c.paper = c.paper || current.colors_solid_button_labels;
-    return c;
-  }
-
   /* Shopify font handles look like "assistant_n4" — family, then weight/style.
      The family is all this site needs; weight is a typography setting here. */
   function fontFamily(handle) {
@@ -327,9 +300,10 @@
           id: themeId,
           label: name || 'Imported',
           icon: '\u{1F4E6}',
-          // A light page keeps the light structural CSS behind it. Judged from
-          // the imported background rather than guessed.
-          base: isDark(col.bg) ? 'dark' : 'light',
+          // A light page keeps the light structural CSS behind it. Read from the
+          // composed background, so it follows the mapping table: remap the
+          // background to something dark and the base flips with it.
+          base: baseFor(tokens.bg),
           tokens: Object.assign({ err: '#ef4444' }, tokens),
         }],
         default: themeId,
@@ -429,11 +403,17 @@
     return out;
   }
 
-  function isDark(h) {
-    var x = hex(h);
-    if (!x) return false;
-    var r = parseInt(x.substr(1, 2), 16), g = parseInt(x.substr(3, 2), 16), b = parseInt(x.substr(5, 2), 16);
-    return (0.2126 * r + 0.7152 * g + 0.0722 * b) < 128;
+  /* Which structural CSS a theme should sit on, from its page colour. Takes the
+     bare "r g b" triplet the tokens store rather than a hex, because that is
+     the shape the mapping table produces — converting at the call site is how
+     the previous version ended up reading a variable that no longer existed.
+
+     Relative luminance, not an average: 128 128 128 and 0 255 0 have the same
+     mean and nothing else in common, and green reads far lighter than grey. */
+  function baseFor(triplet) {
+    var p = String(triplet || '').trim().split(/[\s,]+/).map(Number);
+    if (p.length < 3 || p.some(function (n) { return !isFinite(n); })) return 'light';
+    return (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) < 128 ? 'dark' : 'light';
   }
 
   // ── Entry point ──────────────────────────────────────────────────────────
@@ -568,6 +548,9 @@
 
     var modes = lastBuild.preset.keys.theme_modes.modes;
     modes[0].tokens = Object.assign({}, modes[0].tokens, composed.tokens);
+    // The page colour decides which structural CSS sits behind the theme, so
+    // remapping the background has to move the base with it.
+    modes[0].base = baseFor(composed.tokens.bg);
     // A row set to "Not mapped" must actually clear the token, or the value
     // from the previous guess would survive as a ghost.
     TARGETS.forEach(function (t) {
