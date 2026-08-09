@@ -572,6 +572,9 @@ function showToast(msg) {
     if (!cfg || !cfg.sections) return;
 
     injectBuilderStyles();
+    /* Sections are built after load, so the observer has to be told to look
+       again. Called at the end of this function rather than here — scanning
+       before the DOM exists finds nothing. */
 
     // Apply SEO & Metadata dynamically
     if (cfg.seoSettings) {
@@ -1793,8 +1796,13 @@ function showToast(msg) {
         el.style.removeProperty('--zw-secbg');
         el.classList.remove('zw-secbg');
       }
-      if (s.pad_top) el.style.paddingTop = s.pad_top + 'px';
-      if (s.pad_bot) el.style.paddingBottom = s.pad_bot + 'px';
+      /* Density is a theme dimension, so a section's padding is what the
+         builder set multiplied by what the theme asks for. calc() rather than
+         arithmetic here: --zw-density can change after this runs, when a theme
+         is applied or previewed, and calc re-evaluates where a number would
+         have been frozen at render time. */
+      if (s.pad_top) el.style.paddingTop = 'calc(' + s.pad_top + 'px * var(--zw-density, 1))';
+      if (s.pad_bot) el.style.paddingBottom = 'calc(' + s.pad_bot + 'px * var(--zw-density, 1))';
 
       // Universal text color (opt-in). Sections that set color via cssText
       // (cta/banner) ship a text_color default, so the else-branch only clears
@@ -2962,7 +2970,7 @@ function renderProductCards(products, grid) {
       imageFocalY: p.image_focal_y ?? 50
     }));
     return `
-      <div class="pcard${hasSwatches ? ' pcard--swatched' : ''}" onclick="if(!event.target.closest('.quick-size-panel,.pcard-add-btn,.zw-card-swatches')){window.location.href='${productHref(p)}'}" style="cursor:pointer;position:relative;overflow:hidden">
+      <div data-zw-reveal class="pcard${hasSwatches ? ' pcard--swatched' : ''}" onclick="if(!event.target.closest('.quick-size-panel,.pcard-add-btn,.zw-card-swatches')){window.location.href='${productHref(p)}'}" style="cursor:pointer;position:relative;overflow:hidden">
         <div class="pcard-img">
           ${imgHtml}
           <div class="pcard-badge">${escapeHomeFavoriteHtml(badge)}</div>
@@ -2993,6 +3001,12 @@ function renderProductCards(products, grid) {
         </div>` : ''}
       </div>`;
   }).join('');
+
+  /* The cards were just created, so the reveal observer has never seen them.
+     Told explicitly rather than watched with a MutationObserver: this function
+     knows exactly when it has finished, and observing the whole document to
+     rediscover that would cost more than it saves. */
+  if (window.ZWMotion) window.ZWMotion.scan(grid);
 
   // Re-init hearts for dynamically loaded cards
   if (typeof refreshHearts === 'function') refreshHearts();

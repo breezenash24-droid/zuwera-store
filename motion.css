@@ -1,0 +1,106 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   motion.css — how the site moves, as tokens a theme can carry.
+
+   Every transition and keyframe on this site was a literal: `.2s ease`, `.35s
+   cubic-bezier(…)`, scattered across a dozen files. That is exactly where
+   colour was before the alpha ladder — expressible only by editing CSS, and
+   therefore not something a theme could ever carry. Two storefronts with the
+   same palette still feel nothing alike if one glides and the other snaps.
+
+   Four dials, set by the theme:
+
+     --zw-motion       a master multiplier. 0 disables movement entirely,
+                       1 is the site as built, 1.6 is languid.
+     --zw-ease         the curve. A theme's personality lives here more than
+                       in its durations: a spring reads playful, a linear ramp
+                       reads mechanical.
+     --zw-lift         how far things travel on hover and reveal, in px.
+     --zw-reveal       distance a section rises as it enters the viewport.
+
+   Durations derive from the multiplier rather than being set individually, so
+   a theme tunes one number and the whole site keeps its internal rhythm — the
+   same reasoning as the alpha ladder deriving from one triplet.
+
+   REDUCED MOTION IS NOT A THEME SETTING. If the visitor's system asks for less
+   motion they get none, whatever the theme says, and that override lives at
+   the bottom of this file where nothing can outrank it. A theme is a
+   preference about taste; that is a preference about health.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --zw-motion: 1;
+  --zw-ease: cubic-bezier(.32, .72, 0, 1);
+  --zw-lift: 2px;
+  --zw-reveal: 18px;
+
+  /* The scale. Named by intent, not by number, so a rule reads as what it is
+     doing rather than as an arbitrary duration. */
+  --zw-t-instant: calc(90ms  * var(--zw-motion));
+  --zw-t-quick:   calc(180ms * var(--zw-motion));
+  --zw-t-base:    calc(280ms * var(--zw-motion));
+  --zw-t-slow:    calc(480ms * var(--zw-motion));
+  --zw-t-drift:   calc(900ms * var(--zw-motion));
+}
+
+/* ── Reveal on scroll ──────────────────────────────────────────────────────
+   Opt-in per element via [data-zw-reveal]; motion.js adds .is-in when it
+   enters the viewport. Written so an element with the attribute is VISIBLE by
+   default and only hidden once JavaScript confirms it will be revealed —
+   otherwise a script failure leaves the page blank, which is the classic way
+   scroll animation takes a site down. */
+[data-zw-reveal] { will-change: opacity, transform; }
+html.zw-motion-ready [data-zw-reveal]:not(.is-in) {
+  opacity: 0;
+  transform: translateY(var(--zw-reveal));
+}
+html.zw-motion-ready [data-zw-reveal] {
+  transition: opacity var(--zw-t-slow) var(--zw-ease),
+              transform var(--zw-t-slow) var(--zw-ease);
+}
+html.zw-motion-ready [data-zw-reveal].is-in { opacity: 1; transform: none; }
+
+/* Staggering: children of a revealed group come in one after another. The
+   delay is a custom property so a section can set its own rhythm. */
+[data-zw-reveal-group] > * { --zw-stagger: 60ms; }
+html.zw-motion-ready [data-zw-reveal-group].is-in > *:nth-child(1) { transition-delay: calc(var(--zw-stagger) * 0 * var(--zw-motion)); }
+html.zw-motion-ready [data-zw-reveal-group].is-in > *:nth-child(2) { transition-delay: calc(var(--zw-stagger) * 1 * var(--zw-motion)); }
+html.zw-motion-ready [data-zw-reveal-group].is-in > *:nth-child(3) { transition-delay: calc(var(--zw-stagger) * 2 * var(--zw-motion)); }
+html.zw-motion-ready [data-zw-reveal-group].is-in > *:nth-child(4) { transition-delay: calc(var(--zw-stagger) * 3 * var(--zw-motion)); }
+html.zw-motion-ready [data-zw-reveal-group].is-in > *:nth-child(5) { transition-delay: calc(var(--zw-stagger) * 4 * var(--zw-motion)); }
+html.zw-motion-ready [data-zw-reveal-group].is-in > *:nth-child(n+6) { transition-delay: calc(var(--zw-stagger) * 5 * var(--zw-motion)); }
+
+/* ── Hover behaviour ───────────────────────────────────────────────────────
+   Only on devices that actually hover. On a touchscreen :hover sticks after a
+   tap, so a lift becomes a card that stays raised until you tap elsewhere. */
+@media (hover: hover) {
+  .pcard,
+  .zwf-bag-link,
+  .btn-lift {
+    transition: transform var(--zw-t-base) var(--zw-ease),
+                background var(--zw-t-quick) var(--zw-ease),
+                box-shadow var(--zw-t-base) var(--zw-ease);
+  }
+  .pcard:hover,
+  .btn-lift:hover { transform: translateY(calc(var(--zw-lift) * -1)); }
+}
+
+/* Product image: a slow drift on hover, scaled by the same dial. */
+@media (hover: hover) {
+  .pcard-img img { transition: transform var(--zw-t-drift) var(--zw-ease); }
+  .pcard:hover .pcard-img img { transform: scale(calc(1 + .04 * var(--zw-motion))); }
+}
+
+/* ── The override that outranks the theme ──────────────────────────────────
+   Last in the file and deliberately absolute. A theme can ask for languid
+   movement; a visitor asking their operating system for less motion is not
+   expressing taste, and does not get overruled by one. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --zw-motion: 0; }
+  html.zw-motion-ready [data-zw-reveal]:not(.is-in) { opacity: 1; transform: none; }
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

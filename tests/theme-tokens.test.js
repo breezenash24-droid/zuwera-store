@@ -202,6 +202,163 @@ console.log('\n  the visualiser and colour entry');
 
 }
 
+/* The failure mode that has now happened twice: a storefront module fetches a
+   settings key with the anon key, the key is not on the RLS allow-list, the read
+   returns empty, and the module falls back to its defaults. Nothing errors — an
+   empty result and "nothing configured" are the same shape from the client — so
+   the feature simply does not exist on the live site while working perfectly in
+   the admin, which reads with a session. This check is the tripwire. */
+console.log('\n  what the storefront reads, it is allowed to read');
+{
+  const MODULES = ['theme-engine.js', 'icon-sets.js', 'integrations.js', 'preview-mode.js'];
+  // The newest ALTER POLICY wins — it replaces the list rather than appending.
+  const latest = fs.readdirSync(R + 'migrations')
+    .filter((f) => f.endsWith('.sql')).sort()
+    .map((f) => fs.readFileSync(R + 'migrations/' + f, 'utf8'))
+    .filter((t) => /alter policy "Public read content keys"/i.test(t))
+    .pop() || '';
+
+  const missing = [];
+  for (const m of MODULES) {
+    if (!fs.existsSync(R + m)) continue;
+    const src = fs.readFileSync(R + m, 'utf8');
+    for (const hit of src.matchAll(/key=eq\.([a-z_]+)/g)) {
+      if (!new RegExp("'" + hit[1] + "'").test(latest)) missing.push(m + ' → ' + hit[1]);
+    }
+  }
+  ok('every anon-read settings key is on the public allow-list',
+    missing.length === 0, missing.join(', '));
+}
+
+console.log('\n  a theme is more than paint');
+{
+  /* Two storefronts with identical palettes still look nothing alike if one
+     has huge type, round corners and airy sections. Those are the dimensions
+     that carry a theme's identity, so they belong to the theme. */
+  const eng = fs.readFileSync(R + 'theme-engine.js', 'utf8');
+  ok('type scale, radius and density are theme tokens',
+    /--zw-type-scale/.test(eng) && /--zw-radius/.test(eng) && /--zw-density/.test(eng));
+  ok('a missing or nonsense type scale falls back to 1, not to nothing',
+    /isFinite\(scale\) && scale > 0 \? String\(scale\) : '1'/.test(eng));
+
+  const base2 = fs.readFileSync(R + 'base.css', 'utf8');
+  ok('the scale moves every rem at once, from the root',
+    /html \{ font-size: calc\(100% \* var\(--zw-type-scale, 1\)\); \}/.test(base2));
+  ok('shape tokens have defaults, so an unset theme changes nothing',
+    /--zw-radius: 0px;/.test(base2) && /--zw-density: 1;/.test(base2));
+
+  const sf = fs.readFileSync(R + 'storefront.js', 'utf8');
+  /* calc() rather than doing the arithmetic in JS: --zw-density can change
+     after the section renders, when a theme is applied or previewed, and a
+     computed number would be frozen at render time. */
+  ok('section padding re-evaluates when the theme changes',
+    /calc\('.*var\(--zw-density, 1\)/.test(sf) || /var\(--zw-density, 1\)\)/.test(sf));
+
+  const at = fs.readFileSync(R + 'admin-themes.js', 'utf8');
+  ok('the editor exposes them as sliders', /SHAPE/.test(at) && /themeSetShape/.test(at));
+  ok('dragging a slider does not rebuild it mid-drag', /drop the pointer/.test(at));
+}
+
+console.log('\n  motion is part of the theme');
+{
+  const css = fs.readFileSync(R + 'motion.css', 'utf8');
+  const js = fs.readFileSync(R + 'motion.js', 'utf8');
+  const eng = fs.readFileSync(R + 'theme-engine.js', 'utf8');
+
+  ok('durations derive from one multiplier, like the alpha ladder',
+    /--zw-t-base:\s*calc\(\d+ms \* var\(--zw-motion\)\)/.test(css));
+  ok('a theme can set the multiplier and the curve',
+    /--zw-motion/.test(eng) && /set\('--zw-ease', t\.ease\)/.test(eng));
+
+  /* The classic way scroll animation takes a site down: CSS hides everything,
+     the JS that was meant to show it again does not run, and the page is blank
+     with no error. Nothing is hidden until the script says it can reveal. */
+  ok('nothing is hidden until the script confirms it can reveal it',
+    /html\.zw-motion-ready \[data-zw-reveal\]:not\(\.is-in\)/.test(css));
+  ok('…and the class is only added once the observer exists',
+    /classList\.add\('zw-motion-ready'\)[\s\S]{0,400}new IntersectionObserver/.test(js));
+
+  /* On a touchscreen :hover sticks after a tap, so a lift becomes a card that
+     stays raised until you tap somewhere else. */
+  ok('hover effects only run where hovering is real', /@media \(hover: hover\)/.test(css));
+
+  /* A theme is a preference about taste. Reduced motion is not. */
+  ok('reduced motion overrides the theme, not the other way round',
+    /prefers-reduced-motion: reduce/.test(css) && /--zw-motion: 0/.test(css));
+  ok('…and the override is last, where nothing can outrank it',
+    css.lastIndexOf('prefers-reduced-motion') > css.lastIndexOf('--zw-t-drift'));
+  ok('the script opts out entirely for those visitors',
+    /prefers-reduced-motion: reduce/.test(js) && /if \(quiet/.test(js));
+
+  ok('content built after load is rescanned', /ZWMotion\.scan/.test(fs.readFileSync(R + 'storefront.js', 'utf8')));
+
+  const PAGES = ['index.html', 'product.html', 'bag.html', 'drop001.html', 'checkout.html'];
+  const missing = PAGES.filter((p) => !/motion\.css/.test(fs.readFileSync(R + p, 'utf8')));
+  ok('every storefront page loads it', missing.length === 0, missing.join(', '));
+}
+
+console.log('\n  reading a Shopify theme export');
+{
+  const im = fs.readFileSync(R + 'admin-theme-import.js', 'utf8');
+
+  /* The two JSON files in a theme zip that are not Liquid, and therefore the
+     only parts that can port without a rewrite. */
+  ok('reads the theme’s settings schema and the merchant’s values',
+    /settings_schema\.json/.test(im) && /settings_data\.json/.test(im));
+  ok('falls back to schema defaults, so an unconfigured theme still ports',
+    /s\.default !== undefined/.test(im));
+  ok('handles both colour shapes: OS 2.0 schemes and the older flat ids',
+    /color_schemes/.test(im) && /colors_background_1/.test(im));
+
+  const IDS = ['buttons_radius', 'card_corner_radius', 'inputs_radius', 'media_radius',
+    'heading_scale', 'spacing_sections', 'type_header_font', 'type_body_font',
+    'colors_accent_1', 'colors_solid_button_labels', 'colors_text'];
+  const unhandled = IDS.filter((k) => !im.includes(k));
+  ok('maps the settings a real export actually contains', unhandled.length === 0, unhandled.join(', '));
+
+  /* No library: the CSP forbids a CDN and a build step for one screen is a poor
+     trade, so the zip is walked directly. */
+  ok('unzips without a dependency', /0x02014b50/.test(im) && /deflate-raw/.test(im));
+  ok('only inflates the files it needs, not the whole archive', /wanted\(name\)/.test(im));
+
+  /* The honest half. A silent 40% import leaves you wondering why it looks
+     wrong; a report that names what did not come across does not. */
+  ok('reports what did not come across', /missed/.test(im) && /Header layout/.test(im));
+  ok('lists the theme’s sections rather than pretending to import them',
+    /listed rather than imported|are listed, not converted|listed rather than/.test(im));
+  ok('takes settings values only — never the theme’s code, CSS or images',
+    /never the theme|deliberately does not copy/.test(im));
+  ok('an import is saved, not applied', /not applied yet/.test(im));
+}
+
+console.log('\n  a theme is a snapshot, not a rewrite');
+{
+  const pr = fs.readFileSync(R + 'admin-theme-presets.js', 'utf8');
+  ok('captures the settings that make up the look', /LOOK_KEYS/.test(pr) && /'theme_modes'/.test(pr) && /'fonts'/.test(pr) && /'icons'/.test(pr));
+
+  /* Layout carries words and pictures; the look does not. Applying a look to a
+     store with its own copy must not be able to overwrite that copy, which is
+     why the two are separate lists and layout is opt-in. */
+  ok('layout and content are a separate, opt-in scope', /LAYOUT_KEYS/.test(pr));
+  ok('…and applying it warns that content is replaced', /REPLACED/.test(pr));
+
+  /* A preset must never carry business data. If one of these ever appears in a
+     bundle, an export becomes a data leak rather than a design file. */
+  const NEVER = ['orders', 'profiles', 'products', 'customers', 'STRIPE', 'API_KEY',
+    'RESEND', 'SHIPPO', 'integrations', 'tax_rate_overrides', 'feature_flags'];
+  const listBlock = pr.slice(pr.indexOf('LOOK_KEYS'), pr.indexOf('var STORE_KEY'));
+  const leaked = NEVER.filter((k) => new RegExp("'" + k + "'").test(listBlock));
+  ok('carries no business data, keys or configuration', leaked.length === 0, leaked.join(', '));
+
+  ok('exports as a plain file, with no templates to convert', /Blob\(/.test(pr) && /\.theme\.json/.test(pr));
+  ok('an import is saved but not applied until asked', /saved but not applied/.test(pr));
+  ok('re-importing the same file does not silently replace the first',
+    /p\.id = 'preset-'/.test(pr));
+  /* Storing an explicit null for a key that was never set would, on apply,
+     write that null over a value the target store legitimately has. */
+  ok('only captures keys that actually exist', /Only the keys that actually had a row/.test(pr));
+}
+
 console.log('\n  the engine reaches every themed page');
 {
   const PAGES = ['index.html', 'product.html', 'bag.html', 'checkout.html', 'drop001.html',

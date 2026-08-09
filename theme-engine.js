@@ -149,6 +149,38 @@
        wants a header in a different colour from its page sets them. */
     set('--zw-nav-bg', t.navBg);
     set('--zw-nav-fg', t.navFg);
+
+    /* Shape, scale and density — the three dimensions that separate one
+       storefront theme from another once the colours match. A theme that only
+       carries paint cannot tell a restrained editorial layout from a loud one;
+       these are what make that difference expressible.
+
+       typeScale multiplies the root font size, so every rem-based size moves
+       together and the whole page reads bigger or tighter without touching a
+       single rule. Blunt on purpose: a per-role scale is a typography system,
+       and this store already has one of those under Appearance → Typography.
+       This is the dial that says "this theme is loud".
+
+       radius and density are read by the rules that draw cards, inputs and
+       section padding, each with its current value as the fallback — so a
+       theme that sets neither behaves exactly as before. */
+    var scale = parseFloat(t.typeScale);
+    root.style.setProperty('--zw-type-scale', isFinite(scale) && scale > 0 ? String(scale) : '1');
+    set('--zw-radius', t.radius);
+    set('--zw-density', t.density);
+
+    /* Motion. A theme that carries how the site looks but not how it moves is
+       half a theme — two storefronts with the same palette feel nothing alike
+       if one glides and the other snaps. Durations derive from the multiplier
+       in motion.css, so a theme tunes one number and the site keeps its
+       internal rhythm, exactly as the alpha ladder derives from one triplet.
+
+       Not set here: prefers-reduced-motion. That override lives at the bottom
+       of motion.css where no theme can outrank it — a theme is a preference
+       about taste, and that is a preference about health. */
+    var motion = parseFloat(t.motion);
+    if (isFinite(motion) && motion >= 0) root.style.setProperty('--zw-motion', String(motion));
+    set('--zw-ease', t.ease);
     // --black and --white are the page background and text in the original
     // naming. Kept in step with the triplets so the many rules still using them
     // agree with the ones using the ladder.

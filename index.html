@@ -310,6 +310,7 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   <link rel="preload" href="reviews.css?v=28cf861f" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="reviews.css?v=28cf861f"></noscript>
   <link rel="stylesheet" href="storefront-cohesion.css?v=531497a1">
+  <link rel="stylesheet" href="/motion.css">
 <script src="header-scroll.js?v=fe320725" defer></script>
 <script src="announcement-bar.js?v=d2bbbb66" defer></script>
 <script src="email-popup.js?v=1" defer></script>
@@ -857,6 +858,7 @@ html.zw-boot-white #zw-boot{background:#FFFFFF!important}
 }
 .pcard{
   background:transparent;position:relative;overflow:hidden;transition:background .3s;
+  border-radius:var(--zw-radius, 0);
   /* Container query context: every inner element sizes in cqw (% of THIS card's
      width), so swatches, text and spacing all scale with the Card Size you set —
      in grid columns and swipe carousels alike — instead of staying fixed. */
@@ -866,6 +868,8 @@ html.zw-boot-white #zw-boot{background:#FFFFFF!important}
 .pcard-img{
   aspect-ratio:1/1;   /* square grid tiles, Nike-style */
   background:transparent;
+  border-radius:var(--zw-radius, 0);
+  overflow:hidden;
   display:flex;align-items:center;justify-content:center;
   position:relative;overflow:hidden;
 }
@@ -2628,6 +2632,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
 <script src="modal-lock.js?v=088ff918" defer></script>
 <script>window.__zwSkipThemeFetch=true;</script>
 <script src="/theme-engine.js" defer></script>
+<script src="/motion.js" defer></script>
 <script src="/icon-sets.js" defer></script>
 <script src="storefront-theme.js?v=214be857" defer></script>
 <script src="lang.js?v=f4b70f65" defer></script>
