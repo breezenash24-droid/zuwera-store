@@ -33,12 +33,21 @@
   var REST = 'https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value&key=eq.integrations';
   var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
-  // ── The opt-in flag ──────────────────────────────────────────────────────
-  var enabledPromise = null;
+  // ── The opt-in flag and its settings ─────────────────────────────────────
+  var settingsPromise = null;
 
-  function flagOn(cfg) {
-    var entry = cfg && cfg.apple_pay_qr;
-    return !!(entry && entry.enabled);
+  /* Defaults are the quiet ones, and they are applied here rather than at each
+     call site so a settings key that predates a storefront deploy — or an admin
+     who never opened the dialog — behaves the same as a deliberate choice.
+       layout 'single'  one button at a time; 'double' puts two side by side
+       pages  which surfaces draw the row at all */
+  function normalise(cfg) {
+    var entry = (cfg && cfg.apple_pay_qr) || {};
+    return {
+      enabled: !!entry.enabled,
+      layout: entry.layout === 'double' ? 'double' : 'single',
+      pages: Array.isArray(entry.pages) ? entry.pages : ['checkout', 'bag'],
+    };
   }
 
   function fetchIntegrations() {
@@ -61,18 +70,31 @@
      on any other page — settles it with no round trip, so the row is not held up
      behind the network; the refresh behind that only decides which button the
      NEXT page load draws, never swaps one out from under someone mid-payment. */
-  function enabled() {
-    if (enabledPromise) return enabledPromise;
+  function settings() {
+    if (settingsPromise) return settingsPromise;
     var cached = null;
     try { cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch (_) {}
     if (cached && typeof cached === 'object') {
       fetchIntegrations()['catch'](function () {});
-      enabledPromise = Promise.resolve(flagOn(cached));
+      settingsPromise = Promise.resolve(normalise(cached));
     } else {
-      enabledPromise = fetchIntegrations()
-        .then(flagOn)['catch'](function () { return false; });
+      settingsPromise = fetchIntegrations()
+        .then(normalise)['catch'](function () { return normalise(null); });
     }
-    return enabledPromise;
+    return settingsPromise;
+  }
+
+  /* The one question a page actually asks: do I draw this row? Answering with
+     the settings rather than a bare boolean means the caller does not have to
+     fetch twice to find out how many buttons to ask for. */
+  function forPage(page) {
+    return settings().then(function (s) {
+      return {
+        show: s.enabled && s.pages.indexOf(page) !== -1,
+        maxColumns: s.layout === 'double' ? 2 : 1,
+        settings: s,
+      };
+    });
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
@@ -111,6 +133,7 @@
        stripe          a Stripe instance
        container       CSS selector of an empty element to mount into
        subtotalCents   starting total, after any promo discount
+       maxColumns      1 (default) or 2 — how many wallet buttons show at once
        getItems()      the cart, in the shape /api/create-payment-intent takes
        getPromoCode()  active promo code, or ''
        getAccessToken() Promise<string> — member pricing; '' for a guest
@@ -172,10 +195,12 @@
       // same button gives them the ordinary Apple Pay sheet, and a device with no
       // Apple Pay at all just gets Google Pay instead.
       paymentMethods: { applePay: 'always' },
-      // Two across, the way storefronts lay a wallet row out. Stripe sizes to
-      // what the browser actually offers, so a single wallet fills the width on
-      // its own rather than leaving half the row empty.
-      layout: { maxColumns: 2 },
+      // How many wallets to show at once, from the admin setting: one button by
+      // default, or two side by side. Either way Stripe sizes the row to what
+      // the browser actually offers — a lone wallet fills the width rather than
+      // leaving half the row empty — and anything that does not fit moves into a
+      // small overflow menu instead of being dropped.
+      layout: { maxColumns: opts.maxColumns === 2 ? 2 : 1, maxRows: 1, overflow: 'auto' },
       emailRequired: true,
       shippingAddressRequired: true,
       allowedShippingCountries: ['US'],
@@ -300,5 +325,5 @@
     };
   }
 
-  window.ZWExpressWallet = { enabled: enabled, mount: mount };
+  window.ZWExpressWallet = { settings: settings, forPage: forPage, mount: mount };
 })();

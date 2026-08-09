@@ -272,9 +272,11 @@ function initPaymentRequest(subtotalCents) {
   // Both paths are idempotent, so the repeat calls a promo apply/remove triggers
   // land as an amount update. They read prSubtotalCents rather than the captured
   // argument — the total can move again while the flag is still in flight.
-  window.ZWExpressWallet.enabled().then((on) => {
+  window.ZWExpressWallet.forPage('checkout').then((cfg) => {
     if (!stripe) return;
-    if (on) initExpressCheckout(prSubtotalCents);
+    // Switched off, or switched on but set to show only on the bag: this page
+    // falls back to the older button rather than losing its wallet entirely.
+    if (cfg.show) initExpressCheckout(prSubtotalCents, cfg.maxColumns);
     else initPaymentRequestButton(prSubtotalCents);
   });
 }
@@ -410,13 +412,14 @@ function initPaymentRequestButton(subtotalCents) {
 // is not Safari.
 let expressWallet = null;
 
-function initExpressCheckout(subtotalCents) {
+function initExpressCheckout(subtotalCents, maxColumns) {
   prSubtotalCents = subtotalCents;
   if (expressWallet) { expressWallet.update(subtotalCents); return; }   // promo moved the total
   expressWallet = window.ZWExpressWallet.mount({
     stripe,
     container: '#express-checkout-btn',
     subtotalCents,
+    maxColumns,
     getItems: () => cartItems,
     getPromoCode: () => window.zwGetActivePromoCode?.() || '',
     getAccessToken: () => getCheckoutAuthPayload().then((a) => a.accessToken),

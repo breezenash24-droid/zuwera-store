@@ -4133,6 +4133,11 @@
             <span>Enabled on the storefront</span>
         </label>
 
+        <!-- Toggle-kind integrations only: settings that belong to the switch
+             above, built from the catalogue entry's `options` and read back on
+             save. Empty (and hidden) for every other kind. -->
+        <div id="int-setup-options" style="display:none;"></div>
+
         <div class="api-key-modal-actions">
             <button class="akm-cancel" id="int-setup-remove" onclick="removeIntegration()" style="color:var(--error);">Disconnect</button>
             <button class="akm-cancel" onclick="closeIntegrationSetup()">Cancel</button>

@@ -533,6 +533,32 @@
         }
         .int-toggle input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
 
+        /* Settings belonging to a toggle-kind integration. Indented under the
+           switch they modify, so it reads as "this is on, and here is how" —
+           not as three unrelated controls stacked in a dialog. */
+        #int-setup-options { margin: 14px 0 4px; padding-left: 24px; border-left: 1px solid var(--border); }
+        .int-opt { margin-bottom: 14px; }
+        .int-opt:last-child { margin-bottom: 0; }
+        .int-opt-label {
+            display: block; font-size: .78rem; font-weight: 600;
+            color: var(--text-primary); margin-bottom: 3px;
+        }
+        .int-opt-help {
+            font-size: .74rem; color: var(--text-secondary);
+            line-height: 1.5; margin-bottom: 7px;
+        }
+        .int-opt select {
+            width: 100%; padding: 8px 10px; font-size: .8rem;
+            background: var(--bg-input, var(--border)); color: var(--text-primary);
+            border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+        }
+        .int-opt-check {
+            display: flex; align-items: center; gap: 9px;
+            font-size: .8rem; color: var(--text-secondary);
+            cursor: pointer; margin-bottom: 6px;
+        }
+        .int-opt-check input { width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer; }
+
         /* Key edit modal */
         #api-key-modal,
         #integration-setup-modal {
