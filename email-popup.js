@@ -591,17 +591,74 @@
       });
   }
 
-  function showDone(c, code) {
-    els.doneTitle.textContent = c.successHeading;
-    els.doneSub.textContent = code ? c.successSub : c.successSignup;
+  /**
+   * Flip a specific instance to its success state. Takes the elements rather
+   * than reading the module's own, so the admin's preview — which is a separate
+   * instance in another document — can use it without the two interfering.
+   */
+  function showDoneOn(E, cardEl, c, code) {
+    E.doneTitle.textContent = c.successHeading;
+    E.doneSub.textContent = code ? c.successSub : c.successSignup;
     if (code) {
-      els.code.textContent = code;
-      els.codeWrap.style.display = '';
+      E.code.textContent = code;
+      E.codeWrap.style.display = '';
     } else {
-      els.codeWrap.style.display = 'none';
+      E.codeWrap.style.display = 'none';
     }
-    card.classList.add('zwp-is-done');
+    cardEl.classList.add('zwp-is-done');
+  }
+
+  function showDone(c, code) {
+    showDoneOn(els, card, c, code);
     try { els.close.focus({ preventScroll: true }); } catch (_) {}
+  }
+
+  /**
+   * Behaviour for a PREVIEW instance, so the admin can click through what a
+   * shopper actually experiences — dismissing it, declining it, or signing up —
+   * without any of it touching the database.
+   *
+   * Everything closes over the instance passed in rather than the module's own
+   * root/card/els, which are swapped back the moment renderInto returns. Bind
+   * the live wire() here instead and a click in the preview would act on the
+   * real popup.
+   */
+  function wirePreview(inst, c, onEvent) {
+    var notify = function (what) { try { if (onEvent) onEvent(what); } catch (_) {} };
+    var dismiss = function (what) {
+      inst.root.classList.remove('zwp-open');
+      notify(what);
+    };
+    inst.els.close.addEventListener('click', function () { dismiss('closed'); });
+    inst.els.decline.addEventListener('click', function () { dismiss('declined'); });
+    var scrim = inst.root.querySelector('.zwp-scrim');
+    if (scrim) scrim.addEventListener('click', function () { dismiss('closed'); });
+
+    inst.els.form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email = String(inst.els.input.value || '').trim();
+      inst.els.err.textContent = '';
+      // The real validation copy, so the preview shows the real rejections too.
+      if (!email) {
+        inst.els.err.textContent = c.mode === 'discount'
+          ? 'Pop your email in above and the code is yours.'
+          : 'Pop your email in above to join the list.';
+        return;
+      }
+      if (email.indexOf('@') === -1) {
+        inst.els.err.textContent = 'That is missing an @ — an email address looks like name@example.com.';
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        inst.els.err.textContent = 'That address looks incomplete — check for a typo after the @.';
+        return;
+      }
+      // No network, no subscribe, no code minted — a representative code only.
+      var code = c.mode !== 'discount' ? ''
+        : (c.discount.source === 'shared' ? (c.discount.code || 'YOURCODE') : (c.discount.prefix + '4K7QP'));
+      showDoneOn(inst.els, inst.card, c, code);
+      notify('signed-up');
+    });
   }
 
   /* ── triggers ────────────────────────────────────────────────────────────── */
@@ -728,7 +785,12 @@
      *
      * @param {Document} targetDoc  a same-origin document to draw into
      * @param {object}   raw        config as the editor currently has it
-     * @param {object}   [opts]     { done: true } to show the post-signup state
+     * @param {object}   [opts]     { done }        show the post-signup state
+     *                              { interactive } let the admin click through
+     *                                              it — dismiss, decline, sign
+     *                                              up — with no network calls
+     *                              { onEvent }     called with 'closed',
+     *                                              'declined' or 'signed-up'
      */
     renderInto: function (targetDoc, raw, opts) {
       if (!targetDoc || !targetDoc.body) return null;
@@ -744,9 +806,12 @@
         root.classList.add('zwp-mount', 'zwp-open');
         root._cfg = c;
         if (opts && opts.done) {
-          showDone(c, c.mode === 'discount'
+          showDoneOn(els, card, c, c.mode === 'discount'
             ? (c.discount.source === 'shared' ? (c.discount.code || 'YOURCODE') : (c.discount.prefix + '4K7QP'))
             : '');
+        }
+        if (opts && opts.interactive) {
+          wirePreview({ root: root, card: card, els: els }, c, opts.onEvent);
         }
         return root;
       } finally {

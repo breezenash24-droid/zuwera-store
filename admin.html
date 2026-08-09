@@ -1660,10 +1660,13 @@
                                 <button type="button" class="btn btn-secondary btn-sm" data-popview="820">Tablet</button>
                                 <button type="button" class="btn btn-secondary btn-sm" data-popview="390">Phone</button>
                             </div>
-                            <div style="display:flex;gap:6px;" id="popViewStates">
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;" id="popViewStates">
                                 <button type="button" class="btn btn-secondary btn-sm" data-popstate="ask">What they see</button>
                                 <button type="button" class="btn btn-secondary btn-sm" data-popstate="done">After they sign up</button>
+                                <button type="button" class="btn btn-secondary btn-sm" data-popstate="declined">After &ldquo;No thanks&rdquo;</button>
+                                <button type="button" class="btn btn-secondary btn-sm" data-popstate="closed">After they close it</button>
                             </div>
+                            <label class="pop-check" style="margin:0;"><input type="checkbox" id="popViewInteractive"> Let me click it</label>
                             <button type="button" class="btn btn-secondary btn-sm" id="popViewOverlay">Open it over this page</button>
                         </div>
                         <div id="popViewStage" style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:8px;background:var(--bg-primary);">
@@ -1676,12 +1679,16 @@
                                  actually clicking through it. -->
                             <iframe id="popViewFrame" title="Email popup preview" style="border:0;display:block;transform-origin:0 0;background:transparent;pointer-events:none;"></iframe>
                         </div>
+                        <div id="popViewOutcome" style="margin-top:14px;font-size:.85rem;"></div>
                         <div id="popViewWho" style="margin-top:14px;font-size:.85rem;line-height:1.7;"></div>
                     </div>
 
                     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:40px;">
                         <button class="btn btn-primary" id="popSaveBtn">Save popup</button>
-                        <span id="popSaveMsg" style="font-size:.85rem;color:var(--text-secondary);"></span>
+                        <!-- Colour is set by the save handler: green for saved,
+                             red for a failure. A grey "Saved" next to a grey
+                             "Could not save" is a coin flip at a glance. -->
+                        <span id="popSaveMsg" style="font-size:.85rem;color:var(--text-secondary);font-weight:600;"></span>
                     </div>
                 </div>
 
