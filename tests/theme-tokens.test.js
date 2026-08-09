@@ -346,6 +346,46 @@ console.log('\n  the import actually runs');
 
     ok('the heading font is found under whichever id the theme uses',
       fromPreset.report.fonts.head === 'Geist' && unconfigured.report.fonts.head === 'Geist');
+
+    /* A third naming generation, taken from a real Fabric v4.1.3 export. This
+       is its SHAPE, not its content — enough to hold the behaviour without
+       vendoring someone else's licensed theme into the repo.
+
+       Fabric declares one color_palette and then makes thirty colour settings
+       point at it with Liquid: "{{ settings.color_palette.background }}". A
+       reader looking for hex finds none of them, which is how a real theme
+       imported with every colour row blank. */
+    const FABRIC_SCHEMA = [
+      { name: 'theme_info', theme_name: 'Fabric', theme_version: '4.1.3' },
+      { name: 'Colors', settings: [
+        { type: 'color_palette', id: 'color_palette', default: { background: '#ffffff', foreground: '#000000' } },
+        { type: 'color', id: 'page_background_color' },
+        { type: 'color', id: 'page_text_color' }] },
+      { name: 'Type', settings: [
+        { type: 'font_picker', id: 'type_heading_font' },
+        { type: 'font_picker', id: 'type_body_font' }] },
+    ];
+    const FABRIC_DATA = { current: {
+      color_palette: { background: '#ffffff', foreground: '#030302', color1: '#d3cec5', color2: '#F5F5F5' },
+      page_background_color: '{{ settings.color_palette.background }}',
+      page_text_color: '{{ settings.color_palette.foreground }}',
+      type_heading_font: 'geist_n6', type_body_font: 'geist_n4',
+      card_corner_radius: 2, type_size_h1: '72',
+    } };
+
+    const fab = mod.build(FABRIC_SCHEMA, FABRIC_DATA, null, 'Fabric', {});
+    const ft = fab.preset.keys.theme_modes.modes[0].tokens;
+    ok('a color_palette theme maps its colours', ft.bg === '255 255 255' && ft.fg === '3 3 2', JSON.stringify(ft));
+    ok('…including the palette roles beyond background and text',
+      ft.accent === '#d3cec5' && ft.surface === '#F5F5F5');
+    ok('a Liquid reference resolves to the colour it points at',
+      fab.report.pool.colours.some((c) => c.id === 'page_background_color' && c.value === '#ffffff'),
+      'settings pointing at the palette must be selectable in the table too');
+    /* Dawn gives a percentage, Fabric gives h1 in pixels. Told apart by
+       magnitude, because the admin has no way to know which unit their theme
+       used and should not be asked. */
+    ok('an h1 size in pixels becomes a type scale', ft.typeScale > 1 && ft.typeScale <= 1.25, String(ft.typeScale));
+    ok('a real export maps almost every row', fab.report.got.length >= 9, fab.report.got.length + ' of 11');
   }
 
   /* The old heuristics encoded a second, contradictory answer to "which setting

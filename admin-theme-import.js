@@ -141,10 +141,46 @@
      with its value. Typed by shape rather than by the schema's declared type,
      because settings_data carries values without their schema and a theme
      can define a colour with type "text". */
+  /* Newer themes do not put colours in their colour settings. Fabric declares
+     one `color_palette` object and then makes every other colour setting point
+     at it:
+
+       color_palette        { background: "#ffffff", foreground: "#030302", … }
+       page_background_color "{{ settings.color_palette.background }}"
+
+     Thirty settings of type "color" whose values are Liquid expressions. A
+     reader looking for hex found none of them, which is how a real theme
+     imported with every colour row blank.
+
+     Resolving the reference does two things: the palette entries become
+     sources, and so do all thirty of the settings pointing at them — which
+     matters for the table, because "page background" is a more meaningful
+     thing to choose than "color_palette.background". */
+  function resolveRef(value, merged) {
+    var m = String(value || '').match(/\{\{\s*settings\.([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\s*\}\}/);
+    if (!m) return null;
+    var obj = merged[m[1]];
+    return (obj && typeof obj === 'object') ? obj[m[2]] : null;
+  }
+
   function collect(merged) {
     var colours = [], numbers = [], fonts = [];
+
+    /* The palette itself, flattened so each role is selectable by name. */
     Object.keys(merged).forEach(function (id) {
       var v = merged[id];
+      if (!v || typeof v !== 'object' || Array.isArray(v)) return;
+      Object.keys(v).forEach(function (role) {
+        if (typeof v[role] === 'string' && hex(v[role])) {
+          colours.push({ id: id + '.' + role, value: hex(v[role]) });
+        }
+      });
+    });
+
+    Object.keys(merged).forEach(function (id) {
+      var v = merged[id];
+      var ref = typeof v === 'string' ? resolveRef(v, merged) : null;
+      if (ref && hex(ref)) { colours.push({ id: id, value: hex(ref) }); return; }
       if (typeof v === 'string' && hex(v)) colours.push({ id: id, value: hex(v) });
       else if (typeof v === 'number' || (typeof v === 'string' && /^\d+(\.\d+)?$/.test(v))) {
         numbers.push({ id: id, value: parseFloat(v) });
@@ -157,7 +193,9 @@
         fonts.push({ id: id, value: v });
       }
     });
-    // Colour schemes are nested, so flatten them in under readable ids.
+    /* Colour schemes are nested one level deeper than a palette — scheme-1 holds
+       a `settings` object — so they need their own walk. The generic one above
+       reaches the scheme names, not the colours inside them. */
     var schemes = merged.color_schemes;
     if (schemes && typeof schemes === 'object') {
       Object.keys(schemes).forEach(function (name) {
@@ -178,24 +216,37 @@
      value into it. Order matters: the first id present wins, which is what
      encodes "prefer the scheme over the flat setting". */
   var TARGETS = [
+    /* Three generations of Shopify naming, newest first. A palette (Fabric), a
+       colour scheme (Dawn 7+), then the flat colors_* ids. Whichever the theme
+       has is the one that answers. */
     { key: 'bg', label: 'Page background', kind: 'colour',
-      prefer: ['scheme-1.background', 'colors_background_1', 'background', 'colors_background_2'] },
+      prefer: ['color_palette.background', 'page_background_color', 'scheme-1.background',
+               'colors_background_1', 'background', 'colors_background_2'] },
     { key: 'fg', label: 'Text', kind: 'colour',
-      prefer: ['scheme-1.text', 'colors_text', 'text', 'colors_text_body'] },
+      prefer: ['color_palette.foreground', 'page_text_color', 'scheme-1.text',
+               'colors_text', 'text', 'colors_text_body'] },
     { key: 'accent', label: 'Accent', kind: 'colour',
-      prefer: ['colors_accent_1', 'scheme-1.secondary_button_label', 'scheme-1.button'] },
+      prefer: ['color_palette.color1', 'colors_accent_1',
+               'scheme-1.secondary_button_label', 'scheme-1.button'] },
     { key: 'surface', label: 'Surface', kind: 'colour',
-      prefer: ['colors_background_2', 'scheme-2.background', 'scheme-1.background'] },
+      prefer: ['color_palette.color2', 'colors_background_2', 'scheme-2.background',
+               'scheme-1.background', 'color_palette.background'] },
     { key: 'ink', label: 'Button background', kind: 'colour',
-      prefer: ['scheme-1.button', 'colors_accent_1'] },
+      prefer: ['primary_button_background_color', 'scheme-1.button',
+               'colors_accent_1', 'color_palette.foreground'] },
     { key: 'paper', label: 'Button text', kind: 'colour',
-      prefer: ['scheme-1.button_label', 'colors_solid_button_labels'] },
+      prefer: ['primary_button_text_color', 'scheme-1.button_label',
+               'colors_solid_button_labels', 'color_palette.background'] },
     { key: 'radius', label: 'Corner radius', kind: 'number',
-      prefer: ['buttons_radius', 'card_corner_radius', 'inputs_radius', 'media_radius'] },
+      prefer: ['buttons_radius', 'button_border_radius_primary', 'card_corner_radius',
+               'product_corner_radius', 'inputs_radius', 'inputs_border_radius', 'media_radius'] },
+    /* Dawn gives a percentage; Fabric gives h1 in pixels and no scale at all.
+       Both are read, and compose() tells them apart by magnitude — a value in
+       the tens is a font size, a value near 100 is a percentage. */
     { key: 'typeScale', label: 'Type scale', kind: 'number',
-      prefer: ['heading_scale', 'body_scale'] },
+      prefer: ['heading_scale', 'body_scale', 'type_size_h1'] },
     { key: 'density', label: 'Section density', kind: 'number',
-      prefer: ['spacing_sections', 'spacing_grid_vertical'] },
+      prefer: ['spacing_sections', 'spacing_grid_vertical', 'spacing_sections_vertical'] },
     /* Themes disagree on the heading font's id — Dawn says type_header_font,
        others say type_heading_font or type_accent_font. Body was matching and
        heading was not, which is what a one-entry preference list buys you. */
@@ -239,7 +290,16 @@
         tokens[t.key] = (t.key === 'fg' || t.key === 'bg') ? toTriplet(v) : hex(v);
       } else if (t.kind === 'number') {
         if (t.key === 'radius') tokens.radius = Math.round(v);
-        if (t.key === 'typeScale') tokens.typeScale = Math.max(0.85, Math.min(1.25, v > 3 ? v / 100 : v));
+        if (t.key === 'typeScale') {
+          /* Three ways a theme expresses this, told apart by magnitude:
+               1.15   already a multiplier
+               115    a percentage of the theme's own base
+               72     an h1 size in pixels, against a ~56px baseline
+             Guessing by magnitude is crude, but the alternative is asking the
+             admin what unit their theme used, which they have no way to know. */
+          var scale = v > 40 ? v / 56 : v > 3 ? v / 100 : v;
+          tokens.typeScale = Math.max(0.85, Math.min(1.25, scale));
+        }
         if (t.key === 'density') tokens.density = Math.max(0.7, Math.min(1.4, 0.7 + (v / 100) * 0.7));
       } else if (t.kind === 'font') {
         if (t.key === '_fontHead') fonts.head = fontFamily(v);
