@@ -85,6 +85,10 @@ export function getEmailAppearance(cache = {}) {
   // Admin-adjustable logo height (Appearance → Emails), clamped to a sane range.
   const lh = parseInt(asObj(cache.email_settings).logoHeight, 10);
   const logoHeight = (lh >= 14 && lh <= 90) ? lh : 30;
+  // …and its horizontal position. Defaults to center, which is what every
+  // email hardcoded before this was a setting.
+  const la = String(asObj(cache.email_settings).logoAlign || '').toLowerCase();
+  const logoAlign = (la === 'left' || la === 'right') ? la : 'center';
   return {
     light,
     fontHead: emailFontStack(headStack, 'head'),
@@ -102,6 +106,7 @@ export function getEmailAppearance(cache = {}) {
     border: light ? '#e2ded4' : '#38383f',
     invertLogo: light,  // white wordmark needs inverting on a light ground
     logoHeight,
+    logoAlign,
   };
 }
 
@@ -145,12 +150,18 @@ export function renderEmailShell(a, parts = {}) {
   const intro   = parts.intro ? esc(parts.intro) : '';
   const body    = parts.bodyHtml || '';
   const footer  = parts.footerHtml || (parts.footer ? esc(parts.footer) : '');
-  const logoStyle = `height:${a.logoHeight}px;width:auto;max-width:70%;border:0;display:block;margin:0 auto;${a.invertLogo ? 'filter:invert(1);' : ''}`;
+  /* Three things have to agree or the logo moves in some clients and not
+     others: the margin (modern clients), text-align on the cell (clients that
+     drop margin:auto on a display:block image), and the cell's legacy `align`
+     attribute (Outlook's Word engine, which honours neither). Cheap to emit all
+     three; a logo that jumps depending on the recipient's mail app is not. */
+  const logoMargin = a.logoAlign === 'left' ? '0' : a.logoAlign === 'right' ? '0 0 0 auto' : '0 auto';
+  const logoStyle = `height:${a.logoHeight}px;width:auto;max-width:70%;border:0;display:block;margin:${logoMargin};${a.invertLogo ? 'filter:invert(1);' : ''}`;
   return `<!doctype html><html><body style="margin:0;padding:0;background:${a.bg};font-family:${a.fontBody};color:${a.text};-webkit-font-smoothing:antialiased;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${a.bg};">
     <tr><td align="center" style="padding:32px 16px;">
       <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:${a.panel};border:1px solid ${a.border};border-radius:8px;overflow:hidden;">
-        <tr><td style="padding:28px 28px 4px;text-align:center;">
+        <tr><td align="${a.logoAlign}" style="padding:28px 28px 4px;text-align:${a.logoAlign};">
           <img src="${esc(a.logo)}" alt="ZUWERA" height="${a.logoHeight}" style="${logoStyle}" onerror="this.style.display='none'">
         </td></tr>
         <tr><td style="padding:20px 28px 0;text-align:center;">

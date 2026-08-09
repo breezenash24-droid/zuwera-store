@@ -125,7 +125,22 @@ body.super-light-mode .zwp-root[data-theme="auto"] .zwp-close {
   color: #09090b;
 }
 
-.zwp-logo { display: block; width: auto; max-width: 60%; object-fit: contain; margin-bottom: .35rem; }
+/* align-self matters more than it looks. .zwp-body is a flex COLUMN, so its
+   cross axis is horizontal and the default align-items:stretch applies to
+   width. The other children want that — the input and the button are meant to
+   fill the popup. An <img> does not: stretch beat `width:auto`, the logo box
+   grew to the full 60% it was allowed, and object-fit:contain then centred the
+   artwork inside that box. The box was pinned left, so a logo that was
+   perfectly centred within it read as off-centre in the popup, and no setting
+   could move it because nothing was misaligned — the box was just too wide.
+
+   flex-start makes the box hug the artwork, which is what `width:auto` meant
+   all along. Alignment then becomes a real choice rather than a side effect,
+   and email-popup.js writes align-self inline when one is picked. */
+.zwp-logo { display: block; width: auto; max-width: 60%; object-fit: contain; margin-bottom: .35rem; align-self: flex-start; }
+/* This layout centres its whole column, so the logo follows unless overridden.
+   Stated explicitly because the base rule above now pins every logo left. */
+.zwp-root[data-layout="full"]:not([data-has-media="1"]) .zwp-logo { align-self: center; }
 
 .zwp-title {
   margin: 0;

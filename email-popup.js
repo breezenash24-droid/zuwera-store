@@ -50,6 +50,10 @@
 
   var LAYOUTS = ['center', 'split', 'corner', 'bar', 'full', 'drawer'];
   var BLOCKING = { center: 1, split: 1, full: 1, drawer: 1 };
+  /* Flex values, not text-align: the logo is a flex ITEM of .zwp-body, so what
+     positions it is align-self. 'auto' is absent on purpose — it means "write
+     nothing and let the stylesheet's per-layout rule stand". */
+  var LOGO_ALIGN = { left: 'flex-start', center: 'center', right: 'flex-end' };
 
   var DEFAULTS = {
     enabled: false,
@@ -60,7 +64,9 @@
     theme: 'auto',             // auto | dark | light
     radius: 0,
 
-    logo: { on: false, url: '', height: 44 },
+    // align: 'auto' follows the layout (left everywhere except the centred
+    // full-screen one). The three explicit values pin it regardless of layout.
+    logo: { on: false, url: '', height: 44, align: 'auto' },
     image: { url: '' },
 
     heading: 'Take 10% off your first order',
@@ -149,7 +155,7 @@
       theme: oneOf(r.theme, ['auto', 'dark', 'light'], d.theme),
       radius: Math.max(0, Math.min(40, num(r.radius, d.radius))),
 
-      logo: { on: bool(logo.on, d.logo.on), url: String(pick(logo.url, d.logo.url)), height: Math.max(12, Math.min(160, num(logo.height, d.logo.height))) },
+      logo: { on: bool(logo.on, d.logo.on), url: String(pick(logo.url, d.logo.url)), height: Math.max(12, Math.min(160, num(logo.height, d.logo.height))), align: oneOf(logo.align, ['auto', 'left', 'center', 'right'], d.logo.align) },
       image: { url: String(pick(image.url, d.image.url)) },
 
       heading: String(pick(r.heading, d.heading)),
@@ -420,6 +426,9 @@
     if (c.logo.on && c.logo.url) {
       els.logo.src = c.logo.url;
       els.logo.style.height = c.logo.height + 'px';
+      // '' rather than a value for 'auto', so the stylesheet's per-layout rule
+      // is what decides. Writing any value here would beat it.
+      els.logo.style.alignSelf = LOGO_ALIGN[c.logo.align] || '';
       els.logo.style.display = '';
     } else {
       els.logo.removeAttribute('src');
