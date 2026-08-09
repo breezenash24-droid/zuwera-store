@@ -2406,7 +2406,39 @@
             frame.style.transform = 'scale(' + scale + ')';
             stage.style.height = Math.round(height * scale) + 'px';
 
-            window.ZWEmailPopup.renderInto(doc, cfg, { done: _popViewState === 'done' });
+            const interactive = !!(document.getElementById('popViewInteractive') || {}).checked;
+            // pointer-events only when asked for. The popup is position:fixed
+            // with a full-bleed scrim, so an always-clickable frame swallows
+            // every scroll that crosses it and the settings page cannot be
+            // scrolled at all.
+            frame.style.pointerEvents = interactive ? 'auto' : 'none';
+
+            window.ZWEmailPopup.renderInto(doc, cfg, {
+                done: _popViewState === 'done',
+                interactive,
+                // Clicking through the preview moves the state buttons with it,
+                // so what you did and what you are looking at never disagree.
+                onEvent: (what) => {
+                    if (what === 'signed-up') _popViewState = 'done';
+                    else if (what === 'declined') _popViewState = 'declined';
+                    else if (what === 'closed') _popViewState = 'closed';
+                    paintPopupOutcome(cfg);
+                    document.querySelectorAll('#popViewStates [data-popstate]').forEach(b => {
+                        b.classList.toggle('btn-primary', b.dataset.popstate === _popViewState);
+                        b.classList.toggle('btn-secondary', b.dataset.popstate !== _popViewState);
+                    });
+                },
+            });
+
+            // The dismissal states have nothing to draw — the popup is gone,
+            // which is the point. Fold the frame away and explain the
+            // consequence instead, which is the part that is actually invisible.
+            const dismissed = _popViewState === 'declined' || _popViewState === 'closed';
+            if (dismissed) {
+                doc.body.innerHTML = '';
+                stage.style.height = '0px';
+            }
+            paintPopupOutcome(cfg);
 
             document.querySelectorAll('#popViewDevices [data-popview]').forEach(b => {
                 b.classList.toggle('btn-primary', Number(b.dataset.popview) === _popViewWidth);
@@ -2417,6 +2449,46 @@
                 b.classList.toggle('btn-secondary', b.dataset.popstate !== _popViewState);
             });
             paintPopupAudience(cfg);
+        }
+
+        /**
+         * What happens AFTER — the part with nothing to look at. Dismissing the
+         * popup leaves an empty screen; the consequence (when it comes back, or
+         * that it never does) is invisible, and it is the bit that decides
+         * whether the thing is annoying.
+         */
+        function paintPopupOutcome(cfg) {
+            const host = document.getElementById('popViewOutcome');
+            if (!host) return;
+            const days = cfg.rules.frequencyDays;
+            const back = days > 0
+                ? 'It comes back on this device after <strong>' + days + ' day' + (days === 1 ? '' : 's') + '</strong>.'
+                : '<strong>It comes back on their very next page view</strong> — “show again after” is 0, which is almost always a mistake.';
+            const box = (title, body) =>
+                '<div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:14px 16px;line-height:1.75;">'
+                + '<div style="font-weight:600;margin-bottom:4px;">' + title + '</div>' + body + '</div>';
+
+            if (_popViewState === 'declined' || _popViewState === 'closed') {
+                const how = _popViewState === 'declined' ? '“No thanks”' : 'the X (or the dimmed area)';
+                host.innerHTML = box('They pressed ' + how,
+                    'The popup disappears and the page is theirs again. Nothing is recorded about them — no email, no signup. '
+                    + back
+                    + '<div style="margin-top:8px;color:var(--text-secondary);">Both dismissals do the same thing; “No thanks” exists so the way out is obvious to someone who does not want to hunt for an X.</div>');
+                return;
+            }
+            if (_popViewState === 'done') {
+                const hasCode = cfg.mode === 'discount';
+                host.innerHTML = box('They signed up',
+                    'Their address is saved to <strong>Subscribers</strong>'
+                    + (hasCode ? ', a code is created and handed to their bag so it applies at checkout' : '')
+                    + (cfg.welcomeEmail && cfg.welcomeEmail.on ? ', and the welcome email goes out' : '')
+                    + '. <strong>They never see this popup again on this device</strong>, whatever the frequency setting says.'
+                    + (cfg.welcomeEmail && cfg.welcomeEmail.on
+                        ? ''
+                        : '<div style="margin-top:8px;color:var(--text-secondary);">The welcome email is off, so the code exists only on this screen — if they close the tab it is gone.</div>'));
+                return;
+            }
+            host.innerHTML = '';
         }
 
         /** Plain-language answer to "would this actually show, and to whom?" */
@@ -2484,6 +2556,32 @@
             }, delay === undefined ? 300 : delay);
         }
 
+        /**
+         * Keep the viewer honest no matter HOW a field changed.
+         *
+         * The event listeners below only fire for changes a person types or
+         * picks. Plenty of things set a value programmatically — image uploads
+         * write the URL straight into the field with `urlInput.value = …`,
+         * which fires no event at all — and the viewer would sit there showing
+         * the old logo with no indication it was stale. A preview you cannot
+         * trust is worse than no preview.
+         *
+         * So: serialise the form, compare, redraw on any difference. Reading
+         * forty inputs twice a second is nothing, and it makes "mirrors the
+         * real thing at all times" true by construction rather than by having
+         * remembered to fire an event everywhere.
+         */
+        let _popLastSerialised = null;
+        setInterval(() => {
+            const page = document.getElementById('popup');
+            if (!page || !page.classList.contains('active') || !window.ZWEmailPopup) return;
+            let now;
+            try { now = JSON.stringify(popupReadForm()); } catch (_) { return; }
+            if (now === _popLastSerialised) return;
+            _popLastSerialised = now;
+            queuePopupViewer(30);
+        }, 500);
+
         document.addEventListener('input', e => {
             if (e.target && e.target.closest && e.target.closest('#popup')) { syncPopupFields(); queuePopupViewer(); }
         });
@@ -2502,6 +2600,7 @@
             if (devBtn) { _popViewWidth = Number(devBtn.dataset.popview) || 1180; renderPopupViewer(); return; }
             const stBtn = e.target.closest('#popViewStates [data-popstate]');
             if (stBtn) { _popViewState = stBtn.dataset.popstate; renderPopupViewer(); return; }
+            if (e.target.id === 'popViewInteractive') { renderPopupViewer(); return; }
 
             if (e.target.id === 'popViewOverlay') {
                 if (!window.ZWEmailPopup) return;
@@ -2515,12 +2614,12 @@
             if (e.target.id === 'popSaveBtn') {
                 const msg = document.getElementById('popSaveMsg');
                 const value = popupReadForm();
-                if (msg) msg.textContent = 'Saving…';
+                if (msg) { msg.textContent = 'Saving…'; msg.style.color = 'var(--text-secondary)'; }
                 // A discount popup with no code set would collect emails and then
                 // show an empty box where the reward should be.
                 if (value.enabled && value.mode === 'discount'
                     && value.discount.source === 'shared' && !value.discount.code) {
-                    if (msg) msg.textContent = 'Add a code first, or switch to unique codes — a discount popup with no code has nothing to give.';
+                    if (msg) { msg.textContent = 'Add a code first, or switch to unique codes — a discount popup with no code has nothing to give.'; msg.style.color = '#ef4444'; }
                     return;
                 }
                 try {
@@ -2528,9 +2627,9 @@
                     if (error) throw error;
                     _popupCfg = value;
                     void logAdminAudit('settings.update', 'site_settings', 'email_popup', value);
-                    if (msg) msg.textContent = value.enabled ? 'Saved — live on the storefront.' : 'Saved. The popup is switched off.';
+                    if (msg) { msg.textContent = value.enabled ? '✓ Saved — live on the storefront.' : '✓ Saved. The popup is switched off.'; msg.style.color = '#4ade80'; }
                 } catch (err) {
-                    if (msg) msg.textContent = 'Could not save: ' + ((err && err.message) || 'error');
+                    if (msg) { msg.textContent = 'Could not save: ' + ((err && err.message) || 'error'); msg.style.color = '#ef4444'; }
                 }
             }
         });

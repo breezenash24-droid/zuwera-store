@@ -456,6 +456,83 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms || 5));
     ok('modal-lock honours the opt-out', /\[role="dialog"\][^']*:not\(\[data-zw-nolock\]\)/.test(lock));
   }
 
+  /* ── 12. the admin viewer can be clicked through ────────────────────────── */
+  console.log('\n  interactive preview');
+  {
+    const { P, ls, ss } = boot(null);
+    const events = [];
+    const frame = makeDoc();
+    const cfg = { enabled: true, mode: 'discount', discount: { source: 'shared', code: 'WELCOME10' } };
+    let out = P.renderInto(frame, cfg, { interactive: true, onEvent: (w) => events.push(w) });
+
+    // Sign-up: shows the success state and reports it, without any network call
+    // or anything written to storage.
+    const before = fetchCalls.length;
+    out.querySelector('.zwp-input').value = 'shopper@example.com';
+    out.querySelector('.zwp-form').dispatch('submit');
+    await wait();
+    ok('signing up in the preview shows the success state',
+      out.querySelector('.zwp-card').classList.contains('zwp-is-done'));
+    ok('…with the code that would really be handed out',
+      out.querySelector('.zwp-code code').textContent === 'WELCOME10');
+    ok('…and reports it back to the admin', events.join() === 'signed-up');
+    ok('…without calling the server', fetchCalls.length === before);
+    ok('…without subscribing anyone or marking the browser done',
+      ls.getItem('zw_popup_done') === null && ss.getItem('zw_promo_code') === null);
+
+    // Bad input still gets the real message, so the preview shows real rejections.
+    const f2 = makeDoc();
+    const o2 = P.renderInto(f2, cfg, { interactive: true, onEvent: () => {} });
+    o2.querySelector('.zwp-input').value = 'nope';
+    o2.querySelector('.zwp-form').dispatch('submit');
+    await wait();
+    ok('a bad address in the preview gets the real rejection copy',
+      /@/.test(o2.querySelector('.zwp-err').textContent));
+
+    // Dismissals.
+    const f3 = makeDoc();
+    const ev3 = [];
+    const o3 = P.renderInto(f3, cfg, { interactive: true, onEvent: (w) => ev3.push(w) });
+    o3.querySelector('.zwp-decline').dispatch('click');
+    ok('"No thanks" closes it and reports declined',
+      ev3.join() === 'declined' && !o3.classList.contains('zwp-open'));
+
+    const f4 = makeDoc();
+    const ev4 = [];
+    const o4 = P.renderInto(f4, cfg, { interactive: true, onEvent: (w) => ev4.push(w) });
+    o4.querySelector('.zwp-close').dispatch('click');
+    ok('the X closes it and reports closed', ev4.join() === 'closed');
+
+    // And a NON-interactive preview stays inert, so the default viewer cannot
+    // be clicked by accident.
+    const f5 = makeDoc();
+    const o5 = P.renderInto(f5, cfg, {});
+    o5.querySelector('.zwp-decline').dispatch('click');
+    ok('a non-interactive preview ignores clicks', o5.classList.contains('zwp-open'));
+
+    // The live popup is untouched by any of it.
+    P.open({ enabled: true, heading: 'Live' }, { preview: true });
+    ok('the live popup is unaffected by interactive previews',
+      doc.getElementById('zw-email-popup').querySelector('.zwp-title').textContent === 'Live');
+  }
+
+  /* ── 13. the viewer cannot go stale ─────────────────────────────────────── */
+  console.log('\n  the viewer mirrors the form');
+  {
+    const admin = fs.readFileSync(ROOT + '/admin-main.js', 'utf8');
+    ok('a watcher redraws on ANY change, not just typed ones',
+      /_popLastSerialised/.test(admin) && /JSON\.stringify\(popupReadForm\(\)\)/.test(admin));
+    ok('…which is what catches an image upload writing the field directly',
+      /urlInput\.value = upload\.url/.test(admin));
+    ok('the frame is only clickable when asked', /pointerEvents = interactive \? 'auto' : 'none'/.test(admin));
+
+    const html = fs.readFileSync(ROOT + '/admin.html', 'utf8');
+    ok('all four outcomes are shown', ['ask', 'done', 'declined', 'closed']
+      .every(s => new RegExp('data-popstate="' + s + '"').test(html)));
+    ok('there is an interactive toggle', /id="popViewInteractive"/.test(html));
+    ok('saving reports in colour', /id="popSaveMsg"/.test(html) && /#4ade80/.test(admin) && /#ef4444/.test(admin));
+  }
+
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
   process.exit(fail ? 1 : 0);
 })();
