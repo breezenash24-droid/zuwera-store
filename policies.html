@@ -109,7 +109,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 0.5rem 2.5rem;
-      background: #09090b;
+      background: var(--zw-nav-bg, #09090b);
       border-bottom: 1px solid rgba(255,255,255,0.08);
       box-shadow: 0 1px 12px rgba(0,0,0,0.3);
     }
@@ -452,11 +452,11 @@
       --border: rgba(10,10,10,0.1);
     }
     body.light-mode .nav {
-      background: #F0EEE9;
+      background: var(--zw-nav-bg, #F0EEE9);
       border-bottom-color: rgba(10,10,10,0.08);
       box-shadow: 0 1px 12px rgba(0,0,0,0.05);
     }
-    body.super-light-mode .nav { background: #FFFFFF; }
+    body.super-light-mode .nav { background: var(--zw-nav-bg, #FFFFFF); }
     body.light-mode .policy-section p,
     body.light-mode .policy-section ul li { color: rgba(10,10,10,0.65); }
     body.light-mode .policy-section ul li::before { color: rgba(10,10,10,0.5); }

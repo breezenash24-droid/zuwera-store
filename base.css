@@ -1,13 +1,24 @@
 /* ===================== BASE ===================== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* The theme's type scale. Every rem in the stylesheet is relative to this, so
-   one number moves the whole page's type together — which is what separates a
-   loud editorial theme from a restrained one more than any font choice does.
-   Defaults to 1, so a store that never sets it is unchanged to the pixel.
-   Clamped by the admin rather than here: CSS cannot refuse a silly value, and
-   0.2 would make the site unusable rather than merely wrong. */
-html { font-size: calc(100% * var(--zw-type-scale, 1)); }
+/* THE TYPE SCALE DOES NOT TOUCH THE ROOT, and that is a correction.
+
+   It used to: html { font-size: calc(100% * var(--zw-type-scale, 1)) }, on the
+   reasoning that every rem would then move together and one number would resize
+   the whole site. It does move them together. The problem is what does NOT
+   move: this codebase mixes units, and the header is the worst case — nav
+   padding is 0.5rem 2.5rem and the logo is height:50px. At a scale of 1.25 the
+   padding grows and the logo does not, so the header comes apart. An imported
+   theme that arrived with 1.25 made that visible immediately.
+
+   Scaling the root is only safe in a stylesheet with no fixed units anywhere,
+   which is not a property this one has and not one worth retrofitting for a
+   slider. So the scale drives the type tokens instead: smaller reach, and it
+   cannot break a layout.
+
+   Removing it here also repairs any theme already saved with a large scale —
+   the value stops driving the root the moment this ships, without anyone
+   editing the theme that broke. */
 
 :root {
   /* ── Palette ────────────────────────────────────────────────────────────
@@ -38,10 +49,13 @@ html { font-size: calc(100% * var(--zw-type-scale, 1)); }
   --fb:var(--zw-font-body, var(--font-body));
   --fm:var(--zw-font-mono, var(--font-mono));
 
-  /* ── Type scale ── */
-  --text-hero:    clamp(3.5rem, 8vw, 6rem);
-  --text-display: clamp(2rem, 4vw, 3rem);
-  --text-title:   1.4rem;
+  /* ── Type scale ──────────────────────────────────────────────────────────
+     Multiplied by the theme's --zw-type-scale. Only the display sizes move:
+     making labels and micro-copy 25% larger is how a layout stops fitting,
+     and no theme's identity rests on the size of its size-guide caption. */
+  --text-hero:    calc(clamp(3.5rem, 8vw, 6rem) * var(--zw-type-scale, 1));
+  --text-display: calc(clamp(2rem, 4vw, 3rem) * var(--zw-type-scale, 1));
+  --text-title:   calc(1.4rem * var(--zw-type-scale, 1));
   --text-body:    0.92rem;
   --text-small:   0.78rem;
   --text-label:   0.6rem;

@@ -1541,6 +1541,16 @@
                             <label class="form-label" for="popLogoHeight">Logo height (px)</label>
                             <input type="number" class="form-input" id="popLogoHeight" min="12" max="160" step="1">
                         </div>
+                        <div class="form-group" style="max-width:220px;">
+                            <label class="form-label" for="popLogoAlign">Logo position</label>
+                            <select class="form-input" id="popLogoAlign">
+                                <option value="auto">Follow the layout</option>
+                                <option value="left">Left</option>
+                                <option value="center">Center</option>
+                                <option value="right">Right</option>
+                            </select>
+                            <div class="pop-hint">&ldquo;Follow the layout&rdquo; keeps the logo left except on the centred full-screen layout, which centres it. The other three pin it whatever the layout does.</div>
+                        </div>
                         <div class="form-group">
                             <label class="form-label">Photo</label>
                             <div class="image-row" style="margin-bottom:0">
@@ -3329,6 +3339,15 @@
                                     <span id="em-logo-height-val" style="min-width:52px;font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--text-secondary)">30px</span>
                                 </div>
                                 <p style="font-size:.76rem;color:var(--text-secondary);margin-top:6px;opacity:.85">Height of the logo at the top of every email. Drag to preview live; click <strong>Save emails</strong> to keep it.</p>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="em-logo-align">Logo position</label>
+                                <select id="em-logo-align" class="form-input" style="max-width:220px;display:block" onchange="emLogoAlignChanged()">
+                                    <option value="center">Center</option>
+                                    <option value="left">Left</option>
+                                    <option value="right">Right</option>
+                                </select>
+                                <p style="font-size:.76rem;color:var(--text-secondary);margin-top:6px;opacity:.85">Where the logo sits at the top of every email. Emitted three ways at once (margin, cell alignment and Outlook's legacy attribute) so it lands in the same place in every mail app.</p>
                             </div>
                             <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
                             <div class="form-group">

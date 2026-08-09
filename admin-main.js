@@ -2528,7 +2528,7 @@
             set('popSuccessHeading', c.successHeading);
             set('popSuccessSub', c.successSub); set('popSuccessSignup', c.successSignup);
 
-            chk('popLogoOn', c.logo.on); set('popLogoUrl', c.logo.url); set('popLogoHeight', c.logo.height);
+            chk('popLogoOn', c.logo.on); set('popLogoUrl', c.logo.url); set('popLogoHeight', c.logo.height); set('popLogoAlign', c.logo.align);
             set('popImageUrl', c.image.url);
             // The shared upload row shows a thumbnail; seed it from the saved URL.
             document.querySelectorAll('#popup .image-row').forEach(row => {
@@ -2616,7 +2616,7 @@
                 layout: (document.querySelector('input[name="popLayout"]:checked') || {}).value,
                 side: val('popSide'), media: val('popMedia'),
                 theme: val('popTheme'), radius: val('popRadius'),
-                logo: { on: on('popLogoOn'), url: val('popLogoUrl'), height: val('popLogoHeight') },
+                logo: { on: on('popLogoOn'), url: val('popLogoUrl'), height: val('popLogoHeight'), align: val('popLogoAlign') },
                 image: { url: val('popImageUrl') },
                 heading: val('popHeading'), sub: val('popSub'),
                 placeholder: val('popPlaceholder'), button: val('popButton'),
@@ -10098,6 +10098,10 @@
                 const lhVal = document.getElementById('em-logo-height-val');
                 if (lhVal) lhVal.textContent = lhSlider.value + 'px';
             }
+            // Sits alongside logoHeight at the top level of email_settings — it
+            // applies to every email, not to the one open in the editor.
+            const laSel = document.getElementById('em-logo-align');
+            if (laSel) laSel.value = (_emailCfg.logoAlign === 'left' || _emailCfg.logoAlign === 'right') ? _emailCfg.logoAlign : 'center';
             const themeSel = document.getElementById('em-theme');
             if (themeSel && !themeSel._emPrevBound) { themeSel._emPrevBound = true; themeSel.addEventListener('change', loadEmailPreview); }
             loadEmailPreview();
@@ -10111,10 +10115,14 @@
             emLogoHeightChanged._t = setTimeout(loadEmailPreview, 260);
         }
         window.emLogoHeightChanged = emLogoHeightChanged;
+        function emLogoAlignChanged() { loadEmailPreview(); }
+        window.emLogoAlignChanged = emLogoAlignChanged;
         async function saveEmailSettings() {
             _emailCfg[_emailType] = _emailReadForm();
             const lhSlider = document.getElementById('em-logo-height');
             if (lhSlider) { const lh = parseInt(lhSlider.value, 10); _emailCfg.logoHeight = (lh >= 14 && lh <= 90) ? lh : 30; }
+            const laSel = document.getElementById('em-logo-align');
+            if (laSel) _emailCfg.logoAlign = (laSel.value === 'left' || laSel.value === 'right') ? laSel.value : 'center';
             const theme = (document.getElementById('em-theme') || {}).value === 'light' ? 'light' : 'dark';
             try {
                 const r1 = await sb.from('site_settings').upsert({ key: 'email_theme', value: theme, updated_at: new Date().toISOString() }, { onConflict: 'key' });
@@ -10139,6 +10147,8 @@
             const payload = { type, theme };
             const lhSlider = document.getElementById('em-logo-height');
             if (lhSlider) payload.logoHeight = parseInt(lhSlider.value, 10);  // preview the unsaved logo size live
+            const laSel = document.getElementById('em-logo-align');
+            if (laSel) payload.logoAlign = laSel.value;                       // …and its unsaved position
             if (type === _emailType) payload.content = _emailReadForm();  // show unsaved copy for the open email
             frame.srcdoc = '<p style="font-family:sans-serif;padding:24px;color:#888">Loading preview…</p>';
             try {

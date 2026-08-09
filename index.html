@@ -416,13 +416,17 @@ nav#nav{
   position:fixed;top:0;left:0;right:0;z-index:220;
   display:flex;justify-content:space-between;align-items:center;
   padding:0.5rem 2.5rem;
-  background:var(--ink);
+  /* --zw-nav-bg first, --ink as the fallback it used to read directly. Without
+     the token this page's header ignored the theme's nav colour while
+     product/drop001/policies (which use .nav) obeyed it — one theme, a
+     different header colour depending on the page you were on. */
+  background:var(--zw-nav-bg, var(--ink));
   isolation:isolate;
   transition:background .35s,border-color .35s,padding .35s,top .45s ease;
   border-bottom:1px solid var(--c07);
 }
 nav#nav.scrolled{
-  background:var(--ink);
+  background:var(--zw-nav-bg, var(--ink));
   border-color:var(--c07);
   padding:0.3rem 2.5rem;
 }

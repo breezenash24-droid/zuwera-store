@@ -130,9 +130,74 @@ console.log('\n  themes are data');
   ok('every nav rule falls back to the colour it used to hardcode',
     (nav.match(/var\(--zw-nav-bg, #[0-9A-Fa-f]{6}\)/g) || []).length === 3,
     (nav.match(/var\(--zw-nav-bg, #[0-9A-Fa-f]{6}\)/g) || []).length + ' of 3');
-  ok('the higher-specificity page overrides read it too',
-    /var\(--zw-nav-bg/.test(fs.readFileSync(R + 'index.html', 'utf8')) &&
-    /var\(--zw-nav-bg/.test(fs.readFileSync(R + 'bag.html', 'utf8')));
+
+  /* The check that used to sit here asked whether the string '--zw-nav-bg'
+     appeared ANYWHERE in index.html and bag.html. It did — in the light-mode
+     override — so the test passed for months while index's base rule read
+     `background:var(--ink)` and bag's read `#09090b`, and neither obeyed the
+     theme. Setting a nav colour recoloured four pages out of ten and the user
+     saw a header that changed colour as they browsed.
+
+     A substring test cannot catch that. This one finds every rule that paints
+     a nav background, on every storefront page, and requires each one to read
+     the token. It fails by naming the file and the selector. */
+  const navSel = /\.nav(?![\w-])|\.zw-nav(?![\w-])|#nav(?![\w-])/;
+  /* The nav must be the SUBJECT of the rule, not merely an ancestor in it.
+     `.nav #cart-btn .cc { background: … }` paints the bag's count badge, which
+     is supposed to contrast WITH the header rather than match it — demanding
+     the nav token there would be wrong. So reduce each selector in the list to
+     its final compound and test that. */
+  const paintsNav = (sel) => {
+    // Collapse spaces inside (...) first, or `:is(#nav, .nav)` splits on its
+    // own comma and space and stops looking like one compound.
+    const masked = sel.replace(/\([^()]*\)/g, (g) => g.replace(/\s+/g, ''));
+    return masked.split(',').some((one) => {
+      const last = one.trim().split(/[\s>~+]+/).filter(Boolean).pop() || '';
+      // ::before on the nav IS the nav's paint (the safe-area strip), so drop a
+      // trailing pseudo before testing rather than excluding it.
+      const bare = last.replace(/::?[\w-]+(\([^)]*\))?$/, '');
+      return navSel.test(bare || last);
+    });
+  };
+  const pages = fs.readdirSync(R)
+    .filter(f => f.endsWith('.html') && !/^(admin|builder)/.test(f));
+  const offenders = [];
+  for (const file of ['nav.css', 'storefront-cohesion.css', ...pages]) {
+    const src = fs.readFileSync(R + file, 'utf8');
+    // .html carries its CSS in <style>; .css is CSS throughout.
+    const cssRaw = file.endsWith('.css')
+      ? src
+      : (src.match(/<style[^>]*>([\s\S]*?)<\/style>/gi) || []).join('\n');
+    /* Comments stripped BEFORE parsing. Declarations are found by splitting the
+       block on ';' and requiring `background:` at the start of a piece — and a
+       comment sitting above the declaration lands inside that piece and pushes
+       `background` off the front, so the rule is skipped. That is not
+       hypothetical: it silently exempted the very rule in index.html this
+       check was written to guard, and only showed up when the bug was
+       deliberately reintroduced to confirm the test could see it. */
+    const css = cssRaw.replace(/\/\*[\s\S]*?\*\//g, ' ');
+    let m;
+    const rule = /([^{}]*)\{([^{}]*)\}/g;
+    while ((m = rule.exec(css))) {
+      const sel = m[1], decls = m[2];
+      if (!paintsNav(sel)) continue;
+      for (const d of decls.split(';')) {
+        if (!/^\s*background(-color)?\s*:/.test(d)) continue;
+        // Only colour values are in scope — `none`, `transparent` and
+        // gradients are not the header's paint and need no token.
+        if (!/#[0-9A-Fa-f]{3,8}|\brgba?\(|\bhsla?\(|var\(--/.test(d)) continue;
+        // The nav's ::after is the mega-menu scrim — a full-viewport dim that
+        // belongs to the modal-backdrop system and reads its tokens. It is
+        // painted ON the nav element but is not the header's colour.
+        if (d.includes('--zw-mbd-')) continue;
+        if (d.includes('--zw-nav-bg')) continue;
+        offenders.push(file + ' → ' + sel.trim().split('\n').pop().trim());
+      }
+    }
+  }
+  ok('every rule that paints a nav background reads --zw-nav-bg',
+    offenders.length === 0,
+    offenders.length + ' ignore the theme: ' + offenders.join(' | '));
   ok('sets its tokens on body, where the ladder computes and the class lives',
     /document\.body \|\| root/.test(eng) && /el\.style\.setProperty/.test(eng),
     'setting them on :root loses to body.light-mode and a custom theme gets the built-in colours');
@@ -242,8 +307,29 @@ console.log('\n  a theme is more than paint');
     /isFinite\(scale\) && scale > 0 \? String\(scale\) : '1'/.test(eng));
 
   const base2 = fs.readFileSync(R + 'base.css', 'utf8');
-  ok('the scale moves every rem at once, from the root',
-    /html \{ font-size: calc\(100% \* var\(--zw-type-scale, 1\)\); \}/.test(base2));
+  /* This used to assert the opposite — that the scale was applied to <html>, so
+     every rem moved together. It did, and that was the bug: the stylesheet
+     mixes rem and px, worst of all in the header, where nav padding is
+     0.5rem 2.5rem and the logo is height:50px. At scale 1.25 the padding grew,
+     the logo did not, and the header came apart. An imported theme arriving
+     with 1.25 shipped that to a live page.
+
+     So the invariant is now the reverse, and it is asserted as a prohibition
+     because that is the part that must not regress: the scale drives the
+     display type tokens and must never reach the root. */
+  ok('the type scale drives the display type tokens',
+    /--text-hero:\s*calc\(.*var\(--zw-type-scale, 1\)\)/.test(base2) &&
+    /--text-display:\s*calc\(.*var\(--zw-type-scale, 1\)\)/.test(base2) &&
+    /--text-title:\s*calc\(.*var\(--zw-type-scale, 1\)\)/.test(base2));
+  /* Comments stripped first: the note explaining WHY the root is not scaled
+     quotes the removed rule verbatim, and a prohibition that reads comments
+     fails on its own explanation. */
+  const base2Code = base2.replace(/\/\*[\s\S]*?\*\//g, '');
+  ok('…and it must NOT scale the root, which breaks the px/rem header',
+    !/html\s*\{[^}]*font-size:\s*calc\([^}]*--zw-type-scale/.test(base2Code),
+    'scaling <html> grows rem padding while px logos stay put');
+  ok('small type is left alone, so labels and micro-copy still fit',
+    /--text-body:\s*[\d.]+rem;/.test(base2) && !/--text-body:\s*calc/.test(base2));
   ok('shape tokens have defaults, so an unset theme changes nothing',
     /--zw-radius: 0px;/.test(base2) && /--zw-density: 1;/.test(base2));
 
@@ -404,6 +490,26 @@ console.log('\n  the import actually runs');
         Math.abs(lum(tk.bg) - lum(tk.paper)) > 60,
         'bg ' + tk.bg + ' vs paper ' + tk.paper);
     }
+
+    /* The same mismatch one level in. A panel painted var(--ink) whose text
+       reads the page ladder is drawing PAGE-foreground colours on a PANEL
+       background. Identical in the built-in themes, where --paper and
+       rgb(--fg-rgb) are the same colour; pale-grey-on-white as soon as an
+       imported theme sets them apart, which is what happened to the quick-add
+       modal's size buttons and its LEAVE / FULL PRODUCT PAGE row.
+
+       So inside that panel the page ladder is off limits, and the rungs it
+       does use must be re-keyed on the panel itself — declaring them anywhere
+       higher resolves against the page and inherits the finished colour. */
+    const qa = fs.readFileSync(R + 'quick-add-modal.css', 'utf8');
+    ok('the panel does not colour its text from the page foreground',
+      !/rgb\(var\(--fg-rgb\)/.test(qa),
+      'page-keyed text on a panel-keyed background is invisible whenever a theme separates them');
+    const rekeyed = qa.slice(qa.indexOf('.quick-add-review-modal>.mbox'));
+    for (const rung of (qa.match(/var\(--c\d\d\)/g) || []))
+      ok('…and ' + rung + ' is re-keyed on the panel before it is used',
+        rekeyed.includes('--' + rung.slice(6, 9) + ':'),
+        'a rung declared on body resolves against the page and inherits the result');
   }
 
   /* The old heuristics encoded a second, contradictory answer to "which setting
@@ -475,19 +581,39 @@ console.log('\n  header composition');
      the viewport. Left absolute inside a grid it leaves the flow, and the
      second row of a stacked header collapses to nothing. */
   ok('the links are returned to the flow where a preset needs a real row',
-    /html\[data-zw-header="stacked"\] \.nav-center \{[\s\S]{0,160}position: static/.test(nav));
+    /html\[data-zw-header="stacked"\][^{]*\.nav-center \{[\s\S]{0,200}position: static/.test(nav));
+
+  /* Every part of the header must be addressed by every spelling it has. The
+     presets originally named `.nav` and `.nav-logo` only, so on the product
+     page (nav.nav / .nav-logo-link) the grid applied while the logo rule
+     matched nothing — the logo fell into the empty spacer cell and the header
+     came apart. Each dialect is asserted by name so a page cannot be left out
+     again, and `:first-child` catches a sixth dialect nobody has written yet. */
+  for (const dialect of ['#nav', '.zw-nav', '.nav-logo-link', '.zw-nav-logo', '.nav-actions', '.zw-nav-right', ':first-child']) {
+    ok('the presets address ' + dialect + ', which real pages use',
+      nav.includes(dialect),
+      'a preset that names markup no page has silently scatters that page');
+  }
 
   /* A centred two-row header on a phone spends a third of the viewport on
      chrome, and the mobile menu already owns the links there. */
-  ok('every preset collapses on phones', /@media \(max-width: 900px\)[\s\S]{0,200}html\[data-zw-header\] \.nav \{[\s\S]{0,80}display: flex/.test(nav));
+  ok('every preset collapses on phones', /@media \(max-width: 900px\)[\s\S]{0,400}html\[data-zw-header\][^{]*\{[\s\S]{0,80}display: flex/.test(nav));
   ok('…and the desktop arrangements are behind a min-width, not applied everywhere',
     /@media \(min-width: 901px\)[\s\S]{0,400}data-zw-header="stacked"/.test(nav));
 
   /* Minimal hides the links; it must not strand them, or those pages become
      unreachable on desktop. */
+  /* This used to require `.zw-mobile-menu-btn`, a class that exists nowhere in
+     this repo — so the assertion passed while 'minimal' hid the nav links and
+     revealed no way back to them. `.hamburger-btn` is the real one, and the
+     test now checks the class is actually in the markup rather than trusting
+     the stylesheet to name something real. */
   ok('minimal moves the links to the menu rather than deleting them',
     /minimal"\] \.nav-center \{ display: none/.test(nav) &&
-    /minimal"\] \.zw-mobile-menu-btn/.test(nav));
+    /minimal"\] \.hamburger-btn/.test(nav));
+  ok('…and the button it reveals is one the pages actually have',
+    fs.readdirSync(R).filter((f) => f.endsWith('.html'))
+      .some((f) => fs.readFileSync(R + f, 'utf8').includes('class="hamburger-btn"')));
 
   ok('the editor offers it as a named look, not a mechanism',
     /HEADERS/.test(at) && /themeSetHeader/.test(at) && /logo left, links centred/.test(at));

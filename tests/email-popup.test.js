@@ -533,6 +533,89 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms || 5));
     ok('saving reports in colour', /id="popSaveMsg"/.test(html) && /#4ade80/.test(admin) && /#ef4444/.test(admin));
   }
 
+  console.log('\n  the logo sits where it is told');
+  {
+    /* .zwp-body is a flex COLUMN, so its cross axis is horizontal and the
+       default align-items:stretch applied to WIDTH. The input and button want
+       that; an <img> did not. Stretch beat `width:auto`, the logo box grew to
+       its full 60% allowance, and object-fit:contain centred the artwork inside
+       that left-pinned box — so a logo centred in its box read as off-centre in
+       the popup, and nothing could move it because nothing was misaligned. */
+    const css = fs.readFileSync(ROOT + '/email-popup.css', 'utf8');
+    ok('the logo box hugs its artwork instead of stretching',
+      /\.zwp-logo \{[^}]*align-self: flex-start/.test(css),
+      'without this the box is 60% wide and the logo only looks centred');
+    ok('…and the centred layout still centres it',
+      /data-layout="full"\]:not\(\[data-has-media="1"\]\) \.zwp-logo \{ align-self: center/.test(css));
+
+    const src = fs.readFileSync(SRC, 'utf8');
+    ok('alignment is a setting with a default that changes nothing',
+      /align: 'auto'/.test(src) && /\['auto', 'left', 'center', 'right'\]/.test(src));
+    ok('…mapped to flex values, because the logo is a flex item not text',
+      /LOGO_ALIGN = \{ left: 'flex-start', center: 'center', right: 'flex-end' \}/.test(src));
+    ok('…and auto writes nothing, so the stylesheet decides',
+      /LOGO_ALIGN\[c\.logo\.align\] \|\| ''/.test(src),
+      'writing any value here would beat the per-layout rule');
+
+    const admin = fs.readFileSync(ROOT + '/admin-main.js', 'utf8');
+    ok('the admin round-trips it', /set\('popLogoAlign', c\.logo\.align\)/.test(admin) &&
+      /align: val\('popLogoAlign'\)/.test(admin));
+    ok('…with a control to set it', /id="popLogoAlign"/.test(fs.readFileSync(ROOT + '/admin.html', 'utf8')));
+  }
+
+  console.log('\n  the same control for the emails');
+  {
+    /* Verified by rendering the real shell rather than reading the source: an
+       email's alignment has to survive three different rendering engines, and a
+       regex proving the string is present proves none of them. */
+    const { execFileSync } = require('child_process');
+    const script = `
+      const { pathToFileURL } = require('node:url');
+      import(pathToFileURL(${JSON.stringify(ROOT + '/functions/api/_email-theme.js')}).href).then((m) => {
+        const out = ['center', 'left', 'right', undefined, 'bogus'].map((v) => {
+          const a = m.getEmailAppearance({ email_settings: { logoAlign: v }, BRAND_LOGO_URL: 'https://x/l.png' });
+          const html = m.renderEmailShell(a, { heading: 'Hi' });
+          const td = html.match(/<td align="([^"]*)" style="padding:28px[^"]*text-align:([^;]*);/) || [];
+          const mg = (html.match(/border:0;display:block;margin:([^;]*);/) || [])[1];
+          return [String(v), a.logoAlign, mg, td[1], td[2]].join('|');
+        });
+        console.log(JSON.stringify(out));
+      });`;
+    let rows = [];
+    try {
+      rows = JSON.parse(execFileSync(process.execPath, ['-e', script], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim());
+    } catch (_) { /* leaves rows empty → the assertions below fail loudly */ }
+    const byInput = Object.fromEntries(rows.map((r) => [r.split('|')[0], r.split('|')]));
+    const expect = {
+      center: ['center', '0 auto'],
+      left:   ['left',   '0'],
+      right:  ['right',  '0 0 0 auto'],
+      undefined: ['center', '0 auto'],   // nothing saved yet
+      bogus:     ['center', '0 auto'],   // anything unrecognised
+    };
+    for (const [input, [align, margin]] of Object.entries(expect)) {
+      const r = byInput[input];
+      ok('a logoAlign of ' + input + ' renders ' + align,
+        !!r && r[1] === align && r[2] === margin,
+        r ? 'got align=' + r[1] + ' margin=' + r[2] : 'the shell did not render');
+      /* Outlook's Word engine honours neither margin:auto nor text-align on the
+         cell, so the legacy align attribute has to agree too or the logo moves
+         for a slice of recipients and nobody can reproduce it. */
+      ok('…and all three signals agree for ' + input,
+        !!r && r[3] === align && r[4] === align,
+        r ? 'cell align=' + r[3] + ' text-align=' + r[4] : 'the shell did not render');
+    }
+
+    const admin = fs.readFileSync(ROOT + '/admin-main.js', 'utf8');
+    ok('the email admin round-trips it',
+      /_emailCfg\.logoAlign = /.test(admin) && /getElementById\('em-logo-align'\)/.test(admin));
+    ok('…and the live preview shows it before saving',
+      /payload\.logoAlign = laSel\.value/.test(admin) &&
+      /es\.logoAlign = la;/.test(fs.readFileSync(ROOT + '/functions/api/email-preview.js', 'utf8')),
+      'the endpoint has to accept the override or the preview silently ignores it');
+    ok('…with a control to set it', /id="em-logo-align"/.test(fs.readFileSync(ROOT + '/admin.html', 'utf8')));
+  }
+
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
   process.exit(fail ? 1 : 0);
 })();

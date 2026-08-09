@@ -57,13 +57,15 @@ export async function onRequestPost({ request, env }) {
     // Apply unsaved-edit overrides so the preview matches the editor live.
     if (body.theme === 'light' || body.theme === 'dark') cache.email_theme = body.theme;
     const lh = parseInt(body.logoHeight, 10);
+    const la = (body.logoAlign === 'left' || body.logoAlign === 'center' || body.logoAlign === 'right') ? body.logoAlign : '';
     const hasContent = body.content && typeof body.content === 'object';
-    if (hasContent || (lh >= 14 && lh <= 90)) {
+    if (hasContent || (lh >= 14 && lh <= 90) || la) {
       let es = cache.email_settings;
       if (typeof es === 'string') { try { es = JSON.parse(es); } catch (_) { es = {}; } }
       es = (es && typeof es === 'object') ? es : {};
       if (hasContent) es[type] = Object.assign({}, es[type], body.content);
       if (lh >= 14 && lh <= 90) es.logoHeight = lh;   // preview an unsaved logo size
+      if (la) es.logoAlign = la;                      // …and an unsaved position
       cache.email_settings = es;
     }
 
