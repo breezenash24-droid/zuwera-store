@@ -1435,17 +1435,39 @@
               docs:'https://dashboard.stripe.com/settings/tax',
               steps:['Stripe Dashboard → Settings → Tax','Add your business address and register the states you have nexus in','Turn it on — checkout already runs through Stripe, so nothing here changes','Admin → Tax: leave the built-in rates as the fallback'] },
 
-            { key:'apple_pay',  kind:'guide', icon:'', name:'Apple Pay', cat:'Payments',
-              blurb:'A one-tap wallet button at checkout on Safari, iPhone and iPad. Usually lifts mobile conversion more than anything else you can add, because it skips the whole address-and-card form.',
-              free:'No extra fee — same Stripe rate as a card',
-              docs:'https://dashboard.stripe.com/settings/payments/apple_pay',
-              steps:['Stripe Dashboard → Settings → Payment methods → Apple Pay','Add your domain and download the verification file','Put it at /.well-known/apple-developer-merchantid-domain-association','Stripe verifies the domain and the button appears on supported devices'] },
+            /* Two Apple Pay cards, and the difference between them matters, so
+               each one says what it is, what it is NOT, and which one the other
+               is. The first is the account-level setup every Apple Pay button
+               needs; the second is a choice about where those buttons appear. */
 
-            { key:'apple_pay_qr', kind:'toggle', icon:'', name:'Apple Pay on Chrome & Edge', cat:'Payments',
-              blurb:'Apple Pay normally only exists inside Safari — on a Windows laptop in Chrome it simply never appears, which is most desktop shoppers. Turn this on and it appears there too, as a QR code the customer scans with their iPhone to approve the payment on the phone where the card already lives. It also lays the wallet row out side by side, so Apple Pay and Google Pay can both be offered instead of whichever one the browser picked. Safari, iPhone and iPad are unaffected — same button, ordinary Apple Pay sheet.',
+            { key:'apple_pay',  kind:'guide', icon:'', name:'1. Apple Pay — Safari & iPhone (required first)', cat:'Payments',
+              blurb:'THE STANDARD APPLE PAY BUTTON. The black "Buy with  Pay" button, Apple\'s own, exactly as it looks on any big store — one tap, no address form, no card typing. It appears in Safari, on iPhone and on iPad, which is where most Apple Pay actually happens. This card is not a switch: it is the one-time domain verification in Stripe that every Apple Pay button on this site depends on, including the one on card 2. Do this one first or neither works. Nothing to pay Apple — Stripe creates the Apple Merchant ID and certificate on your behalf, so the $99/year Apple Developer Program is not needed.',
+              free:'No extra fee — same Stripe rate as a card. No Apple fee, no Apple developer account.',
+              docs:'https://dashboard.stripe.com/settings/payments/apple_pay',
+              steps:['Stripe Dashboard → Settings → Payment methods → Apple Pay','Add every domain that shows the button — zuwera.store, and www if you use it','Stripe checks /.well-known/apple-developer-merchantid-domain-association (already live on this site)','Once verified the button appears by itself in Safari and on iOS — there is no switch to flip','Register in live mode and Stripe registers your sandboxes too, so test mode works as well'] },
+
+            { key:'apple_pay_qr', kind:'toggle', icon:'', name:'2. Apple Pay on Chrome & Edge — the QR code', cat:'Payments',
+              blurb:'THE SAME APPLE PAY BUTTON, IN BROWSERS THAT NORMALLY HIDE IT. Card 1 gets you Apple Pay in Safari and on iPhone; it stops there. On a Windows laptop in Chrome — most desktop shoppers — Apple Pay simply does not exist. Switch this on and the button appears there too: clicking it shows an Apple QR code the customer scans with their iPhone to approve on the phone where the card already lives. It changes nothing for Safari, iPhone or iPad — same button, same ordinary Apple Pay sheet, no QR. Off by default, and turning it off puts everything back exactly as it was.',
               free:'No extra fee — same Stripe rate as a card',
               docs:'https://dashboard.stripe.com/settings/payments/apple_pay',
-              steps:['Set up Apple Pay first (the card above) — this needs that same verified domain','Turn the switch on here and save','Reload the bag or checkout in desktop Chrome: an Apple Pay button appears','Clicking it shows the QR code; scanning it needs an iPhone on iOS 18 or later','Leave it off and checkout keeps the older single-wallet button, unchanged'] },
+              steps:['Finish card 1 first — this rides on that same verified domain','Turn the switch on and save','Open the bag or checkout in desktop Chrome: an Apple Pay button appears above the card form','Click it to see the QR code. Scanning it needs an iPhone on iOS 18 or later','Use the two settings below to choose where the row appears and how many buttons it shows'],
+              /* Rendered by the toggle dialog and stored alongside `enabled`.
+                 Both default to the quieter option: one button, and only on the
+                 page someone is already trying to pay on. */
+              options:[
+                { key:'layout', type:'select', label:'How many buttons', def:'single',
+                  help:'Apple Pay, Google Pay and Link can all be available at once. This decides how many of them are shown at a time — the rest move into a small “…” menu beside them.',
+                  choices:[
+                    { value:'single', label:'One at a time (default) — the single best wallet for that browser' },
+                    { value:'double', label:'Two side by side — e.g. Apple Pay and Google Pay together' },
+                  ] },
+                { key:'pages', type:'checks', label:'Where the row appears', def:['checkout','bag'],
+                  help:'Unticking a page does not leave it with nothing: checkout falls back to the older single-wallet button it has always had, and the bag goes back to just its Checkout button. Untick both and the switch above has no effect anywhere.',
+                  choices:[
+                    { value:'checkout', label:'Checkout page — above the card form' },
+                    { value:'bag',      label:'Bag page — above the Checkout button, pay without opening the form' },
+                  ] },
+              ] },
 
             /* ── Search ────────────────────────────────────────────────────── */
 
@@ -1582,6 +1604,62 @@
             }).join('');
         }
 
+        /* ── Toggle-kind settings ────────────────────────────────────────────
+           A switch is often not the whole answer: "Apple Pay on Chrome" also
+           needs to know which pages show it and how many buttons to draw. Rather
+           than a bespoke form per integration, a catalogue entry can declare
+           `options` and the dialog builds them — a select, or a set of tickboxes
+           — then reads them back on save alongside `enabled`. Defaults live on
+           the option, so a stored value that predates the setting is simply the
+           default rather than undefined. */
+        function integrationOptionValue(cur, opt) {
+            const stored = cur[opt.key];
+            if (opt.type === 'checks') return Array.isArray(stored) ? stored : (opt.def || []).slice();
+            return (typeof stored === 'string' && stored) ? stored : opt.def;
+        }
+
+        function renderIntegrationOptions(item, cur) {
+            const host = document.getElementById('int-setup-options');
+            if (!host) return;
+            const opts = item.options || [];
+            if (!opts.length) { host.style.display = 'none'; host.innerHTML = ''; return; }
+            host.style.display = '';
+            host.innerHTML = opts.map((opt) => {
+                const val  = integrationOptionValue(cur, opt);
+                const help = opt.help ? `<div class="int-opt-help">${escapeHtml(opt.help)}</div>` : '';
+                if (opt.type === 'select') {
+                    const choices = opt.choices.map((c) =>
+                        `<option value="${escapeHtml(c.value)}"${c.value === val ? ' selected' : ''}>${escapeHtml(c.label)}</option>`).join('');
+                    return `<div class="int-opt">
+                        <label class="int-opt-label" for="int-opt-${escapeHtml(opt.key)}">${escapeHtml(opt.label)}</label>
+                        ${help}
+                        <select id="int-opt-${escapeHtml(opt.key)}" data-int-opt="${escapeHtml(opt.key)}">${choices}</select>
+                    </div>`;
+                }
+                const boxes = opt.choices.map((c) =>
+                    `<label class="int-opt-check">
+                        <input type="checkbox" data-int-opt="${escapeHtml(opt.key)}" value="${escapeHtml(c.value)}"${val.indexOf(c.value) !== -1 ? ' checked' : ''}>
+                        <span>${escapeHtml(c.label)}</span>
+                    </label>`).join('');
+                return `<div class="int-opt"><div class="int-opt-label">${escapeHtml(opt.label)}</div>${help}${boxes}</div>`;
+            }).join('');
+        }
+
+        function readIntegrationOptions(item) {
+            const out = {};
+            (item.options || []).forEach((opt) => {
+                if (opt.type === 'select') {
+                    const el = document.getElementById('int-opt-' + opt.key);
+                    out[opt.key] = el ? el.value : opt.def;
+                } else {
+                    out[opt.key] = Array.from(
+                        document.querySelectorAll(`#int-setup-options input[data-int-opt="${opt.key}"]:checked`)
+                    ).map((el) => el.value);
+                }
+            });
+            return out;
+        }
+
         function openIntegrationSetup(key) {
             let item = ZW_INTEGRATION_CATALOG.find(i => i.key === key);
             // Tucked-away API services are synthesised at render time, so they
@@ -1652,6 +1730,7 @@
                 document.getElementById('int-setup-guide').style.display = '';
                 document.getElementById('int-setup-idfield').style.display = 'none';
                 document.getElementById('int-setup-enabled').checked = cur.enabled === true;
+                renderIntegrationOptions(item, cur);
                 const rm = document.getElementById('int-setup-remove');
                 rm.textContent = 'Turn off';
                 rm.style.display = cur.enabled ? '' : 'none';
@@ -1659,6 +1738,7 @@
                 document.getElementById('integration-setup-modal').classList.add('open');
                 return;
             }
+            document.getElementById('int-setup-options').style.display = 'none';
             document.getElementById('int-setup-remove').textContent = 'Disconnect';
             document.getElementById('int-setup-title').textContent = item.name;
             document.getElementById('int-setup-icon').textContent = item.icon;
@@ -1696,10 +1776,12 @@
                 // is two admins editing integrations in the same moment, which the
                 // last-write-wins outcome handles acceptably; anything customer-
                 // facing uses mutateSetting instead.
-                // A toggle stores the switch and nothing else — the ID input is
-                // hidden for it and would otherwise carry over whatever the last
-                // integration left sitting in it.
-                const next = { ..._integrations, [item.key]: item.kind === 'toggle' ? { enabled } : { enabled, id } };
+                // A toggle stores the switch and its own settings — never the ID
+                // input, which is hidden for it and would otherwise carry over
+                // whatever the last integration left sitting in it.
+                const next = { ..._integrations, [item.key]: item.kind === 'toggle'
+                    ? { enabled, ...readIntegrationOptions(item) }
+                    : { enabled, id } };
                 const { error } = await sb.from('site_settings').upsert({ key: 'integrations', value: next }, { onConflict: 'key' });
                 if (error) throw error;
                 _integrations = next;

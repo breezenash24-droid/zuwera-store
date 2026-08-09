@@ -1073,8 +1073,10 @@ function bagSyncWallet() {
   if (_bagWallet) { _bagWallet.update(bagWalletCents()); return; }
   if (_bagWalletStarting) return;
   _bagWalletStarting = true;
-  window.ZWExpressWallet.enabled().then(function (on) {
-    if (!on) return;
+  window.ZWExpressWallet.forPage('bag').then(function (cfg) {
+    // Off, or on but set to checkout only — the bag keeps just its Checkout
+    // button, which is what it had before any of this existed.
+    if (!cfg.show) return;
     return window._ensureStripe()
       .then(function () { return window.zwGetStripePublishableKey(); })
       .then(function (key) {
@@ -1083,6 +1085,7 @@ function bagSyncWallet() {
           stripe: stripe,
           container: '#express-checkout-btn',
           subtotalCents: bagWalletCents(),
+          maxColumns: cfg.maxColumns,
           getItems: function () { return cartItems || []; },
           getPromoCode: function () { return window.zwGetActivePromoCode ? window.zwGetActivePromoCode() : ''; },
           getAccessToken: function () {
