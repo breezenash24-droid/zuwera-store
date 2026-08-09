@@ -241,6 +241,26 @@ console.log('\n  themes are data');
   ok('a new section is born following the theme, not holding a literal',
     /sec_bg:'token:ink',text_color:'token:paper'/.test(bl) &&
     !/sec_bg:'#[0-9a-fA-F]{6}'/.test(bl));
+
+  /* One button per builder page, because the read-time rescue only catches
+     literals that exactly match a built-in — a page built with any other colour
+     stayed pinned, and fixing it meant opening every section. This converts by
+     INTENT: a dark band becomes the inverted pair, a light one becomes the
+     page, so the look survives and now moves with the theme. */
+  ok('every builder page can be made to follow the theme in one action',
+    /zwFollowTheme/.test(bl) && /Make this page follow the theme/.test(bl));
+  /* The pairing is the point. token:ink is dark on a dark theme and LIGHT on a
+     light one, so converting a band while its text stayed a literal reads fine
+     today and loses its words the first time the theme changes. */
+  ok('…converting a band always converts its text with it',
+    /if\(dark\)g\.text_color='token:paper';/.test(bl),
+    'a converted band beside a literal is the disappearing-words bug');
+  ok('…and it is undoable, since it rewrites a whole page at once',
+    /curPushUndo\(\);\s*\n\s*let n=0;/.test(bl));
+  /* A gradient or an image has no luminance to read, and a colour_block exists
+     to hold a colour someone picked. Neither should be quietly overwritten. */
+  ok('…while anything without a readable colour is left alone',
+    /if\(lum===null\)return;/.test(bl) && /bg_color:'#1f2937'/.test(bl));
 }
 
 console.log('\n  one theme system, two screens');

@@ -359,6 +359,7 @@ body{display:flex;flex-direction:column}
   <div class="lp-content" id="lpContent"></div>
   <div class="lp-footer" id="lpFooter" style="display:none">
     <button class="add-btn" onclick="openLib()">+ Add Section</button>
+    <button class="add-btn" onclick="zwFollowTheme()" style="margin-top:.35rem;opacity:.85" title="Convert every fixed colour on this page into the theme token it stood for">↻ Make this page follow the theme</button>
   </div>
 </div>
 
@@ -608,7 +609,7 @@ const SECT_DEFS={
   products:{title:'Release 001',subtitle:'Releasing 09 / 20 / 2026',show_title:true,show_subtitle:true,columns:2,lay_lg:'grid',col_lg:3,lay_md:'swipe',col_md:2,lay_sm:'swipe',col_sm:2,show_colors:true,show_reviews:true,show_name:true,show_cat:true,show_price:true,show_badge:true,color_snap:false,card_size:'auto',card_w:'',pad_top:0,pad_bot:0},
   recently_viewed:{heading:'Recently Viewed',count:5,show_time:false,pad_top:0,pad_bot:0},
   split:{image:'',image_side:'left',image_height:'500',label:'',heading:'',body:'',cta_text:'',cta_url:'',bg_color:'',pad_top:0,pad_bot:0},
-  cta:{heading:'Ready to Move?',subtext:'Discover the first drop from Zuwera.',btn_text:'Shop Now',btn_url:'/drop001.html',btn_style:'solid',bg_color:'#09090b',text_color:'#f4f1eb',align:'center',pad_top:0,pad_bot:0},
+  cta:{heading:'Ready to Move?',subtext:'Discover the first drop from Zuwera.',btn_text:'Shop Now',btn_url:'/drop001.html',btn_style:'solid',bg_color:'token:ink',text_color:'token:paper',align:'center',pad_top:0,pad_bot:0},
   features:{heading:'Why Zuwera',items:[{icon:'⚡',title:'Performance',desc:'Built for movement.'},{icon:'🎯',title:'Precision',desc:'Every stitch placed with purpose.'},{icon:'🌍',title:'For Everyone',desc:'Sizes for all.'}],pad_top:0,pad_bot:0},
   testimonials:{heading:'What They Say',items:[{quote:'Best jacket I\'ve owned.',author:'Alex M.',rating:5},{quote:'Quality is unreal.',author:'Jordan P.',rating:5}],pad_top:0,pad_bot:0},
   banner:{text:'Free shipping on orders $100+',link_text:'Shop now →',link_url:'/drop001.html',sec_bg:'token:ink',text_color:'token:paper',pad_top:0,pad_bot:0},
@@ -2302,6 +2303,58 @@ const secBgF=(v='')=>{
   <div class="fhint" style="margin-top:-.3rem">A theme colour changes with the theme. A custom colour never does — right for a brand band, wrong for a strip that just wants to sit off the page.</div>`;
 };
 /* Swap which input owns data-f, so the form always reads exactly one value. */
+/* ── Make this page follow the theme ──────────────────────────────────────
+   A section holding a fixed colour keeps it while everything around it moves,
+   which is the "one section did not get the theme" report. storefront.js reads
+   a literal that exactly matches a built-in palette colour as the token it
+   stood for, but that only rescues the exact built-ins — a page built with any
+   other colour stays pinned, and there was no way to fix a whole page short of
+   opening every section.
+
+   This converts by INTENT rather than by exact match: a dark band becomes the
+   inverted pair, a light one becomes the page. The look is preserved and it
+   now moves with the theme.
+
+   sec_bg and text_color are converted TOGETHER and never independently, because
+   ink and paper flip as a pair — token:ink is dark on a dark theme and light on
+   a light one, so a band converted while its text stayed a cream literal would
+   read fine today and lose its words the first time someone switched theme.
+   That is the exact bug this is meant to prevent, so it is not left to chance. */
+function zwLumOf(hex){
+  const s=String(hex||'').trim();
+  if(!/^#[0-9a-f]{6}$/i.test(s))return null;
+  const p=[1,3,5].map(i=>parseInt(s.substr(i,2),16));
+  return 0.2126*p[0]+0.7152*p[1]+0.0722*p[2];
+}
+window.zwFollowTheme=function(){
+  const secs=curSections();
+  if(!secs||!secs.length){toast('Nothing on this page yet');return;}
+  // Undo BEFORE the mutation, like every other section edit — this rewrites a
+  // whole page at once, so it is the one that most needs taking back.
+  curPushUndo();
+  let n=0;
+  secs.forEach(s=>{
+    const g=s.settings||(s.settings={});
+    // bg_color is the older name; whichever holds a colour is the band.
+    const bgField=['sec_bg','bg_color'].find(f=>{
+      const v=String(g[f]||'').trim();
+      return v && v.slice(0,6)!=='token:';
+    });
+    if(!bgField)return;
+    const lum=zwLumOf(g[bgField]);
+    if(lum===null)return;                 // gradients and images are left alone
+    const dark=lum<128;
+    g[bgField]=dark?'token:ink':'token:page';
+    // Paired, always. A converted band with a literal beside it is the bug.
+    if(dark)g.text_color='token:paper';
+    else if(String(g.text_color||'').slice(0,6)!=='token:')delete g.text_color;
+    n++;
+  });
+  if(!n){toast('Every section already follows the theme');return;}
+  curDirty();renderLP();curApply();
+  toast(n+(n===1?' section now follows':' sections now follow')+' the theme');
+};
+
 window.zwSecBgMode=function(sel){
   const wrap=sel.closest('.field');
   const custom=wrap.querySelector('[data-secbg-custom]');
