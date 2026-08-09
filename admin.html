@@ -3123,6 +3123,30 @@
                             <p class="page-subtitle" style="color: var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;">Edit your homepage hero image, headline, and button text — the big image visitors see first when they land on your site.</p>
                         </div>
                         
+                        <!-- Saved themes. The whole look, captured as one thing. -->
+                        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
+                            <h3 style="font-size:1.1rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;margin-bottom:6px;">Saved themes</h3>
+                            <p style="color:var(--text-secondary);font-size:.85rem;line-height:1.6;margin-bottom:16px;max-width:72ch;">
+                                Everything below — the palette, the type, the icons, the button shape, the spacing — is already stored as settings rather than code. Capturing it saves the whole look as one named thing you can come back to, or export as a file and apply on another store running this software. No conversion step: a theme here is JSON, not templates.
+                            </p>
+                            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px;">
+                                <div>
+                                    <label for="preset-name" style="display:block;font-size:.78rem;color:var(--text-secondary);margin-bottom:5px;">Name this look</label>
+                                    <input id="preset-name" type="text" placeholder="e.g. Winter 2026" style="padding:8px 12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.82rem;min-width:220px;">
+                                </div>
+                                <button class="btn btn-primary" onclick="presetCapture()">Capture current look</button>
+                                <label class="btn btn-secondary" style="cursor:pointer;margin:0;">Import file
+                                    <input type="file" accept="application/json,.json" onchange="presetImport(this)" style="display:none;">
+                                </label>
+                            </div>
+                            <label style="display:flex;align-items:center;gap:9px;font-size:.78rem;color:var(--text-secondary);cursor:pointer;margin-bottom:18px;">
+                                <input type="checkbox" id="preset-layout" style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;">
+                                <span>Include page layouts and their content — homepage sections, nav, announcement bar. Applying one of these <strong>replaces</strong> those on the target store, so leave it off to move only the look.</span>
+                            </label>
+                            <div id="preset-list" style="display:grid;gap:10px;"></div>
+                            <div id="preset-status" style="margin-top:14px;font-size:.82rem;"></div>
+                        </div>
+
                         <!-- Themes -->
                         <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
                             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:6px;">
@@ -4208,6 +4232,7 @@
     <script src="admin-main.js?v=22f987eb"></script>
     <!-- After admin-main: it needs `sb`, which that file creates at top level. -->
     <script src="admin-themes.js"></script>
+    <script src="admin-theme-presets.js"></script>
     <!-- The icon editor previews through the real registry, so it loads it too. -->
     <script src="/icon-sets.js"></script>
     <script src="admin-icons.js"></script>

@@ -230,6 +230,34 @@ console.log('\n  what the storefront reads, it is allowed to read');
     missing.length === 0, missing.join(', '));
 }
 
+console.log('\n  a theme is a snapshot, not a rewrite');
+{
+  const pr = fs.readFileSync(R + 'admin-theme-presets.js', 'utf8');
+  ok('captures the settings that make up the look', /LOOK_KEYS/.test(pr) && /'theme_modes'/.test(pr) && /'fonts'/.test(pr) && /'icons'/.test(pr));
+
+  /* Layout carries words and pictures; the look does not. Applying a look to a
+     store with its own copy must not be able to overwrite that copy, which is
+     why the two are separate lists and layout is opt-in. */
+  ok('layout and content are a separate, opt-in scope', /LAYOUT_KEYS/.test(pr));
+  ok('…and applying it warns that content is replaced', /REPLACED/.test(pr));
+
+  /* A preset must never carry business data. If one of these ever appears in a
+     bundle, an export becomes a data leak rather than a design file. */
+  const NEVER = ['orders', 'profiles', 'products', 'customers', 'STRIPE', 'API_KEY',
+    'RESEND', 'SHIPPO', 'integrations', 'tax_rate_overrides', 'feature_flags'];
+  const listBlock = pr.slice(pr.indexOf('LOOK_KEYS'), pr.indexOf('var STORE_KEY'));
+  const leaked = NEVER.filter((k) => new RegExp("'" + k + "'").test(listBlock));
+  ok('carries no business data, keys or configuration', leaked.length === 0, leaked.join(', '));
+
+  ok('exports as a plain file, with no templates to convert', /Blob\(/.test(pr) && /\.theme\.json/.test(pr));
+  ok('an import is saved but not applied until asked', /saved but not applied/.test(pr));
+  ok('re-importing the same file does not silently replace the first',
+    /p\.id = 'preset-'/.test(pr));
+  /* Storing an explicit null for a key that was never set would, on apply,
+     write that null over a value the target store legitimately has. */
+  ok('only captures keys that actually exist', /Only the keys that actually had a row/.test(pr));
+}
+
 console.log('\n  the engine reaches every themed page');
 {
   const PAGES = ['index.html', 'product.html', 'bag.html', 'checkout.html', 'drop001.html',
