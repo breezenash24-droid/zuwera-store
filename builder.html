@@ -199,6 +199,28 @@ body{display:flex;flex-direction:column}
 .pv-frame.mob{width:390px;height:calc(100vh - 46px - 36px - 1.5rem);max-height:820px;border-radius:14px}
 .pv-frame iframe{width:100%;height:100%;border:none;display:block}
 
+/* Theme gallery. Each card is a miniature of the theme rather than a row of
+   swatches: page colour behind, text colour on it, accent as a dot, and the
+   header stripe when the theme colours its header separately. You recognise a
+   theme by how it looks, not by reading four hex values. */
+.zw-theme-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:.45rem;margin-bottom:.5rem}
+.zw-theme-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:.3rem;
+  padding:.4rem .25rem .35rem;background:transparent;border:1px solid transparent;border-radius:5px;
+  cursor:pointer;font:inherit;color:inherit;transition:border-color .15s,background .15s}
+.zw-theme-card:hover{background:var(--sf2)}
+.zw-theme-card.on{border-color:var(--ac);background:var(--sf2)}
+.zw-theme-chip{position:relative;overflow:hidden;width:100%;aspect-ratio:4/3;border:1px solid var(--bd);
+  border-radius:4px;display:flex;align-items:center;justify-content:center;gap:.25rem}
+.zw-theme-name{font-size:.55rem;letter-spacing:.04em;text-align:center;line-height:1.2;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zw-theme-live{position:absolute;top:.15rem;right:.2rem;font-size:.44rem;letter-spacing:.06em;
+  text-transform:uppercase;background:var(--ac);color:#000;padding:.05rem .25rem;border-radius:6px}
+.zw-theme-add .zw-theme-chip{color:var(--mu);font-size:1rem}
+.zw-theme-edit{border:1px solid var(--bd);border-radius:5px;padding:.5rem .6rem;background:var(--sf)}
+.zw-theme-edit summary{cursor:pointer;font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--mu);padding:.1rem 0}
+.zw-theme-edit[open] summary{margin-bottom:.45rem;color:inherit}
+
 /* ── MODALS ── */
 .mover{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .mover.open{display:flex}
@@ -1308,15 +1330,13 @@ function removeSec(id){if(!confirm('Remove section?'))return;curPushUndo();setCu
 function renderThemeTab(container){
   const g=themeSettings;
   container.innerHTML=`<div class="tab-pane">
-    <div class="tab-hd">Global Theme</div>
-    ${colorF2('accent_color','Accent Color',g.accent_color||'#F891A5')}
-    ${sel2('button_radius','Button Radius',g.button_radius||'sharp',[['sharp','Sharp (0px)'],['soft','Soft (4px)'],['pill','Pill (999px)']])}
-    ${sel2('default_mode','Default Page Mode',g.default_mode||'dark',[['dark','Dark'],['light','Light'],['super-light','Super Light']])}
+    <div class="tab-hd">Theme</div>
+    <div class="fhint" style="margin:-.15rem 0 .5rem">Pick one, then change anything you like about it. Every colour on the site comes from the theme that is selected.</div>
+    <div id="themeGallery" class="zw-theme-gallery"></div>
+    <div id="themeCustom"></div>
     <div class="fdiv"></div>
-    <div class="tab-hd" style="margin-top:.2rem">Brand Colors</div>
-    ${colorF2('primary_color','Primary / Text Color',g.primary_color||'#f4f1eb')}
-    ${colorF2('page_bg','Page Background',g.page_bg||'#09090b')}
-    ${colorF2('surface_color','Card / Section Background',g.surface_color||'#111113')}
+    <div class="tab-hd" style="margin-top:.2rem">Buttons</div>
+    ${sel2('button_radius','Button Radius',g.button_radius||'sharp',[['sharp','Sharp (0px)'],['soft','Soft (4px)'],['pill','Pill (999px)']])}
     <div class="fdiv"></div>
     <!-- Typography is READ-ONLY here on purpose. It used to be editable in this panel
          AND in Admin → Typography, both writing the same CSS variables — but this one
@@ -1346,12 +1366,182 @@ function renderThemeTab(container){
     <button onclick="saveTheme()" class="apply-btn" style="margin-top:.3rem">💾 Save Theme Settings</button>
   </div>`;
   renderTypoMirror();   // fills the read-only Typography block from site_settings.fonts
+  renderThemeGallery(); // the picker + its customise panel, above
   // wire events — update themeSettings and auto-preview on every change/input
   container.querySelectorAll('input,select,textarea').forEach(el=>{
     const sync=()=>{const k=el.dataset.k||el.id;if(k)themeSettings[k]=el.type==='checkbox'?el.checked:el.value;schedSend();};
     el.addEventListener('change',sync);
     el.addEventListener('input',sync);
   });
+}
+
+/* ── THEME GALLERY ─────────────────────────────────────────────────────────
+   The Design tab used to be a column of unrelated colour pickers — accent
+   here, page background there, card background below — with no answer to the
+   question anyone actually arrives with, which is "what does my site look
+   like". Four of those pickers were also a second colour system: they wrote
+   builder_theme while site_settings.theme_modes wrote the real palette, so the
+   same colour could be set in two places and the two could disagree.
+
+   One system now. The gallery lists the themes; picking one selects it; the
+   panel underneath edits THAT theme's colours. Both this and the admin's
+   Appearance → Themes read and write the same key, so there is one list of
+   themes and one definition of each.
+   ────────────────────────────────────────────────────────────────────────── */
+let themeModes=null, themeModesLoaded=false;
+
+const THEME_BUILTINS=[
+  {id:'dark',label:'Dark',icon:'\u{1F319}',base:'dark',tokens:{fg:'244 241 235',bg:'9 9 11',ink:'#09090b',paper:'#f4f1eb',surface:'#F0EEE9',accent:'#F891A5',err:'#ef4444'}},
+  {id:'light',label:'Light',icon:'☀️',base:'light',tokens:{fg:'10 10 10',bg:'240 238 233',ink:'#F0EEE9',paper:'#09090b',surface:'#F0EEE9',accent:'#F891A5',err:'#ef4444'}},
+  {id:'super-light',label:'Super Light',icon:'⚪',base:'super-light',tokens:{fg:'10 10 10',bg:'255 255 255',ink:'#FFFFFF',paper:'#09090b',surface:'#FFFFFF',accent:'#F891A5',err:'#ef4444'}},
+  {id:'two-tone',label:'Two-tone',icon:'◐',base:'light',tokens:{fg:'10 10 10',bg:'240 238 233',ink:'#F0EEE9',paper:'#09090b',surface:'#F0EEE9',accent:'#F891A5',err:'#ef4444',navBg:'#09090b',navFg:'#f4f1eb'}}
+];
+
+// Two of the seven are bare RGB triplets, because the alpha ladder splices them
+// into rgb(... / n%). The colour input speaks hex, so those convert both ways.
+const THEME_FIELDS=[
+  ['fg','Text','rgb','Body text — and every border, divider and muted label, which are this colour at a lower opacity.'],
+  ['bg','Page background','rgb','The page itself.'],
+  ['accent','Accent','hex','Links, focus rings, small highlights.'],
+  ['surface','Surface','hex','Panels and strips that sit just off the page colour.'],
+  ['paper','Text on buttons','hex','The opposite of Text — what sits on a filled button.'],
+  ['ink','Button background','hex','A filled button.'],
+  ['navBg','Header background','opt','Off by default, so the header matches the page. Turn it on for a dark bar over a light page.']
+];
+
+const triHex=t=>{const p=String(t||'').trim().split(/[\s,]+/).map(Number);
+  return (p.length<3||p.some(n=>!isFinite(n)))?'#000000':'#'+p.slice(0,3).map(n=>Math.max(0,Math.min(255,Math.round(n))).toString(16).padStart(2,'0')).join('');};
+const hexTri=h=>{let x=String(h||'').replace('#','').trim();
+  if(x.length===3)x=x.split('').map(c=>c+c).join('');
+  return /^[0-9a-fA-F]{6}$/.test(x)?[0,2,4].map(i=>parseInt(x.slice(i,i+2),16)).join(' '):'0 0 0';};
+
+async function loadThemeModes(){
+  if(themeModesLoaded)return themeModes;
+  themeModesLoaded=true;
+  try{
+    const {data}=await sb.from('site_settings').select('value').eq('key','theme_modes').maybeSingle();
+    let v=data&&data.value; if(typeof v==='string'){try{v=JSON.parse(v);}catch(_){v=null;}}
+    if(v&&Array.isArray(v.modes)&&v.modes.length) themeModes={modes:v.modes,default:v.default||v.modes[0].id};
+  }catch(_){}
+  if(!themeModes) themeModes={modes:JSON.parse(JSON.stringify(THEME_BUILTINS)),default:'dark'};
+  return themeModes;
+}
+
+function themeSelected(){
+  if(!themeModes)return null;
+  return themeModes.modes.find(m=>m.id===themeModes.default)||themeModes.modes[0];
+}
+
+async function renderThemeGallery(){
+  const host=document.getElementById('themeGallery');
+  if(!host)return;
+  await loadThemeModes();
+  host.innerHTML=themeModes.modes.map(m=>{
+    const on=themeModes.default===m.id;
+    const bg=triHex(m.tokens.bg), fg=triHex(m.tokens.fg);
+    // The card IS the theme: page colour behind, text colour on it, accent as a
+    // dot, and the header stripe when the theme sets one. A row of swatches
+    // tells you less than a miniature of the actual thing.
+    return '<button type="button" class="zw-theme-card'+(on?' on':'')+'" onclick="pickTheme(\''+he(m.id)+'\')" title="'+he(m.label)+'">'
+      +'<span class="zw-theme-chip" style="background:'+he(bg)+';color:'+he(fg)+';border-color:'+(on?'var(--ac)':'var(--bd)')+'">'
+        +(m.tokens.navBg?'<span style="position:absolute;top:0;left:0;right:0;height:5px;background:'+he(m.tokens.navBg)+'"></span>':'')
+        +'<span style="font-size:.62rem;letter-spacing:.08em">Aa</span>'
+        +'<span style="width:8px;height:8px;border-radius:50%;background:'+he(m.tokens.accent||'#F891A5')+'"></span>'
+      +'</span>'
+      +'<span class="zw-theme-name">'+he(m.label)+'</span>'
+      +(on?'<span class="zw-theme-live">In use</span>':'')
+      +'</button>';
+  }).join('')+'<button type="button" class="zw-theme-card zw-theme-add" onclick="addTheme()" title="Duplicate the selected theme"><span class="zw-theme-chip" style="border-style:dashed">+</span><span class="zw-theme-name">New</span></button>';
+  renderThemeCustom();
+}
+
+function renderThemeCustom(){
+  const host=document.getElementById('themeCustom');
+  const m=themeSelected();
+  if(!host||!m)return;
+  const wasOpen=!!host.querySelector('details[open]');
+  const builtin=THEME_BUILTINS.some(b=>b.id===m.id);
+  const fields=THEME_FIELDS.map(function(f){
+    const k=f[0],l=f[1],kind=f[2],help=f[3];
+    const raw=m.tokens[k]||'';
+    const on=kind!=='opt'||!!raw;
+    const hex=kind==='rgb'?triHex(raw):(raw||'#09090b');
+    return '<div class="field"><label>'+he(l)+'</label>'
+      +'<div class="fhint" style="margin:-.15rem 0 .3rem">'+he(help)+'</div>'
+      +(kind==='opt'?'<label style="display:flex;gap:.4rem;align-items:center;font-size:.6rem;opacity:.8;margin-bottom:.3rem;cursor:pointer"><input type="checkbox"'+(on?' checked':'')+' onchange="toggleThemeOpt(\''+he(k)+'\',this.checked)"> '+(on?'Using its own colour':'Off — follows the page')+'</label>':'')
+      +(on?'<div style="display:flex;gap:.35rem;align-items:center"><input type="color" value="'+he(hex)+'" oninput="setThemeColor(\''+he(k)+'\',\''+kind+'\',this.value)"><input type="text" value="'+he(hex)+'" style="flex:1" oninput="if(/^#[0-9a-f]{6}$/i.test(this.value.trim())){this.previousElementSibling.value=this.value.trim();setThemeColor(\''+he(k)+'\',\''+kind+'\',this.value.trim());}"></div>':'')
+      +'</div>';
+  }).join('');
+  host.innerHTML='<details class="zw-theme-edit"'+(wasOpen?' open':'')+'>'
+    +'<summary>Customise “'+he(m.label)+'”</summary>'
+    +'<div class="field"><label>Name</label><input type="text" value="'+he(m.label)+'" oninput="setThemeField(\'label\',this.value)"></div>'
+    +fields
+    +'<div class="field"><label>Built on</label>'
+      +'<div class="fhint" style="margin:-.15rem 0 .3rem">Which layout rules it sits on. Dark for a dark theme, Light for a light one — a purple theme is a Light theme with purple colours.</div>'
+      +'<select onchange="setThemeField(\'base\',this.value)">'
+      +['dark','light','super-light'].map(b=>'<option value="'+b+'"'+(m.base===b?' selected':'')+'>'+(b==='super-light'?'Light (white)':b==='light'?'Light':'Dark')+'</option>').join('')
+      +'</select></div>'
+    +'<div style="display:flex;gap:.35rem;margin-top:.4rem">'
+      +'<button onclick="saveThemeModes()" class="apply-btn" style="flex:1">Save theme</button>'
+      +(builtin?'':'<button onclick="deleteTheme()" class="apply-btn" style="flex:0 0 auto;background:transparent;border-color:var(--bd)">Delete</button>')
+    +'</div>'
+    +(builtin?'<div class="fhint" style="margin-top:.3rem">A built-in theme. Recolour it freely; it cannot be deleted.</div>':'')
+    +'</details>';
+}
+
+/* Selecting a theme makes it the site default AND previews it immediately, so
+   the frame beside you shows the answer rather than describing it. */
+window.pickTheme=function(id){
+  if(!themeModes)return;
+  themeModes.default=id;
+  renderThemeGallery();
+  previewTheme();
+  saveThemeModes();
+};
+window.setThemeField=function(k,v){const m=themeSelected();if(!m)return;m[k]=v;if(k!=='label')renderThemeGallery();previewTheme();};
+window.setThemeColor=function(k,kind,hex){const m=themeSelected();if(!m)return;
+  m.tokens[k]=kind==='rgb'?hexTri(hex):hex;renderThemeGallery();previewTheme();};
+window.toggleThemeOpt=function(k,on){const m=themeSelected();if(!m)return;
+  if(on)m.tokens[k]='#09090b'; else delete m.tokens[k];
+  renderThemeCustom();renderThemeGallery();previewTheme();};
+window.addTheme=function(){
+  const src=themeSelected()||THEME_BUILTINS[0];
+  const copy=JSON.parse(JSON.stringify(src));
+  copy.id='theme-'+Date.now().toString(36);
+  copy.label=src.label+' copy';
+  themeModes.modes.push(copy);
+  themeModes.default=copy.id;
+  renderThemeGallery();previewTheme();
+};
+window.deleteTheme=function(){
+  const m=themeSelected();
+  if(!m||THEME_BUILTINS.some(b=>b.id===m.id))return;
+  if(!confirm('Delete “'+m.label+'”?'))return;
+  themeModes.modes=themeModes.modes.filter(x=>x.id!==m.id);
+  themeModes.default=themeModes.modes[0].id;
+  renderThemeGallery();previewTheme();saveThemeModes();
+};
+
+/* Push the edited theme into the preview frame. It runs the real engine, so
+   what you see is what a shopper gets — not a second renderer to keep in step. */
+function previewTheme(){
+  const m=themeSelected();
+  if(!m)return;
+  // pvIframe, not pvFrame — the latter is the wrapper div that sizes the
+  // device preview and has no contentWindow.
+  const f=document.getElementById('pvIframe');
+  try{ if(f&&f.contentWindow&&f.contentWindow.ZWTheme) f.contentWindow.ZWTheme.preview(JSON.parse(JSON.stringify(m))); }catch(_){}
+}
+
+async function saveThemeModes(){
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    const token=session&&session.access_token;
+    if(!token)return;
+    await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({accessToken:token,key:'theme_modes',value:themeModes})});
+    if(typeof toast==='function')toast('Theme saved');
+  }catch(_){}
 }
 
 /* Show what Admin → Typography currently says, right next to the live preview.

@@ -147,6 +147,27 @@ console.log('\n  themes are data');
     /raw\.slice\(0, 6\) !== 'token:'/.test(sf));
 }
 
+console.log('\n  one theme system, two screens');
+{
+  const b = fs.readFileSync(R + 'builder.html', 'utf8');
+  ok('the builder Design tab shows a theme gallery',
+    /themeGallery/.test(b) && /renderThemeGallery/.test(b));
+  ok('it edits the same key the admin does', /key:\s*'theme_modes'/.test(b));
+
+  /* The duplicate colour system this replaced: four pickers writing
+     builder_theme while theme_modes held the real palette, so the same colour
+     had two homes and could disagree with itself. */
+  ok('the second colour system is gone from the builder',
+    !/primary_color|page_bg|surface_color/.test(b));
+  ok('the preview runs the real engine, not a second renderer',
+    /contentWindow\.ZWTheme/.test(b));
+  ok('…through the iframe, not the wrapper div that has no contentWindow',
+    /getElementById\('pvIframe'\)/.test(b));
+
+  const api = fs.readFileSync(R + 'functions/api/save-page-builder.js', 'utf8');
+  ok('the save endpoint permits that key', /'theme_modes'/.test(api));
+}
+
 console.log('\n  the engine reaches every themed page');
 {
   const PAGES = ['index.html', 'product.html', 'bag.html', 'checkout.html', 'drop001.html',

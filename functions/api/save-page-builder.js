@@ -14,7 +14,10 @@ const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
 // from page_builder: the LIVE key keeps its original name so the storefront
 // reads exactly what it always did — no fallback logic, and no new key needing
 // a change to the anon-read RLS policy.
-const ALLOWED_KEYS = ['page_builder','builder_theme','builder_nav','builder_history','builder_templates','builder_layouts','page_builder_published','landing_pages','landing_pages_published','scheduled_publish','product_page','collection_page','product_page_draft','collection_page_draft'];
+// theme_modes is here so the builder's Design tab can edit themes in place. It
+// is the same list the admin's Appearance → Themes writes; two screens, one key,
+// because the alternative is two half-lists that disagree about what a theme is.
+const ALLOWED_KEYS = ['page_builder','builder_theme','builder_nav','builder_history','builder_templates','builder_layouts','page_builder_published','landing_pages','landing_pages_published','scheduled_publish','product_page','collection_page','product_page_draft','collection_page_draft','theme_modes'];
 
 // Draft key → the live key it publishes to.
 const DRAFT_TO_LIVE = { product_page_draft: 'product_page', collection_page_draft: 'collection_page' };
