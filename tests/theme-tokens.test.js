@@ -208,8 +208,39 @@ console.log('\n  themes are data');
 
   const sf = fs.readFileSync(R + 'storefront.js', 'utf8');
   ok('section backgrounds can name a theme token', /token:/.test(sf) && /resolveSectionBackground/.test(sf));
-  ok('…and a plain colour still behaves exactly as before',
-    /raw\.slice\(0, 6\) !== 'token:'/.test(sf));
+  /* A section saved before tokens existed holds an absolute colour, so it kept
+     its old palette while everything around it moved — the black band on a
+     light imported theme, and the "one section did not get the theme" report.
+
+     A literal that is EXACTLY a built-in palette colour was never a decision
+     about that colour; it is what the picker returned when someone chose "a
+     dark band" and naming the intention was not yet possible. Those read as the
+     token they stood for. A colour matching none of them was genuinely chosen
+     and is left alone. */
+  ok('a legacy literal that names a built-in palette colour follows the theme',
+    /LEGACY_BG_TOKENS/.test(sf) && /'#09090b': 'ink'/.test(sf));
+  ok('…and a colour that is nobody’s palette entry is still honoured exactly',
+    /const legacy = LEGACY_BG_TOKENS\[raw\.toLowerCase\(\)\];/.test(sf) &&
+    /return legacy \? SECTION_BG_TOKENS\[legacy\] : raw;/.test(sf));
+  /* Resolved at READ time. Rewriting what is stored would destroy the literal
+     the builder's "Custom colour" option needs to put it back. */
+  ok('…without rewriting what is stored', !/sec_bg\s*=\s*['"]token:/.test(sf));
+
+  /* ink and paper are a PAIR. A band whose background follows the theme with
+     text that does not is the disappearing-words bug: token:ink is dark on a
+     dark theme and light on a light one, so a cream literal beside it reads
+     fine until the theme changes and then vanishes. */
+  ok('section text runs through the same resolver as its background',
+    /const _tc = resolveSectionBackground\(s\.text_color\);/.test(sf));
+  const ls = fs.readFileSync(R + 'landing-sections.js', 'utf8');
+  ok('…and landing pages share the resolver rather than copying it',
+    /window\.zwResolveSectionBg/.test(sf) &&
+    /window\.zwResolveSectionBg \|\| String/.test(ls),
+    'a second copy is a second thing to forget to update');
+  const bl = fs.readFileSync(R + 'builder.html', 'utf8');
+  ok('a new section is born following the theme, not holding a literal',
+    /sec_bg:'token:ink',text_color:'token:paper'/.test(bl) &&
+    !/sec_bg:'#[0-9a-fA-F]{6}'/.test(bl));
 }
 
 console.log('\n  one theme system, two screens');

@@ -210,10 +210,15 @@
   // Universal "Section Style" overrides — mirrors storefront.js tail.
   function applyTail(el, s, secId) {
     if (s.anchor_id) el.id = s.anchor_id;
-    if (s.sec_bg) el.style.setProperty('background', s.sec_bg, 'important');
+    /* Through the same resolver as the homepage, or a landing page keeps the
+       old palette while the homepage follows the theme — the "one section did
+       not get the theme" bug, reintroduced on a different page. */
+    var _lsBg = (window.zwResolveSectionBg || String)(s.sec_bg);
+    if (_lsBg) el.style.setProperty('background', _lsBg, 'important');
     if (s.pad_top) el.style.paddingTop = s.pad_top + 'px';
     if (s.pad_bot) el.style.paddingBottom = s.pad_bot + 'px';
-    if (s.text_color) el.style.setProperty('color', s.text_color, 'important');
+    var _lsTc = (window.zwResolveSectionBg || String)(s.text_color);
+    if (_lsTc) el.style.setProperty('color', _lsTc, 'important');
     if (s.heading_size) el.querySelectorAll('h1,h2,h3,[data-builder-heading]').forEach(function (h) { h.style.setProperty('font-size', s.heading_size, 'important'); });
     if (s.body_size) el.querySelectorAll('p,[data-builder-body]').forEach(function (p) { p.style.setProperty('font-size', s.body_size, 'important'); });
     var idSel = s.anchor_id || secId;
