@@ -253,7 +253,12 @@
       'body.zw-macc-b .zwf-bag-count,body.zw-macc-c .zwf-bag-count{background:var(--zw-ink,#09090b);color:var(--zw-page,#fff)}',
       /* The account button moves INTO this panel, so hide the header one while
          the feature is on (both header systems). */
-      'body.zwf-bagpanel-on :is(#login-btn,#account-btn,#hdr-login){display:none!important}',
+      /* …unless the theme asks for it to stay. data-zw-account="header" is the
+         opt-out: the panel still carries its own account row, and the header
+         keeps its button instead of going quiet. Written as :not() on the same
+         element so the default — no attribute at all — is the behaviour this
+         has always had, and no existing store changes. */
+      'body.zwf-bagpanel-on:not([data-zw-account="header"]) :is(#login-btn,#account-btn,#hdr-login){display:none!important}',
       '.zwf-search-bar{display:flex;align-items:center;gap:.9rem;padding:1.1rem clamp(1rem,4vw,2.5rem);border-bottom:1px solid var(--line,rgba(128,128,128,.2))}',
       '.zwf-search-bar svg{width:22px;height:22px;flex:0 0 auto;opacity:.6}',
       '.zwf-search-input{flex:1;background:none;border:none;outline:none;color:inherit;font-family:var(--fw,inherit);font-weight:700;font-size:clamp(1.1rem,3vw,1.7rem);letter-spacing:.02em}',

@@ -761,6 +761,23 @@ console.log('\n  header composition');
   ok('…and the setting prunes itself back to absent when nothing is set',
     /if \(Object\.keys\(next\)\.length\) m\.tokens\.icons = next; else delete m\.tokens\.icons;/.test(at));
 
+  /* "Account in the bag" was not a metaphor — the bag-panel feature moves the
+     account link into the panel and hides the header's button outright. That
+     hiding is now opt-out rather than automatic. */
+  const feat = fs.readFileSync(R + 'storefront-features.js', 'utf8');
+  ok('the bag panel only quiets the header account button when allowed to',
+    /body\.zwf-bagpanel-on:not\(\[data-zw-account="header"\]\)/.test(feat));
+  /* :not() on the same element, so ABSENT is the behaviour this always had —
+     no existing store changes when this ships. */
+  ok('…and the default is exactly what it did before',
+    /accountIn === 'header'/.test(eng) && /removeAttribute\('data-zw-account'\)/.test(eng));
+  /* The rule is written against body.zwf-bagpanel-on, so the attribute has to
+     be on body too — the flag class lives there, not on <html>. */
+  ok('…with the attribute on body, where the rule it answers is anchored',
+    /el\.setAttribute\('data-zw-account', 'header'\)/.test(eng));
+  ok('the editor offers it, defaulting to a value that deletes the key',
+    /accountIn/.test(at) && /\['', 'In the bag panel/.test(at));
+
   /* Icons as words. Driven off aria-label — which every one of these controls
      already carries — so it needs no markup change and cannot miss a nav
      dialect, which is the failure this file exists to prevent. */

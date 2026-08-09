@@ -329,6 +329,23 @@
       }).join('') +
       '</div></div>';
 
+    /* Only bites when the bag panel feature is on — that is the thing that
+       moves account into the panel and quiets the header button. */
+    // '' for the default, so choosing it DELETES the key rather than storing a
+    // value that means "what would have happened anyway" in every export.
+    var curAcct = m.tokens.accountIn === 'header' ? 'header' : '';
+    shape += '<div style="margin-bottom:6px;">' +
+      '<label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-primary);margin-bottom:3px;">Account link</label>' +
+      '<div style="font-size:.73rem;color:var(--text-secondary);line-height:1.5;margin-bottom:6px;">' +
+        'With the slide-down bag panel switched on, the account link moves into that panel and the header button goes quiet. Keep it in the header if you would rather it stayed put — the panel keeps its own copy either way, so nobody loses the route to their account.' +
+      '</div>' +
+      '<select onchange="themeSetToken(' + i + ',\'accountIn\',this.value)" style="width:100%;padding:7px 9px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.78rem;">' +
+        [['', 'In the bag panel — the header button hides'],
+         ['header', 'Always in the header']].map(function (o) {
+          return '<option value="' + esc(o[0]) + '"' + (curAcct === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+        }).join('') +
+      '</select></div>';
+
     /* Icons as words. Reads aria-label, which these controls already carry, so
        it needs no markup and cannot miss a nav dialect. */
     var curLabels = m.tokens.iconLabels || 'off';
