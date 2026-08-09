@@ -259,6 +259,59 @@ console.log('\n  a theme is more than paint');
   ok('dragging a slider does not rebuild it mid-drag', /drop the pointer/.test(at));
 }
 
+console.log('\n  the import actually runs');
+{
+  /* Every check in this file was a regex over source, and a regex cannot see
+     that `col` stopped existing. The import shipped throwing "col is not
+     defined" on the first click with all of them green — so this block calls
+     build() for real, which is the only kind of check that would have caught
+     it. */
+  const src = fs.readFileSync(R + 'admin-theme-import.js', 'utf8');
+  const body = src.slice(src.indexOf("'use strict';") + 13, src.lastIndexOf('})();'));
+  global.window = {};
+  global.document = { getElementById() { return null; }, readyState: 'complete', addEventListener() {} };
+
+  let mod = null, threw = '';
+  try {
+    mod = new Function('TextDecoder', 'TextEncoder', body + '; return {build:build, baseFor:baseFor};')(TextDecoder, TextEncoder);
+  } catch (e) { threw = e.message; }
+  ok('the module body evaluates', !!mod, threw);
+
+  if (mod) {
+    const schema = [
+      { name: 'theme_info', theme_name: 'Dawn' },
+      { name: 'Colors', settings: [
+        { id: 'colors_accent_1', default: '#E4572E' }, { id: 'colors_text', default: '#121212' },
+        { id: 'colors_background_1', default: '#FFFFFF' }, { id: 'colors_solid_button_labels', default: '#FFFFFF' }] },
+      { name: 'Type', settings: [{ id: 'type_header_font', default: 'archivo_n7' }, { id: 'type_body_font', default: 'assistant_n4' }] },
+      { name: 'Layout', settings: [{ id: 'buttons_radius', default: 8 }, { id: 'heading_scale', default: 115 }] },
+    ];
+    let built = null, err = '';
+    try {
+      built = mod.build(schema, { current: { colors_background_1: '#0B0B0B' } },
+        { order: ['a'], sections: { a: { type: 'image-banner' } } }, 'Dawn', { bag: '<svg/>' });
+    } catch (e) { err = e.message; }
+    ok('build() completes on a realistic export', !!built, err);
+
+    if (built) {
+      const tm = built.preset.keys.theme_modes;
+      ok('the default names a theme that exists', tm.default === tm.modes[0].id);
+      ok('a dark background chooses the dark structural CSS', tm.modes[0].base === 'dark');
+      ok('fonts land in the preset', !!built.preset.keys.fonts);
+      ok('icons land in the preset', !!(built.preset.keys.icons || {}).custom);
+    }
+
+    /* Luminance, not an average: 128 128 128 and 0 255 0 have the same mean and
+       nothing else in common — green reads far lighter than grey. */
+    ok('the base is judged by luminance', mod.baseFor('0 255 0') === 'light' && mod.baseFor('9 9 11') === 'dark');
+    ok('a missing background does not throw', mod.baseFor('') === 'light' && mod.baseFor(undefined) === 'light');
+  }
+
+  /* The old heuristics encoded a second, contradictory answer to "which setting
+     becomes the accent". Unreachable, but waiting for someone to trust it. */
+  ok('the mapping the table replaced is gone, not left as a rival', !/pickColours/.test(src));
+}
+
 console.log('\n  the mapping is shown, and correctable');
 {
   const im = fs.readFileSync(R + 'admin-theme-import.js', 'utf8');
