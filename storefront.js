@@ -560,13 +560,36 @@ function showToast(msg) {
     'tint-strong': 'var(--c12)',
   };
 
+  /* Sections saved before tokens existed hold an absolute colour, so they kept
+     their old palette while everything around them changed — the black band on
+     a light imported theme, and the reason one section "did not get the theme".
+
+     But a literal that is EXACTLY a built-in palette colour was not a decision
+     about that colour. It is what the picker handed over when someone chose
+     "a dark band", back when naming the intention was not possible. #09090b is
+     the dark page; #f4f1eb, #F0EEE9 and #FFFFFF are the light ones. Reading
+     those as the token they stood for is restoring the intent, not overriding
+     it — and a colour matching none of them was genuinely picked, so it stays.
+
+     Done at READ time, never by rewriting what is stored. The literal survives
+     in the section, so the builder's "Custom colour" option puts it back
+     exactly, and a theme that is later removed changes nothing on disk. */
+  const LEGACY_BG_TOKENS = {
+    '#09090b': 'ink',                                    // the dark band
+    '#f4f1eb': 'page', '#f0eee9': 'page', '#ffffff': 'page',
+  };
+
   function resolveSectionBackground(value) {
     const raw = String(value || '').trim();
     if (!raw) return '';
-    if (raw.slice(0, 6) !== 'token:') return raw;
-    return SECTION_BG_TOKENS[raw.slice(6)] || '';
+    if (raw.slice(0, 6) === 'token:') return SECTION_BG_TOKENS[raw.slice(6)] || '';
+    const legacy = LEGACY_BG_TOKENS[raw.toLowerCase()];
+    return legacy ? SECTION_BG_TOKENS[legacy] : raw;
   }
   window.zwSectionBgTokens = SECTION_BG_TOKENS;   // the builder lists these
+  // Landing pages render through landing-sections.js, which has its own tail.
+  // Shared rather than copied, so the two cannot drift into disagreeing.
+  window.zwResolveSectionBg = resolveSectionBackground;
 
   function applyBuilderConfig(cfg) {
     if (!cfg || !cfg.sections) return;
@@ -1810,8 +1833,14 @@ function showToast(msg) {
       // zw-sec-tc class cascades the chosen color onto child text that hardcodes
       // its own color (product cards, headings) — otherwise those win and the
       // chosen Text Color appears to "do nothing".
-      if (s.text_color) {
-        el.style.setProperty('color', s.text_color, 'important');
+      /* Through the resolver too, and not as a nicety. A band whose background
+         follows the theme with text that does not is the disappearing-words
+         bug: token:ink is dark on a dark theme and LIGHT on a light one, so a
+         cream literal beside it reads perfectly until someone switches theme
+         and then vanishes. ink/paper are a pair and have to move together. */
+      const _tc = resolveSectionBackground(s.text_color);
+      if (_tc) {
+        el.style.setProperty('color', _tc, 'important');
         el.classList.add('zw-sec-tc');
         el.classList.remove('zw-on-light');
       } else if (s.sec_bg && _zwIsLightColor(s.sec_bg)) {

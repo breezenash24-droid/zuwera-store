@@ -238,6 +238,18 @@
        arrangement the site shipped with, so a theme that says nothing here
        leaves the header exactly as it was. */
     applyHeader(root, t.header);
+
+    /* Icons as words. 'mobile' and 'always' are scopes the stylesheet knows;
+       anything else — including the absent case — means icons, and the
+       attribute is REMOVED rather than set to a value CSS has no rule for,
+       since `[data-zw-iconlabels]` alone matches the shared styling rule. */
+    if (t.iconLabels === 'mobile' || t.iconLabels === 'always') {
+      root.setAttribute('data-zw-iconlabels', t.iconLabels);
+    } else {
+      root.removeAttribute('data-zw-iconlabels');
+    }
+    // Absent means "match the body font", which the CSS fallback already says.
+    set('--zw-label-font', t.labelFont);
     // --black and --white are the page background and text in the original
     // naming. Kept in step with the triplets so the many rules still using them
     // agree with the ones using the ladder.

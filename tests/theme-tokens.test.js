@@ -208,8 +208,39 @@ console.log('\n  themes are data');
 
   const sf = fs.readFileSync(R + 'storefront.js', 'utf8');
   ok('section backgrounds can name a theme token', /token:/.test(sf) && /resolveSectionBackground/.test(sf));
-  ok('…and a plain colour still behaves exactly as before',
-    /raw\.slice\(0, 6\) !== 'token:'/.test(sf));
+  /* A section saved before tokens existed holds an absolute colour, so it kept
+     its old palette while everything around it moved — the black band on a
+     light imported theme, and the "one section did not get the theme" report.
+
+     A literal that is EXACTLY a built-in palette colour was never a decision
+     about that colour; it is what the picker returned when someone chose "a
+     dark band" and naming the intention was not yet possible. Those read as the
+     token they stood for. A colour matching none of them was genuinely chosen
+     and is left alone. */
+  ok('a legacy literal that names a built-in palette colour follows the theme',
+    /LEGACY_BG_TOKENS/.test(sf) && /'#09090b': 'ink'/.test(sf));
+  ok('…and a colour that is nobody’s palette entry is still honoured exactly',
+    /const legacy = LEGACY_BG_TOKENS\[raw\.toLowerCase\(\)\];/.test(sf) &&
+    /return legacy \? SECTION_BG_TOKENS\[legacy\] : raw;/.test(sf));
+  /* Resolved at READ time. Rewriting what is stored would destroy the literal
+     the builder's "Custom colour" option needs to put it back. */
+  ok('…without rewriting what is stored', !/sec_bg\s*=\s*['"]token:/.test(sf));
+
+  /* ink and paper are a PAIR. A band whose background follows the theme with
+     text that does not is the disappearing-words bug: token:ink is dark on a
+     dark theme and light on a light one, so a cream literal beside it reads
+     fine until the theme changes and then vanishes. */
+  ok('section text runs through the same resolver as its background',
+    /const _tc = resolveSectionBackground\(s\.text_color\);/.test(sf));
+  const ls = fs.readFileSync(R + 'landing-sections.js', 'utf8');
+  ok('…and landing pages share the resolver rather than copying it',
+    /window\.zwResolveSectionBg/.test(sf) &&
+    /window\.zwResolveSectionBg \|\| String/.test(ls),
+    'a second copy is a second thing to forget to update');
+  const bl = fs.readFileSync(R + 'builder.html', 'utf8');
+  ok('a new section is born following the theme, not holding a literal',
+    /sec_bg:'token:ink',text_color:'token:paper'/.test(bl) &&
+    !/sec_bg:'#[0-9a-fA-F]{6}'/.test(bl));
 }
 
 console.log('\n  one theme system, two screens');
@@ -669,6 +700,33 @@ console.log('\n  header composition');
   ok('…and the button it reveals is one the pages actually have',
     fs.readdirSync(R).filter((f) => f.endsWith('.html'))
       .some((f) => fs.readFileSync(R + f, 'utf8').includes('class="hamburger-btn"')));
+
+  /* Icons as words. Driven off aria-label — which every one of these controls
+     already carries — so it needs no markup change and cannot miss a nav
+     dialect, which is the failure this file exists to prevent. */
+  ok('the label is the accessible name, not a second copy of it',
+    /content: attr\(aria-label\)/.test(nav),
+    'a hand-written label would drift from what a screen reader announces');
+  ok('…and it replaces the glyph rather than joining it',
+    /data-zw-iconlabels[^{]*> svg \{ display: none; \}/.test(nav),
+    'showing both makes the control announce itself twice');
+  for (const control of ['#cart-btn', '.zwf-search-btn', '.hamburger-btn']) {
+    ok('words reach ' + control, nav.includes(control));
+  }
+  ok('phone-and-tablet scope is behind a max-width, so desktop keeps its icons',
+    /@media \(max-width: 1024px\)[\s\S]{0,400}data-zw-iconlabels="mobile"/.test(nav));
+  /* Absent must REMOVE the attribute: `[data-zw-iconlabels]` on its own matches
+     the shared styling rule, so a value CSS has no scope for would still style
+     a label that never appears. */
+  ok('the engine removes the attribute rather than writing an unknown scope',
+    /removeAttribute\('data-zw-iconlabels'\)/.test(eng) &&
+    /t\.iconLabels === 'mobile' \|\| t\.iconLabels === 'always'/.test(eng));
+  ok('the label font matches the body font until one is named',
+    /var\(--zw-label-font, var\(--fb, inherit\)\)/.test(nav) &&
+    /set\('--zw-label-font', t\.labelFont\)/.test(eng));
+  ok('…and clearing it deletes the key instead of storing an empty value',
+    /if \(v && v !== 'off'\) m\.tokens\[key\] = v; else delete m\.tokens\[key\];/.test(at),
+    "'' would beat the CSS fallback and land on the browser default");
 
   ok('the editor can move a single part without losing the others',
     /themeSetHeaderPart/.test(at) && /headerSpec\(m\.tokens\.header\)/.test(at));
