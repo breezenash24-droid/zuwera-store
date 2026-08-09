@@ -2,7 +2,18 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* ── Palette ── */
+  /* ── Palette ────────────────────────────────────────────────────────────
+     Seven values decide the whole site's colour. Everything below derives
+     from them, and theme-engine.js overwrites exactly these at runtime when
+     a theme is chosen — so a new theme is seven numbers, not a stylesheet.
+
+     --fg-rgb / --bg-rgb are the same two colours as --white / --black, held
+     as bare RGB triplets so the alpha ladder can be computed from them
+     instead of being written out by hand for every mode. Keep the pairs in
+     step: --white must be rgb(--fg-rgb) and --black rgb(--bg-rgb). */
+  --fg-rgb: 244 241 235;
+  --bg-rgb: 9 9 11;
+
   --black:  #09090b;
   --white:  #f4f1eb;
   --ink:    #09090b;
@@ -37,24 +48,32 @@
   /* ── Transitions ── */
   --trans: opacity 0.2s;
 
-  /* ── Alpha colours (replaces dozens of repeated rgba() literals) ── */
-  --c06:  rgba(244,241,235,0.06);
-  --c07:  rgba(244,241,235,0.07);
-  --c08:  rgba(244,241,235,0.08);
-  --c10:  rgba(244,241,235,0.10);
-  --c12:  rgba(244,241,235,0.12);
-  --c14:  rgba(244,241,235,0.14);
-  --c15:  rgba(244,241,235,0.15);
-  --c20:  rgba(244,241,235,0.20);
-  --c30:  rgba(244,241,235,0.30);
-  --c35:  rgba(244,241,235,0.35);
-  --c40:  rgba(244,241,235,0.40);
-  --c45:  rgba(244,241,235,0.45);
-  --c50:  rgba(244,241,235,0.50);
-  --c55:  rgba(244,241,235,0.55);
-  --c65:  rgba(244,241,235,0.65);
-  --c70:  rgba(244,241,235,0.70);
-  --c80:  rgba(244,241,235,0.80);
+  /* ── Alpha ladder ───────────────────────────────────────────────────────
+     The foreground colour at seventeen opacities — borders, dividers, muted
+     text, hover washes. Derived from --fg-rgb rather than written out, so
+     changing one triplet recolours every rung and every rule that uses one.
+
+     Space-separated rgb() with a slash, not rgba(): a var() holding a bare
+     triplet cannot be spliced into rgba()'s comma list, and the failure is
+     silent — the declaration is dropped and the colour comes out transparent.
+     Same trap the modal backdrop hit. Supported everywhere since 2020. */
+  --c06:  rgb(var(--fg-rgb) / 6%);
+  --c07:  rgb(var(--fg-rgb) / 7%);
+  --c08:  rgb(var(--fg-rgb) / 8%);
+  --c10:  rgb(var(--fg-rgb) / 10%);
+  --c12:  rgb(var(--fg-rgb) / 12%);
+  --c14:  rgb(var(--fg-rgb) / 14%);
+  --c15:  rgb(var(--fg-rgb) / 15%);
+  --c20:  rgb(var(--fg-rgb) / 20%);
+  --c30:  rgb(var(--fg-rgb) / 30%);
+  --c35:  rgb(var(--fg-rgb) / 35%);
+  --c40:  rgb(var(--fg-rgb) / 40%);
+  --c45:  rgb(var(--fg-rgb) / 45%);
+  --c50:  rgb(var(--fg-rgb) / 50%);
+  --c55:  rgb(var(--fg-rgb) / 55%);
+  --c65:  rgb(var(--fg-rgb) / 65%);
+  --c70:  rgb(var(--fg-rgb) / 70%);
+  --c80:  rgb(var(--fg-rgb) / 80%);
 
   /* ── Semantic aliases ── */
   --border:       var(--c10);
@@ -82,38 +101,35 @@ body {
   overscroll-behavior: contain;
 }
 
-/* ===================== LIGHT MODE ===================== */
+/* ===================== LIGHT MODE =====================
+   Seventeen hand-written rungs became one triplet.
+
+   The three aliases below still have to be repeated, and it is worth knowing
+   why, because it looks like duplication and is not. Custom properties are
+   substituted at computed-value time: `--border: var(--c10)` declared on :root
+   resolves against :root's --c10 — the DARK one — and what inherits down the
+   tree is that already-resolved colour, not the reference. Redefining --c10
+   here does not reach back and change it. So anything defined in terms of the
+   ladder must be redefined wherever the ladder moves. */
 body.light-mode {
+  --fg-rgb: 10 10 10;
+  --bg-rgb: 240 238 233;
+
   --black:  #F0EEE9;
   --white:  #09090b;
   --ink:    #F0EEE9;
   --paper:  #09090b;
-
-  --c06:  rgba(10,10,10,0.06);
-  --c07:  rgba(10,10,10,0.07);
-  --c08:  rgba(10,10,10,0.08);
-  --c10:  rgba(10,10,10,0.10);
-  --c12:  rgba(10,10,10,0.12);
-  --c14:  rgba(10,10,10,0.14);
-  --c15:  rgba(10,10,10,0.15);
-  --c20:  rgba(10,10,10,0.20);
-  --c30:  rgba(10,10,10,0.30);
-  --c35:  rgba(10,10,10,0.35);
-  --c40:  rgba(10,10,10,0.40);
-  --c45:  rgba(10,10,10,0.45);
-  --c50:  rgba(10,10,10,0.50);
-  --c55:  rgba(10,10,10,0.55);
-  --c65:  rgba(10,10,10,0.65);
-  --c70:  rgba(10,10,10,0.70);
-  --c80:  rgba(10,10,10,0.80);
 
   --border:       var(--c10);
   --border-soft:  var(--c08);
   --muted:        var(--c50);
 }
 
-/* ===================== SUPER LIGHT MODE ===================== */
+/* ===================== SUPER LIGHT MODE =====================
+   Light mode on white paper. It carries BOTH classes, so everything above
+   applies and only the page colour changes. */
 body.super-light-mode {
+  --bg-rgb: 255 255 255;
   --black:  #FFFFFF;
   --ink:    #FFFFFF;
 }
