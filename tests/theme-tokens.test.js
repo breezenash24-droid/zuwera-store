@@ -168,6 +168,40 @@ console.log('\n  one theme system, two screens');
   ok('the save endpoint permits that key', /'theme_modes'/.test(api));
 }
 
+console.log('\n  per-page themes');
+{
+  const eng = fs.readFileSync(R + 'theme-engine.js', 'utf8');
+  ok('a path can be pinned to a theme', /themeForPath/.test(eng) && /config\.pages/.test(eng));
+  ok('longest match wins, so /product.html beats /', /key\.length > best\.length/.test(eng));
+  ok('a pin to a deleted theme is ignored, not rendered blank',
+    /modes\.some\(function \(m\) \{ return m\.id === id; \}\)/.test(eng));
+  /* Someone who chose Dark asked for Dark. A checkout that overrules them reads
+     as a bug rather than a design, so their pick is consulted first. */
+  ok("a visitor's own choice still wins over the page pin",
+    /byId\(chosenId\(\)\)[\s\S]{0,40}\|\| byId\(themeForPath/.test(eng));
+
+  const at = fs.readFileSync(R + 'admin-themes.js', 'utf8');
+  ok('the admin can assign one', /themeSetPage/.test(at) && /PAGE_TARGETS/.test(at));
+}
+
+console.log('\n  the visualiser and colour entry');
+{
+  const at = fs.readFileSync(R + 'admin-themes.js', 'utf8');
+  ok('previews through the real engine, not a mock-up', /w\.ZWTheme\.preview/.test(at));
+  ok('repaints on every edit', (at.match(/visPaint\(\)/g) || []).length >= 5);
+  ok('a hex can be typed, not only picked', /themeSetHex/.test(at));
+  ok('…and a partial hex is ignored until it is a whole colour',
+    /\{3\}\|\[0-9a-fA-F\]\{6\}/.test(at));
+  ok('typing a hex does not re-render and steal focus', /blurs the field/.test(at));
+
+  const ic = fs.readFileSync(R + 'icon-sets.js', 'utf8');
+  ok('the icon library is more than stroke weights of one drawing',
+    /GEOMETRIC/.test(ic) && /SKETCH/.test(ic));
+  ok('six sets', (ic.match(/build: function/g) || []).length === 6,
+    (ic.match(/build: function/g) || []).length + '');
+
+}
+
 console.log('\n  the engine reaches every themed page');
 {
   const PAGES = ['index.html', 'product.html', 'bag.html', 'checkout.html', 'drop001.html',

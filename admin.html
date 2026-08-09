@@ -3132,7 +3132,49 @@
                             <p style="color:var(--text-secondary);font-size:.85rem;line-height:1.6;margin-bottom:18px;max-width:72ch;">
                                 Seven colours make a theme, and the whole storefront derives from them — borders, muted text, dividers and hover washes are all the text colour at an opacity, so you set one value and they all follow. Dark, Light and Super Light are the ones that shipped; you can edit them, add your own, and choose which one a first-time visitor sees.
                             </p>
+                            <!-- Visualiser. A real storefront page in an iframe,
+                                 repainted through the real engine on every colour
+                                 change — so what you are looking at is what a
+                                 shopper gets, not a mock-up that can drift. -->
+                            <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:18px;margin-bottom:20px;" id="theme-vis-wrap">
+                              <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg-primary);">
+                                <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+                                  <span style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);">Live preview</span>
+                                  <select id="theme-vis-page" onchange="themeVisReload()" style="padding:5px 9px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:5px;color:var(--text-primary);font-size:.75rem;">
+                                    <option value="/index.html">Home</option>
+                                    <option value="/drop001.html">Collection</option>
+                                    <option value="/bag.html">Bag</option>
+                                    <option value="/checkout.html">Checkout</option>
+                                    <option value="/account.html">Account</option>
+                                    <option value="/about.html">About</option>
+                                  </select>
+                                  <select id="theme-vis-size" onchange="themeVisSize(this.value)" style="padding:5px 9px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:5px;color:var(--text-primary);font-size:.75rem;">
+                                    <option value="100%">Desktop</option>
+                                    <option value="768px">Tablet</option>
+                                    <option value="390px">Phone</option>
+                                  </select>
+                                  <span id="theme-vis-note" style="font-size:.7rem;color:var(--text-secondary);margin-left:auto;"></span>
+                                </div>
+                                <div id="theme-vis-stage" style="background:var(--bg-secondary);padding:0;display:flex;justify-content:center;">
+                                  <iframe id="theme-vis" title="Theme preview" src="about:blank"
+                                          style="width:100%;height:460px;border:none;background:#fff;display:block;"
+                                          sandbox="allow-scripts allow-same-origin"></iframe>
+                                </div>
+                              </div>
+                            </div>
+
                             <div id="theme-list" style="display:grid;gap:12px;"></div>
+                            <!-- Per-page themes. A dark shop and a light checkout is
+                                 a normal thing to want; the theme used to be one
+                                 global choice the homepage owned. -->
+                            <div style="margin-top:22px;border-top:1px solid var(--border);padding-top:18px;">
+                              <h4 style="font-size:.95rem;margin-bottom:6px;">Which theme each page wears</h4>
+                              <p style="color:var(--text-secondary);font-size:.82rem;line-height:1.6;margin-bottom:14px;max-width:70ch;">
+                                Anything left on “Use the default” follows the theme marked Default above. A visitor who has picked a theme for themselves keeps it either way — overruling someone's own choice reads as a bug, not a design.
+                              </p>
+                              <div id="theme-pages" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:10px;"></div>
+                            </div>
+
                             <div id="theme-status" style="margin-top:14px;font-size:.82rem;"></div>
                         </div>
 
