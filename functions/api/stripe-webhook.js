@@ -715,6 +715,9 @@ async function saveOrderToSupabase(pi, meta, tracking, env) {
       subtotal:         (subtotalCents / 100).toFixed(2),
       shipping:         (shippingCents  / 100).toFixed(2),
       tax:              (taxCents       / 100).toFixed(2),
+      // Which engine produced that figure, so a year of collections can still be
+      // attributed after the setting changes. NULL on orders older than this.
+      tax_engine:       meta.tax_engine || null,
       total:            (pi.amount      / 100).toFixed(2),
       free_shipping:    meta.free_shipping === 'true',
       ship_line1:       meta.ship_line1,

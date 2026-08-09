@@ -2055,6 +2055,41 @@
 
                   <div id="tax-error" class="zw-admin-err" style="display:none;"></div>
 
+                  <!-- Who calculates the tax. Everything below this card counts
+                       what was actually collected, so it keeps working whichever
+                       engine is chosen — the engine only decides where the number
+                       came from in the first place. -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;">
+                    <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">Tax engine</p>
+                    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;max-width:70ch;">
+                      The built-in table below is what runs unless you change this. It knows state rates, Ohio by county and Illinois by ZIP — it does not know city district rates, or that clothing is exempt in PA, NJ and MN and exempt under $110 in NY. If you already pay for a tax service, put it in charge here and the table steps aside.
+                    </p>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+                      <div>
+                        <label for="tax-engine-select" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:5px;">Calculated by</label>
+                        <select id="tax-engine-select" onchange="taxEngineOnChange()" style="padding:9px 12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:13px;min-width:260px;">
+                          <option value="builtin">Built-in table (default)</option>
+                          <option value="stripe_tax">Stripe Tax — no key needed, uses this store's Stripe account</option>
+                          <option value="taxjar">TaxJar — needs TAXJAR_API_KEY</option>
+                          <option value="ziptax">Zip-Tax — needs ZIPTAX_API_KEY</option>
+                          <option value="external">My own endpoint — Avalara, Sovos, an accountant's service</option>
+                          <option value="none">Nothing — collect no tax here</option>
+                        </select>
+                      </div>
+                      <div id="tax-engine-endpoint-wrap" style="display:none;flex:1;min-width:260px;">
+                        <label for="tax-engine-endpoint" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:5px;">Endpoint URL</label>
+                        <input id="tax-engine-endpoint" type="url" placeholder="https://tax.example.com/calculate" style="width:100%;padding:9px 12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:13px;">
+                      </div>
+                      <button onclick="taxEngineSave()" id="tax-engine-save" style="padding:9px 18px;background:var(--accent);border:none;border-radius:6px;color:#000;font-weight:600;cursor:pointer;font-size:13px;">Save</button>
+                    </div>
+                    <label style="display:flex;align-items:center;gap:9px;margin-top:14px;font-size:12px;color:var(--text-secondary);cursor:pointer;">
+                      <input type="checkbox" id="tax-engine-fallback" checked style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;">
+                      <span>If the service is down or slow, fall back to the built-in table rather than failing the order</span>
+                    </label>
+                    <div id="tax-engine-note" style="margin-top:14px;font-size:12px;line-height:1.6;color:var(--text-secondary);"></div>
+                    <div id="tax-engine-status" style="margin-top:10px;font-size:12px;"></div>
+                  </div>
+
                   <!-- KPI cards -->
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:16px;margin-bottom:24px;">
                     <div class="zw-card">
