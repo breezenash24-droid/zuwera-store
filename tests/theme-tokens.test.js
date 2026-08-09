@@ -259,6 +259,40 @@ console.log('\n  a theme is more than paint');
   ok('dragging a slider does not rebuild it mid-drag', /drop the pointer/.test(at));
 }
 
+console.log('\n  reading a Shopify theme export');
+{
+  const im = fs.readFileSync(R + 'admin-theme-import.js', 'utf8');
+
+  /* The two JSON files in a theme zip that are not Liquid, and therefore the
+     only parts that can port without a rewrite. */
+  ok('reads the theme’s settings schema and the merchant’s values',
+    /settings_schema\.json/.test(im) && /settings_data\.json/.test(im));
+  ok('falls back to schema defaults, so an unconfigured theme still ports',
+    /s\.default !== undefined/.test(im));
+  ok('handles both colour shapes: OS 2.0 schemes and the older flat ids',
+    /color_schemes/.test(im) && /colors_background_1/.test(im));
+
+  const IDS = ['buttons_radius', 'card_corner_radius', 'inputs_radius', 'media_radius',
+    'heading_scale', 'spacing_sections', 'type_header_font', 'type_body_font',
+    'colors_accent_1', 'colors_solid_button_labels', 'colors_text'];
+  const unhandled = IDS.filter((k) => !im.includes(k));
+  ok('maps the settings a real export actually contains', unhandled.length === 0, unhandled.join(', '));
+
+  /* No library: the CSP forbids a CDN and a build step for one screen is a poor
+     trade, so the zip is walked directly. */
+  ok('unzips without a dependency', /0x02014b50/.test(im) && /deflate-raw/.test(im));
+  ok('only inflates the files it needs, not the whole archive', /wanted\(name\)/.test(im));
+
+  /* The honest half. A silent 40% import leaves you wondering why it looks
+     wrong; a report that names what did not come across does not. */
+  ok('reports what did not come across', /missed/.test(im) && /Header layout/.test(im));
+  ok('lists the theme’s sections rather than pretending to import them',
+    /listed rather than imported|are listed, not converted|listed rather than/.test(im));
+  ok('takes settings values only — never the theme’s code, CSS or images',
+    /never the theme|deliberately does not copy/.test(im));
+  ok('an import is saved, not applied', /not applied yet/.test(im));
+}
+
 console.log('\n  a theme is a snapshot, not a rewrite');
 {
   const pr = fs.readFileSync(R + 'admin-theme-presets.js', 'utf8');

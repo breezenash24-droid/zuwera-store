@@ -3145,6 +3145,22 @@
                             </label>
                             <div id="preset-list" style="display:grid;gap:10px;"></div>
                             <div id="preset-status" style="margin-top:14px;font-size:.82rem;"></div>
+
+                            <!-- Shopify theme .zip. Reads the JSON config inside;
+                                 the Liquid is listed, not converted. -->
+                            <div style="margin-top:22px;border-top:1px solid var(--border);padding-top:18px;">
+                                <h4 style="font-size:.95rem;margin-bottom:6px;">Start from a Shopify theme</h4>
+                                <p style="color:var(--text-secondary);font-size:.82rem;line-height:1.6;margin-bottom:6px;max-width:74ch;">
+                                    Drop in a theme <code>.zip</code> — the file Shopify emails you from <em>Online Store → Themes → Download theme file</em> — and its palette, type, corner radius and spacing come across. Those live in <code>config/settings_schema.json</code> as plain JSON, so they port cleanly.
+                                </p>
+                                <p style="color:var(--text-secondary);font-size:.82rem;line-height:1.6;margin-bottom:12px;max-width:74ch;">
+                                    <strong style="color:var(--text-primary);">The layout does not,</strong> and no tool can make it: Shopify sections are Liquid templates, a language this site does not run. You get a list of what the theme's homepage contained so you can see what would need building. Only settings values are read — never the theme's code, CSS or images.
+                                </p>
+                                <label class="btn btn-secondary" style="cursor:pointer;margin:0;">Choose a theme .zip
+                                    <input type="file" accept=".zip,application/zip" onchange="shopifyThemeImport(this)" style="display:none;">
+                                </label>
+                                <div id="shopify-import-report" style="margin-top:14px;"></div>
+                            </div>
                         </div>
 
                         <!-- Themes -->
@@ -4233,6 +4249,7 @@
     <!-- After admin-main: it needs `sb`, which that file creates at top level. -->
     <script src="admin-themes.js"></script>
     <script src="admin-theme-presets.js"></script>
+    <script src="admin-theme-import.js"></script>
     <!-- The icon editor previews through the real registry, so it loads it too. -->
     <script src="/icon-sets.js"></script>
     <script src="admin-icons.js"></script>
