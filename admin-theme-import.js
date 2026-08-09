@@ -163,7 +163,7 @@
     return (obj && typeof obj === 'object') ? obj[m[2]] : null;
   }
 
-  function collect(merged) {
+  function collect(merged, meta) {
     var colours = [], numbers = [], fonts = [];
 
     /* The palette itself, flattened so each role is selectable by name. */
@@ -231,12 +231,23 @@
     { key: 'surface', label: 'Surface', kind: 'colour',
       prefer: ['color_palette.color2', 'colors_background_2', 'scheme-2.background',
                'scheme-1.background', 'color_palette.background'] },
-    { key: 'ink', label: 'Button background', kind: 'colour',
-      prefer: ['primary_button_background_color', 'scheme-1.button',
-               'colors_accent_1', 'color_palette.foreground'] },
-    { key: 'paper', label: 'Button text', kind: 'colour',
-      prefer: ['primary_button_text_color', 'scheme-1.button_label',
-               'colors_solid_button_labels', 'color_palette.background'] },
+    /* These two are NOT a button pair, whatever their names suggest. In this
+       codebase --ink is used as a surface background and --paper as the text on
+       it, and both track the PAGE: light mode has ink #F0EEE9 with paper
+       #09090b, dark mode the reverse. The nav draws its links and the bag with
+       color: var(--paper).
+
+       Mapping them from Shopify's button colours put Dawn's white button label
+       into --paper, so the nav rendered white text on a white header and the
+       bag icon vanished. They follow the page instead, which is what the site
+       actually means by them; a theme wanting different button colours sets
+       accent, which is what accent is for. */
+    { key: 'ink', label: 'Panel background (follows the page)', kind: 'colour',
+      prefer: ['color_palette.background', 'page_background_color', 'scheme-1.background',
+               'colors_background_1', 'background'] },
+    { key: 'paper', label: 'Panel text (follows the page)', kind: 'colour',
+      prefer: ['color_palette.foreground', 'page_text_color', 'scheme-1.text',
+               'colors_text', 'text'] },
     { key: 'radius', label: 'Corner radius', kind: 'number',
       prefer: ['buttons_radius', 'button_border_radius_primary', 'card_corner_radius',
                'product_corner_radius', 'inputs_radius', 'inputs_border_radius', 'media_radius'] },
@@ -275,6 +286,11 @@
     return undefined;
   }
 
+  function metaOf(pool, id) {
+    for (var i = 0; i < pool.numbers.length; i++) if (pool.numbers[i].id === id) return pool.numbers[i].meta;
+    return null;
+  }
+
   /* Turn the table into tokens. The ONLY place tokens are produced, so what
      the table says is always what gets saved — there is no path where an
      edited row is ignored because some earlier heuristic already decided. */
@@ -289,18 +305,45 @@
       if (t.kind === 'colour') {
         tokens[t.key] = (t.key === 'fg' || t.key === 'bg') ? toTriplet(v) : hex(v);
       } else if (t.kind === 'number') {
+        var mt = metaOf(pool, id);
         if (t.key === 'radius') tokens.radius = Math.round(v);
+
         if (t.key === 'typeScale') {
-          /* Three ways a theme expresses this, told apart by magnitude:
-               1.15   already a multiplier
-               115    a percentage of the theme's own base
-               72     an h1 size in pixels, against a ~56px baseline
-             Guessing by magnitude is crude, but the alternative is asking the
-             admin what unit their theme used, which they have no way to know. */
-          var scale = v > 40 ? v / 56 : v > 3 ? v / 100 : v;
+          /* Relative to what the theme calls normal, not to an absolute I
+             invented. Dawn's heading_scale is a percentage with default 100, so
+             100 means unchanged; Fabric gives an h1 size in pixels with no
+             default, so it is measured against a ~56px baseline.
+
+             Guessing by magnitude read Dawn's 100 as a pixel size and produced
+             1.79, clamped to the 1.25 maximum — every imported Dawn theme
+             arrived with its type as large as the slider allows. */
+          var scale;
+          if (mt && isFinite(mt.def) && mt.def > 0) scale = v / mt.def;
+          else if (mt && mt.unit === '%') scale = v / 100;
+          else if (v > 40) scale = v / 56;
+          else if (v > 3) scale = v / 100;
+          else scale = v;
           tokens.typeScale = Math.max(0.85, Math.min(1.25, scale));
         }
-        if (t.key === 'density') tokens.density = Math.max(0.7, Math.min(1.4, 0.7 + (v / 100) * 0.7));
+
+        if (t.key === 'density') {
+          /* Dawn's spacing_sections is EXTRA spacing in pixels, 0 to 100,
+             default 0 — so 0 is this theme's normal, not the tightest it can
+             be. Treating the raw value as a position in my own range mapped
+             every unmodified Dawn theme to minimum density, which is what made
+             an accurate import look cramped.
+
+             Measured from the setting's own default, so "the designer changed
+             nothing" lands on 1. */
+          var d = 1;
+          if (mt && isFinite(mt.max) && mt.max > mt.min) {
+            var from = isFinite(mt.def) ? mt.def : mt.min;
+            d = 1 + ((v - from) / (mt.max - mt.min)) * 0.4;
+          } else if (v > 0) {
+            d = 1 + Math.min(v, 100) / 100 * 0.4;
+          }
+          tokens.density = Math.max(0.7, Math.min(1.4, d));
+        }
       } else if (t.kind === 'font') {
         if (t.key === '_fontHead') fonts.head = fontFamily(v);
         if (t.key === '_fontBody') fonts.body = fontFamily(v);
@@ -333,9 +376,19 @@
        schema full of the designer's intended palette, which is exactly the look
        someone copying from the theme store is after. */
     var defaults = {};
+    /* What each setting declares about itself: its unit, its range, and the
+       value the theme's designer considers normal. This is the difference
+       between reading a file and guessing at it — heading_scale of 100 is
+       "100%", meaning unchanged, and spacing_sections of 0 is "no extra
+       spacing", meaning normal. Guessed by magnitude, the first looked like a
+       pixel size and the second like the minimum of a range. */
+    var meta = {};
     (Array.isArray(schema) ? schema : []).forEach(function (group) {
       (group.settings || []).forEach(function (s) {
         if (!s || !s.id) return;
+        if (s.type === 'range' || s.unit !== undefined) {
+          meta[s.id] = { unit: s.unit || '', min: Number(s.min), max: Number(s.max), def: Number(s.default) };
+        }
         if (s.default !== undefined) { defaults[s.id] = s.default; return; }
 
         /* Online Store 2.0 declares colours as a group rather than as flat
@@ -360,7 +413,7 @@
     });
     var merged = Object.assign({}, defaults, current);
 
-    var pool = collect(merged);
+    var pool = collect(merged, meta);
     var assign = autoAssign(merged, pool);
     var composed = compose(pool, assign);
     var tokens = composed.tokens;

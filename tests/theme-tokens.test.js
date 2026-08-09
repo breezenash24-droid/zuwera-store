@@ -386,6 +386,24 @@ console.log('\n  the import actually runs');
        used and should not be asked. */
     ok('an h1 size in pixels becomes a type scale', ft.typeScale > 1 && ft.typeScale <= 1.25, String(ft.typeScale));
     ok('a real export maps almost every row', fab.report.got.length >= 9, fab.report.got.length + ' of 11');
+
+    /* The bug that made the bag icon disappear. --ink is a surface and --paper
+       is the text on it, and BOTH track the page — the nav draws its links and
+       the bag with color: var(--paper). Mapping paper from Shopify's button
+       label put Dawn's white #FFFFFF there, so the header rendered white text
+       on a white page. An imported theme has to leave the header readable. */
+    const lum = (v) => {
+      const p = String(v).startsWith('#')
+        ? [1, 3, 5].map((i) => parseInt(String(v).substr(i, 2), 16))
+        : String(v).split(/\s+/).map(Number);
+      return 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2];
+    };
+    for (const [name, built] of [['palette theme', fab], ['scheme theme', fromPreset]]) {
+      const tk = built.preset.keys.theme_modes.modes[0].tokens;
+      ok('the nav text contrasts with the page — ' + name,
+        Math.abs(lum(tk.bg) - lum(tk.paper)) > 60,
+        'bg ' + tk.bg + ' vs paper ' + tk.paper);
+    }
   }
 
   /* The old heuristics encoded a second, contradictory answer to "which setting
@@ -526,11 +544,18 @@ console.log('\n  reading a Shopify theme export');
   ok('handles both colour shapes: OS 2.0 schemes and the older flat ids',
     /color_schemes/.test(im) && /colors_background_1/.test(im));
 
+  /* colors_solid_button_labels is deliberately NOT here any more. It used to
+     feed --paper, which is not a button label in this codebase but the text the
+     nav draws its links and the bag with — so Dawn's white #FFFFFF landed there
+     and the header rendered white on white. A theme wanting its own button
+     colours sets accent; that is what accent is for. */
   const IDS = ['buttons_radius', 'card_corner_radius', 'inputs_radius', 'media_radius',
     'heading_scale', 'spacing_sections', 'type_header_font', 'type_body_font',
-    'colors_accent_1', 'colors_solid_button_labels', 'colors_text'];
+    'colors_accent_1', 'colors_text', 'color_palette', 'page_background_color'];
   const unhandled = IDS.filter((k) => !im.includes(k));
   ok('maps the settings a real export actually contains', unhandled.length === 0, unhandled.join(', '));
+  ok('…and no longer feeds a button label into the page text',
+    !/colors_solid_button_labels/.test(im));
 
   /* No library: the CSP forbids a CDN and a build step for one screen is a poor
      trade, so the zip is walked directly. */
@@ -569,6 +594,38 @@ console.log('\n  reading a Shopify theme export');
      names a theme that does not exist and the storefront falls back silently. */
   ok('the theme id and the default pointing at it are computed once',
     /var themeId = 'imported-'/.test(im) && /default: themeId/.test(im));
+}
+
+console.log('\n  applying a theme does not delete the others');
+{
+  const pr = fs.readFileSync(R + 'admin-theme-presets.js', 'utf8');
+
+  /* theme_modes is a LIST. A preset carrying one theme was overwriting the whole
+     row, so applying an imported theme deleted Dark, Light, Super Light and every
+     custom theme — irreversibly, since the presets screen has no undo. */
+  ok('the theme list merges rather than replacing', /function mergeThemeModes/.test(pr));
+  ok('…and every other key still replaces, which is what those mean',
+    /if \(k === 'theme_modes'\) value = mergeThemeModes/.test(pr));
+
+  const body = pr.slice(pr.indexOf('function mergeThemeModes'), pr.indexOf('async function writeKeys'));
+  const merge = new Function(body + '; return mergeThemeModes;')();
+
+  const existing = { modes: [{ id: 'dark' }, { id: 'light' }, { id: 'two-tone' }], default: 'dark' };
+  const incoming = { modes: [{ id: 'imported-x', label: 'Dawn' }], default: 'imported-x' };
+  const out = merge(existing, incoming);
+  ok('the themes that were there survive', out.modes.length === 4,
+    out.modes.map((m) => m.id).join(','));
+  ok('the imported one is added and becomes the default', out.default === 'imported-x');
+
+  const same = merge(existing, { modes: [{ id: 'light', label: 'Edited' }], default: 'light' });
+  ok('re-applying replaces by id rather than duplicating',
+    same.modes.length === 3 && same.modes.filter((m) => m.id === 'light')[0].label === 'Edited');
+
+  const junkDefault = merge(existing, { modes: [{ id: 'a' }], default: 'does-not-exist' });
+  ok('a default naming nothing falls back rather than blanking the site',
+    junkDefault.default === 'dark');
+
+  ok('an empty existing row still works', merge(null, incoming).modes.length === 1);
 }
 
 console.log('\n  a theme is a snapshot, not a rewrite');

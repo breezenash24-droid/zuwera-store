@@ -38,8 +38,12 @@
     { key: 'bg', label: 'Page background', kind: 'rgb', help: 'The page itself.' },
     { key: 'accent', label: 'Accent', kind: 'hex', help: 'Links, focus rings, the small highlights.' },
     { key: 'surface', label: 'Surface', kind: 'hex', help: 'Panels and strips that sit just off the page colour.' },
-    { key: 'paper', label: 'Inverted text', kind: 'hex', help: 'Text on a filled button — the opposite of Text.' },
-    { key: 'ink', label: 'Inverted background', kind: 'hex', help: 'A filled button’s background.' },
+    /* Named for what they do rather than for what they sound like. --ink is a
+       surface and --paper is the text on it, and both track the page: the nav
+       draws its links and the bag with color: var(--paper), so a --paper that
+       does not contrast with the page is an invisible header. */
+    { key: 'ink', label: 'Panel background', kind: 'hex', help: 'Nav bars, drawers and filled panels. Normally the same as the page background — set it apart only if you want those surfaces to differ.' },
+    { key: 'paper', label: 'Panel text', kind: 'hex', help: 'What sits on those panels, including the nav links and the bag icon. Must contrast with Panel background or the header goes invisible.' },
     { key: 'err', label: 'Error', kind: 'hex', help: 'Failed payments, validation, anything gone wrong.' },
     { key: 'navBg', label: 'Header background', kind: 'hex', optional: true, help: 'Leave off and the header matches the page. Set it to give the site a header in a different colour from the page below it — a black bar over a light page, say.' },
     { key: 'navFg', label: 'Header text', kind: 'hex', optional: true, help: 'Only needed when the header has its own background.' },
