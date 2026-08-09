@@ -17,7 +17,7 @@
 (function () {
   'use strict';
 
-  var state = { set: 'outline', overrides: {}, custom: {} };
+  var state = { set: 'outline', overrides: {}, custom: {}, frame: 'box' };
   var openName = null;
 
   function esc(s) {
@@ -46,6 +46,7 @@
           set: v.set || 'outline',
           overrides: v.overrides || {},
           custom: v.custom || {},
+          frame: v.frame || 'box',
         };
       }
     } catch (_) {}
@@ -59,7 +60,7 @@
       if (res.error) throw res.error;
       if (typeof logAdminAudit === 'function') {
         void logAdminAudit('settings.update', 'site_settings', 'icons',
-          { set: state.set, overrides: Object.keys(state.overrides).length });
+          { set: state.set, frame: state.frame, overrides: Object.keys(state.overrides).length });
       }
       status('Saved — live on the storefront within a minute.');
     } catch (err) {
@@ -92,6 +93,29 @@
     }
     if (setPicker) setPicker.value = state.set;
 
+    var framePicker = document.getElementById('icons-frame');
+    if (framePicker && !framePicker.options.length) {
+      framePicker.innerHTML = r.frames().map(function (f) {
+        return '<option value="' + esc(f.id) + '">' + esc(f.label) + '</option>';
+      }).join('');
+    }
+    if (framePicker) framePicker.value = state.frame;
+
+    /* The frame preview is a real button drawn with the chosen values, not a
+       picture of one — the same reason the icons preview through the registry. */
+    var fv = (r.frames().filter(function (f) { return f.id === state.frame; })[0] || {});
+    var host2 = document.getElementById('icons-frame-preview');
+    if (host2) {
+      var vars = r.frameVars(state.frame);
+      host2.innerHTML = '<span style="display:inline-flex;align-items:center;gap:.5rem;min-width:44px;min-height:36px;' +
+        'padding:.45rem .72rem;justify-content:center;color:var(--text-primary);' +
+        'border:' + esc(vars.frame).replace(/var\(--c20\)/, 'currentColor').replace(/var\(--c40\)/, 'currentColor') + ';' +
+        'border-radius:' + esc(vars.radius) + ';' +
+        'background:' + (vars.fill === 'transparent' ? 'transparent' : 'rgba(127,127,127,.12)') + ';">' +
+        '<span style="width:16px;height:16px;display:inline-flex;">' + svgFor('bag') + '</span>' +
+        '<span style="font-size:.7rem;">2</span></span>';
+    }
+
     host.innerHTML = r.names().map(function (name) {
       var overridden = !!state.overrides[name] || !!state.custom[name];
       var svg = svgFor(name);
@@ -121,6 +145,7 @@
 
   // ── Actions ──────────────────────────────────────────────────────────────
   window.iconSetGlobal = function (v) { state.set = v; render(); };
+  window.iconSetFrame = function (v) { state.frame = v; render(); };
 
   window.iconSetOverride = function (name, v) {
     if (v) state.overrides[name] = v; else delete state.overrides[name];

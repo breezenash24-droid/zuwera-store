@@ -23,16 +23,23 @@ console.log('\n  the ladder derives\n');
     /body\.light-mode[\s\S]*?--fg-rgb:/.test(base) &&
     !/body\.light-mode[\s\S]*?--c30:\s*rgba/.test(base));
 
-  /* The trap that cost me a bug. Custom properties substitute at
-     computed-value time: --border declared on :root resolves against :root's
-     --c10 and inherits the RESULT, so moving the ladder underneath does not
-     reach back. Anything defined in terms of a rung has to be redeclared
-     wherever the rung moves. */
-  const light = base.slice(base.indexOf('body.light-mode'));
-  ['--border', '--border-soft', '--muted'].forEach((v) => {
-    ok('light mode redeclares ' + v + ' (computed-value substitution)',
-      new RegExp(v.replace('--', '--') + ':\\s*var\\(--c').test(light.slice(0, light.indexOf('}'))));
-  });
+  /* The bug this cost, written down so it cannot come back.
+
+     Custom properties substitute at computed-value time on the element that
+     DECLARES them. A rung declared on :root resolves against :root's --fg-rgb
+     and inherits the result — so `body.light-mode { --fg-rgb: … }`, being a
+     different element, could never change it. Light mode kept the dark ladder,
+     which is cream, which on a light page is invisible. The nav's bag button
+     lost its border and nothing else looked wrong enough to notice.
+
+     The fix is that the ladder and the mode class must sit on the SAME element,
+     so the class wins by specificity and the rungs recompute. */
+  const ladderBlock = base.slice(base.lastIndexOf('body {', base.indexOf('--c06:')), base.indexOf('--c06:'));
+  ok('the ladder is declared on body, the element the mode class is on',
+    /body\s*\{/.test(ladderBlock),
+    'declaring it on :root makes light mode silently keep the dark ladder');
+  ok('…and the semantic aliases sit with it, not a level up',
+    /body\s*\{[\s\S]*?--border:\s*var\(--c10\)/.test(base));
 
   ok('rgb() with a slash, never rgba() with a spliced var',
     !/rgba\(\s*var\(--fg-rgb\)/.test(base),
@@ -126,8 +133,9 @@ console.log('\n  themes are data');
   ok('the higher-specificity page overrides read it too',
     /var\(--zw-nav-bg/.test(fs.readFileSync(R + 'index.html', 'utf8')) &&
     /var\(--zw-nav-bg/.test(fs.readFileSync(R + 'bag.html', 'utf8')));
-  ok('sets the tokens on :root, where the ladder computes',
-    /root\.style\.setProperty\('--fg-rgb'/.test(eng) || /set\('--fg-rgb'/.test(eng));
+  ok('sets its tokens on body, where the ladder computes and the class lives',
+    /document\.body \|\| root/.test(eng) && /el\.style\.setProperty/.test(eng),
+    'setting them on :root loses to body.light-mode and a custom theme gets the built-in colours');
 
   const st = fs.readFileSync(R + 'storefront-theme.js', 'utf8');
   ok('the old applier delegates instead of duplicating',

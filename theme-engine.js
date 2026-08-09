@@ -95,15 +95,18 @@
     var root = document.documentElement;
     var t = theme.tokens || {};
 
-    /* Set on :root specifically, not on body. The alpha ladder is declared at
-       :root, and custom properties compute where they are declared — so the
-       ladder only picks up a new --fg-rgb if the new value is on :root too.
-       base.css also sets --fg-rgb inside body.light-mode, which is what makes
-       the three built-ins work with no JavaScript at all; that declaration is
-       simply inert once the ladder has already computed above it. */
+    /* On body, not :root. The alpha ladder is declared on body so that the
+       body.light-mode class can move it; setting the triplet on :root would
+       lose to that class every time, and a custom theme's colours would be
+       silently replaced by the built-in light ones. An inline style on body
+       outranks the class, so this wins — which is the point.
+
+       The page background is the exception and goes on :root as well, because
+       the area outside body (overscroll, the notch) is painted from there. */
+    var el = document.body || root;
     var set = function (name, value) {
-      if (value) root.style.setProperty(name, value);
-      else root.style.removeProperty(name);
+      if (value) el.style.setProperty(name, value);
+      else el.style.removeProperty(name);
     };
     set('--fg-rgb', t.fg);
     set('--bg-rgb', t.bg);

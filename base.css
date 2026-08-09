@@ -48,15 +48,29 @@
   /* ── Transitions ── */
   --trans: opacity 0.2s;
 
-  /* ── Alpha ladder ───────────────────────────────────────────────────────
-     The foreground colour at seventeen opacities — borders, dividers, muted
-     text, hover washes. Derived from --fg-rgb rather than written out, so
-     changing one triplet recolours every rung and every rule that uses one.
+  --err: #ef4444;
+}
 
-     Space-separated rgb() with a slash, not rgba(): a var() holding a bare
-     triplet cannot be spliced into rgba()'s comma list, and the failure is
-     silent — the declaration is dropped and the colour comes out transparent.
-     Same trap the modal backdrop hit. Supported everywhere since 2020. */
+/* ── Alpha ladder ─────────────────────────────────────────────────────────
+   The foreground colour at seventeen opacities — borders, dividers, muted
+   text, hover washes. Derived from --fg-rgb rather than written out, so
+   changing one triplet recolours every rung and every rule that uses one.
+
+   DECLARED ON body, NOT :root, and that is the whole trick. Custom properties
+   substitute at computed-value time on the element that declares them: a rung
+   declared on :root resolves against :root's --fg-rgb and inherits the RESULT,
+   so `body.light-mode { --fg-rgb: … }` — a different element — could never
+   reach back and change it. Light mode kept the dark ladder, which is cream,
+   which on a light page is invisible. It cost a border nobody could see.
+
+   On body, the mode class and the ladder are on the same element, so the class
+   wins by specificity and the rungs recompute. The theme engine sets its
+   tokens inline on body for the same reason: inline beats the class.
+
+   Space-separated rgb() with a slash, not rgba(): a var() holding a bare
+   triplet cannot be spliced into rgba()'s comma list, and the failure is
+   silent — the declaration is dropped and the colour comes out transparent. */
+body {
   --c06:  rgb(var(--fg-rgb) / 6%);
   --c07:  rgb(var(--fg-rgb) / 7%);
   --c08:  rgb(var(--fg-rgb) / 8%);
@@ -75,11 +89,11 @@
   --c70:  rgb(var(--fg-rgb) / 70%);
   --c80:  rgb(var(--fg-rgb) / 80%);
 
-  /* ── Semantic aliases ── */
+  /* Same rule, same element — these resolve against the ladder above rather
+     than a copy of it baked in one level up. */
   --border:       var(--c10);
   --border-soft:  var(--c08);
   --muted:        var(--c50);
-  --err:          #ef4444;
 }
 
 body {
@@ -119,10 +133,6 @@ body.light-mode {
   --white:  #09090b;
   --ink:    #F0EEE9;
   --paper:  #09090b;
-
-  --border:       var(--c10);
-  --border-soft:  var(--c08);
-  --muted:        var(--c50);
 }
 
 /* ===================== SUPER LIGHT MODE =====================
