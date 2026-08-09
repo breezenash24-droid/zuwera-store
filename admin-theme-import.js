@@ -179,9 +179,9 @@
      encodes "prefer the scheme over the flat setting". */
   var TARGETS = [
     { key: 'bg', label: 'Page background', kind: 'colour',
-      prefer: ['scheme-1.background', 'colors_background_1', 'colors_background_2'] },
+      prefer: ['scheme-1.background', 'colors_background_1', 'background', 'colors_background_2'] },
     { key: 'fg', label: 'Text', kind: 'colour',
-      prefer: ['scheme-1.text', 'colors_text', 'colors_text_body'] },
+      prefer: ['scheme-1.text', 'colors_text', 'text', 'colors_text_body'] },
     { key: 'accent', label: 'Accent', kind: 'colour',
       prefer: ['colors_accent_1', 'scheme-1.secondary_button_label', 'scheme-1.button'] },
     { key: 'surface', label: 'Surface', kind: 'colour',
@@ -196,8 +196,13 @@
       prefer: ['heading_scale', 'body_scale'] },
     { key: 'density', label: 'Section density', kind: 'number',
       prefer: ['spacing_sections', 'spacing_grid_vertical'] },
-    { key: '_fontHead', label: 'Heading font', kind: 'font', prefer: ['type_header_font'] },
-    { key: '_fontBody', label: 'Body font', kind: 'font', prefer: ['type_body_font'] },
+    /* Themes disagree on the heading font's id — Dawn says type_header_font,
+       others say type_heading_font or type_accent_font. Body was matching and
+       heading was not, which is what a one-entry preference list buys you. */
+    { key: '_fontHead', label: 'Heading font', kind: 'font',
+      prefer: ['type_header_font', 'type_heading_font', 'type_accent_font', 'type_display_font'] },
+    { key: '_fontBody', label: 'Body font', kind: 'font',
+      prefer: ['type_body_font', 'type_base_font', 'type_paragraph_font'] },
   ];
 
   function autoAssign(merged, pool) {
@@ -246,17 +251,51 @@
 
   // ── The mapping ──────────────────────────────────────────────────────────
   function build(schema, data, indexTpl, name, icons) {
-    var current = (data && data.current) || {};
-    if (typeof current === 'string') current = {};   // a named preset, not values
+    /* settings_data.json has two shapes and a freshly downloaded theme uses the
+       one that looks empty:
 
-    /* Schema defaults fill the gaps. A freshly downloaded theme that nobody
-       configured has an empty settings_data but a schema full of the designer's
-       intended palette — which is exactly the look someone browsing the theme
-       store is trying to copy. */
+         { "current": { …values… } }                a store that has been edited
+         { "current": "Default",
+           "presets": { "Default": { …values… } } } straight from the download
+
+       In the second, `current` names which preset is live and the values sit in
+       presets[name]. Discarding a string `current` therefore threw away every
+       setting in the file — which is why a real theme imported with almost
+       everything unmapped, while the two settings that happened to have schema
+       defaults came through fine and made it look like the reader worked. */
+    var current = (data && data.current) || {};
+    if (typeof current === 'string') {
+      var presets = (data && data.presets) || {};
+      current = presets[current] || presets[Object.keys(presets)[0]] || {};
+    }
+
+    /* Schema defaults fill the gaps. A theme nobody has configured still has a
+       schema full of the designer's intended palette, which is exactly the look
+       someone copying from the theme store is after. */
     var defaults = {};
     (Array.isArray(schema) ? schema : []).forEach(function (group) {
       (group.settings || []).forEach(function (s) {
-        if (s && s.id && s.default !== undefined) defaults[s.id] = s.default;
+        if (!s || !s.id) return;
+        if (s.default !== undefined) { defaults[s.id] = s.default; return; }
+
+        /* Online Store 2.0 declares colours as a group rather than as flat
+           settings: no `default` on the setting itself, a `definition` array of
+           the roles inside a scheme, and `role` naming which scheme does what.
+           Nothing about it matches the flat shape, so every colour in a modern
+           theme was invisible to a reader looking only for `default`.
+
+           Flattened into the same scheme shape settings_data uses, so one
+           mapping table reads both. */
+        if (s.type === 'color_scheme_group' && Array.isArray(s.definition)) {
+          var scheme = {};
+          s.definition.forEach(function (d) {
+            if (d && d.id && d.default !== undefined) scheme[d.id] = d.default;
+          });
+          if (Object.keys(scheme).length) {
+            defaults[s.id] = defaults[s.id] || {};
+            defaults[s.id]['scheme-1'] = { settings: scheme };
+          }
+        }
       });
     });
     var merged = Object.assign({}, defaults, current);
