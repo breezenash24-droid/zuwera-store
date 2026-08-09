@@ -379,6 +379,28 @@ console.log('\n  the import actually runs');
     } catch (e) { err = e.message; }
     ok('build() completes on a realistic export', !!built, err);
 
+    /* The header was the one part an import never carried: it was read from
+       nothing, so every Shopify theme landed on our arrangement no matter what
+       it actually looked like — the fastest thing to recognise about a
+       storefront and the last thing to come across. Dawn states it in
+       header_layout; the three values below are its whole vocabulary. */
+    const hdrOf = (layout) => {
+      const s = schema.concat([{ name: 'Header', settings: [{ id: 'header_layout', default: layout }] }]);
+      const b = mod.build(s, {}, null, 'Dawn', {});
+      return b && b.preset.keys.theme_modes.modes[0].tokens.header;
+    };
+    for (const [layout, want] of [['middle-left', 'tight'], ['middle-center', 'split'], ['top-center', 'stacked']]) {
+      ok('Dawn’s ' + layout + ' header imports as ' + want, hdrOf(layout) === want,
+        'got ' + JSON.stringify(hdrOf(layout)));
+    }
+    /* A layout name nobody mapped must leave the header alone rather than
+       guess. Shipping a shape the merchant never chose is worse than shipping
+       the one they already had. */
+    ok('an unknown arrangement leaves the header alone', hdrOf('sideways-vertical') === undefined,
+      'got ' + JSON.stringify(hdrOf('sideways-vertical')));
+    ok('…and a theme that says nothing about it keeps ours',
+      built.preset.keys.theme_modes.modes[0].tokens.header === undefined);
+
     if (built) {
       const tm = built.preset.keys.theme_modes;
       ok('the default names a theme that exists', tm.default === tm.modes[0].id);
@@ -564,24 +586,55 @@ console.log('\n  header composition');
   const eng = fs.readFileSync(R + 'theme-engine.js', 'utf8');
   const at = fs.readFileSync(R + 'admin-themes.js', 'utf8');
 
-  /* An attribute, not a custom property: what changes is a grid template and a
-     set of areas — a shape, and CSS cannot switch shapes on a variable. */
-  ok('the theme sets an attribute, because a shape is not a value',
-    /setAttribute\('data-zw-header', t\.header\)/.test(eng));
-  ok('absent means the arrangement the site shipped with',
-    /removeAttribute\('data-zw-header'\)/.test(eng));
+  /* Attributes, not custom properties: what changes is a set of grid/flex
+     placements — a shape, and CSS cannot switch shapes on a variable.
 
-  // Every preset the admin offers must exist in CSS, or it silently does nothing.
-  const inCss = [...nav.matchAll(/data-zw-header="([a-z]+)"/g)].map((m) => m[1]);
-  const offered = [...at.matchAll(/\['([a-z]+)', '(?:Editorial|Centred|Split|Minimal)/g)].map((m) => m[1]);
-  const orphaned = offered.filter((k) => inCss.indexOf(k) === -1);
-  ok('every arrangement the admin offers is one CSS implements', orphaned.length === 0, orphaned.join(', '));
+     Five presets were five hardcoded answers to a question with three
+     independent variables, so they could not express "categories left with a
+     centred logo" or "bag in the middle" — ordinary Shopify arrangements, and
+     the reason an imported header never quite matched. Each part is placed on
+     its own now, and a preset is only a NAME for a combination. */
+  ok('each part of the header is placed on its own',
+    /data-zw-hdr-logo/.test(eng) && /data-zw-hdr-links/.test(eng) && /data-zw-hdr-actions/.test(eng));
+  ok('…and the links can take a row of their own', /data-zw-hdr-linksrow/.test(eng));
+  /* The attributes ARE the state. Overwriting only the ones the incoming theme
+     mentions leaves the previous theme's placement behind — which is exactly
+     how a header keeps serving the old layout after a switch. */
+  ok('switching to an unplaced theme clears every attribute, not some',
+    /attrs\.forEach\(function \(a\) \{ root\.removeAttribute\(a\); \}\)/.test(eng));
+
+  /* The engine expands a preset name and the editor expands it again for the
+     preview. If the two tables disagree the preview shows one header and the
+     storefront renders another, so they are compared rather than trusted. */
+  const tableOf = (src) => {
+    const m = src.match(/HDR_PRESETS = \{([\s\S]*?)\n  \};/);
+    if (!m) return null;
+    return m[1].replace(/\s+/g, ' ').trim();
+  };
+  const engTable = tableOf(eng), atTable = tableOf(at);
+  ok('the engine and the editor expand presets identically',
+    !!engTable && engTable === atTable,
+    'engine: ' + engTable + '  editor: ' + atTable);
+
+  // Every placement the admin offers must exist in CSS, or it silently does nothing.
+  for (const part of ['logo', 'links', 'actions']) {
+    for (const spot of ['left', 'center', 'right']) {
+      ok('CSS implements ' + part + ' → ' + spot,
+        nav.includes('data-zw-hdr-' + part + '="' + spot + '"'));
+    }
+  }
+  ok('…and categories can be hidden into the menu', nav.includes('data-zw-hdr-links="none"'));
 
   /* .nav-center is absolutely positioned by default so the mega-menu can span
-     the viewport. Left absolute inside a grid it leaves the flow, and the
-     second row of a stacked header collapses to nothing. */
-  ok('the links are returned to the flow where a preset needs a real row',
-    /html\[data-zw-header="stacked"\][^{]*\.nav-center \{[\s\S]{0,200}position: static/.test(nav));
+     the viewport. `order` does nothing to an out-of-flow box, so any placement
+     that puts the links in the row has to return them to the flow first. */
+  for (const spot of ['left', 'right']) {
+    ok('links placed ' + spot + ' rejoin the flow, or order does nothing',
+      new RegExp('data-zw-hdr-links="' + spot + '"[^{]*\{[^}]*position: static').test(nav));
+  }
+  ok('…and a row of their own is a wrap, not a second grid',
+    /data-zw-hdr-linksrow="2"[^{]*\{ flex-wrap: wrap; \}/.test(nav) &&
+    /data-zw-hdr-linksrow="2"[^{]*\.nav-center \{[\s\S]{0,160}flex: 0 0 100%/.test(nav));
 
   /* Every part of the header must be addressed by every spelling it has. The
      presets originally named `.nav` and `.nav-logo` only, so on the product
@@ -590,30 +643,38 @@ console.log('\n  header composition');
      came apart. Each dialect is asserted by name so a page cannot be left out
      again, and `:first-child` catches a sixth dialect nobody has written yet. */
   for (const dialect of ['#nav', '.zw-nav', '.nav-logo-link', '.zw-nav-logo', '.nav-actions', '.zw-nav-right', ':first-child']) {
-    ok('the presets address ' + dialect + ', which real pages use',
+    ok('the placements address ' + dialect + ', which real pages use',
       nav.includes(dialect),
-      'a preset that names markup no page has silently scatters that page');
+      'a rule that names markup no page has silently scatters that page');
   }
 
   /* A centred two-row header on a phone spends a third of the viewport on
-     chrome, and the mobile menu already owns the links there. */
-  ok('every preset collapses on phones', /@media \(max-width: 900px\)[\s\S]{0,400}html\[data-zw-header\][^{]*\{[\s\S]{0,80}display: flex/.test(nav));
-  ok('…and the desktop arrangements are behind a min-width, not applied everywhere',
-    /@media \(min-width: 901px\)[\s\S]{0,400}data-zw-header="stacked"/.test(nav));
+     chrome, and the mobile menu already owns the links there. Undoing this
+     means undoing `order`, the auto margins AND the wrap — not just display. */
+  ok('every placement collapses on phones',
+    /@media \(max-width: 900px\)[\s\S]{0,600}html\[data-zw-hdr\][^{]*\{[\s\S]{0,120}flex-wrap: nowrap/.test(nav));
+  ok('…including the order and margins, or the parts stay rearranged',
+    /@media \(max-width: 900px\)[\s\S]{0,900}order: 0;[^}]*margin-left: 0/.test(nav));
+  ok('…and the desktop placements are behind a min-width, not applied everywhere',
+    /@media \(min-width: 901px\)[\s\S]{0,900}data-zw-hdr-logo="left"/.test(nav));
 
-  /* Minimal hides the links; it must not strand them, or those pages become
-     unreachable on desktop. */
-  /* This used to require `.zw-mobile-menu-btn`, a class that exists nowhere in
-     this repo — so the assertion passed while 'minimal' hid the nav links and
-     revealed no way back to them. `.hamburger-btn` is the real one, and the
-     test now checks the class is actually in the markup rather than trusting
-     the stylesheet to name something real. */
-  ok('minimal moves the links to the menu rather than deleting them',
-    /minimal"\] \.nav-center \{ display: none/.test(nav) &&
-    /minimal"\] \.hamburger-btn/.test(nav));
+  /* Hiding the links must not strand them, or those pages become unreachable
+     on desktop. This used to require `.zw-mobile-menu-btn`, a class that exists
+     nowhere in this repo — so it passed while the links were hidden and nothing
+     was revealed. `.hamburger-btn` is the real one, checked against the markup
+     rather than trusting the stylesheet to name something real. */
+  ok('hiding the categories moves them to the menu rather than deleting them',
+    /data-zw-hdr-links="none"[^{]*\.nav-center \{ display: none/.test(nav) &&
+    /data-zw-hdr-links="none"[^{]*\.hamburger-btn/.test(nav));
   ok('…and the button it reveals is one the pages actually have',
     fs.readdirSync(R).filter((f) => f.endsWith('.html'))
       .some((f) => fs.readFileSync(R + f, 'utf8').includes('class="hamburger-btn"')));
+
+  ok('the editor can move a single part without losing the others',
+    /themeSetHeaderPart/.test(at) && /headerSpec\(m\.tokens\.header\)/.test(at));
+  ok('…and stores it back as a preset name when it still matches one',
+    /matchPreset\(spec\)/.test(at),
+    'otherwise a theme saved as "stacked" silently becomes four coordinates');
 
   ok('the editor offers it as a named look, not a mechanism',
     /HEADERS/.test(at) && /themeSetHeader/.test(at) && /logo left, links centred/.test(at));

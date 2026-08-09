@@ -118,6 +118,50 @@
      are written against, and the token overrides that repaint them. Order does
      not matter to CSS but it does to a reader — the class decides the shape,
      the tokens decide the colour. */
+  /* ── Header composition ──────────────────────────────────────────────────
+     `header` is either a preset NAME or an object placing each part itself.
+     Both end up as the same four attributes, because a preset is only a name
+     for a combination — keeping them as two mechanisms is how they drift apart
+     and start disagreeing.
+
+     The five presets are the arrangements the site shipped with, so a theme
+     saved before placements existed keeps working untouched. */
+  var HDR_PRESETS = {
+    inline:  { logo: 'left',   links: 'center', actions: 'right', linksRow: 1 },
+    tight:   { logo: 'left',   links: 'left',   actions: 'right', linksRow: 1 },
+    stacked: { logo: 'center', links: 'center', actions: 'right', linksRow: 2 },
+    split:   { logo: 'center', links: 'left',   actions: 'right', linksRow: 1 },
+    minimal: { logo: 'left',   links: 'none',   actions: 'right', linksRow: 1 },
+  };
+  var HDR_SPOTS = { left: 1, center: 1, right: 1 };
+
+  function applyHeader(root, header) {
+    var attrs = ['data-zw-hdr', 'data-zw-hdr-logo', 'data-zw-hdr-links',
+                 'data-zw-hdr-actions', 'data-zw-hdr-linksrow'];
+    /* Nothing set means the arrangement the page shipped with, and clearing
+       every attribute is what expresses that. Leaving a stale one behind is
+       precisely how a header keeps the previous theme's layout after a switch —
+       the attributes ARE the state, so they have to be removed, not just
+       overwritten with the ones the new theme happens to mention. */
+    if (!header) { attrs.forEach(function (a) { root.removeAttribute(a); }); return; }
+
+    var spec = typeof header === 'string' ? HDR_PRESETS[header] : header;
+    if (!spec || typeof spec !== 'object') {
+      attrs.forEach(function (a) { root.removeAttribute(a); });
+      return;
+    }
+    // Unknown values are dropped rather than written through: an attribute the
+    // stylesheet has no rule for reads as "placed" and suppresses the default.
+    var logo    = HDR_SPOTS[spec.logo] ? spec.logo : 'left';
+    var links   = (HDR_SPOTS[spec.links] || spec.links === 'none') ? spec.links : 'center';
+    var actions = HDR_SPOTS[spec.actions] ? spec.actions : 'right';
+    root.setAttribute('data-zw-hdr', '1');
+    root.setAttribute('data-zw-hdr-logo', logo);
+    root.setAttribute('data-zw-hdr-links', links);
+    root.setAttribute('data-zw-hdr-actions', actions);
+    root.setAttribute('data-zw-hdr-linksrow', String(spec.linksRow) === '2' ? '2' : '1');
+  }
+
   function apply(theme) {
     if (!theme || !document.documentElement) return;
     var root = document.documentElement;
@@ -193,8 +237,7 @@
        value, and CSS cannot switch shapes on a variable. Absent means the
        arrangement the site shipped with, so a theme that says nothing here
        leaves the header exactly as it was. */
-    if (t.header) root.setAttribute('data-zw-header', t.header);
-    else root.removeAttribute('data-zw-header');
+    applyHeader(root, t.header);
     // --black and --white are the page background and text in the original
     // naming. Kept in step with the triplets so the many rules still using them
     // agree with the ones using the ladder.

@@ -78,14 +78,14 @@ html.zw-authed #account-btn{display:inline-flex!important}
        refresh the heading font is ready on first paint and never swaps from a
        fallback. The preconnect + preload above keep the cold-cache cost small. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-  <link rel="stylesheet" href="base.css?v=0db3d715">
-  <link rel="stylesheet" href="/motion.css">
-  <link rel="stylesheet" href="nav.css?v=ebdd5ccc">
-  <link rel="stylesheet" href="cart.css?v=38b9bf99">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=531497a1">
-<script src="preview-mode.js?v=1" defer></script>
+  <link rel="stylesheet" href="base.css?v=49ea383f">
+  <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
+  <link rel="stylesheet" href="nav.css?v=b19bedb3">
+  <link rel="stylesheet" href="cart.css?v=19740276">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=1a3fcd79">
+<script src="preview-mode.js?v=8e7152ff" defer></script>
 <script src="header-scroll.js?v=fe320725" defer></script>
-  <link rel="stylesheet" href="quick-add-modal.css?v=78c93bae">
+  <link rel="stylesheet" href="quick-add-modal.css?v=d096a535">
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=5dc05f38" defer></script>
   <script src="/meta-pixel.js?v=bc559c9f" defer></script>
@@ -94,7 +94,7 @@ html.zw-authed #account-btn{display:inline-flex!important}
   <script src="/supabase-client.js?v=0bf64814" defer></script>
   <script src="/stripe-client-config.js?v=6cbbcea0" defer></script>
   <script src="/checkout-tax.js?v=1a72de55" defer></script>
-  <script src="/express-wallet.js" defer></script>
+  <script src="/express-wallet.js?v=f4a00ee5" defer></script>
   <!-- Stripe loaded on first checkout click, not on initial page load -->
   <script>
   window._stripeLoaded = false;
@@ -354,7 +354,7 @@ html.zw-authed #account-btn{display:inline-flex!important}
     body.light-mode #zw-promo-apply:hover { border-color:rgba(9,9,11,.5); }
     body.light-mode #zw-promo-message { color:rgba(9,9,11,.48); }
 </style>
-  <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=96cd25d7">
+  <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=9f2b0c2a">
   <script src="mobile-menu.js?v=f7defb81" defer></script>
 <script>try{var _t=localStorage.getItem('zw_theme_mode')||'super-light';document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
 <script src="/posthog-init.js?v=653a267b" defer></script>
@@ -1290,8 +1290,8 @@ window.__zwOpenAuth = function(tab) {
 </script>
 
 <script src="image-utils.js?v=3fee4aec"></script>
-<script src="pdp-gallery.js?v=64cc593d" defer></script>
-<script src="quick-add-modal.js?v=c9ac0c00" defer></script>
+<script src="pdp-gallery.js?v=1e454262" defer></script>
+<script src="quick-add-modal.js?v=48689098" defer></script>
 <script src="auth.js?v=0358208d" defer></script>
 <script>
 /* ── Saved items visibility + member pricing: flip as soon as auth state is known ── */
@@ -1432,23 +1432,23 @@ window.__zwOpenAuth = function(tab) {
   });
 })();
 </script>
-<script src="checkout.js?v=c3f61588"></script>
+<script src="checkout.js?v=92f0450d"></script>
 <script src="commerce-checkout.js?v=02c4d509"></script>
-<script src="modal-lock.js?v=088ff918"></script>
-<script src="/theme-engine.js" defer></script>
-<script src="/motion.js" defer></script>
-<script src="/icon-sets.js" defer></script>
-<script src="storefront-theme.js?v=214be857" defer></script>
+<script src="modal-lock.js?v=fb1f304f"></script>
+<script src="/theme-engine.js?v=db88d5af" defer></script>
+<script src="/motion.js?v=5b9cc123" defer></script>
+<script src="/icon-sets.js?v=7895783f" defer></script>
+<script src="storefront-theme.js?v=a161c94e" defer></script>
 <script src="lang.js?v=f4b70f65" defer></script>
 <!-- zw-login.js claims window.openAuthModal/__zwOpenAuth itself (it loads after
      auth.js, both deferred), so the inline reroute that used to sit here is gone.
      One login entry point, defined in one place — see zw-login.js. -->
 <script src="zw-login.js?v=5a23b163" defer></script>
 <script src="/nav-menu.js?v=5c1c1e4d" defer></script>
-<script src="fit-finder.js?v=1" defer></script>
-<script src="/storefront-features.js?v=51a446cd" defer></script>
-<script src="announcement-bar.js?v=d2bbbb66" defer></script>
-<script src="email-popup.js?v=1" defer></script>
+<script src="fit-finder.js?v=f5cdcd6f" defer></script>
+<script src="/storefront-features.js?v=86803ae9" defer></script>
+<script src="announcement-bar.js?v=e68d2fc7" defer></script>
+<script src="email-popup.js?v=d316db75" defer></script>
 <script src="integrations.js?v=7f9fbde2" defer></script>
 </body>
 </html>
