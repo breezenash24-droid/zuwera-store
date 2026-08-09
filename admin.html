@@ -523,6 +523,25 @@
                         </div>
                     </div>
 
+                    <!-- Database migrations ──────────────────────────────────
+                         A button next to the thing it affects, because the
+                         failure being designed against is "nobody ran it". -->
+                    <div style="margin-top:28px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px;">
+                            <div style="font-weight:700;">🧱 Database migrations</div>
+                            <div style="display:flex;gap:8px;">
+                                <button class="btn btn-secondary btn-sm" onclick="loadMigrations()">↻ Check</button>
+                                <button class="btn btn-primary btn-sm" id="migrateApplyBtn" onclick="applyMigrations()" style="display:none;">Apply pending</button>
+                            </div>
+                        </div>
+                        <div style="font-size:.85rem;color:var(--text-secondary);line-height:1.7;margin-bottom:14px;">
+                            Schema changes ship as numbered files in <code style="background:var(--border);padding:1px 5px;border-radius:4px;">migrations/</code> and are applied here, in order, once each. This exists because the live database had drifted from every SQL file in the repo &mdash; two features were configured and silently doing nothing for weeks. Applying is safe to repeat: anything already applied is skipped.
+                        </div>
+                        <div id="migrationsPanel" style="font-size:.85rem;">
+                            <span style="color:var(--text-secondary);">Press &ldquo;Check&rdquo;.</span>
+                        </div>
+                    </div>
+
                     <!-- Product Feed (Google Merchant / Meta Shopping) -->
                     <div style="margin-top:28px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
                         <div style="font-weight:700;margin-bottom:10px;">🛍️ Product Feed — Google &amp; Instagram Shopping</div>
