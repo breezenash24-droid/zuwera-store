@@ -149,6 +149,12 @@
        wants a header in a different colour from its page sets them. */
     set('--zw-nav-bg', t.navBg);
     set('--zw-nav-fg', t.navFg);
+    /* The announcement bar, on the same terms as the header. It was #09090b in
+       announcement-bar.js on every page, with the homepage alone overriding it
+       from builder_theme — so the one strip that appears above everything was
+       the least themeable thing on the site. */
+    set('--zw-bar-bg', t.barBg);
+    set('--zw-bar-fg', t.barFg);
 
     /* Shape, scale and density — the three dimensions that separate one
        storefront theme from another once the colours match. A theme that only
@@ -181,6 +187,14 @@
     var motion = parseFloat(t.motion);
     if (isFinite(motion) && motion >= 0) root.style.setProperty('--zw-motion', String(motion));
     set('--zw-ease', t.ease);
+
+    /* Header composition. An attribute rather than a custom property, because
+       what changes is a grid template and a set of grid areas — a shape, not a
+       value, and CSS cannot switch shapes on a variable. Absent means the
+       arrangement the site shipped with, so a theme that says nothing here
+       leaves the header exactly as it was. */
+    if (t.header) root.setAttribute('data-zw-header', t.header);
+    else root.removeAttribute('data-zw-header');
     // --black and --white are the page background and text in the original
     // naming. Kept in step with the triplets so the many rules still using them
     // agree with the ones using the ladder.

@@ -43,7 +43,11 @@
     var st = document.createElement('style');
     st.id = 'zw-announce-css';
     st.textContent =
-      '#bar{background:#09090b;color:#F0EEE9;border-bottom:1px solid var(--c10);' +
+      /* The bar follows the theme now, with its old literals as the
+         fallbacks — so a theme that says nothing leaves it exactly as it
+         was, and the builder's per-store override still wins over both
+         because storefront.js applies that inline. */
+      '#bar{background:var(--zw-bar-bg,#09090b);color:var(--zw-bar-fg,#F0EEE9);border-bottom:1px solid var(--c10);' +
       'padding:.45rem 2rem;display:flex;align-items:center;justify-content:center;gap:1.5rem;' +
       "font-family:var(--fm,var(--fb,'Barlow Condensed',sans-serif));font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;" +
       'position:fixed;top:0;left:0;right:0;z-index:230;transition:transform .3s cubic-bezier(.32,.72,0,1),opacity .2s ease;will-change:transform}' +

@@ -43,6 +43,8 @@
     { key: 'err', label: 'Error', kind: 'hex', help: 'Failed payments, validation, anything gone wrong.' },
     { key: 'navBg', label: 'Header background', kind: 'hex', optional: true, help: 'Leave off and the header matches the page. Set it to give the site a header in a different colour from the page below it — a black bar over a light page, say.' },
     { key: 'navFg', label: 'Header text', kind: 'hex', optional: true, help: 'Only needed when the header has its own background.' },
+    { key: 'barBg', label: 'Announcement bar', kind: 'hex', optional: true, help: 'The strip above the header. Off and it follows the page; on and it can be the loud band that carries a promotion.' },
+    { key: 'barFg', label: 'Announcement bar text', kind: 'hex', optional: true, help: 'Only needed when the bar has its own background.' },
   ];
 
   /* Not colours, but part of the theme all the same. These are the dimensions
@@ -61,6 +63,18 @@
     { key: 'motion', label: 'Motion', min: 0, max: 1.8, step: 0.1, def: 1,
       help: 'How much the site moves — hovers, reveals, drifts. 0 turns movement off entirely. A visitor whose system asks for reduced motion gets none regardless of this.',
       fmt: function (v) { return v === 0 ? 'None' : v < 0.8 ? 'Restrained' : v > 1.3 ? 'Languid' : 'Standard'; } },
+  ];
+
+  /* Header arrangements. Named for the look, not the mechanism — nobody picks
+     "grid-template-areas" — and each says what it is good for, because the
+     difference between them is a judgement about the shop rather than a
+     setting with a right answer. */
+  var HEADERS = [
+    ['', 'Standard — logo left, links centred, icons right'],
+    ['tight', 'Editorial — links run on from the logo, left-aligned'],
+    ['stacked', 'Centred — logo on its own row, links beneath'],
+    ['split', 'Split — links either side of a centred logo'],
+    ['minimal', 'Minimal — logo and icons only, links in the menu'],
   ];
 
   /* The curve carries more personality than the durations do. A spring reads
@@ -206,6 +220,22 @@
         }).join('') +
       '</select></div>';
 
+    var curHeader = m.tokens.header || '';
+    shape += '<div style="margin-bottom:6px;">' +
+      '<label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-primary);margin-bottom:3px;">Header layout</label>' +
+      '<div style="font-size:.73rem;color:var(--text-secondary);line-height:1.5;margin-bottom:6px;">' +
+        'How the logo, links and icons sit in the bar. This is what separates two storefronts fastest — faster than colour. On phones every option falls back to the standard header, because a centred two-row bar spends a third of a small screen on chrome.' +
+      '</div>' +
+      '<select onchange="themeSetHeader(' + i + ',this.value)" style="width:100%;padding:7px 9px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.78rem;">' +
+        HEADERS.map(function (h) {
+          return '<option value="' + esc(h[0]) + '"' + (curHeader === h[0] ? ' selected' : '') + '>' + esc(h[1]) + '</option>';
+        }).join('') +
+      '</select>' +
+      (curHeader === 'split'
+        ? '<div style="font-size:.72rem;color:var(--text-secondary);margin-top:6px;line-height:1.5;">Split reads best with an even number of nav links, so they balance either side of the logo.</div>'
+        : '') +
+      '</div>';
+
     var isBuiltin = BUILTIN_IDS.indexOf(m.id) !== -1;
     return '<div style="border-top:1px solid var(--border);margin-top:14px;padding-top:16px;">' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:18px;">' +
@@ -338,7 +368,7 @@
   window.themeToggleOptional = function (i, key, on) {
     var m = state.modes[i];
     if (!m) return;
-    if (on) m.tokens[key] = key === 'navFg' ? '#f4f1eb' : '#09090b';
+    if (on) m.tokens[key] = (key === 'navFg' || key === 'barFg') ? '#f4f1eb' : '#09090b';
     else delete m.tokens[key];
     render();
     visPaint();
@@ -361,6 +391,16 @@
     var m = state.modes[i];
     if (!m) return;
     m.tokens.ease = v;
+    visPaint();
+  };
+
+  window.themeSetHeader = function (i, v) {
+    var m = state.modes[i];
+    if (!m) return;
+    // Absent, not empty-string: the engine removes the attribute when there is
+    // no value, and an empty string is a value that matches no preset.
+    if (v) m.tokens.header = v; else delete m.tokens.header;
+    render();
     visPaint();
   };
 
