@@ -305,6 +305,47 @@ console.log('\n  the import actually runs');
        nothing else in common — green reads far lighter than grey. */
     ok('the base is judged by luminance', mod.baseFor('0 255 0') === 'light' && mod.baseFor('9 9 11') === 'dark');
     ok('a missing background does not throw', mod.baseFor('') === 'light' && mod.baseFor(undefined) === 'light');
+
+    /* Two shapes a real export uses that the first reader could not see. Both
+       were found by importing an actual theme and watching nine of eleven rows
+       come back "Not mapped" — neither is exotic, and both are what the
+       download button produces rather than what an edited store does. */
+    const OS2 = [
+      { name: 'theme_info', theme_name: 'Modern' },
+      { name: 'Colors', settings: [{ type: 'color_scheme_group', id: 'color_schemes', definition: [
+        { type: 'color', id: 'background', default: '#FFFFFF' }, { type: 'color', id: 'text', default: '#121212' },
+        { type: 'color', id: 'button', default: '#121212' }, { type: 'color', id: 'button_label', default: '#FFFFFF' }] }] },
+      { name: 'Type', settings: [
+        { type: 'font_picker', id: 'type_heading_font', default: 'geist_n7' },
+        { type: 'font_picker', id: 'type_body_font', default: 'geist_n4' }] },
+      { name: 'Layout', settings: [{ type: 'range', id: 'card_corner_radius', default: 2 }] },
+    ];
+
+    /* settings_data straight from the download names its live preset and puts
+       the values in presets[name]. Treating a string `current` as "no values"
+       threw away the entire file — which is exactly what a real import did. */
+    const named = { current: 'Default', presets: { Default: {
+      color_schemes: { 'scheme-1': { settings: { background: '#0F0F0F', text: '#F5F5F5', button: '#E4572E', button_label: '#FFFFFF' } } },
+      type_heading_font: 'geist_n7', type_body_font: 'geist_n4', card_corner_radius: 2 } } };
+    const fromPreset = mod.build(OS2, named, null, 'Modern', {});
+    const pt = fromPreset.preset.keys.theme_modes.modes[0].tokens;
+    ok('a preset-named settings_data is read, not discarded',
+      pt.bg === '15 15 15' && pt.fg === '245 245 245', JSON.stringify(pt));
+    ok('…and the theme it produces takes its base from those values',
+      fromPreset.preset.keys.theme_modes.modes[0].base === 'dark');
+    ok('a real export maps most of its rows, not two of them',
+      fromPreset.report.got.length >= 8, fromPreset.report.got.length + ' of 11');
+
+    /* Online Store 2.0 declares colours as a group with a `definition` array
+       and no `default` on the setting itself. A reader looking only for
+       `default` sees no colours at all in a modern theme. */
+    const unconfigured = mod.build(OS2, { current: 'Default', presets: { Default: {} } }, null, 'Modern', {});
+    const ut = unconfigured.preset.keys.theme_modes.modes[0].tokens;
+    ok('a colour_scheme_group in the schema is flattened and read',
+      ut.bg === '255 255 255' && ut.fg === '18 18 18', JSON.stringify(ut));
+
+    ok('the heading font is found under whichever id the theme uses',
+      fromPreset.report.fonts.head === 'Geist' && unconfigured.report.fonts.head === 'Geist');
   }
 
   /* The old heuristics encoded a second, contradictory answer to "which setting
