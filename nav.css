@@ -411,3 +411,47 @@ html[data-zw-iconlabels] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn
   white-space: nowrap;
   line-height: 1;
 }
+
+/* ── Which controls appear, and in what order ──────────────────────────────
+   `order` is driven by a custom property, which `display` could not be — and
+   that difference decides the whole shape of this. A property means ONE rule
+   per control instead of a rule per control per position, and it keeps working
+   for controls that appear late: the search button is injected by a feature
+   flag and the account button by auth, both after the theme has applied. A
+   JS pass that set order directly would have to be re-run on each of those;
+   a custom property inherited from <html> is simply already correct.
+
+   The two button systems have different control sets, and the smaller one is
+   NOT a subset by name:
+
+     bag      #cart-btn / .desktop-bag-btn   .zw-hdr-bag
+     login    #login-btn                     #hdr-login
+     account  #account-btn                   (does not exist)
+     logout   #logout-btn                    (does not exist)
+     shop     #desktop-shop-btn              (does not exist)
+     search   .zwf-search-btn                same (injected by the flag)
+     menu     .hamburger-btn                 same
+
+   Only spellings confirmed present in the markup are listed. Naming a control
+   the second system does not have would be the same mistake as `.nav-logo`.
+
+   Ordering is relative to siblings, and in the second system the controls sit
+   inside .zw-hdr-group rather than directly in the bar — so they reorder among
+   themselves there, which is the whole set that system has. */
+:is(#nav, .nav, .zw-nav) .zwf-search-btn                  { order: var(--zw-ord-search, 0); }
+:is(#nav, .nav, .zw-nav) :is(#account-btn)                { order: var(--zw-ord-account, 0); }
+:is(#nav, .nav, .zw-nav) :is(#login-btn, #hdr-login)      { order: var(--zw-ord-login, 0); }
+:is(#nav, .nav, .zw-nav) :is(#logout-btn)                 { order: var(--zw-ord-logout, 0); }
+:is(#nav, .nav, .zw-nav) :is(#desktop-shop-btn)           { order: var(--zw-ord-shop, 0); }
+:is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag)      { order: var(--zw-ord-bag, 0); }
+:is(#nav, .nav, .zw-nav) .hamburger-btn                   { order: var(--zw-ord-menu, 0); }
+
+/* Hiding is one attribute holding a space-separated list, matched with ~=, so
+   six controls need six rules rather than sixty-four combinations.
+   !important because several of these carry an inline display from the
+   first-paint auth script, which would otherwise win. */
+html[data-zw-hide~="search"]  :is(#nav, .nav, .zw-nav) .zwf-search-btn             { display: none !important; }
+html[data-zw-hide~="account"] :is(#nav, .nav, .zw-nav) #account-btn                { display: none !important; }
+html[data-zw-hide~="login"]   :is(#nav, .nav, .zw-nav) :is(#login-btn, #hdr-login) { display: none !important; }
+html[data-zw-hide~="shop"]    :is(#nav, .nav, .zw-nav) #desktop-shop-btn           { display: none !important; }
+html[data-zw-hide~="bag"]     :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag) { display: none !important; }

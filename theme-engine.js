@@ -135,6 +135,31 @@
   };
   var HDR_SPOTS = { left: 1, center: 1, right: 1 };
 
+  /* The header controls, by role rather than by element — the two button
+     systems spell the same role differently and the stylesheet owns that
+     mapping, so nothing here needs to know about .nbtn or .zw-hdr-action. */
+  var ICON_KEYS = ['search', 'account', 'login', 'logout', 'shop', 'bag', 'menu'];
+
+  function applyIcons(root, icons) {
+    var spec = (icons && typeof icons === 'object') ? icons : {};
+    var order = (spec.order && typeof spec.order === 'object') ? spec.order : {};
+    ICON_KEYS.forEach(function (k) {
+      var v = parseInt(order[k], 10);
+      // Absent, not 0: every control defaults to order 0 in the stylesheet, so
+      // removing the property restores DOM order rather than pinning it first.
+      if (isFinite(v)) root.style.setProperty('--zw-ord-' + k, String(v));
+      else root.style.removeProperty('--zw-ord-' + k);
+    });
+    /* 'menu' is deliberately not hideable. On a phone the hamburger is the only
+       route to the categories, and a theme that hid it would strand every
+       collection page behind a control that is no longer there. */
+    var hidden = (Array.isArray(spec.hidden) ? spec.hidden : []).filter(function (k) {
+      return ICON_KEYS.indexOf(k) !== -1 && k !== 'menu';
+    });
+    if (hidden.length) root.setAttribute('data-zw-hide', hidden.join(' '));
+    else root.removeAttribute('data-zw-hide');
+  }
+
   function applyHeader(root, header) {
     var attrs = ['data-zw-hdr', 'data-zw-hdr-logo', 'data-zw-hdr-links',
                  'data-zw-hdr-actions', 'data-zw-hdr-linksrow'];
@@ -238,6 +263,7 @@
        arrangement the site shipped with, so a theme that says nothing here
        leaves the header exactly as it was. */
     applyHeader(root, t.header);
+    applyIcons(root, t.icons);
 
     /* Icons as words. 'mobile' and 'always' are scopes the stylesheet knows;
        anything else — including the absent case — means icons, and the

@@ -241,6 +241,26 @@ console.log('\n  themes are data');
   ok('a new section is born following the theme, not holding a literal',
     /sec_bg:'token:ink',text_color:'token:paper'/.test(bl) &&
     !/sec_bg:'#[0-9a-fA-F]{6}'/.test(bl));
+
+  /* One button per builder page, because the read-time rescue only catches
+     literals that exactly match a built-in — a page built with any other colour
+     stayed pinned, and fixing it meant opening every section. This converts by
+     INTENT: a dark band becomes the inverted pair, a light one becomes the
+     page, so the look survives and now moves with the theme. */
+  ok('every builder page can be made to follow the theme in one action',
+    /zwFollowTheme/.test(bl) && /Make this page follow the theme/.test(bl));
+  /* The pairing is the point. token:ink is dark on a dark theme and LIGHT on a
+     light one, so converting a band while its text stayed a literal reads fine
+     today and loses its words the first time the theme changes. */
+  ok('…converting a band always converts its text with it',
+    /if\(dark\)g\.text_color='token:paper';/.test(bl),
+    'a converted band beside a literal is the disappearing-words bug');
+  ok('…and it is undoable, since it rewrites a whole page at once',
+    /curPushUndo\(\);\s*\n\s*let n=0;/.test(bl));
+  /* A gradient or an image has no luminance to read, and a colour_block exists
+     to hold a colour someone picked. Neither should be quietly overwritten. */
+  ok('…while anything without a readable colour is left alone',
+    /if\(lum===null\)return;/.test(bl) && /bg_color:'#1f2937'/.test(bl));
 }
 
 console.log('\n  one theme system, two screens');
@@ -700,6 +720,46 @@ console.log('\n  header composition');
   ok('…and the button it reveals is one the pages actually have',
     fs.readdirSync(R).filter((f) => f.endsWith('.html'))
       .some((f) => fs.readFileSync(R + f, 'utf8').includes('class="hamburger-btn"')));
+
+  /* Per-control ordering and visibility.
+
+     `order` is a custom property, which `display` could not be, and that is
+     what keeps this to one rule per control instead of one per position — and
+     what makes it survive controls that appear LATE. The search button is
+     injected by a feature flag and the account button by auth, both after the
+     theme applies; a JS pass setting order directly would have to re-run on
+     each, while an inherited property is already correct. */
+  ok('order is a property, so late-injected controls are already correct',
+    /order: var\(--zw-ord-search, 0\)/.test(nav) && /order: var\(--zw-ord-bag, 0\)/.test(nav));
+  /* The two button systems are NOT the same set by name, and only spellings
+     confirmed present in the markup may be named — the `.nav-logo` mistake. */
+  for (const [role, sel] of [['bag', '.zw-hdr-bag'], ['login', '#hdr-login'], ['bag', '#cart-btn'],
+                             ['account', '#account-btn'], ['search', '.zwf-search-btn']])
+    ok('the ' + role + ' control is addressed as ' + sel, nav.includes(sel));
+  const navHtml = fs.readdirSync(R).filter((f) => f.endsWith('.html'))
+    .map((f) => fs.readFileSync(R + f, 'utf8')).join('\n');
+  for (const sel of ['zw-hdr-bag', 'hdr-login', 'cart-btn', 'account-btn'])
+    ok('…and ' + sel + ' is markup that actually exists', navHtml.includes(sel),
+      'naming a control no page has is how the header came apart before');
+  ok('hiding is one attribute with ~=, not a rule per combination',
+    /html\[data-zw-hide~="bag"\]/.test(nav) && /html\[data-zw-hide~="search"\]/.test(nav));
+  /* On a phone the hamburger is the only route to the categories. A theme that
+     hid it would strand every collection page behind a control that is gone. */
+  ok('the menu button cannot be hidden, or the drawer becomes unreachable',
+    !/data-zw-hide~="menu"/.test(nav) && /k !== 'menu'/.test(eng));
+  ok('an unset order restores DOM order rather than pinning everything to 0',
+    /root\.style\.removeProperty\('--zw-ord-' \+ k\)/.test(eng));
+  ok('the editor offers every control the engine knows',
+    /themeSetIcon/.test(at) &&
+    ['search', 'account', 'login', 'logout', 'shop', 'bag', 'menu']
+      .every((k) => new RegExp("\\['" + k + "', '").test(at)));
+  ok('…and menu is offered without a hide box',
+    /k === 'menu' \? '<span/.test(at),
+    'a hideable menu button strands the categories on a phone');
+  /* An icons object left behind empty would ride along in every export and
+     read as a setting nobody chose. */
+  ok('…and the setting prunes itself back to absent when nothing is set',
+    /if \(Object\.keys\(next\)\.length\) m\.tokens\.icons = next; else delete m\.tokens\.icons;/.test(at));
 
   /* Icons as words. Driven off aria-label — which every one of these controls
      already carries — so it needs no markup change and cannot miss a nav
