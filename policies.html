@@ -88,8 +88,8 @@
       --fw:var(--zw-font-head, var(--font-head));
       --fb:var(--zw-font-body, var(--font-body));
       --fm:var(--zw-font-mono, var(--font-mono));
-      --muted: rgba(244,241,235,0.5);
-      --border: rgba(244,241,235,0.1);
+      --muted: var(--c50);
+      --border: var(--c10);
     }
 
     body {
@@ -172,7 +172,7 @@
       text-align: center;
     }
     .mobile-nav-link {
-      color: rgba(244,241,235,.78);
+      color: rgb(var(--fg-rgb) / 78%);
       font-family:var(--font-body);
       font-size: 1.05rem;
       letter-spacing: .18em;
@@ -202,7 +202,7 @@
 
     /* Help card pinned in the rail */
     .rail-help {
-      border: 1px solid var(--border); background: rgba(244,241,235,0.02);
+      border: 1px solid var(--border); background: rgb(var(--fg-rgb) / 2%);
       padding: 1.2rem 1.25rem; display: flex; flex-direction: column; gap: .4rem;
     }
     body.light-mode .rail-help { background: rgba(9,9,11,0.02); }
@@ -258,12 +258,12 @@
       border-left: 2px solid transparent;
       transition: color 0.2s, border-color 0.2s, background 0.2s;
     }
-    .tab-btn:hover { color: var(--white); background: rgba(244,241,235,0.03); }
+    .tab-btn:hover { color: var(--white); background: rgb(var(--fg-rgb) / 3%); }
     body.light-mode .tab-btn:hover { background: rgba(9,9,11,0.03); }
     .tab-btn.active {
       color: var(--white);
       border-left-color: var(--white);
-      background: rgba(244,241,235,0.04);
+      background: rgb(var(--fg-rgb) / 4%);
     }
     body.light-mode .tab-btn.active { background: rgba(9,9,11,0.04); }
 
@@ -290,7 +290,7 @@
     .policy-section p {
       font-size: 0.92rem;
       line-height: 1.85;
-      color: rgba(244,241,235,0.65);
+      color: var(--c65);
       margin-bottom: 0.9rem;
     }
     .policy-section p:last-child { margin-bottom: 0; }
@@ -303,7 +303,7 @@
     .policy-section ul li {
       font-size: 0.92rem;
       line-height: 1.85;
-      color: rgba(244,241,235,0.65);
+      color: var(--c65);
       padding-left: 1.2rem;
       position: relative;
       margin-bottom: 0.3rem;
@@ -312,17 +312,17 @@
       content: '•';
       position: absolute;
       left: 0;
-      color: rgba(244,241,235,0.5);
+      color: var(--c50);
       font-size: 1rem;
     }
     .policy-highlight {
-      background: rgba(244,241,235,0.04);
-      border-left: 2px solid rgba(244,241,235,0.2);
+      background: rgb(var(--fg-rgb) / 4%);
+      border-left: 2px solid var(--c20);
       padding: 1rem 1.2rem;
       margin: 1rem 0;
       font-size: 0.88rem;
       line-height: 1.7;
-      color: rgba(244,241,235,0.6);
+      color: rgb(var(--fg-rgb) / 60%);
     }
 
     /* FAQ */
@@ -361,7 +361,7 @@
       transition: max-height 0.35s ease, padding 0.3s ease;
       font-size: 0.9rem;
       line-height: 1.85;
-      color: rgba(244,241,235,0.55);
+      color: var(--c55);
     }
     .faq-item.open .faq-answer {
       max-height: 400px;

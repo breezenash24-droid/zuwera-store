@@ -85,10 +85,10 @@
       --fw:var(--zw-font-head, var(--font-head));
       --fb:var(--zw-font-body, var(--font-body));
       --fm:var(--zw-font-mono, var(--font-mono));
-      --border: rgba(244,241,235,.18);
-      --muted: rgba(244,241,235,.55);
-      --subtle: rgba(244,241,235,.06);
-      --surface: rgba(244,241,235,.04);
+      --border: rgb(var(--fg-rgb) / 18%);
+      --muted: var(--c55);
+      --subtle: var(--c06);
+      --surface: rgb(var(--fg-rgb) / 4%);
       --accent-blue: #2563eb;
       --accent-green: #047857;
       --accent-amber: #d97706;
@@ -483,13 +483,13 @@
       transition: border-color .2s;
     }
     .step3-field input:focus,
-    .step3-field textarea:focus { border-color: rgba(244,241,235,.5); }
+    .step3-field textarea:focus { border-color: var(--c50); }
     body.light-mode .step3-field input:focus,
     body.light-mode .step3-field textarea:focus { border-color: rgba(9,9,11,.4); }
     .exchange-note {
       margin-top: 1.2rem; padding: 1rem;
       background: rgba(37,99,235,.06); border: 1px solid rgba(37,99,235,.15);
-      font-size: .72rem; color: rgba(244,241,235,.7); line-height: 1.7;
+      font-size: .72rem; color: var(--c70); line-height: 1.7;
     }
     body.light-mode .exchange-note { color: rgba(9,9,11,.7); }
 

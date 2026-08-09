@@ -128,8 +128,8 @@ document.documentElement.classList.add('zw-collflash');
          font, so it changes with Appearance → Fonts → Body; a dedicated
          --zw-font-filter (admin control) overrides it independently when set. */
       --font-filter: var(--zw-font-filter, var(--font-body));
-      --muted: rgba(244,241,235,0.5);
-      --border: rgba(244,241,235,0.1);
+      --muted: var(--c50);
+      --border: var(--c10);
     }
     body {
       background: var(--black);
@@ -198,7 +198,7 @@ document.documentElement.classList.add('zw-collflash');
       content: '';
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse at center, rgba(244,241,235,0.04) 0%, transparent 70%);
+      background: radial-gradient(ellipse at center, rgb(var(--fg-rgb) / 4%) 0%, transparent 70%);
       pointer-events: none;
     }
     .drop-label {
@@ -217,7 +217,7 @@ document.documentElement.classList.add('zw-collflash');
     }
     .drop-title span {
       display: block;
-      color: rgba(244,241,235,0.28);
+      color: rgb(var(--fg-rgb) / 28%);
       font-size: clamp(2rem, 6vw, 5rem);
       letter-spacing: 0.2em;
     }
@@ -263,7 +263,7 @@ document.documentElement.classList.add('zw-collflash');
     .countdown-divider {
       font-family:var(--font-head);
       font-size: 3rem;
-      color: rgba(244,241,235,0.15);
+      color: var(--c15);
       align-self: flex-start;
       padding-top: 0.2rem;
     }
@@ -278,8 +278,8 @@ document.documentElement.classList.add('zw-collflash');
     }
     .notify-form input {
       flex: 1;
-      background: rgba(244,241,235,0.05);
-      border: 1px solid rgba(244,241,235,0.2);
+      background: rgb(var(--fg-rgb) / 5%);
+      border: 1px solid var(--c20);
       border-right: none;
       color: var(--white);
       font-family:var(--font-body);
@@ -288,8 +288,8 @@ document.documentElement.classList.add('zw-collflash');
       outline: none;
       transition: border-color 0.2s;
     }
-    .notify-form input:focus { border-color: rgba(244,241,235,0.5); }
-    .notify-form input::placeholder { color: rgba(244,241,235,0.3); }
+    .notify-form input:focus { border-color: var(--c50); }
+    .notify-form input::placeholder { color: var(--c30); }
     body.light-mode .notify-form input,
     body.super-light-mode .notify-form input {
       background: rgba(9,9,11,0.04);
@@ -316,13 +316,13 @@ document.documentElement.classList.add('zw-collflash');
     .notify-form button:hover { opacity: 0.85; }
     .notify-note {
       font-size: 0.7rem;
-      color: rgba(244,241,235,0.3);
+      color: var(--c30);
       letter-spacing: 0.08em;
     }
     .notify-success {
       display: none;
       font-size: 0.82rem;
-      color: rgba(244,241,235,0.6);
+      color: rgb(var(--fg-rgb) / 60%);
       letter-spacing: 0.1em;
       text-transform: uppercase;
       margin-top: 0.5rem;
@@ -432,7 +432,7 @@ document.documentElement.classList.add('zw-collflash');
     .plp-fm-head{ display:flex; align-items:center; justify-content:space-between; padding:1.1rem 1.3rem; border-bottom:1px solid var(--border); flex-shrink:0; }
     .plp-fm-title{ font-family:var(--font-filter); font-size:1.5rem; font-weight:900; font-style:italic; letter-spacing:.03em; text-transform:uppercase; line-height:1; }
     /* Square close button — matches the shared .mclose family on the other modals. */
-    .plp-fm-x{ width:36px; height:36px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:rgba(244,241,235,.06); border:1.5px solid rgba(244,241,235,.25); border-radius:0; color:inherit; font-size:1.25rem; line-height:1; cursor:pointer; padding:0; }
+    .plp-fm-x{ width:36px; height:36px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:var(--c06); border:1.5px solid rgb(var(--fg-rgb) / 25%); border-radius:0; color:inherit; font-size:1.25rem; line-height:1; cursor:pointer; padding:0; }
     body.light-mode .plp-fm-x, body.super-light-mode .plp-fm-x{ background:rgba(9,9,11,.04); border-color:rgba(9,9,11,.18); }
     .plp-fm-body{ overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 1.3rem; flex:1; }
     .plp-fm-sec{ padding:1.1rem 0; border-bottom:1px solid var(--border); }
@@ -470,7 +470,7 @@ document.documentElement.classList.add('zw-collflash');
       .plp-pillbar::-webkit-scrollbar { display:none; }
       .plp-pill {
         flex:0 0 auto; display:inline-flex; align-items:center; gap:.4rem;
-        padding:.5rem .9rem; border:1px solid rgba(244,241,235,.3); border-radius:999px;
+        padding:.5rem .9rem; border:1px solid var(--c30); border-radius:999px;
         background:transparent; color:var(--white); font-family:var(--font-filter);
         font-size:.74rem; letter-spacing:.03em; cursor:pointer; white-space:nowrap; line-height:1;
         transition:border-color .15s ease, background .15s ease;
@@ -493,7 +493,7 @@ document.documentElement.classList.add('zw-collflash');
          the bars instead. --border is near-white on the light page, so use an
          explicit adaptive colour. */
       .plp-bar::before { display:none !important; }
-      .plp-bar, .plp-pillbar { border-bottom:1px solid rgba(244,241,235,.14); }
+      .plp-bar, .plp-pillbar { border-bottom:1px solid var(--c14); }
       body.light-mode .plp-bar, body.super-light-mode .plp-bar,
       body.light-mode .plp-pillbar, body.super-light-mode .plp-pillbar { border-bottom-color:rgba(9,9,11,.1); }
     }
@@ -555,7 +555,7 @@ document.documentElement.classList.add('zw-collflash');
       right:.9rem;
       z-index:3;
       background:rgba(9,9,11,.7);
-      border:1px solid rgba(244,241,235,.1);
+      border:1px solid var(--c10);
       backdrop-filter:blur(8px);
       border-radius:50%;
       width:34px;
@@ -564,7 +564,7 @@ document.documentElement.classList.add('zw-collflash');
       align-items:center;
       justify-content:center;
       transition:color .2s, border-color .2s, opacity .2s, background .2s;
-      color:rgba(244,241,235,.3);
+      color:var(--c30);
     }
     .heart-btn:hover,
     .heart-btn:focus-visible {
@@ -647,7 +647,7 @@ document.documentElement.classList.add('zw-collflash');
     }
     .coming-soon-badge {
       background: rgba(10,10,10,0.85);
-      border: 1px solid rgba(244,241,235,0.2);
+      border: 1px solid var(--c20);
       backdrop-filter: blur(8px);
       padding: 0.5rem 1.2rem;
       font-size: 0.65rem;
@@ -724,7 +724,7 @@ document.documentElement.classList.add('zw-collflash');
       letter-spacing: 0.18em;
       text-transform: uppercase;
       color: var(--white);
-      border-bottom: 1px solid rgba(244,241,235,0.3);
+      border-bottom: 1px solid var(--c30);
       padding-bottom: 1px;
       cursor: pointer;
       transition: border-color 0.2s;
@@ -738,7 +738,7 @@ document.documentElement.classList.add('zw-collflash');
       font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;font-weight:600;
       cursor:pointer;transition:background .2s,transform .15s;
     }
-    .product-add-btn:hover{background:rgba(244,241,235,.85);transform:translateY(-1px)}
+    .product-add-btn:hover{background:rgb(var(--fg-rgb) / 85%);transform:translateY(-1px)}
     .product-add-btn.loading{opacity:.6;pointer-events:none}
     .quick-size-panel-col{
       position:absolute;bottom:0;left:0;right:0;
@@ -756,12 +756,12 @@ document.documentElement.classList.add('zw-collflash');
     .quick-size-ph{
       display:flex;justify-content:space-between;align-items:center;
       font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;
-      color:rgba(244,241,235,.45);margin-bottom:.7rem;
+      color:var(--c45);margin-bottom:.7rem;
     }
     .quick-size-ph .qsp-close{
       width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
-      background:rgba(244,241,235,.06);border:1px solid rgba(244,241,235,.22);border-radius:0;
-      color:rgba(244,241,235,.55);cursor:pointer;font-size:.95rem;line-height:1;padding:0;
+      background:var(--c06);border:1px solid rgb(var(--fg-rgb) / 22%);border-radius:0;
+      color:var(--c55);cursor:pointer;font-size:.95rem;line-height:1;padding:0;
     }
     body.light-mode .quick-size-ph .qsp-close{ background:rgba(9,9,11,.04);border-color:rgba(9,9,11,.18);color:rgba(9,9,11,.55); }
     .quick-size-ph .qsp-close:hover{color:#f4f1eb}
@@ -770,7 +770,7 @@ document.documentElement.classList.add('zw-collflash');
     .qcol-row::-webkit-scrollbar{display:none}
     .qcol-swatch{scroll-snap-align:start}
     .qcol-swatch{
-      width:44px;height:44px;border:1px solid rgba(244,241,235,.18);
+      width:44px;height:44px;border:1px solid rgb(var(--fg-rgb) / 18%);
       border-radius:0;   /* boxy, adidas-style */
       cursor:pointer;transition:border-color .15s;flex-shrink:0;
       position:relative;
@@ -779,11 +779,11 @@ document.documentElement.classList.add('zw-collflash');
     .qcol-swatch::after{content:'';position:absolute;left:0;right:0;bottom:-6px;height:3px;background:transparent;transition:background .15s}
     .qcol-swatch:hover,.qcol-swatch.active{border-color:#f4f1eb;box-shadow:none}
     .qcol-swatch.active::after{background:#f4f1eb}
-    .qcol-name{font-size:.53rem;letter-spacing:.1em;color:rgba(244,241,235,.45);margin-top:.45rem;min-height:.8rem}
+    .qcol-name{font-size:.53rem;letter-spacing:.1em;color:var(--c45);margin-top:.45rem;min-height:.8rem}
     /* Size buttons */
     .quick-size-row{display:flex;flex-wrap:wrap;gap:.45rem}
     .qsz-btn{
-      background:transparent;border:1px solid rgba(244,241,235,.2);color:rgba(244,241,235,.85);
+      background:transparent;border:1px solid var(--c20);color:rgb(var(--fg-rgb) / 85%);
       padding:.55rem .8rem;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;
       cursor:pointer;transition:all .15s;min-width:44px;min-height:44px;text-align:center;
       display:inline-flex;align-items:center;justify-content:center;
@@ -793,10 +793,10 @@ document.documentElement.classList.add('zw-collflash');
     .qsz-btn.sold-out{opacity:.3;cursor:not-allowed;text-decoration:line-through}
     /* Back button */
     .qback-btn{
-      background:none;border:none;color:rgba(244,241,235,.3);cursor:pointer;
+      background:none;border:none;color:var(--c30);cursor:pointer;
       font-size:.5rem;letter-spacing:.12em;text-transform:uppercase;padding:0;margin-bottom:.6rem;display:block;
     }
-    .qback-btn:hover{color:rgba(244,241,235,.7)}
+    .qback-btn:hover{color:var(--c70)}
 
     .collection-review-modal{
       display:none;position:fixed;inset:0;z-index:2600;
@@ -806,7 +806,7 @@ document.documentElement.classList.add('zw-collflash');
     .collection-review-modal.open,.collection-review-modal.closing{display:flex}
     .collection-review-box{
       width:min(1080px,94vw);max-height:min(820px,92dvh);
-      background:#0f0f0f;border:1px solid rgba(244,241,235,.1);
+      background:#0f0f0f;border:1px solid var(--c10);
       border-top:2px solid var(--pink);position:relative;overflow:hidden;
       animation:collectionModalIn .2s ease;
     }
@@ -823,7 +823,7 @@ document.documentElement.classList.add('zw-collflash');
       display:flex;
       flex-direction:column;
       overflow:hidden;
-      background:rgba(244,241,235,.025);
+      background:rgb(var(--fg-rgb) / 2.5%);
     }
     @keyframes collectionModalIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
     @keyframes collectionModalOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(18px)}}
@@ -832,13 +832,13 @@ document.documentElement.classList.add('zw-collflash');
     @keyframes collectionSheetOut{from{transform:translateY(0)}to{transform:translateY(100%)}}
     .collection-review-close{
       position:absolute;top:.9rem;right:.9rem;z-index:30;width:32px;height:32px;
-      border:1px solid rgba(244,241,235,.12);background:rgba(9,9,11,.72);color:var(--white);
+      border:1px solid var(--c12);background:rgba(9,9,11,.72);color:var(--white);
       cursor:pointer;font-size:1.1rem;line-height:1;
       backdrop-filter:blur(12px);
     }
     .collection-review-media{
       position:relative;
-      background:rgba(244,241,235,.04);
+      background:rgb(var(--fg-rgb) / 4%);
       aspect-ratio:auto;
       min-height:min(480px,52dvh);
       max-height:min(580px,68dvh);
@@ -860,15 +860,15 @@ document.documentElement.classList.add('zw-collflash');
     @media(prefers-reduced-motion:reduce){.collection-review-media :is(img,video):is(.zw-img-in,.zw-slide-next,.zw-slide-prev){animation:none}}
     .collection-gallery-arrow{
       position:absolute;top:50%;transform:translateY(-50%);z-index:8;
-      width:40px;height:40px;border-radius:50%;border:1px solid rgba(244,241,235,.16);
+      width:40px;height:40px;border-radius:50%;border:1px solid rgb(var(--fg-rgb) / 16%);
       background:rgba(9,9,11,.58);color:#fff;display:flex;align-items:center;justify-content:center;
       font-size:1.2rem;line-height:1;cursor:pointer;backdrop-filter:blur(10px);
       transition:background .2s,border-color .2s,opacity .2s;
     }
-    .collection-gallery-arrow:hover{background:rgba(9,9,11,.82);border-color:rgba(244,241,235,.28)}
+    .collection-gallery-arrow:hover{background:rgba(9,9,11,.82);border-color:rgb(var(--fg-rgb) / 28%)}
     .collection-gallery-arrow.prev{left:.85rem}
     .collection-gallery-arrow.next{right:.85rem}
-    .collection-review-placeholder{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,.28)}
+    .collection-review-placeholder{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:rgb(var(--fg-rgb) / 28%)}
     .collection-review-body{
       padding:2.1rem 2.2rem 2.2rem;
       display:flex;
@@ -882,14 +882,14 @@ document.documentElement.classList.add('zw-collflash');
     .collection-product-body{display:flex;flex-direction:column;gap:1rem}
     .collection-review-kicker{font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--pink);margin-bottom:.45rem}
     .collection-review-title{font-family:var(--fw);font-size:2.15rem;font-style:italic;font-weight:900;letter-spacing:.05em;line-height:.95;text-transform:uppercase;margin-bottom:.25rem}
-    .collection-product-meta{display:flex;gap:.7rem;align-items:center;justify-content:space-between;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(244,241,235,.68);border-bottom:1px solid rgba(244,241,235,.08);padding-bottom:.95rem}
+    .collection-product-meta{display:flex;gap:.7rem;align-items:center;justify-content:space-between;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:rgb(var(--fg-rgb) / 68%);border-bottom:1px solid var(--c08);padding-bottom:.95rem}
     /* Price in Barlow Condensed (matches the product page), not mono. */
-    #collection-review-price{font-family:var(--fw);font-weight:700;font-size:1.1rem;letter-spacing:.01em;text-transform:none;color:rgba(244,241,235,.95)}
+    #collection-review-price{font-family:var(--fw);font-weight:700;font-size:1.1rem;letter-spacing:.01em;text-transform:none;color:rgb(var(--fg-rgb) / 95%)}
     body.light-mode #collection-review-price{color:rgba(9,9,11,.92)}
     .collection-review-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;margin-bottom:1.25rem}
-    .collection-review-detail{border:1px solid rgba(244,241,235,.09);padding:.75rem .8rem;min-height:58px}
-    .collection-review-label{display:block;font-size:.52rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.34);margin-bottom:.35rem}
-    .collection-review-value{display:block;font-size:.78rem;color:rgba(244,241,235,.86);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .collection-review-detail{border:1px solid rgb(var(--fg-rgb) / 9%);padding:.75rem .8rem;min-height:58px}
+    .collection-review-label{display:block;font-size:.52rem;letter-spacing:.15em;text-transform:uppercase;color:rgb(var(--fg-rgb) / 34%);margin-bottom:.35rem}
+    .collection-review-value{display:block;font-size:.78rem;color:rgb(var(--fg-rgb) / 86%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .collection-thumbs{display:flex;gap:.5rem;padding:.7rem;overflow-x:auto}
 
     /* ── COLLECTION QUICK-ADD GALLERY ARRANGEMENT ──────────────────────────
@@ -1031,7 +1031,7 @@ document.documentElement.classList.add('zw-collflash');
       font-size:.95rem;letter-spacing:.02em;
     }
     .collection-product-box[data-modal-style="product"] .collection-option-block{
-      border:none;border-top:1px solid rgba(244,241,235,.12);padding:1.25rem 0 0;margin-top:1.25rem;
+      border:none;border-top:1px solid var(--c12);padding:1.25rem 0 0;margin-top:1.25rem;
     }
     .collection-product-box[data-modal-style="product"] .collection-option-head{
       font-size:.62rem;letter-spacing:.16em;
@@ -1050,35 +1050,35 @@ document.documentElement.classList.add('zw-collflash');
       }
     }
     .collection-thumb{
-      width:64px;height:76px;flex:0 0 auto;border:1px solid rgba(244,241,235,.1);
-      background:rgba(244,241,235,.04);padding:0;opacity:.55;cursor:pointer;
+      width:64px;height:76px;flex:0 0 auto;border:1px solid var(--c10);
+      background:rgb(var(--fg-rgb) / 4%);padding:0;opacity:.55;cursor:pointer;
       display:flex;align-items:center;justify-content:center;overflow:hidden;
     }
     .collection-thumb.active{opacity:1;border-color:var(--white)}
     .collection-thumb img{width:100%;height:100%;object-fit:contain;object-position:center;display:block}
-    .collection-option-block{border:1px solid rgba(244,241,235,.09);padding:.9rem}
-    .collection-option-head{display:flex;justify-content:space-between;gap:1rem;margin-bottom:.75rem;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.42)}
-    .collection-option-head strong{color:rgba(244,241,235,.88);font-weight:500;text-align:right;display:inline-flex;align-items:center}
-    .collection-color-dot{display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid rgba(244,241,235,.28);margin-right:5px;flex-shrink:0}
+    .collection-option-block{border:1px solid rgb(var(--fg-rgb) / 9%);padding:.9rem}
+    .collection-option-head{display:flex;justify-content:space-between;gap:1rem;margin-bottom:.75rem;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:rgb(var(--fg-rgb) / 42%)}
+    .collection-option-head strong{color:rgb(var(--fg-rgb) / 88%);font-weight:500;text-align:right;display:inline-flex;align-items:center}
+    .collection-color-dot{display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid rgb(var(--fg-rgb) / 28%);margin-right:5px;flex-shrink:0}
     body.light-mode .collection-color-dot{border-color:rgba(9,9,11,.25)}
     .collection-option-grid{display:flex;flex-wrap:wrap;gap:.55rem}
-    .collection-size{border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.76);min-height:38px;padding:0 .8rem;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+    .collection-size{border:1px solid var(--c12);background:transparent;color:rgb(var(--fg-rgb) / 76%);min-height:38px;padding:0 .8rem;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
     /* Colour picker = product-photo thumbnail (matches the full product page). */
-    .collection-color{width:68px;height:54px;flex:0 0 auto;border:1px solid rgba(244,241,235,.2);border-radius:0;background-color:transparent;background-size:cover;background-position:center top;background-repeat:no-repeat;padding:0;cursor:pointer;position:relative;transition:border-color .15s ease}
+    .collection-color{width:68px;height:54px;flex:0 0 auto;border:1px solid var(--c20);border-radius:0;background-color:transparent;background-size:cover;background-position:center top;background-repeat:no-repeat;padding:0;cursor:pointer;position:relative;transition:border-color .15s ease}
     /* Nike/adidas-style selected bar under the active colour — matches the product
        cards and the product page instead of the old rounded ring. */
     .collection-color::after{content:'';position:absolute;left:0;right:0;bottom:-6px;height:3px;background:transparent;transition:background .15s ease}
-    .collection-color:hover{border-color:rgba(244,241,235,.55)}
+    .collection-color:hover{border-color:var(--c55)}
     .collection-color.active{border-color:var(--white)}
     .collection-color.active::after{background:var(--white)}
-    .collection-size.active{border-color:var(--white);color:var(--white);background:rgba(244,241,235,.1)}
+    .collection-size.active{border-color:var(--white);color:var(--white);background:var(--c10)}
     .collection-size.sold-out{opacity:.35;cursor:not-allowed;text-decoration:line-through}
-    .collection-empty-option{font-size:.68rem;color:rgba(244,241,235,.48);margin:0}
-    .collection-review-message{font-size:.68rem;letter-spacing:.06em;color:rgba(244,241,235,.5);min-height:1rem;margin:0}
+    .collection-empty-option{font-size:.68rem;color:rgb(var(--fg-rgb) / 48%);margin:0}
+    .collection-review-message{font-size:.68rem;letter-spacing:.06em;color:var(--c50);min-height:1rem;margin:0}
     .collection-review-actions{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}
     .collection-review-actions button,.collection-review-actions a{
-      min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.12);
-      background:transparent;color:rgba(244,241,235,.72);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;
+      min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c12);
+      background:transparent;color:rgb(var(--fg-rgb) / 72%);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;
     }
     .collection-review-confirm{grid-column:1/-1!important;background:var(--white)!important;color:var(--black)!important;border-color:var(--white)!important}
     .collection-review-confirm:disabled{opacity:.45;cursor:not-allowed}
@@ -1224,7 +1224,7 @@ document.documentElement.classList.add('zw-collflash');
       .notify-section { padding: 3rem 1rem; }
       .notify-form { flex-direction: column; gap: 0; }
       .notify-form input {
-        border-right: 1px solid rgba(244,241,235,0.2);
+        border-right: 1px solid var(--c20);
         border-bottom: none;
         border-radius: 0;
         padding: 0.9rem 1rem;
@@ -1320,8 +1320,8 @@ document.documentElement.classList.add('zw-collflash');
       background: rgba(9,9,11,.55); backdrop-filter: blur(2px);
     }
     .stock-badge-sold-out span {
-      background: rgba(9,9,11,.88); border: 1px solid rgba(244,241,235,.25);
-      padding: .45rem 1.1rem; font-size: .62rem; letter-spacing: .22em; text-transform: uppercase; color: rgba(244,241,235,.75);
+      background: rgba(9,9,11,.88); border: 1px solid rgb(var(--fg-rgb) / 25%);
+      padding: .45rem 1.1rem; font-size: .62rem; letter-spacing: .22em; text-transform: uppercase; color: rgb(var(--fg-rgb) / 75%);
     }
     .stock-badge-low {
       display: inline-block; margin-top: .5rem;
@@ -2385,7 +2385,7 @@ function updateCountdown() {
         if (!toast) {
           toast = document.createElement('div');
           toast.id = 'collection-toast';
-          toast.style.cssText = 'position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%);padding:.8rem 1rem;background:rgba(9,9,11,.92);border:1px solid rgba(244,241,235,.12);color:#f4f1eb;font-family:var(--font-mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;z-index:2500;opacity:0;pointer-events:none;transition:opacity .2s ease;';
+          toast.style.cssText = 'position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%);padding:.8rem 1rem;background:rgba(9,9,11,.92);border:1px solid var(--c12);color:#f4f1eb;font-family:var(--font-mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;z-index:2500;opacity:0;pointer-events:none;transition:opacity .2s ease;';
           document.body.appendChild(toast);
         }
         toast.textContent = message;

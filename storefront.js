@@ -1067,7 +1067,7 @@ function showToast(msg) {
         }
         case 'press': {
           el.className = 'builder-press-section';
-          el.style.cssText = 'padding:3.5rem 2.5rem;text-align:center;border-top:1px solid rgba(244,241,235,.08);border-bottom:1px solid rgba(244,241,235,.08)';
+          el.style.cssText = 'padding:3.5rem 2.5rem;text-align:center;border-top:1px solid var(--c08);border-bottom:1px solid var(--c08)';
           if (s.sec_bg) el.style.background = s.sec_bg;
           const pritems = (s.items||[]);
           el.innerHTML = `${s.heading?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.4;margin-bottom:1.5rem">${s.heading}</div>`:''}
@@ -1084,8 +1084,8 @@ function showToast(msg) {
           faqWrap.style.cssText = 'max-width:800px;margin:0 auto';
           const faqitems = (s.items||[]);
           faqWrap.innerHTML = `${s.heading?`<h2 data-builder-heading style="font-family:var(--fw);font-size:clamp(1.6rem,5vw,2.4rem);letter-spacing:.08em;text-transform:uppercase;font-weight:900;font-style:italic;margin-bottom:2rem">${s.heading}</h2>`:''}
-            <div style="border-top:1px solid rgba(244,241,235,.12)">
-            ${faqitems.map(it=>`<details style="border-bottom:1px solid rgba(244,241,235,.12)"><summary style="padding:1.1rem 0;cursor:pointer;font-family:var(--fw);font-size:1rem;letter-spacing:.04em;list-style:none;display:flex;justify-content:space-between;align-items:center">${it.q||''}<span style="font-size:.8rem;opacity:.4;flex-shrink:0;margin-left:.5rem">+</span></summary><div style="padding:0 0 1.2rem;opacity:.65;line-height:1.7;font-size:.9rem">${it.a||''}</div></details>`).join('')}
+            <div style="border-top:1px solid var(--c12)">
+            ${faqitems.map(it=>`<details style="border-bottom:1px solid var(--c12)"><summary style="padding:1.1rem 0;cursor:pointer;font-family:var(--fw);font-size:1rem;letter-spacing:.04em;list-style:none;display:flex;justify-content:space-between;align-items:center">${it.q||''}<span style="font-size:.8rem;opacity:.4;flex-shrink:0;margin-left:.5rem">+</span></summary><div style="padding:0 0 1.2rem;opacity:.65;line-height:1.7;font-size:.9rem">${it.a||''}</div></details>`).join('')}
             </div>`;
           el.innerHTML = '';
           el.appendChild(faqWrap);
@@ -1098,7 +1098,7 @@ function showToast(msg) {
             ${s.heading?`<h2 data-builder-heading style="font-family:var(--fw);font-size:clamp(1.8rem,5vw,2.6rem);letter-spacing:.1em;text-transform:uppercase;font-weight:900;font-style:italic;margin-bottom:.75rem">${s.heading}</h2>`:''}
             ${s.subtext?`<p style="opacity:.6;margin-bottom:1.8rem;line-height:1.6;font-size:.95rem">${s.subtext}</p>`:''}
             <div style="display:flex;gap:.5rem;max-width:400px;margin:0 auto">
-              <input type="email" placeholder="${s.placeholder||'your@email.com'}" style="flex:1;background:rgba(244,241,235,.06);border:1px solid rgba(244,241,235,.15);color:inherit;padding:.75rem 1rem;font-family:var(--fb);font-size:.9rem;outline:none">
+              <input type="email" placeholder="${s.placeholder||'your@email.com'}" style="flex:1;background:var(--c06);border:1px solid var(--c15);color:inherit;padding:.75rem 1rem;font-family:var(--fb);font-size:.9rem;outline:none">
               <button style="background:var(--paper,#f4f1eb);color:var(--ink,#09090b);border:none;padding:.75rem 1.4rem;font-family:var(--fw);font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;white-space:nowrap">${s.btn_text||'Join'}</button>
             </div>
             </div>`;
@@ -1268,7 +1268,7 @@ function showToast(msg) {
           const titems = (s.items||[]);
           el.innerHTML = `${s.heading?`<h2 style="font-family:var(--fw);font-size:clamp(1.6rem,4vw,2.4rem);letter-spacing:.08em;text-transform:uppercase;font-weight:900;font-style:italic;margin-bottom:3rem">${s.heading}</h2>`:''}
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:2rem;max-width:1000px;margin:0 auto">
-            ${titems.map(it=>`<div style="background:rgba(244,241,235,.04);border:1px solid rgba(244,241,235,.08);padding:2rem;text-align:left"><div style="color:var(--gold);margin-bottom:1rem;font-size:1.1rem">${'★'.repeat(Math.min(5,Math.max(1,parseInt(it.rating)||5)))}</div><p style="line-height:1.7;margin-bottom:1.2rem;opacity:.8;font-size:.95rem">"${it.quote||''}"</p><div style="font-family:var(--fw);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;opacity:.5">${it.author||''}</div></div>`).join('')}
+            ${titems.map(it=>`<div style="background:rgb(var(--fg-rgb) / 4%);border:1px solid var(--c08);padding:2rem;text-align:left"><div style="color:var(--gold);margin-bottom:1rem;font-size:1.1rem">${'★'.repeat(Math.min(5,Math.max(1,parseInt(it.rating)||5)))}</div><p style="line-height:1.7;margin-bottom:1.2rem;opacity:.8;font-size:.95rem">"${it.quote||''}"</p><div style="font-family:var(--fw);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;opacity:.5">${it.author||''}</div></div>`).join('')}
             </div>`;
           break;
         }
@@ -1331,7 +1331,7 @@ function showToast(msg) {
           // homepage and landing renderers cannot drift apart.
           el.innerHTML = window.ZWVideoEmbed
             ? window.ZWVideoEmbed.html(s)
-            : `<div style="background:rgba(244,241,235,.05);border:1px dashed rgba(244,241,235,.15);padding:4rem;text-align:center;opacity:.4;font-size:.8rem">Video embed unavailable</div>`;
+            : `<div style="background:rgb(var(--fg-rgb) / 5%);border:1px dashed var(--c15);padding:4rem;text-align:center;opacity:.4;font-size:.8rem">Video embed unavailable</div>`;
           break;
         }
         case 'countdown': {
@@ -2785,7 +2785,7 @@ async function _doLoadProducts() {
 function zwStarsMarkup(avg) {
   const full = Math.round(avg);
   return `<span style="color:#F891A5" aria-hidden="true">${'★'.repeat(full)}</span>` +
-    `<span style="color:rgba(244,241,235,.15)" aria-hidden="true">${'★'.repeat(5 - full)}</span>` +
+    `<span style="color:var(--c15)" aria-hidden="true">${'★'.repeat(5 - full)}</span>` +
     `<span class="sr-only">${avg.toFixed(1)} out of 5 stars</span>`;
 }
 function zwReviewCountText(count, avg) {
@@ -3348,7 +3348,7 @@ async function loadOrders() {
   const { data } = await _sb.from('orders').select('id,created_at,status').eq('user_id',_user.id).order('created_at',{ascending:false});
   loading.style.display = 'none';
   if(!data?.length){ empty.style.display = 'block'; return; }
-  list.innerHTML = data.map(o => `<div style="padding:.9rem 0;border-bottom:1px solid rgba(244,241,235,.07);font-family:var(--fm);font-size:.68rem"><div style="letter-spacing:.1em">Order #${(o.id||'').slice(-8).toUpperCase()}</div><div style="opacity:.35;margin-top:.2rem">${new Date(o.created_at).toLocaleDateString()}</div><div style="opacity:.5;margin-top:.15rem">${o.status||'Confirmed'}</div></div>`).join('');
+  list.innerHTML = data.map(o => `<div style="padding:.9rem 0;border-bottom:1px solid var(--c07);font-family:var(--fm);font-size:.68rem"><div style="letter-spacing:.1em">Order #${(o.id||'').slice(-8).toUpperCase()}</div><div style="opacity:.35;margin-top:.2rem">${new Date(o.created_at).toLocaleDateString()}</div><div style="opacity:.5;margin-top:.15rem">${o.status||'Confirmed'}</div></div>`).join('');
 }
 /* FAVORITES */
 function applyHeartFill(btn, active) {
@@ -3560,25 +3560,25 @@ function homeFavoriteCardHtml(favorite, detail, mode) {
   const normalizedSubtitle = normalizeHomeFavoriteText(subtitleText);
   const showSubtitle = !!subtitleText && normalizedSubtitle !== normalizedName;
   const subtitle = showSubtitle
-    ? `<div style="font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(244,241,235,.35);margin-top:.2rem;">${escapeHomeFavoriteHtml(subtitleText)}</div>`
+    ? `<div style="font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--c35);margin-top:.2rem;">${escapeHomeFavoriteHtml(subtitleText)}</div>`
     : '';
   const colorName = detail?.colorName || '';
   const normalizedColor = normalizeHomeFavoriteText(colorName);
   const showColor = !!colorName && normalizedColor && normalizedColor !== 'standard' && normalizedColor !== normalizedName && normalizedColor !== normalizedSubtitle;
   const metaHtml = showColor
-    ? `<div style="font-size:.68rem;color:rgba(244,241,235,.52);margin-top:.35rem;letter-spacing:.04em;">${escapeHomeFavoriteHtml(colorName)}</div>`
+    ? `<div style="font-size:.68rem;color:rgb(var(--fg-rgb) / 52%);margin-top:.35rem;letter-spacing:.04em;">${escapeHomeFavoriteHtml(colorName)}</div>`
     : '';
   const imageHtml = detail?.image
-    ? `<img src="${typeof window.optimizeImage === 'function' ? window.optimizeImage(detail.image, 180) : escapeHomeFavoriteHtml(detail.image)}" alt="${escapeHomeFavoriteHtml(name)}" loading="lazy" style="width:68px;height:86px;object-fit:cover;border:1px solid rgba(244,241,235,.08);flex-shrink:0;" data-fallback="${escapeHomeFavoriteHtml(detail.image)}" onerror="var f=this.dataset.fallback;if(f&&this.src!==f)this.src=f;">`
-    : `<div style="width:68px;height:86px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.08);color:rgba(244,241,235,.28);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;flex-shrink:0;">No Image</div>`;
+    ? `<img src="${typeof window.optimizeImage === 'function' ? window.optimizeImage(detail.image, 180) : escapeHomeFavoriteHtml(detail.image)}" alt="${escapeHomeFavoriteHtml(name)}" loading="lazy" style="width:68px;height:86px;object-fit:cover;border:1px solid var(--c08);flex-shrink:0;" data-fallback="${escapeHomeFavoriteHtml(detail.image)}" onerror="var f=this.dataset.fallback;if(f&&this.src!==f)this.src=f;">`
+    : `<div style="width:68px;height:86px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c08);color:rgb(var(--fg-rgb) / 28%);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;flex-shrink:0;">No Image</div>`;
   const displayPrice = getHomeFavoritePrice(detail, favorite.price);
   const priceHtml = displayPrice > 0
-    ? `<div style="font-size:.82rem;color:rgba(244,241,235,.72);margin-top:.45rem;">$${displayPrice.toFixed(2)}</div>`
+    ? `<div style="font-size:.82rem;color:rgb(var(--fg-rgb) / 72%);margin-top:.45rem;">$${displayPrice.toFixed(2)}</div>`
     : '';
   const tag = mode === 'account' ? 'div' : 'li';
   const href = detail?.href || productHref({ id: productId, title: name });
   return `
-    <${tag} style="display:flex;gap:.85rem;align-items:flex-start;padding:${mode === 'account' ? '.95rem 0' : '.75rem 0'};border-bottom:1px solid rgba(244,241,235,.07);">
+    <${tag} style="display:flex;gap:.85rem;align-items:flex-start;padding:${mode === 'account' ? '.95rem 0' : '.75rem 0'};border-bottom:1px solid var(--c07);">
       ${imageHtml}
       <div style="flex:1;min-width:0;">
         <div style="font-size:.88rem;line-height:1.35;">${escapeHomeFavoriteHtml(name)}</div>
@@ -4002,6 +4002,11 @@ function getCheckoutCardStyle() {
       fontSize:'16px',
       fontWeight:'500',
       letterSpacing:'0',
+      /* Literals on purpose, and they must stay literals. Stripe renders the
+         card field in a cross-origin iframe, so a custom property defined on
+         this page does not exist there — var(--fg-rgb) would resolve to nothing
+         and the placeholder would come out invisible. Hence the explicit
+         isLight branch instead of letting the theme do it. */
       '::placeholder':{ color: isLight ? 'rgba(9,9,11,.58)' : 'rgba(244,241,235,.38)' }
     },
     invalid: { color:'#c0392b', iconColor:'#c0392b' }
@@ -4461,7 +4466,7 @@ function maybeLoadRates() {
     } catch(e) {
       document.getElementById('shipping-rates-loading').style.display = 'none';
       const ratesList = document.getElementById('shipping-rates-list');
-      if (ratesList) ratesList.innerHTML = '<div style="padding:.8rem;text-align:center;color:rgba(244,241,235,.4);font-size:.8rem;">Could not load shipping options. Please check your address and try again.</div>';
+      if (ratesList) ratesList.innerHTML = '<div style="padding:.8rem;text-align:center;color:var(--c40);font-size:.8rem;">Could not load shipping options. Please check your address and try again.</div>';
     }
   }, 600);
 }

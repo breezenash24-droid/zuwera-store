@@ -91,7 +91,7 @@
   .card {
     width: min(440px, 100%);
     background: #0f0f0f;
-    border: 1px solid rgba(244,241,235,.08);
+    border: 1px solid var(--c08);
     border-top: 2px solid var(--pink);
     padding: 3rem 2.6rem 2.6rem;
     animation: fadeIn .3s ease;
@@ -103,7 +103,7 @@
     justify-content: center;
     margin-bottom: 2rem;
     padding-bottom: 1.4rem;
-    border-bottom: 1px solid rgba(244,241,235,.06);
+    border-bottom: 1px solid var(--c06);
   }
   .brand img {
     display: block;
@@ -134,7 +134,7 @@
   .state-sub {
     font-size: .72rem;
     letter-spacing: .1em;
-    color: rgba(244,241,235,.4);
+    color: var(--c40);
     text-transform: uppercase;
     margin-bottom: 1.8rem;
     line-height: 1.7;
@@ -143,7 +143,7 @@
   /* ── Spinner ── */
   .spinner {
     width: 36px; height: 36px;
-    border: 2px solid rgba(244,241,235,.12);
+    border: 2px solid var(--c12);
     border-top-color: var(--pink);
     border-radius: 50%;
     animation: spin .8s linear infinite;
@@ -178,8 +178,8 @@
     width: 100%;
     padding: .9rem;
     background: transparent;
-    color: rgba(244,241,235,.5);
-    border: 1px solid rgba(244,241,235,.15);
+    color: var(--c50);
+    border: 1px solid var(--c15);
     font-family: var(--fm);
     font-style: normal;
     font-size: .72rem;
@@ -200,13 +200,13 @@
     font-size: .65rem;
     letter-spacing: .18em;
     text-transform: uppercase;
-    color: rgba(244,241,235,.38);
+    color: rgb(var(--fg-rgb) / 38%);
     margin-bottom: .4rem;
   }
   .fgroup input {
     width: 100%;
-    background: rgba(244,241,235,.03);
-    border: 1px solid rgba(244,241,235,.1);
+    background: rgb(var(--fg-rgb) / 3%);
+    border: 1px solid var(--c10);
     color: var(--white);
     padding: .82rem 1rem;
     font-family: var(--fb);
@@ -214,7 +214,7 @@
     outline: none;
     transition: border-color .2s, box-shadow .2s;
   }
-  .fgroup input::placeholder { color: rgba(244,241,235,.18); }
+  .fgroup input::placeholder { color: rgb(var(--fg-rgb) / 18%); }
   .fgroup input:focus { border-color: var(--pink); box-shadow: 0 0 0 3px rgba(248,145,165,.08); }
   .ferr {
     display: none;

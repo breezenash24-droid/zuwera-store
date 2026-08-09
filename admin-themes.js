@@ -25,6 +25,9 @@
       tokens: { fg: '10 10 10', bg: '240 238 233', ink: '#F0EEE9', paper: '#09090b', surface: '#F0EEE9', accent: '#F891A5', err: '#ef4444' } },
     { id: 'super-light', label: 'Super Light', icon: '⚪', base: 'super-light',
       tokens: { fg: '10 10 10', bg: '255 255 255', ink: '#FFFFFF', paper: '#09090b', surface: '#FFFFFF', accent: '#F891A5', err: '#ef4444' } },
+    { id: 'two-tone', label: 'Two-tone', icon: '◐', base: 'light',
+      tokens: { fg: '10 10 10', bg: '240 238 233', ink: '#F0EEE9', paper: '#09090b', surface: '#F0EEE9', accent: '#F891A5', err: '#ef4444',
+                navBg: '#09090b', navFg: '#f4f1eb' } },
   ];
 
   /* The seven. `rgb` ones are stored as bare triplets because the alpha ladder
@@ -38,6 +41,8 @@
     { key: 'paper', label: 'Inverted text', kind: 'hex', help: 'Text on a filled button — the opposite of Text.' },
     { key: 'ink', label: 'Inverted background', kind: 'hex', help: 'A filled button’s background.' },
     { key: 'err', label: 'Error', kind: 'hex', help: 'Failed payments, validation, anything gone wrong.' },
+    { key: 'navBg', label: 'Header background', kind: 'hex', optional: true, help: 'Leave off and the header matches the page. Set it to give the site a header in a different colour from the page below it — a black bar over a light page, say.' },
+    { key: 'navFg', label: 'Header text', kind: 'hex', optional: true, help: 'Only needed when the header has its own background.' },
   ];
 
   var state = { modes: DEFAULT_MODES.slice(), default: 'dark' };
@@ -108,14 +113,34 @@
   function editor(m, i) {
     var fields = FIELDS.map(function (f) {
       var raw = m.tokens[f.key] || '';
-      var hex = f.kind === 'rgb' ? tripletToHex(raw) : raw;
+      var on = !f.optional || !!raw;
+      var hex = f.kind === 'rgb' ? tripletToHex(raw) : (raw || '#09090b');
+
+      /* An optional token is off when it is absent, not when it is some
+         sentinel colour — every nav rule reads var(--zw-nav-bg, <old value>),
+         so "absent" is what makes the header follow the page again. Hence a
+         checkbox that deletes the key rather than a colour meaning "none". */
+      var toggle = f.optional
+        ? '<label style="display:flex;align-items:center;gap:7px;font-size:.73rem;color:var(--text-secondary);cursor:pointer;margin:0 0 8px;">' +
+            '<input type="checkbox"' + (on ? ' checked' : '') +
+              ' onchange="themeToggleOptional(' + i + ',&quot;' + esc(f.key) + '&quot;,this.checked)"' +
+              ' style="width:13px;height:13px;accent-color:var(--accent);cursor:pointer;">' +
+            '<span>' + (on ? 'Using its own colour' : 'Off — follows the page') + '</span>' +
+          '</label>'
+        : '';
+
+      var picker = on
+        ? '<div style="display:flex;gap:8px;align-items:center;">' +
+            '<input type="color" value="' + esc(hex) + '" oninput="themeSetColor(' + i + ',&quot;' + esc(f.key) + '&quot;,this.value)" style="width:44px;height:32px;padding:2px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;cursor:pointer;">' +
+            '<code style="font-size:.74rem;color:var(--text-secondary);">' + esc(hex) + '</code>' +
+          '</div>'
+        : '';
+
       return '<div style="margin-bottom:12px;">' +
         '<label style="display:block;font-size:.76rem;font-weight:600;color:var(--text-primary);margin-bottom:3px;">' + esc(f.label) + '</label>' +
         '<div style="font-size:.73rem;color:var(--text-secondary);line-height:1.5;margin-bottom:6px;">' + esc(f.help) + '</div>' +
-        '<div style="display:flex;gap:8px;align-items:center;">' +
-          '<input type="color" value="' + esc(hex) + '" oninput="themeSetColor(' + i + ',\'' + f.key + '\',this.value)" style="width:44px;height:32px;padding:2px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;cursor:pointer;">' +
-          '<code style="font-size:.74rem;color:var(--text-secondary);">' + esc(hex) + '</code>' +
-        '</div></div>';
+        toggle + picker +
+      '</div>';
     }).join('');
 
     var isBuiltin = BUILTIN_IDS.indexOf(m.id) !== -1;
@@ -178,6 +203,17 @@
     if (!m) return;
     var field = FIELDS.filter(function (f) { return f.key === key; })[0];
     m.tokens[key] = field && field.kind === 'rgb' ? hexToTriplet(hex) : hex;
+    render();
+  };
+
+  /* Turning an optional token off clears it, which is what makes the header
+     follow the page again — every nav rule falls back to its original value
+     when the custom property is absent. */
+  window.themeToggleOptional = function (i, key, on) {
+    var m = state.modes[i];
+    if (!m) return;
+    if (on) m.tokens[key] = key === 'navFg' ? '#f4f1eb' : '#09090b';
+    else delete m.tokens[key];
     render();
   };
 
