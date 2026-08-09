@@ -15,8 +15,13 @@
  * Payload: { sub, perms, exp }  — minter, granting permissions, expiry (epoch s)
  */
 
-const LABEL = 'zw-preview-v1';                 // domain separation for the HMAC
-export const PREVIEW_TTL_SECONDS = 60 * 60 * 2; // 2 hours — long enough to review, short enough to not linger
+const LABEL = 'zw-preview-v1';                  // domain separation for the HMAC
+/* 30 minutes. This is a bearer link — anyone it is forwarded to can open it, on
+   any device, until it lapses — so the window is the main thing limiting a link
+   that escapes. Two hours was generous for "look at this and tell me what you
+   think"; half an hour still is, and cuts the exposure by four. Minting another
+   is one click. */
+export const PREVIEW_TTL_SECONDS = 60 * 30;
 
 function signingKeyMaterial(env) {
   // The service key is the only server-only secret every deployment already
@@ -48,11 +53,44 @@ async function hmac(env, message) {
   return b64url(new Uint8Array(sig));
 }
 
+/* ── Revocation ─────────────────────────────────────────────────────────────
+   Every token records the preview-link generation it was minted under. Bumping
+   site_settings.preview_token_version — the admin's "Revoke all preview links"
+   — moves the generation on, and every token from before it stops verifying at
+   once. Without this, a link you regret sending is simply valid until it
+   expires and there is nothing you can do but wait.
+
+   Read fresh rather than cached: a revoke that takes effect in a minute is not
+   a revoke, and a preview is looked at by one person a handful of times, so the
+   extra read costs nothing that matters. Absent key, unset value, or an
+   unreachable Supabase all mean generation 0 — the same answer a token minted
+   before this existed carries, so nothing breaks on the way in. */
+async function currentVersion(env) {
+  const key = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '';
+  if (!env.SUPABASE_URL || !key) return 0;
+  try {
+    const resp = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.preview_token_version`,
+      { headers: { apikey: key, Authorization: 'Bearer ' + key }, cache: 'no-store' }
+    );
+    if (!resp.ok) return 0;
+    const rows = await resp.json();
+    let v = rows && rows[0] ? rows[0].value : 0;
+    if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = 0; } }
+    return Number(v && typeof v === 'object' ? v.version : v) || 0;
+  } catch (_) {
+    // Supabase unreachable. Fail open: the storefront is already broken in that
+    // case, and locking an admin out of a preview would be the wrong trade.
+    return 0;
+  }
+}
+
 /** Mint a token for an admin. `perms` is the list that granted the preview. */
 export async function mintPreviewToken(env, { sub, perms }) {
   const payload = {
     sub: String(sub || ''),
     perms: Array.isArray(perms) ? perms.slice(0, 20) : [],
+    v: await currentVersion(env),
     exp: Math.floor(Date.now() / 1000) + PREVIEW_TTL_SECONDS,
   };
   const body = b64url(JSON.stringify(payload));
@@ -83,6 +121,8 @@ export async function verifyPreviewToken(env, token) {
     const payload = JSON.parse(b64urlDecode(parts[0]));
     if (!payload || typeof payload.exp !== 'number') return null;
     if (payload.exp < Math.floor(Date.now() / 1000)) return null;
+    // Revoked: minted before the last "Revoke all preview links".
+    if ((Number(payload.v) || 0) !== await currentVersion(env)) return null;
     return payload;
   } catch (_) {
     return null;

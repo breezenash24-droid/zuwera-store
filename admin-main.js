@@ -1504,6 +1504,50 @@
               free:'Trial credit, then per message',
               docs:'https://console.twilio.com',
               steps:['console.twilio.com → buy a number','Copy the Account SID and Auth Token','Add them under API keys above'] },
+
+            /* ── Sales tax providers ────────────────────────────────────────
+               What runs today is the built-in table: state rates, Ohio by county
+               via ZIP3, Illinois by ZIP3, flat KY/IN, plus whatever Admin → Tax
+               overrides. It is honest and free and wrong at the edges — it
+               cannot know a city district rate, or that clothing is exempt in
+               PA/NJ/MN and partly exempt in NY under $110, which for a clothing
+               store is the expensive part.
+
+               These are the services that do know. All listed as guides on
+               purpose: none is wired into checkout, so a key pasted here would
+               do nothing. Picking one is a real integration job — swapping
+               getTaxRateForAddress() in create-payment-intent for a call out,
+               with the built-in table left as the fallback for when that call
+               times out. Say which and it gets built.
+
+               Stripe Tax already has its own card above, under Tax & compliance,
+               because it needs no key at all — it rides the Stripe account this
+               store already charges through. Start there unless one of these
+               solves something it does not. */
+
+            { key:'taxjar', kind:'guide', icon:'🧮', name:'TaxJar', cat:'Sales tax',
+              blurb:'Real-time sales-tax calculation for e-commerce, plus the returns-filing side that most stores actually buy it for. Knows clothing exemptions per state, which the built-in table does not. Owned by Stripe now, so it overlaps heavily with Stripe Tax — pick one.',
+              free:'Free API sandbox; paid from ~$19/mo, filing extra',
+              docs:'https://developers.taxjar.com',
+              steps:['app.taxjar.com → Account → API access → copy the token','Add your nexus states so it knows where to charge','This is a SECRET key — Cloudflare env var, never the browser','Tell me and I will wire it into create-payment-intent with the built-in table as fallback'] },
+
+            { key:'avalara', kind:'guide', icon:'🌍', name:'Avalara AvaTax', cat:'Sales tax',
+              blurb:'Rooftop-level accuracy — it resolves the exact parcel, not the ZIP, which matters where one ZIP straddles two districts. Global coverage and full compliance reporting. The heavyweight of the five: worth it once tax is a real liability, overkill before that.',
+              free:'No free tier — quoted, typically four figures a year',
+              docs:'https://developer.avalara.com',
+              steps:['Create an account at avalara.com and get an Account ID + Licence Key','Set up your company profile and nexus jurisdictions','Map products to Avalara tax codes — clothing has its own','Secret credentials: Cloudflare env vars only'] },
+
+            { key:'ziptax', kind:'guide', icon:'📍', name:'Zip-Tax', cat:'Sales tax',
+              blurb:'A lightweight lookup: give it a ZIP or an address, get the combined rate back. No filing, no nexus tracking, no product categories — just a better number than a state-level table. The closest in shape to what the built-in code already does, which makes it the cheapest swap of the five.',
+              free:'Free tier ~100 requests/month; paid from ~$20/mo',
+              docs:'https://www.zip-tax.com/documentation',
+              steps:['Sign up at zip-tax.com and copy the API key','Confirm the plan covers your monthly checkout volume','Secret key — Cloudflare env var','Cache responses per ZIP: the same rate answers thousands of carts'] },
+
+            { key:'sovos', kind:'guide', icon:'🏛️', name:'Sovos', cat:'Sales tax',
+              blurb:'Enterprise tax determination and reporting, built for filing across many jurisdictions at volume. The reason to choose it over Avalara is usually reporting obligations rather than the rates themselves. Almost certainly more than a single-brand store needs.',
+              free:'Enterprise pricing — quoted',
+              docs:'https://sovos.com/products/indirect-tax/',
+              steps:['Contact Sovos for a quote and sandbox credentials','Scope which jurisdictions you actually have nexus in first','Map your catalogue to their product classifications','Secret credentials: Cloudflare env vars only'] },
         ];
 
         let _integrations = {};          // site_settings.integrations
@@ -2977,6 +3021,37 @@
             } catch (err) {
                 if (tab) tab.close();
                 showToast((err && err.message) || 'Could not create a preview link.', 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = restore; }
+            }
+        }
+
+        /* ─── Revoke every outstanding preview link ──────────────────────────
+           A preview link is a bearer link: whoever holds the string sees the
+           drafts, from any device, until it expires. That is what makes it
+           shareable and it is the point — but it also means a link that goes
+           somewhere you did not intend cannot be called back, only waited out.
+
+           Every token carries the generation it was minted under, so bumping the
+           number here retires all of them at once, including tabs already open.
+           Nothing else reads this key, so a plain read-modify-write is fine: two
+           admins revoking at the same moment both revoke. */
+        async function revokeAllPreviewLinks() {
+            if (!confirm('Revoke every preview link?\n\nAnyone holding one stops seeing drafts immediately, including any tab you have open. Making a new link takes one click.')) return;
+            const btn = document.getElementById('revokePreviewLinksBtn');
+            const restore = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '🚫 Revoking…'; }
+            try {
+                const { data } = await sb.from('site_settings').select('value')
+                    .eq('key', 'preview_token_version').maybeSingle();
+                const next = (Number(data && data.value) || 0) + 1;
+                const { error } = await sb.from('site_settings')
+                    .upsert({ key: 'preview_token_version', value: next }, { onConflict: 'key' });
+                if (error) throw error;
+                void logAdminAudit('settings.update', 'site_settings', 'preview_token_version', { revokedTo: next });
+                showToast('All preview links revoked. Open a new one whenever you need it.', 'success');
+            } catch (err) {
+                showToast('Could not revoke: ' + ((err && err.message) || 'unknown error'), 'error');
             } finally {
                 if (btn) { btn.disabled = false; btn.innerHTML = restore; }
             }

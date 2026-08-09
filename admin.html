@@ -297,6 +297,8 @@
                arrives from /api/admin-access rather than flashing for everyone. */
             const pvBtn = document.getElementById('previewUnpublishedBtn');
             if (pvBtn) pvBtn.style.display = can('builder_edit') ? 'flex' : 'none';
+            const rvBtn = document.getElementById('revokePreviewLinksBtn');
+            if (rvBtn) rvBtn.style.display = can('builder_edit') ? 'flex' : 'none';
         }
         renderAdminNav();
         </script>
@@ -312,6 +314,12 @@
                      button is the courtesy, not the control. -->
                 <button id="previewUnpublishedBtn" onclick="openUnpublishedPreview()" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--text-secondary);font-size:.8rem;cursor:pointer;align-items:center;gap:8px;font-family:inherit;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor=''">
                     👁 Preview unpublished
+                </button>
+                <!-- A preview link works for whoever holds it, so there has to be
+                     a way to call one back before it lapses. Same permission as
+                     minting; hidden alongside the button above. -->
+                <button id="revokePreviewLinksBtn" onclick="revokeAllPreviewLinks()" title="Make every preview link stop working immediately" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--text-secondary);font-size:.8rem;cursor:pointer;align-items:center;gap:8px;font-family:inherit;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--error)'" onmouseout="this.style.borderColor=''">
+                    🚫 Revoke preview links
                 </button>
                 <button onclick="openSearch()" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--text-secondary);font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor=''">
                     🔍 Search <kbd style="background:var(--bg-primary);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:.7rem;">Ctrl K</kbd>
