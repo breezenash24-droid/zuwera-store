@@ -12,6 +12,17 @@
   var SUPABASE_ANON = window.SUPABASE_ANON || window.SUPA_ANON || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
   function applyThemeMode(mode) {
+    /* theme-engine.js owns the palette when it is on the page: it knows every
+       configured theme, not just these three, and it paints the colour tokens
+       as well as the body class. Delegating rather than duplicating means the
+       dozen existing callers of this function keep working unchanged and a
+       custom theme id reaches the engine instead of being coerced to 'light'
+       by the line below. Falls through to the original path when the engine
+       is absent, so a page that has not loaded it still themes correctly. */
+    if (window.ZWTheme && window.ZWTheme.get(mode)) {
+      window.ZWTheme.apply(mode, !window.__ZW_BUILDER_PREVIEW__);
+      return;
+    }
     var resolved = mode === 'dark' ? 'dark' : mode === 'super-light' ? 'super-light' : 'light';
     if (!document.body) return;
     document.body.classList.toggle('light-mode', resolved !== 'dark');

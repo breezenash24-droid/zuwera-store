@@ -537,6 +537,37 @@ function showToast(msg) {
     }
   }, true);
 
+  /* Section backgrounds that follow the theme.
+
+     A builder colour is normally an absolute value, which is right for a brand
+     band that must stay the same in every theme — and wrong for a section that
+     was only ever meant to read as "slightly off the page colour". The second
+     kind is why the products strip stayed beige when the site went dark.
+
+     'token:<name>' resolves through the palette instead, so the section is
+     repainted with everything else. Names map to the seven theme tokens; a
+     name that no longer exists falls through to no background, which returns
+     the section to the page colour rather than leaving it a stale literal. */
+  const SECTION_BG_TOKENS = {
+    page:    'var(--black)',
+    surface: 'var(--surface-light)',
+    paper:   'var(--paper)',
+    ink:     'var(--ink)',
+    accent:  'var(--accent)',
+    // Faint washes of the foreground — the usual "just off the page" case, and
+    // they follow the theme automatically because the ladder does.
+    tint:    'var(--c06)',
+    'tint-strong': 'var(--c12)',
+  };
+
+  function resolveSectionBackground(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    if (raw.slice(0, 6) !== 'token:') return raw;
+    return SECTION_BG_TOKENS[raw.slice(6)] || '';
+  }
+  window.zwSectionBgTokens = SECTION_BG_TOKENS;   // the builder lists these
+
   function applyBuilderConfig(cfg) {
     if (!cfg || !cfg.sections) return;
 
@@ -1741,13 +1772,21 @@ function showToast(msg) {
       // it we drive a full-bleed ::before via --zw-secbg + .zw-secbg instead;
       // every other section is full-width, so the direct background is right there.
       const _bgBleed = el.classList.contains('products-section');
-      if (s.sec_bg) {
+      /* A section background used to be a literal colour and nothing else,
+         which is why the products strip was the one part of the homepage that
+         ignored the theme: it had been given #F0EEE9 in the builder, so it
+         painted #F0EEE9 in dark mode too. A value naming a theme token instead
+         — 'token:paper', 'token:surface' — resolves through the palette and
+         follows whatever theme is active. Plain colours still work exactly as
+         before; this only adds a way to say "the theme decides". */
+      const _secBg = resolveSectionBackground(s.sec_bg);
+      if (_secBg) {
         if (_bgBleed) {
-          el.style.setProperty('--zw-secbg', s.sec_bg);
+          el.style.setProperty('--zw-secbg', _secBg);
           el.classList.add('zw-secbg');
           el.style.removeProperty('background');
         } else {
-          el.style.setProperty('background', s.sec_bg, 'important');
+          el.style.setProperty('background', _secBg, 'important');
         }
       } else {
         el.style.removeProperty('background'); // clear when unset so mode bg returns
