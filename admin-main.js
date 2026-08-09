@@ -2657,6 +2657,97 @@
             }
         }
 
+        /* ─── Database migrations ────────────────────────────────────────────
+           Shows what production has applied versus what the repository ships,
+           and applies the difference. The drift line is the important one: a
+           migration edited after it ran means the repo and the database
+           disagree about what that version did, which is otherwise invisible. */
+        async function migrateCall(action) {
+            const { data } = await sb.auth.getSession();
+            const accessToken = data && data.session && data.session.access_token;
+            const resp = await fetch('/api/migrate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accessToken, action }),
+            });
+            return resp.json().catch(() => null);
+        }
+
+        async function loadMigrations() {
+            const host = document.getElementById('migrationsPanel');
+            const applyBtn = document.getElementById('migrateApplyBtn');
+            if (!host) return;
+            host.innerHTML = '<span style="color:var(--text-secondary);">Checking…</span>';
+            if (applyBtn) applyBtn.style.display = 'none';
+            try {
+                const j = await migrateCall('status');
+                if (!j || !j.ok) throw new Error((j && j.error) || 'Could not read migration state.');
+
+                if (j.bootstrapped === false) {
+                    host.innerHTML =
+                        '<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:12px 14px;line-height:1.7;">'
+                        + '<strong>One-time setup needed.</strong> Open the Supabase SQL editor and run '
+                        + '<code style="background:var(--border);padding:1px 5px;border-radius:4px;">' + escapeHtml(j.bootstrapFile) + '</code> once. '
+                        + 'It creates the tracking table and the applier; every migration after that is applied from this button.'
+                        + (j.pending && j.pending.length ? '<div style="margin-top:8px;">Waiting to run: ' + j.pending.map(p => escapeHtml(p.version)).join(', ') + '</div>' : '')
+                        + '</div>';
+                    return;
+                }
+
+                let html = '';
+                if (j.drifted && j.drifted.length) {
+                    html += '<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.35);border-radius:6px;padding:12px 14px;margin-bottom:14px;line-height:1.7;">'
+                        + '<strong>⚠ Edited after it ran.</strong> These migrations were changed in the repo after production applied them, so the two no longer agree on what that version did: '
+                        + j.drifted.map(d => escapeHtml(d.version + ' ' + d.name)).join(', ')
+                        + '. Add a new migration with the correction rather than editing an applied one.'
+                        + '</div>';
+                }
+
+                if (!j.pending.length) {
+                    html += '<div style="color:#4ade80;margin-bottom:12px;">✓ Production is up to date with the repository.</div>';
+                } else {
+                    html += '<div style="margin-bottom:12px;"><strong>' + j.pending.length + ' pending:</strong><ul style="margin:6px 0 0 18px;line-height:1.8;">'
+                        + j.pending.map(p => '<li><code>' + escapeHtml(p.version) + '</code> ' + escapeHtml(p.name.replace(/_/g, ' ')) + '</li>').join('')
+                        + '</ul></div>';
+                    if (applyBtn) applyBtn.style.display = '';
+                }
+
+                html += '<details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--text-secondary);">'
+                    + j.applied.length + ' applied</summary>'
+                    + '<div style="margin-top:8px;color:var(--text-secondary);line-height:1.8;">'
+                    + j.applied.map(a => '<div><code>' + escapeHtml(a.version) + '</code> ' + escapeHtml(a.name.replace(/_/g, ' '))
+                        + (a.applied_at ? ' — ' + new Date(a.applied_at).toLocaleDateString() : '')
+                        + (a.applied_by ? ' by ' + escapeHtml(a.applied_by) : '') + '</div>').join('')
+                    + '</div></details>';
+
+                host.innerHTML = html;
+            } catch (err) {
+                host.innerHTML = '<span style="color:#ef4444;">' + escapeHtml((err && err.message) || 'Could not read migration state.') + '</span>';
+            }
+        }
+
+        async function applyMigrations() {
+            const btn = document.getElementById('migrateApplyBtn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Applying…'; }
+            try {
+                const j = await migrateCall('apply');
+                if (!j || !j.ok) {
+                    const where = j && j.failedAt ? ' at ' + j.failedAt.version + ' ' + j.failedAt.name : '';
+                    // Stopping at the first failure is deliberate; say which one,
+                    // because the rest are still pending and the schema is
+                    // exactly where that migration left it.
+                    showToast('Migration failed' + where + ': ' + ((j && j.error) || 'unknown'), 'error');
+                } else {
+                    showToast(j.count ? 'Applied ' + j.count + ' migration' + (j.count === 1 ? '' : 's') + '.' : 'Nothing to apply.', 'success');
+                }
+            } catch (err) {
+                showToast((err && err.message) || 'Could not apply migrations.', 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Apply pending'; }
+                loadMigrations();
+            }
+        }
+
         // ─── API Key Editor Modal ─────────────────────────────────────────────────
 
         function openKeyEdit(service) {

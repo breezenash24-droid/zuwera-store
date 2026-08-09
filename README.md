@@ -70,14 +70,30 @@ build artifact, gitignored, and not what ships.
 
 ### Testing, stated honestly
 
-There is **no unit or integration test suite** — no `*.test.js`, no test runner.
-What exists is static analysis (`repo-audit.js`), a set of wiring assertions
-(`deployment-checklist.js`), and one 108-line checkout smoke script. CI runs
-these plus gitleaks secret scanning on every push.
+`npm test` runs **327 checks across 9 suites** in `tests/`. No framework and no
+dev dependency: each suite is a plain Node script that prints its results and
+exits non-zero on failure, so a clean checkout can run the tests before it
+installs anything.
 
-That is meaningfully better than nothing and meaningfully less than a test suite.
-Treat any change to payments, stock, or auth as needing manual verification
-against a test Stripe key and a non-production Supabase project.
+Alongside them, CI runs static analysis (`repo-audit.js`), 30 wiring assertions
+(`deployment-checklist.js`), a checkout/cart smoke script, and gitleaks secret
+scanning on every push. `npm run ci` runs the lot.
+
+**What the suites cover.** Pure logic — discount arithmetic, tax rates and their
+admin overrides, config normalising, preview-token signing and forgery — and the
+contracts between files that this codebase keeps breaking: the two typography
+selector maps that must stay identical, the four SQL files that must carry the
+same RLS allow-list, CSS specificity where a rule has to outrank a specific other
+rule, and cache headers that must differ between catalogue and stock. Most of
+them exist because the exact bug they describe shipped once already; several
+assert the arithmetic of a past regression so it is described, not just caught.
+
+**What they do not cover, which is the honest gap.** They do not drive a browser
+and they do not talk to Supabase or Stripe. There is no end-to-end run of a real
+checkout against Stripe test cards, and no test exercises RLS policies against a
+live database. So a change to payments, stock or auth still deserves manual
+verification against a test Stripe key and a non-production Supabase project —
+the suite will catch a broken contract, not a broken integration.
 
 ## Repository layout
 

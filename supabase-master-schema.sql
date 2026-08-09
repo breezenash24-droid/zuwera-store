@@ -1,6 +1,44 @@
 -- ============================================================================
--- ZUWERA: Master Database Schema (Overrides all previous migrations)
+-- ZUWERA: Master Database Schema — FIRST-TIME SETUP ONLY
 -- ============================================================================
+--
+-- ⚠ THIS FILE DESTROYS DATA. It drops every table before recreating it. On a
+-- live store that is every order, customer, product and setting, permanently.
+--
+-- It is for standing up a NEW, EMPTY project. It is not a migration and it is
+-- not a repair tool. To change the schema of a database that already has data,
+-- add a file to migrations/ and apply it from Admin → APIs → Database
+-- migrations.
+--
+-- The guard below refuses to run if any core table already holds rows, so a
+-- copy-paste into the wrong SQL editor fails loudly instead of succeeding
+-- catastrophically. Setting up a genuinely new project? Nothing to do — the
+-- tables do not exist yet, so the guard passes.
+-- ============================================================================
+
+do $$
+declare
+  n bigint;
+begin
+  if to_regclass('public.orders') is not null then
+    execute 'select count(*) from public.orders' into n;
+    if n > 0 then
+      raise exception using
+        message = 'REFUSING TO RUN: public.orders already contains ' || n || ' row(s).',
+        hint    = 'This file drops every table. To change an existing database, add a file to migrations/ and apply it from Admin → APIs → Database migrations. If you really do want to wipe this project, empty the orders table first.';
+    end if;
+  end if;
+
+  if to_regclass('public.products') is not null then
+    execute 'select count(*) from public.products' into n;
+    if n > 0 then
+      raise exception using
+        message = 'REFUSING TO RUN: public.products already contains ' || n || ' row(s).',
+        hint    = 'This file drops every table. Use migrations/ for changes to an existing database.';
+    end if;
+  end if;
+end
+$$;
 
 -- 1. DROP ALL EXISTING TABLES (To ensure a clean slate)
 DROP TABLE IF EXISTS favorites CASCADE;
