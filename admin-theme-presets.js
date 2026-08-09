@@ -112,23 +112,47 @@
     };
   }
 
+  /* fonts is three roles plus per-section overrides. An import knows two of the
+     roles and nothing about the rest, so writing it wholesale deleted
+     roles.mono — which ~29 rules use through --zw-font-mono — along with every
+     per-section override anyone had set. Same shape of bug as theme_modes: a
+     partial value overwriting a composite one.
+
+     Merged per role, so an import supplying head and body leaves mono and the
+     section overrides exactly where they were. */
+  function mergeFonts(existing, incoming) {
+    var out = JSON.parse(JSON.stringify(existing && typeof existing === 'object' ? existing : {}));
+    out.roles = out.roles || {};
+    var roles = (incoming && incoming.roles) || {};
+    Object.keys(roles).forEach(function (r) { if (roles[r]) out.roles[r] = roles[r]; });
+    if (incoming && incoming.sections) out.sections = incoming.sections;
+    return out;
+  }
+
+  /* Which keys are composite, and how to fold a partial value into one. Anything
+     not listed replaces wholesale, which is right for the single objects. */
+  var MERGERS = { theme_modes: mergeThemeModes, fonts: mergeFonts };
+
   async function writeKeys(map) {
     var keys = Object.keys(map);
     if (!keys.length) return;
 
+    var needs = keys.filter(function (k) { return MERGERS[k]; });
     var current = {};
-    if (keys.indexOf('theme_modes') !== -1) {
+    if (needs.length) {
       try {
-        var got = await sb.from('site_settings').select('value').eq('key', 'theme_modes').maybeSingle();
-        var v = got.data && got.data.value;
-        if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
-        current.theme_modes = v || {};
-      } catch (_) { current.theme_modes = {}; }
+        var got = await sb.from('site_settings').select('key,value').in('key', needs);
+        (got.data || []).forEach(function (row) {
+          var v = row.value;
+          if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+          current[row.key] = v || {};
+        });
+      } catch (_) {}
     }
 
     var rows = keys.map(function (k) {
       var value = map[k];
-      if (k === 'theme_modes') value = mergeThemeModes(current.theme_modes, value);
+      if (MERGERS[k]) value = MERGERS[k](current[k], value);
       return { key: k, value: value };
     });
     var res = await sb.from('site_settings').upsert(rows, { onConflict: 'key' });

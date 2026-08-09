@@ -506,6 +506,28 @@
     window.themeVisReload();
   }
 
+  /* Bring back any built-in that is missing.
+
+     Merging protects future applies; it cannot resurrect what an earlier one
+     already deleted. A store whose theme list was overwritten by an import has
+     no way back — the engine only falls back to the built-ins when the row is
+     EMPTY, and a list with one imported theme in it is not empty. So this adds
+     back whichever of the four are gone and leaves everything else alone,
+     including a built-in that has been recoloured on purpose. */
+  window.themeRestoreBuiltins = async function () {
+    var missing = DEFAULT_MODES.filter(function (d) {
+      return !state.modes.some(function (m) { return m.id === d.id; });
+    });
+    if (!missing.length) { status('All four built-in themes are already here.'); return; }
+    if (!confirm('Add back ' + missing.length + ' missing built-in theme' + (missing.length > 1 ? 's' : '') +
+                 ' (' + missing.map(function (m) { return m.label; }).join(', ') + ')?\n\n' +
+                 'Nothing already in the list is touched — including a built-in you have recoloured.')) return;
+    state.modes = state.modes.concat(JSON.parse(JSON.stringify(missing)));
+    render();
+    await save();
+    status('Restored: ' + missing.map(function (m) { return m.label; }).join(', ') + '.');
+  };
+
   window.themeSave = save;
   window.themeLoad = load;
 
