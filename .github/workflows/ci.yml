@@ -38,6 +38,12 @@ jobs:
       - name: Deployment checklist (wiring + checkout/cart smoke)
         run: npm run deployment-checklist
 
+      # The unit/contract suites in tests/. Blocking: most of them exist because
+      # the bug they describe shipped once already, so a red run means something
+      # that was fixed has come back.
+      - name: Test suite
+        run: npm test
+
       - name: Static build sanity (produces dist/)
         run: npm run build
 
