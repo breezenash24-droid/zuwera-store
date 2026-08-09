@@ -152,7 +152,7 @@
   }
 
   // ── The mapping ──────────────────────────────────────────────────────────
-  function build(schema, data, indexTpl, name) {
+  function build(schema, data, indexTpl, name, icons) {
     var current = (data && data.current) || {};
     if (typeof current === 'string') current = {};   // a named preset, not values
 
@@ -218,8 +218,59 @@
     } catch (_) {}
 
     // Things a Shopify theme carries that have nowhere to land here yet.
-    ['Header layout', 'Animations and hover effects', 'Product page layout', 'Liquid templates and custom sections']
+    ['Header layout', 'Product page layout', 'Liquid templates and custom sections', 'Images and photography (licensed to the theme)']
       .forEach(function (x) { missed.push(x); });
+
+    /* One id, computed once. Generating it twice - once for the theme and once
+       for the `default` that points at it - is two Date.now() calls that can
+       land in different milliseconds, and then the default names a theme that
+       does not exist and the storefront silently falls back to a built-in. */
+    var themeId = 'imported-' + Date.now().toString(36);
+
+    var keys = {
+      theme_modes: {
+        modes: [{
+          id: themeId,
+          label: name || 'Imported',
+          icon: '\u{1F4E6}',
+          // A light page keeps the light structural CSS behind it. Judged from
+          // the imported background rather than guessed.
+          base: isDark(col.bg) ? 'dark' : 'light',
+          tokens: Object.assign({ err: '#ef4444' }, tokens),
+        }],
+        default: themeId,
+      },
+    };
+
+    /* Fonts actually apply now - before this they were reported and thrown
+       away. A role here is { stack, url }, so an arbitrary family works: build
+       the Google Fonts URL and keep a sensible fallback in the stack.
+
+       The limit worth stating plainly: Shopify's font library is not only
+       Google Fonts. It also serves licensed foundry faces from its own CDN
+       under its own licence, and those cannot load here at all - not a bug to
+       fix, a licence that does not travel. When that happens the stylesheet
+       does not resolve, the fallback takes over, and the report names the
+       family so you can choose a replacement rather than wonder why the type
+       looks wrong. */
+    if (fonts.head || fonts.body) {
+      var roles = {};
+      if (fonts.head) roles.head = googleRole(fonts.head, 'sans-serif');
+      if (fonts.body) roles.body = googleRole(fonts.body, 'sans-serif');
+      keys.fonts = { roles: roles };
+    }
+
+    /* Icons. Shopify keeps them as snippets/icon-*.liquid, which are inline SVG
+       with the occasional Liquid tag in an attribute - strip those and the
+       markup is portable. This is the one part of a theme's actual DRAWING that
+       ports, because an icon is self-contained in a way a template is not. */
+    var iconCustom = icons || {};
+    if (Object.keys(iconCustom).length) {
+      keys.icons = { set: 'outline', overrides: {}, custom: iconCustom };
+      got.push('Icons (' + Object.keys(iconCustom).length + ' matched)');
+    } else {
+      missed.push('Icons');
+    }
 
     return {
       preset: {
@@ -228,23 +279,60 @@
         scope: 'look',
         createdAt: new Date().toISOString(),
         source: 'shopify-zip',
-        keys: {
-          theme_modes: {
-            modes: [{
-              id: 'imported-' + Date.now().toString(36),
-              label: name || 'Imported',
-              icon: '📦',
-              // A light page keeps the light structural CSS behind it. Judged
-              // from the imported background rather than guessed.
-              base: isDark(col.bg) ? 'dark' : 'light',
-              tokens: Object.assign({ err: '#ef4444' }, tokens),
-            }],
-            default: 'imported-' + Date.now().toString(36),
-          },
-        },
+        keys: keys,
       },
       report: { got: got, missed: missed, sections: sections, fonts: fonts },
     };
+  }
+
+  /* A Google Fonts role. Optimistic by design: if the family is not on Google
+     the stylesheet does not resolve and the fallback in the stack takes over,
+     which is a better outcome than refusing to import a name we could not
+     verify ahead of time. */
+  function googleRole(family, fallback) {
+    var q = String(family).trim().replace(/\s+/g, '+');
+    return {
+      stack: '"' + family + '", ' + fallback,
+      url: 'https://fonts.googleapis.com/css2?family=' + q + ':wght@300;400;500;600;700&display=swap',
+    };
+  }
+
+  /* Shopify's icon snippet names, mapped to the names used here. Only the ones
+     with a real equivalent - an icon with nowhere to go is not worth importing,
+     and a half-matched set looks worse than the one you had. */
+  var ICON_MAP = {
+    'icon-cart': 'bag', 'icon-bag': 'bag', 'icon-cart-empty': 'bag',
+    'icon-search': 'search',
+    'icon-account': 'account', 'icon-customer': 'account',
+    'icon-close': 'close', 'icon-close-small': 'close',
+    'icon-hamburger': 'menu', 'icon-menu': 'menu',
+    'icon-caret': 'chevron', 'icon-chevron-down': 'chevron', 'icon-arrow-down': 'chevron',
+    'icon-heart': 'heart',
+    'icon-question': 'support', 'icon-info': 'support',
+  };
+
+  function extractIcons(files) {
+    var out = {};
+    var dec = new TextDecoder();
+    Object.keys(files).forEach(function (path) {
+      var base = path.split('/').pop().replace(/\.liquid$/i, '');
+      var target = ICON_MAP[base];
+      if (!target || out[target]) return;          // first match wins
+      var text = dec.decode(files[path]);
+      var m = text.match(/<svg[\s\S]*?<\/svg>/i);
+      if (!m) return;
+      var svg = m[0]
+        .replace(/\{\{[\s\S]*?\}\}/g, '')          // {{ liquid output }}
+        .replace(/\{%[\s\S]*?%\}/g, '')            // {% liquid tags %}
+        .replace(/<script[\s\S]*?<\/script>/gi, '');
+      /* Follow the theme's text colour. A hardcoded fill would make an imported
+         icon invisible on half the palettes it could land on - the whole point
+         of currentColor, and the one edit worth making to someone else's SVG. */
+      svg = svg.replace(/fill="(?!none)[^"]*"/gi, 'fill="currentColor"')
+               .replace(/stroke="(?!none)[^"]*"/gi, 'stroke="currentColor"');
+      if (svg.length < 8000) out[target] = svg.trim();
+    });
+    return out;
   }
 
   function isDark(h) {
@@ -269,7 +357,8 @@
       var buf = await file.arrayBuffer();
       var files = await readZip(buf, function (n) {
         return /(^|\/)config\/settings_(schema|data)\.json$/.test(n) ||
-               /(^|\/)templates\/index\.json$/.test(n);
+               /(^|\/)templates\/index\.json$/.test(n) ||
+               /(^|\/)snippets\/icon-[a-z0-9-]+\.liquid$/i.test(n);
       });
       var pick = function (re) {
         var k = Object.keys(files).filter(function (n) { return re.test(n); })[0];
@@ -282,7 +371,7 @@
 
       var themeName = '';
       try { themeName = (Array.isArray(schema) ? schema[0] : {}).theme_name || ''; } catch (_) {}
-      var built = build(schema, data, idx, themeName || file.name.replace(/\.zip$/i, ''));
+      var built = build(schema, data, idx, themeName || file.name.replace(/\.zip$/i, ''), extractIcons(files));
       pending = built.preset;
       say(renderReport(built, themeName));
     } catch (err) {

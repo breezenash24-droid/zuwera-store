@@ -329,6 +329,30 @@ console.log('\n  reading a Shopify theme export');
   ok('takes settings values only — never the theme’s code, CSS or images',
     /never the theme|deliberately does not copy/.test(im));
   ok('an import is saved, not applied', /not applied yet/.test(im));
+
+  /* Fonts were reported and then thrown away — named in the summary, absent
+     from the preset. The gap only showed up when asked directly whether they
+     came across, which is the argument for the report naming things precisely
+     enough that someone can check them. */
+  ok('fonts are applied, not merely reported', /keys\.fonts = \{ roles: roles \}/.test(im));
+  ok('…as a real family with a loadable stylesheet', /fonts\.googleapis\.com\/css2\?family=/.test(im));
+  ok('…and the licence that does not travel is stated, not hidden',
+    /licensed foundry faces|licence that does not travel/.test(im));
+
+  /* Icons DO port: Shopify keeps them as snippets/icon-*.liquid, which are
+     inline SVG once the Liquid tags are stripped. The one part of a theme's
+     actual drawing that moves, because an icon is self-contained. */
+  ok('icons are pulled out of the theme’s snippets', /ICON_MAP/.test(im) && /icon-cart/.test(im));
+  ok('…with Liquid stripped out of the markup', /\{%\[\\s\\S\]\*\?%\}/.test(im) || /liquid tags/.test(im));
+  ok('…and recoloured to currentColor so they survive a palette change',
+    /fill="currentColor"/.test(im) && /invisible on half the palettes/.test(im));
+  ok('an icon with no equivalent here is skipped, not half-matched',
+    /if \(!target \|\| out\[target\]\) return;/.test(im));
+
+  /* Two Date.now() calls milliseconds apart can differ, and then `default`
+     names a theme that does not exist and the storefront falls back silently. */
+  ok('the theme id and the default pointing at it are computed once',
+    /var themeId = 'imported-'/.test(im) && /default: themeId/.test(im));
 }
 
 console.log('\n  a theme is a snapshot, not a rewrite');
