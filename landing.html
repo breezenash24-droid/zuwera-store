@@ -42,6 +42,24 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
     st.textContent='body{background:'+bg+'!important}html::before{background:'+bg+'!important}';
     document.head.appendChild(st);
   }
+  /* Pre-paint the THEME's own colours, not just the three built-in names.
+     zw_theme_mode holds a theme ID now, so the branch above stops firing the
+     moment anyone makes a theme — and the header painted its stylesheet
+     fallback, white, until theme-engine.js ran and corrected it. That is the
+     flash. Same cache the engine writes, read synchronously before first paint.
+     On <html> because <body> does not exist yet; the engine later sets these on
+     <body>, which is more specific, so nothing here fights it. */
+  try{
+    var _tc=JSON.parse(localStorage.getItem('zw_theme_modes')||'null');
+    var _tid=localStorage.getItem('zw_theme_mode')||(_tc&&_tc.default);
+    var _tm=_tc&&_tc.modes&&_tc.modes.filter(function(x){return x&&x.id===_tid})[0];
+    var _tt=_tm&&_tm.tokens;
+    if(_tt){
+      if(_tt.navBg)h.style.setProperty('--zw-nav-bg',_tt.navBg);
+      if(_tt.bg)h.style.background='rgb('+_tt.bg+')';
+      if(_tm.base&&_tm.base!=='dark')h.style.colorScheme='light';
+    }
+  }catch(_){}
   var f=localStorage.getItem('zw_fonts');
   if(f){f=JSON.parse(f);
     if(f.vars)Object.keys(f.vars).forEach(function(k){h.style.setProperty(k,f.vars[k])});

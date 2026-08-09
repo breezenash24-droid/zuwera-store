@@ -141,7 +141,13 @@ console.log('\n  themes are data');
      A substring test cannot catch that. This one finds every rule that paints
      a nav background, on every storefront page, and requires each one to read
      the token. It fails by naming the file and the selector. */
-  const navSel = /\.nav(?![\w-])|\.zw-nav(?![\w-])|#nav(?![\w-])/;
+  /* .co-header is the checkout's sticky header — a SIXTH dialect that three
+     separate nav-colour passes missed, because each enumerated the dialects it
+     knew and this page names its header after the checkout rather than after
+     the nav. It read var(--bg) and a themed header never reached it: white bar
+     on a green site. Listed here so the guard covers it, and so the next header
+     named after its page fails this test instead of shipping. */
+  const navSel = /\.nav(?![\w-])|\.zw-nav(?![\w-])|#nav(?![\w-])|\.co-header(?![\w-])/;
   /* The nav must be the SUBJECT of the rule, not merely an ancestor in it.
      `.nav #cart-btn .cc { background: … }` paints the bag's count badge, which
      is supposed to contrast WITH the header rather than match it — demanding
