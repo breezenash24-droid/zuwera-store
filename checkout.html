@@ -524,6 +524,10 @@
       <!-- WALLET BUTTONS -->
       <div class="zw-test-mode-banner" data-stripe-test-banner>Test mode active — use Stripe test cards only.</div>
       <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
+      <!-- Only one of these two ever mounts. The Express Checkout Element is the
+           opt-in path (Admin → APIs → Apple Pay on Chrome & Edge) — it is the
+           only one that offers Apple Pay outside Safari, by QR code. -->
+      <div id="express-checkout-btn" style="display:none" aria-hidden="true"></div>
       <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
       <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0 1.4rem;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">— or pay with card —</div>
 
@@ -953,6 +957,7 @@ window.zwClearPromo = function() {
 </script>
 
 <script src="image-utils.js?v=3fee4aec"></script>
+<script src="express-wallet.js" defer></script>
 <script src="checkout.js?v=c3f61588" defer></script>
 <script src="commerce-checkout.js?v=02c4d509" defer></script>
 

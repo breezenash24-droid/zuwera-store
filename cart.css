@@ -282,6 +282,24 @@ body.super-light-mode .cart-summary { border-color: rgba(9,9,11,.1); background:
 }
 #checkout-btn:hover { opacity: 0.85; }
 
+/* Quick pay sits above Checkout, separated by a plain "or" — the wallet row is
+   the shortcut and Checkout stays the obvious full path. Both are hidden until
+   Stripe reports the browser has a wallet to show, so nothing reserves space it
+   never uses. The margin lives here rather than on the button so the gap is the
+   same whether or not the row rendered. */
+.bag-express { margin-top: 1.6rem; }
+.bag-express-or {
+  text-align: center;
+  margin: 0.7rem 0 0.1rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c30);
+}
+/* Only once the row is really there — the elements sit in the DOM hidden, so an
+   adjacent-sibling rule would tighten the gap on every bag that has no wallet. */
+.cart-summary.has-express #checkout-btn { margin-top: 0.7rem; }
+
 /* ===================== LIGHT MODE ===================== */
 body.light-mode #cart-modal { background: #F0EEE9; }
 body.light-mode .cart-page-header { background: #F0EEE9; border-bottom-color: rgba(9,9,11,0.08); }

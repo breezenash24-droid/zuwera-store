@@ -93,6 +93,7 @@ html.zw-authed #account-btn{display:inline-flex!important}
   <script src="/supabase-client.js?v=0bf64814" defer></script>
   <script src="/stripe-client-config.js?v=6cbbcea0" defer></script>
   <script src="/checkout-tax.js?v=1a72de55" defer></script>
+  <script src="/express-wallet.js" defer></script>
   <!-- Stripe loaded on first checkout click, not on initial page load -->
   <script>
   window._stripeLoaded = false;
@@ -494,6 +495,12 @@ body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-co
       </div>
       <div class="summary-row" id="bag-discount-row" style="display:none"><span id="bag-discount-label">Discount</span><span class="summary-value" id="bag-discount-value" style="color:#2fa96b;font-weight:600">-$0.00</span></div>
 <div class="summary-row total"><span>Total</span><span id="summary-total">-</span></div>
+      <!-- Quick pay. Only appears with the Express Checkout integration switched
+           on (Admin → APIs → Apple Pay on Chrome & Edge) AND only when this
+           browser actually offers a wallet — Stripe sizes the row to what it
+           finds, so two wallets sit side by side and one fills the width alone. -->
+      <div id="express-checkout-btn" class="bag-express" style="display:none"></div>
+      <div id="express-or" class="bag-express-or" style="display:none">or</div>
       <button id="checkout-btn">Checkout</button>
     </div>
   </div>
@@ -826,6 +833,7 @@ function zwClearPromo(clearInput) {
   if (applyBtn) { applyBtn.textContent = 'Apply'; applyBtn.disabled = false; }
   if (clearInput && inputEl) inputEl.value = '';
   zwPromoUpdateSummaryTotals();
+  try { bagSyncWallet(); } catch (_) {}
 }
 
 function zwApplyPromo(promo) {
@@ -842,6 +850,7 @@ function zwApplyPromo(promo) {
   if (applyBtn)   { applyBtn.textContent = 'Remove'; applyBtn.disabled = false; }
   if (msgEl)      { msgEl.textContent = promo.message || (promo.label + ' applied!'); msgEl.style.color = 'rgba(110,210,130,.9)'; }
   zwPromoUpdateSummaryTotals();
+  try { bagSyncWallet(); } catch (_) {}
 }
 
 function zwResetPromoUI() {
@@ -878,6 +887,8 @@ function getCheckoutTaxStateCode(fallback = '') {
 }
 
 function updateCartSummary(subtotal) {
+  // Keep the wallet sheet's amount on the same number the summary shows.
+  try { bagSyncWallet(); } catch (_) {}
   const policy = window._shippingPolicy || { enabled: true, threshold: 100, standardRate: 8 };
   const qualifiesFree = policy.enabled && subtotal >= policy.threshold;
   const note = document.getElementById('shipping-note');
@@ -1038,6 +1049,67 @@ document.getElementById('login-btn').addEventListener('click', () => {
   if (typeof openAuthModal === 'function') openAuthModal('signin');
   else if (typeof window.__zwOpenAuth === 'function') window.__zwOpenAuth('signin');
 });
+
+/* ── Quick pay on the bag ─────────────────────────────────────────────────
+   The wallet row above Checkout, so someone who already has the card in Apple
+   Pay or Google Pay never has to see the checkout form. Everything about the
+   order is identical to paying on checkout.html — same server, same webhook —
+   which is why the confirmation is handed to that page rather than rebuilt here.
+
+   Stripe.js is deliberately not in this page's initial load, so it is fetched
+   only once we know the integration is on and there is something in the bag. */
+var _bagWallet = null, _bagWalletStarting = false;
+
+function bagWalletCents() {
+  var sub = (cartItems || []).reduce(function (s, i) {
+    return s + parseFloat(i.price || 0) * (i.quantity || 1);
+  }, 0);
+  var discount = _zwActivePromo ? (parseFloat(_zwActivePromo.discount) || 0) : 0;
+  return Math.max(50, Math.round((sub - discount) * 100));   // Stripe's minimum
+}
+
+function bagSyncWallet() {
+  if (!window.ZWExpressWallet || !(cartItems || []).length) return;
+  if (_bagWallet) { _bagWallet.update(bagWalletCents()); return; }
+  if (_bagWalletStarting) return;
+  _bagWalletStarting = true;
+  window.ZWExpressWallet.enabled().then(function (on) {
+    if (!on) return;
+    return window._ensureStripe()
+      .then(function () { return window.zwGetStripePublishableKey(); })
+      .then(function (key) {
+        var stripe = Stripe(key);
+        _bagWallet = window.ZWExpressWallet.mount({
+          stripe: stripe,
+          container: '#express-checkout-btn',
+          subtotalCents: bagWalletCents(),
+          getItems: function () { return cartItems || []; },
+          getPromoCode: function () { return window.zwGetActivePromoCode ? window.zwGetActivePromoCode() : ''; },
+          getAccessToken: function () {
+            var sb = window.sb;
+            if (!sb || !sb.auth || !sb.auth.getSession) return Promise.resolve('');
+            return sb.auth.getSession()
+              .then(function (r) { return (r && r.data && r.data.session && r.data.session.access_token) || ''; })
+              ['catch'](function () { return ''; });
+          },
+          onReady: function (available) {
+            if (!available) return;   // no wallet in this browser — Checkout stands alone
+            document.getElementById('express-checkout-btn').style.display = 'block';
+            document.getElementById('express-or').style.display = 'block';
+            var summary = document.querySelector('.cart-summary');
+            if (summary) summary.classList.add('has-express');
+          },
+          onError: function (message) { showToast(message); },
+          onSuccess: function (order) {
+            // Hand the confirmation to checkout.html: it owns the success screen
+            // and the purchase analytics, and the cart is still intact for both.
+            try { sessionStorage.setItem('zw_wallet_order', JSON.stringify(order)); } catch (_) {}
+            location.assign('/checkout.html');
+          },
+        });
+      });
+  })['catch'](function () { _bagWalletStarting = false; });
+}
 
 /* ── Checkout button ── */
 document.getElementById('checkout-btn').addEventListener('click', async () => {
