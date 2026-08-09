@@ -141,10 +141,46 @@
      with its value. Typed by shape rather than by the schema's declared type,
      because settings_data carries values without their schema and a theme
      can define a colour with type "text". */
-  function collect(merged) {
+  /* Newer themes do not put colours in their colour settings. Fabric declares
+     one `color_palette` object and then makes every other colour setting point
+     at it:
+
+       color_palette        { background: "#ffffff", foreground: "#030302", … }
+       page_background_color "{{ settings.color_palette.background }}"
+
+     Thirty settings of type "color" whose values are Liquid expressions. A
+     reader looking for hex found none of them, which is how a real theme
+     imported with every colour row blank.
+
+     Resolving the reference does two things: the palette entries become
+     sources, and so do all thirty of the settings pointing at them — which
+     matters for the table, because "page background" is a more meaningful
+     thing to choose than "color_palette.background". */
+  function resolveRef(value, merged) {
+    var m = String(value || '').match(/\{\{\s*settings\.([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\s*\}\}/);
+    if (!m) return null;
+    var obj = merged[m[1]];
+    return (obj && typeof obj === 'object') ? obj[m[2]] : null;
+  }
+
+  function collect(merged, meta) {
     var colours = [], numbers = [], fonts = [];
+
+    /* The palette itself, flattened so each role is selectable by name. */
     Object.keys(merged).forEach(function (id) {
       var v = merged[id];
+      if (!v || typeof v !== 'object' || Array.isArray(v)) return;
+      Object.keys(v).forEach(function (role) {
+        if (typeof v[role] === 'string' && hex(v[role])) {
+          colours.push({ id: id + '.' + role, value: hex(v[role]) });
+        }
+      });
+    });
+
+    Object.keys(merged).forEach(function (id) {
+      var v = merged[id];
+      var ref = typeof v === 'string' ? resolveRef(v, merged) : null;
+      if (ref && hex(ref)) { colours.push({ id: id, value: hex(ref) }); return; }
       if (typeof v === 'string' && hex(v)) colours.push({ id: id, value: hex(v) });
       else if (typeof v === 'number' || (typeof v === 'string' && /^\d+(\.\d+)?$/.test(v))) {
         numbers.push({ id: id, value: parseFloat(v) });
@@ -157,7 +193,9 @@
         fonts.push({ id: id, value: v });
       }
     });
-    // Colour schemes are nested, so flatten them in under readable ids.
+    /* Colour schemes are nested one level deeper than a palette — scheme-1 holds
+       a `settings` object — so they need their own walk. The generic one above
+       reaches the scheme names, not the colours inside them. */
     var schemes = merged.color_schemes;
     if (schemes && typeof schemes === 'object') {
       Object.keys(schemes).forEach(function (name) {
@@ -178,24 +216,48 @@
      value into it. Order matters: the first id present wins, which is what
      encodes "prefer the scheme over the flat setting". */
   var TARGETS = [
+    /* Three generations of Shopify naming, newest first. A palette (Fabric), a
+       colour scheme (Dawn 7+), then the flat colors_* ids. Whichever the theme
+       has is the one that answers. */
     { key: 'bg', label: 'Page background', kind: 'colour',
-      prefer: ['scheme-1.background', 'colors_background_1', 'background', 'colors_background_2'] },
+      prefer: ['color_palette.background', 'page_background_color', 'scheme-1.background',
+               'colors_background_1', 'background', 'colors_background_2'] },
     { key: 'fg', label: 'Text', kind: 'colour',
-      prefer: ['scheme-1.text', 'colors_text', 'text', 'colors_text_body'] },
+      prefer: ['color_palette.foreground', 'page_text_color', 'scheme-1.text',
+               'colors_text', 'text', 'colors_text_body'] },
     { key: 'accent', label: 'Accent', kind: 'colour',
-      prefer: ['colors_accent_1', 'scheme-1.secondary_button_label', 'scheme-1.button'] },
+      prefer: ['color_palette.color1', 'colors_accent_1',
+               'scheme-1.secondary_button_label', 'scheme-1.button'] },
     { key: 'surface', label: 'Surface', kind: 'colour',
-      prefer: ['colors_background_2', 'scheme-2.background', 'scheme-1.background'] },
-    { key: 'ink', label: 'Button background', kind: 'colour',
-      prefer: ['scheme-1.button', 'colors_accent_1'] },
-    { key: 'paper', label: 'Button text', kind: 'colour',
-      prefer: ['scheme-1.button_label', 'colors_solid_button_labels'] },
+      prefer: ['color_palette.color2', 'colors_background_2', 'scheme-2.background',
+               'scheme-1.background', 'color_palette.background'] },
+    /* These two are NOT a button pair, whatever their names suggest. In this
+       codebase --ink is used as a surface background and --paper as the text on
+       it, and both track the PAGE: light mode has ink #F0EEE9 with paper
+       #09090b, dark mode the reverse. The nav draws its links and the bag with
+       color: var(--paper).
+
+       Mapping them from Shopify's button colours put Dawn's white button label
+       into --paper, so the nav rendered white text on a white header and the
+       bag icon vanished. They follow the page instead, which is what the site
+       actually means by them; a theme wanting different button colours sets
+       accent, which is what accent is for. */
+    { key: 'ink', label: 'Panel background (follows the page)', kind: 'colour',
+      prefer: ['color_palette.background', 'page_background_color', 'scheme-1.background',
+               'colors_background_1', 'background'] },
+    { key: 'paper', label: 'Panel text (follows the page)', kind: 'colour',
+      prefer: ['color_palette.foreground', 'page_text_color', 'scheme-1.text',
+               'colors_text', 'text'] },
     { key: 'radius', label: 'Corner radius', kind: 'number',
-      prefer: ['buttons_radius', 'card_corner_radius', 'inputs_radius', 'media_radius'] },
+      prefer: ['buttons_radius', 'button_border_radius_primary', 'card_corner_radius',
+               'product_corner_radius', 'inputs_radius', 'inputs_border_radius', 'media_radius'] },
+    /* Dawn gives a percentage; Fabric gives h1 in pixels and no scale at all.
+       Both are read, and compose() tells them apart by magnitude — a value in
+       the tens is a font size, a value near 100 is a percentage. */
     { key: 'typeScale', label: 'Type scale', kind: 'number',
-      prefer: ['heading_scale', 'body_scale'] },
+      prefer: ['heading_scale', 'body_scale', 'type_size_h1'] },
     { key: 'density', label: 'Section density', kind: 'number',
-      prefer: ['spacing_sections', 'spacing_grid_vertical'] },
+      prefer: ['spacing_sections', 'spacing_grid_vertical', 'spacing_sections_vertical'] },
     /* Themes disagree on the heading font's id — Dawn says type_header_font,
        others say type_heading_font or type_accent_font. Body was matching and
        heading was not, which is what a one-entry preference list buys you. */
@@ -224,6 +286,11 @@
     return undefined;
   }
 
+  function metaOf(pool, id) {
+    for (var i = 0; i < pool.numbers.length; i++) if (pool.numbers[i].id === id) return pool.numbers[i].meta;
+    return null;
+  }
+
   /* Turn the table into tokens. The ONLY place tokens are produced, so what
      the table says is always what gets saved — there is no path where an
      edited row is ignored because some earlier heuristic already decided. */
@@ -238,9 +305,45 @@
       if (t.kind === 'colour') {
         tokens[t.key] = (t.key === 'fg' || t.key === 'bg') ? toTriplet(v) : hex(v);
       } else if (t.kind === 'number') {
+        var mt = metaOf(pool, id);
         if (t.key === 'radius') tokens.radius = Math.round(v);
-        if (t.key === 'typeScale') tokens.typeScale = Math.max(0.85, Math.min(1.25, v > 3 ? v / 100 : v));
-        if (t.key === 'density') tokens.density = Math.max(0.7, Math.min(1.4, 0.7 + (v / 100) * 0.7));
+
+        if (t.key === 'typeScale') {
+          /* Relative to what the theme calls normal, not to an absolute I
+             invented. Dawn's heading_scale is a percentage with default 100, so
+             100 means unchanged; Fabric gives an h1 size in pixels with no
+             default, so it is measured against a ~56px baseline.
+
+             Guessing by magnitude read Dawn's 100 as a pixel size and produced
+             1.79, clamped to the 1.25 maximum — every imported Dawn theme
+             arrived with its type as large as the slider allows. */
+          var scale;
+          if (mt && isFinite(mt.def) && mt.def > 0) scale = v / mt.def;
+          else if (mt && mt.unit === '%') scale = v / 100;
+          else if (v > 40) scale = v / 56;
+          else if (v > 3) scale = v / 100;
+          else scale = v;
+          tokens.typeScale = Math.max(0.85, Math.min(1.25, scale));
+        }
+
+        if (t.key === 'density') {
+          /* Dawn's spacing_sections is EXTRA spacing in pixels, 0 to 100,
+             default 0 — so 0 is this theme's normal, not the tightest it can
+             be. Treating the raw value as a position in my own range mapped
+             every unmodified Dawn theme to minimum density, which is what made
+             an accurate import look cramped.
+
+             Measured from the setting's own default, so "the designer changed
+             nothing" lands on 1. */
+          var d = 1;
+          if (mt && isFinite(mt.max) && mt.max > mt.min) {
+            var from = isFinite(mt.def) ? mt.def : mt.min;
+            d = 1 + ((v - from) / (mt.max - mt.min)) * 0.4;
+          } else if (v > 0) {
+            d = 1 + Math.min(v, 100) / 100 * 0.4;
+          }
+          tokens.density = Math.max(0.7, Math.min(1.4, d));
+        }
       } else if (t.kind === 'font') {
         if (t.key === '_fontHead') fonts.head = fontFamily(v);
         if (t.key === '_fontBody') fonts.body = fontFamily(v);
@@ -273,9 +376,19 @@
        schema full of the designer's intended palette, which is exactly the look
        someone copying from the theme store is after. */
     var defaults = {};
+    /* What each setting declares about itself: its unit, its range, and the
+       value the theme's designer considers normal. This is the difference
+       between reading a file and guessing at it — heading_scale of 100 is
+       "100%", meaning unchanged, and spacing_sections of 0 is "no extra
+       spacing", meaning normal. Guessed by magnitude, the first looked like a
+       pixel size and the second like the minimum of a range. */
+    var meta = {};
     (Array.isArray(schema) ? schema : []).forEach(function (group) {
       (group.settings || []).forEach(function (s) {
         if (!s || !s.id) return;
+        if (s.type === 'range' || s.unit !== undefined) {
+          meta[s.id] = { unit: s.unit || '', min: Number(s.min), max: Number(s.max), def: Number(s.default) };
+        }
         if (s.default !== undefined) { defaults[s.id] = s.default; return; }
 
         /* Online Store 2.0 declares colours as a group rather than as flat
@@ -300,7 +413,7 @@
     });
     var merged = Object.assign({}, defaults, current);
 
-    var pool = collect(merged);
+    var pool = collect(merged, meta);
     var assign = autoAssign(merged, pool);
     var composed = compose(pool, assign);
     var tokens = composed.tokens;

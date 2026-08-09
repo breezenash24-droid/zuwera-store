@@ -84,9 +84,53 @@
     return out;
   }
 
+  /* theme_modes is a LIST, and a preset carrying one theme was overwriting the
+     whole row — applying an imported theme deleted Dark, Light, Super Light and
+     every custom theme with it. Irreversibly: the presets screen has no undo,
+     and the built-ins only come back because the engine falls back to them when
+     the row is empty, which is not the same as having them.
+
+     So this key merges. A theme in the preset replaces the one with its id and
+     is otherwise appended; the incoming default wins because choosing it is the
+     point of applying. Every other key is a single object and still replaces
+     wholesale, which is what those mean. */
+  function mergeThemeModes(existing, incoming) {
+    var have = (existing && Array.isArray(existing.modes)) ? existing.modes.slice() : [];
+    var add = (incoming && Array.isArray(incoming.modes)) ? incoming.modes : [];
+    add.forEach(function (m) {
+      if (!m || !m.id) return;
+      var at = -1;
+      for (var i = 0; i < have.length; i++) if (have[i].id === m.id) { at = i; break; }
+      if (at >= 0) have[at] = m; else have.push(m);
+    });
+    var def = incoming && incoming.default;
+    var known = have.some(function (m) { return m.id === def; });
+    return {
+      modes: have,
+      default: known ? def : ((existing && existing.default) || (have[0] && have[0].id)),
+      pages: (incoming && incoming.pages) || (existing && existing.pages) || {},
+    };
+  }
+
   async function writeKeys(map) {
-    var rows = Object.keys(map).map(function (k) { return { key: k, value: map[k] }; });
-    if (!rows.length) return;
+    var keys = Object.keys(map);
+    if (!keys.length) return;
+
+    var current = {};
+    if (keys.indexOf('theme_modes') !== -1) {
+      try {
+        var got = await sb.from('site_settings').select('value').eq('key', 'theme_modes').maybeSingle();
+        var v = got.data && got.data.value;
+        if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+        current.theme_modes = v || {};
+      } catch (_) { current.theme_modes = {}; }
+    }
+
+    var rows = keys.map(function (k) {
+      var value = map[k];
+      if (k === 'theme_modes') value = mergeThemeModes(current.theme_modes, value);
+      return { key: k, value: value };
+    });
     var res = await sb.from('site_settings').upsert(rows, { onConflict: 'key' });
     if (res.error) throw res.error;
   }
