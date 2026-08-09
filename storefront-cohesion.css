@@ -1676,7 +1676,7 @@ body.light-mode .heart-btn{
     align-items:center !important;
     justify-content:space-between !important;
     z-index:600 !important;
-    background:#09090b !important;
+    background:var(--zw-nav-bg, #09090b) !important;
     transition: background .35s, border-color .35s !important;
   }
 
@@ -1686,17 +1686,19 @@ body.light-mode .heart-btn{
     position:absolute;
     top:0;left:0;right:0;
     height:env(safe-area-inset-top,0px);
-    background:#09090b !important; /* solid opaque dark safe-area block */
+    /* Must track the nav's own colour, or a themed header gets a mismatched
+       strip under the notch — the one place a stale hardcode is most visible. */
+    background:var(--zw-nav-bg, #09090b) !important; /* solid opaque dark safe-area block */
     z-index:-1;
     display:block !important;
   }
 
   body.light-mode :is(nav#nav,.nav,header.nav)::before{
-    background:#F0EEE9 !important; /* solid opaque light safe-area block */
+    background:var(--zw-nav-bg, #F0EEE9) !important; /* solid opaque light safe-area block */
   }
 
   body.super-light-mode :is(nav#nav,.nav,header.nav)::before{
-    background:#FFFFFF !important; /* solid opaque super-light safe-area block */
+    background:var(--zw-nav-bg, #FFFFFF) !important; /* solid opaque super-light safe-area block */
   }
 
   /* Mobile nav layout (sitewide): logo on the LEFT, all actions on the RIGHT —
@@ -1959,11 +1961,11 @@ body.light-mode .heart-btn{
 
   /* Light-mode nav: solid opaque background to block scrolled content bleeding */
   body.light-mode :is(nav#nav,.nav,header.nav){
-    background:#F0EEE9 !important;
+    background:var(--zw-nav-bg, #F0EEE9) !important;
     border-bottom-color:rgba(9,9,11,0.12) !important;
   }
   body.super-light-mode :is(nav#nav,.nav,header.nav){
-    background:#FFFFFF !important;
+    background:var(--zw-nav-bg, #FFFFFF) !important;
     border-bottom-color:rgba(9,9,11,0.12) !important;
   }
 
@@ -3547,15 +3549,22 @@ body.super-light-mode .collection-review-modal{
 }
 
 /* ── Desktop light/super-light explicit overrides ── */
-/* nav#nav uses background:var(--ink); in dark mode that's dark.
-   In light/super-light we override explicitly so it's never black. */
+/* These exist so the header is never left black on a light page. They are
+   !important, which means they were also the last word on the header's colour
+   — and neither of them read --zw-nav-bg, so a theme's nav colour was silently
+   discarded on every page matched here (index, bag, about, account, journal,
+   returns) while the .nav pages honoured it. That is why one theme produced a
+   different header colour depending on the page.
+
+   --zw-nav-bg now leads and the previous value is the fallback, so the guard
+   still holds when no theme sets a nav colour and the theme wins when it does. */
 body.light-mode nav#nav,
 body.light-mode .zw-nav{
-  background:var(--zw-page,#F0EEE9) !important;
+  background:var(--zw-nav-bg, var(--zw-page,#F0EEE9)) !important;
 }
 body.super-light-mode nav#nav,
 body.super-light-mode .zw-nav{
-  background:#FFFFFF !important;
+  background:var(--zw-nav-bg, #FFFFFF) !important;
 }
 
 /* ════════════════════════════════════════════════════════════════════════

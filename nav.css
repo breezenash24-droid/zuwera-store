@@ -214,11 +214,41 @@ body.super-light-mode .cart-count {
    rule rather than being a setting.
 
    Done in CSS rather than by rebuilding the markup. The nav already has the
-   three children any of these arrangements needs — logo, links, icons — and
-   they are the same three on all fourteen pages. Rearranging them with grid
-   costs nothing and risks nothing; replacing the markup on fourteen pages,
-   above the fold, on the element that carries the LCP on most of them, risks
-   a great deal for the same result.
+   three parts any of these arrangements needs — logo, links, icons — so
+   rearranging them with grid costs nothing; replacing the markup above the
+   fold, on the element carrying the LCP on most pages, risks a great deal for
+   the same result.
+
+   WHAT IS NOT TRUE — and the first version of this block assumed it was — is
+   that those three parts are spelled the same way on every page. They are not.
+   This codebase grew five nav dialects:
+
+     nav#nav       index, landing, bag        .nav-logo       .nav-right
+     header.nav    drop001, policies, …       .nav-logo-link  .nav-actions
+     nav.nav       product                    .nav-logo-link  .nav-right
+     nav.zw-nav    about, account, journal, … .zw-nav-logo    .zw-nav-right
+
+   Targeting only `.nav` / `.nav-logo` broke this two different ways at once.
+   On the product page the grid applied but `.nav-logo` matched nothing, so the
+   logo fell to auto-placement and landed in the empty spacer cell — the header
+   came apart into a logo stranded mid-row with the links orphaned beneath it.
+   On the .zw-nav pages the grid never applied at all, so one theme produced a
+   different header per page. Both are one bug: a selector describing markup
+   that was never there.
+
+   So every part is named by every spelling it has, and the logo additionally
+   matches `:first-child` — it is the first element of the nav in all five
+   dialects, so a sixth dialect lands correctly instead of scattering. Three
+   further consequences of the same lesson:
+
+     - `justify-items: center` is gone. It is what CENTRED the stray logo in
+       the spacer column, turning a missed selector into a plausible-looking
+       layout instead of an obvious one. Placement is now stated per part.
+     - `.nav-center` needs no list: nav-menu.js injects it under that one name
+       on the pages whose markup lacks it, so it is the one reliable hook here.
+     - the burger was `.zw-mobile-menu-btn, .nav-burger`. Neither class exists
+       anywhere in this repo; the real one is `.hamburger-btn`. 'minimal' hid
+       the links and revealed nothing, which is the worst of the three.
 
    The one thing this cannot do is invent a control that is not there. A search
    FIELD in the bar, as Xtra has, is markup nobody has written yet — the search
@@ -230,45 +260,53 @@ body.super-light-mode .cart-count {
 
 /* Default. Named rather than assumed, so switching back is a value like any
    other and not the absence of one. */
-html[data-zw-header="inline"] .nav { /* the shipped arrangement — nothing to change */ }
+html[data-zw-header="inline"] :is(#nav, .nav, .zw-nav) { /* the shipped arrangement — nothing to change */ }
 
 /* Colorblock: logo on its own centred row, links centred beneath, icons
    pinned top-right so the row above stays visually centred. */
 @media (min-width: 901px) {
-  html[data-zw-header="stacked"] .nav {
+  html[data-zw-header="stacked"] :is(#nav, .nav, .zw-nav) {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     grid-template-areas:
       ". logo icons"
       "links links links";
     row-gap: .55rem;
-    justify-items: center;
+    align-items: center;
     padding-top: .9rem;
     padding-bottom: .7rem;
   }
-  html[data-zw-header="stacked"] .nav-logo  { grid-area: logo; }
-  html[data-zw-header="stacked"] .nav-right { grid-area: icons; justify-self: end; }
+  html[data-zw-header="stacked"] :is(#nav, .nav, .zw-nav) > :is(.nav-logo, .nav-logo-link, .zw-nav-logo, :first-child) {
+    grid-area: logo; justify-self: center;
+  }
+  html[data-zw-header="stacked"] :is(#nav, .nav, .zw-nav) > :is(.nav-right, .nav-actions, .zw-nav-right, .zw-nav-actions) {
+    grid-area: icons; justify-self: end;
+  }
   /* .nav-center is absolutely positioned by default so the mega-menu can go
      full width. Inside a grid row it must be static, or it would leave the flow
      and the second row would collapse to nothing. */
-  html[data-zw-header="stacked"] .nav-center {
+  html[data-zw-header="stacked"] :is(#nav, .nav, .zw-nav) > .nav-center {
     grid-area: links;
     position: static; left: auto; right: auto; margin: 0; width: auto;
-    justify-content: center;
+    justify-self: center; justify-content: center;
   }
 
   /* Split: links either side of a centred logo. The links row is one flex line,
      so this splits it by pushing the middle child — which only reads correctly
      with an even number of links, hence the note in the admin. */
-  html[data-zw-header="split"] .nav {
+  html[data-zw-header="split"] :is(#nav, .nav, .zw-nav) {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     grid-template-areas: "links logo icons";
     align-items: center;
   }
-  html[data-zw-header="split"] .nav-logo  { grid-area: logo; justify-self: center; }
-  html[data-zw-header="split"] .nav-right { grid-area: icons; justify-self: end; }
-  html[data-zw-header="split"] .nav-center {
+  html[data-zw-header="split"] :is(#nav, .nav, .zw-nav) > :is(.nav-logo, .nav-logo-link, .zw-nav-logo, :first-child) {
+    grid-area: logo; justify-self: center;
+  }
+  html[data-zw-header="split"] :is(#nav, .nav, .zw-nav) > :is(.nav-right, .nav-actions, .zw-nav-right, .zw-nav-actions) {
+    grid-area: icons; justify-self: end;
+  }
+  html[data-zw-header="split"] :is(#nav, .nav, .zw-nav) > .nav-center {
     grid-area: links;
     position: static; left: auto; right: auto; margin: 0; width: auto;
     justify-self: start; justify-content: flex-start;
@@ -277,16 +315,20 @@ html[data-zw-header="inline"] .nav { /* the shipped arrangement — nothing to c
   /* Fabric: logo left, links immediately after it rather than centred. Reads
      editorial — the nav becomes part of the wordmark's line instead of a
      separate centred object. */
-  html[data-zw-header="tight"] .nav {
+  html[data-zw-header="tight"] :is(#nav, .nav, .zw-nav) {
     display: grid;
     grid-template-columns: auto auto 1fr;
     grid-template-areas: "logo links icons";
     align-items: center;
     column-gap: 2.2rem;
   }
-  html[data-zw-header="tight"] .nav-logo  { grid-area: logo; }
-  html[data-zw-header="tight"] .nav-right { grid-area: icons; justify-self: end; }
-  html[data-zw-header="tight"] .nav-center {
+  html[data-zw-header="tight"] :is(#nav, .nav, .zw-nav) > :is(.nav-logo, .nav-logo-link, .zw-nav-logo, :first-child) {
+    grid-area: logo; justify-self: start;
+  }
+  html[data-zw-header="tight"] :is(#nav, .nav, .zw-nav) > :is(.nav-right, .nav-actions, .zw-nav-right, .zw-nav-actions) {
+    grid-area: icons; justify-self: end;
+  }
+  html[data-zw-header="tight"] :is(#nav, .nav, .zw-nav) > .nav-center {
     grid-area: links;
     position: static; left: auto; right: auto; margin: 0; width: auto;
     justify-self: start;
@@ -294,21 +336,31 @@ html[data-zw-header="inline"] .nav { /* the shipped arrangement — nothing to c
 
   /* Minimal: logo and icons only. The links are not deleted — they move to the
      mobile menu, which every page already has and which is reachable on desktop
-     once this is on. Deleting them would remove the only path to those pages. */
+     once this is on. Deleting them would remove the only path to those pages,
+     which is what happened while the reveal below named two classes that do not
+     exist in this repo. `.hamburger-btn` is the one that does. */
   html[data-zw-header="minimal"] .nav-center { display: none; }
-  html[data-zw-header="minimal"] .zw-mobile-menu-btn,
-  html[data-zw-header="minimal"] .nav-burger { display: inline-flex !important; }
+  html[data-zw-header="minimal"] .hamburger-btn { display: inline-flex !important; }
 }
 
 /* Below 900px the mobile header already owns this decision, and a two-row
    centred header on a phone spends a third of the viewport on chrome. Every
-   preset falls back to the shipped arrangement. */
+   preset falls back to the shipped arrangement.
+
+   These two rules must out-specify the preset rules above, because `grid-area`
+   set on a child is not undone by the parent returning to flex — the child
+   keeps a dead `grid-area` and, more importantly, `.nav-center` keeps
+   `position: static` and stops being the centred overlay. Matching the
+   preset selectors' shape keeps that reset winning. */
 @media (max-width: 900px) {
-  html[data-zw-header] .nav {
+  html[data-zw-header] :is(#nav, .nav, .zw-nav) {
     display: flex;
     grid-template-areas: none;
   }
-  html[data-zw-header] .nav-center {
+  html[data-zw-header] :is(#nav, .nav, .zw-nav) > :is(.nav-logo, .nav-logo-link, .zw-nav-logo, .nav-right, .nav-actions, .zw-nav-right, .zw-nav-actions, .nav-center, :first-child) {
+    grid-area: auto;
+  }
+  html[data-zw-header] :is(#nav, .nav, .zw-nav) > .nav-center {
     position: absolute; left: 0; right: 0; margin: 0 auto; width: fit-content;
   }
 }

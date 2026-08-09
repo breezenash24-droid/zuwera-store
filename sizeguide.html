@@ -132,7 +132,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 0.5rem 2.5rem;
-      background: var(--bg);
+      background: var(--zw-nav-bg, var(--bg));
       border-bottom: 1px solid var(--border);
     }
     .nav-logo-link {
@@ -857,8 +857,8 @@
       --border: rgba(9, 9, 11, 0.15);
       --hover: rgba(9, 9, 11, 0.08);
     }
-    body.light-mode .nav { background: #F0EEE9; border-bottom-color: rgba(9,9,11,0.08); }
-    body.super-light-mode .nav { background: #FFFFFF; }
+    body.light-mode .nav { background: var(--zw-nav-bg, #F0EEE9); border-bottom-color: rgba(9,9,11,0.08); }
+    body.super-light-mode .nav { background: var(--zw-nav-bg, #FFFFFF); }
     body.super-light-mode .calc-select option { background: #FFFFFF; color: #09090b; }
     body.light-mode .flogo img { filter: none; }
     body.light-mode .calculator { background: rgba(9,9,11,0.02); }

@@ -132,12 +132,12 @@
       position: sticky; top: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
       padding: 0.5rem 2.5rem;
-      background: var(--ink);
+      background: var(--zw-nav-bg, var(--ink));
       border-bottom: 1px solid var(--c07);
       backdrop-filter: blur(8px);
     }
-    body.light-mode .zw-nav { background: #F0EEE9; border-bottom-color: rgba(9,9,11,.07); }
-    body.super-light-mode .zw-nav { background: #FFFFFF; }
+    body.light-mode .zw-nav { background: var(--zw-nav-bg, #F0EEE9); border-bottom-color: rgba(9,9,11,.07); }
+    body.super-light-mode .zw-nav { background: var(--zw-nav-bg, #FFFFFF); }
     .zw-nav-logo { font-family: var(--fw); font-size: 1.35rem; letter-spacing: .18em; opacity: .85; transition: opacity .2s; }
     .zw-nav-logo:hover { opacity: 1; }
     .zw-nav-logo img { height: 28px; width: auto; transition: filter .35s; filter: invert(1); }

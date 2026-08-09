@@ -323,7 +323,11 @@
           else if (v > 40) scale = v / 56;
           else if (v > 3) scale = v / 100;
           else scale = v;
-          tokens.typeScale = Math.max(0.85, Math.min(1.25, scale));
+          /* Narrower than the editor's own range. A slider is someone
+             deliberately pushing a look; an import is a number inferred from a
+             file, and inferring 1.25 from a misread unit is how a header ends
+             up broken. Half the range, so a wrong guess is a mild wrong. */
+          tokens.typeScale = Math.max(0.92, Math.min(1.12, scale));
         }
 
         if (t.key === 'density') {
