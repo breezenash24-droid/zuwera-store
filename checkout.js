@@ -256,6 +256,37 @@ let paymentRequest    = null;
 let prButtonEl        = null;
 let selectedShippingRate = null;
 let prTaxCents = 0;
+let prShipCents = 0;
+
+/* What the server will actually charge for shipping.
+
+   The wallet sheet used to hardcode "Free Shipping" at $0 and a total of
+   subtotal + tax. The server does not: resolveShipping in
+   create-payment-intent charges the quoted rate whenever the order is under
+   the free-shipping threshold. So below that threshold the sheet showed one
+   number, the PaymentIntent was created for a larger one, and the customer was
+   charged an amount they never agreed to — silently, because a wallet confirms
+   against the intent rather than against what the sheet displayed.
+
+   The product page, the homepage quick-buy and the mobile checkout all worked
+   this out correctly already. This page — the main one — was the outlier.
+
+   Mirrors resolveShipping exactly: free above the threshold on the PRE-discount
+   subtotal, otherwise the quoted rate, falling back to the standard rate when
+   no quote came back. */
+function walletShipping() {
+  const policy = window._shippingPolicy || { enabled: true, threshold: 100, standardRate: 8 };
+  const subtotal = (window.cartItems || cartItems || [])
+    .reduce((sum, i) => sum + parseFloat(i.price || 0) * (i.quantity || 1), 0);
+  if (policy.enabled && subtotal >= policy.threshold) return { cents: 0, label: 'Free Shipping' };
+  if (selectedShippingRate) {
+    return {
+      cents: Math.round(parseFloat(selectedShippingRate.amount || 0) * 100),
+      label: String(selectedShippingRate.servicelevel || 'Standard Shipping'),
+    };
+  }
+  return { cents: Math.round((policy.standardRate || 8) * 100), label: 'Standard Shipping' };
+}
 // Current sheet subtotal (after any promo discount). The shipping/tax event
 // handlers read this instead of closing over initPaymentRequest's argument,
 // so promo changes after init are reflected when the sheet recalculates.
@@ -316,23 +347,30 @@ function initPaymentRequestButton(subtotalCents) {
           zip: addr.postalCode, country: addr.country,
         },
       });
-      // Silently store the curated rate for fulfillment — customer pays $0
-      // shipping. (Not raw rates[0]: that can be a restricted service.)
+      // The curated rate, not raw rates[0]: that can be a restricted service.
       if (data.rates?.length) selectedShippingRate = pickShippingRate(data.rates) || data.rates[0];
       prTaxCents = window.ZWCheckoutTax ? window.ZWCheckoutTax.taxCents(prSubtotalCents, addr.region || '', addr.postalCode || '') : 0;
+      const ship = walletShipping();
+      prShipCents = ship.cents;
       ev.updateWith({
         status: 'success',
-        shippingOptions: [{ id: 'free', label: 'Free Shipping', detail: 'Standard delivery', amount: 0 }],
-        total: { label: 'Zuwera', amount: prSubtotalCents + prTaxCents },
+        shippingOptions: [{
+          id: 'standard',
+          label: ship.cents ? ship.label : 'Free Shipping',
+          detail: ship.cents ? 'Est. 5-7 business days' : 'Standard delivery',
+          amount: ship.cents,
+        }],
+        total: { label: 'Zuwera', amount: prSubtotalCents + prTaxCents + ship.cents },
       });
     } catch { ev.updateWith({ status: 'fail' }); }
   });
 
   paymentRequest.on('shippingoptionchange', (ev) => {
-    // Shipping is always free — total never includes a shipping cost.
+    // One option is ever offered, so there is nothing to recalculate — but the
+    // event still has to be answered or the sheet sits there spinning.
     ev.updateWith({
       status: 'success',
-      total: { label: 'Zuwera', amount: prSubtotalCents + prTaxCents },
+      total: { label: 'Zuwera', amount: prSubtotalCents + prTaxCents + prShipCents },
     });
   });
 
