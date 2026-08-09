@@ -3151,7 +3151,10 @@
                             <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap;">
                                 <label for="icons-set" style="font-size:.8rem;color:var(--text-secondary);">Icon set</label>
                                 <select id="icons-set" onchange="iconSetGlobal(this.value)" style="padding:8px 12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.82rem;min-width:180px;"></select>
+                                <label for="icons-frame" style="font-size:.8rem;color:var(--text-secondary);margin-left:12px;">Shape around it</label>
+                                <select id="icons-frame" onchange="iconSetFrame(this.value)" style="padding:8px 12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.82rem;min-width:190px;"></select>
                             </div>
+                            <div id="icons-frame-preview" style="margin-bottom:18px;"></div>
                             <div id="icons-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:12px;"></div>
                             <div id="icons-status" style="margin-top:14px;font-size:.82rem;"></div>
                         </div>

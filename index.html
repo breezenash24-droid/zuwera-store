@@ -455,13 +455,20 @@ font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
 .nbtn:hover{color:var(--paper)}
 #cart-btn{
   display:flex;align-items:center;justify-content:center;gap:.5rem;
-  border:1px solid var(--c20);
+  /* The frame around the bag. Admin → Appearance → Icons sets these three;
+     the fallbacks are exactly what it looked like before it was configurable,
+     so an untouched store is unchanged. --zw-icon-frame is the border itself,
+     which is how "None" works: set it to 0 and the shape disappears without
+     the padding collapsing and the icon jumping. */
+  border:var(--zw-icon-frame, 1px solid var(--c20));
+  border-radius:var(--zw-icon-radius, 0);
+  background:var(--zw-icon-fill, transparent);
   color:var(--paper);opacity:1;
   min-width:44px;min-height:36px;
   padding:.45rem .72rem;
-  transition:border-color .2s;
+  transition:border-color .2s, background .2s;
 }
-#cart-btn:hover{border-color:var(--c50)}
+#cart-btn:hover{border-color:var(--zw-icon-frame-hover, var(--c50))}
 #cart-btn svg{
   width:16px;height:16px;
   stroke:currentColor;fill:none;stroke-width:1.5;

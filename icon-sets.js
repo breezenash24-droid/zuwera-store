@@ -86,7 +86,26 @@
     solid:   { label: 'Solid',   build: function (n) { return fill(SOLID[n]); } },
   };
 
-  var config = { set: 'outline', overrides: {}, custom: {} };
+  /* The shape drawn around an icon button — the box the bag sits in. It was a
+     1px square border and nothing else, hardcoded; these are the same thing
+     made choosable. 'box' reproduces it exactly, so a store that never opens
+     the setting looks identical.
+
+     Each is a set of custom properties rather than a class, because the rules
+     that draw the frame live in page CSS with fallbacks: absent config means
+     the CSS falls back to what it always was, and there is no flash of an
+     unstyled button while the config loads. */
+  var FRAMES = {
+    box:     { label: 'Box (the original)', vars: { frame: '1px solid var(--c20)', radius: '0',      fill: 'transparent' } },
+    rounded: { label: 'Rounded box',        vars: { frame: '1px solid var(--c20)', radius: '8px',    fill: 'transparent' } },
+    pill:    { label: 'Pill',               vars: { frame: '1px solid var(--c20)', radius: '999px',  fill: 'transparent' } },
+    circle:  { label: 'Circle',             vars: { frame: '1px solid var(--c20)', radius: '50%',    fill: 'transparent' } },
+    filled:  { label: 'Filled pill',        vars: { frame: '1px solid transparent', radius: '999px', fill: 'var(--c08)' } },
+    heavy:   { label: 'Heavy box',          vars: { frame: '2px solid var(--c40)', radius: '0',      fill: 'transparent' } },
+    none:    { label: 'None — icon only',   vars: { frame: '0',                    radius: '0',      fill: 'transparent' } },
+  };
+
+  var config = { set: 'outline', overrides: {}, custom: {}, frame: 'box' };
 
   function normalise(raw) {
     var r = (raw && typeof raw === 'object') ? raw : {};
@@ -94,7 +113,20 @@
       set: SETS[r.set] ? r.set : 'outline',
       overrides: (r.overrides && typeof r.overrides === 'object') ? r.overrides : {},
       custom: (r.custom && typeof r.custom === 'object') ? r.custom : {},
+      frame: FRAMES[r.frame] ? r.frame : 'box',
     };
+  }
+
+  /* Push the frame onto :root as custom properties. The page CSS reads them
+     with the original hardcoded value as its fallback, so this only ever
+     changes something when a frame has actually been chosen. */
+  function paintFrame() {
+    var f = FRAMES[config.frame] || FRAMES.box;
+    var root = document.documentElement;
+    if (!root) return;
+    root.style.setProperty('--zw-icon-frame', f.vars.frame);
+    root.style.setProperty('--zw-icon-radius', f.vars.radius);
+    root.style.setProperty('--zw-icon-fill', f.vars.fill);
   }
 
   try {
@@ -128,6 +160,7 @@
       var svg = get(el.getAttribute('data-zw-icon'));
       if (svg) el.innerHTML = svg;
     }
+    paintFrame();
   }
 
   function load() {
@@ -148,6 +181,13 @@
 
   window.ZWIcons = {
     names: function () { return NAMES.slice(); },
+    frameVars: function (id) {
+      var f = FRAMES[id] || FRAMES.box;
+      return { frame: f.vars.frame, radius: f.vars.radius, fill: f.vars.fill };
+    },
+    frames: function () {
+      return Object.keys(FRAMES).map(function (k) { return { id: k, label: FRAMES[k].label }; });
+    },
     label: function (n) { return LABELS[n] || n; },
     sets: function () {
       return Object.keys(SETS).map(function (k) { return { id: k, label: SETS[k].label }; });
