@@ -302,6 +302,33 @@
         : '') +
       '</div>';
 
+    /* Which controls appear, and in what order. Roles, not elements — the two
+       button systems spell them differently and the stylesheet owns that. */
+    var ICONS = [['search', 'Search'], ['account', 'Account'], ['login', 'Login'],
+                 ['logout', 'Sign out'], ['shop', 'Shop'], ['bag', 'Bag'], ['menu', 'Menu']];
+    var ics = (m.tokens.icons && typeof m.tokens.icons === 'object') ? m.tokens.icons : {};
+    var icOrder = ics.order || {}, icHidden = Array.isArray(ics.hidden) ? ics.hidden : [];
+    shape += '<div style="margin-bottom:6px;">' +
+      '<label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-primary);margin-bottom:3px;">Header controls</label>' +
+      '<div style="font-size:.73rem;color:var(--text-secondary);line-height:1.5;margin-bottom:6px;">' +
+        'Which controls sit in the bar and in what order. Lower numbers come first; leave a number blank to keep a control where the page already puts it. Menu has no hide box on purpose — on a phone it is the only way into the categories.' +
+      '</div>' +
+      '<div style="display:grid;gap:5px;">' +
+      ICONS.map(function (ic) {
+        var k = ic[0];
+        return '<div style="display:flex;align-items:center;gap:8px;font-size:.75rem;color:var(--text-secondary);">' +
+          '<span style="flex:1;">' + esc(ic[1]) + '</span>' +
+          '<input type="number" value="' + esc(icOrder[k] == null ? '' : icOrder[k]) + '" placeholder="—" ' +
+            'onchange="themeSetIcon(' + i + ',\'' + k + '\',\'order\',this.value)" ' +
+            'style="width:64px;padding:4px 6px;background:var(--bg-primary);border:1px solid var(--border);border-radius:5px;color:var(--text-primary);font-size:.74rem;">' +
+          (k === 'menu' ? '<span style="width:66px;"></span>'
+            : '<label style="display:flex;align-items:center;gap:4px;width:66px;cursor:pointer;">' +
+              '<input type="checkbox"' + (icHidden.indexOf(k) !== -1 ? ' checked' : '') +
+              ' onchange="themeSetIcon(' + i + ',\'' + k + '\',\'hidden\',this.checked)">Hide</label>') +
+        '</div>';
+      }).join('') +
+      '</div></div>';
+
     /* Icons as words. Reads aria-label, which these controls already carry, so
        it needs no markup and cannot miss a nav dialect. */
     var curLabels = m.tokens.iconLabels || 'off';
@@ -507,6 +534,31 @@
     if (!m) return;
     var v = String(value == null ? '' : value).trim();
     if (v && v !== 'off') m.tokens[key] = v; else delete m.tokens[key];
+    render();
+    visPaint();
+  };
+
+  /* Prunes itself back to absent when nothing is set, so a theme that was
+     fiddled with and put back does not carry an empty icons object around —
+     and so exported presets stay readable. */
+  window.themeSetIcon = function (i, key, field, value) {
+    var m = state.modes[i];
+    if (!m) return;
+    var ics = (m.tokens.icons && typeof m.tokens.icons === 'object') ? m.tokens.icons : {};
+    var order = Object.assign({}, ics.order || {});
+    var hidden = (Array.isArray(ics.hidden) ? ics.hidden : []).slice();
+    if (field === 'order') {
+      var n = parseInt(value, 10);
+      if (isFinite(n)) order[key] = n; else delete order[key];
+    } else {
+      var at = hidden.indexOf(key);
+      if (value && at === -1) hidden.push(key);
+      if (!value && at !== -1) hidden.splice(at, 1);
+    }
+    var next = {};
+    if (Object.keys(order).length) next.order = order;
+    if (hidden.length) next.hidden = hidden;
+    if (Object.keys(next).length) m.tokens.icons = next; else delete m.tokens.icons;
     render();
     visPaint();
   };
