@@ -3136,6 +3136,26 @@
                             <div id="theme-status" style="margin-top:14px;font-size:.82rem;"></div>
                         </div>
 
+                        <!-- Icons -->
+                        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:6px;">
+                                <h3 style="font-size:1.1rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">Icons</h3>
+                                <div style="display:flex;gap:8px;">
+                                    <button class="btn btn-secondary" onclick="iconsReset()">Reset all</button>
+                                    <button class="btn btn-primary" onclick="iconsSave()">Save</button>
+                                </div>
+                            </div>
+                            <p style="color:var(--text-secondary);font-size:.85rem;line-height:1.6;margin-bottom:16px;max-width:72ch;">
+                                Same idea as Typography: pick a set for the whole site, then disagree with it on the few icons where you want something else. Every icon below previews as itself — what you see is what the storefront draws.
+                            </p>
+                            <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap;">
+                                <label for="icons-set" style="font-size:.8rem;color:var(--text-secondary);">Icon set</label>
+                                <select id="icons-set" onchange="iconSetGlobal(this.value)" style="padding:8px 12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.82rem;min-width:180px;"></select>
+                            </div>
+                            <div id="icons-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:12px;"></div>
+                            <div id="icons-status" style="margin-top:14px;font-size:.82rem;"></div>
+                        </div>
+
                         <!-- Brand Assets -->
                         <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
                             <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">Brand Assets</h3>
@@ -4143,6 +4163,9 @@
     <script src="admin-main.js?v=22f987eb"></script>
     <!-- After admin-main: it needs `sb`, which that file creates at top level. -->
     <script src="admin-themes.js"></script>
+    <!-- The icon editor previews through the real registry, so it loads it too. -->
+    <script src="/icon-sets.js"></script>
+    <script src="admin-icons.js"></script>
     <script src="commerce-admin.js?v=d967ea62"></script>
 <!-- API Key Editor Modal -->
 <div id="api-key-modal">

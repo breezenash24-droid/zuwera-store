@@ -1628,7 +1628,22 @@
   };
   // Icon keys the admin's custom-row picker offers (must exist in ICON above).
   var BAG_ICON_KEYS = ['link', 'gift', 'tag', 'percent', 'star', 'heart', 'truck', 'box', 'mail', 'calendar', 'info', 'home', 'user', 'orders', 'saves', 'acct', 'help'];
-  function bagIcon(name) { return ICON[name] || ICON.link; }
+  /* The registry, when it is on the page, decides what these look like — the
+     literals above stay as the fallback so a page that has not loaded
+     icon-sets.js still renders an icon rather than a gap. Names match: bag
+     panel 'acct' and 'help' are the registry's 'account' and 'support'. */
+  var ICON_ALIAS = { acct: 'account', help: 'support' };
+  function bagIcon(name) {
+    var key = ICON_ALIAS[name] || name;
+    if (window.ZWIcons) {
+      var svg = window.ZWIcons.get(key);
+      if (svg) return svg;
+    }
+    return ICON[name] || ICON.link;
+  }
+  /* Re-render the panel when the icon config lands, so a set chosen in the
+     admin shows up without a reload. */
+  window.addEventListener('zw-icons-ready', function () { if (_bagPanel) renderBagPanel(); });
   // Only allow safe destinations for custom rows (site paths, http(s), mailto, tel).
   function bagSafeUrl(u) {
     var s = String(u || '').trim();
@@ -1693,12 +1708,12 @@
     var savesBadge = favCount ? '<span class="zwf-bag-count">' + (favCount > 99 ? '99+' : favCount) + '</span>' : '';
     var rOrders = bagRow('orders', 'Orders'), rSaves = bagRow('saves', 'Your saves'), rAccount = bagRow('account', 'Account');
     var links = user
-      ? (rOrders.enabled ? '<a class="zwf-bag-link" href="/account.html#orders">' + ICON.orders + esc(rOrders.label) + '</a>' : '')
-        + (rSaves.enabled ? '<a class="zwf-bag-link" href="/account.html#saved">' + ICON.saves + esc(rSaves.label) + savesBadge + '</a>' : '')
-        + (rAccount.enabled ? '<a class="zwf-bag-link" href="/account.html#profile">' + ICON.acct + esc(rAccount.label) + '</a>' : '')
-      : '<a class="zwf-bag-link" data-zw-login href="/?auth=signin&next=' + encodeURIComponent(location.pathname) + '">' + ICON.acct + 'Sign in</a>';
+      ? (rOrders.enabled ? '<a class="zwf-bag-link" href="/account.html#orders">' + bagIcon('orders') + esc(rOrders.label) + '</a>' : '')
+        + (rSaves.enabled ? '<a class="zwf-bag-link" href="/account.html#saved">' + bagIcon('saves') + esc(rSaves.label) + savesBadge + '</a>' : '')
+        + (rAccount.enabled ? '<a class="zwf-bag-link" href="/account.html#profile">' + bagIcon('acct') + esc(rAccount.label) + '</a>' : '')
+      : '<a class="zwf-bag-link" data-zw-login href="/?auth=signin&next=' + encodeURIComponent(location.pathname) + '">' + bagIcon('acct') + 'Sign in</a>';
     var rSupport = bagRow('support', 'Support');
-    var supportRow = rSupport.enabled ? '<a class="zwf-bag-link" href="mailto:' + esc(bagSupportEmail()) + '">' + ICON.help + esc(rSupport.label) + '</a>' : '';
+    var supportRow = rSupport.enabled ? '<a class="zwf-bag-link" href="mailto:' + esc(bagSupportEmail()) + '">' + bagIcon('help') + esc(rSupport.label) + '</a>' : '';
     // Admin-defined custom rows: label + chosen icon + preset link (bag_panel.custom).
     var customRows = (Array.isArray(bagCfg().custom) ? bagCfg().custom : [])
       .filter(function (r) { return r && r.enabled !== false && String(r.label || '').trim() && String(r.url || '').trim(); })
