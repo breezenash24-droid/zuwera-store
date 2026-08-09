@@ -276,6 +276,15 @@
     }
     // Absent means "match the body font", which the CSS fallback already says.
     set('--zw-label-font', t.labelFont);
+
+    /* Where the account control lives when the bag panel is on. The panel moves
+       account inside itself and hides the header's button; 'header' opts out of
+       the hiding half. On BODY rather than root, because the rule it answers is
+       written against body.zwf-bagpanel-on — the flag class lives there. */
+    if (el && el.setAttribute) {
+      if (t.accountIn === 'header') el.setAttribute('data-zw-account', 'header');
+      else el.removeAttribute('data-zw-account');
+    }
     // --black and --white are the page background and text in the original
     // naming. Kept in step with the triplets so the many rules still using them
     // agree with the ones using the ladder.
