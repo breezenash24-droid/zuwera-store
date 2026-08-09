@@ -33,6 +33,7 @@
 import { cors, json, mutateSetting } from './_commerce.js';
 import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } from './_email-theme.js';
 import { logEmail } from './_email-log.js';
+import { sendTransactional } from './_email.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // no I/O/0/1
@@ -95,10 +96,6 @@ async function sendWelcomeEmail(env, { to, code, label }) {
     env
   );
   const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'orders@zuwera.store';
-  const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
-  const brevoKey = resolveSetting('BREVO_API_KEY', env, cache);
-  if (!resendKey && !brevoKey) return false;
-
   const a = getEmailAppearance(cache);
   const c = getEmailContent(cache, 'popup_welcome');
   const vars = { code: code || '', discount: label || '' };
@@ -118,23 +115,12 @@ async function sendWelcomeEmail(env, { to, code, label }) {
   });
   const subject = fillTemplate(c.subject, vars);
 
+  // The shared chain: Resend → SendGrid → Brevo → Loops.
   let provider = '';
-  if (resendKey) {
-    const r = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [to], subject, html }),
-    }).catch(() => null);
-    if (r && r.ok) provider = 'resend';
-  }
-  if (!provider && brevoKey) {
-    const r = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sender: { name: 'Zuwera', email: fromEmail }, to: [{ email: to }], subject, htmlContent: html }),
-    }).catch(() => null);
-    if (r && r.ok) provider = 'brevo';
-  }
+  try {
+    const sent = await sendTransactional({ env, cache, to, subject, html, fromEmail, fromName: 'Zuwera' });
+    provider = sent.provider;
+  } catch (_) { provider = ''; }
 
   // Logged either way. A welcome email that silently never sends is the kind of
   // thing nobody notices for months; in Admin → Emails it shows as failed.

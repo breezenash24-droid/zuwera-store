@@ -1465,6 +1465,12 @@
 
             /* ── Messaging ─────────────────────────────────────────────────── */
 
+            { key:'sendgrid',   kind:'guide', icon:'📨', name:'SendGrid', cat:'Email',
+              blurb:'A fourth sending provider, for anyone already on SendGrid who would rather not move. It slots into the failover chain — Resend, then SendGrid, then Brevo, then Loops — so whichever you have set up is the one that sends, and the others cover an outage.',
+              free:'100 emails/day free',
+              docs:'https://app.sendgrid.com/settings/api_keys',
+              steps:['app.sendgrid.com → Settings → API Keys → Create','Give it Mail Send permission only — nothing else','Verify your sending domain under Sender Authentication, or mail will land in spam','Add it in Cloudflare → Pages → Settings → Environment variables as SENDGRID_API_KEY, then redeploy'] },
+
             { key:'twilio_sms', kind:'server', service:'twilio', icon:'📱', name:'Twilio SMS', cat:'Notifications',
               blurb:'Text customers when an order ships. People read texts; shipping emails often go unopened. Keys are already wired — this is here so you know the option exists.',
               free:'Trial credit, then per message',
@@ -1520,12 +1526,25 @@
             // and how much of it is already set up.
             const countEl = document.getElementById('integrationCount');
             if (countEl) {
-                const total = ZW_INTEGRATION_CATALOG.length;
+                const total = ZW_INTEGRATION_CATALOG.length + (_apiLayout.demoted || []).length;
                 const on = ZW_INTEGRATION_CATALOG.filter(integrationConfigured).length;
                 countEl.textContent = on ? `— ${on} of ${total} connected` : `— ${total} available`;
             }
+            // Anything tucked away from the API grid shows up here, as a real
+            // card that still opens the same key editor — moved, not disabled.
+            const tucked = (_apiLayout.demoted || []).map(svc => {
+                const def = API_KEY_DEFS[svc];
+                return {
+                    key: 'svc_' + svc, kind: 'server', service: svc, tucked: svc,
+                    icon: '🔑', name: (def && def.label) || svc, cat: 'Moved here',
+                    blurb: 'Moved down from the API list. It works exactly as before — this is only where its card sits. Use “Move back up” to return it.',
+                    free: '', steps: [],
+                };
+            });
+            const catalogue = ZW_INTEGRATION_CATALOG.concat(tucked);
+
             const q = String(filter ?? document.getElementById('integration-search')?.value ?? '').trim().toLowerCase();
-            const items = ZW_INTEGRATION_CATALOG.filter(it => !q
+            const items = catalogue.filter(it => !q
                 || it.name.toLowerCase().includes(q)
                 || it.cat.toLowerCase().includes(q)
                 || it.blurb.toLowerCase().includes(q));
@@ -1547,6 +1566,7 @@
                   <div class="integration-blurb">${escapeHtml(it.blurb)}</div>
                   <div class="integration-foot">
                     <span class="integration-free">${escapeHtml(it.free)}</span>
+                    ${it.tucked ? `<button class="btn btn-secondary" onclick="moveApiCard('${it.tucked}','up')">⤒ Move back up</button>` : ''}
                     <button class="btn btn-secondary" onclick="openIntegrationSetup('${it.key}')">${it.kind === 'guide' ? 'How it works' : (on ? 'Manage' : 'Set up')}</button>
                   </div>
                 </div>`;
@@ -1554,7 +1574,11 @@
         }
 
         function openIntegrationSetup(key) {
-            const item = ZW_INTEGRATION_CATALOG.find(i => i.key === key);
+            let item = ZW_INTEGRATION_CATALOG.find(i => i.key === key);
+            // Tucked-away API services are synthesised at render time, so they
+            // are not in the catalogue array — send them straight to the same
+            // masked key editor they use up in the API grid.
+            if (!item && key.indexOf('svc_') === 0) { openKeyEdit(key.slice(4)); return; }
             if (!item) return;
 
             // Server-secret integrations reuse the existing masked key editor —
@@ -1756,6 +1780,7 @@
         }
 
         async function loadApiStatus() {
+            await loadApiLayout();
             const loadingEl  = document.getElementById('apis-loading');
             const gridEl     = document.getElementById('api-grid');
             const lastEl     = document.getElementById('apis-last-updated');
@@ -1807,7 +1832,10 @@
                           optional: true },
                         () => buildCronRows(_maskedKeys), 'cron', 'https://console.cron-job.org'),
                 ];
-                gridEl.innerHTML = cards.join('');
+                // Tucked-away services drop out of this grid and reappear as
+                // cards in More Integrations, where they still open the same
+                // key editor. Nothing is disabled by moving it.
+                gridEl.innerHTML = cards.filter(Boolean).join('');
             } catch (e) {
                 loadingEl.style.display = 'block';
                 loadingEl.textContent = '⚠️ Could not load API status: ' + e.message;
@@ -2098,6 +2126,9 @@
         }
 
         function renderApiCard(icon, name, s, buildRows, serviceKey, dashboardUrl) {
+            // Tucked away → it renders as a card in More Integrations instead.
+            // Nothing about the service changes; only where its card lives.
+            if (serviceKey && apiIsDemoted(serviceKey)) return '';
             const notConfigured = s && s.configured === false;
             const isOptional    = s && s.optional === true;
             const statusClass   = !s ? 'status-error' : s.ok ? 'status-ok' : (notConfigured ? 'status-warn' : 'status-error');
@@ -2137,9 +2168,45 @@
                 ${keyChips}
                 <div class="api-card-footer">
                   <div class="api-link"><a href="${dashboardUrl}" target="_blank" rel="noopener">Open dashboard ↗</a></div>
+                  ${serviceKey ? `<button class="api-edit-btn" title="Move this into More Integrations — it keeps working, it just stops taking up room up here" onclick="moveApiCard('${serviceKey}','down')">⤓ Tuck away</button>` : ''}
                   ${editBtn}
                 </div>
               </div>`;
+        }
+
+        /* ── Which services sit up top, and which are tucked into the catalogue ──
+           Every store uses a different subset. A shop that never ships (digital
+           goods) does not want Shippo and Veeqo at eye level; one that lives in
+           Stripe does not want to scroll past DeepL to reach it. So the split is
+           the admin's to set, stored per store rather than per browser — a
+           licensee configures it once and their whole team sees it. */
+        let _apiLayout = { demoted: [] };
+        const apiIsDemoted = (svc) => Array.isArray(_apiLayout.demoted) && _apiLayout.demoted.includes(svc);
+
+        async function loadApiLayout() {
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'api_layout').maybeSingle();
+                let v = data?.value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                _apiLayout = (v && Array.isArray(v.demoted)) ? v : { demoted: [] };
+            } catch (_) { _apiLayout = { demoted: [] }; }
+        }
+
+        async function moveApiCard(service, dir) {
+            const set = new Set(_apiLayout.demoted || []);
+            if (dir === 'down') set.add(service); else set.delete(service);
+            _apiLayout = { demoted: [...set] };
+            try {
+                const { error } = await sb.from('site_settings').upsert(
+                    { key: 'api_layout', value: _apiLayout }, { onConflict: 'key' });
+                if (error) throw error;
+                showToast(dir === 'down' ? 'Moved into More Integrations.' : 'Moved back up.', 'success');
+            } catch (err) {
+                showToast('Could not save the layout: ' + ((err && err.message) || 'error'), 'error');
+            }
+            // Both lists change, so both are redrawn.
+            loadApiStatus();
+            renderIntegrationStore();
         }
 
 
@@ -2869,6 +2936,24 @@
            and applies the difference. The drift line is the important one: a
            migration edited after it ran means the repo and the database
            disagree about what that version did, which is otherwise invisible. */
+        let _bootstrapSql = '';
+        function copyBootstrapSql(btn) {
+            const done = () => {
+                const was = btn.textContent;
+                btn.textContent = '✓ Copied — now paste it into the SQL editor';
+                setTimeout(() => { btn.textContent = was; }, 2600);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(_bootstrapSql).then(done, () => {});
+                return;
+            }
+            try {
+                const t = document.createElement('textarea');
+                t.value = _bootstrapSql; document.body.appendChild(t); t.select();
+                document.execCommand('copy'); document.body.removeChild(t); done();
+            } catch (_) {}
+        }
+
         async function migrateCall(action) {
             const { data } = await sb.auth.getSession();
             const accessToken = data && data.session && data.session.access_token;
@@ -2891,12 +2976,27 @@
                 if (!j || !j.ok) throw new Error((j && j.error) || 'Could not read migration state.');
 
                 if (j.bootstrapped === false) {
+                    // The SQL itself, with a copy button. Naming a file instead
+                    // invites pasting the filename into the SQL editor, which
+                    // fails with a syntax error that reads like the migration
+                    // system is broken.
+                    _bootstrapSql = j.bootstrapSql || '';
                     host.innerHTML =
-                        '<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:12px 14px;line-height:1.7;">'
-                        + '<strong>One-time setup needed.</strong> Open the Supabase SQL editor and run '
-                        + '<code style="background:var(--border);padding:1px 5px;border-radius:4px;">' + escapeHtml(j.bootstrapFile) + '</code> once. '
-                        + 'It creates the tracking table and the applier; every migration after that is applied from this button.'
-                        + (j.pending && j.pending.length ? '<div style="margin-top:8px;">Waiting to run: ' + j.pending.map(p => escapeHtml(p.version)).join(', ') + '</div>' : '')
+                        '<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:14px 16px;line-height:1.7;">'
+                        + '<strong>One-time setup — takes about 20 seconds.</strong>'
+                        + '<ol style="margin:10px 0 0 18px;line-height:2;">'
+                        + '<li>Open the <a href="https://supabase.com/dashboard/project/_/sql/new" target="_blank" rel="noopener" style="color:var(--accent);">Supabase SQL editor</a></li>'
+                        + '<li>Press <strong>Copy SQL</strong> below and paste the whole thing in</li>'
+                        + '<li>Press <strong>Run</strong>, then come back here and press <strong>Check</strong></li>'
+                        + '</ol>'
+                        + '<div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+                        + '<button class="btn btn-primary btn-sm" onclick="copyBootstrapSql(this)">📋 Copy SQL</button>'
+                        + '<span style="color:var(--text-secondary);font-size:.8rem;">paste this, not the file name</span>'
+                        + '</div>'
+                        + '<details style="margin-top:12px;"><summary style="cursor:pointer;color:var(--text-secondary);">Show the SQL</summary>'
+                        + '<pre style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:12px;overflow:auto;max-height:320px;font-size:.72rem;margin-top:8px;white-space:pre-wrap;">'
+                        + escapeHtml(_bootstrapSql) + '</pre></details>'
+                        + (j.pending && j.pending.length ? '<div style="margin-top:10px;">Then ' + j.pending.length + ' migration' + (j.pending.length === 1 ? '' : 's') + ' will be waiting to apply from here.</div>' : '')
                         + '</div>';
                     return;
                 }

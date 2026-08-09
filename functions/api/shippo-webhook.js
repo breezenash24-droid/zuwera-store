@@ -25,7 +25,7 @@
  */
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
-import { loopsFallback } from './_email.js';
+import { sendTransactional } from './_email.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
@@ -93,45 +93,17 @@ async function markOrderStatus(orderId, fulfillmentStatus, env) {
 
 // ─── Email sending (Resend → Brevo fallback) ───────────────────────────────────
 
-async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brevoKey, env, cache }) {
-  const resendResp = await fetch('https://api.resend.com/emails', {
-    method:  'POST',
-    headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from:     `Zuwera <${fromEmail}>`,
-      to:       [to],
-      reply_to: 'orders@zuwera.store',
-      subject,
-      html,
-    }),
+// Delegates to the shared provider chain in _email.js (Resend → SendGrid →
+// Brevo → Loops). This used to be a private copy of that chain; there were
+// eleven of them, so adding a provider meant editing eleven files and getting
+// all eleven right. The from-name and reply-to stay here because they are this
+// email's voice, not the transport's.
+async function sendEmail({ to, toName, subject, html, fromEmail, env, cache }) {
+  return sendTransactional({
+    env, cache, to, toName, subject, html, fromEmail,
+    fromName: "Zuwera",
+    replyTo: 'orders@zuwera.store',
   });
-  if (resendResp.ok) { console.log('Email sent via Resend to', to); return 'resend'; }
-
-  const resendErr = resendResp.status + ': ' + await resendResp.text().catch(() => '');
-  console.warn('Resend failed (' + resendErr + '), trying Brevo…');
-
-  if (!brevoKey) throw new Error('Resend error ' + resendErr + ' — no BREVO_API_KEY for fallback');
-
-  const brevoResp = await fetch('https://api.brevo.com/v3/smtp/email', {
-    method:  'POST',
-    headers: { 'api-key': brevoKey, 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({
-      sender:      { name: 'Zuwera', email: fromEmail },
-      to:          [{ email: to, name: toName }],
-      replyTo:     { email: 'orders@zuwera.store' },
-      subject,
-      htmlContent: html,
-    }),
-  });
-  if (!brevoResp.ok) {
-    const brevoErr = brevoResp.status + ': ' + await brevoResp.text().catch(() => '');
-    // Third-tier Loops fallback before giving up
-    const loops = await loopsFallback({ env, cache, to, subject, html });
-    if (loops.ok) return 'loops';
-    throw new Error('All providers failed. Resend: ' + resendErr + ' | Brevo: ' + brevoErr + (loops.skipped ? '' : ' | Loops: ' + (loops.error || 'failed')));
-  }
-  console.log('Email sent via Brevo to', to);
-  return 'brevo';
 }
 
 // ─── SMS via Twilio ────────────────────────────────────────────────────────────

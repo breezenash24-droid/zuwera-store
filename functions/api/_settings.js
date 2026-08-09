@@ -113,6 +113,7 @@ export async function fetchSiteSettings(keys, env) {
  */
 export const ENV_ONLY_KEYS = new Set([
   'RESEND_API_KEY',
+  'SENDGRID_API_KEY',
   'BREVO_API_KEY',
   'LOOPS_API_KEY',
   'SHIPPO_API_KEY',

@@ -12,7 +12,7 @@
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { cors, json, verifyAdmin, getCommerceBundle } from './_commerce.js';
-import { loopsFallback } from './_email.js';
+import { sendTransactional } from './_email.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
@@ -195,37 +195,17 @@ export function buildEmail({ r, status, resolution, fromFirstName, logoUrl, appe
   });
 }
 
-async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brevoKey, env, cache }) {
-  if (resendKey) {
-    const r = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [to], reply_to: 'orders@zuwera.store', subject, html }),
-    });
-    if (r.ok) return { provider: 'resend' };
-  }
-  if (brevoKey) {
-    const r = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sender:    { name: 'Zuwera', email: fromEmail },
-        to:        [{ email: to, name: toName }],
-        replyTo:   { email: 'orders@zuwera.store' },
-        subject,
-        htmlContent: html,
-      }),
-    });
-    if (r.ok) return { provider: 'brevo' };
-    // Brevo failed — third-tier Loops fallback before giving up
-    const loops = await loopsFallback({ env, cache, to, subject, html });
-    if (loops.ok) return { provider: 'loops' };
-    throw new Error('Brevo send failed: ' + r.status + (loops.skipped ? '' : ' | Loops: ' + (loops.error || 'failed')));
-  }
-  // No Brevo key configured — still attempt Loops as a last resort
-  const loops = await loopsFallback({ env, cache, to, subject, html });
-  if (loops.ok) return { provider: 'loops' };
-  throw new Error('No email provider configured (RESEND_API_KEY or BREVO_API_KEY required).');
+// Delegates to the shared provider chain in _email.js (Resend → SendGrid →
+// Brevo → Loops). This used to be a private copy of that chain; there were
+// eleven of them, so adding a provider meant editing eleven files and getting
+// all eleven right. The from-name and reply-to stay here because they are this
+// email's voice, not the transport's.
+async function sendEmail({ to, toName, subject, html, fromEmail, env, cache }) {
+  return sendTransactional({
+    env, cache, to, toName, subject, html, fromEmail,
+    fromName: "Zuwera",
+    replyTo: 'orders@zuwera.store',
+  });
 }
 
 export async function onRequestOptions({ env }) {
