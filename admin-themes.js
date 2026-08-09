@@ -43,6 +43,8 @@
     { key: 'err', label: 'Error', kind: 'hex', help: 'Failed payments, validation, anything gone wrong.' },
     { key: 'navBg', label: 'Header background', kind: 'hex', optional: true, help: 'Leave off and the header matches the page. Set it to give the site a header in a different colour from the page below it — a black bar over a light page, say.' },
     { key: 'navFg', label: 'Header text', kind: 'hex', optional: true, help: 'Only needed when the header has its own background.' },
+    { key: 'barBg', label: 'Announcement bar', kind: 'hex', optional: true, help: 'The strip above the header. Off and it follows the page; on and it can be the loud band that carries a promotion.' },
+    { key: 'barFg', label: 'Announcement bar text', kind: 'hex', optional: true, help: 'Only needed when the bar has its own background.' },
   ];
 
   /* Not colours, but part of the theme all the same. These are the dimensions
@@ -366,7 +368,7 @@
   window.themeToggleOptional = function (i, key, on) {
     var m = state.modes[i];
     if (!m) return;
-    if (on) m.tokens[key] = key === 'navFg' ? '#f4f1eb' : '#09090b';
+    if (on) m.tokens[key] = (key === 'navFg' || key === 'barFg') ? '#f4f1eb' : '#09090b';
     else delete m.tokens[key];
     render();
     visPaint();

@@ -259,6 +259,47 @@ console.log('\n  a theme is more than paint');
   ok('dragging a slider does not rebuild it mid-drag', /drop the pointer/.test(at));
 }
 
+console.log('\n  the mapping is shown, and correctable');
+{
+  const im = fs.readFileSync(R + 'admin-theme-import.js', 'utf8');
+
+  /* Every mapping is a guess: themes disagree about which setting means what.
+     Hiding the guesses is what makes a half-right import feel like a bug. */
+  ok('the mapping is data, not control flow', /var TARGETS = \[/.test(im) && /function autoAssign/.test(im));
+  ok('one place produces tokens, so an edited row cannot be ignored',
+    /function compose\(pool, assign\)/.test(im) && /The ONLY place tokens are produced/.test(im));
+  ok('every row is shown with what it read', /function renderMapping/.test(im));
+  ok('…and every alternative the theme actually contained', /pool\.colours : t\.kind === 'number'/.test(im));
+  ok('changing a row rebuilds the preset', /window\.shopifyRemap/.test(im));
+  ok('“not mapped” clears the token rather than leaving the old guess behind',
+    /delete modes\[0\]\.tokens\[t\.key\]/.test(im));
+  ok('the parsed zip is kept so a change does not need the file again',
+    /lastBuild = built/.test(im));
+
+  /* Shopify font handles are family_weightstyle — archivo_n7, not archivo_n700.
+     Demanding the three-digit form matched nothing, so fonts found no source
+     at all and the table showed two empty rows with no explanation. */
+  ok('font handles are matched in the shape Shopify actually writes',
+    /_\[ni\]\[1-9\]/.test(im) && /weight digit is single/.test(im));
+}
+
+console.log('\n  the announcement bar is themeable too');
+{
+  const bar = fs.readFileSync(R + 'announcement-bar.js', 'utf8');
+  const eng = fs.readFileSync(R + 'theme-engine.js', 'utf8');
+  const at = fs.readFileSync(R + 'admin-themes.js', 'utf8');
+
+  /* It was #09090b on every page, with only the homepage overriding it from
+     builder_theme — the one strip above everything else was the least
+     themeable thing on the site. */
+  ok('the bar reads theme tokens', /var\(--zw-bar-bg,#09090b\)/.test(bar) && /var\(--zw-bar-fg,#F0EEE9\)/.test(bar));
+  ok('…falling back to exactly what it hardcoded', /#09090b/.test(bar) && /#F0EEE9/.test(bar));
+  ok('the theme can set them', /set\('--zw-bar-bg', t\.barBg\)/.test(eng));
+  ok('and the editor offers them like the header’s', /barBg/.test(at) && /barFg/.test(at));
+  ok('both are optional, so an unset theme leaves the bar alone',
+    /key: 'barBg'[^}]*optional: true/.test(at));
+}
+
 console.log('\n  header composition');
 {
   const nav = fs.readFileSync(R + 'nav.css', 'utf8');

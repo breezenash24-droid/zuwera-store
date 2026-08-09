@@ -151,6 +151,126 @@
     return [1, 3, 5].map(function (i) { return parseInt(x.substr(i, 2), 16); }).join(' ');
   }
 
+  /* ── The mapping, shown and editable ──────────────────────────────────────
+     Everything above this point is a guess. `colors_accent_1` becomes the
+     accent AND the button background because on most themes it is both;
+     `scheme-1` is chosen because it is usually the one the homepage uses;
+     radius is averaged across four settings because themes disagree about
+     which one means "the theme's roundness". Those guesses are right often
+     enough to be useful and wrong often enough that hiding them is unfair.
+
+     So the mapping is data rather than control flow: a table of
+     target-token → source-setting-id that is derived automatically, then
+     shown, then editable. Change a row and the preset is rebuilt from the
+     table — the import has no second opinion. */
+
+  /* Every setting in the theme that could plausibly land somewhere here,
+     with its value. Typed by shape rather than by the schema's declared type,
+     because settings_data carries values without their schema and a theme
+     can define a colour with type "text". */
+  function collect(merged) {
+    var colours = [], numbers = [], fonts = [];
+    Object.keys(merged).forEach(function (id) {
+      var v = merged[id];
+      if (typeof v === 'string' && hex(v)) colours.push({ id: id, value: hex(v) });
+      else if (typeof v === 'number' || (typeof v === 'string' && /^\d+(\.\d+)?$/.test(v))) {
+        numbers.push({ id: id, value: parseFloat(v) });
+      } else if (typeof v === 'string' && /_[ni][1-9]/.test(v)) {
+        /* Shopify font handles are family_weightstyle: archivo_n7, assistant_n4,
+           playfair_i4 for italic. The weight digit is single, not 700 — an
+           earlier pattern demanded the three-digit form and matched nothing, so
+           fonts silently found no source at all and the mapping table showed
+           two empty rows with no explanation. */
+        fonts.push({ id: id, value: v });
+      }
+    });
+    // Colour schemes are nested, so flatten them in under readable ids.
+    var schemes = merged.color_schemes;
+    if (schemes && typeof schemes === 'object') {
+      Object.keys(schemes).forEach(function (name) {
+        var st = (schemes[name] && (schemes[name].settings || schemes[name])) || {};
+        Object.keys(st).forEach(function (k) {
+          if (typeof st[k] === 'string' && hex(st[k])) {
+            colours.push({ id: name + '.' + k, value: hex(st[k]) });
+          }
+        });
+      });
+    }
+    var seen = {};
+    colours = colours.filter(function (c) { if (seen[c.id]) return false; seen[c.id] = 1; return true; });
+    return { colours: colours, numbers: numbers, fonts: fonts };
+  }
+
+  /* What each of this site's tokens can be fed from, and how to read a source
+     value into it. Order matters: the first id present wins, which is what
+     encodes "prefer the scheme over the flat setting". */
+  var TARGETS = [
+    { key: 'bg', label: 'Page background', kind: 'colour',
+      prefer: ['scheme-1.background', 'colors_background_1', 'colors_background_2'] },
+    { key: 'fg', label: 'Text', kind: 'colour',
+      prefer: ['scheme-1.text', 'colors_text', 'colors_text_body'] },
+    { key: 'accent', label: 'Accent', kind: 'colour',
+      prefer: ['colors_accent_1', 'scheme-1.secondary_button_label', 'scheme-1.button'] },
+    { key: 'surface', label: 'Surface', kind: 'colour',
+      prefer: ['colors_background_2', 'scheme-2.background', 'scheme-1.background'] },
+    { key: 'ink', label: 'Button background', kind: 'colour',
+      prefer: ['scheme-1.button', 'colors_accent_1'] },
+    { key: 'paper', label: 'Button text', kind: 'colour',
+      prefer: ['scheme-1.button_label', 'colors_solid_button_labels'] },
+    { key: 'radius', label: 'Corner radius', kind: 'number',
+      prefer: ['buttons_radius', 'card_corner_radius', 'inputs_radius', 'media_radius'] },
+    { key: 'typeScale', label: 'Type scale', kind: 'number',
+      prefer: ['heading_scale', 'body_scale'] },
+    { key: 'density', label: 'Section density', kind: 'number',
+      prefer: ['spacing_sections', 'spacing_grid_vertical'] },
+    { key: '_fontHead', label: 'Heading font', kind: 'font', prefer: ['type_header_font'] },
+    { key: '_fontBody', label: 'Body font', kind: 'font', prefer: ['type_body_font'] },
+  ];
+
+  function autoAssign(merged, pool) {
+    var have = {};
+    pool.colours.concat(pool.numbers, pool.fonts).forEach(function (x) { have[x.id] = x.value; });
+    var out = {};
+    TARGETS.forEach(function (t) {
+      for (var i = 0; i < t.prefer.length; i++) {
+        if (have[t.prefer[i]] !== undefined) { out[t.key] = t.prefer[i]; return; }
+      }
+      out[t.key] = '';       // nothing matched — shown as "not mapped"
+    });
+    return out;
+  }
+
+  function valueOf(pool, id) {
+    var all = pool.colours.concat(pool.numbers, pool.fonts);
+    for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i].value;
+    return undefined;
+  }
+
+  /* Turn the table into tokens. The ONLY place tokens are produced, so what
+     the table says is always what gets saved — there is no path where an
+     edited row is ignored because some earlier heuristic already decided. */
+  function compose(pool, assign) {
+    var tokens = { err: '#ef4444' };
+    var fonts = {};
+    TARGETS.forEach(function (t) {
+      var id = assign[t.key];
+      if (!id) return;
+      var v = valueOf(pool, id);
+      if (v === undefined) return;
+      if (t.kind === 'colour') {
+        tokens[t.key] = (t.key === 'fg' || t.key === 'bg') ? toTriplet(v) : hex(v);
+      } else if (t.kind === 'number') {
+        if (t.key === 'radius') tokens.radius = Math.round(v);
+        if (t.key === 'typeScale') tokens.typeScale = Math.max(0.85, Math.min(1.25, v > 3 ? v / 100 : v));
+        if (t.key === 'density') tokens.density = Math.max(0.7, Math.min(1.4, 0.7 + (v / 100) * 0.7));
+      } else if (t.kind === 'font') {
+        if (t.key === '_fontHead') fonts.head = fontFamily(v);
+        if (t.key === '_fontBody') fonts.body = fontFamily(v);
+      }
+    });
+    return { tokens: tokens, fonts: fonts };
+  }
+
   // ── The mapping ──────────────────────────────────────────────────────────
   function build(schema, data, indexTpl, name, icons) {
     var current = (data && data.current) || {};
@@ -168,43 +288,17 @@
     });
     var merged = Object.assign({}, defaults, current);
 
-    var col = pickColours(merged);
-    var tokens = {};
+    var pool = collect(merged);
+    var assign = autoAssign(merged, pool);
+    var composed = compose(pool, assign);
+    var tokens = composed.tokens;
+    var fonts = composed.fonts;
+
     var got = [], missed = [];
-
-    function take(key, value, label) {
-      if (value) { tokens[key] = value; got.push(label); }
-      else missed.push(label);
-    }
-    take('fg', toTriplet(col.fg), 'Text colour');
-    take('bg', toTriplet(col.bg), 'Page background');
-    take('accent', hex(col.accent), 'Accent');
-    take('ink', hex(col.ink), 'Button background');
-    take('paper', hex(col.paper), 'Button text');
-    tokens.surface = hex(col.bg) || '#F0EEE9';
-
-    // Corner radius: themes name it several ways; any of them answers the
-    // question "how round is this theme".
-    var r = [merged.buttons_radius, merged.card_corner_radius, merged.inputs_radius, merged.media_radius]
-      .map(parseFloat).filter(function (n) { return isFinite(n); });
-    if (r.length) { tokens.radius = Math.round(r.reduce(function (a, b) { return a + b; }, 0) / r.length); got.push('Corner radius'); }
-    else missed.push('Corner radius');
-
-    // Dawn-style type scales are percentages of a base.
-    var hs = parseFloat(merged.heading_scale);
-    if (isFinite(hs) && hs > 0) { tokens.typeScale = Math.max(0.85, Math.min(1.25, hs / 100)); got.push('Type scale'); }
-    else missed.push('Type scale');
-
-    var sp = parseFloat(merged.spacing_sections);
-    if (isFinite(sp)) { tokens.density = Math.max(0.7, Math.min(1.4, 0.7 + (sp / 100) * 0.7)); got.push('Section density'); }
-    else missed.push('Section density');
-
-    var fonts = {
-      head: fontFamily(merged.type_header_font),
-      body: fontFamily(merged.type_body_font),
-    };
-    if (fonts.head || fonts.body) got.push('Fonts (' + [fonts.head, fonts.body].filter(Boolean).join(', ') + ')');
-    else missed.push('Fonts');
+    TARGETS.forEach(function (t) {
+      if (assign[t.key]) got.push(t.label);
+      else missed.push(t.label);
+    });
 
     /* Sections are read to be REPORTED, not imported. Their types are the
        theme's own — image-banner, multicolumn, collapsible-content — and each
@@ -281,7 +375,7 @@
         source: 'shopify-zip',
         keys: keys,
       },
-      report: { got: got, missed: missed, sections: sections, fonts: fonts },
+      report: { got: got, missed: missed, sections: sections, fonts: fonts, pool: pool, assign: assign },
     };
   }
 
@@ -344,6 +438,7 @@
 
   // ── Entry point ──────────────────────────────────────────────────────────
   var pending = null;
+  var lastBuild = null;
 
   window.shopifyThemeImport = async function (input) {
     var file = input && input.files && input.files[0];
@@ -373,6 +468,10 @@
       try { themeName = (Array.isArray(schema) ? schema[0] : {}).theme_name || ''; } catch (_) {}
       var built = build(schema, data, idx, themeName || file.name.replace(/\.zip$/i, ''), extractIcons(files));
       pending = built.preset;
+      /* Held so a changed row can rebuild the preset without re-reading the
+         zip — the file input is already cleared by then, and asking for the
+         file again to change one dropdown would be absurd. */
+      lastBuild = built;
       say(renderReport(built, themeName));
     } catch (err) {
       say('<p style="color:var(--error);font-size:.85rem;">' + esc((err && err.message) || 'Could not read that file') + '</p>');
@@ -405,6 +504,97 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+
+  /* ── The mapping table ────────────────────────────────────────────────────
+     Every row is a guess this import made, shown with the value it read and a
+     dropdown of everything else it could have chosen. Change one and the
+     preset is rebuilt from the table, because compose() is the only thing that
+     produces tokens — there is no path where an edited row is quietly ignored
+     by a heuristic that already made up its mind. */
+  function renderMapping(built) {
+    var pool = built.report.pool;
+    var assign = built.report.assign;
+
+    var rows = TARGETS.map(function (t) {
+      var options = (t.kind === 'colour' ? pool.colours : t.kind === 'number' ? pool.numbers : pool.fonts);
+      var chosen = assign[t.key] || '';
+      var val = chosen ? valueOf(pool, chosen) : undefined;
+
+      var preview = '';
+      if (t.kind === 'colour' && val) {
+        preview = '<span style="width:22px;height:22px;border-radius:4px;border:1px solid var(--border);background:' + esc(val) + ';display:inline-block;flex:0 0 auto;"></span>';
+      } else if (val !== undefined) {
+        preview = '<code style="font-size:.72rem;color:var(--text-secondary);">' + esc(String(val)) + '</code>';
+      } else {
+        preview = '<span style="font-size:.72rem;color:var(--text-secondary);">—</span>';
+      }
+
+      var opts = '<option value="">Not mapped</option>' + options.map(function (o) {
+        return '<option value="' + esc(o.id) + '"' + (chosen === o.id ? ' selected' : '') + '>' +
+          esc(o.id) + (t.kind === 'colour' ? '  ' + esc(o.value) : '  (' + esc(String(o.value)) + ')') +
+        '</option>';
+      }).join('');
+
+      return '<tr>' +
+        '<td style="padding:7px 10px 7px 0;font-size:.8rem;white-space:nowrap;">' + esc(t.label) + '</td>' +
+        '<td style="padding:7px 10px 7px 0;width:26px;">' + preview + '</td>' +
+        '<td style="padding:7px 0;">' +
+          '<select onchange="shopifyRemap(&quot;' + esc(t.key) + '&quot;,this.value)" style="width:100%;padding:6px 8px;background:var(--bg-secondary);border:1px solid ' +
+            (chosen ? 'var(--border)' : 'var(--error)') + ';border-radius:5px;color:var(--text-primary);font-size:.75rem;font-family:monospace;">' +
+            opts +
+          '</select>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+
+    return '<details style="margin-top:14px;" open>' +
+      '<summary style="cursor:pointer;font-size:.8rem;color:var(--text-primary);padding:4px 0;">' +
+        'How each setting was mapped — change any row that is wrong' +
+      '</summary>' +
+      '<p style="font-size:.76rem;color:var(--text-secondary);line-height:1.6;margin:8px 0 10px;max-width:74ch;">' +
+        'Every row below is a guess. Themes disagree about which setting means what — one calls the button colour <code>colors_accent_1</code>, another puts it in a scheme — so these are picked by preference order and are sometimes wrong. The dropdown lists every setting of the right kind that the theme actually contained.' +
+      '</p>' +
+      '<table style="width:100%;border-collapse:collapse;">' + rows + '</table>' +
+    '</details>';
+  }
+
+  /* Change a row: re-compose from the table, replace the pending preset, and
+     redraw. The icons and the section list are untouched — they did not come
+     from this table and re-deriving them would throw away a correct answer. */
+  window.shopifyRemap = function (target, sourceId) {
+    if (!lastBuild) return;
+    lastBuild.report.assign[target] = sourceId;
+    var composed = compose(lastBuild.report.pool, lastBuild.report.assign);
+
+    var modes = lastBuild.preset.keys.theme_modes.modes;
+    modes[0].tokens = Object.assign({}, modes[0].tokens, composed.tokens);
+    // A row set to "Not mapped" must actually clear the token, or the value
+    // from the previous guess would survive as a ghost.
+    TARGETS.forEach(function (t) {
+      if (t.kind !== 'font' && !lastBuild.report.assign[t.key]) delete modes[0].tokens[t.key];
+    });
+
+    if (composed.fonts.head || composed.fonts.body) {
+      var roles = {};
+      if (composed.fonts.head) roles.head = googleRole(composed.fonts.head, 'sans-serif');
+      if (composed.fonts.body) roles.body = googleRole(composed.fonts.body, 'sans-serif');
+      lastBuild.preset.keys.fonts = { roles: roles };
+    } else {
+      delete lastBuild.preset.keys.fonts;
+    }
+
+    lastBuild.report.fonts = composed.fonts;
+    lastBuild.report.got = [];
+    lastBuild.report.missed = [];
+    TARGETS.forEach(function (t) {
+      (lastBuild.report.assign[t.key] ? lastBuild.report.got : lastBuild.report.missed).push(t.label);
+    });
+
+    pending = lastBuild.preset;
+    var out = document.getElementById('shopify-import-report');
+    if (out) out.innerHTML = renderReport(lastBuild, lastBuild.preset.name);
+  };
+
   function renderReport(built, themeName) {
     var r = built.report;
     var swatches = ['bg', 'fg', 'accent', 'ink'].map(function (k) {
@@ -432,6 +622,7 @@
           esc(r.sections.slice(0, 8).join(', ')) + (r.sections.length > 8 ? '…' : '') +
           '. These are Liquid templates, so they are listed rather than imported: each would need building here. The colours and type above are what actually ported.</div>'
         : '') +
+      renderMapping(built) +
       '<button class="btn btn-primary" style="margin-top:14px;" onclick="shopifyImportKeep()">Save as a theme</button>' +
     '</div>';
   }

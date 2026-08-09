@@ -149,6 +149,12 @@
        wants a header in a different colour from its page sets them. */
     set('--zw-nav-bg', t.navBg);
     set('--zw-nav-fg', t.navFg);
+    /* The announcement bar, on the same terms as the header. It was #09090b in
+       announcement-bar.js on every page, with the homepage alone overriding it
+       from builder_theme — so the one strip that appears above everything was
+       the least themeable thing on the site. */
+    set('--zw-bar-bg', t.barBg);
+    set('--zw-bar-fg', t.barFg);
 
     /* Shape, scale and density — the three dimensions that separate one
        storefront theme from another once the colours match. A theme that only
