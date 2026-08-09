@@ -80,10 +80,43 @@
     chevron: '<path d="M12 15.6 5.4 9a1.3 1.3 0 0 1 1.8-1.8L12 12l4.8-4.8A1.3 1.3 0 0 1 18.6 9z"/>',
   };
 
+  /* Genuinely different drawings, not one drawing at three stroke weights.
+     Outline/Rounded/Bold share geometry deliberately — those ARE weights of the
+     same family, and swapping between them is meant to be invisible in layout.
+     The rest are different families: different shapes, corners and metaphors,
+     the way Feather and Material and a hand-drawn set are different. */
+  var GEOMETRIC = {
+    bag: '<path d="M4 7h16v14H4z"/><path d="M9 7V4h6v3"/><path d="M9 11h6"/>',
+    search: '<rect x="4" y="4" width="12" height="12"/><path d="M16 16l4 4"/>',
+    account: '<rect x="4" y="4" width="16" height="16"/><path d="M9 10h6"/><path d="M8 16c1.3-2 6.7-2 8 0"/>',
+    support: '<rect x="4" y="4" width="16" height="16"/><path d="M9 9h6v4h-3v2"/><path d="M12 18h.01"/>',
+    orders: '<path d="M4 7h16v14H4z"/><path d="M9 7V4h6v3"/><path d="M9 11h6"/>',
+    saves: '<path d="M6 3h12v18l-6-5-6 5z"/>',
+    heart: '<path d="M12 20 4 12V7l4-3 4 4 4-4 4 3v5z"/>',
+    close: '<path d="M5 5l14 14"/><path d="M19 5L5 19"/>',
+    menu: '<path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/>',
+    chevron: '<path d="M5 9l7 7 7-7"/>',
+  };
+  var SKETCH = {
+    bag: '<path d="M5.4 7.2c4.6-.5 9-.5 13.4 0 .5 4.3.6 9 .2 13.4-4.6.5-9.3.4-13.8 0-.4-4.4-.3-9 .2-13.4z"/><path d="M9.2 7.4c-.3-2.6.6-3.7 2.9-3.6 2.2 0 3 1.1 2.8 3.6"/>',
+    search: '<path d="M11.3 4.2c3.9-.3 6.4 2.7 6.2 6.3-.2 3.5-2.9 5.8-6.4 5.5-3.3-.3-5.3-2.6-5.1-6 .2-3.2 2.2-5.6 5.3-5.8z"/><path d="M15.8 15.4c1.8 1.6 3.3 3 4.4 4.3"/>',
+    account: '<path d="M12 3.4c4.9-.2 8.4 3.5 8.4 8.5 0 5-3.6 8.6-8.6 8.4-4.8-.2-8.1-3.7-8-8.6.1-4.8 3.5-8.1 8.2-8.3z"/><path d="M12 7.4c1.9-.1 3 1 3 2.8 0 1.7-1.1 2.9-2.9 2.8-1.7 0-2.8-1.1-2.7-2.9 0-1.6 1-2.6 2.6-2.7z"/><path d="M7 18.6c2-2.7 8-2.8 10.1-.2"/>',
+    support: '<path d="M12 3.4c4.9-.2 8.4 3.5 8.4 8.5 0 5-3.6 8.6-8.6 8.4-4.8-.2-8.1-3.7-8-8.6.1-4.8 3.5-8.1 8.2-8.3z"/><path d="M9.4 9.3c.2-2.1 1.5-3 3.3-2.7 1.7.3 2.4 1.6 1.9 3.1-.4 1.2-1.7 1.5-2.2 2.3-.3.5-.3 1-.3 1.5"/><path d="M12 17.4h.01"/>',
+    orders: '<path d="M5.4 7.2c4.6-.5 9-.5 13.4 0 .5 4.3.6 9 .2 13.4-4.6.5-9.3.4-13.8 0-.4-4.4-.3-9 .2-13.4z"/><path d="M9.2 7.4c-.3-2.6.6-3.7 2.9-3.6 2.2 0 3 1.1 2.8 3.6"/>',
+    saves: '<path d="M6.4 3.6c3.8-.4 7.5-.4 11.2 0 .5 5.7.5 11.4.1 17.1-1.9-1.5-3.8-3-5.7-4.4-1.9 1.4-3.8 2.9-5.7 4.4-.4-5.7-.4-11.4.1-17.1z"/>',
+    heart: '<path d="M12 20.4C8.6 17.6 4 14.2 3.6 10 3.3 6.6 5.6 4.2 8.4 4.5c1.7.2 2.8 1.4 3.6 2.8.8-1.4 1.9-2.6 3.6-2.8 2.8-.3 5.1 2.1 4.8 5.5-.4 4.2-5 7.6-8.4 10.4z"/>',
+    close: '<path d="M5.6 5.2c4.5 4.4 8.8 8.9 13 13.5"/><path d="M18.5 5.4c-4.4 4.5-8.8 8.9-13.1 13.3"/>',
+    menu: '<path d="M3.6 6.6c5.7-.5 11.3-.5 16.9 0"/><path d="M3.5 12.1c5.7-.5 11.4-.5 17 0"/><path d="M3.7 17.6c5.6-.5 11.2-.5 16.7 0"/>',
+    chevron: '<path d="M5.4 9.2c2.3 2.3 4.5 4.4 6.7 6.4 2.2-2 4.4-4.1 6.6-6.4"/>',
+  };
+
   var SETS = {
-    outline: { label: 'Outline', build: function (n) { return stroke('1.6', D[n]); } },
-    rounded: { label: 'Rounded', build: function (n) { return stroke('2.2', D[n]); } },
-    solid:   { label: 'Solid',   build: function (n) { return fill(SOLID[n]); } },
+    outline:   { label: 'Outline (default)', build: function (n) { return stroke('1.6', D[n]); } },
+    rounded:   { label: 'Rounded',           build: function (n) { return stroke('2.2', D[n]); } },
+    bold:      { label: 'Bold',              build: function (n) { return stroke('3', D[n]); } },
+    solid:     { label: 'Solid',             build: function (n) { return fill(SOLID[n]); } },
+    geometric: { label: 'Geometric',         build: function (n) { return stroke('1.7', GEOMETRIC[n]); } },
+    sketch:    { label: 'Hand-drawn',        build: function (n) { return stroke('1.5', SKETCH[n]); } },
   };
 
   /* The shape drawn around an icon button — the box the bag sits in. It was a

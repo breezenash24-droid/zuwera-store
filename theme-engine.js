@@ -54,7 +54,7 @@
                 navBg: '#09090b', navFg: '#f4f1eb' } },
   ];
 
-  var config = { modes: BUILTINS.slice(), default: 'dark' };
+  var config = { modes: BUILTINS.slice(), default: 'dark', pages: {} };
   var applied = null;
 
   // ── Normalising ──────────────────────────────────────────────────────────
@@ -77,7 +77,35 @@
       };
     });
     var def = modes.filter(function (m) { return m.id === raw.default; })[0];
-    return { modes: modes, default: def ? def.id : modes[0].id };
+    /* Per-page themes. A store is rarely one look end to end — a dark shop and
+       a light checkout is a normal thing to want, and until now the theme was
+       one global choice that the homepage happened to own.
+
+       pages maps a path to a theme id. Longest match wins, so '/product.html'
+       beats '/', and anything unlisted falls back to the default. A page named
+       here for a theme that no longer exists is ignored rather than blank. */
+    var pages = {};
+    if (raw.pages && typeof raw.pages === 'object') {
+      Object.keys(raw.pages).forEach(function (path) {
+        var id = raw.pages[path];
+        if (modes.some(function (m) { return m.id === id; })) pages[String(path)] = id;
+      });
+    }
+    return { modes: modes, default: def ? def.id : modes[0].id, pages: pages };
+  }
+
+  /* Which theme this URL should wear. A visitor's own pick still wins — someone
+     who chose Dark asked for Dark, and having the checkout disagree with them
+     would read as a bug rather than a design. */
+  function themeForPath(path) {
+    var p = String(path || '/');
+    var best = '', bestId = '';
+    Object.keys(config.pages || {}).forEach(function (key) {
+      if (p === key || (key !== '/' && p.indexOf(key) === 0)) {
+        if (key.length > best.length) { best = key; bestId = config.pages[key]; }
+      }
+    });
+    return bestId || '';
   }
 
   function byId(id) {
@@ -163,7 +191,10 @@
   if (cached) config = normalise(cached);
 
   function resolveAndApply() {
-    var theme = byId(chosenId()) || byId(config.default) || config.modes[0];
+    var theme = byId(chosenId())
+             || byId(themeForPath(location.pathname))
+             || byId(config.default)
+             || config.modes[0];
     apply(theme);
   }
 
@@ -180,7 +211,8 @@
       config = normalise(raw);
       // Re-apply only if the answer actually differs, so a settled page does
       // not repaint for nothing.
-      var next = byId(chosenId()) || byId(config.default) || config.modes[0];
+      var next = byId(chosenId()) || byId(themeForPath(location.pathname))
+              || byId(config.default) || config.modes[0];
       if (!applied || applied.id !== next.id || JSON.stringify(applied.tokens) !== JSON.stringify(next.tokens)) {
         apply(next);
       }
@@ -193,6 +225,7 @@
        hardcoding three buttons — which is the whole point. */
     list: function () { return config.modes.slice(); },
     current: function () { return applied ? applied.id : (chosenId() || config.default); },
+    forPath: themeForPath,
     get: function (id) { return byId(id); },
     apply: function (id, remember) {
       var theme = byId(id);

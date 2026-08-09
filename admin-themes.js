@@ -45,7 +45,7 @@
     { key: 'navFg', label: 'Header text', kind: 'hex', optional: true, help: 'Only needed when the header has its own background.' },
   ];
 
-  var state = { modes: DEFAULT_MODES.slice(), default: 'dark' };
+  var state = { modes: DEFAULT_MODES.slice(), default: 'dark', pages: {} };
   var openId = null;
 
   // ── Colour conversion ────────────────────────────────────────────────────
@@ -82,7 +82,7 @@
       var v = res.data && res.data.value;
       if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
       if (v && Array.isArray(v.modes) && v.modes.length) {
-        state = { modes: v.modes, default: v.default || v.modes[0].id };
+        state = { modes: v.modes, default: v.default || v.modes[0].id, pages: v.pages || {} };
       }
     } catch (_) {}
     render();
@@ -129,10 +129,19 @@
           '</label>'
         : '';
 
+      /* Two ways in, because they are different jobs. The swatch is for
+         browsing to a colour; the hex box is for entering one you already
+         have — a brand colour arrives as #F891A5, not as a point on a
+         gradient. They write the same value and mirror each other. */
       var picker = on
         ? '<div style="display:flex;gap:8px;align-items:center;">' +
-            '<input type="color" value="' + esc(hex) + '" oninput="themeSetColor(' + i + ',&quot;' + esc(f.key) + '&quot;,this.value)" style="width:44px;height:32px;padding:2px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;cursor:pointer;">' +
-            '<code style="font-size:.74rem;color:var(--text-secondary);">' + esc(hex) + '</code>' +
+            '<input type="color" value="' + esc(hex) + '" oninput="themeSetColor(' + i + ',&quot;' + esc(f.key) + '&quot;,this.value,true)" style="width:44px;height:32px;padding:2px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;cursor:pointer;">' +
+            '<input type="text" value="' + esc(hex) + '" spellcheck="false" maxlength="7"' +
+              ' oninput="themeSetHex(' + i + ',&quot;' + esc(f.key) + '&quot;,this.value)"' +
+              ' style="width:100px;padding:7px 9px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:monospace;font-size:.76rem;">' +
+            (f.kind === 'rgb'
+              ? '<code style="font-size:.7rem;color:var(--text-secondary);">rgb ' + esc(raw || '—') + '</code>'
+              : '') +
           '</div>'
         : '';
 
@@ -171,6 +180,43 @@
     '</div>';
   }
 
+  /* The pages a theme can be pinned to. Paths, not names, because that is what
+     the engine matches on — and a prefix like /product.html covers every
+     product without listing them. */
+  var PAGE_TARGETS = [
+    ['/', 'Home'],
+    ['/drop001.html', 'Collection'],
+    ['/product.html', 'Product pages'],
+    ['/bag.html', 'Bag'],
+    ['/checkout.html', 'Checkout'],
+    ['/account.html', 'Account'],
+    ['/about.html', 'About'],
+    ['/journal.html', 'Journal'],
+    ['/returns.html', 'Returns'],
+    ['/policies.html', 'Policies'],
+  ];
+
+  function renderPages() {
+    var host = document.getElementById('theme-pages');
+    if (!host) return;
+    host.innerHTML = PAGE_TARGETS.map(function (t) {
+      var path = t[0], label = t[1];
+      var chosen = state.pages[path] || '';
+      var opts = '<option value="">Use the default</option>' + state.modes.map(function (m) {
+        return '<option value="' + esc(m.id) + '"' + (chosen === m.id ? ' selected' : '') + '>' + esc(m.label) + '</option>';
+      }).join('');
+      return '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<span style="font-size:.8rem;min-width:104px;">' + esc(label) + '</span>' +
+        '<select onchange="themeSetPage(&quot;' + esc(path) + '&quot;,this.value)" style="flex:1;padding:7px 9px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.78rem;">' + opts + '</select>' +
+      '</div>';
+    }).join('');
+  }
+
+  window.themeSetPage = function (path, id) {
+    if (id) state.pages[path] = id; else delete state.pages[path];
+    save();
+  };
+
   function render() {
     var host = document.getElementById('theme-list');
     if (!host) return;
@@ -187,23 +233,47 @@
         (openId === m.id ? editor(m, i) : '') +
       '</div>';
     }).join('');
+    renderPages();
   }
 
   // ── Actions, on window because the markup calls them inline ──────────────
-  window.themeToggle = function (id) { openId = openId === id ? null : id; render(); };
+  window.themeToggle = function (id) { openId = openId === id ? null : id; render(); visPaint(); };
 
   window.themeSetField = function (i, key, value) {
     if (!state.modes[i]) return;
     state.modes[i][key] = value;
     if (key !== 'label' && key !== 'icon') render();   // typing should not steal focus
+    visPaint();
   };
 
-  window.themeSetColor = function (i, key, hex) {
+  window.themeSetColor = function (i, key, hex, redraw) {
     var m = state.modes[i];
     if (!m) return;
     var field = FIELDS.filter(function (f) { return f.key === key; })[0];
     m.tokens[key] = field && field.kind === 'rgb' ? hexToTriplet(hex) : hex;
-    render();
+    if (redraw !== false) render();
+    visPaint();
+  };
+
+  /* Typed hex. Only accepted once it is a complete colour, and the grid is NOT
+     re-rendered while typing — doing that blurs the field halfway through
+     "#F891A5" and you end up entering it three times. */
+  window.themeSetHex = function (i, key, value) {
+    var v = String(value || '').trim();
+    if (v && v.charAt(0) !== '#') v = '#' + v;
+    if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) return;
+    if (v.length === 4) v = '#' + v.slice(1).split('').map(function (c) { return c + c; }).join('');
+    var m = state.modes[i];
+    if (!m) return;
+    var field = FIELDS.filter(function (f) { return f.key === key; })[0];
+    m.tokens[key] = field && field.kind === 'rgb' ? hexToTriplet(v) : v;
+    // Keep the swatch in step without touching the text field being typed in.
+    var card = document.querySelectorAll('#theme-list > div')[i];
+    if (card) {
+      var swatch = card.querySelector('input[type="color"][oninput*="' + key + '"]');
+      if (swatch) swatch.value = v;
+    }
+    visPaint();
   };
 
   /* Turning an optional token off clears it, which is what makes the header
@@ -215,6 +285,7 @@
     if (on) m.tokens[key] = key === 'navFg' ? '#f4f1eb' : '#09090b';
     else delete m.tokens[key];
     render();
+    visPaint();
   };
 
   window.themeAdd = function () {
@@ -256,9 +327,69 @@
     save();
   };
 
+  /* ── Visualiser ─────────────────────────────────────────────────────────
+     A real storefront page in an iframe, repainted through the real engine on
+     every change. Two things follow from using the engine rather than drawing
+     a mock-up: what you see is exactly what a shopper gets, and there is no
+     second renderer to keep in step with the first — which is the failure mode
+     every "theme preview" eventually has.
+
+     ?zwvis=1 tells the page it is being previewed, so it can skip anything
+     that has no business running here. Same-origin, so reaching into
+     contentWindow is allowed. */
+  var visReady = false;
+
+  function visFrame() { return document.getElementById('theme-vis'); }
+
+  function visPaint() {
+    var f = visFrame();
+    var m = state.modes.filter(function (x) { return x.id === (openId || state.default); })[0]
+         || state.modes[0];
+    if (!f || !m) return;
+    try {
+      var w = f.contentWindow;
+      if (w && w.ZWTheme) w.ZWTheme.preview(JSON.parse(JSON.stringify(m)));
+    } catch (_) {
+      // Cross-origin or not loaded yet; the load handler repaints.
+    }
+  }
+
+  window.themeVisReload = function () {
+    var f = visFrame();
+    var sel = document.getElementById('theme-vis-page');
+    if (!f || !sel) return;
+    visReady = false;
+    var note = document.getElementById('theme-vis-note');
+    if (note) note.textContent = 'Loading…';
+    f.src = sel.value + '?zwvis=1';
+  };
+
+  window.themeVisSize = function (w) {
+    var f = visFrame();
+    if (!f) return;
+    f.style.width = w;
+    f.style.maxWidth = '100%';
+    // A phone-width frame in a desktop-width stage should sit centred with the
+    // page colour either side, not pinned left looking broken.
+    f.style.margin = w === '100%' ? '0' : '0 auto';
+  };
+
+  function visInit() {
+    var f = visFrame();
+    if (!f) return;
+    f.addEventListener('load', function () {
+      visReady = true;
+      var note = document.getElementById('theme-vis-note');
+      if (note) note.textContent = 'Showing the theme you are editing';
+      visPaint();
+    });
+    window.themeVisReload();
+  }
+
   window.themeSave = save;
   window.themeLoad = load;
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load, { once: true });
-  else load();
+  function boot() { load(); visInit(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+  else boot();
 })();
