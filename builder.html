@@ -2074,6 +2074,66 @@ const platFields=(g,dLg='grid',dMd='grid',dSm='swipe')=>{
    box clears the setting (reverts the section to its mode background). */
 const colorF=(k,l,v='')=>`<div class="field"><label>${l}</label><div style="display:flex;gap:.35rem;align-items:center"><input type="color" data-f="${k}" value="${v||'#09090b'}" oninput="this.nextElementSibling.value=this.value"><input type="text" data-f="${k}" value="${he(v)}" placeholder="#hex or blank" style="flex:1" oninput="const x=this.value.trim();if(/^#[0-9a-f]{6}$/i.test(x))this.previousElementSibling.value=x"></div></div>`;
 const colorF2=(k,l,v='')=>`<div class="field"><label>${l}</label><div style="display:flex;gap:.35rem;align-items:center"><input type="color" data-k="${k}" value="${v||'#09090b'}" oninput="this.nextElementSibling.value=this.value"><input type="text" data-k="${k}" value="${he(v)}" placeholder="#hex" style="flex:1" oninput="if(/^#[0-9a-f]{6}$/i.test(this.value.trim()))this.previousElementSibling.value=this.value.trim()"></div></div>`;
+/* Section background, with the choice that was missing.
+
+   A colour picker can only produce an absolute colour, so every section
+   background was pinned to one value for ever — which is why the products
+   strip stayed beige when the site went dark. It was doing exactly what it had
+   been told, by someone who meant "slightly off the page", not "#F0EEE9 in
+   every theme for the rest of time".
+
+   The dropdown says which of the two you mean. A theme colour is stored as
+   'token:surface' and resolved on the storefront by resolveSectionBackground;
+   picking Custom keeps the old behaviour exactly. Only the text input carries
+   data-f — the swatch loses it while a token is selected, so the form reads one
+   value rather than two that disagree. */
+const SEC_BG_TOKENS=[
+  ['','Default — no background of its own'],
+  ['token:tint','Theme · faint tint (follows light/dark)'],
+  ['token:tint-strong','Theme · stronger tint'],
+  ['token:surface','Theme · surface (panels and strips)'],
+  ['token:page','Theme · page colour'],
+  ['token:ink','Theme · inverted (a dark band on a light page)'],
+  ['token:accent','Theme · accent'],
+  ['__custom','Custom colour — the same in every theme'],
+];
+const secBgF=(v='')=>{
+  const isTok=String(v).slice(0,6)==='token:';
+  const sel=isTok?v:(v?'__custom':'');
+  const hex=isTok?'':v;
+  return `<div class="field"><label>Background</label>
+    <select data-secbg-mode onchange="zwSecBgMode(this)">${SEC_BG_TOKENS.map(([val,txt])=>`<option value="${val}"${sel===val?' selected':''}>${txt}</option>`).join('')}</select>
+    <div data-secbg-custom style="display:${sel==='__custom'?'flex':'none'};gap:.35rem;align-items:center;margin-top:.35rem">
+      <input type="color" ${sel==='__custom'?`data-f="sec_bg"`:''} value="${hex||'#09090b'}" oninput="this.nextElementSibling.value=this.value">
+      <input type="text" data-f="sec_bg" value="${he(hex)}" placeholder="#hex" style="flex:1" oninput="const x=this.value.trim();if(/^#[0-9a-f]{6}$/i.test(x))this.previousElementSibling.value=x">
+    </div>
+    <input type="hidden" data-secbg-token ${isTok?`data-f="sec_bg"`:''} value="${he(isTok?v:'')}">
+  </div>
+  <div class="fhint" style="margin-top:-.3rem">A theme colour changes with the theme. A custom colour never does — right for a brand band, wrong for a strip that just wants to sit off the page.</div>`;
+};
+/* Swap which input owns data-f, so the form always reads exactly one value. */
+window.zwSecBgMode=function(sel){
+  const wrap=sel.closest('.field');
+  const custom=wrap.querySelector('[data-secbg-custom]');
+  const token=wrap.querySelector('[data-secbg-token]');
+  const swatch=custom.querySelector('input[type="color"]');
+  const text=custom.querySelector('input[type="text"]');
+  const v=sel.value;
+  if(v==='__custom'){
+    custom.style.display='flex';
+    token.removeAttribute('data-f'); token.value='';
+    swatch.setAttribute('data-f','sec_bg'); text.setAttribute('data-f','sec_bg');
+  }else{
+    custom.style.display='none';
+    swatch.removeAttribute('data-f'); text.removeAttribute('data-f');
+    token.setAttribute('data-f','sec_bg'); token.value=v;   // '' for Default
+  }
+  /* No sync call here on purpose. openEditor binds a change listener to every
+     input in the form, and an inline onchange attribute is registered first —
+     so this runs, moves data-f, and that listener then reads the corrected
+     value a moment later. Calling syncForm() from here would need the section
+     object this function does not have, and would throw. */
+};
 const rangeF=(k,l,v,min,max,unit='')=>`<div class="field"><label>${l}</label><div class="range-row"><input type="range" data-f="${k}" data-unit="${unit}" min="${min}" max="${max}" value="${v}" style="flex:1"><span class="range-val" data-range-disp="${k}">${v}${unit}</span></div></div>`;
 // Font pickers now live INLINE next to the text they affect (hfont after a
 // heading field, bfont after a body field) instead of a separate "Typography
@@ -2369,8 +2429,7 @@ function buildForm(s){
   }
   // ── Universal Section Style controls (appended to every section editor)
   h+=grp('Section style',
-`${colorF('sec_bg','Background',g.sec_bg||(s.type==='color_block'?'':g.bg_color)||'')}
-<div class="fhint" style="margin-top:-.3rem">Leave blank for default background</div>
+`${secBgF(g.sec_bg||(s.type==='color_block'?'':g.bg_color)||'')}
 ${colorF('text_color','Text Color',g.text_color||'')}
 <div class="fhint" style="margin-top:-.3rem">Leave blank to inherit the page text color</div>
 <div class="field"><label>Heading Size</label><input type="text" data-f="heading_size" value="${he(g.heading_size||'')}" placeholder="blank = default · e.g. 2.5rem, 48px, clamp(2rem,5vw,3rem)"></div>
