@@ -671,7 +671,95 @@
                       } catch(_) {}
                     }
 
+                    /* ── Which engine calculates the tax ──────────────────────────
+                       site_settings.tax_engine, read server-side by _tax.js on
+                       every payment. Nothing here is a secret: provider keys are
+                       Cloudflare env vars, so the worst this setting can leak is
+                       which service the store uses. What it CAN do is stop tax
+                       being collected, so the two consequential choices — "none",
+                       and turning the fallback off — say what they mean before
+                       you can save them. */
+                    const TAX_ENGINE_NOTES = {
+                      builtin: 'Running the table below. Free, no third party involved, and accurate to the state — plus Ohio county and Illinois ZIP. Wrong wherever a city adds its own district rate or a state exempts clothing.',
+                      stripe_tax: 'Uses the Stripe account this store already charges through, so there is no key to add and no extra signup. Stripe bills 0.5% of each transaction it calculates tax on. Turn it on in Stripe → Settings → Tax first, and register the states you have nexus in.',
+                      taxjar: 'Add <b>TAXJAR_API_KEY</b> in Cloudflare → Pages → Settings → Environment variables, then redeploy. Knows clothing exemptions per state, which the table does not.',
+                      ziptax: 'Add <b>ZIPTAX_API_KEY</b> in Cloudflare → Pages → Settings → Environment variables, then redeploy. A rate lookup by ZIP — better than the table, no filing or nexus tracking.',
+                      external: 'Your endpoint receives <code>{ taxableCents, shippingCents, address }</code> and answers with <code>{ taxCents }</code>, or <code>{ taxAmount }</code> in dollars, or <code>{ rate }</code> — whichever is easiest. Set <b>TAX_API_KEY</b> in Cloudflare to have it sent as a bearer token. This is the route for Avalara, Sovos, or anything already running.',
+                      none: '<b style="color:var(--error);">No tax will be added to any order.</b> Only correct if something outside this checkout collects it, or you genuinely have no obligation anywhere. The figures below will read zero from here on.',
+                    };
+
+                    let _taxEngineCfg = { engine: 'builtin', fallback: true, endpoint: '' };
+
+                    window.taxEngineOnChange = function() {
+                      const sel = document.getElementById('tax-engine-select');
+                      const engine = sel ? sel.value : 'builtin';
+                      const wrap = document.getElementById('tax-engine-endpoint-wrap');
+                      if (wrap) wrap.style.display = engine === 'external' ? '' : 'none';
+                      const note = document.getElementById('tax-engine-note');
+                      if (note) note.innerHTML = TAX_ENGINE_NOTES[engine] || '';
+                    };
+
+                    async function taxEngineLoad() {
+                      if (!window.sb) return;
+                      try {
+                        const { data } = await sb.from('site_settings').select('value')
+                          .eq('key', 'tax_engine').maybeSingle();
+                        let v = data && data.value;
+                        if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                        if (v && typeof v === 'object') {
+                          _taxEngineCfg = {
+                            engine: v.engine || 'builtin',
+                            fallback: v.fallback !== false,
+                            endpoint: v.endpoint || '',
+                          };
+                        }
+                      } catch (_) {}
+                      const sel = document.getElementById('tax-engine-select');
+                      const fb  = document.getElementById('tax-engine-fallback');
+                      const ep  = document.getElementById('tax-engine-endpoint');
+                      if (sel) sel.value = _taxEngineCfg.engine;
+                      if (fb)  fb.checked = _taxEngineCfg.fallback;
+                      if (ep)  ep.value = _taxEngineCfg.endpoint;
+                      window.taxEngineOnChange();
+                    }
+
+                    window.taxEngineSave = async function() {
+                      const sel = document.getElementById('tax-engine-select');
+                      const fb  = document.getElementById('tax-engine-fallback');
+                      const ep  = document.getElementById('tax-engine-endpoint');
+                      const status = document.getElementById('tax-engine-status');
+                      const btn = document.getElementById('tax-engine-save');
+                      const engine = sel ? sel.value : 'builtin';
+                      const endpoint = ep ? ep.value.trim() : '';
+
+                      if (engine === 'external' && !/^https:\/\//i.test(endpoint)) {
+                        if (status) { status.style.color = 'var(--error)'; status.textContent = 'Enter the endpoint URL — it must be https.'; }
+                        return;
+                      }
+                      if (engine === 'none' && !confirm('Collect no sales tax on any order?\n\nOnly do this if something outside this checkout collects it, or you have no obligation anywhere. Every order from now on will be charged $0 tax.')) return;
+                      if (fb && !fb.checked && engine !== 'builtin' && engine !== 'none' &&
+                          !confirm('Turn the fallback off?\n\nIf ' + engine + ' is unreachable when a customer pays, the order goes through with $0 tax rather than an approximate amount from the built-in table.')) return;
+
+                      if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+                      try {
+                        const next = { engine, fallback: fb ? fb.checked : true, endpoint };
+                        const { error } = await sb.from('site_settings')
+                          .upsert({ key: 'tax_engine', value: next }, { onConflict: 'key' });
+                        if (error) throw error;
+                        _taxEngineCfg = next;
+                        if (typeof logAdminAudit === 'function') {
+                          void logAdminAudit('settings.update', 'site_settings', 'tax_engine', { engine });
+                        }
+                        if (status) { status.style.color = 'var(--success, #4ade80)'; status.textContent = 'Saved — the next order is calculated by ' + engine + '.'; }
+                      } catch (err) {
+                        if (status) { status.style.color = 'var(--error)'; status.textContent = 'Could not save: ' + ((err && err.message) || 'unknown error'); }
+                      } finally {
+                        if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+                      }
+                    };
+
                     // Auto-init calendar (no DB needed)
                     buildCalendar();
                     taxRateTab('OH', document.getElementById('tax-rtab-OH'));
+                    taxEngineLoad();
                   })();
