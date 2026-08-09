@@ -1267,11 +1267,11 @@
             },
             resend: {
                 label: 'Resend',
-                keys: [{ name: 'RESEND_API_KEY', label: 'API Key', type: 'password', placeholder: 're_...' }]
+                keys: [{ name: 'RESEND_API_KEY', label: 'API Key', type: 'password', placeholder: 're_...' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." }]
             },
             brevo: {
                 label: 'Brevo',
-                keys: [{ name: 'BREVO_API_KEY', label: 'API Key', type: 'password', placeholder: 'xkeysib-...' }]
+                keys: [{ name: 'BREVO_API_KEY', label: 'API Key', type: 'password', placeholder: 'xkeysib-...' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." }]
             },
             stripe: {
                 label: 'Stripe',
@@ -1280,7 +1280,7 @@
             shippo: {
                 label: 'Shippo',
                 keys: [
-                    { name: 'SHIPPO_API_KEY', label: 'API Key', type: 'password', placeholder: 'shippo_live_...' },
+                    { name: 'SHIPPO_API_KEY', label: 'API Key', type: 'password', placeholder: 'shippo_live_...' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." },
                     { name: 'SHIPPO_FROM_NAME', label: 'Return Sender Name', type: 'text', placeholder: 'Zuwera Returns' },
                     { name: 'SHIPPO_FROM_STREET1', label: 'Return Street Address', type: 'text', placeholder: '123 Main St' },
                     { name: 'SHIPPO_FROM_STREET2', label: 'Return Address Line 2', type: 'text', placeholder: 'Suite, unit, etc. (optional)' },
@@ -1296,7 +1296,7 @@
             veeqo: {
                 label: 'Veeqo',
                 keys: [
-                    { name: 'VEEQO_API_KEY', label: 'API Key', type: 'password', placeholder: 'Veeqo → Settings → Users → Refresh API Key' },
+                    { name: 'VEEQO_API_KEY', label: 'API Key', type: 'password', placeholder: 'Veeqo → Settings → Users → Refresh API Key' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." },
                 ]
             },
             deepl: {
@@ -1320,14 +1320,14 @@
             },
             loops: {
                 label: 'Loops',
-                keys: [{ name: 'LOOPS_API_KEY', label: 'API Key', type: 'password', placeholder: 'Your Loops API key' }]
+                keys: [{ name: 'LOOPS_API_KEY', label: 'API Key', type: 'password', placeholder: 'Your Loops API key' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." }]
             },
             twilio: {
                 label: 'Twilio',
                 keys: [
-                    { name: 'TWILIO_ACCOUNT_SID',  label: 'Account SID',  type: 'text',     placeholder: 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' },
-                    { name: 'TWILIO_AUTH_TOKEN',    label: 'Auth Token',   type: 'password', placeholder: 'Your auth token' },
-                    { name: 'TWILIO_FROM_NUMBER',   label: 'From Number',  type: 'text',     placeholder: '+15551234567' },
+                    { name: 'TWILIO_ACCOUNT_SID',  label: 'Account SID',  type: 'text',     placeholder: 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." },
+                    { name: 'TWILIO_AUTH_TOKEN',    label: 'Auth Token',   type: 'password', placeholder: 'Your auth token' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." },
+                    { name: 'TWILIO_FROM_NUMBER',   label: 'From Number',  type: 'text',     placeholder: '+15551234567' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." },
                 ]
             },
             posthog: {
