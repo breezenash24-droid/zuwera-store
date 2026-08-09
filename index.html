@@ -857,6 +857,7 @@ html.zw-boot-white #zw-boot{background:#FFFFFF!important}
 }
 .pcard{
   background:transparent;position:relative;overflow:hidden;transition:background .3s;
+  border-radius:var(--zw-radius, 0);
   /* Container query context: every inner element sizes in cqw (% of THIS card's
      width), so swatches, text and spacing all scale with the Card Size you set —
      in grid columns and swipe carousels alike — instead of staying fixed. */
@@ -866,6 +867,8 @@ html.zw-boot-white #zw-boot{background:#FFFFFF!important}
 .pcard-img{
   aspect-ratio:1/1;   /* square grid tiles, Nike-style */
   background:transparent;
+  border-radius:var(--zw-radius, 0);
+  overflow:hidden;
   display:flex;align-items:center;justify-content:center;
   position:relative;overflow:hidden;
 }

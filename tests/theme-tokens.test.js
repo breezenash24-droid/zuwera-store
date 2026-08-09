@@ -230,6 +230,35 @@ console.log('\n  what the storefront reads, it is allowed to read');
     missing.length === 0, missing.join(', '));
 }
 
+console.log('\n  a theme is more than paint');
+{
+  /* Two storefronts with identical palettes still look nothing alike if one
+     has huge type, round corners and airy sections. Those are the dimensions
+     that carry a theme's identity, so they belong to the theme. */
+  const eng = fs.readFileSync(R + 'theme-engine.js', 'utf8');
+  ok('type scale, radius and density are theme tokens',
+    /--zw-type-scale/.test(eng) && /--zw-radius/.test(eng) && /--zw-density/.test(eng));
+  ok('a missing or nonsense type scale falls back to 1, not to nothing',
+    /isFinite\(scale\) && scale > 0 \? String\(scale\) : '1'/.test(eng));
+
+  const base2 = fs.readFileSync(R + 'base.css', 'utf8');
+  ok('the scale moves every rem at once, from the root',
+    /html \{ font-size: calc\(100% \* var\(--zw-type-scale, 1\)\); \}/.test(base2));
+  ok('shape tokens have defaults, so an unset theme changes nothing',
+    /--zw-radius: 0px;/.test(base2) && /--zw-density: 1;/.test(base2));
+
+  const sf = fs.readFileSync(R + 'storefront.js', 'utf8');
+  /* calc() rather than doing the arithmetic in JS: --zw-density can change
+     after the section renders, when a theme is applied or previewed, and a
+     computed number would be frozen at render time. */
+  ok('section padding re-evaluates when the theme changes',
+    /calc\('.*var\(--zw-density, 1\)/.test(sf) || /var\(--zw-density, 1\)\)/.test(sf));
+
+  const at = fs.readFileSync(R + 'admin-themes.js', 'utf8');
+  ok('the editor exposes them as sliders', /SHAPE/.test(at) && /themeSetShape/.test(at));
+  ok('dragging a slider does not rebuild it mid-drag', /drop the pointer/.test(at));
+}
+
 console.log('\n  a theme is a snapshot, not a rewrite');
 {
   const pr = fs.readFileSync(R + 'admin-theme-presets.js', 'utf8');

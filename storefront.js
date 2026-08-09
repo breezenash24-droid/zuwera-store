@@ -1793,8 +1793,13 @@ function showToast(msg) {
         el.style.removeProperty('--zw-secbg');
         el.classList.remove('zw-secbg');
       }
-      if (s.pad_top) el.style.paddingTop = s.pad_top + 'px';
-      if (s.pad_bot) el.style.paddingBottom = s.pad_bot + 'px';
+      /* Density is a theme dimension, so a section's padding is what the
+         builder set multiplied by what the theme asks for. calc() rather than
+         arithmetic here: --zw-density can change after this runs, when a theme
+         is applied or previewed, and calc re-evaluates where a number would
+         have been frozen at render time. */
+      if (s.pad_top) el.style.paddingTop = 'calc(' + s.pad_top + 'px * var(--zw-density, 1))';
+      if (s.pad_bot) el.style.paddingBottom = 'calc(' + s.pad_bot + 'px * var(--zw-density, 1))';
 
       // Universal text color (opt-in). Sections that set color via cssText
       // (cta/banner) ship a text_color default, so the else-branch only clears

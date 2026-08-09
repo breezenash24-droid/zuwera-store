@@ -1,6 +1,14 @@
 /* ===================== BASE ===================== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* The theme's type scale. Every rem in the stylesheet is relative to this, so
+   one number moves the whole page's type together — which is what separates a
+   loud editorial theme from a restrained one more than any font choice does.
+   Defaults to 1, so a store that never sets it is unchanged to the pixel.
+   Clamped by the admin rather than here: CSS cannot refuse a silly value, and
+   0.2 would make the site unusable rather than merely wrong. */
+html { font-size: calc(100% * var(--zw-type-scale, 1)); }
+
 :root {
   /* ── Palette ────────────────────────────────────────────────────────────
      Seven values decide the whole site's colour. Everything below derives
@@ -47,6 +55,14 @@
 
   /* ── Transitions ── */
   --trans: opacity 0.2s;
+
+  /* ── Shape and density ──────────────────────────────────────────────────
+     Set by the theme; every rule that uses one falls back to the value it
+     hardcoded before these existed, so an unset theme changes nothing.
+       --zw-radius   corners on cards, inputs, images and panels
+       --zw-density  multiplies section padding: 0.8 tight, 1.3 airy */
+  --zw-radius: 0px;
+  --zw-density: 1;
 
   --err: #ef4444;
 }
