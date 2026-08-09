@@ -331,8 +331,11 @@
 
   // Carry the admin preview token through, so a preview of a product page shows
   // the unpublished product layout rather than the live one.
-  var _pv = '';
-  try { _pv = new URLSearchParams(location.search).get('zwpreview') || ''; } catch (_) {}
+  // preview-mode.js strips the parameter from the address bar as soon as it has
+  // read it, so ask it first and fall back to the URL for the case where this
+  // runs before it does.
+  var _pv = window.__zwPreviewToken || '';
+  try { if (!_pv) _pv = new URLSearchParams(location.search).get('zwpreview') || ''; } catch (_) {}
   fetch('/api/product-page-config' + (_pv ? '?zwpreview=' + encodeURIComponent(_pv) : ''), { cache: 'no-store' })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (data) {

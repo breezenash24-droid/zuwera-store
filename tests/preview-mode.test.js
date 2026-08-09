@@ -57,6 +57,29 @@ const otherEnv = { SUPABASE_SERVICE_ROLE_KEY: 'a-different-deployments-key' };
     await mintPreviewToken({}, { sub: 'x', perms: [] }) === null);
   ok('…and verifies nothing', await verifyPreviewToken({}, token) === null);
 
+  /* Revocation. A link that has gone somewhere you did not intend can otherwise
+     only be waited out, so every token records the generation it was minted
+     under and the admin's "Revoke preview links" moves the generation on. */
+  console.log('\n  revocation');
+  {
+    const revEnv = { SUPABASE_SERVICE_ROLE_KEY: 'service-role-key-for-tests', SUPABASE_URL: 'https://example.test' };
+    let generation = 3;
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ ok: true, json: async () => [{ value: generation }] });
+    try {
+      const live = await mintPreviewToken(revEnv, { sub: 'admin-1', perms: ['builder_edit'] });
+      ok('verifies while the generation matches', (await verifyPreviewToken(revEnv, live)) !== null);
+      generation = 4;                                   // admin pressed Revoke
+      ok('stops verifying the moment links are revoked', (await verifyPreviewToken(revEnv, live)) === null);
+      const fresh = await mintPreviewToken(revEnv, { sub: 'admin-1', perms: ['builder_edit'] });
+      ok('a link minted after the revoke still works', (await verifyPreviewToken(revEnv, fresh)) !== null);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+    ok('a token predating revocation verifies while nothing has been revoked',
+      (await verifyPreviewToken(env, token)) !== null);
+  }
+
   console.log('\n  what a token can reach');
   {
     const cfg = fs.readFileSync(R + 'functions/api/preview-config.js', 'utf8');
@@ -105,11 +128,21 @@ const otherEnv = { SUPABASE_SERVICE_ROLE_KEY: 'a-different-deployments-key' };
     ok('shows a banner so a draft is never mistaken for the live site', /zw-preview-bar/.test(pv));
     ok('offers a way out of preview mode', /Exit preview/.test(pv));
     ok('carries the token across in-site links', /searchParams\.set\('zwpreview'/.test(pv));
-    // The invariant is about the TOKEN, not about storage in general — the bar
-    // legitimately remembers its colour and whether it was folded away.
-    ok('never writes the token to storage',
-      ![...pv.matchAll(/(?:local|session)Storage\.setItem\(([^)]*)\)/g)]
-        .some(m => /token/i.test(m[1])));
+    /* The token used to be written nowhere at all, which read as the safest
+       possible rule and was not: it meant the working token sat in the address
+       bar of every page for the whole session, which is how these actually
+       escape — someone copies the URL they are looking at. It now moves into
+       sessionStorage and comes straight out of the URL.
+
+       So the invariant is no longer "never stored", it is "never stored
+       anywhere that outlives the tab". sessionStorage is cleared when the tab
+       closes; localStorage would survive a browser restart and be readable by
+       every other tab on the origin, which is the thing worth forbidding. */
+    ok('never writes the token to localStorage',
+      ![...pv.matchAll(/localStorage\.setItem\(([^)]*)\)/g)].some(m => /token/i.test(m[1])));
+    ok('takes the token out of the address bar once it has been read',
+      /searchParams\.delete\('zwpreview'\)/.test(pv) && /history\.replaceState/.test(pv));
+    ok('drops the tab copy on exit', /removeItem\(SESSION_KEY\)/.test(pv));
 
     const home = fs.readFileSync(R + 'storefront.js', 'utf8');
     ok('the homepage renders the draft through the published path (one renderer)',

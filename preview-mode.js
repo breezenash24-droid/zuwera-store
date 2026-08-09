@@ -24,8 +24,18 @@
 (function () {
   'use strict';
 
+  var SESSION_KEY = 'zw_preview_token';
+
   var token = '';
-  try { token = new URLSearchParams(location.search).get('zwpreview') || ''; } catch (_) {}
+  var fromUrl = false;
+  try {
+    token = new URLSearchParams(location.search).get('zwpreview') || '';
+    fromUrl = !!token;
+    // Carried in the tab rather than the address bar once we have seen it, so a
+    // reload or a link that lost the parameter still resolves to the same
+    // preview.
+    if (!token) token = sessionStorage.getItem(SESSION_KEY) || '';
+  } catch (_) {}
 
   window.__zwPreview = null;
   if (!token) { window.__zwPreviewReady = Promise.resolve(null); return; }
@@ -34,6 +44,26 @@
   // low-power, but there is no reason for it to end up in an analytics payload
   // or a referrer header.
   window.__zwPreviewActive = true;
+  // Other modules that need it (the product page fetches its own draft config)
+  // read it here rather than from the URL, which is about to lose it.
+  window.__zwPreviewToken = token;
+
+  /* Take the token out of the address bar the moment it has been read.
+     A preview link is a bearer link — whoever holds the string sees the drafts,
+     from any device, until it expires. That is the deal, and it is what makes it
+     shareable. What is NOT part of the deal is the working token sitting in the
+     address bar of every page for the whole session, ready to be copied,
+     screenshotted, or left in browser history: the commonest way one of these
+     escapes is not an attack, it is someone pasting the URL they were looking at.
+     It moves to sessionStorage, which lives in this tab and dies with it. */
+  if (fromUrl) {
+    try { sessionStorage.setItem(SESSION_KEY, token); } catch (_) {}
+    try {
+      var clean = new URL(location.href);
+      clean.searchParams.delete('zwpreview');
+      history.replaceState(history.state, '', clean.pathname + clean.search + clean.hash);
+    } catch (_) {}
+  }
 
   window.__zwPreviewReady = fetch('/api/preview-config?token=' + encodeURIComponent(token), { cache: 'no-store' })
     .then(function (r) { return r.json().catch(function () { return null; }); })
@@ -102,6 +132,10 @@
       var exit = document.createElement('a');
       exit.href = location.pathname;          // same page, no token
       exit.textContent = 'Exit preview';
+      // Drop the tab's copy too, or "exit" would only last until the next load.
+      exit.addEventListener('click', function () {
+        try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+      });
       exit.style.cssText = 'color:#fff;text-decoration:underline;text-underline-offset:3px';
       bar.appendChild(exit);
 
