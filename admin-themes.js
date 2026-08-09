@@ -58,6 +58,20 @@
     { key: 'density', label: 'Density', min: 0.7, max: 1.4, step: 0.05, def: 1,
       help: 'How much air the sections have. Below 1 packs more onto a screen; above 1 gives it room to breathe.',
       fmt: function (v) { return v < 0.95 ? 'Tight' : v > 1.1 ? 'Airy' : 'Standard'; } },
+    { key: 'motion', label: 'Motion', min: 0, max: 1.8, step: 0.1, def: 1,
+      help: 'How much the site moves — hovers, reveals, drifts. 0 turns movement off entirely. A visitor whose system asks for reduced motion gets none regardless of this.',
+      fmt: function (v) { return v === 0 ? 'None' : v < 0.8 ? 'Restrained' : v > 1.3 ? 'Languid' : 'Standard'; } },
+  ];
+
+  /* The curve carries more personality than the durations do. A spring reads
+     playful, a linear ramp reads mechanical, and the default glide is what the
+     site was built with. */
+  var EASINGS = [
+    ['cubic-bezier(.32,.72,0,1)', 'Glide (the default)'],
+    ['cubic-bezier(.22,1,.36,1)', 'Soft landing'],
+    ['cubic-bezier(.34,1.56,.64,1)', 'Spring — overshoots slightly'],
+    ['cubic-bezier(.4,0,.2,1)', 'Material'],
+    ['linear', 'Mechanical'],
   ];
 
   var state = { modes: DEFAULT_MODES.slice(), default: 'dark', pages: {} };
@@ -181,6 +195,16 @@
           ' style="width:100%;accent-color:var(--accent);cursor:pointer;">' +
       '</div>';
     }).join('');
+
+    var curEase = m.tokens.ease || EASINGS[0][0];
+    shape += '<div style="margin-bottom:6px;">' +
+      '<label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-primary);margin-bottom:3px;">Easing</label>' +
+      '<div style="font-size:.73rem;color:var(--text-secondary);line-height:1.5;margin-bottom:6px;">The curve everything moves on. This carries more of a theme’s personality than the speed does.</div>' +
+      '<select onchange="themeSetEase(' + i + ',this.value)" style="width:100%;padding:7px 9px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.78rem;">' +
+        EASINGS.map(function (e) {
+          return '<option value="' + esc(e[0]) + '"' + (curEase === e[0] ? ' selected' : '') + '>' + esc(e[1]) + '</option>';
+        }).join('') +
+      '</select></div>';
 
     var isBuiltin = BUILTIN_IDS.indexOf(m.id) !== -1;
     return '<div style="border-top:1px solid var(--border);margin-top:14px;padding-top:16px;">' +
@@ -330,6 +354,13 @@
     var f = SHAPE.filter(function (x) { return x.key === key; })[0];
     var out = document.getElementById('shape-val-' + key + '-' + i);
     if (out && f) out.textContent = f.fmt(parseFloat(value));
+    visPaint();
+  };
+
+  window.themeSetEase = function (i, v) {
+    var m = state.modes[i];
+    if (!m) return;
+    m.tokens.ease = v;
     visPaint();
   };
 

@@ -168,6 +168,19 @@
     root.style.setProperty('--zw-type-scale', isFinite(scale) && scale > 0 ? String(scale) : '1');
     set('--zw-radius', t.radius);
     set('--zw-density', t.density);
+
+    /* Motion. A theme that carries how the site looks but not how it moves is
+       half a theme — two storefronts with the same palette feel nothing alike
+       if one glides and the other snaps. Durations derive from the multiplier
+       in motion.css, so a theme tunes one number and the site keeps its
+       internal rhythm, exactly as the alpha ladder derives from one triplet.
+
+       Not set here: prefers-reduced-motion. That override lives at the bottom
+       of motion.css where no theme can outrank it — a theme is a preference
+       about taste, and that is a preference about health. */
+    var motion = parseFloat(t.motion);
+    if (isFinite(motion) && motion >= 0) root.style.setProperty('--zw-motion', String(motion));
+    set('--zw-ease', t.ease);
     // --black and --white are the page background and text in the original
     // naming. Kept in step with the triplets so the many rules still using them
     // agree with the ones using the ladder.

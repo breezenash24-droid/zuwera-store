@@ -572,6 +572,9 @@ function showToast(msg) {
     if (!cfg || !cfg.sections) return;
 
     injectBuilderStyles();
+    /* Sections are built after load, so the observer has to be told to look
+       again. Called at the end of this function rather than here — scanning
+       before the DOM exists finds nothing. */
 
     // Apply SEO & Metadata dynamically
     if (cfg.seoSettings) {
@@ -2967,7 +2970,7 @@ function renderProductCards(products, grid) {
       imageFocalY: p.image_focal_y ?? 50
     }));
     return `
-      <div class="pcard${hasSwatches ? ' pcard--swatched' : ''}" onclick="if(!event.target.closest('.quick-size-panel,.pcard-add-btn,.zw-card-swatches')){window.location.href='${productHref(p)}'}" style="cursor:pointer;position:relative;overflow:hidden">
+      <div data-zw-reveal class="pcard${hasSwatches ? ' pcard--swatched' : ''}" onclick="if(!event.target.closest('.quick-size-panel,.pcard-add-btn,.zw-card-swatches')){window.location.href='${productHref(p)}'}" style="cursor:pointer;position:relative;overflow:hidden">
         <div class="pcard-img">
           ${imgHtml}
           <div class="pcard-badge">${escapeHomeFavoriteHtml(badge)}</div>
@@ -2998,6 +3001,12 @@ function renderProductCards(products, grid) {
         </div>` : ''}
       </div>`;
   }).join('');
+
+  /* The cards were just created, so the reveal observer has never seen them.
+     Told explicitly rather than watched with a MutationObserver: this function
+     knows exactly when it has finished, and observing the whole document to
+     rediscover that would cost more than it saves. */
+  if (window.ZWMotion) window.ZWMotion.scan(grid);
 
   // Re-init hearts for dynamically loaded cards
   if (typeof refreshHearts === 'function') refreshHearts();

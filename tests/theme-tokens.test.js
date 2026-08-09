@@ -259,6 +259,44 @@ console.log('\n  a theme is more than paint');
   ok('dragging a slider does not rebuild it mid-drag', /drop the pointer/.test(at));
 }
 
+console.log('\n  motion is part of the theme');
+{
+  const css = fs.readFileSync(R + 'motion.css', 'utf8');
+  const js = fs.readFileSync(R + 'motion.js', 'utf8');
+  const eng = fs.readFileSync(R + 'theme-engine.js', 'utf8');
+
+  ok('durations derive from one multiplier, like the alpha ladder',
+    /--zw-t-base:\s*calc\(\d+ms \* var\(--zw-motion\)\)/.test(css));
+  ok('a theme can set the multiplier and the curve',
+    /--zw-motion/.test(eng) && /set\('--zw-ease', t\.ease\)/.test(eng));
+
+  /* The classic way scroll animation takes a site down: CSS hides everything,
+     the JS that was meant to show it again does not run, and the page is blank
+     with no error. Nothing is hidden until the script says it can reveal. */
+  ok('nothing is hidden until the script confirms it can reveal it',
+    /html\.zw-motion-ready \[data-zw-reveal\]:not\(\.is-in\)/.test(css));
+  ok('…and the class is only added once the observer exists',
+    /classList\.add\('zw-motion-ready'\)[\s\S]{0,400}new IntersectionObserver/.test(js));
+
+  /* On a touchscreen :hover sticks after a tap, so a lift becomes a card that
+     stays raised until you tap somewhere else. */
+  ok('hover effects only run where hovering is real', /@media \(hover: hover\)/.test(css));
+
+  /* A theme is a preference about taste. Reduced motion is not. */
+  ok('reduced motion overrides the theme, not the other way round',
+    /prefers-reduced-motion: reduce/.test(css) && /--zw-motion: 0/.test(css));
+  ok('…and the override is last, where nothing can outrank it',
+    css.lastIndexOf('prefers-reduced-motion') > css.lastIndexOf('--zw-t-drift'));
+  ok('the script opts out entirely for those visitors',
+    /prefers-reduced-motion: reduce/.test(js) && /if \(quiet/.test(js));
+
+  ok('content built after load is rescanned', /ZWMotion\.scan/.test(fs.readFileSync(R + 'storefront.js', 'utf8')));
+
+  const PAGES = ['index.html', 'product.html', 'bag.html', 'drop001.html', 'checkout.html'];
+  const missing = PAGES.filter((p) => !/motion\.css/.test(fs.readFileSync(R + p, 'utf8')));
+  ok('every storefront page loads it', missing.length === 0, missing.join(', '));
+}
+
 console.log('\n  reading a Shopify theme export');
 {
   const im = fs.readFileSync(R + 'admin-theme-import.js', 'utf8');
