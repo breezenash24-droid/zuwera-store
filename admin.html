@@ -559,22 +559,35 @@
                         </div>
                     </div>
 
-                    <!-- ── More Integrations (browsable catalog) ────────────────── -->
-                    <div style="margin-top:32px;">
-                        <div class="integration-store-head">
-                            <div>
-                                <h3 style="margin:0;font-size:1.05rem;">🧩 More Integrations</h3>
-                                <p style="color:var(--text-secondary);font-size:.85rem;margin:6px 0 0;max-width:640px;">
-                                    Optional services you can connect to your store. Each one needs a single ID pasted in —
-                                    no redeploy, live within a minute. Most have a free tier.
-                                </p>
+                    <!-- ── More Integrations (browsable catalog) ──────────────────
+                         Collapsed by default. It is a long browsable catalogue
+                         and it sits below the things you came to this page for;
+                         open it when you are shopping for a service, not every
+                         time you check a key. The choice is remembered. -->
+                    <details id="integrationStore" style="margin-top:32px;border:1px solid var(--border);border-radius:10px;background:var(--bg-secondary);padding:0;" ontoggle="rememberIntegrationsOpen(this)">
+                        <summary style="cursor:pointer;padding:18px 20px;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                            <span>
+                                <span style="font-size:1.05rem;font-weight:700;">🧩 More Integrations</span>
+                                <span id="integrationCount" style="color:var(--text-secondary);font-size:.85rem;margin-left:8px;"></span>
+                            </span>
+                            <span style="color:var(--text-secondary);font-size:.8rem;">click to open ▾</span>
+                        </summary>
+                        <div style="padding:0 20px 20px;">
+                            <div class="integration-store-head">
+                                <div>
+                                    <p style="color:var(--text-secondary);font-size:.85rem;margin:0 0 0;max-width:640px;">
+                                        Optional services you can connect to your store. Each card explains what the service does,
+                                        what its free tier gives you, and the exact steps to get the ID it needs — pasted in here,
+                                        live within a minute, no redeploy.
+                                    </p>
+                                </div>
+                                <input id="integration-search" type="search" placeholder="Search integrations…"
+                                       oninput="renderIntegrationStore()" autocomplete="off"
+                                       style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.85rem;color:inherit;min-width:200px;">
                             </div>
-                            <input id="integration-search" type="search" placeholder="Search integrations…"
-                                   oninput="renderIntegrationStore()" autocomplete="off"
-                                   style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.85rem;color:inherit;min-width:200px;">
+                            <div id="integration-grid" class="integration-grid"></div>
                         </div>
-                        <div id="integration-grid" class="integration-grid"></div>
-                    </div>
+                    </details>
 
                     <!-- Setup guide -->
                     <div style="margin-top:20px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
@@ -4101,7 +4114,14 @@
 
         <ol class="int-steps" id="int-setup-steps"></ol>
 
-        <div class="api-key-field">
+        <!-- Guide-only: cost line and a link to the provider's own setup page.
+             Hidden for integrations that take an ID here. -->
+        <div id="int-setup-guide" style="display:none;">
+            <p style="color:var(--text-secondary);font-size:.85rem;margin:0 0 14px;"><strong>Cost:</strong> <span id="int-setup-cost"></span></p>
+            <a id="int-setup-docs" class="btn btn-primary" href="#" target="_blank" rel="noopener" style="display:inline-block;">Open →</a>
+        </div>
+
+        <div class="api-key-field" id="int-setup-idfield">
             <label for="int-setup-id" id="int-setup-idlabel"></label>
             <div class="api-key-field-wrap">
                 <input id="int-setup-id" type="text" autocomplete="off" spellcheck="false">

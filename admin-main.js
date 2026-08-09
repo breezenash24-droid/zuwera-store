@@ -1426,6 +1426,50 @@
               blurb:'Same order alerts, posted to a Discord channel.',
               free:'Free', idLabel:'Webhook URL',
               steps:['Server Settings → Integrations → Webhooks','New Webhook, pick a channel','Copy the webhook URL'] },
+
+            /* ── Payments & compliance ─────────────────────────────────────── */
+
+            { key:'stripe_tax', kind:'guide', icon:'🧾', name:'Stripe Tax', cat:'Tax & compliance',
+              blurb:'Works out the right sales tax from the customer\'s exact address and the product type, and tracks where you have crossed a registration threshold. The built-in table is state-level only and cannot know about county or city rates, or that clothing is exempt in some states — this does.',
+              free:'0.5% per transaction where it calculates tax; no monthly fee',
+              docs:'https://dashboard.stripe.com/settings/tax',
+              steps:['Stripe Dashboard → Settings → Tax','Add your business address and register the states you have nexus in','Turn it on — checkout already runs through Stripe, so nothing here changes','Admin → Tax: leave the built-in rates as the fallback'] },
+
+            { key:'apple_pay',  kind:'guide', icon:'', name:'Apple Pay', cat:'Payments',
+              blurb:'A one-tap wallet button at checkout on Safari, iPhone and iPad. Usually lifts mobile conversion more than anything else you can add, because it skips the whole address-and-card form.',
+              free:'No extra fee — same Stripe rate as a card',
+              docs:'https://dashboard.stripe.com/settings/payments/apple_pay',
+              steps:['Stripe Dashboard → Settings → Payment methods → Apple Pay','Add your domain and download the verification file','Put it at /.well-known/apple-developer-merchantid-domain-association','Stripe verifies the domain and the button appears on supported devices'] },
+
+            /* ── Search ────────────────────────────────────────────────────── */
+
+            { key:'algolia',    kind:'guide', icon:'🔎', name:'Algolia', cat:'Search',
+              blurb:'Instant, typo-tolerant search across your catalogue. Worth it once you have enough products that the built-in search stops being good enough — roughly a few hundred.',
+              free:'10k searches/month',
+              docs:'https://dashboard.algolia.com',
+              steps:['Create an app at algolia.com','Create an index for your products','Copy the App ID and the SEARCH-ONLY key — never the admin key'] },
+
+            { key:'meilisearch', kind:'guide', icon:'🔦', name:'Meilisearch', cat:'Search',
+              blurb:'Open-source alternative to Algolia. Free if you host it yourself, which suits a store that wants to own its stack. Pick one of these two, not both.',
+              free:'Free self-hosted; cloud from $30/mo',
+              docs:'https://www.meilisearch.com/docs',
+              steps:['Self-host, or start a Meilisearch Cloud project','Create a products index','Copy the host URL and a search key'] },
+
+            /* ── AI ────────────────────────────────────────────────────────── */
+
+            { key:'openai',     kind:'guide', icon:'🤖', name:'OpenAI', cat:'AI',
+              blurb:'Draft product descriptions and image alt text from the admin. Alt text is the quiet win: it is required for accessibility, it helps image search, and nobody ever writes it by hand for 166 photos.',
+              free:'Pay per use — cents for a catalogue this size',
+              docs:'https://platform.openai.com/api-keys',
+              steps:['platform.openai.com → API keys → create one','Add a spend limit so a mistake cannot run up a bill','This is a SECRET key — it belongs in Cloudflare, not here'] },
+
+            /* ── Messaging ─────────────────────────────────────────────────── */
+
+            { key:'twilio_sms', kind:'server', service:'twilio', icon:'📱', name:'Twilio SMS', cat:'Notifications',
+              blurb:'Text customers when an order ships. People read texts; shipping emails often go unopened. Keys are already wired — this is here so you know the option exists.',
+              free:'Trial credit, then per message',
+              docs:'https://console.twilio.com',
+              steps:['console.twilio.com → buy a number','Copy the Account SID and Auth Token','Add them under API keys above'] },
         ];
 
         let _integrations = {};          // site_settings.integrations
@@ -1442,6 +1486,9 @@
         }
 
         function integrationConfigured(item) {
+            // A 'guide' has nothing stored here — it is set up entirely on the
+            // provider's own dashboard — so it never claims to be connected.
+            if (item.kind === 'guide') return false;
             if (item.kind === 'server') {
                 const def = API_KEY_DEFS[item.service];
                 return !!(def && def.keys.some(k => _maskedKeys[k.name]));
@@ -1450,9 +1497,33 @@
             return !!(e && (e.id || item.optionalId) && e.enabled !== false);
         }
 
+        /* The catalogue is collapsed by default; remember whether it was left
+           open so someone actively evaluating services is not re-opening it on
+           every visit. */
+        function rememberIntegrationsOpen(el) {
+            try { localStorage.setItem('zw_integrations_open', el.open ? '1' : '0'); } catch (_) {}
+        }
+        (function restoreIntegrationsOpen() {
+            const apply = () => {
+                const el = document.getElementById('integrationStore');
+                if (!el) return;
+                try { el.open = localStorage.getItem('zw_integrations_open') === '1'; } catch (_) {}
+            };
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply, { once: true });
+            else apply();
+        })();
+
         function renderIntegrationStore(filter) {
             const grid = document.getElementById('integration-grid');
             if (!grid) return;
+            // Summary line, so the collapsed header still says what is inside
+            // and how much of it is already set up.
+            const countEl = document.getElementById('integrationCount');
+            if (countEl) {
+                const total = ZW_INTEGRATION_CATALOG.length;
+                const on = ZW_INTEGRATION_CATALOG.filter(integrationConfigured).length;
+                countEl.textContent = on ? `— ${on} of ${total} connected` : `— ${total} available`;
+            }
             const q = String(filter ?? document.getElementById('integration-search')?.value ?? '').trim().toLowerCase();
             const items = ZW_INTEGRATION_CATALOG.filter(it => !q
                 || it.name.toLowerCase().includes(q)
@@ -1471,12 +1542,12 @@
                       <div class="integration-name">${escapeHtml(it.name)}</div>
                       <div class="integration-cat">${escapeHtml(it.cat)}</div>
                     </div>
-                    <span class="integration-state${on ? ' on' : ''}">${on ? 'Connected' : 'Not set up'}</span>
+                    <span class="integration-state${on ? ' on' : ''}">${it.kind === 'guide' ? 'Set up elsewhere' : (on ? 'Connected' : 'Not set up')}</span>
                   </div>
                   <div class="integration-blurb">${escapeHtml(it.blurb)}</div>
                   <div class="integration-foot">
                     <span class="integration-free">${escapeHtml(it.free)}</span>
-                    <button class="btn ${on ? 'btn-secondary' : 'btn-primary'}" onclick="openIntegrationSetup('${it.key}')">${on ? 'Manage' : 'Set up'}</button>
+                    <button class="btn btn-secondary" onclick="openIntegrationSetup('${it.key}')">${it.kind === 'guide' ? 'How it works' : (on ? 'Manage' : 'Set up')}</button>
                   </div>
                 </div>`;
             }).join('');
@@ -1489,6 +1560,43 @@
             // Server-secret integrations reuse the existing masked key editor —
             // secrets must never round-trip through site_settings.
             if (item.kind === 'server') { openKeyEdit(item.service); return; }
+
+            // A guide is configured entirely on the provider's side — Stripe's
+            // dashboard, Apple's domain verification, Algolia's console. There
+            // is nothing to store here, so show what it is and the steps, with a
+            // link straight to the page that does it. Deliberately not a fake
+            // "Connect" button that would only take you somewhere else anyway.
+            if (item.kind === 'guide') {
+                _currentIntegration = null;
+                document.getElementById('int-setup-title').textContent = item.name;
+                document.getElementById('int-setup-icon').textContent = item.icon;
+                document.getElementById('int-setup-blurb').textContent = item.blurb;
+                document.getElementById('int-setup-steps').innerHTML = item.steps.map((s, i) =>
+                    `<li><span>${i + 1}</span>${escapeHtml(s)}</li>`).join('');
+                document.getElementById('int-setup-cost').textContent = item.free;
+                const docs = document.getElementById('int-setup-docs');
+                docs.href = item.docs || '#';
+                docs.textContent = 'Open ' + item.name + ' →';
+                docs.style.display = item.docs ? '' : 'none';
+                // Nothing to type, nothing to save, nothing to disconnect.
+                ['int-setup-idfield', 'int-setup-save', 'int-setup-remove'].forEach(id => {
+                    const el = document.getElementById(id); if (el) el.style.display = 'none';
+                });
+                const enabledRow = document.getElementById('int-setup-enabled');
+                if (enabledRow && enabledRow.parentElement) enabledRow.parentElement.style.display = 'none';
+                document.getElementById('int-setup-guide').style.display = '';
+                document.getElementById('int-setup-status').textContent = '';
+                document.getElementById('integration-setup-modal').classList.add('open');
+                return;
+            }
+
+            // Coming from a guide, put the ID-based controls back.
+            document.getElementById('int-setup-guide').style.display = 'none';
+            ['int-setup-idfield', 'int-setup-save', 'int-setup-remove'].forEach(id => {
+                const el = document.getElementById(id); if (el) el.style.display = '';
+            });
+            const _en = document.getElementById('int-setup-enabled');
+            if (_en && _en.parentElement) _en.parentElement.style.display = '';
 
             _currentIntegration = item;
             const cur = _integrations[item.key] || {};
