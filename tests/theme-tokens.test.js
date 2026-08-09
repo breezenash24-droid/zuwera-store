@@ -202,6 +202,34 @@ console.log('\n  the visualiser and colour entry');
 
 }
 
+/* The failure mode that has now happened twice: a storefront module fetches a
+   settings key with the anon key, the key is not on the RLS allow-list, the read
+   returns empty, and the module falls back to its defaults. Nothing errors — an
+   empty result and "nothing configured" are the same shape from the client — so
+   the feature simply does not exist on the live site while working perfectly in
+   the admin, which reads with a session. This check is the tripwire. */
+console.log('\n  what the storefront reads, it is allowed to read');
+{
+  const MODULES = ['theme-engine.js', 'icon-sets.js', 'integrations.js', 'preview-mode.js'];
+  // The newest ALTER POLICY wins — it replaces the list rather than appending.
+  const latest = fs.readdirSync(R + 'migrations')
+    .filter((f) => f.endsWith('.sql')).sort()
+    .map((f) => fs.readFileSync(R + 'migrations/' + f, 'utf8'))
+    .filter((t) => /alter policy "Public read content keys"/i.test(t))
+    .pop() || '';
+
+  const missing = [];
+  for (const m of MODULES) {
+    if (!fs.existsSync(R + m)) continue;
+    const src = fs.readFileSync(R + m, 'utf8');
+    for (const hit of src.matchAll(/key=eq\.([a-z_]+)/g)) {
+      if (!new RegExp("'" + hit[1] + "'").test(latest)) missing.push(m + ' → ' + hit[1]);
+    }
+  }
+  ok('every anon-read settings key is on the public allow-list',
+    missing.length === 0, missing.join(', '));
+}
+
 console.log('\n  the engine reaches every themed page');
 {
   const PAGES = ['index.html', 'product.html', 'bag.html', 'checkout.html', 'drop001.html',
