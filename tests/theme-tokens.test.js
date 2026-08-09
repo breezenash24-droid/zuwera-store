@@ -490,6 +490,26 @@ console.log('\n  the import actually runs');
         Math.abs(lum(tk.bg) - lum(tk.paper)) > 60,
         'bg ' + tk.bg + ' vs paper ' + tk.paper);
     }
+
+    /* The same mismatch one level in. A panel painted var(--ink) whose text
+       reads the page ladder is drawing PAGE-foreground colours on a PANEL
+       background. Identical in the built-in themes, where --paper and
+       rgb(--fg-rgb) are the same colour; pale-grey-on-white as soon as an
+       imported theme sets them apart, which is what happened to the quick-add
+       modal's size buttons and its LEAVE / FULL PRODUCT PAGE row.
+
+       So inside that panel the page ladder is off limits, and the rungs it
+       does use must be re-keyed on the panel itself — declaring them anywhere
+       higher resolves against the page and inherits the finished colour. */
+    const qa = fs.readFileSync(R + 'quick-add-modal.css', 'utf8');
+    ok('the panel does not colour its text from the page foreground',
+      !/rgb\(var\(--fg-rgb\)/.test(qa),
+      'page-keyed text on a panel-keyed background is invisible whenever a theme separates them');
+    const rekeyed = qa.slice(qa.indexOf('.quick-add-review-modal>.mbox'));
+    for (const rung of (qa.match(/var\(--c\d\d\)/g) || []))
+      ok('…and ' + rung + ' is re-keyed on the panel before it is used',
+        rekeyed.includes('--' + rung.slice(6, 9) + ':'),
+        'a rung declared on body resolves against the page and inherits the result');
   }
 
   /* The old heuristics encoded a second, contradictory answer to "which setting
