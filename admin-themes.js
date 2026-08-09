@@ -302,6 +302,29 @@
         : '') +
       '</div>';
 
+    /* Icons as words. Reads aria-label, which these controls already carry, so
+       it needs no markup and cannot miss a nav dialect. */
+    var curLabels = m.tokens.iconLabels || 'off';
+    shape += '<div style="margin-bottom:6px;">' +
+      '<label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-primary);margin-bottom:3px;">Icons or words</label>' +
+      '<div style="font-size:.73rem;color:var(--text-secondary);line-height:1.5;margin-bottom:6px;">' +
+        'Show the search, bag and menu controls as words instead of glyphs. The wording comes from the label each control already carries for screen readers, so it stays in step with them. The bag keeps its count — it reads “Bag 2”.' +
+      '</div>' +
+      '<select onchange="themeSetToken(' + i + ',\'iconLabels\',this.value)" style="width:100%;padding:7px 9px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.78rem;">' +
+        [['off', 'Icons everywhere'],
+         ['mobile', 'Words on phone and tablet, icons above'],
+         ['always', 'Words at every width']].map(function (o) {
+          return '<option value="' + esc(o[0]) + '"' + (curLabels === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+        }).join('') +
+      '</select>' +
+      (curLabels === 'off' ? '' :
+        '<label style="display:block;font-size:.72rem;color:var(--text-secondary);margin:8px 0 3px;">Label font</label>' +
+        '<input type="text" value="' + esc(m.tokens.labelFont || '') + '" placeholder="Match the body font" ' +
+          'onchange="themeSetToken(' + i + ',\'labelFont\',this.value)" ' +
+          'style="width:100%;padding:6px 8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.76rem;">' +
+        '<div style="font-size:.72rem;color:var(--text-secondary);margin-top:4px;line-height:1.5;">Left empty these match the body font and follow it whenever it changes. Name a family to break them out — any CSS font stack, or one of the fonts you loaded under Typography.</div>') +
+      '</div>';
+
     var isBuiltin = BUILTIN_IDS.indexOf(m.id) !== -1;
     return '<div style="border-top:1px solid var(--border);margin-top:14px;padding-top:16px;">' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:18px;">' +
@@ -475,6 +498,19 @@
      one. Stored back as a preset NAME when it still matches one — a saved theme
      that reads "stacked" survives a round trip through this editor instead of
      silently becoming four coordinates that mean the same thing. */
+  /* Generic setter for the plain-value tokens. An empty value DELETES the key
+     rather than storing '', because the engine treats absent as "inherit the
+     default" and an empty string as a value — a font of '' would beat the CSS
+     fallback and land the label on the browser's default serif. */
+  window.themeSetToken = function (i, key, value) {
+    var m = state.modes[i];
+    if (!m) return;
+    var v = String(value == null ? '' : value).trim();
+    if (v && v !== 'off') m.tokens[key] = v; else delete m.tokens[key];
+    render();
+    visPaint();
+  };
+
   window.themeSetHeaderPart = function (i, part, value) {
     var m = state.modes[i];
     if (!m) return;

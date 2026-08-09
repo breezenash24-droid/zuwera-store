@@ -701,6 +701,33 @@ console.log('\n  header composition');
     fs.readdirSync(R).filter((f) => f.endsWith('.html'))
       .some((f) => fs.readFileSync(R + f, 'utf8').includes('class="hamburger-btn"')));
 
+  /* Icons as words. Driven off aria-label — which every one of these controls
+     already carries — so it needs no markup change and cannot miss a nav
+     dialect, which is the failure this file exists to prevent. */
+  ok('the label is the accessible name, not a second copy of it',
+    /content: attr\(aria-label\)/.test(nav),
+    'a hand-written label would drift from what a screen reader announces');
+  ok('…and it replaces the glyph rather than joining it',
+    /data-zw-iconlabels[^{]*> svg \{ display: none; \}/.test(nav),
+    'showing both makes the control announce itself twice');
+  for (const control of ['#cart-btn', '.zwf-search-btn', '.hamburger-btn']) {
+    ok('words reach ' + control, nav.includes(control));
+  }
+  ok('phone-and-tablet scope is behind a max-width, so desktop keeps its icons',
+    /@media \(max-width: 1024px\)[\s\S]{0,400}data-zw-iconlabels="mobile"/.test(nav));
+  /* Absent must REMOVE the attribute: `[data-zw-iconlabels]` on its own matches
+     the shared styling rule, so a value CSS has no scope for would still style
+     a label that never appears. */
+  ok('the engine removes the attribute rather than writing an unknown scope',
+    /removeAttribute\('data-zw-iconlabels'\)/.test(eng) &&
+    /t\.iconLabels === 'mobile' \|\| t\.iconLabels === 'always'/.test(eng));
+  ok('the label font matches the body font until one is named',
+    /var\(--zw-label-font, var\(--fb, inherit\)\)/.test(nav) &&
+    /set\('--zw-label-font', t\.labelFont\)/.test(eng));
+  ok('…and clearing it deletes the key instead of storing an empty value',
+    /if \(v && v !== 'off'\) m\.tokens\[key\] = v; else delete m\.tokens\[key\];/.test(at),
+    "'' would beat the CSS fallback and land on the browser default");
+
   ok('the editor can move a single part without losing the others',
     /themeSetHeaderPart/.test(at) && /headerSpec\(m\.tokens\.header\)/.test(at));
   ok('…and stores it back as a preset name when it still matches one',
