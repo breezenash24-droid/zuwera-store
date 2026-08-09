@@ -16,6 +16,24 @@
     st.textContent='body{background:'+bg+'!important}html::before{background:'+bg+'!important}';
     document.head.appendChild(st);
   }
+  /* Pre-paint the THEME's own colours, not just the three built-in names.
+     zw_theme_mode holds a theme ID now, so the branch above stops firing the
+     moment anyone makes a theme — and the header painted its stylesheet
+     fallback, white, until theme-engine.js ran and corrected it. That is the
+     flash. Same cache the engine writes, read synchronously before first paint.
+     On <html> because <body> does not exist yet; the engine later sets these on
+     <body>, which is more specific, so nothing here fights it. */
+  try{
+    var _tc=JSON.parse(localStorage.getItem('zw_theme_modes')||'null');
+    var _tid=localStorage.getItem('zw_theme_mode')||(_tc&&_tc.default);
+    var _tm=_tc&&_tc.modes&&_tc.modes.filter(function(x){return x&&x.id===_tid})[0];
+    var _tt=_tm&&_tm.tokens;
+    if(_tt){
+      if(_tt.navBg)h.style.setProperty('--zw-nav-bg',_tt.navBg);
+      if(_tt.bg)h.style.background='rgb('+_tt.bg+')';
+      if(_tm.base&&_tm.base!=='dark')h.style.colorScheme='light';
+    }
+  }catch(_){}
   var f=localStorage.getItem('zw_fonts');
   if(f){f=JSON.parse(f);
     if(f.vars)Object.keys(f.vars).forEach(function(k){h.style.setProperty(k,f.vars[k])});
@@ -94,7 +112,12 @@
       align-items: center;
       justify-content: space-between;
       padding: calc(env(safe-area-inset-top, 0px) + .55rem) 1.25rem .55rem;
-      background: var(--bg);
+      /* --zw-nav-bg first. This header is .co-header — a sixth dialect that
+         every previous nav-colour pass missed, because each one enumerated the
+         dialects it knew and this page names its header after the checkout
+         rather than after the nav. It read var(--bg), a page-local token the
+         theme never sets, so a themed header simply did not reach here. */
+      background: var(--zw-nav-bg, var(--bg));
       border-bottom: 1px solid var(--border);
       transition: transform .35s cubic-bezier(.22,.61,.36,1);
     }
@@ -959,7 +982,7 @@ window.zwClearPromo = function() {
 
 <script src="image-utils.js?v=3fee4aec"></script>
 <script src="express-wallet.js?v=f4a00ee5" defer></script>
-<script src="checkout.js?v=92f0450d" defer></script>
+<script src="checkout.js?v=4e2f9583" defer></script>
 <script src="commerce-checkout.js?v=02c4d509" defer></script>
 
 <script>
