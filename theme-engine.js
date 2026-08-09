@@ -42,6 +42,16 @@
       tokens: { fg: '10 10 10', bg: '240 238 233', ink: '#F0EEE9', paper: '#09090b', surface: '#F0EEE9', accent: '#F891A5', err: '#ef4444' } },
     { id: 'super-light', label: 'Super Light', icon: '⚪', base: 'super-light', builtin: true,
       tokens: { fg: '10 10 10', bg: '255 255 255', ink: '#FFFFFF', paper: '#09090b', surface: '#FFFFFF', accent: '#F891A5', err: '#ef4444' } },
+    /* Two-tone: a light page under a black header. This look already existed by
+       accident — .nav is hardcoded dark and only some pages bothered to override
+       it in light mode, so whether you got it depended on which page you landed
+       on. It is a good look, so it is a theme now rather than a coverage gap,
+       and navBg is why: a theme can colour the header independently of the page.
+       Leave navBg empty in any other theme and the header follows the page, as
+       it always did. */
+    { id: 'two-tone', label: 'Two-tone', icon: '◐', base: 'light', builtin: true,
+      tokens: { fg: '10 10 10', bg: '240 238 233', ink: '#F0EEE9', paper: '#09090b', surface: '#F0EEE9', accent: '#F891A5', err: '#ef4444',
+                navBg: '#09090b', navFg: '#f4f1eb' } },
   ];
 
   var config = { modes: BUILTINS.slice(), default: 'dark' };
@@ -102,6 +112,12 @@
     set('--surface-light', t.surface);
     set('--accent', t.accent);
     set('--err', t.err);
+    /* Optional, and the fallback matters: every nav rule reads
+       var(--zw-nav-bg, <its old value>), so clearing these returns the header
+       to following the page exactly as before this existed. Only a theme that
+       wants a header in a different colour from its page sets them. */
+    set('--zw-nav-bg', t.navBg);
+    set('--zw-nav-fg', t.navFg);
     // --black and --white are the page background and text in the original
     // naming. Kept in step with the triplets so the many rules still using them
     // agree with the ones using the ladder.

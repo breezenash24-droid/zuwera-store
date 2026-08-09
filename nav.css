@@ -44,7 +44,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 2.5rem;
-  background: #09090b;
+  background: var(--zw-nav-bg, #09090b);
+  color: var(--zw-nav-fg, inherit);
   isolation: isolate;
   border-bottom: 1px solid var(--c08);
   box-shadow: 0 1px 12px rgba(0,0,0,0.3);
@@ -144,7 +145,7 @@ body.light-mode .announcement-close {
   color: #F0EEE9;
 }
 body.light-mode .nav {
-  background: #F0EEE9;
+  background: var(--zw-nav-bg, #F0EEE9);
   border-bottom-color: rgba(9,9,11,0.08);
   box-shadow: 0 1px 12px rgba(9,9,11,0.06);
 }
@@ -180,7 +181,7 @@ body.super-light-mode .announcement-close {
   color: #F0EEE9;
 }
 body.super-light-mode .nav {
-  background: #FFFFFF;
+  background: var(--zw-nav-bg, #FFFFFF);
   border-bottom-color: rgba(9,9,11,0.08);
   box-shadow: 0 1px 12px rgba(9,9,11,0.08);
 }

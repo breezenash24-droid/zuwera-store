@@ -56,11 +56,11 @@
       --font-mono: var(--zw-font-mono, 'IBM Plex Mono', monospace);
       --bg:      #09090b;
       --surface: #111113;
-      --border:  rgba(244,241,235,.11);
-      --border2: rgba(244,241,235,.2);
+      --border:  rgb(var(--fg-rgb) / 11%);
+      --border2: var(--c20);
       --text:    #f4f1eb;
-      --sub:     rgba(244,241,235,.55);
-      --dim:     rgba(244,241,235,.3);
+      --sub:     var(--c55);
+      --dim:     var(--c30);
     }
 
     html, body {
@@ -136,13 +136,13 @@
       display: flex;
       align-items: center;
       gap: .5rem;
-      border: 1px solid rgba(244,241,235,.2);
+      border: 1px solid var(--c20);
       padding: .45rem .72rem;
-      color: rgba(244,241,235,.9);
+      color: rgb(var(--fg-rgb) / 90%);
       text-decoration: none;
       transition: border-color .2s;
     }
-    .co-bag-icon:hover { border-color: rgba(244,241,235,.5); }
+    .co-bag-icon:hover { border-color: var(--c50); }
     .co-bag-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; flex-shrink: 0; }
     .co-bag-count {
       background: var(--text);
@@ -251,7 +251,7 @@
     .pm-items { display: flex; flex-direction: column; gap: .9rem; margin-bottom: 1.1rem; }
     .pm-item { display: flex; gap: .85rem; align-items: flex-start; }
     .pm-item-img { width: 64px; height: 80px; object-fit: cover; border: 1px solid var(--border); flex-shrink: 0; display: block; }
-    .pm-item-img-placeholder { width: 64px; height: 80px; background: rgba(244,241,235,.04); flex-shrink: 0; }
+    .pm-item-img-placeholder { width: 64px; height: 80px; background: rgb(var(--fg-rgb) / 4%); flex-shrink: 0; }
     .pm-item-info { flex: 1; min-width: 0; }
     .pm-item-title { font-family: var(--font-head); font-size: 1.05rem; font-weight: 900; font-style: italic; letter-spacing: .04em; line-height: 1.2; text-transform: uppercase; }
     .pm-item-meta { font-family: var(--font-mono); font-size: .65rem; color: var(--sub); text-transform: uppercase; letter-spacing: .07em; margin-top: .3rem; display: flex; align-items: center; gap: .25rem; }
@@ -285,7 +285,7 @@
     }
     .pfield input {
       width: 100%;
-      background: rgba(244,241,235,.04);
+      background: rgb(var(--fg-rgb) / 4%);
       border: 1px solid var(--border2);
       color: inherit;
       padding: .78rem .9rem;
@@ -296,7 +296,7 @@
       -webkit-appearance: none;
       border-radius: 0;
     }
-    .pfield input:focus { border-color: rgba(244,241,235,.45); }
+    .pfield input:focus { border-color: var(--c45); }
     body.light-mode .pfield input { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.16); color: #09090b; }
     body.light-mode .pfield input:focus { border-color: rgba(9,9,11,.45); }
     /* Placeholders have to be unmistakably NOT typed text. These read as real
@@ -304,7 +304,7 @@
        default placeholder contrast a whole empty address looked filled in — so
        shipping and tax showing "—" read as a broken calculation rather than the
        correct answer for an address that had not been entered yet. */
-    .pfield input::placeholder { color: rgba(244,241,235,.32); font-style: italic; }
+    .pfield input::placeholder { color: rgb(var(--fg-rgb) / 32%); font-style: italic; }
     body.light-mode .pfield input::placeholder { color: rgba(9,9,11,.30); font-style: italic; }
     body.light-mode .pfield label { color: var(--sub); }
     /* Delivery method options — match the square, bordered look of the inputs */
@@ -312,7 +312,7 @@
     .co-delivery-opt {
       display: flex; align-items: center; gap: .7rem;
       width: 100%; box-sizing: border-box;
-      background: rgba(244,241,235,.04);
+      background: rgb(var(--fg-rgb) / 4%);
       border: 1px solid var(--border2);
       border-radius: 0;
       padding: .78rem .9rem;
@@ -321,24 +321,24 @@
       transition: border-color .2s;
     }
     .co-delivery-opt + .co-delivery-opt { border-top: none; }
-    .co-delivery-opt.is-selected { border-color: rgba(244,241,235,.45); }
-    .co-delivery-opt input { margin: 0; accent-color: rgba(244,241,235,.85); flex-shrink: 0; }
+    .co-delivery-opt.is-selected { border-color: var(--c45); }
+    .co-delivery-opt input { margin: 0; accent-color: rgb(var(--fg-rgb) / 85%); flex-shrink: 0; }
     .co-delivery-note { font-size: .78rem; color: var(--sub); line-height: 1.5; margin-top: .55rem; }
     body.light-mode .co-delivery-opt { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.16); color: #09090b; }
     body.light-mode .co-delivery-opt.is-selected { border-color: rgba(9,9,11,.45); }
     body.light-mode .co-delivery-opt input { accent-color: rgba(9,9,11,.8); }
 
     /* Shipping rate options */
-    .rate-opt { display: flex; align-items: center; justify-content: space-between; gap: .7rem; padding: .65rem .85rem; border: 1px solid var(--border2); cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: .4rem; background: rgba(244,241,235,.02); font-size: .84rem; }
-    .rate-opt:hover { border-color: rgba(244,241,235,.35); background: rgba(244,241,235,.04); }
-    .rate-opt.selected { border-color: rgba(244,241,235,.6); background: rgba(244,241,235,.07); }
+    .rate-opt { display: flex; align-items: center; justify-content: space-between; gap: .7rem; padding: .65rem .85rem; border: 1px solid var(--border2); cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: .4rem; background: rgb(var(--fg-rgb) / 2%); font-size: .84rem; }
+    .rate-opt:hover { border-color: var(--c35); background: rgb(var(--fg-rgb) / 4%); }
+    .rate-opt.selected { border-color: rgb(var(--fg-rgb) / 60%); background: var(--c07); }
     .rate-meta { font-size: .78rem; color: var(--sub); margin-top: .15rem; }
     body.light-mode .rate-opt { background: rgba(9,9,11,.02); border-color: rgba(9,9,11,.12); }
     body.light-mode .rate-opt.selected { border-color: rgba(9,9,11,.55); }
 
     /* Stripe card */
-    #stripe-card-element { background: rgba(244,241,235,.04); border: 1px solid var(--border2); padding: .8rem .85rem; transition: border-color .2s; }
-    #stripe-card-element.StripeElement--focus { border-color: rgba(244,241,235,.45); }
+    #stripe-card-element { background: rgb(var(--fg-rgb) / 4%); border: 1px solid var(--border2); padding: .8rem .85rem; transition: border-color .2s; }
+    #stripe-card-element.StripeElement--focus { border-color: var(--c45); }
     #stripe-card-element.StripeElement--invalid { border-color: #e07060; }
     body.light-mode #stripe-card-element { background: #f4f1eb; border-color: rgba(9,9,11,.28); }
     body.light-mode #stripe-card-element.StripeElement--focus { border-color: rgba(9,9,11,.55); }
@@ -355,10 +355,10 @@
     /* Promo */
     #zw-promo-shell { margin-bottom: .9rem; }
     #zw-promo-shell .pm-promo-row { display: flex; gap: .5rem; align-items: stretch; }
-    #zw-promo-input { flex: 1; background: rgba(244,241,235,.04); border: 1px solid var(--border2); color: inherit; padding: .72rem .9rem; font-family: var(--font-body); font-size: .9rem; letter-spacing: .08em; text-transform: uppercase; outline: none; transition: border-color .2s; min-width: 0; }
-    #zw-promo-input:focus { border-color: rgba(244,241,235,.45); }
-    #zw-promo-apply { border: 1px solid rgba(244,241,235,.22); background: transparent; color: inherit; padding: .72rem 1.2rem; font-family: var(--font-body); font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: border-color .2s; }
-    #zw-promo-apply:hover { border-color: rgba(244,241,235,.5); }
+    #zw-promo-input { flex: 1; background: rgb(var(--fg-rgb) / 4%); border: 1px solid var(--border2); color: inherit; padding: .72rem .9rem; font-family: var(--font-body); font-size: .9rem; letter-spacing: .08em; text-transform: uppercase; outline: none; transition: border-color .2s; min-width: 0; }
+    #zw-promo-input:focus { border-color: var(--c45); }
+    #zw-promo-apply { border: 1px solid rgb(var(--fg-rgb) / 22%); background: transparent; color: inherit; padding: .72rem 1.2rem; font-family: var(--font-body); font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: border-color .2s; }
+    #zw-promo-apply:hover { border-color: var(--c50); }
     #zw-promo-message { font-size: .78rem; color: var(--sub); min-height: .85rem; margin-top: .3rem; }
     body.light-mode #zw-promo-input { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.14); color: #09090b; }
     body.light-mode #zw-promo-apply { border-color: rgba(9,9,11,.2); color: #09090b; }
@@ -414,17 +414,17 @@
       padding: 2rem;
     }
     #payment-success.open { display: flex; }
-    .success-check { width: 64px; height: 64px; border: 1px solid rgba(244,241,235,.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin: 0 auto 1.5rem; }
+    .success-check { width: 64px; height: 64px; border: 1px solid var(--c20); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin: 0 auto 1.5rem; }
     body.light-mode .success-check { border-color: rgba(9,9,11,.2); }
     #payment-success h2 { font-family: var(--font-head); font-size: 2.5rem; letter-spacing: .1em; margin-bottom: .6rem; }
     #payment-success p { color: var(--sub); font-size: .9rem; margin-bottom: 1.5rem; max-width: 340px; line-height: 1.8; }
     #success-order { font-size: .75rem; letter-spacing: .2em; color: var(--dim) !important; }
-    #success-continue { background: rgba(244,241,235,.9); color: #09090b; border: none; padding: .9rem 2.5rem; font-family: var(--font-body); font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: opacity .2s; margin-top: 1rem; }
+    #success-continue { background: rgb(var(--fg-rgb) / 90%); color: #09090b; border: none; padding: .9rem 2.5rem; font-family: var(--font-body); font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: opacity .2s; margin-top: 1rem; }
     #success-continue:hover { opacity: .82; }
     body.light-mode #success-continue { background: #09090b; color: #E8E3DC; }
 
     /* --------------------------------- Toast -- */
-    #toast { position: fixed; bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%) translateY(10px); background: #0f0f0f; color: rgba(244,241,235,.9); padding: .5rem 1.2rem; font-size: .72rem; letter-spacing: .08em; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; z-index: 9999; white-space: nowrap; }
+    #toast { position: fixed; bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%) translateY(10px); background: #0f0f0f; color: rgb(var(--fg-rgb) / 90%); padding: .5rem 1.2rem; font-size: .72rem; letter-spacing: .08em; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; z-index: 9999; white-space: nowrap; }
     #toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
     body.light-mode #toast { background: #F0EEE9; color: #09090b; }
 
@@ -529,7 +529,7 @@
            only one that offers Apple Pay outside Safari, by QR code. -->
       <div id="express-checkout-btn" style="display:none" aria-hidden="true"></div>
       <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
-      <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0 1.4rem;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">— or pay with card —</div>
+      <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0 1.4rem;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgb(var(--fg-rgb) / 28%)">— or pay with card —</div>
 
       <!-- CONTACT -->
       <div class="co-section">

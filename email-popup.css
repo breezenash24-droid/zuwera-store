@@ -21,9 +21,9 @@
   /* Dark by default — matches the storefront's own default. */
   --zwp-bg: #09090b;
   --zwp-fg: #F4F1EB;
-  --zwp-muted: rgba(244, 241, 235, .6);
-  --zwp-line: rgba(244, 241, 235, .16);
-  --zwp-field: rgba(244, 241, 235, .06);
+  --zwp-muted: rgb(var(--fg-rgb) / 60%);
+  --zwp-line: rgb(var(--fg-rgb) / 16%);
+  --zwp-field: var(--c06);
   --zwp-accent: #F4F1EB;
   --zwp-accent-fg: #09090b;
   --zwp-scrim: rgba(9, 9, 11, .68);
@@ -108,7 +108,7 @@ body.super-light-mode .zwp-root[data-theme="auto"] {
   width: 44px; height: 44px;
   display: flex; align-items: center; justify-content: center;
   background: rgba(9, 9, 11, .7);
-  border: 1px solid rgba(244, 241, 235, .16);
+  border: 1px solid rgb(var(--fg-rgb) / 16%);
   border-radius: 0;
   color: var(--zwp-paper, #f4f1eb);
   cursor: pointer;

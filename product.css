@@ -229,7 +229,7 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
   right: .9rem;
   z-index: 4;
   background: rgba(9,9,11,.7);
-  border: 1px solid rgba(244,241,235,.1);
+  border: 1px solid var(--c10);
   backdrop-filter: blur(8px);
   border-radius: 50%;
   width: 44px;
@@ -238,7 +238,7 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
   align-items: center;
   justify-content: center;
   transition: color .2s, border-color .2s, opacity .2s, background .2s;
-  color: rgba(244,241,235,.3);
+  color: var(--c30);
 }
 
 .heart-btn:hover,
@@ -343,10 +343,10 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
   transform: none;
   background: transparent;
   color: inherit;
-  border: 1px solid var(--c15, rgba(244, 241, 235, .15));
+  border: 1px solid var(--c15, var(--c15));
 }
 .gallery-section[data-arrows="below"] .gallery-nav-below .gallery-arrow:hover {
-  background: var(--c15, rgba(244, 241, 235, .15));
+  background: var(--c15, var(--c15));
 }
 /* When the rail is on the left, the arrow row belongs under the photo — not
    under the rail — so it spans the full section and clears the rail column. */
@@ -782,7 +782,7 @@ body.light-mode .color-swatch.active::after { background: #09090b; }
   text-transform: uppercase;
   color: var(--c65);
   text-decoration: none;
-  border-bottom: 1px solid rgba(244, 241, 235, 0.2);
+  border-bottom: 1px solid var(--c20);
   padding-bottom: 2px;
   transition: color 0.2s, border-color 0.2s, opacity 0.2s;
 }

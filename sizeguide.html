@@ -99,9 +99,9 @@
       --fw:var(--zw-font-head, var(--font-head));
       --fb:var(--zw-font-body, var(--font-body));
       --fm:var(--zw-font-mono, var(--font-mono));
-      --muted: rgba(244, 241, 235, 0.6);
-      --border: rgba(244, 241, 235, 0.15);
-      --hover: rgba(244, 241, 235, 0.08);
+      --muted: rgb(var(--fg-rgb) / 60%);
+      --border: var(--c15);
+      --hover: var(--c08);
     }
     body.light-mode {
       --bg: #F0EEE9;
@@ -246,7 +246,7 @@
     .focused-guide-note {
       display: none;
       border: 1px solid var(--border);
-      background: rgba(244, 241, 235, 0.03);
+      background: rgb(var(--fg-rgb) / 3%);
       padding: 1rem 1.1rem;
       margin-bottom: 1rem;
     }
@@ -278,7 +278,7 @@
 
     /* ------ CALCULATOR SECTION ------ */
     .calculator {
-      background: rgba(244, 241, 235, 0.02);
+      background: rgb(var(--fg-rgb) / 2%);
       border: 1px solid var(--border);
       padding: 2.5rem;
       margin-bottom: 3.5rem;
@@ -330,7 +330,7 @@
     .calc-input, .calc-select {
       width: 100%;
       min-width: 0;
-      background: rgba(244, 241, 235, 0.04);
+      background: rgb(var(--fg-rgb) / 4%);
       border: 1px solid var(--border);
       color: var(--text);
       padding: 0.75rem 1rem;
@@ -356,8 +356,8 @@
     }
     .calc-input:focus, .calc-select:focus {
       outline: none;
-      border-color: rgba(244, 241, 235, 0.4);
-      background: rgba(244, 241, 235, 0.06);
+      border-color: var(--c40);
+      background: var(--c06);
     }
     .calc-toggles {
       display: flex;
@@ -620,7 +620,7 @@
       min-width: 500px;
     }
     thead tr {
-      background: rgba(244, 241, 235, 0.04);
+      background: rgb(var(--fg-rgb) / 4%);
       border-bottom: 1px solid var(--border);
     }
     thead th {
@@ -639,12 +639,12 @@
       min-width: 180px;
     }
     tbody tr {
-      border-bottom: 1px solid rgba(244, 241, 235, 0.04);
+      border-bottom: 1px solid rgb(var(--fg-rgb) / 4%);
       transition: background 0.15s;
     }
     tbody tr:last-child { border-bottom: none; }
     tbody tr:hover {
-      background: rgba(244, 241, 235, 0.04);
+      background: rgb(var(--fg-rgb) / 4%);
     }
     tbody tr.highlighted {
       background: rgba(248, 145, 165, 0.08);
@@ -655,7 +655,7 @@
     tbody td {
       padding: 0.85rem 1rem;
       text-align: center;
-      color: rgba(244, 241, 235, 0.65);
+      color: var(--c65);
       white-space: nowrap;
     }
     tbody td:first-child {
@@ -705,7 +705,7 @@
       font-family:var(--font-head);
       font-size: 2rem;
       letter-spacing: 0.05em;
-      color: rgba(244, 241, 235, 0.15);
+      color: var(--c15);
       margin-bottom: 0.3rem;
     }
     .measure-name {
@@ -723,7 +723,7 @@
     }
 
     .sizing-notes {
-      background: rgba(244, 241, 235, 0.03);
+      background: rgb(var(--fg-rgb) / 3%);
       border-left: 2px solid var(--accent);
       padding: 1.2rem;
       margin-bottom: 2rem;
@@ -746,7 +746,7 @@
 
     /* ------ FABRIC TECH ------ */
     .tech-card {
-      background: rgba(244, 241, 235, 0.02);
+      background: rgb(var(--fg-rgb) / 2%);
       border: 1px solid var(--border);
       padding: 1.5rem;
       border-radius: 2px;
