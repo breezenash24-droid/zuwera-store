@@ -17,7 +17,7 @@ const emailSends = [];
 new Function(
   'module', 'crypto', 'TextEncoder', 'cors', 'json', 'mutateSetting',
   'getEmailAppearance', 'getEmailContent', 'fillTemplate', 'renderEmailShell',
-  'logEmail', 'fetchSiteSettings', 'resolveSetting', 'fetch', src
+  'logEmail', 'sendTransactional', 'fetchSiteSettings', 'resolveSetting', 'fetch', src
 )(
   mod, require('crypto').webcrypto, TextEncoder,
   () => ({}), (b, s) => ({ body: b, status: s }), async (env, key, fn) => fn(env.__cfg || {}),
@@ -26,6 +26,10 @@ new Function(
   (str, vars) => String(str == null ? '' : str).replace(/\{(\w+)\}/g, (m, k) => (vars && vars[k] != null) ? String(vars[k]) : ''),
   (a, parts) => '<html>' + JSON.stringify(parts) + '</html>',
   async (env, entry) => { emailSends.push(entry); },
+  // The shared provider chain, stubbed. popup-claim used to carry its own copy
+  // of it; it delegates now, so the test records what it hands over rather than
+  // intercepting an HTTP call it no longer makes.
+  async (o) => { emailSends.push({ sent: o }); return { provider: 'resend' }; },
   async () => ({}),
   (key) => (key === 'RESEND_API_KEY' ? 'test-resend-key' : ''),
   async (url, init) => { emailSends.push({ url: String(url), init }); return { ok: true, json: async () => ({}), text: async () => '' }; }
@@ -100,20 +104,19 @@ const { parsePopupSettings, codeForEmail, popupPromo, isExpired, discountLabel, 
 
     emailSends.length = 0;
     const sent = await sendWelcomeEmail({}, { to: 'a@b.com', code: 'WELCOME10', label: '10% off' });
-    ok('sends through a configured provider', sent === true);
-    const call = emailSends.find(e => e.url && /resend/.test(e.url));
-    ok('…to the address that signed up', call && JSON.parse(call.init.body).to[0] === 'a@b.com');
-    ok('…with the placeholders filled', call && /10% off/.test(JSON.parse(call.init.body).subject),
-      call && JSON.parse(call.init.body).subject);
-    ok('…and the code in the body', call && /WELCOME10/.test(JSON.parse(call.init.body).html));
+    ok('sends through the shared provider chain', sent === true);
+    const call = (emailSends.find(e => e.sent) || {}).sent;
+    ok('…to the address that signed up', call && call.to === 'a@b.com');
+    ok('…with the placeholders filled', call && /10% off/.test(call.subject), call && call.subject);
+    ok('…and the code in the body', call && /WELCOME10/.test(call.html));
     const log = emailSends.find(e => e.type === 'popup_welcome');
     ok('every send is logged so a silent failure is visible', !!log && log.status === 'sent');
 
     // Email-only mode: no code, and the wording must still make sense.
     emailSends.length = 0;
     await sendWelcomeEmail({}, { to: 'a@b.com', code: '', label: '' });
-    const c2 = emailSends.find(e => e.url && /resend/.test(e.url));
-    const parts = c2 && JSON.parse(JSON.parse(c2.init.body).html.replace(/^<html>|<\/html>$/g, ''));
+    const c2 = (emailSends.find(e => e.sent) || {}).sent;
+    const parts = c2 && JSON.parse(c2.html.replace(/^<html>|<\/html>$/g, ''));
     ok('with no code, no code block is drawn', parts && parts.bodyHtml === '');
 
     const theme = fs.readFileSync(R + 'functions/api/_email-theme.js', 'utf8');

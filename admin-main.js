@@ -1267,11 +1267,11 @@
             },
             resend: {
                 label: 'Resend',
-                keys: [{ name: 'RESEND_API_KEY', label: 'API Key', type: 'password', placeholder: 're_...' }]
+                keys: [{ name: 'RESEND_API_KEY', label: 'API Key', type: 'password', placeholder: 're_...' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." }]
             },
             brevo: {
                 label: 'Brevo',
-                keys: [{ name: 'BREVO_API_KEY', label: 'API Key', type: 'password', placeholder: 'xkeysib-...' }]
+                keys: [{ name: 'BREVO_API_KEY', label: 'API Key', type: 'password', placeholder: 'xkeysib-...' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." }]
             },
             stripe: {
                 label: 'Stripe',
@@ -1280,7 +1280,7 @@
             shippo: {
                 label: 'Shippo',
                 keys: [
-                    { name: 'SHIPPO_API_KEY', label: 'API Key', type: 'password', placeholder: 'shippo_live_...' },
+                    { name: 'SHIPPO_API_KEY', label: 'API Key', type: 'password', placeholder: 'shippo_live_...' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." },
                     { name: 'SHIPPO_FROM_NAME', label: 'Return Sender Name', type: 'text', placeholder: 'Zuwera Returns' },
                     { name: 'SHIPPO_FROM_STREET1', label: 'Return Street Address', type: 'text', placeholder: '123 Main St' },
                     { name: 'SHIPPO_FROM_STREET2', label: 'Return Address Line 2', type: 'text', placeholder: 'Suite, unit, etc. (optional)' },
@@ -1296,7 +1296,7 @@
             veeqo: {
                 label: 'Veeqo',
                 keys: [
-                    { name: 'VEEQO_API_KEY', label: 'API Key', type: 'password', placeholder: 'Veeqo → Settings → Users → Refresh API Key' },
+                    { name: 'VEEQO_API_KEY', label: 'API Key', type: 'password', placeholder: 'Veeqo → Settings → Users → Refresh API Key' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." },
                 ]
             },
             deepl: {
@@ -1320,14 +1320,14 @@
             },
             loops: {
                 label: 'Loops',
-                keys: [{ name: 'LOOPS_API_KEY', label: 'API Key', type: 'password', placeholder: 'Your Loops API key' }]
+                keys: [{ name: 'LOOPS_API_KEY', label: 'API Key', type: 'password', placeholder: 'Your Loops API key' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." }]
             },
             twilio: {
                 label: 'Twilio',
                 keys: [
-                    { name: 'TWILIO_ACCOUNT_SID',  label: 'Account SID',  type: 'text',     placeholder: 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' },
-                    { name: 'TWILIO_AUTH_TOKEN',    label: 'Auth Token',   type: 'password', placeholder: 'Your auth token' },
-                    { name: 'TWILIO_FROM_NUMBER',   label: 'From Number',  type: 'text',     placeholder: '+15551234567' },
+                    { name: 'TWILIO_ACCOUNT_SID',  label: 'Account SID',  type: 'text',     placeholder: 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." },
+                    { name: 'TWILIO_AUTH_TOKEN',    label: 'Auth Token',   type: 'password', placeholder: 'Your auth token' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." },
+                    { name: 'TWILIO_FROM_NUMBER',   label: 'From Number',  type: 'text',     placeholder: '+15551234567' , locked: true, lockNote: "🔒 Cloudflare only — this key can spend money or send mail as your domain. Set it in Cloudflare → Pages → your project → Settings → Environment variables, then redeploy." },
                 ]
             },
             posthog: {
@@ -1426,6 +1426,56 @@
               blurb:'Same order alerts, posted to a Discord channel.',
               free:'Free', idLabel:'Webhook URL',
               steps:['Server Settings → Integrations → Webhooks','New Webhook, pick a channel','Copy the webhook URL'] },
+
+            /* ── Payments & compliance ─────────────────────────────────────── */
+
+            { key:'stripe_tax', kind:'guide', icon:'🧾', name:'Stripe Tax', cat:'Tax & compliance',
+              blurb:'Works out the right sales tax from the customer\'s exact address and the product type, and tracks where you have crossed a registration threshold. The built-in table is state-level only and cannot know about county or city rates, or that clothing is exempt in some states — this does.',
+              free:'0.5% per transaction where it calculates tax; no monthly fee',
+              docs:'https://dashboard.stripe.com/settings/tax',
+              steps:['Stripe Dashboard → Settings → Tax','Add your business address and register the states you have nexus in','Turn it on — checkout already runs through Stripe, so nothing here changes','Admin → Tax: leave the built-in rates as the fallback'] },
+
+            { key:'apple_pay',  kind:'guide', icon:'', name:'Apple Pay', cat:'Payments',
+              blurb:'A one-tap wallet button at checkout on Safari, iPhone and iPad. Usually lifts mobile conversion more than anything else you can add, because it skips the whole address-and-card form.',
+              free:'No extra fee — same Stripe rate as a card',
+              docs:'https://dashboard.stripe.com/settings/payments/apple_pay',
+              steps:['Stripe Dashboard → Settings → Payment methods → Apple Pay','Add your domain and download the verification file','Put it at /.well-known/apple-developer-merchantid-domain-association','Stripe verifies the domain and the button appears on supported devices'] },
+
+            /* ── Search ────────────────────────────────────────────────────── */
+
+            { key:'algolia',    kind:'guide', icon:'🔎', name:'Algolia', cat:'Search',
+              blurb:'Instant, typo-tolerant search across your catalogue. Worth it once you have enough products that the built-in search stops being good enough — roughly a few hundred.',
+              free:'10k searches/month',
+              docs:'https://dashboard.algolia.com',
+              steps:['Create an app at algolia.com','Create an index for your products','Copy the App ID and the SEARCH-ONLY key — never the admin key'] },
+
+            { key:'meilisearch', kind:'guide', icon:'🔦', name:'Meilisearch', cat:'Search',
+              blurb:'Open-source alternative to Algolia. Free if you host it yourself, which suits a store that wants to own its stack. Pick one of these two, not both.',
+              free:'Free self-hosted; cloud from $30/mo',
+              docs:'https://www.meilisearch.com/docs',
+              steps:['Self-host, or start a Meilisearch Cloud project','Create a products index','Copy the host URL and a search key'] },
+
+            /* ── AI ────────────────────────────────────────────────────────── */
+
+            { key:'openai',     kind:'guide', icon:'🤖', name:'OpenAI', cat:'AI',
+              blurb:'Draft product descriptions and image alt text from the admin. Alt text is the quiet win: it is required for accessibility, it helps image search, and nobody ever writes it by hand for 166 photos.',
+              free:'Pay per use — cents for a catalogue this size',
+              docs:'https://platform.openai.com/api-keys',
+              steps:['platform.openai.com → API keys → create one','Add a spend limit so a mistake cannot run up a bill','This is a SECRET key — it belongs in Cloudflare, not here'] },
+
+            /* ── Messaging ─────────────────────────────────────────────────── */
+
+            { key:'sendgrid',   kind:'guide', icon:'📨', name:'SendGrid', cat:'Email',
+              blurb:'A fourth sending provider, for anyone already on SendGrid who would rather not move. It slots into the failover chain — Resend, then SendGrid, then Brevo, then Loops — so whichever you have set up is the one that sends, and the others cover an outage.',
+              free:'100 emails/day free',
+              docs:'https://app.sendgrid.com/settings/api_keys',
+              steps:['app.sendgrid.com → Settings → API Keys → Create','Give it Mail Send permission only — nothing else','Verify your sending domain under Sender Authentication, or mail will land in spam','Add it in Cloudflare → Pages → Settings → Environment variables as SENDGRID_API_KEY, then redeploy'] },
+
+            { key:'twilio_sms', kind:'server', service:'twilio', icon:'📱', name:'Twilio SMS', cat:'Notifications',
+              blurb:'Text customers when an order ships. People read texts; shipping emails often go unopened. Keys are already wired — this is here so you know the option exists.',
+              free:'Trial credit, then per message',
+              docs:'https://console.twilio.com',
+              steps:['console.twilio.com → buy a number','Copy the Account SID and Auth Token','Add them under API keys above'] },
         ];
 
         let _integrations = {};          // site_settings.integrations
@@ -1442,6 +1492,9 @@
         }
 
         function integrationConfigured(item) {
+            // A 'guide' has nothing stored here — it is set up entirely on the
+            // provider's own dashboard — so it never claims to be connected.
+            if (item.kind === 'guide') return false;
             if (item.kind === 'server') {
                 const def = API_KEY_DEFS[item.service];
                 return !!(def && def.keys.some(k => _maskedKeys[k.name]));
@@ -1450,11 +1503,48 @@
             return !!(e && (e.id || item.optionalId) && e.enabled !== false);
         }
 
+        /* The catalogue is collapsed by default; remember whether it was left
+           open so someone actively evaluating services is not re-opening it on
+           every visit. */
+        function rememberIntegrationsOpen(el) {
+            try { localStorage.setItem('zw_integrations_open', el.open ? '1' : '0'); } catch (_) {}
+        }
+        (function restoreIntegrationsOpen() {
+            const apply = () => {
+                const el = document.getElementById('integrationStore');
+                if (!el) return;
+                try { el.open = localStorage.getItem('zw_integrations_open') === '1'; } catch (_) {}
+            };
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply, { once: true });
+            else apply();
+        })();
+
         function renderIntegrationStore(filter) {
             const grid = document.getElementById('integration-grid');
             if (!grid) return;
+            // Summary line, so the collapsed header still says what is inside
+            // and how much of it is already set up.
+            const countEl = document.getElementById('integrationCount');
+            if (countEl) {
+                const total = ZW_INTEGRATION_CATALOG.length + (_apiLayout.demoted || []).length;
+                const on = ZW_INTEGRATION_CATALOG.filter(integrationConfigured).length;
+                countEl.textContent = on ? `— ${on} of ${total} connected` : `— ${total} available`;
+            }
+            // Anything tucked away from the API grid shows up here, as a real
+            // card that still opens the same key editor — moved, not disabled.
+            const tucked = (_apiLayout.demoted || []).map(svc => {
+                const def = API_KEY_DEFS[svc];
+                return {
+                    key: 'svc_' + svc, kind: 'server', service: svc, tucked: svc,
+                    icon: '🔑', name: (def && def.label) || svc, cat: 'Moved here',
+                    blurb: 'Moved down from the API list. It works exactly as before — this is only where its card sits. Use “Move back up” to return it.',
+                    free: '', steps: [],
+                };
+            });
+            const catalogue = ZW_INTEGRATION_CATALOG.concat(tucked);
+
             const q = String(filter ?? document.getElementById('integration-search')?.value ?? '').trim().toLowerCase();
-            const items = ZW_INTEGRATION_CATALOG.filter(it => !q
+            const items = catalogue.filter(it => !q
                 || it.name.toLowerCase().includes(q)
                 || it.cat.toLowerCase().includes(q)
                 || it.blurb.toLowerCase().includes(q));
@@ -1471,24 +1561,66 @@
                       <div class="integration-name">${escapeHtml(it.name)}</div>
                       <div class="integration-cat">${escapeHtml(it.cat)}</div>
                     </div>
-                    <span class="integration-state${on ? ' on' : ''}">${on ? 'Connected' : 'Not set up'}</span>
+                    <span class="integration-state${on ? ' on' : ''}">${it.kind === 'guide' ? 'Set up elsewhere' : (on ? 'Connected' : 'Not set up')}</span>
                   </div>
                   <div class="integration-blurb">${escapeHtml(it.blurb)}</div>
                   <div class="integration-foot">
                     <span class="integration-free">${escapeHtml(it.free)}</span>
-                    <button class="btn ${on ? 'btn-secondary' : 'btn-primary'}" onclick="openIntegrationSetup('${it.key}')">${on ? 'Manage' : 'Set up'}</button>
+                    ${it.tucked ? `<button class="btn btn-secondary" onclick="moveApiCard('${it.tucked}','up')">⤒ Move back up</button>` : ''}
+                    <button class="btn btn-secondary" onclick="openIntegrationSetup('${it.key}')">${it.kind === 'guide' ? 'How it works' : (on ? 'Manage' : 'Set up')}</button>
                   </div>
                 </div>`;
             }).join('');
         }
 
         function openIntegrationSetup(key) {
-            const item = ZW_INTEGRATION_CATALOG.find(i => i.key === key);
+            let item = ZW_INTEGRATION_CATALOG.find(i => i.key === key);
+            // Tucked-away API services are synthesised at render time, so they
+            // are not in the catalogue array — send them straight to the same
+            // masked key editor they use up in the API grid.
+            if (!item && key.indexOf('svc_') === 0) { openKeyEdit(key.slice(4)); return; }
             if (!item) return;
 
             // Server-secret integrations reuse the existing masked key editor —
             // secrets must never round-trip through site_settings.
             if (item.kind === 'server') { openKeyEdit(item.service); return; }
+
+            // A guide is configured entirely on the provider's side — Stripe's
+            // dashboard, Apple's domain verification, Algolia's console. There
+            // is nothing to store here, so show what it is and the steps, with a
+            // link straight to the page that does it. Deliberately not a fake
+            // "Connect" button that would only take you somewhere else anyway.
+            if (item.kind === 'guide') {
+                _currentIntegration = null;
+                document.getElementById('int-setup-title').textContent = item.name;
+                document.getElementById('int-setup-icon').textContent = item.icon;
+                document.getElementById('int-setup-blurb').textContent = item.blurb;
+                document.getElementById('int-setup-steps').innerHTML = item.steps.map((s, i) =>
+                    `<li><span>${i + 1}</span>${escapeHtml(s)}</li>`).join('');
+                document.getElementById('int-setup-cost').textContent = item.free;
+                const docs = document.getElementById('int-setup-docs');
+                docs.href = item.docs || '#';
+                docs.textContent = 'Open ' + item.name + ' →';
+                docs.style.display = item.docs ? '' : 'none';
+                // Nothing to type, nothing to save, nothing to disconnect.
+                ['int-setup-idfield', 'int-setup-save', 'int-setup-remove'].forEach(id => {
+                    const el = document.getElementById(id); if (el) el.style.display = 'none';
+                });
+                const enabledRow = document.getElementById('int-setup-enabled');
+                if (enabledRow && enabledRow.parentElement) enabledRow.parentElement.style.display = 'none';
+                document.getElementById('int-setup-guide').style.display = '';
+                document.getElementById('int-setup-status').textContent = '';
+                document.getElementById('integration-setup-modal').classList.add('open');
+                return;
+            }
+
+            // Coming from a guide, put the ID-based controls back.
+            document.getElementById('int-setup-guide').style.display = 'none';
+            ['int-setup-idfield', 'int-setup-save', 'int-setup-remove'].forEach(id => {
+                const el = document.getElementById(id); if (el) el.style.display = '';
+            });
+            const _en = document.getElementById('int-setup-enabled');
+            if (_en && _en.parentElement) _en.parentElement.style.display = '';
 
             _currentIntegration = item;
             const cur = _integrations[item.key] || {};
@@ -1648,6 +1780,7 @@
         }
 
         async function loadApiStatus() {
+            await loadApiLayout();
             const loadingEl  = document.getElementById('apis-loading');
             const gridEl     = document.getElementById('api-grid');
             const lastEl     = document.getElementById('apis-last-updated');
@@ -1699,7 +1832,10 @@
                           optional: true },
                         () => buildCronRows(_maskedKeys), 'cron', 'https://console.cron-job.org'),
                 ];
-                gridEl.innerHTML = cards.join('');
+                // Tucked-away services drop out of this grid and reappear as
+                // cards in More Integrations, where they still open the same
+                // key editor. Nothing is disabled by moving it.
+                gridEl.innerHTML = cards.filter(Boolean).join('');
             } catch (e) {
                 loadingEl.style.display = 'block';
                 loadingEl.textContent = '⚠️ Could not load API status: ' + e.message;
@@ -1990,6 +2126,9 @@
         }
 
         function renderApiCard(icon, name, s, buildRows, serviceKey, dashboardUrl) {
+            // Tucked away → it renders as a card in More Integrations instead.
+            // Nothing about the service changes; only where its card lives.
+            if (serviceKey && apiIsDemoted(serviceKey)) return '';
             const notConfigured = s && s.configured === false;
             const isOptional    = s && s.optional === true;
             const statusClass   = !s ? 'status-error' : s.ok ? 'status-ok' : (notConfigured ? 'status-warn' : 'status-error');
@@ -2029,9 +2168,45 @@
                 ${keyChips}
                 <div class="api-card-footer">
                   <div class="api-link"><a href="${dashboardUrl}" target="_blank" rel="noopener">Open dashboard ↗</a></div>
+                  ${serviceKey ? `<button class="api-edit-btn" title="Move this into More Integrations — it keeps working, it just stops taking up room up here" onclick="moveApiCard('${serviceKey}','down')">⤓ Tuck away</button>` : ''}
                   ${editBtn}
                 </div>
               </div>`;
+        }
+
+        /* ── Which services sit up top, and which are tucked into the catalogue ──
+           Every store uses a different subset. A shop that never ships (digital
+           goods) does not want Shippo and Veeqo at eye level; one that lives in
+           Stripe does not want to scroll past DeepL to reach it. So the split is
+           the admin's to set, stored per store rather than per browser — a
+           licensee configures it once and their whole team sees it. */
+        let _apiLayout = { demoted: [] };
+        const apiIsDemoted = (svc) => Array.isArray(_apiLayout.demoted) && _apiLayout.demoted.includes(svc);
+
+        async function loadApiLayout() {
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'api_layout').maybeSingle();
+                let v = data?.value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                _apiLayout = (v && Array.isArray(v.demoted)) ? v : { demoted: [] };
+            } catch (_) { _apiLayout = { demoted: [] }; }
+        }
+
+        async function moveApiCard(service, dir) {
+            const set = new Set(_apiLayout.demoted || []);
+            if (dir === 'down') set.add(service); else set.delete(service);
+            _apiLayout = { demoted: [...set] };
+            try {
+                const { error } = await sb.from('site_settings').upsert(
+                    { key: 'api_layout', value: _apiLayout }, { onConflict: 'key' });
+                if (error) throw error;
+                showToast(dir === 'down' ? 'Moved into More Integrations.' : 'Moved back up.', 'success');
+            } catch (err) {
+                showToast('Could not save the layout: ' + ((err && err.message) || 'error'), 'error');
+            }
+            // Both lists change, so both are redrawn.
+            loadApiStatus();
+            renderIntegrationStore();
         }
 
 
@@ -2761,6 +2936,24 @@
            and applies the difference. The drift line is the important one: a
            migration edited after it ran means the repo and the database
            disagree about what that version did, which is otherwise invisible. */
+        let _bootstrapSql = '';
+        function copyBootstrapSql(btn) {
+            const done = () => {
+                const was = btn.textContent;
+                btn.textContent = '✓ Copied — now paste it into the SQL editor';
+                setTimeout(() => { btn.textContent = was; }, 2600);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(_bootstrapSql).then(done, () => {});
+                return;
+            }
+            try {
+                const t = document.createElement('textarea');
+                t.value = _bootstrapSql; document.body.appendChild(t); t.select();
+                document.execCommand('copy'); document.body.removeChild(t); done();
+            } catch (_) {}
+        }
+
         async function migrateCall(action) {
             const { data } = await sb.auth.getSession();
             const accessToken = data && data.session && data.session.access_token;
@@ -2783,12 +2976,27 @@
                 if (!j || !j.ok) throw new Error((j && j.error) || 'Could not read migration state.');
 
                 if (j.bootstrapped === false) {
+                    // The SQL itself, with a copy button. Naming a file instead
+                    // invites pasting the filename into the SQL editor, which
+                    // fails with a syntax error that reads like the migration
+                    // system is broken.
+                    _bootstrapSql = j.bootstrapSql || '';
                     host.innerHTML =
-                        '<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:12px 14px;line-height:1.7;">'
-                        + '<strong>One-time setup needed.</strong> Open the Supabase SQL editor and run '
-                        + '<code style="background:var(--border);padding:1px 5px;border-radius:4px;">' + escapeHtml(j.bootstrapFile) + '</code> once. '
-                        + 'It creates the tracking table and the applier; every migration after that is applied from this button.'
-                        + (j.pending && j.pending.length ? '<div style="margin-top:8px;">Waiting to run: ' + j.pending.map(p => escapeHtml(p.version)).join(', ') + '</div>' : '')
+                        '<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:14px 16px;line-height:1.7;">'
+                        + '<strong>One-time setup — takes about 20 seconds.</strong>'
+                        + '<ol style="margin:10px 0 0 18px;line-height:2;">'
+                        + '<li>Open the <a href="https://supabase.com/dashboard/project/_/sql/new" target="_blank" rel="noopener" style="color:var(--accent);">Supabase SQL editor</a></li>'
+                        + '<li>Press <strong>Copy SQL</strong> below and paste the whole thing in</li>'
+                        + '<li>Press <strong>Run</strong>, then come back here and press <strong>Check</strong></li>'
+                        + '</ol>'
+                        + '<div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+                        + '<button class="btn btn-primary btn-sm" onclick="copyBootstrapSql(this)">📋 Copy SQL</button>'
+                        + '<span style="color:var(--text-secondary);font-size:.8rem;">paste this, not the file name</span>'
+                        + '</div>'
+                        + '<details style="margin-top:12px;"><summary style="cursor:pointer;color:var(--text-secondary);">Show the SQL</summary>'
+                        + '<pre style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:12px;overflow:auto;max-height:320px;font-size:.72rem;margin-top:8px;white-space:pre-wrap;">'
+                        + escapeHtml(_bootstrapSql) + '</pre></details>'
+                        + (j.pending && j.pending.length ? '<div style="margin-top:10px;">Then ' + j.pending.length + ' migration' + (j.pending.length === 1 ? '' : 's') + ' will be waiting to apply from here.</div>' : '')
                         + '</div>';
                     return;
                 }

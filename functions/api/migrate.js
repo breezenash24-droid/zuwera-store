@@ -97,13 +97,20 @@ export async function onRequestPost({ request, env }) {
     const applied = await appliedRows(env, key);
     if (applied === null) {
       // Nothing can run until the one bootstrap file has been pasted in once.
+      // Hand back the SQL ITSELF, not a path. Telling someone to "run
+      // migrations/0001_migration_tracking.sql" invites them to paste that
+      // string into the SQL editor, which is a filename and not SQL — it fails
+      // with a syntax error that looks like the migration is broken. The panel
+      // shows this with a copy button so there is nothing to go and find.
+      const boot = MIGRATIONS.find((m) => m.version === '0001');
       return json({
         ok: true,
         bootstrapped: false,
-        bootstrapFile: 'migrations/0001_migration_tracking.sql',
+        bootstrapFile: boot ? boot.file : 'migrations/0001_migration_tracking.sql',
+        bootstrapSql: boot ? boot.sql : '',
         applied: [],
         pending: MIGRATIONS.filter((m) => m.version !== '0001').map((m) => ({ version: m.version, name: m.name })),
-        message: 'Run migrations/0001_migration_tracking.sql in the Supabase SQL editor once. Everything after that applies from here.',
+        message: 'Copy the SQL below into the Supabase SQL editor and run it once. Everything after that applies from here.',
       });
     }
 

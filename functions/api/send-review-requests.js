@@ -14,7 +14,7 @@
 
 import { json } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
-import { loopsFallback } from './_email.js';
+import { sendTransactional } from './_email.js';
 import { logEmail } from './_email-log.js';
 import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } from './_email-theme.js';
 
@@ -38,24 +38,17 @@ function reviewUrl(item) {
   return `${SITE}/product/${productSlug(name)}?id=${encodeURIComponent(id)}&review=1`;
 }
 
-async function sendEmail({ to, subject, html, fromEmail, resendKey, brevoKey, env, cache }) {
-  if (resendKey) {
-    const r = await fetch('https://api.resend.com/emails', {
-      method: 'POST', headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [to], reply_to: 'orders@zuwera.store', subject, html }),
-    });
-    if (r.ok) return { provider: 'resend' };
-  }
-  if (brevoKey) {
-    const r = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST', headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sender: { name: 'Zuwera', email: fromEmail }, to: [{ email: to }], replyTo: { email: 'orders@zuwera.store' }, subject, htmlContent: html }),
-    });
-    if (r.ok) return { provider: 'brevo' };
-  }
-  const loops = await loopsFallback({ env, cache, to, subject, html });
-  if (loops.ok) return { provider: 'loops' };
-  throw new Error('No email provider configured.');
+// Delegates to the shared provider chain in _email.js (Resend → SendGrid →
+// Brevo → Loops). This used to be a private copy of that chain; there were
+// eleven of them, so adding a provider meant editing eleven files and getting
+// all eleven right. The from-name and reply-to stay here because they are this
+// email's voice, not the transport's.
+async function sendEmail({ to, subject, html, fromEmail, env, cache }) {
+  return sendTransactional({
+    env, cache, to, subject, html, fromEmail,
+    fromName: "Zuwera",
+    replyTo: 'orders@zuwera.store',
+  });
 }
 
 export function buildEmail({ items, name, appearance, content }) {

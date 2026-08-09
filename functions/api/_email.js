@@ -75,3 +75,91 @@ export async function loopsFallback({ env, cache = {}, to, subject, html, text, 
     return { ok: false, error: 'Loops send error: ' + (e && e.message || e) };
   }
 }
+
+/**
+ * Send one transactional email, trying each configured provider in order.
+ *
+ *   Resend → SendGrid → Brevo → Loops
+ *
+ * WHY THIS EXISTS. Eleven files had their own copy of this chain, each with
+ * small differences in from-name and reply-to. Adding a provider meant editing
+ * all eleven and getting all eleven right — which is precisely the duplication
+ * that has produced silent divergence elsewhere in this codebase. SendGrid was
+ * the moment to stop: one chain, one place, and a test that asserts nothing
+ * calls a provider directly any more.
+ *
+ * Callers keep their own from-name and reply-to, because an order confirmation
+ * and a journal newsletter should not look like they came from the same
+ * mailbox — those stay parameters rather than being flattened into one style.
+ *
+ * @param {object}  o
+ * @param {object}  o.env
+ * @param {object} [o.cache]     pre-fetched site_settings (avoids a re-query)
+ * @param {string}  o.to
+ * @param {string} [o.toName]
+ * @param {string}  o.subject
+ * @param {string}  o.html
+ * @param {string}  o.fromEmail
+ * @param {string} [o.fromName]  defaults to 'Zuwera'
+ * @param {string} [o.replyTo]
+ * @returns {Promise<{provider:string}>}  throws if every provider is unavailable
+ */
+export async function sendTransactional({ env, cache = {}, to, toName, subject, html, fromEmail, fromName = 'Zuwera', replyTo }) {
+  const resendKey  = resolveSetting('RESEND_API_KEY', env, cache);
+  const sendgridKey = resolveSetting('SENDGRID_API_KEY', env, cache);
+  const brevoKey   = resolveSetting('BREVO_API_KEY', env, cache);
+
+  // Deduplicates retries at the provider if the same message is sent twice.
+  const refId = (globalThis.crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : `zw-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  if (resendKey) {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: `${fromName} <${fromEmail}>`, to: [to], subject, html,
+        ...(replyTo ? { reply_to: replyTo } : {}),
+        headers: { 'X-Entity-Ref-ID': refId },
+      }),
+    }).catch(() => null);
+    if (r && r.ok) return { provider: 'resend' };
+  }
+
+  if (sendgridKey) {
+    const r = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${sendgridKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: to, ...(toName ? { name: toName } : {}) }] }],
+        from: { email: fromEmail, name: fromName },
+        ...(replyTo ? { reply_to: { email: replyTo } } : {}),
+        subject,
+        content: [{ type: 'text/html', value: html }],
+      }),
+    }).catch(() => null);
+    // SendGrid answers 202 Accepted, not 200 — r.ok covers both, but it is
+    // worth knowing that a success here means queued, not delivered.
+    if (r && r.ok) return { provider: 'sendgrid' };
+  }
+
+  if (brevoKey) {
+    const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sender: { name: fromName, email: fromEmail },
+        to: [{ email: to, ...(toName ? { name: toName } : {}) }],
+        ...(replyTo ? { replyTo: { email: replyTo } } : {}),
+        subject, htmlContent: html,
+      }),
+    }).catch(() => null);
+    if (r && r.ok) return { provider: 'brevo' };
+  }
+
+  const loops = await loopsFallback({ env, cache, to, subject, html });
+  if (loops.ok) return { provider: 'loops' };
+
+  throw new Error('No email provider configured.');
+}
