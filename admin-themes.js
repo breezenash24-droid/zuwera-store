@@ -81,6 +81,42 @@
     ['minimal', 'Minimal — logo and icons only, links in the menu'],
   ];
 
+  /* Must stay identical to HDR_PRESETS in theme-engine.js — the engine expands
+     a saved preset name, this expands it for the editor, and if they disagree
+     the preview shows one header and the storefront renders another. A test
+     compares the two tables rather than trusting this comment. */
+  var HDR_PRESETS = {
+    inline:  { logo: 'left',   links: 'center', actions: 'right', linksRow: 1 },
+    tight:   { logo: 'left',   links: 'left',   actions: 'right', linksRow: 1 },
+    stacked: { logo: 'center', links: 'center', actions: 'right', linksRow: 2 },
+    split:   { logo: 'center', links: 'left',   actions: 'right', linksRow: 1 },
+    minimal: { logo: 'left',   links: 'none',   actions: 'right', linksRow: 1 },
+  };
+  var SPOT_LABELS = { logo: 'Logo', links: 'Categories', actions: 'Icons & bag' };
+
+  /* '' is the shipped arrangement, which is what 'inline' describes — so the
+     editor can show its three parts instead of three blanks, while the theme
+     still stores nothing and the engine still clears every attribute. */
+  function headerSpec(h) {
+    if (!h) return Object.assign({}, HDR_PRESETS.inline);
+    if (typeof h === 'string') return Object.assign({}, HDR_PRESETS[h] || HDR_PRESETS.inline);
+    return {
+      logo: h.logo || 'left', links: h.links || 'center',
+      actions: h.actions || 'right', linksRow: String(h.linksRow) === '2' ? 2 : 1,
+    };
+  }
+  // An object equal to a preset is shown as that preset, so tweaking a part and
+  // tweaking it back does not leave the editor stuck on "Custom".
+  function matchPreset(h) {
+    var s = headerSpec(h);
+    for (var name in HDR_PRESETS) {
+      var p = HDR_PRESETS[name];
+      if (p.logo === s.logo && p.links === s.links && p.actions === s.actions &&
+          String(p.linksRow) === String(s.linksRow)) return name === 'inline' ? '' : name;
+    }
+    return null;
+  }
+
   /* The curve carries more personality than the durations do. A spring reads
      playful, a linear ramp reads mechanical, and the default glide is what the
      site was built with. */
@@ -225,18 +261,44 @@
       '</select></div>';
 
     var curHeader = m.tokens.header || '';
+    var spec = headerSpec(curHeader);
+    var presetName = typeof curHeader === 'string' ? curHeader : matchPreset(curHeader);
+    var sel = function (part, value, opts) {
+      return '<label style="display:block;font-size:.72rem;color:var(--text-secondary);margin-bottom:3px;">' + esc(SPOT_LABELS[part]) + '</label>' +
+        '<select onchange="themeSetHeaderPart(' + i + ',\'' + part + '\',this.value)" style="width:100%;padding:6px 8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.76rem;">' +
+        opts.map(function (o) {
+          return '<option value="' + esc(o[0]) + '"' + (value === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+        }).join('') + '</select>';
+    };
+    var SPOTS = [['left', 'Left'], ['center', 'Center'], ['right', 'Right']];
+    // Two parts in the same OUTER zone both take the auto margin and spread
+    // apart. Left+left is fine — only the first takes it. Say so where the
+    // choice is made rather than letting it look like a rendering bug.
+    var clash = spec && spec.logo === spec.actions && spec.logo === 'right';
+
     shape += '<div style="margin-bottom:6px;">' +
       '<label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-primary);margin-bottom:3px;">Header layout</label>' +
       '<div style="font-size:.73rem;color:var(--text-secondary);line-height:1.5;margin-bottom:6px;">' +
-        'How the logo, links and icons sit in the bar. This is what separates two storefronts fastest — faster than colour. On phones every option falls back to the standard header, because a centred two-row bar spends a third of a small screen on chrome.' +
+        'Where the logo, the categories and the icons sit. This is what separates two storefronts fastest — faster than colour. Start from a preset, then move any part: the preset is only a name for a combination of the three. On phones every arrangement falls back to the standard header, because a centred two-row bar spends a third of a small screen on chrome.' +
       '</div>' +
       '<select onchange="themeSetHeader(' + i + ',this.value)" style="width:100%;padding:7px 9px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.78rem;">' +
         HEADERS.map(function (h) {
-          return '<option value="' + esc(h[0]) + '"' + (curHeader === h[0] ? ' selected' : '') + '>' + esc(h[1]) + '</option>';
+          return '<option value="' + esc(h[0]) + '"' + (presetName === h[0] ? ' selected' : '') + '>' + esc(h[1]) + '</option>';
         }).join('') +
+        (presetName ? '' : '<option value="" selected>Custom — set below</option>') +
       '</select>' +
-      (curHeader === 'split'
-        ? '<div style="font-size:.72rem;color:var(--text-secondary);margin-top:6px;line-height:1.5;">Split reads best with an even number of nav links, so they balance either side of the logo.</div>'
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr));gap:8px;margin-top:8px;">' +
+        '<div>' + sel('logo', spec ? spec.logo : 'left', SPOTS) + '</div>' +
+        '<div>' + sel('links', spec ? spec.links : 'center', SPOTS.concat([['none', 'In the menu']])) + '</div>' +
+        '<div>' + sel('actions', spec ? spec.actions : 'right', SPOTS) + '</div>' +
+      '</div>' +
+      '<label style="display:flex;align-items:center;gap:7px;margin-top:8px;font-size:.75rem;color:var(--text-secondary);cursor:pointer;">' +
+        '<input type="checkbox"' + (spec && String(spec.linksRow) === '2' ? ' checked' : '') +
+        ' onchange="themeSetHeaderPart(' + i + ',\'linksRow\',this.checked?2:1)">' +
+        'Categories on a row of their own' +
+      '</label>' +
+      (clash
+        ? '<div style="font-size:.72rem;color:var(--warn,#f59e0b);margin-top:6px;line-height:1.5;">The logo and the icons are both on the right, so they will sit at opposite ends of that side rather than together. Move one to Left or Center if you wanted them adjacent.</div>'
         : '') +
       '</div>';
 
@@ -404,6 +466,24 @@
     // Absent, not empty-string: the engine removes the attribute when there is
     // no value, and an empty string is a value that matches no preset.
     if (v) m.tokens.header = v; else delete m.tokens.header;
+    render();
+    visPaint();
+  };
+
+  /* Moving one part expands whatever is stored into the full object first, so a
+     theme on a preset does not lose the other two parts the moment you nudge
+     one. Stored back as a preset NAME when it still matches one — a saved theme
+     that reads "stacked" survives a round trip through this editor instead of
+     silently becoming four coordinates that mean the same thing. */
+  window.themeSetHeaderPart = function (i, part, value) {
+    var m = state.modes[i];
+    if (!m) return;
+    var spec = headerSpec(m.tokens.header);
+    spec[part] = part === 'linksRow' ? (String(value) === '2' ? 2 : 1) : String(value);
+    var name = matchPreset(spec);
+    if (name === '') delete m.tokens.header;
+    else if (name) m.tokens.header = name;
+    else m.tokens.header = spec;
     render();
     visPaint();
   };

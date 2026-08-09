@@ -43,7 +43,7 @@
     <!-- Render-blocking on purpose (matches the storefront): cached woff2 means
          no font swap on every admin visit after the first. -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-    <link rel="stylesheet" href="admin.css?v=dae22c54">
+    <link rel="stylesheet" href="admin.css?v=fea7a468">
 <script src="error-reporter.js?v=6622e7d7" defer></script>
 </head>
 <body>
@@ -2278,7 +2278,7 @@
                     <div id="tax-re-content"></div>
                   </div>
 
-                  <script src="admin-tax.js?v=66c2e57c"></script>
+                  <script src="admin-tax.js?v=3b9cc1dd"></script>
                 </div>
 
                 <!-- Shipping Page -->
@@ -4248,7 +4248,7 @@
         </div>
     </div>
 
-    <script src="modal-lock.js?v=088ff918"></script>
+    <script src="modal-lock.js?v=fb1f304f"></script>
     <script src="/supabase.min.js?v=4b6a655b"></script>
     <script>
         // Ensure Turnstile's onload callback exists before the external script executes.
@@ -4260,21 +4260,21 @@
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwAdminTsLoad&render=explicit" defer async></script>
     <div id="zw-admin-ts-widget" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" aria-hidden="true"></div>
 
-    <script src="fit-finder.js?v=1"></script>
+    <script src="fit-finder.js?v=f5cdcd6f"></script>
     <!-- The storefront popup module, loaded here purely so Admin → Email Popup
          can preview the REAL thing. __zwPopupNoAutoOpen keeps it from arming its
          triggers: it parses its config and exposes its API, and nothing opens
          until the Preview button asks it to. -->
     <script>window.__zwPopupNoAutoOpen = true;</script>
-    <script src="email-popup.js?v=1" defer></script>
-    <script src="admin-main.js?v=22f987eb"></script>
+    <script src="email-popup.js?v=d316db75" defer></script>
+    <script src="admin-main.js?v=dbeb0062"></script>
     <!-- After admin-main: it needs `sb`, which that file creates at top level. -->
-    <script src="admin-themes.js"></script>
-    <script src="admin-theme-presets.js"></script>
-    <script src="admin-theme-import.js"></script>
+    <script src="admin-themes.js?v=fffa1972"></script>
+    <script src="admin-theme-presets.js?v=bd0c8c14"></script>
+    <script src="admin-theme-import.js?v=f874417a"></script>
     <!-- The icon editor previews through the real registry, so it loads it too. -->
-    <script src="/icon-sets.js"></script>
-    <script src="admin-icons.js"></script>
+    <script src="/icon-sets.js?v=7895783f"></script>
+    <script src="admin-icons.js?v=ae396420"></script>
     <script src="commerce-admin.js?v=d967ea62"></script>
 <!-- API Key Editor Modal -->
 <div id="api-key-modal">

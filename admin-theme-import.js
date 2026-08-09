@@ -164,7 +164,12 @@
   }
 
   function collect(merged, meta) {
-    var colours = [], numbers = [], fonts = [];
+    /* choices is the fourth bucket, and it exists because the first three
+       silently swallowed everything else. A layout name like 'middle-left' is
+       not a hex, not a number and does not match the font handle pattern, so it
+       fell through all three branches and was dropped — which is why the header
+       could never be imported no matter what the export said. */
+    var colours = [], numbers = [], fonts = [], choices = [];
 
     /* The palette itself, flattened so each role is selectable by name. */
     Object.keys(merged).forEach(function (id) {
@@ -191,6 +196,12 @@
            fonts silently found no source at all and the mapping table showed
            two empty rows with no explanation. */
         fonts.push({ id: id, value: v });
+      } else if (typeof v === 'string' && v && v.length < 40) {
+        /* Anything else short and textual. Kept deliberately broad rather than
+           an allowlist of ids, so a theme that names its header setting
+           something we have not seen still shows up in the mapping table and
+           can be pointed at the right row by hand. */
+        choices.push({ id: id, value: v });
       }
     });
     /* Colour schemes are nested one level deeper than a palette — scheme-1 holds
@@ -209,7 +220,7 @@
     }
     var seen = {};
     colours = colours.filter(function (c) { if (seen[c.id]) return false; seen[c.id] = 1; return true; });
-    return { colours: colours, numbers: numbers, fonts: fonts };
+    return { colours: colours, numbers: numbers, fonts: fonts, choices: choices };
   }
 
   /* What each of this site's tokens can be fed from, and how to read a source
@@ -258,6 +269,13 @@
       prefer: ['heading_scale', 'body_scale', 'type_size_h1'] },
     { key: 'density', label: 'Section density', kind: 'number',
       prefer: ['spacing_sections', 'spacing_grid_vertical', 'spacing_sections_vertical'] },
+    /* The header is the fastest thing to recognise about a storefront and was
+       the one part of an import that never came across — the arrangement was
+       read from nothing and every theme landed on ours. Shopify states it
+       plainly; the value is a layout name, not a number or a colour. */
+    { key: 'header', label: 'Header arrangement', kind: 'choice',
+      prefer: ['header_layout', 'logo_position', 'header_logo_position',
+               'logo_alignment', 'menu_position'] },
     /* Themes disagree on the heading font's id — Dawn says type_header_font,
        others say type_heading_font or type_accent_font. Body was matching and
        heading was not, which is what a one-entry preference list buys you. */
@@ -269,7 +287,7 @@
 
   function autoAssign(merged, pool) {
     var have = {};
-    pool.colours.concat(pool.numbers, pool.fonts).forEach(function (x) { have[x.id] = x.value; });
+    pool.colours.concat(pool.numbers, pool.fonts, pool.choices || []).forEach(function (x) { have[x.id] = x.value; });
     var out = {};
     TARGETS.forEach(function (t) {
       for (var i = 0; i < t.prefer.length; i++) {
@@ -281,7 +299,7 @@
   }
 
   function valueOf(pool, id) {
-    var all = pool.colours.concat(pool.numbers, pool.fonts);
+    var all = pool.colours.concat(pool.numbers, pool.fonts, pool.choices || []);
     for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i].value;
     return undefined;
   }
@@ -294,6 +312,23 @@
   /* Turn the table into tokens. The ONLY place tokens are produced, so what
      the table says is always what gets saved — there is no path where an
      edited row is ignored because some earlier heuristic already decided. */
+  /* Shopify's own layout names, mapped to placements. Dawn's three are the
+     common vocabulary and most themes that rolled their own use a subset of the
+     same words, which is why the bare 'left'/'center' entries are here too.
+
+     Read left to right, these say where the LOGO sits and whether the menu is
+     beside it or beneath it — so 'top-center' is a logo on its own row with the
+     menu under it, and 'middle-left' is the editorial run-on header. */
+  var HEADER_MAP = {
+    'middle-left':   'tight',
+    'middle-center': 'split',
+    'top-center':    'stacked',
+    'top-left':      { logo: 'left', links: 'left', actions: 'right', linksRow: 2 },
+    'left':          'tight',
+    'center':        'split',
+    'centered':      'split',
+  };
+
   function compose(pool, assign) {
     var tokens = { err: '#ef4444' };
     var fonts = {};
@@ -302,7 +337,13 @@
       if (!id) return;
       var v = valueOf(pool, id);
       if (v === undefined) return;
-      if (t.kind === 'colour') {
+      if (t.kind === 'choice') {
+        /* Only values we understand are carried. An unrecognised layout name
+           leaves the header alone, which is the shipped arrangement — better
+           than guessing a shape and shipping a header nobody chose. */
+        var mapped = HEADER_MAP[String(v).toLowerCase().trim()];
+        if (mapped) tokens.header = mapped;
+      } else if (t.kind === 'colour') {
         tokens[t.key] = (t.key === 'fg' || t.key === 'bg') ? toTriplet(v) : hex(v);
       } else if (t.kind === 'number') {
         var mt = metaOf(pool, id);
