@@ -181,6 +181,14 @@
     var motion = parseFloat(t.motion);
     if (isFinite(motion) && motion >= 0) root.style.setProperty('--zw-motion', String(motion));
     set('--zw-ease', t.ease);
+
+    /* Header composition. An attribute rather than a custom property, because
+       what changes is a grid template and a set of grid areas — a shape, not a
+       value, and CSS cannot switch shapes on a variable. Absent means the
+       arrangement the site shipped with, so a theme that says nothing here
+       leaves the header exactly as it was. */
+    if (t.header) root.setAttribute('data-zw-header', t.header);
+    else root.removeAttribute('data-zw-header');
     // --black and --white are the page background and text in the original
     // naming. Kept in step with the triplets so the many rules still using them
     // agree with the ones using the ladder.

@@ -259,6 +259,47 @@ console.log('\n  a theme is more than paint');
   ok('dragging a slider does not rebuild it mid-drag', /drop the pointer/.test(at));
 }
 
+console.log('\n  header composition');
+{
+  const nav = fs.readFileSync(R + 'nav.css', 'utf8');
+  const eng = fs.readFileSync(R + 'theme-engine.js', 'utf8');
+  const at = fs.readFileSync(R + 'admin-themes.js', 'utf8');
+
+  /* An attribute, not a custom property: what changes is a grid template and a
+     set of areas — a shape, and CSS cannot switch shapes on a variable. */
+  ok('the theme sets an attribute, because a shape is not a value',
+    /setAttribute\('data-zw-header', t\.header\)/.test(eng));
+  ok('absent means the arrangement the site shipped with',
+    /removeAttribute\('data-zw-header'\)/.test(eng));
+
+  // Every preset the admin offers must exist in CSS, or it silently does nothing.
+  const inCss = [...nav.matchAll(/data-zw-header="([a-z]+)"/g)].map((m) => m[1]);
+  const offered = [...at.matchAll(/\['([a-z]+)', '(?:Editorial|Centred|Split|Minimal)/g)].map((m) => m[1]);
+  const orphaned = offered.filter((k) => inCss.indexOf(k) === -1);
+  ok('every arrangement the admin offers is one CSS implements', orphaned.length === 0, orphaned.join(', '));
+
+  /* .nav-center is absolutely positioned by default so the mega-menu can span
+     the viewport. Left absolute inside a grid it leaves the flow, and the
+     second row of a stacked header collapses to nothing. */
+  ok('the links are returned to the flow where a preset needs a real row',
+    /html\[data-zw-header="stacked"\] \.nav-center \{[\s\S]{0,160}position: static/.test(nav));
+
+  /* A centred two-row header on a phone spends a third of the viewport on
+     chrome, and the mobile menu already owns the links there. */
+  ok('every preset collapses on phones', /@media \(max-width: 900px\)[\s\S]{0,200}html\[data-zw-header\] \.nav \{[\s\S]{0,80}display: flex/.test(nav));
+  ok('…and the desktop arrangements are behind a min-width, not applied everywhere',
+    /@media \(min-width: 901px\)[\s\S]{0,400}data-zw-header="stacked"/.test(nav));
+
+  /* Minimal hides the links; it must not strand them, or those pages become
+     unreachable on desktop. */
+  ok('minimal moves the links to the menu rather than deleting them',
+    /minimal"\] \.nav-center \{ display: none/.test(nav) &&
+    /minimal"\] \.zw-mobile-menu-btn/.test(nav));
+
+  ok('the editor offers it as a named look, not a mechanism',
+    /HEADERS/.test(at) && /themeSetHeader/.test(at) && /logo left, links centred/.test(at));
+}
+
 console.log('\n  motion is part of the theme');
 {
   const css = fs.readFileSync(R + 'motion.css', 'utf8');
