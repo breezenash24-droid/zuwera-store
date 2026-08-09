@@ -3167,7 +3167,10 @@
                         <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
                             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:6px;">
                                 <h3 style="font-size:1.1rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">Themes</h3>
-                                <button class="btn btn-secondary" onclick="themeAdd()">+ New theme</button>
+                                <div style="display:flex;gap:8px;">
+                                    <button class="btn btn-secondary" onclick="themeRestoreBuiltins()" title="Add back any of Dark, Light, Super Light or Two-tone that are missing">Restore built-ins</button>
+                                    <button class="btn btn-secondary" onclick="themeAdd()">+ New theme</button>
+                                </div>
                             </div>
                             <p style="color:var(--text-secondary);font-size:.85rem;line-height:1.6;margin-bottom:18px;max-width:72ch;">
                                 Seven colours make a theme, and the whole storefront derives from them — borders, muted text, dividers and hover washes are all the text colour at an opacity, so you set one value and they all follow. Dark, Light and Super Light are the ones that shipped; you can edit them, add your own, and choose which one a first-time visitor sees.

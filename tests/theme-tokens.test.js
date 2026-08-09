@@ -604,8 +604,12 @@ console.log('\n  applying a theme does not delete the others');
      row, so applying an imported theme deleted Dark, Light, Super Light and every
      custom theme — irreversibly, since the presets screen has no undo. */
   ok('the theme list merges rather than replacing', /function mergeThemeModes/.test(pr));
-  ok('…and every other key still replaces, which is what those mean',
-    /if \(k === 'theme_modes'\) value = mergeThemeModes/.test(pr));
+  /* A table rather than a branch, because there turned out to be two composite
+     keys and finding the second one the hard way suggests there may be a third. */
+  ok('composite keys are declared, not special-cased inline',
+    /var MERGERS = \{/.test(pr) && /if \(MERGERS\[k\]\) value = MERGERS\[k\]/.test(pr));
+  ok('…and anything not listed still replaces, which is what those mean',
+    /Anything\s*\n?\s*(?:\*\s*)?not listed replaces wholesale/.test(pr));
 
   const body = pr.slice(pr.indexOf('function mergeThemeModes'), pr.indexOf('async function writeKeys'));
   const merge = new Function(body + '; return mergeThemeModes;')();
@@ -626,6 +630,36 @@ console.log('\n  applying a theme does not delete the others');
     junkDefault.default === 'dark');
 
   ok('an empty existing row still works', merge(null, incoming).modes.length === 1);
+
+  /* fonts is three roles plus per-section overrides. An import knows two roles
+     and nothing else, so writing it wholesale deleted roles.mono — which ~29
+     rules read through --zw-font-mono — along with every section override. Same
+     shape of bug as theme_modes: a partial value overwriting a composite one. */
+  ok('fonts is treated as composite too', /function mergeFonts/.test(pr));
+  const fbody = pr.slice(pr.indexOf('function mergeFonts'), pr.indexOf('/* Which keys are composite'));
+  const mergeF = new Function(fbody + '; return mergeFonts;')();
+
+  const before = {
+    roles: { head: { stack: 'A' }, body: { stack: 'B' }, mono: { stack: 'IBM Plex Mono' } },
+    sections: { hero: { stack: 'Custom' } },
+  };
+  const after = mergeF(before, { roles: { head: { stack: 'Geist' }, body: { stack: 'Geist' } } });
+  ok('an import replaces the roles it knows', after.roles.head.stack === 'Geist');
+  ok('…and leaves mono alone', after.roles.mono.stack === 'IBM Plex Mono');
+  ok('…and keeps the per-section overrides', after.sections.hero.stack === 'Custom');
+  ok('a first-ever import into an empty row still works',
+    mergeF(null, { roles: { head: { stack: 'X' } } }).roles.head.stack === 'X');
+
+  /* Merging protects future applies; it cannot resurrect what an earlier one
+     deleted. The engine only falls back to the built-ins when the row is EMPTY,
+     and a list holding one imported theme is not empty — so a store whose list
+     was overwritten has no way back without this. */
+  const at2 = fs.readFileSync(R + 'admin-themes.js', 'utf8');
+  ok('there is a way to put the built-in themes back', /themeRestoreBuiltins/.test(at2));
+  ok('…which adds only what is missing', /!state\.modes\.some/.test(at2));
+  ok('…and does not touch a built-in that was recoloured on purpose',
+    /including a built-in you have recoloured/.test(at2));
+  ok('the button exists', /themeRestoreBuiltins\(\)/.test(fs.readFileSync(R + 'admin.html', 'utf8')));
 }
 
 console.log('\n  a theme is a snapshot, not a rewrite');
