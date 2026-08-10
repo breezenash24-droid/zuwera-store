@@ -83,5 +83,22 @@ console.log('\n  both checkout paths use it');
   ok('the helper is exported for it', /window\.zwDeclineMessage = declineMessage/.test(SRC));
 }
 
+
+console.log('\n  a thrown decline is still a decline');
+{
+  /* The outer catch swallowed everything into "Something went wrong", identical
+     for every cause — the exact bug the copy above exists to fix, reappearing
+     one level out. A Stripe error must carry its reason whichever way it
+     reaches us. */
+  const CO = fs.readFileSync(ROOT + 'checkout.js', 'utf8');
+  ok('the catch maps Stripe errors instead of flattening them',
+    /err\.decline_code \|\| err\.code \|\| err\.type/.test(CO) && /\? declineMessage\(err\)/.test(CO));
+  ok('...and only a genuinely non-Stripe failure gets the generic line',
+    CO.includes(": 'Something went wrong. Please try again.'"));
+  /* If the generic DOES show, the console is the only place the cause exists. */
+  ok('the raw error is still logged, so the generic case is diagnosable',
+    /console\.error\('Checkout error:', err\)/.test(CO));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

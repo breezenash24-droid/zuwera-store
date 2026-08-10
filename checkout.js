@@ -869,7 +869,20 @@ _pay.btn?.addEventListener('click', async () => {
 
     showOrderConfirmed(piData.orderNumber, email, paymentIntent?.id || '');
   } catch (err) {
-    _pay.errEl.textContent = 'Something went wrong. Please try again.';
+    /* This swallowed everything. A card decline that arrives as a THROWN error
+       rather than a returned one — which is what happens when the failure is
+       raised anywhere other than confirmCardPayment's resolved value — landed
+       here and became "Something went wrong", identical for every cause. Which
+       is exactly the bug the decline copy above was written to fix, reappearing
+       one level out.
+
+       Same mapping, so a Stripe error carries its real reason whichever way it
+       reaches us, and only a genuinely non-Stripe failure falls through. */
+    _pay.errEl.textContent = (err && (err.decline_code || err.code || err.type))
+      ? declineMessage(err)
+      : 'Something went wrong. Please try again.';
+    /* Kept, and now the only place the raw error is visible: if the message on
+       screen is the generic one, this line says why. */
     console.error('Checkout error:', err);
     _pay.btn.disabled = false;
     _pay.btnTxt.textContent = 'Pay Now';
