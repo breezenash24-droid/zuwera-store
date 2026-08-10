@@ -455,8 +455,9 @@ export async function onRequestPost({ request, env }) {
 
     const orderNumber = generateOrderNumber();
     const stripe = new Stripe(env.STRIPE_SECRET_KEY, { httpClient: Stripe.createFetchHttpClient() });
-    const paymentIntent = await stripe.paymentIntents.create(
-      {
+    /* Named, so the retry below sends the SAME body under a new key. An
+       inline literal could not be resent identically. */
+    const intentParams = {
         amount: totalCents,
         currency: 'usd',
         automatic_payment_methods: { enabled: true },
@@ -496,9 +497,31 @@ export async function onRequestPost({ request, env }) {
           ship_zip: address.zip || '',
           ship_country: address.country || 'US',
         },
-      },
-      { idempotencyKey }
-    );
+    };
+    const paymentIntent = await stripe.paymentIntents.create(intentParams, { idempotencyKey }
+    ).catch(async (e) => {
+      /* Stripe rejects a key reused with different parameters. That happens
+         here because the key hashes a hand-maintained SUBSET of the request —
+         cart, address, totals — while the body also carries metadata that can
+         differ between attempts (feature-flag variants, the tax engine stamp).
+         Same key, different body, 400.
+
+         The shopper sees it after a declined card: they try another, the second
+         attempt builds a slightly different body under the same key, and Stripe
+         answers with a message about idempotency keys — which is addressed to
+         the integrator, not to someone trying to buy a jacket.
+
+         A conflict means the double-submit this key guards against did NOT
+         happen: the two requests differ. So retrying once with a fresh key is
+         correct, and it keeps the guarantee intact for identical resubmissions,
+         which still collide and still return the original intent. */
+      const conflict = e && (e.type === 'StripeIdempotencyError' ||
+        /idempoten/i.test(String(e.message || '')));
+      if (!conflict) throw e;
+      const retryKey = idempotencyKey + '_r' + Math.random().toString(36).slice(2, 8);
+      console.warn('Idempotency conflict on', idempotencyKey, '— retrying as', retryKey);
+      return stripe.paymentIntents.create(intentParams, { idempotencyKey: retryKey });
+    });
 
     return json({
       clientSecret: paymentIntent.client_secret,

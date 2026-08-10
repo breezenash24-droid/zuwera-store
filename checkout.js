@@ -207,6 +207,12 @@ window.addEventListener('zw-theme-applied', refreshStripeCardTheme);
    An /api/ route answering with HTML means the route did not match at all —
    a Functions build that did not deploy, not a bug in the handler. Worth
    distinguishing, because the two have completely different fixes. */
+/* API-shaped failures a shopper can do nothing with: idempotency keys, rate
+   tokens, API versions, internal identifiers. Matched on the vocabulary rather
+   than on a list of codes, because the next one will be worded differently and
+   the failure mode — integrator prose on a checkout screen — is the same. */
+const INTERNAL_ERROR = /idempoten|api[_ ]key|api version|no such |signature|token|rate limit|invalid request/i;
+
 async function postJSON(url, body) {
   const resp = await fetch(url, {
     method: 'POST',
@@ -220,6 +226,19 @@ async function postJSON(url, body) {
   if (data) {
     // A JSON error body is the handler talking. Let the caller read it.
     if (!resp.ok && !data.error) data.error = 'Request failed (' + resp.status + ')';
+    /* …but not verbatim. Stripe's API errors are addressed to the integrator,
+       not to someone trying to buy a jacket — "Keys for idempotent requests can
+       only be used with the same parameters they were first used with. Try
+       using a key other than 'pi_Fgs3…'" was reaching the checkout screen.
+       It names an internal identifier, describes a mechanism the shopper has no
+       access to, and suggests an action only we can take.
+
+       The server-side detail is kept on the object for the console; only what
+       is shown to a person is replaced. */
+    if (!resp.ok && typeof data.error === 'string' && INTERNAL_ERROR.test(data.error)) {
+      data.detail = data.error;
+      data.error = 'We could not start that payment. Please try again — if it keeps happening, use a different payment method.';
+    }
     return data;
   }
 
