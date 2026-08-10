@@ -1226,5 +1226,36 @@ console.log('\n  the header rules reach every page');
     'nav.css reaches only bag.html and product.html');
 }
 
+
+console.log('\n  the token foundation reaches every page');
+{
+  /* base.css holds --fg-rgb and the alpha ladder, and bag.html + product.html
+     are the only pages that link it. Twelve pages therefore had every
+     var(--c08) / var(--c55) built on it UNDEFINED — the declaration dropped,
+     the border never drawn. That one fact sits underneath most of the
+     "correct rule, wrong page" bugs in this file. */
+  const baseF = fs.readFileSync(R + 'base.css', 'utf8');
+  const cohF = fs.readFileSync(R + 'storefront-cohesion.css', 'utf8');
+  // Compared as literal declarations rather than by regex: the point is that
+  // the two files say the same thing, and a substring says that without three
+  // layers of escaping to get wrong.
+  const rungText = (src) => (src.match(/--c\d\d:\s+rgb\(var\(--fg-rgb\) \/ \d+%\);/g) || [])
+    .map((d) => d.replace(/\s+/g, ' '));
+  const baseRungs = rungText(baseF), cohRungs = rungText(cohF);
+  ok('base.css still defines the ladder it always did',
+    baseRungs.length >= 17, baseRungs.length + ' rungs');
+  /* A second copy of a palette is a second thing to forget, so the two are
+     compared rather than trusted to stay in step. */
+  const missing = baseRungs.filter((d) => cohRungs.indexOf(d) === -1);
+  ok('...and every rung is also in the file all fourteen pages load',
+    missing.length === 0, missing.join(' '));
+  ok('the triplets are there too, or the rungs resolve to nothing',
+    /--fg-rgb: 244 241 235/.test(cohF) && /--bg-rgb: 9 9 11/.test(cohF));
+  /* On body, not :root: a rung declared on :root resolves against :root's
+     --fg-rgb and inherits the RESULT, so body.light-mode could never move it. */
+  ok('...declared on body, so light mode can still move them',
+    /body\.light-mode\s*\{ --fg-rgb: 10 10 10/.test(cohF));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
