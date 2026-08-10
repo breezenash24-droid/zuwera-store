@@ -772,6 +772,15 @@ console.log('\n  header composition');
   /* The bar's height comes from its tallest cell, so emptying the actions group
      collapsed the whole strip — turn every control off and the header visibly
      shrank. Hiding changes what is IN the bar, never its size. */
+  /* A centred logo is absolutely positioned — the only way to centre against
+     the NAV rather than against whatever sits either side. Out of flow it has
+     no height, so with links on a second row it did not push that row down, it
+     sat on top of it. For two rows the logo takes a row of its own. */
+  ok('a centred logo on a two-row header rejoins the flow',
+    /data-zw-hdr-linksrow="2"\]\[data-zw-hdr-logo="center"\][^{]*\{\s*position: static; order: 1; flex: 0 0 100%/.test(nav),
+    'an absolute logo has no height and overlaps the row beneath it');
+  ok('...and the two rows are actually spaced apart',
+    /data-zw-hdr-linksrow="2"\] :is\(#nav, \.nav, \.zw-nav\) > \.nav-center \{ margin-top: \.75rem; \}/.test(nav));
   ok('hiding controls does not resize the header',
     /html\[data-zw-hide\] :is\(#nav, \.nav, \.zw-nav\) > :is\([^)]*\) \{\s*min-height: 46px;/.test(nav),
     'an empty actions group must keep the row height it had');

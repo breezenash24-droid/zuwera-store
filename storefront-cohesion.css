@@ -4566,6 +4566,30 @@ body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img)
   html[data-zw-hdr-linksrow="2"] :is(#nav, .nav, .zw-nav) > .nav-center {
     order: 4; flex: 0 0 100%; position: static; left: auto; right: auto; margin: .55rem 0 0; width: auto;
   }
+  /* A centred logo is absolutely positioned, which is the only way to centre it
+     against the NAV rather than against whatever sits either side. Out of flow,
+     it has no height — so with the links on a second row it did not push that
+     row down, it sat on top of it. The categories ended up tucked under the
+     wordmark with no gap at all.
+
+     For a two-row header the logo takes a row of its own instead: in flow,
+     full width, centred by the row rather than by absolute positioning. The
+     actions pin to the top-right so row one still reads as one line. This is
+     the arrangement the old 'stacked' preset produced, restored as a
+     consequence of the placements rather than as a special case. */
+  html[data-zw-hdr-linksrow="2"][data-zw-hdr-logo="center"] :is(#nav, .nav, .zw-nav) > :is(.nav-logo, .nav-logo-link, .zw-nav-logo, :first-child) {
+    position: static; order: 1; flex: 0 0 100%;
+    display: flex; justify-content: center;
+    margin: 0 0 .1rem;
+  }
+  html[data-zw-hdr-linksrow="2"][data-zw-hdr-logo="center"] :is(#nav, .nav, .zw-nav) > :is(.nav-right, .nav-actions, .zw-nav-right, .zw-nav-actions) {
+    position: absolute; right: var(--zw-mobile-gutter, 2.5rem); top: 50%; transform: translateY(-50%);
+    margin: 0;
+  }
+  /* Breathing room between the two rows, and it belongs on the links rather
+     than the logo — the logo's own margin would move it away from the bar's
+     top edge as well, which is not what "space between the rows" means. */
+  html[data-zw-hdr-linksrow="2"] :is(#nav, .nav, .zw-nav) > .nav-center { margin-top: .75rem; }
   html[data-zw-hdr-linksrow="2"][data-zw-hdr-links="left"]   :is(#nav, .nav, .zw-nav) > .nav-center { justify-content: flex-start; }
   html[data-zw-hdr-linksrow="2"][data-zw-hdr-links="center"] :is(#nav, .nav, .zw-nav) > .nav-center { justify-content: center; }
   html[data-zw-hdr-linksrow="2"][data-zw-hdr-links="right"]  :is(#nav, .nav, .zw-nav) > .nav-center { justify-content: flex-end; }
