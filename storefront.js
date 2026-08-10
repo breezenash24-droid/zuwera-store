@@ -4428,7 +4428,7 @@ function initPR(subtotalCents) {
       );
       if (initialResult.error) {
         ev.complete('fail');
-        document.getElementById('pay-error').textContent = initialResult.error.message;
+        document.getElementById('pay-error').textContent = (window.zwDeclineMessage || ((e) => (e && e.message) || 'That payment could not be completed.'))(initialResult.error);
         return;
       }
 
@@ -4437,7 +4437,7 @@ function initPR(subtotalCents) {
         const actionResult = await stripe.confirmCardPayment(d.clientSecret);
         if (actionResult.error) {
           ev.complete('fail');
-          document.getElementById('pay-error').textContent = actionResult.error.message;
+          document.getElementById('pay-error').textContent = (window.zwDeclineMessage || ((e) => (e && e.message) || 'That payment could not be completed.'))(actionResult.error);
           return;
         }
         finalIntent = actionResult.paymentIntent;

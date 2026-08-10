@@ -12,7 +12,7 @@
  */
 
 import { cors, json, verifyAdminCan } from './_commerce.js';
-import { STAFF_ROLES, ROLE_LABELS } from './_rbac.js';
+import { STAFF_ROLES, ROLE_LABELS, sanitizePages } from './_rbac.js';
 
 export async function onRequestOptions({ env }) {
   return new Response(null, { status: 204, headers: cors(env) });
@@ -32,6 +32,22 @@ export async function onRequestPost({ request, env }) {
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'Enter a valid email address.' }, 400, h);
   if (!STAFF_ROLES.includes(adminRole)) return json({ error: `Invalid role "${adminRole}".` }, 400, h);
+
+  /* Custom permissions, sent alongside the role so someone can be invited into
+     a narrower set than any preset offers — in ONE step. The two-step flow
+     (invite on a preset, then trim under Manage access) leaves the person
+     holding the preset's access in the gap, which for manager is nearly
+     everything.
+
+     Sanitised through the same allowlist the rest of RBAC uses, and that call
+     is the entire security surface here: it rebuilds the map from PAGE_IDS
+     rather than trusting the keys it was handed, so an unknown page or an
+     invented level cannot survive. Never widened — an unrecognised level drops
+     the page rather than guessing upward.
+
+     Only a super admin reaches this line at all; verifyAdminCan('role_manage')
+     above is what decides that, and this does not second-guess it. */
+  const customPages = sanitizePages(body.pages);
 
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_SERVICE_ROLE;
   if (!serviceKey) return json({ error: 'Server not configured — add SUPABASE_SERVICE_ROLE_KEY.' }, 500, h);
@@ -74,7 +90,13 @@ export async function onRequestPost({ request, env }) {
   const upsertRes = await fetch(`${base}/rest/v1/profiles?on_conflict=id`, {
     method: 'POST',
     headers: { ...sbH, Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: userId, email, role: 'admin', admin_role: adminRole, updated_at: new Date().toISOString() }),
+    body: JSON.stringify({
+      id: userId, email, role: 'admin', admin_role: adminRole,
+      // Absent rather than {} when there are none, so "follows the role" and
+      // "customised to nothing" stay distinguishable in the row.
+      ...(customPages ? { admin_permissions: { pages: customPages } } : {}),
+      updated_at: new Date().toISOString(),
+    }),
   });
   if (!upsertRes.ok) {
     const errText = await upsertRes.text().catch(() => '');
@@ -92,7 +114,13 @@ export async function onRequestPost({ request, env }) {
         action: alreadyExisted ? 'assign_role' : 'invite_admin',
         resource_type: 'profile',
         resource_id: String(userId),
-        metadata: { email, admin_role: adminRole, role_label: ROLE_LABELS[adminRole] || adminRole, already_existed: alreadyExisted },
+        metadata: {
+          email, admin_role: adminRole, role_label: ROLE_LABELS[adminRole] || adminRole,
+          already_existed: alreadyExisted,
+          // Recorded, because "who was given what" is the question an audit
+          // log exists to answer and a role name alone no longer answers it.
+          custom_pages: customPages || null,
+        },
         user_agent: request.headers.get('user-agent') || '',
       }),
     });
