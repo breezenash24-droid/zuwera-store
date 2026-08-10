@@ -131,9 +131,20 @@ const OHIO = { state: 'OH', zip: '45202', country: 'US', city: 'Cincinnati', lin
 
   console.log('\n  the payment path uses it');
   {
+    /* Tax is resolved in _cart-pricing.js now, not in the Stripe route. The
+       pricing moved there so PayPal could charge the same totals without
+       importing Stripe, and this check followed it — the claim being made is
+       "the payment path asks the engine layer", and the payment path is now
+       shared. Checking the old file would pass or fail for reasons that have
+       nothing to do with tax. */
     const cpi = fs.readFileSync(ROOT + '/functions/api/create-payment-intent.js', 'utf8');
-    ok('create-payment-intent asks the engine layer', /await resolveTax\(/.test(cpi));
-    ok('…and no longer carries its own copy of the table', !/DEFAULT_US_STATE_TAX_RATES/.test(cpi));
+    const pricing = fs.readFileSync(ROOT + '/functions/api/_cart-pricing.js', 'utf8');
+    ok('the shared quote asks the engine layer', /await resolveTax\(/.test(pricing));
+    /* Both files, because "no local copy of the table" has to hold everywhere
+       pricing could plausibly be done — a table reintroduced in either place is
+       the same bug. */
+    ok('…and no longer carries its own copy of the table',
+      !/DEFAULT_US_STATE_TAX_RATES/.test(pricing) && !/DEFAULT_US_STATE_TAX_RATES/.test(cpi));
     ok('stamps the engine on the PaymentIntent', /tax_engine:/.test(cpi));
     const hook = fs.readFileSync(ROOT + '/functions/api/stripe-webhook.js', 'utf8');
     ok('the webhook records it on the order', /tax_engine:\s*meta\.tax_engine/.test(hook));
