@@ -4674,6 +4674,18 @@ html[data-zw-iconlabels] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn
    six controls need six rules rather than sixty-four combinations.
    !important because several of these carry an inline display from the
    first-paint auth script, which would otherwise win. */
+/* Hiding a control must not resize the bar. The header's height comes from its
+   tallest cell, so emptying the actions group collapsed the whole strip — turn
+   everything off and the header visibly shrank, which is a side effect nobody
+   asked for and cannot be undone from these settings.
+
+   46px is the same floor the logo cell already carries in this file, so the row
+   keeps the height it has whether the actions group holds six controls or none.
+   Applied to the group rather than the nav, so page padding still decides the
+   total and only the collapse is prevented. */
+html[data-zw-hide] :is(#nav, .nav, .zw-nav) > :is(.nav-right, .nav-actions, .zw-nav-right, .zw-nav-actions) {
+  min-height: 46px;
+}
 html[data-zw-hide~="search"]  :is(#nav, .nav, .zw-nav) .zwf-search-btn             { display: none !important; }
 html[data-zw-hide~="account"] :is(#nav, .nav, .zw-nav) #account-btn                { display: none !important; }
 html[data-zw-hide~="login"]   :is(#nav, .nav, .zw-nav) :is(#login-btn, #hdr-login) { display: none !important; }

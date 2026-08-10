@@ -769,6 +769,12 @@ console.log('\n  header composition');
     /html\[data-zw-hide~="bag"\]/.test(nav) && /html\[data-zw-hide~="search"\]/.test(nav));
   /* On a phone the hamburger is the only route to the categories. A theme that
      hid it would strand every collection page behind a control that is gone. */
+  /* The bar's height comes from its tallest cell, so emptying the actions group
+     collapsed the whole strip — turn every control off and the header visibly
+     shrank. Hiding changes what is IN the bar, never its size. */
+  ok('hiding controls does not resize the header',
+    /html\[data-zw-hide\] :is\(#nav, \.nav, \.zw-nav\) > :is\([^)]*\) \{\s*min-height: 46px;/.test(nav),
+    'an empty actions group must keep the row height it had');
   ok('the menu button cannot be hidden, or the drawer becomes unreachable',
     !/data-zw-hide~="menu"/.test(nav) && /k !== 'menu'/.test(eng));
   ok('an unset order restores DOM order rather than pinning everything to 0',
@@ -778,8 +784,16 @@ console.log('\n  header composition');
     ['search', 'account', 'login', 'logout', 'shop', 'bag', 'menu']
       .every((k) => new RegExp("\\['" + k + "', '").test(at)));
   ok('…and menu is offered without a hide box',
-    /k === 'menu' \? '<span/.test(at),
+    /k === 'menu'\s*\?\s*'<span[^']*always/.test(at),
     'a hideable menu button strands the categories on a phone');
+  /* Checked meaning "gone" is the inversion that made a screen of ticks look
+     like a configured header when it was an empty one. The checkbox reads
+     SHOWN, and the stored field is still `hidden`, so the UI negates once at
+     the boundary rather than everything downstream negating forever. */
+  ok('the visibility box reads Shown, not Hide',
+    at.includes("\\'hidden\\',!this.checked") && at.includes('width:66px;">Shown</span>'));
+  ok('…and turning everything off says so where the choice is made',
+    /Every control is switched off/.test(at));
   /* An icons object left behind empty would ride along in every export and
      read as a setting nobody chose. */
   ok('…and the setting prunes itself back to absent when nothing is set',
