@@ -629,8 +629,22 @@ console.log('\n  the announcement bar is themeable too');
   /* It was #09090b on every page, with only the homepage overriding it from
      builder_theme — the one strip above everything else was the least
      themeable thing on the site. */
-  ok('the bar reads theme tokens', /var\(--zw-bar-bg,#09090b\)/.test(bar) && /var\(--zw-bar-fg,#F0EEE9\)/.test(bar));
-  ok('…falling back to exactly what it hardcoded', /#09090b/.test(bar) && /#F0EEE9/.test(bar));
+  ok('the bar reads theme tokens',
+    /var\(--zw-bar-bg,var\(--black/.test(bar) && /var\(--zw-bar-fg,var\(--white/.test(bar));
+  /* The previous assertion here required the fallback to be #09090b and called
+     that "falling back to exactly what it hardcoded". It was the bug written
+     down as an invariant: with the bar's own colour switched off the strip was
+     black on every theme, while the admin promised "off and it follows the
+     page". It followed nothing — it was pinned to the shipped value.
+
+     The page background and text are what "follows the page" means, so that is
+     what it falls back to now, with the old literals kept one level deeper for
+     a page that somehow defines neither. */
+  ok('…and with no colour of its own it follows the PAGE, not a fixed black',
+    !/var\(--zw-bar-bg,#09090b\)/.test(bar),
+    'a hardcoded fallback makes "off" mean "always black"');
+  ok('…with the original literals kept as the last resort',
+    /var\(--black,#09090b\)/.test(bar) && /var\(--white,#F0EEE9\)/.test(bar));
   ok('the theme can set them', /set\('--zw-bar-bg', t\.barBg\)/.test(eng));
   ok('and the editor offers them like the header’s', /barBg/.test(at) && /barFg/.test(at));
   ok('both are optional, so an unset theme leaves the bar alone',
