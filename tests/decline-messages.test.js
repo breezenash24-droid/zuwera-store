@@ -100,5 +100,32 @@ console.log('\n  a thrown decline is still a decline');
     /console\.error\('Checkout error:', err\)/.test(CO));
 }
 
+
+console.log('\n  Stripe talks to integrators, not to shoppers');
+{
+  /* "Keys for idempotent requests can only be used with the same parameters
+     they were first used with. Try using a key other than 'pi_Fgs3…'" reached
+     the checkout screen. It names an internal identifier, describes a mechanism
+     the shopper cannot reach, and suggests an action only we can take. */
+  const CO = fs.readFileSync(ROOT + 'checkout.js', 'utf8');
+  ok('API-shaped failures are replaced before display',
+    /const INTERNAL_ERROR = \/idempoten\|/.test(CO) && /data\.error = 'We could not start that payment/.test(CO));
+  ok('...and the original is kept for the console, not thrown away',
+    /data\.detail = data\.error;/.test(CO));
+
+  const CPI = fs.readFileSync(ROOT + 'functions/api/create-payment-intent.js', 'utf8');
+  /* The key hashes a SUBSET of the request, so metadata that differs between
+     attempts collides under an identical key. A conflict therefore proves the
+     two requests differ — which is exactly when a retry is correct. */
+  ok('an idempotency conflict retries once with a fresh key',
+    /StripeIdempotencyError/.test(CPI) && /idempotencyKey: retryKey/.test(CPI));
+  ok('...resending the same body, so the retry is the same order',
+    /const intentParams = \{/.test(CPI) && /create\(intentParams, \{ idempotencyKey \}/.test(CPI));
+  /* Identical resubmissions must still collide, or the double-charge guard is
+     gone. Only a genuine conflict earns a new key. */
+  ok('...and anything that is not a conflict still throws',
+    /if \(!conflict\) throw e;/.test(CPI));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

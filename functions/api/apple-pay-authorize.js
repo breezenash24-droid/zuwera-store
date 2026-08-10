@@ -166,6 +166,18 @@ export async function onRequestOptions({ env }) {
 
 export async function onRequestPost({ request, env }) {
   const headers = CORS(env);
+  /* Guarded, and OUTSIDE the try is why it has to be. Stripe v22 throws from
+     the constructor when no key is given ("Neither apiKey nor
+     config.authenticator provided") where v16 constructed happily and failed
+     later — so on a store without STRIPE_SECRET_KEY this threw before the try
+     could catch it, and the endpoint answered with Cloudflare's uncaught
+     exception page instead of JSON. The same shape that took checkout down.
+
+     Found by running the contract suite against the dependency tree CI uses
+     rather than the stale one installed locally. */
+  if (!env.STRIPE_SECRET_KEY) {
+    return new Response(JSON.stringify({ error: 'Payments are not configured.' }), { status: 500, headers });
+  }
   const stripe = new Stripe(env.STRIPE_SECRET_KEY, { httpClient: Stripe.createFetchHttpClient() });
 
   try {
