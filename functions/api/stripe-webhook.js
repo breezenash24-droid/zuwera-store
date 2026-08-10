@@ -111,6 +111,52 @@ function pickItemImage(item, variantMap, defaults) {
       || '';
 }
 
+/* Radar scores live on the charge, not the PaymentIntent, and the charge is
+   only present when the webhook payload expanded it. Reading it defensively
+   rather than assuming: an outcome that is not there must yield null, never a
+   guess, because a fabricated 'normal' is indistinguishable from a real one the
+   moment anyone looks at the numbers. */
+function riskOf(pi) {
+  const charge = (pi && pi.charges && Array.isArray(pi.charges.data) && pi.charges.data[0])
+    || (pi && typeof pi.latest_charge === 'object' ? pi.latest_charge : null);
+  const outcome = charge && charge.outcome;
+  if (!outcome) return { level: null, score: null };
+  const level = typeof outcome.risk_level === 'string' ? outcome.risk_level : null;
+  const score = Number.isInteger(outcome.risk_score) ? outcome.risk_score : null;
+  return { level, score };
+}
+
+/* Claim this delivery, or report that someone else already has.
+   Returns TRUE only when we are certain it was handled before. Every other
+   outcome — table absent, network wobble, unexpected status — returns false and
+   lets the handler run, because a missed dedupe costs a duplicate order and a
+   false dedupe costs the order entirely. */
+async function alreadyHandled(env, event) {
+  const key = getSupabaseServiceKey(env);
+  if (!env.SUPABASE_URL || !key || !event || !event.id) return false;
+  try {
+    const res = await fetch(env.SUPABASE_URL + '/rest/v1/processed_events', {
+      method: 'POST',
+      headers: {
+        apikey: key, Authorization: 'Bearer ' + key,
+        'Content-Type': 'application/json', Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ event_id: event.id, event_type: event.type || null }),
+    });
+    if (res.ok) return false;                       // claimed it — first time through
+    // 409 is the primary key refusing a second insert: someone else has it.
+    if (res.status === 409) return true;
+    /* Anything else (404 no table, 401, 5xx) means we could not establish
+       either way. Proceed — the older order-exists guard still stands behind
+       this for the common case. */
+    console.warn('Dedupe unavailable (' + res.status + ') — proceeding without it');
+    return false;
+  } catch (e) {
+    console.warn('Dedupe check failed (' + e.message + ') — proceeding without it');
+    return false;
+  }
+}
+
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 export async function onRequestPost({ request, env }) {
@@ -141,6 +187,31 @@ export async function onRequestPost({ request, env }) {
     console.error('    from Stripe Dashboard > Webhooks > your endpoint for zuwera.store/api/stripe-webhook');
     console.error('  → Also make sure test/live mode matches: test payments need a TEST webhook secret');
     return new Response('Webhook Error: ' + e.message, { status: 400 });
+  }
+
+  /* ── Has this exact delivery been handled already? ──────────────────────
+     There was already a guard: "does an order for this PaymentIntent exist".
+     It catches the ordinary retry and misses two things. Two deliveries
+     arriving at once can BOTH pass it before either writes, because a
+     select-then-insert has a gap between the looking and the writing. And an
+     event that creates no order — a dispute, a refund — has nothing to look
+     for, so it is not deduped at all.
+
+     Keyed on Stripe's event id, which is stable across retries and unique per
+     delivery. The PRIMARY KEY is the lock: both racers insert, exactly one
+     succeeds, and the loser gets a duplicate-key error it reads as "someone
+     else has this". No window between the check and the claim, because the
+     check IS the claim.
+
+     Only a genuine duplicate stops the handler. If the table is missing —
+     migration 0006 not applied yet — this proceeds exactly as it does today.
+     Treating "cannot dedupe" as "already done" would silently drop every
+     order, which is a far worse failure than the one it guards against. */
+  if (await alreadyHandled(env, event)) {
+    console.log('Duplicate delivery of', event.id, '— already handled');
+    return new Response(JSON.stringify({ received: true, duplicate: true }), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   if (event.type === 'payment_intent.succeeded') {
@@ -740,6 +811,33 @@ async function saveOrderToSupabase(pi, meta, tracking, env) {
   if (!resp.ok) {
     const detail = await resp.text();
     throw new Error('Supabase insert failed (' + resp.status + '): ' + detail);
+  }
+
+  /* Radar's verdict, stamped AFTER the order is saved and fully non-fatal —
+     the same shape the feature-flag stamp below uses, and for the same reason:
+     PostgREST rejects the WHOLE row for one unknown column, so putting these in
+     the insert would mean every order failing to save until migration 0006 is
+     applied. A payment succeeded; nothing about recording a risk score is worth
+     losing the order over.
+
+     Captured at all because Radar does essentially nothing in test mode and the
+     score is NOT recoverable — a charge scored last week cannot be re-scored,
+     so a day without this is a day of evidence gone about whether real
+     customers are being wrongly flagged. */
+  try {
+    const risk = riskOf(pi);
+    if (risk.level || risk.score !== null) {
+      await fetch(env.SUPABASE_URL + '/rest/v1/orders?stripe_payment_intent_id=eq.' + encodeURIComponent(pi.id), {
+        method: 'PATCH',
+        headers: {
+          apikey: serviceKey, Authorization: 'Bearer ' + serviceKey,
+          'Content-Type': 'application/json', Prefer: 'return=minimal',
+        },
+        body: JSON.stringify({ risk_level: risk.level, risk_score: risk.score }),
+      });
+    }
+  } catch (e) {
+    console.warn('Risk stamp skipped (non-fatal):', e.message);
   }
 
   // Best-effort: stamp the buyer's active feature-flag variants onto the order so
