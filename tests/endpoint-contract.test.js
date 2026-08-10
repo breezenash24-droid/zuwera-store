@@ -36,6 +36,9 @@ const CRITICAL = [
   'admin-refund.js',
   'apple-pay-authorize.js',
   'popup-claim.js',
+  /* Added with the endpoint, not after it. Both live 1101s this file has caught
+     were in payment code that looked finished. */
+  'paypal-create-order.js',
 ];
 
 const mockRequest = (body) => new Request('https://zuwera.store/api/x', {
@@ -167,6 +170,87 @@ async function run() {
       broken instanceof Error ? 'threw: ' + broken.message : 'returned ' + typeof broken);
     if (broken instanceof Response) {
       ok('an unconfigured catalog is still a 500', broken.status >= 500, 'status ' + broken.status);
+    }
+
+    globalThis.fetch = realFetch;
+  }
+
+  /* ── The totals have to add up, in cents ──────────────────────────────────
+     PayPal validates the breakdown and refuses the order if item_total,
+     shipping, tax and discount do not sum to the amount charged. So this is
+     not a style rule: an off-by-one-cent quote is a checkout that fails at the
+     PayPal button while working perfectly on the card path, which is a bug
+     nobody would think to look for in pricing.
+
+     It is also the identity the whole shared-pricing arrangement rests on. If
+     quoteCart's own numbers stop being self-consistent, both processors charge
+     something the customer was not shown. */
+  console.log('\n  the quote adds up');
+
+  const pricing = await import(pathToFileURL(DIR + '_cart-pricing.js').href).catch((e) => e);
+  if (typeof pricing?.quoteCart !== 'function') {
+    ok('_cart-pricing exports quoteCart', false, String(pricing && pricing.message || pricing));
+  } else {
+    const realFetch = globalThis.fetch;
+    const reply = (payload) => new Response(JSON.stringify(payload), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    });
+    /* A catalog with one real, in-stock, priced product in it. Everything else
+       answers empty, which is the default-configuration path. */
+    globalThis.fetch = async (url) => {
+      const u = String(url);
+      if (u.includes('/products?')) {
+        return reply([{ id: 'p1', title: 'Test Jacket', sku: 'TJ-1', current_price: '129.99', shipping_weight_lb: '2' }]);
+      }
+      if (u.includes('product_sizes')) return reply([{ stock_quantity: 10 }]);
+      return reply([]);
+    };
+
+    let q = null, qErr = '';
+    try {
+      q = await pricing.quoteCart({
+        items: [{ id: 'p1', size: 'M', quantity: 3 }],
+        address: { email: 'a@b.co', name: 'A', line1: '1 A St', city: 'Albany', state: 'NY', zip: '12207', country: 'US' },
+        env: { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'k' },
+        request: new Request('https://zuwera.store/api/x', { method: 'POST' }),
+      });
+    } catch (e) { qErr = (e && e.message) || String(e); }
+
+    ok('quoteCart prices a normal cart', !!q, qErr);
+    if (q) {
+      /* 129.99 x 3 — chosen because it does not divide evenly, so a float
+         creeping into the subtotal shows up here rather than in production. */
+      ok('subtotal is quantity x price, in whole cents',
+        q.subtotalCents === 38997, 'got ' + q.subtotalCents);
+
+      const summed = (q.subtotalCents - q.discountCents) + q.shipping.shippingCents + q.taxCents;
+      ok('the parts sum to the total PayPal would be sent',
+        q.totalCents === summed, q.totalCents + ' vs ' + summed);
+
+      ok('every part is an integer number of cents',
+        [q.subtotalCents, q.discountCents, q.shipping.shippingCents, q.taxCents, q.totalCents]
+          .every(Number.isInteger),
+        JSON.stringify([q.subtotalCents, q.discountCents, q.shipping.shippingCents, q.taxCents, q.totalCents]));
+
+      /* The line items are what both processors itemise from, so their sum has
+         to be the subtotal too — a mismatch is the "PayPal says item_total is
+         wrong" failure, and it would not show up in the total above. */
+      const lineSum = (q.lineItems || []).reduce((s, i) => s + i.amount * i.quantity, 0);
+      ok('the itemised lines sum to the subtotal', lineSum === q.subtotalCents,
+        lineSum + ' vs ' + q.subtotalCents);
+    }
+
+    /* And the conversion PayPal actually receives. Cents exist in this codebase
+       precisely so money is never a float; this is the one place it becomes a
+       string, so it is the one place a rounding error can be introduced. */
+    const pp = await import(pathToFileURL(DIR + '_paypal.js').href).catch(() => null);
+    if (typeof pp?.centsToAmount !== 'function') {
+      ok('_paypal exports centsToAmount', false);
+    } else {
+      const cases = [[0, '0.00'], [5, '0.05'], [38997, '389.97'], [100000, '1000.00'], [1, '0.01']];
+      ok('cents convert to PayPal amounts exactly',
+        cases.every(([c, want]) => pp.centsToAmount(c) === want),
+        cases.map(([c]) => c + '->' + pp.centsToAmount(c)).join(' '));
     }
 
     globalThis.fetch = realFetch;
