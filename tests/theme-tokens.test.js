@@ -738,6 +738,18 @@ console.log('\n  header composition');
      nowhere in this repo — so it passed while the links were hidden and nothing
      was revealed. `.hamburger-btn` is the real one, checked against the markup
      rather than trusting the stylesheet to name something real. */
+  /* The drawer is only reachable above 900px when the categories were placed
+     "in the menu". The panel it opened was the phone one — 100dvw/100dvh — so
+     on a 1920px screen the links sat in the corner of an empty white field.
+     Correct, and with no regard for the space it was given. */
+  ok('the drawer is given a desktop shape, not the phone one at full width',
+    /@media \(min-width: 901px\)[\s\S]{0,600}zw-mobile-menu-panel \{[\s\S]{0,200}width: min\(30rem, 92vw\)/.test(nav),
+    'a 100dvw panel on a desktop screen is the phone drawer, stretched');
+  ok('...and the close control follows the panel rather than the viewport edge',
+    /zw-mobile-menu-close \{\s*right: 2\.25rem/.test(nav));
+  /* Below 901px none of this applies — the phone drawer was right for phones. */
+  ok('...while the phone drawer is left exactly as it was',
+    !/@media \(max-width: 900px\)[\s\S]{0,400}width: min\(30rem/.test(nav));
   ok('hiding the categories moves them to the menu rather than deleting them',
     /data-zw-hdr-links="none"[^{]*\.nav-center \{ display: none/.test(nav) &&
     /data-zw-hdr-links="none"[^{]*\.hamburger-btn/.test(nav));

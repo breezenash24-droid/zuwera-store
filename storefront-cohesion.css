@@ -4715,3 +4715,38 @@ html[data-zw-hide~="account"] :is(#nav, .nav, .zw-nav) #account-btn             
 html[data-zw-hide~="login"]   :is(#nav, .nav, .zw-nav) :is(#login-btn, #hdr-login) { display: none !important; }
 html[data-zw-hide~="shop"]    :is(#nav, .nav, .zw-nav) #desktop-shop-btn           { display: none !important; }
 html[data-zw-hide~="bag"]     :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag) { display: none !important; }
+
+/* ── The nav drawer on a desktop screen ────────────────────────────────────
+   The drawer is only reachable above 900px in one situation: the categories
+   were placed "in the menu", which hides them from the bar and reveals the
+   hamburger so those pages stay reachable. That is a deliberate arrangement,
+   but the panel it opened was the phone one — 100dvw and 100dvh — so on a
+   1920px screen the links sat in the top-left corner of an empty white field.
+   Correct behaviour, no regard for the space it was given.
+
+   So above 900px it becomes what a desktop menu should be: a panel of a
+   readable width, anchored to the side the hamburger is on, full height, with
+   the page still visible behind it. Everything below 901px is untouched — the
+   phone drawer was right for phones and none of this applies there. */
+@media (min-width: 901px) {
+  #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel {
+    /* ch, not px: the cap should follow the type, so a theme with a larger
+       type scale gets a proportionally wider panel rather than a cramped one. */
+    width: min(30rem, 92vw) !important;
+    max-width: min(30rem, 92vw) !important;
+    margin-left: auto !important;
+    padding-top: calc(2.25rem + env(safe-area-inset-top, 0px)) !important;
+    padding-left: 2.25rem !important;
+    padding-right: 2.25rem !important;
+    box-shadow: -24px 0 60px -24px rgba(0,0,0,.28);
+  }
+  /* The close control belongs beside the content it closes, not stranded at
+     the far edge of a screen the panel no longer fills. */
+  #mobile-menu.zw-mobile-menu .zw-mobile-menu-close {
+    right: 2.25rem !important;
+  }
+  /* Phone type sizes read as shouting in a 30rem column. */
+  #mobile-menu.zw-mobile-menu .zw-mobile-primary-link {
+    font-size: clamp(1.5rem, 2vw, 2.1rem) !important;
+  }
+}
