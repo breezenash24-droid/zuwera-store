@@ -171,12 +171,101 @@
      per-icon set override, then the global set. Unknown name → empty string
      rather than a placeholder box, because a missing icon should be invisible,
      not a visible defect. */
+  /* ── Sanitising pasted SVG ────────────────────────────────────────────────
+     What was here before was `.replace(/<script[\s\S]*?<\/script>/gi,'')`, and
+     it was not enough in three separate ways. It needs a CLOSING tag, so
+     `<svg><script>alert(1)` walked straight through. It said nothing about
+     event handlers, so `<svg onload=…>` was untouched. And it said nothing
+     about `javascript:` hrefs, <foreignObject> (which carries arbitrary HTML),
+     or <image href="http://…"> (which phones home with the visitor's IP and
+     referrer on every page that draws the icon).
+
+     An icon is inserted with innerHTML into every page of the storefront, so a
+     bad one is stored XSS on the whole site. Allowlist, not blocklist: unknown
+     elements and unknown attributes are dropped, because the list of dangerous
+     things grows and the list of things an icon legitimately needs does not.
+
+     fill/stroke of "none" and "currentColor" are kept as-is; any other value is
+     rewritten to currentColor, which is also what makes a pasted icon recolour
+     with the theme instead of staying whatever colour it was drawn in. */
+  var SVG_OK_EL = {
+    svg: 1, g: 1, path: 1, circle: 1, ellipse: 1, line: 1, polyline: 1,
+    polygon: 1, rect: 1, defs: 1, lineargradient: 1, radialgradient: 1,
+    stop: 1, title: 1, desc: 1, clippath: 1, mask: 1, symbol: 1, use: 1,
+  };
+  var SVG_OK_ATTR = {
+    d: 1, cx: 1, cy: 1, r: 1, rx: 1, ry: 1, x: 1, y: 1, x1: 1, y1: 1, x2: 1,
+    y2: 1, width: 1, height: 1, points: 1, transform: 1, viewbox: 1,
+    fill: 1, stroke: 1, 'stroke-width': 1, 'stroke-linecap': 1,
+    'stroke-linejoin': 1, 'stroke-dasharray': 1, 'stroke-dashoffset': 1,
+    'fill-rule': 1, 'clip-rule': 1, opacity: 1, 'fill-opacity': 1,
+    'stroke-opacity': 1, offset: 1, 'stop-color': 1, 'stop-opacity': 1,
+    gradientunits: 1, gradienttransform: 1, id: 1, xmlns: 1,
+    preserveaspectratio: 1, 'clip-path': 1, mask: 1, 'vector-effect': 1,
+  };
+
+  function sanitizeSvg(markup) {
+    var src = String(markup || '');
+    if (!src.trim()) return '';
+    /* No DOMParser means no DOM to walk — refuse rather than fall back to a
+       regex that would only look safe. Icons are decoration; a missing one is a
+       blank space, and a blank space is a better outcome than a guess. */
+    if (typeof DOMParser === 'undefined') return '';
+    var doc;
+    try { doc = new DOMParser().parseFromString(src, 'image/svg+xml'); } catch (_) { return ''; }
+    if (!doc || !doc.documentElement) return '';
+    // A parse error yields a <parsererror> document rather than throwing.
+    if (doc.getElementsByTagName('parsererror').length) return '';
+    var root = doc.documentElement;
+    if (String(root.nodeName || '').toLowerCase() !== 'svg') return '';
+
+    var walk = function (el) {
+      var kids = [], i;
+      for (i = 0; i < el.childNodes.length; i++) kids.push(el.childNodes[i]);
+      for (i = 0; i < kids.length; i++) {
+        var n = kids[i];
+        if (n.nodeType === 8) { el.removeChild(n); continue; }       // comments
+        if (n.nodeType !== 1) continue;                              // text is inert
+        var tag = String(n.nodeName || '').toLowerCase();
+        if (!SVG_OK_EL[tag]) { el.removeChild(n); continue; }
+        var attrs = [], j;
+        for (j = 0; j < n.attributes.length; j++) attrs.push(n.attributes[j]);
+        for (j = 0; j < attrs.length; j++) {
+          var a = attrs[j], an = String(a.name || '').toLowerCase(), av = String(a.value || '');
+          /* href is allowed ONLY as a same-document fragment, which is what
+             <use href="#id"> needs. Anything else — a URL, javascript:, a
+             protocol-relative //host — is a fetch or an execution. */
+          if (an === 'href' || an === 'xlink:href') {
+            if (av.charAt(0) !== '#') n.removeAttribute(a.name);
+            continue;
+          }
+          if (!SVG_OK_ATTR[an]) { n.removeAttribute(a.name); continue; }
+          if (/^\s*(javascript|data|vbscript)\s*:/i.test(av) || /url\s*\(/i.test(av)) {
+            n.removeAttribute(a.name);
+            continue;
+          }
+          if ((an === 'fill' || an === 'stroke') && av !== 'none' && av !== 'currentColor') {
+            n.setAttribute(a.name, 'currentColor');
+          }
+        }
+        walk(n);
+      }
+    };
+    walk(root);
+    // Same treatment for the root's own attributes, which walk() never sees.
+    var rattrs = [], k;
+    for (k = 0; k < root.attributes.length; k++) rattrs.push(root.attributes[k]);
+    for (k = 0; k < rattrs.length; k++) {
+      var ra = rattrs[k], ran = String(ra.name || '').toLowerCase();
+      if (!SVG_OK_ATTR[ran]) root.removeAttribute(ra.name);
+    }
+    try { return new XMLSerializer().serializeToString(root); } catch (_) { return ''; }
+  }
+
   function get(name, setOverride) {
     if (!D[name]) return '';
     var custom = config.custom[name];
-    if (custom && String(custom).trim()) {
-      return String(custom).replace(/<script[\s\S]*?<\/script>/gi, '');
-    }
+    if (custom && String(custom).trim()) return sanitizeSvg(custom);
     var setId = setOverride || config.overrides[name] || config.set;
     var set = SETS[setId] || SETS.outline;
     return set.build(name);
@@ -214,6 +303,10 @@
 
   window.ZWIcons = {
     names: function () { return NAMES.slice(); },
+    /* Exposed so the admin can sanitise on PASTE and show what will actually be
+       stored. Sanitising only on render would let someone save markup that
+       looks accepted and silently renders as nothing. */
+    sanitize: sanitizeSvg,
     frameVars: function (id) {
       var f = FRAMES[id] || FRAMES.box;
       return { frame: f.vars.frame, radius: f.vars.radius, fill: f.vars.fill };
