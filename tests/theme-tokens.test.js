@@ -639,7 +639,11 @@ console.log('\n  the announcement bar is themeable too');
 
 console.log('\n  header composition');
 {
-  const nav = fs.readFileSync(R + 'nav.css', 'utf8');
+  /* Read from the file that CARRIES the rules, not the one they were written
+     in. They lived in nav.css, which exactly two pages link — so a placement
+     chosen in the admin appeared on the product page and nowhere else. The
+     rules were right; the stylesheet was out of reach. */
+  const nav = fs.readFileSync(R + 'storefront-cohesion.css', 'utf8');
   const eng = fs.readFileSync(R + 'theme-engine.js', 'utf8');
   const at = fs.readFileSync(R + 'admin-themes.js', 'utf8');
 
@@ -1119,6 +1123,34 @@ console.log('\n  saving tells you what happened');
     /if \(!window\.sb\) \{ status\('Not signed in to the database yet/.test(at));
 }
 
+
+
+console.log('\n  the header rules reach every page');
+{
+  /* A rule only exists on the pages that load the file holding it. nav.css is
+     linked by bag.html and product.html and nothing else, so header
+     composition worked on one page and looked broken on twelve. */
+  const pages = fs.readdirSync(R).filter((f) => f.endsWith('.html') && !/^(admin|builder)/.test(f));
+  /* Pages carrying a storefront NAV dialect. checkout and mobile-checkout use
+     .co-header — a deliberately minimal bar with no categories to place — and
+     analytics is an admin screen. None of them can express a placement, so
+     requiring the stylesheet there would be a test asserting a preference. */
+  const NAV_DIALECT = /<nav id="nav"|<nav class="nav"|<header class="nav"|<nav class="zw-nav"/;
+  const withHeader = pages.filter((f) => NAV_DIALECT.test(fs.readFileSync(R + f, 'utf8')));
+  const missing = withHeader.filter((f) => !fs.readFileSync(R + f, 'utf8').includes('storefront-cohesion.css'));
+  ok('every page with a header loads the file the placement rules live in',
+    missing.length === 0, missing.join(', '));
+  const coh = fs.readFileSync(R + 'storefront-cohesion.css', 'utf8');
+  for (const rule of ['data-zw-hdr-logo="center"', 'data-zw-hdr-links="left"',
+                      'data-zw-hdr-actions="center"', 'data-zw-hdr-linksrow="2"',
+                      'data-zw-iconlabels', 'data-zw-hide~="bag"', '--zw-ord-bag'])
+    ok('...and it carries ' + rule, coh.includes(rule));
+  /* If they are ever written back into nav.css the bug returns silently,
+     because two pages would still look correct. */
+  ok('...and none were left behind in the two-page stylesheet',
+    !/data-zw-hdr-logo|data-zw-iconlabels|--zw-ord-/.test(fs.readFileSync(R + 'nav.css', 'utf8')),
+    'nav.css reaches only bag.html and product.html');
+}
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
