@@ -10,6 +10,18 @@ import Stripe from 'stripe';
 import {
   computePromotionDiscount,
   getSetting,
+  /* json() was called five times here and defined nowhere — not locally, not
+     imported. Every return path hit ReferenceError, INCLUDING the catch block,
+     so the handler could not even report its own failure and Cloudflare
+     answered with an uncaught-exception page (error 1101) instead of JSON.
+
+     That is why the browser saw "Unexpected token '<'": the response was
+     Cloudflare's error page, not a malformed API reply. A missing import
+     presenting as a parse error three layers away.
+
+     _commerce.js has exported json() all along and this file already imported
+     from it — the local copy was dropped in e00bf78 without adding it here. */
+  json,
   normalizePromoCode,
   sanitizeCommerceConfig,
 } from './_commerce.js';
