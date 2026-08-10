@@ -1042,3 +1042,49 @@ console.log('\n  the engine reaches every themed page');
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
+
+console.log('\n  pasted icons are sanitised');
+{
+  /* A custom icon is inserted with innerHTML into every page of the storefront,
+     so a bad one is stored XSS across the whole site. What guarded it was
+
+       String(custom).replace(/<script[\s\S]*?<\/script>/gi, '')
+
+     which failed three ways: it needs a CLOSING tag, so `<svg><script>alert(1)`
+     walked through untouched; it said nothing about event handlers; and it said
+     nothing about javascript: hrefs, <foreignObject> (arbitrary HTML) or
+     <image href="http://…"> (which phones home with the visitor's IP on every
+     page that draws the icon). */
+  const ic = fs.readFileSync(R + 'icon-sets.js', 'utf8');
+  ok('the strip-the-script-tag guard is gone, not merely supplemented',
+    !ic.includes('<script[\\s\\S]*?<\\/script>'),
+    'a regex needing a closing tag is bypassed by omitting one');
+  ok('sanitising is an allowlist, because the dangerous list keeps growing',
+    /SVG_OK_EL/.test(ic) && /SVG_OK_ATTR/.test(ic));
+  /* Blocklists were the bug. These are the specific payloads that got through
+     the old guard, and each must be absent from the allowlist by NAME. */
+  for (const bad of ['script', 'foreignobject', 'image', 'animate', 'set', 'style'])
+    ok('<' + bad + '> is not an element an icon may contain',
+      !new RegExp('\b' + bad + ':\s*1').test(ic.slice(ic.indexOf('SVG_OK_EL'), ic.indexOf('SVG_OK_ATTR'))));
+  ok('no attribute starting with "on" can survive an allowlist of names',
+    !/\bon\w+:\s*1/.test(ic.slice(ic.indexOf('SVG_OK_ATTR'), ic.indexOf('function sanitizeSvg'))));
+  /* <use href="#id"> is legitimate; every other href is a fetch or an exec. */
+  ok('href is allowed only as a same-document fragment',
+    /if \(av\.charAt\(0\) !== '#'\) n\.removeAttribute\(a\.name\);/.test(ic));
+  ok('…and javascript:/data:/url() values are dropped wherever they appear',
+    /javascript\|data\|vbscript/.test(ic) && ic.includes('url\\s*\\('));
+  /* Parsing failure must yield nothing, not the original string — a fallback
+     that returns the input on error is a bypass triggered by malformed markup. */
+  ok('a parse failure yields nothing rather than the raw markup',
+    /getElementsByTagName\('parsererror'\)\.length\) return '';/.test(ic) &&
+    /typeof DOMParser === 'undefined'\) return '';/.test(ic));
+  ok('the root element must actually be an <svg>',
+    /nodeName \|\| ''\)\.toLowerCase\(\) !== 'svg'\) return '';/.test(ic));
+  /* Recolouring is what makes a pasted icon follow the theme instead of
+     staying whatever colour it was drawn in. */
+  ok('fill and stroke are rewritten to currentColor so icons follow the theme',
+    /av !== 'none' && av !== 'currentColor'\)\s*\{[\s\S]{0,80}'currentColor'\)/.test(ic));
+  ok('the admin can sanitise on paste, not only on render',
+    /sanitize: sanitizeSvg/.test(ic),
+    'sanitising only at render lets someone save markup that silently draws nothing');
+}
