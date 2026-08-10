@@ -1040,8 +1040,6 @@ console.log('\n  the engine reaches every themed page');
   ok('…before storefront-theme.js on every one of them', bad.length === 0, bad.join(', '));
 }
 
-console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
-process.exit(fail ? 1 : 0);
 
 console.log('\n  pasted icons are sanitised');
 {
@@ -1056,8 +1054,12 @@ console.log('\n  pasted icons are sanitised');
      <image href="http://…"> (which phones home with the visitor's IP on every
      page that draws the icon). */
   const ic = fs.readFileSync(R + 'icon-sets.js', 'utf8');
+  /* Comments stripped: the note explaining why the old guard was unsafe quotes
+     it verbatim, and a prohibition that reads comments fails on its own
+     explanation. Same trap as the type-scale check in base.css. */
+  const icCode = ic.replace(/\/\*[\s\S]*?\*\//g, '');
   ok('the strip-the-script-tag guard is gone, not merely supplemented',
-    !ic.includes('<script[\\s\\S]*?<\\/script>'),
+    !icCode.includes('<script[\\s\\S]*?<\\/script>'),
     'a regex needing a closing tag is bypassed by omitting one');
   ok('sanitising is an allowlist, because the dangerous list keeps growing',
     /SVG_OK_EL/.test(ic) && /SVG_OK_ATTR/.test(ic));
@@ -1088,3 +1090,35 @@ console.log('\n  pasted icons are sanitised');
     /sanitize: sanitizeSvg/.test(ic),
     'sanitising only at render lets someone save markup that silently draws nothing');
 }
+
+console.log('\n  saving tells you what happened');
+{
+  /* Save wrote its result to #theme-status, which sits after the per-page grid
+     — below the Save button on every theme card. So pressing Save updated a
+     line the person could not see, and a save with no visible outcome is
+     indistinguishable from a save that does nothing. That is exactly how it
+     was reported: "the save button is just not working". */
+  const at = fs.readFileSync(R + 'admin-themes.js', 'utf8');
+  const ah = fs.readFileSync(R + 'admin.html', 'utf8');
+  const statusAt = ah.indexOf('id="theme-status"');
+  const gridAt = ah.indexOf('id="theme-pages"');
+  ok('the status line really does sit below the fold, which is the bug',
+    statusAt > gridAt && statusAt !== -1,
+    'if this ever moves above the editor, the scroll fallback can be dropped');
+  ok('feedback goes to a toast, which does not depend on scroll position',
+    /window\.showToast === 'function'/.test(at));
+  /* quick-add-modal.js already probed for this name and always found nothing. */
+  ok('…and showToast is actually exposed, so that path can fire',
+    /window\.showToast = showToast;/.test(fs.readFileSync(R + 'admin-main.js', 'utf8')));
+  ok('…with the status line scrolled into view when there is no toast',
+    /el\.scrollIntoView\(\{ block: 'center'/.test(at));
+  ok('an empty message never raises a toast', /if \(!msg\) return;/.test(at));
+  /* A missing client reported "sb is not defined", which tells the person
+     nothing they can act on. */
+  ok('a missing database client says what to do about it',
+    /if \(!window\.sb\) \{ status\('Not signed in to the database yet/.test(at));
+}
+
+
+console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
+process.exit(fail ? 1 : 0);

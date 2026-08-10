@@ -9905,7 +9905,12 @@
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         }
-    
+    /* Exposed because the admin is several scripts now, and the ones loaded
+       beside this file had no way to report anything. admin-themes.js wrote its
+       save result to an element below the fold, so Save looked dead whether it
+       had worked or not; quick-add-modal.js already probes for this name. */
+    window.showToast = showToast;
+
 
         // ===== WEBSITE / HERO SETTINGS =====
         async function loadWebsiteSettings() {

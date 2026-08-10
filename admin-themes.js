@@ -150,11 +150,30 @@
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
+  /* Feedback has to arrive where the person is LOOKING. #theme-status lives
+     below the per-page grid, which is below the Save button on every theme
+     card — so pressing Save wrote its result off-screen and the button read as
+     dead whether it had worked or failed. A save with no visible outcome is
+     indistinguishable from a save that does nothing, which is exactly how this
+     was reported.
+
+     Toast first, because it appears in the corner regardless of scroll. The
+     status line is still written for anyone who scrolls to it, and when there
+     is no toast the line is scrolled into view rather than left where it
+     happens to sit. */
   function status(msg, bad) {
     var el = document.getElementById('theme-status');
-    if (!el) return;
-    el.textContent = msg || '';
-    el.style.color = bad ? 'var(--error)' : 'var(--success, #4ade80)';
+    if (el) {
+      el.textContent = msg || '';
+      el.style.color = bad ? 'var(--error)' : 'var(--success, #4ade80)';
+    }
+    if (!msg) return;
+    if (typeof window.showToast === 'function') {
+      try { window.showToast(msg, bad ? 'error' : 'success'); return; } catch (_) {}
+    }
+    if (el && el.scrollIntoView) {
+      try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) { el.scrollIntoView(); }
+    }
   }
 
   // ── Load / save ──────────────────────────────────────────────────────────
@@ -172,6 +191,10 @@
   }
 
   async function save() {
+    /* load() guards on this and save() did not, so a page where the Supabase
+       client had not initialised reported "sb is not defined" — a message that
+       tells the person nothing about what to do. */
+    if (!window.sb) { status('Not signed in to the database yet — reload the page and try again.', true); return; }
     try {
       var res = await sb.from('site_settings')
         .upsert({ key: 'theme_modes', value: state }, { onConflict: 'key' });
