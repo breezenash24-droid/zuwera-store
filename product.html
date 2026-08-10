@@ -99,7 +99,7 @@
 <link rel="preload" href="reviews.css?v=d6be7ee9" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="reviews.css?v=d6be7ee9"></noscript>
 <link rel="stylesheet" href="reviews-vibe.css?v=1d24c3ed">
-<link rel="stylesheet" href="storefront-cohesion.css?v=2d585c6b">
+<link rel="stylesheet" href="storefront-cohesion.css?v=7e0842e4">
 <script src="header-scroll.js?v=fe320725" defer></script>
 <script src="announcement-bar.js?v=ba8069e5" defer></script>
 <script src="email-popup.js?v=d316db75" defer></script>
@@ -1775,8 +1775,19 @@ async function loadSiteSettings() {
     if (builderTheme) {
       const bar = document.getElementById('bar');
       if (bar) {
-        if (builderTheme.bar_bg) bar.style.setProperty('background', builderTheme.bar_bg, 'important');
-        if (builderTheme.bar_text_color) bar.style.setProperty('color', builderTheme.bar_text_color, 'important');
+        /* Feeds the TOKEN, and does not force the property. Setting background
+           inline with !important on #bar made this the last word on the bar's
+           colour — so the theme's own bar colour could never apply, and the
+           Appearance setting looked broken while this quietly won every time.
+           Two systems writing one value, the older one winning by force.
+
+           As a variable it joins the same cascade as everything else: the theme
+           engine writes --zw-bar-bg on <body>, this writes it on #bar, so a
+           builder colour still beats the theme for anyone who set one, and
+           clearing it hands the bar back to the theme instead of to a
+           hardcoded black. */
+        if (builderTheme.bar_bg) bar.style.setProperty('--zw-bar-bg', builderTheme.bar_bg);
+        if (builderTheme.bar_text_color) bar.style.setProperty('--zw-bar-fg', builderTheme.bar_text_color);
       }
       if (builderTheme.accent_color) {
         document.documentElement.style.setProperty('--gold', builderTheme.accent_color);

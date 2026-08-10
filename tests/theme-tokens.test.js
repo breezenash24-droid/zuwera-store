@@ -646,6 +646,24 @@ console.log('\n  the announcement bar is themeable too');
   ok('…with the original literals kept as the last resort',
     /var\(--black,#09090b\)/.test(bar) && /var\(--white,#F0EEE9\)/.test(bar));
   ok('the theme can set them', /set\('--zw-bar-bg', t\.barBg\)/.test(eng));
+  /* A SECOND system wrote the same value: builder_theme.bar_bg, applied as an
+     inline style with !important directly on #bar. Nothing beats that, so the
+     theme's bar colour could never take effect and the setting looked dead
+     while the older path quietly won every time. Two systems writing one
+     value, the older one winning by force.
+
+     Both now feed the token, so they share one cascade: a builder colour still
+     beats the theme for anyone who set one, and clearing it hands the bar back
+     to the theme rather than to a hardcoded black. */
+  for (const f of ['storefront.js', 'product.html']) {
+    const src = fs.readFileSync(R + f, 'utf8');
+    ok('nothing in ' + f + ' forces the bar colour past the token',
+      !/bar\.style\.setProperty\('(background|color)'/.test(src),
+      'an inline !important on #bar is the last word and the theme never gets one');
+  }
+  ok('…the builder colour feeds --zw-bar-bg instead',
+    /bar\.style\.setProperty\('--zw-bar-bg'/.test(fs.readFileSync(R + 'storefront.js', 'utf8')) &&
+    /bar\.style\.setProperty\('--zw-bar-fg'/.test(fs.readFileSync(R + 'product.html', 'utf8')));
   ok('and the editor offers them like the header’s', /barBg/.test(at) && /barFg/.test(at));
   ok('both are optional, so an unset theme leaves the bar alone',
     /key: 'barBg'[^}]*optional: true/.test(at));
@@ -1187,6 +1205,13 @@ console.log('\n  the header rules reach every page');
   const NAV_DIALECT = /<nav id="nav"|<nav class="nav"|<header class="nav"|<nav class="zw-nav"/;
   const withHeader = pages.filter((f) => NAV_DIALECT.test(fs.readFileSync(R + f, 'utf8')));
   const missing = withHeader.filter((f) => !fs.readFileSync(R + f, 'utf8').includes('storefront-cohesion.css'));
+  /* `color: var(--zw-nav-fg)` lived only in nav.css, so the header-text setting
+     worked on the product page and left every other header black. Same reach
+     problem as the placement rules, found the same way. */
+  ok('header text colour reaches every dialect, not just the two-page file',
+    /:is\(#nav, \.nav, \.zw-nav, \.co-header\) \{\s*color: var\(--zw-nav-fg, inherit\);/.test(
+      fs.readFileSync(R + 'storefront-cohesion.css', 'utf8')),
+    'nav.css reaches only bag.html and product.html');
   ok('every page with a header loads the file the placement rules live in',
     missing.length === 0, missing.join(', '));
   const coh = fs.readFileSync(R + 'storefront-cohesion.css', 'utf8');

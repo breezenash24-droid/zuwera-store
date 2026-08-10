@@ -4750,3 +4750,23 @@ html[data-zw-hide~="bag"]     :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-ba
     font-size: clamp(1.5rem, 2vw, 2.1rem) !important;
   }
 }
+
+/* ── Header text colour, on every page ────────────────────────────────────
+   `color: var(--zw-nav-fg, inherit)` lived only in nav.css, which bag.html and
+   product.html link and nothing else does. So the header-text setting worked on
+   the product page and left every other header black — the same reach problem
+   as the placement rules, found the same way.
+
+   All six header dialects, because the setting is about the bar rather than
+   about whichever class a given page happened to name its bar. `inherit` as the
+   fallback, so a theme that sets no header text colour changes nothing and the
+   page's own rules keep deciding. */
+:is(#nav, .nav, .zw-nav, .co-header) {
+  color: var(--zw-nav-fg, inherit);
+}
+/* The controls inside it inherit rather than keeping their own colour, or the
+   bar's text would change while the bag and account labels beside it did not.
+   Only when a theme actually sets one — hence the :not(). */
+html:not([data-zw-nav-fg-unset]) :is(#nav, .nav, .zw-nav, .co-header) :is(.nav-link, .nbtn, .zw-hdr-action, .zw-nav-btn, .nav-logo, .nav-logo-link, .zw-nav-logo) {
+  color: var(--zw-nav-fg, inherit);
+}

@@ -662,8 +662,19 @@ function showToast(msg) {
     if (cfg.themeSettings) {
       const bar = document.getElementById('bar');
       if (bar) {
-        if (cfg.themeSettings.bar_bg) bar.style.setProperty('background', cfg.themeSettings.bar_bg, 'important');
-        if (cfg.themeSettings.bar_text_color) bar.style.setProperty('color', cfg.themeSettings.bar_text_color, 'important');
+        /* Feeds the TOKEN, and does not force the property. Setting background
+           inline with !important on #bar made this the last word on the bar's
+           colour — so the theme's own bar colour could never apply, and the
+           Appearance setting looked broken while this quietly won every time.
+           Two systems writing one value, the older one winning by force.
+
+           As a variable it joins the same cascade as everything else: the theme
+           engine writes --zw-bar-bg on <body>, this writes it on #bar, so a
+           builder colour still beats the theme for anyone who set one, and
+           clearing it hands the bar back to the theme instead of to a
+           hardcoded black. */
+        if (cfg.themeSettings.bar_bg) bar.style.setProperty('--zw-bar-bg', cfg.themeSettings.bar_bg);
+        if (cfg.themeSettings.bar_text_color) bar.style.setProperty('--zw-bar-fg', cfg.themeSettings.bar_text_color);
       }
       if (cfg.themeSettings.accent_color) {
         document.documentElement.style.setProperty('--gold', cfg.themeSettings.accent_color);
@@ -2436,8 +2447,8 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
         const bt = typeof settings.builder_theme === 'string' ? JSON.parse(settings.builder_theme) : settings.builder_theme;
         const bar = document.getElementById('bar');
         if (bar) {
-          if (bt.bar_bg) bar.style.setProperty('background', bt.bar_bg, 'important');
-          if (bt.bar_text_color) bar.style.setProperty('color', bt.bar_text_color, 'important');
+          if (bt.bar_bg) bar.style.setProperty('--zw-bar-bg', bt.bar_bg);
+          if (bt.bar_text_color) bar.style.setProperty('--zw-bar-fg', bt.bar_text_color);
         }
         if (bt.accent_color) {
           document.documentElement.style.setProperty('--gold', bt.accent_color);
