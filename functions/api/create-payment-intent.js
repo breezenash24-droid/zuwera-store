@@ -28,6 +28,26 @@ import {
 import { fetchSiteSettings } from './_settings.js';
 import { normalizeStateCode, resolveTax } from './_tax.js';
 
+/* A rejection the shopper caused and can fix, tagged with the status it should
+   actually carry.
+
+   Everything thrown in here used to land in one catch that answered 500, which
+   made "your size sold out" indistinguishable from "Stripe is down" — to our
+   own alerting, to any retry logic, and to anything that reads resp.ok before
+   it reads the body. Out of stock is the single most ordinary reason a real
+   checkout is refused, so the most common legitimate outcome was reporting
+   itself as a server fault.
+
+   The status rides on the error rather than being recovered later by matching
+   the message, because the thrower is the only place that knows which kind it
+   is. Untagged stays 500: a fault we did not anticipate is a fault, and this
+   must never launder an unexpected throw into a tidy 4xx. */
+function cartError(message, status) {
+  const e = new Error(message);
+  e.zwStatus = status;
+  return e;
+}
+
 const CORS = (env) => ({
   'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -190,8 +210,8 @@ async function verifyAccessToken(accessToken, env) {
 }
 
 async function resolveCatalogItems(items, env, isMember) {
-  if (!Array.isArray(items) || items.length === 0) throw new Error('Missing cart items.');
-  if (items.length > 25) throw new Error('Cart has too many line items.');
+  if (!Array.isArray(items) || items.length === 0) throw cartError('Missing cart items.', 400);
+  if (items.length > 25) throw cartError('Cart has too many line items.', 400);
 
   const resolved = [];
   for (const raw of items) {
@@ -201,14 +221,19 @@ async function resolveCatalogItems(items, env, isMember) {
 
     if (productId) product = await fetchProductByFilter(env, 'id', productId);
     if (!product && sku) product = await fetchProductByFilter(env, 'sku', sku);
-    if (!product) throw new Error(`Product is no longer available: ${raw?.title || raw?.name || productId || sku || 'unknown item'}`);
+    /* 409, not 404: the request is well-formed and the route is right — it is
+       the cart that has gone stale against the catalog. */
+    if (!product) throw cartError(`Product is no longer available: ${raw?.title || raw?.name || productId || sku || 'unknown item'}`, 409);
 
     const regularCents = toCents(product.current_price ?? product.price);
     const memberCents = toCents(product.member_price);
     const priceCents = isMember && memberCents > 0 && (!regularCents || memberCents < regularCents)
       ? memberCents
       : regularCents;
-    if (priceCents <= 0) throw new Error(`Product has no checkout price: ${product.title || product.name || product.id}`);
+    /* A merchant data problem rather than a shopper one, but the shopper is the
+       one standing at the till and the item genuinely cannot be sold, so it is
+       reported as a cart conflict. It stays loud in the logs either way. */
+    if (priceCents <= 0) throw cartError(`Product has no checkout price: ${product.title || product.name || product.id}`, 409);
 
     const itemSize = String(raw?.size || '').trim();
     const itemQty = parseQuantity(raw?.quantity);
@@ -217,10 +242,11 @@ async function resolveCatalogItems(items, env, isMember) {
       const available = await fetchSizeStockQty(env, product.id, itemSize, String(raw?.colorName || '').trim() || null);
       if (available !== null && available < itemQty) {
         const name = product.title || product.name || 'An item';
-        throw new Error(
+        throw cartError(
           available <= 0
             ? `${name} (${itemSize}) is out of stock.`
-            : `Only ${available} left in stock for ${name} (${itemSize}).`
+            : `Only ${available} left in stock for ${name} (${itemSize}).`,
+          409
         );
       }
     }
@@ -318,7 +344,7 @@ async function resolveShipping({ shippingRate, address, subtotalCents, catalogIt
     // Only throw when CHECKOUT_RATE_SECRET is configured — without a secret, token
     // signing is disabled so signedRate is always null (not a real expiry).
     if (env.CHECKOUT_RATE_SECRET) {
-      throw new Error('Selected shipping rate expired. Please reload shipping options.');
+      throw cartError('Selected shipping rate expired. Please reload shipping options.', 409);
     }
   }
 
@@ -328,7 +354,10 @@ async function resolveShipping({ shippingRate, address, subtotalCents, catalogIt
   // exploit). Set CHECKOUT_RATE_SECRET to sign+verify rates and reject ALL unsigned ones.
   const fallbackCents = shippingRate?.amount ? toCents(shippingRate.amount) : 0;
   if (shippingRate?.objectId && !signedRate && !qualifiesFree && fallbackCents <= 0) {
-    throw new Error('Invalid shipping rate — please reload shipping options.');
+    /* 400 rather than 409: a zeroed rate is not a stale cart, it is a rejected
+       input — and the one case here that may be someone probing the $0-shipping
+       exploit above. Worth keeping distinguishable from ordinary staleness. */
+    throw cartError('Invalid shipping rate — please reload shipping options.', 400);
   }
   const actualShippingCents = signedRate
     ? rateAmountCents
@@ -538,7 +567,15 @@ export async function onRequestPost({ request, env }) {
       actualShipping: (shipping.actualShippingCents / 100).toFixed(2),
     }, 200, headers);
   } catch (e) {
-    console.error('create-payment-intent error:', e);
-    return json({ error: e.message || 'Could not create payment.' }, 500, headers);
+    /* Only a status this file deliberately attached is trusted. Anything else —
+       a Stripe throw, a fetch failure, a genuine bug like the missing json()
+       import above — stays 500, because a fault we did not predict is exactly
+       the thing that must not be reported as the shopper's fault.
+
+       The log line is unconditional either way: a 409 is a normal outcome, but
+       a sudden run of them still means something broke upstream. */
+    const status = Number.isInteger(e?.zwStatus) ? e.zwStatus : 500;
+    console.error('create-payment-intent error (' + status + '):', e);
+    return json({ error: e.message || 'Could not create payment.' }, status, headers);
   }
 }
