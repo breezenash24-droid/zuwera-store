@@ -126,6 +126,37 @@ function riskOf(pi) {
   return { level, score };
 }
 
+/* Claim this delivery, or report that someone else already has.
+   Returns TRUE only when we are certain it was handled before. Every other
+   outcome — table absent, network wobble, unexpected status — returns false and
+   lets the handler run, because a missed dedupe costs a duplicate order and a
+   false dedupe costs the order entirely. */
+async function alreadyHandled(env, event) {
+  const key = getSupabaseServiceKey(env);
+  if (!env.SUPABASE_URL || !key || !event || !event.id) return false;
+  try {
+    const res = await fetch(env.SUPABASE_URL + '/rest/v1/processed_events', {
+      method: 'POST',
+      headers: {
+        apikey: key, Authorization: 'Bearer ' + key,
+        'Content-Type': 'application/json', Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ event_id: event.id, event_type: event.type || null }),
+    });
+    if (res.ok) return false;                       // claimed it — first time through
+    // 409 is the primary key refusing a second insert: someone else has it.
+    if (res.status === 409) return true;
+    /* Anything else (404 no table, 401, 5xx) means we could not establish
+       either way. Proceed — the older order-exists guard still stands behind
+       this for the common case. */
+    console.warn('Dedupe unavailable (' + res.status + ') — proceeding without it');
+    return false;
+  } catch (e) {
+    console.warn('Dedupe check failed (' + e.message + ') — proceeding without it');
+    return false;
+  }
+}
+
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 export async function onRequestPost({ request, env }) {
@@ -156,6 +187,31 @@ export async function onRequestPost({ request, env }) {
     console.error('    from Stripe Dashboard > Webhooks > your endpoint for zuwera.store/api/stripe-webhook');
     console.error('  → Also make sure test/live mode matches: test payments need a TEST webhook secret');
     return new Response('Webhook Error: ' + e.message, { status: 400 });
+  }
+
+  /* ── Has this exact delivery been handled already? ──────────────────────
+     There was already a guard: "does an order for this PaymentIntent exist".
+     It catches the ordinary retry and misses two things. Two deliveries
+     arriving at once can BOTH pass it before either writes, because a
+     select-then-insert has a gap between the looking and the writing. And an
+     event that creates no order — a dispute, a refund — has nothing to look
+     for, so it is not deduped at all.
+
+     Keyed on Stripe's event id, which is stable across retries and unique per
+     delivery. The PRIMARY KEY is the lock: both racers insert, exactly one
+     succeeds, and the loser gets a duplicate-key error it reads as "someone
+     else has this". No window between the check and the claim, because the
+     check IS the claim.
+
+     Only a genuine duplicate stops the handler. If the table is missing —
+     migration 0006 not applied yet — this proceeds exactly as it does today.
+     Treating "cannot dedupe" as "already done" would silently drop every
+     order, which is a far worse failure than the one it guards against. */
+  if (await alreadyHandled(env, event)) {
+    console.log('Duplicate delivery of', event.id, '— already handled');
+    return new Response(JSON.stringify({ received: true, duplicate: true }), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   if (event.type === 'payment_intent.succeeded') {
