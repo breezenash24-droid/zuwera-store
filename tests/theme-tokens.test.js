@@ -629,8 +629,22 @@ console.log('\n  the announcement bar is themeable too');
   /* It was #09090b on every page, with only the homepage overriding it from
      builder_theme — the one strip above everything else was the least
      themeable thing on the site. */
-  ok('the bar reads theme tokens', /var\(--zw-bar-bg,#09090b\)/.test(bar) && /var\(--zw-bar-fg,#F0EEE9\)/.test(bar));
-  ok('…falling back to exactly what it hardcoded', /#09090b/.test(bar) && /#F0EEE9/.test(bar));
+  ok('the bar reads theme tokens',
+    /var\(--zw-bar-bg,var\(--black/.test(bar) && /var\(--zw-bar-fg,var\(--white/.test(bar));
+  /* The previous assertion here required the fallback to be #09090b and called
+     that "falling back to exactly what it hardcoded". It was the bug written
+     down as an invariant: with the bar's own colour switched off the strip was
+     black on every theme, while the admin promised "off and it follows the
+     page". It followed nothing — it was pinned to the shipped value.
+
+     The page background and text are what "follows the page" means, so that is
+     what it falls back to now, with the old literals kept one level deeper for
+     a page that somehow defines neither. */
+  ok('…and with no colour of its own it follows the PAGE, not a fixed black',
+    !/var\(--zw-bar-bg,#09090b\)/.test(bar),
+    'a hardcoded fallback makes "off" mean "always black"');
+  ok('…with the original literals kept as the last resort',
+    /var\(--black,#09090b\)/.test(bar) && /var\(--white,#F0EEE9\)/.test(bar));
   ok('the theme can set them', /set\('--zw-bar-bg', t\.barBg\)/.test(eng));
   ok('and the editor offers them like the header’s', /barBg/.test(at) && /barFg/.test(at));
   ok('both are optional, so an unset theme leaves the bar alone',
@@ -755,6 +769,21 @@ console.log('\n  header composition');
     /html\[data-zw-hide~="bag"\]/.test(nav) && /html\[data-zw-hide~="search"\]/.test(nav));
   /* On a phone the hamburger is the only route to the categories. A theme that
      hid it would strand every collection page behind a control that is gone. */
+  /* The bar's height comes from its tallest cell, so emptying the actions group
+     collapsed the whole strip — turn every control off and the header visibly
+     shrank. Hiding changes what is IN the bar, never its size. */
+  /* A centred logo is absolutely positioned — the only way to centre against
+     the NAV rather than against whatever sits either side. Out of flow it has
+     no height, so with links on a second row it did not push that row down, it
+     sat on top of it. For two rows the logo takes a row of its own. */
+  ok('a centred logo on a two-row header rejoins the flow',
+    /data-zw-hdr-linksrow="2"\]\[data-zw-hdr-logo="center"\][^{]*\{\s*position: static; order: 1; flex: 0 0 100%/.test(nav),
+    'an absolute logo has no height and overlaps the row beneath it');
+  ok('...and the two rows are actually spaced apart',
+    /data-zw-hdr-linksrow="2"\] :is\(#nav, \.nav, \.zw-nav\) > \.nav-center \{ margin-top: \.75rem; \}/.test(nav));
+  ok('hiding controls does not resize the header',
+    /html\[data-zw-hide\] :is\(#nav, \.nav, \.zw-nav\) > :is\([^)]*\) \{\s*min-height: 46px;/.test(nav),
+    'an empty actions group must keep the row height it had');
   ok('the menu button cannot be hidden, or the drawer becomes unreachable',
     !/data-zw-hide~="menu"/.test(nav) && /k !== 'menu'/.test(eng));
   ok('an unset order restores DOM order rather than pinning everything to 0',
@@ -764,8 +793,16 @@ console.log('\n  header composition');
     ['search', 'account', 'login', 'logout', 'shop', 'bag', 'menu']
       .every((k) => new RegExp("\\['" + k + "', '").test(at)));
   ok('…and menu is offered without a hide box',
-    /k === 'menu' \? '<span/.test(at),
+    /k === 'menu'\s*\?\s*'<span[^']*always/.test(at),
     'a hideable menu button strands the categories on a phone');
+  /* Checked meaning "gone" is the inversion that made a screen of ticks look
+     like a configured header when it was an empty one. The checkbox reads
+     SHOWN, and the stored field is still `hidden`, so the UI negates once at
+     the boundary rather than everything downstream negating forever. */
+  ok('the visibility box reads Shown, not Hide',
+    at.includes("\\'hidden\\',!this.checked") && at.includes('width:66px;">Shown</span>'));
+  ok('…and turning everything off says so where the choice is made',
+    /Every control is switched off/.test(at));
   /* An icons object left behind empty would ride along in every export and
      read as a setting nobody chose. */
   ok('…and the setting prunes itself back to absent when nothing is set',

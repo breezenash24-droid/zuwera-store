@@ -493,6 +493,47 @@
 
                 <!-- APIs Page -->
                 <div id="apis" class="page">
+                    <!-- Failover alerting. Lives beside API Status because that is where
+                         you already come to ask "is anything wrong with a provider" —
+                         the answer and the settings that decide who gets told belong
+                         on the same screen. -->
+                    <div class="card" style="margin-bottom:18px;">
+                        <h3 style="margin:0 0 4px;">🔔 Failover alerts</h3>
+                        <p style="color:var(--text-secondary);font-size:.85rem;margin:0 0 14px;line-height:1.6;">
+                            When a provider fails, the store keeps working by falling through to the next one. These settings decide who finds out, and how loudly. Leave them alone and you get the shipped behaviour: a fallback is a warning, a whole chain failing is critical.
+                            <br><strong>Channels are set as environment variables</strong> — <code>OPS_SLACK_WEBHOOK</code>, <code>OPS_ALERT_EMAIL</code>, and <code>TWILIO_ACCOUNT_SID</code> / <code>TWILIO_AUTH_TOKEN</code> / <code>TWILIO_FROM</code> / <code>OPS_ALERT_SMS</code> for texts. An unset channel is skipped, never an error.
+                        </p>
+
+                        <div class="form-group" style="max-width:320px;">
+                            <label class="form-label" for="oaSmsFrom">Lowest severity that may send an SMS</label>
+                            <select id="oaSmsFrom" class="form-input">
+                                <option value="critical">Critical only — recommended</option>
+                                <option value="warn">Any warning too</option>
+                            </select>
+                            <div class="pop-hint">A channel that fires for warnings gets muted, and a muted channel is not a channel. Move this only if you want every fallback on your phone.</div>
+                        </div>
+
+                        <div class="form-group" style="max-width:320px;">
+                            <label class="form-label" for="oaQuota">Warn when Shippo's free tier reaches</label>
+                            <select id="oaQuota" class="form-input">
+                                <option value="0.6">60%</option>
+                                <option value="0.7">70%</option>
+                                <option value="0.8">80% — recommended</option>
+                                <option value="0.9">90%</option>
+                            </select>
+                            <div class="pop-hint">Before it is spent, not after — "you have run out" arrives too late to act on.</div>
+                        </div>
+
+                        <label class="form-label" style="margin-top:6px;">Each alert, and how seriously to take it</label>
+                        <div class="pop-hint" style="margin-bottom:8px;">Mute drops an alert entirely. Nothing here changes whether the failover happens — only whether you hear about it.</div>
+                        <div id="oaEvents" style="display:grid;gap:6px;"></div>
+
+                        <div style="display:flex;gap:8px;margin-top:16px;align-items:center;">
+                            <button class="btn btn-primary" onclick="saveOpsAlerts()">Save alert settings</button>
+                            <span id="oaStatus" style="font-size:.82rem;"></span>
+                        </div>
+                    </div>
+
                     <div class="products-header">
                         <div>
                             <h2>🔑 API Status</h2>
@@ -4267,9 +4308,9 @@
          until the Preview button asks it to. -->
     <script>window.__zwPopupNoAutoOpen = true;</script>
     <script src="email-popup.js?v=d316db75" defer></script>
-    <script src="admin-main.js?v=e8713b4f"></script>
+    <script src="admin-main.js?v=5c119ccb"></script>
     <!-- After admin-main: it needs `sb`, which that file creates at top level. -->
-    <script src="admin-themes.js?v=6d72b359"></script>
+    <script src="admin-themes.js?v=9f80018d"></script>
     <script src="admin-theme-presets.js?v=bd0c8c14"></script>
     <script src="admin-theme-import.js?v=f874417a"></script>
     <!-- The icon editor previews through the real registry, so it loads it too. -->

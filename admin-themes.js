@@ -336,21 +336,38 @@
       '<div style="font-size:.73rem;color:var(--text-secondary);line-height:1.5;margin-bottom:6px;">' +
         'Which controls sit in the bar and in what order. Lower numbers come first; leave a number blank to keep a control where the page already puts it. Menu has no hide box on purpose — on a phone it is the only way into the categories.' +
       '</div>' +
+      /* Column headings, and the checkbox reads SHOWN rather than Hide. Checked
+         meaning "gone" is the inversion that made a screen of ticks look like a
+         configured header when it was an empty one. Positive controls read as
+         what you get; negative controls read as what you lose. */
+      '<div style="display:flex;align-items:center;gap:8px;font-size:.68rem;color:var(--text-secondary);opacity:.75;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px;">' +
+        '<span style="flex:1;">Control</span><span style="width:64px;">Order</span><span style="width:66px;">Shown</span>' +
+      '</div>' +
       '<div style="display:grid;gap:5px;">' +
       ICONS.map(function (ic) {
-        var k = ic[0];
-        return '<div style="display:flex;align-items:center;gap:8px;font-size:.75rem;color:var(--text-secondary);">' +
+        var k = ic[0], hidden = icHidden.indexOf(k) !== -1;
+        return '<div style="display:flex;align-items:center;gap:8px;font-size:.75rem;color:var(--text-secondary);' +
+            (hidden ? 'opacity:.45;' : '') + '">' +
           '<span style="flex:1;">' + esc(ic[1]) + '</span>' +
-          '<input type="number" value="' + esc(icOrder[k] == null ? '' : icOrder[k]) + '" placeholder="—" ' +
+          '<input type="number" min="1" max="9" value="' + esc(icOrder[k] == null ? '' : icOrder[k]) + '" placeholder="auto" ' +
+            'title="Lower numbers sit first. Leave blank to keep this control where the page already puts it." ' +
             'onchange="themeSetIcon(' + i + ',\'' + k + '\',\'order\',this.value)" ' +
             'style="width:64px;padding:4px 6px;background:var(--bg-primary);border:1px solid var(--border);border-radius:5px;color:var(--text-primary);font-size:.74rem;">' +
-          (k === 'menu' ? '<span style="width:66px;"></span>'
+          (k === 'menu'
+            ? '<span style="width:66px;font-size:.68rem;opacity:.6;">always</span>'
             : '<label style="display:flex;align-items:center;gap:4px;width:66px;cursor:pointer;">' +
-              '<input type="checkbox"' + (icHidden.indexOf(k) !== -1 ? ' checked' : '') +
-              ' onchange="themeSetIcon(' + i + ',\'' + k + '\',\'hidden\',this.checked)">Hide</label>') +
+              '<input type="checkbox"' + (hidden ? '' : ' checked') +
+              ' onchange="themeSetIcon(' + i + ',\'' + k + '\',\'hidden\',!this.checked)"></label>') +
         '</div>';
       }).join('') +
-      '</div></div>';
+      '</div>' +
+      /* Hiding everything is a legitimate choice and also almost never the one
+         someone meant. Said here, where the choice is made, rather than
+         discovered on the storefront. */
+      (icHidden.length >= ICONS.length - 1
+        ? '<div style="font-size:.72rem;color:var(--warn,#f59e0b);margin-top:8px;line-height:1.5;">Every control is switched off, so the bar will carry the logo and the menu button and nothing else. Shoppers would have no visible route to search, their account or their bag.</div>'
+        : '') +
+      '</div>';
 
     /* Only bites when the bag panel feature is on — that is the thing that
        moves account into the panel and quiets the header button. */
