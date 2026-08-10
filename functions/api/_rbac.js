@@ -62,6 +62,31 @@ export const PAGE_WRITE_PERM = {
 
 // Preset access maps (page -> level) for each role. super_admin is special (all).
 const V = 'view', E = 'edit';
+
+/* The only levels a page may be set to. 'none' is the absence of an entry
+   rather than a value, so it is not listed — writing {orders:'none'} should be
+   rejected as nonsense rather than quietly meaning something. */
+export const PAGE_LEVELS = [V, E];
+
+/* Sanitise a pages map arriving from a client. This is the whole security
+   surface of custom permissions: everything else about them is interface.
+   An allowlist, and it rebuilds the object rather than editing the input — an
+   unknown key cannot survive a copy it was never copied into.
+
+   Returns null when there is nothing usable, so callers can tell "no custom
+   permissions" apart from "an empty object", which are different intents. */
+export function sanitizePages(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
+  const out = {};
+  for (const page of PAGE_IDS) {
+    if (!(page in input)) continue;
+    const level = String(input[page] || '').trim().toLowerCase();
+    // Unknown level → the page is simply not granted. Never guessed upward.
+    if (PAGE_LEVELS.indexOf(level) === -1) continue;
+    out[page] = level;
+  }
+  return Object.keys(out).length ? out : null;
+}
 export const ROLE_PRESET_LEVELS = {
   manager: {
     dashboard: V, analytics: V, finance: E, products: E, legacy: E, sizecharts: E,
