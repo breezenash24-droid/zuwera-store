@@ -198,13 +198,44 @@ window.addEventListener('zw-theme-applied', refreshStripeCardTheme);
 // ===================== HELPERS =====================
 
 // Single reusable fetch helper
+/* resp.json() on an HTML error page throws SyntaxError: Unexpected token '<',
+   which surfaced to the shopper as "Something went wrong" and told nobody that
+   the API had returned 500 with a Cloudflare error page. The parse failure
+   replaced the real failure, so the console said the response was malformed
+   JSON rather than that the endpoint was down.
+
+   An /api/ route answering with HTML means the route did not match at all —
+   a Functions build that did not deploy, not a bug in the handler. Worth
+   distinguishing, because the two have completely different fixes. */
 async function postJSON(url, body) {
   const resp = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  return resp.json();
+  const text = await resp.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (_) { /* not JSON — handled below */ }
+
+  if (data) {
+    // A JSON error body is the handler talking. Let the caller read it.
+    if (!resp.ok && !data.error) data.error = 'Request failed (' + resp.status + ')';
+    return data;
+  }
+
+  /* No usable JSON. Say what actually happened rather than letting a parse
+     error stand in for it — and name the likely cause, because "the payment
+     service is unreachable" is actionable and "unexpected token <" is not. */
+  const looksLikeHtml = /^\s*<(!doctype|html)/i.test(text || '');
+  const err = new Error(
+    looksLikeHtml
+      ? 'The payment service is unreachable (' + resp.status + ' from ' + url + '). This usually means the API did not deploy.'
+      : 'The payment service returned an unreadable response (' + resp.status + ').'
+  );
+  err.zwEndpoint = url;
+  err.zwStatus = resp.status;
+  err.zwBody = String(text || '').slice(0, 300);
+  throw err;
 }
 
 async function getCheckoutAuthPayload() {
@@ -878,8 +909,11 @@ _pay.btn?.addEventListener('click', async () => {
 
        Same mapping, so a Stripe error carries its real reason whichever way it
        reaches us, and only a genuinely non-Stripe failure falls through. */
-    _pay.errEl.textContent = (err && (err.decline_code || err.code || err.type))
-      ? declineMessage(err)
+    _pay.errEl.textContent =
+      (err && (err.decline_code || err.code || err.type)) ? declineMessage(err)
+      /* postJSON throws with a message that already says what failed. Replacing
+         it with "Something went wrong" is how the 500 stayed invisible. */
+      : (err && err.zwEndpoint && err.message) ? err.message
       : 'Something went wrong. Please try again.';
     /* Kept, and now the only place the raw error is visible: if the message on
        screen is the generic one, this line says why. */
