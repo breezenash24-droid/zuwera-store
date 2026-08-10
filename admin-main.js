@@ -1053,6 +1053,7 @@
             } else if (page === 'apis') {
                 loadApiStatus();
                 loadIntegrations();
+                loadOpsAlerts();
             } else if (page === 'meta') {
                 loadMetaStatus();
             } else if (page === 'audit') {
@@ -10926,3 +10927,87 @@
             }
         }
 
+
+/* ── Failover alerts (Settings row `ops_alerts`) ──────────────────────────
+   The only feature whose setting existed with no interface, which made it the
+   one most likely to be forgotten or mistyped. The event list is declared here
+   and must stay in step with the keys the Workers actually emit — a row for an
+   event nobody fires is a control that does nothing, and an event with no row
+   is a setting you cannot reach. A test compares the two lists. */
+const OPS_ALERT_EVENTS = [
+    ['email-fallback-brevo',      'Email fell back to Brevo (Resend down)'],
+    ['email-fallback-loops',      'Email fell back to Loops (Resend + Brevo down)'],
+    ['email-all-providers-down',  'Every email provider failed'],
+    ['shippo-quota',              'Shippo free tier getting close'],
+    ['shippo-quota-spent',        'Shippo free tier spent — quoting from Veeqo only'],
+    ['veeqo-no-rates',            'Veeqo returned no rates'],
+    ['shipping-no-rates',         'No shipping rates from any provider'],
+];
+
+function renderOpsAlerts(cfg) {
+    const host = document.getElementById('oaEvents');
+    if (!host) return;
+    const sev = (cfg && cfg.severity) || {};
+    const muted = Array.isArray(cfg && cfg.mute) ? cfg.mute : [];
+    host.innerHTML = OPS_ALERT_EVENTS.map(([key, label]) => `
+        <div style="display:flex;align-items:center;gap:10px;font-size:.8rem;">
+          <span style="flex:1;color:var(--text-secondary);">${label}</span>
+          <select data-oa-sev="${key}" class="form-input" style="width:150px;padding:5px 7px;font-size:.76rem;">
+            <option value=""${!sev[key] ? ' selected' : ''}>Default</option>
+            <option value="warn"${sev[key] === 'warn' ? ' selected' : ''}>Warning</option>
+            <option value="critical"${sev[key] === 'critical' ? ' selected' : ''}>Critical</option>
+          </select>
+          <label style="display:flex;align-items:center;gap:4px;width:64px;cursor:pointer;">
+            <input type="checkbox" data-oa-mute="${key}"${muted.indexOf(key) !== -1 ? ' checked' : ''}>Mute
+          </label>
+        </div>`).join('');
+}
+
+async function loadOpsAlerts() {
+    if (!window.sb || !document.getElementById('oaEvents')) return;
+    let cfg = {};
+    try {
+        const r = await sb.from('site_settings').select('value').eq('key', 'ops_alerts').maybeSingle();
+        let v = r.data && r.data.value;
+        if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+        if (v && typeof v === 'object') cfg = v;
+    } catch (_) { /* no row yet is the normal first-run state, not an error */ }
+    const sms = document.getElementById('oaSmsFrom');
+    if (sms) sms.value = cfg.smsFrom === 'warn' ? 'warn' : 'critical';
+    const q = document.getElementById('oaQuota');
+    if (q) q.value = String([0.6, 0.7, 0.8, 0.9].indexOf(Number(cfg.quotaWarnAt)) !== -1 ? cfg.quotaWarnAt : 0.8);
+    renderOpsAlerts(cfg);
+}
+window.loadOpsAlerts = loadOpsAlerts;
+
+async function saveOpsAlerts() {
+    const out = document.getElementById('oaStatus');
+    const say = (m, bad) => {
+        if (out) { out.textContent = m; out.style.color = bad ? 'var(--error)' : 'var(--success,#4ade80)'; }
+        if (typeof window.showToast === 'function') window.showToast(m, bad ? 'error' : 'success');
+    };
+    if (!window.sb) { say('Not signed in to the database yet — reload and try again.', true); return; }
+    const severity = {};
+    document.querySelectorAll('[data-oa-sev]').forEach((el) => {
+        // Only non-default choices are stored, so the row stays readable and a
+        // future change to the shipped default reaches everyone who never set one.
+        if (el.value) severity[el.getAttribute('data-oa-sev')] = el.value;
+    });
+    const mute = [];
+    document.querySelectorAll('[data-oa-mute]').forEach((el) => {
+        if (el.checked) mute.push(el.getAttribute('data-oa-mute'));
+    });
+    const cfg = {
+        smsFrom: (document.getElementById('oaSmsFrom') || {}).value === 'warn' ? 'warn' : 'critical',
+        quotaWarnAt: Number((document.getElementById('oaQuota') || {}).value) || 0.8,
+        severity, mute,
+    };
+    try {
+        const r = await sb.from('site_settings')
+            .upsert({ key: 'ops_alerts', value: cfg, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+        if (r.error) throw r.error;
+        await logAdminAudit('settings.update', 'site_settings', 'ops_alerts', { muted: mute.length });
+        say('Alert settings saved.');
+    } catch (e) { say('Could not save: ' + ((e && e.message) || 'unknown error'), true); }
+}
+window.saveOpsAlerts = saveOpsAlerts;

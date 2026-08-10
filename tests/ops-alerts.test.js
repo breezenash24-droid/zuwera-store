@@ -129,5 +129,45 @@ console.log('\n  the store decides what is worth waking someone for');
     (W2.match(/settings: emailKeyCache/g) || []).length >= 3);
 }
 
+
+console.log('\n  the settings have somewhere to be set');
+{
+  /* This was the only feature whose setting existed with no interface, which
+     made it the one most likely to be forgotten or mistyped. */
+  const AM = fs.readFileSync(ROOT + 'admin-main.js', 'utf8');
+  const AH = fs.readFileSync(ROOT + 'admin.html', 'utf8');
+  ok('there is a panel, and opening the page loads it',
+    /id="oaEvents"/.test(AH) && /loadOpsAlerts\(\);/.test(AM));
+  ok('…and it saves to the row the Workers actually read',
+    /key: 'ops_alerts', value: cfg/.test(AM));
+
+  /* A row for an event nobody fires is a control that does nothing; an event
+     with no row is a setting you cannot reach. Both directions are checked
+     against the keys the Workers emit. */
+  const emitted = new Set();
+  for (const f of ['functions/api/stripe-webhook.js', 'functions/api/shippo-rates.js']) {
+    const src = fs.readFileSync(ROOT + f, 'utf8');
+    // Trailing '-' is the month suffix (…'shippo-quota-' + shippoMonthKey()).
+    for (const m of src.matchAll(/key: '([a-z-]+?)-?'/g)) emitted.add(m[1].replace(/-$/, ''));
+  }
+  // Scoped to the declaration, or every unrelated array in a 550KB file matches.
+  const decl = AM.slice(AM.indexOf('const OPS_ALERT_EVENTS'), AM.indexOf('function renderOpsAlerts'));
+  const listed = new Set([...decl.matchAll(/\['([a-z-]+)'/g)].map((m) => m[1]));
+  const unreachable = [...emitted].filter((k) => !listed.has(k));
+  const dead = [...listed].filter((k) => !emitted.has(k));
+  ok('every alert the code emits has a row in the editor', unreachable.length === 0, unreachable.join(', '));
+  ok('…and every row in the editor is an alert the code emits', dead.length === 0, dead.join(', '));
+
+  /* Storing only non-default choices keeps the row readable AND means a future
+     change to the shipped default reaches everyone who never set one. */
+  ok('only non-default choices are written', /if \(el\.value\) severity\[/.test(AM));
+  ok('a missing row on first run is the normal state, not an error',
+    /catch \(_\) \{ \/\* no row yet is the normal first-run state/.test(AM));
+  ok('saving reports where the person is looking',
+    /window\.showToast === 'function'\) window\.showToast\(m/.test(AM));
+  ok('…and is audit-logged like every other settings write',
+    /logAdminAudit\('settings\.update', 'site_settings', 'ops_alerts'/.test(AM));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
