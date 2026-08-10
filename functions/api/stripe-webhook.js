@@ -1020,7 +1020,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
     if (loops.ok) {
       /* Two down, one left. Warn rather than critical — the customer got their
          email — but this is the last tier, so it is worth someone's morning. */
-      await notifyOps(env, {
+      await notifyOps(env, { settings: emailKeyCache,
         severity: 'warn', key: 'email-fallback-loops',
         event: 'Email sent via Loops — Resend AND Brevo both failed',
         detail: 'Resend: ' + resendError + '\nBrevo: ' + brevoError,
@@ -1032,7 +1032,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
     /* Critical: an order confirmation is not being delivered. SMS fires here
        and nowhere in this chain, because this is the only tier where a customer
        is actually left without their email. */
-    await notifyOps(env, {
+    await notifyOps(env, { settings: emailKeyCache,
       severity: 'critical', key: 'email-all-providers-down',
       event: 'Every email provider failed — order confirmations are not sending',
       detail: allFailed, avoid: ['resend', 'brevo'],
@@ -1044,7 +1044,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
   /* The alert this file previously did not have. Deliberately NOT routed
      through Resend — an alert saying "Resend is down", sent via Resend, arrives
      only when it is not needed. */
-  await notifyOps(env, {
+  await notifyOps(env, { settings: emailKeyCache,
     severity: 'warn', key: 'email-fallback-brevo',
     event: 'Email fell back to Brevo — Resend was unavailable',
     detail: 'Resend: ' + resendError, avoid: ['resend'],

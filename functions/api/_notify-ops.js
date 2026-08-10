@@ -34,6 +34,46 @@
    request it was reporting on would be worse than the silence it replaces.
    ──────────────────────────────────────────────────────────────────────────── */
 
+/* ── Which events are which severity, and when ────────────────────────────
+   Hardcoding this was me deciding whose night gets interrupted. A store that
+   sends ten emails a day does not want an SMS because Resend blipped; one that
+   sends ten thousand might. So the severity of every edge, the quota threshold
+   and the SMS cutoff are settings, with the shipped values as defaults.
+
+   Read from site_settings.ops_alerts (admin: Settings → Alerts), shape:
+
+     {
+       "severity":   { "email-fallback-brevo": "critical", … },   per event key
+       "quotaWarnAt": 0.8,          fraction of the free tier that warns
+       "smsFrom":    "critical",    lowest severity that may send an SMS
+       "mute":       ["veeqo-no-rates"]        events to drop entirely
+     }
+
+   Callers still pass the severity they believe an edge deserves; this only
+   ever overrides it, so a new edge works before anyone configures anything. */
+export const ALERT_DEFAULTS = {
+  quotaWarnAt: 0.8,
+  smsFrom: 'critical',
+  severity: {},
+  mute: [],
+};
+
+const RANK = { warn: 1, critical: 2 };
+
+export function alertConfig(cache = {}) {
+  let raw = cache && cache.ops_alerts;
+  if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch (_) { raw = null; } }
+  const c = (raw && typeof raw === 'object') ? raw : {};
+  const q = Number(c.quotaWarnAt);
+  return {
+    // Clamped: 0 would warn on the first label, >1 could never fire at all.
+    quotaWarnAt: (isFinite(q) && q > 0 && q <= 1) ? q : ALERT_DEFAULTS.quotaWarnAt,
+    smsFrom: RANK[c.smsFrom] ? c.smsFrom : ALERT_DEFAULTS.smsFrom,
+    severity: (c.severity && typeof c.severity === 'object') ? c.severity : {},
+    mute: Array.isArray(c.mute) ? c.mute.map(String) : [],
+  };
+}
+
 const DEDUPE_WINDOW_MS = 60 * 60 * 1000;
 const seen = new Map();
 
@@ -137,7 +177,15 @@ async function toSms(env, { event }) {
  */
 export async function notifyOps(env, opts = {}) {
   try {
-    const severity = opts.severity === 'critical' ? 'critical' : 'warn';
+    const cfg = alertConfig(opts.settings);
+    const key = String(opts.key || opts.event || 'unspecified');
+    /* Muted events are dropped before dedupe, so muting one does not consume
+       the hour-slot of an event that shares its key prefix. */
+    if (cfg.mute.indexOf(key) !== -1) return { muted: true };
+    /* The caller's severity is a default the store may overrule — per event
+       key, so "Brevo fallback" can be critical here and a warning elsewhere. */
+    const asked = opts.severity === 'critical' ? 'critical' : 'warn';
+    const severity = RANK[cfg.severity[key]] ? cfg.severity[key] : asked;
     const event = String(opts.event || 'unspecified').slice(0, 200);
     const payload = {
       severity, event,
@@ -145,12 +193,14 @@ export async function notifyOps(env, opts = {}) {
       avoid: opts.avoid || [],
       store: opts.store || 'zuwera.store',
     };
-    if (!firstSend(String(opts.key || event), Date.now())) return { deduped: true };
+    if (!firstSend(key, Date.now())) return { deduped: true };
 
     /* allSettled, not all: one dead channel must not stop the others. The
        whole point is that something reaches a person. */
     const jobs = [toSlack(env, payload), toEmail(env, payload)];
-    if (severity === 'critical') jobs.push(toSms(env, payload));
+    // SMS floor is a setting: a store can lower it to 'warn' if it wants
+    // every fallback on its phone, or leave it where it is.
+    if (RANK[severity] >= RANK[cfg.smsFrom]) jobs.push(toSms(env, payload));
     const out = await Promise.allSettled(jobs);
     const sent = out.some((r) => r.status === 'fulfilled' && r.value && r.value.ok);
     /* Logged either way — this line is the last resort when every channel is
