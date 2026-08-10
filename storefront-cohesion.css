@@ -4750,3 +4750,74 @@ html[data-zw-hide~="bag"]     :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-ba
     font-size: clamp(1.5rem, 2vw, 2.1rem) !important;
   }
 }
+
+/* ── Header text colour, on every page ────────────────────────────────────
+   `color: var(--zw-nav-fg, inherit)` lived only in nav.css, which bag.html and
+   product.html link and nothing else does. So the header-text setting worked on
+   the product page and left every other header black — the same reach problem
+   as the placement rules, found the same way.
+
+   All six header dialects, because the setting is about the bar rather than
+   about whichever class a given page happened to name its bar. `inherit` as the
+   fallback, so a theme that sets no header text colour changes nothing and the
+   page's own rules keep deciding. */
+:is(#nav, .nav, .zw-nav, .co-header) {
+  color: var(--zw-nav-fg, inherit);
+}
+/* The controls inside it inherit rather than keeping their own colour, or the
+   bar's text would change while the bag and account labels beside it did not.
+   Only when a theme actually sets one — hence the :not(). */
+html:not([data-zw-nav-fg-unset]) :is(#nav, .nav, .zw-nav, .co-header) :is(.nav-link, .nbtn, .zw-hdr-action, .zw-nav-btn, .nav-logo, .nav-logo-link, .zw-nav-logo) {
+  color: var(--zw-nav-fg, inherit);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   TOKEN FOUNDATION — the palette and the alpha ladder, on every page.
+
+   These live in base.css, which bag.html and product.html link and no other
+   page does. Twelve pages therefore had --fg-rgb and the whole ladder
+   UNDEFINED: every `var(--c08)`, `var(--c55)`, `var(--border)` built on them
+   resolved to nothing and the declaration was dropped. Borders that never
+   drew, muted text that fell back to whatever it inherited, and a type scale
+   multiplying tokens no page could see.
+
+   That single fact is underneath most of the "correct rule, wrong page" bugs
+   found this session, so it is fixed at the source rather than one symptom at
+   a time.
+
+   Declared here at the SAME specificity base.css uses, and this file loads
+   before a page's own <style>, so any page defining its own values still wins.
+   Nothing that works today changes; only the undefined cases gain a value.
+
+   Kept in step with base.css by a test that compares the two, because a second
+   copy of a palette is a second thing to forget.
+   ════════════════════════════════════════════════════════════════════════ */
+:root {
+  --fg-rgb: 244 241 235;
+  --bg-rgb: 9 9 11;
+}
+body.light-mode      { --fg-rgb: 10 10 10; --bg-rgb: 240 238 233; }
+body.super-light-mode{ --bg-rgb: 255 255 255; }
+
+/* On body, not :root — a rung declared on :root resolves against :root's
+   --fg-rgb and inherits the RESULT, so body.light-mode could never move it.
+   The same reason base.css puts it here. */
+body {
+  --c06:  rgb(var(--fg-rgb) / 6%);
+  --c07:  rgb(var(--fg-rgb) / 7%);
+  --c08:  rgb(var(--fg-rgb) / 8%);
+  --c10:  rgb(var(--fg-rgb) / 10%);
+  --c12:  rgb(var(--fg-rgb) / 12%);
+  --c14:  rgb(var(--fg-rgb) / 14%);
+  --c15:  rgb(var(--fg-rgb) / 15%);
+  --c20:  rgb(var(--fg-rgb) / 20%);
+  --c30:  rgb(var(--fg-rgb) / 30%);
+  --c35:  rgb(var(--fg-rgb) / 35%);
+  --c40:  rgb(var(--fg-rgb) / 40%);
+  --c45:  rgb(var(--fg-rgb) / 45%);
+  --c50:  rgb(var(--fg-rgb) / 50%);
+  --c55:  rgb(var(--fg-rgb) / 55%);
+  --c65:  rgb(var(--fg-rgb) / 65%);
+  --c70:  rgb(var(--fg-rgb) / 70%);
+  --c80:  rgb(var(--fg-rgb) / 80%);
+}
