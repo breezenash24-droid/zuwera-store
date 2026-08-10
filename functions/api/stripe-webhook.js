@@ -23,6 +23,7 @@ import Stripe from 'stripe';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { sendOrderAlerts } from './_order-alerts.js';
 import { mutateSetting } from './_commerce.js';
+import { notifyOps } from './_notify-ops.js';
 import { loopsFallback } from './_email.js';
 import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } from './_email-theme.js';
 import { buildUserData, sendCapiEvents } from './_capi.js';
@@ -1016,10 +1017,37 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
       text: `Your Zuwera order #${orderId} is confirmed and being prepared.\n\nView your order: https://zuwera.store/confirm.html?order=${orderId}\n\nQuestions? orders@zuwera.store`,
       dataVariables: { orderId, orderUrl: `https://zuwera.store/confirm.html?order=${orderId}` },
     });
-    if (loops.ok) return { provider: 'loops', resendError, brevoError };
-    throw new Error('All email providers failed. Resend: ' + resendError + ' | Brevo: ' + brevoError + (loops.skipped ? ' | Loops: not configured' : ' | ' + (loops.error || 'Loops failed')));
+    if (loops.ok) {
+      /* Two down, one left. Warn rather than critical — the customer got their
+         email — but this is the last tier, so it is worth someone's morning. */
+      await notifyOps(env, {
+        severity: 'warn', key: 'email-fallback-loops',
+        event: 'Email sent via Loops — Resend AND Brevo both failed',
+        detail: 'Resend: ' + resendError + '\nBrevo: ' + brevoError,
+        avoid: ['resend', 'brevo'],
+      });
+      return { provider: 'loops', resendError, brevoError };
+    }
+    const allFailed = 'All email providers failed. Resend: ' + resendError + ' | Brevo: ' + brevoError + (loops.skipped ? ' | Loops: not configured' : ' | ' + (loops.error || 'Loops failed'));
+    /* Critical: an order confirmation is not being delivered. SMS fires here
+       and nowhere in this chain, because this is the only tier where a customer
+       is actually left without their email. */
+    await notifyOps(env, {
+      severity: 'critical', key: 'email-all-providers-down',
+      event: 'Every email provider failed — order confirmations are not sending',
+      detail: allFailed, avoid: ['resend', 'brevo'],
+    });
+    throw new Error(allFailed);
   }
 
   console.log('Email sent via Brevo fallback to', toEmail, '(Resend was unavailable)');
+  /* The alert this file previously did not have. Deliberately NOT routed
+     through Resend — an alert saying "Resend is down", sent via Resend, arrives
+     only when it is not needed. */
+  await notifyOps(env, {
+    severity: 'warn', key: 'email-fallback-brevo',
+    event: 'Email fell back to Brevo — Resend was unavailable',
+    detail: 'Resend: ' + resendError, avoid: ['resend'],
+  });
   return { provider: 'brevo', resendError };
 }

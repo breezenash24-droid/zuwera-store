@@ -7,7 +7,8 @@
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { veeqoGetRates, veeqoKey } from './_veeqo.js';
-import { getShippoMonthlyCount, shippoFreeLimit } from './_shipping-usage.js';
+import { getShippoMonthlyCount, shippoFreeLimit, shippoMonthKey } from './_shipping-usage.js';
+import { notifyOps } from './_notify-ops.js';
 
 const CORS = (env) => ({
   'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
@@ -304,12 +305,57 @@ export async function onRequestPost({ request, env }) {
       veeqoConfigured ? veeqoGetRates({ env, from: fromAddress, to: toAddr, parcel, settingsCache }) : Promise.resolve([]),
     ]);
 
-    const pool = (shippoCount < limit)
+    const withinFreeTier = shippoCount < limit;
+    const pool = withinFreeTier
       ? [...shippoRates, ...veeqoRates]
       : (veeqoRates.length ? veeqoRates : shippoRates);
 
+    /* Alerts on the three states worth hearing about. Warned BEFORE the quota
+       is spent, not after — "you have run out" arrives too late to do anything
+       about, and the whole reason to know is to act while there is still room. */
+    if (withinFreeTier && limit > 0 && shippoCount >= Math.floor(limit * 0.8)) {
+      await notifyOps(env, {
+        severity: 'warn', key: 'shippo-quota-' + shippoMonthKey(),
+        event: 'Shippo is at ' + shippoCount + '/' + limit + ' labels this month',
+        detail: 'Past ' + limit + ', rate-shopping falls to Veeqo alone'
+          + (veeqoConfigured ? '.' : ' — and Veeqo is NOT configured, so rates would stop.'),
+      });
+    }
+    if (!withinFreeTier) {
+      /* This is the quiet degradation worth naming: the site keeps quoting, but
+         it is one provider's rates rather than two, so "cheapest across
+         carriers" silently becomes "cheapest Veeqo has". Nothing is broken and
+         the pricing is no longer what it was. */
+      await notifyOps(env, {
+        severity: veeqoRates.length ? 'warn' : 'critical',
+        key: 'shippo-quota-spent-' + shippoMonthKey(),
+        event: veeqoRates.length
+          ? 'Shippo free tier spent — quoting from Veeqo only'
+          : 'Shippo free tier spent and Veeqo returned nothing',
+        detail: shippoCount + '/' + limit + ' used. Rate-shopping is no longer comparing two providers.',
+      });
+    }
+
     if (!pool.length) {
+      /* Neither provider quoted. Checkout cannot show shipping, so this is the
+         one shipping state that costs orders right now. */
+      await notifyOps(env, {
+        severity: 'critical', key: 'shipping-no-rates',
+        event: 'No shipping rates from any provider — checkout cannot quote',
+        detail: 'Shippo: ' + shippoRates.length + ' rates, Veeqo: ' + veeqoRates.length
+          + ' rates (configured: ' + veeqoConfigured + '). Destination '
+          + (toAddr.state || '?') + ' ' + (toAddr.zip || '?') + ' ' + (toAddr.country || '?'),
+      });
       return json({ error: 'No shipping rates available' }, 502, headers);
+    }
+    /* Both configured, one silent: rate-shopping is running on half its
+       inputs and the prices shown are not the ones the store expects. */
+    if (withinFreeTier && veeqoConfigured && !veeqoRates.length && shippoRates.length) {
+      await notifyOps(env, {
+        severity: 'warn', key: 'veeqo-no-rates',
+        event: 'Veeqo returned no rates — quoting from Shippo alone',
+        detail: 'Rate-shopping is comparing one provider instead of two.',
+      });
     }
 
     let usable = sortRates(mergeCheapestPerService(filterAndCleanRates(pool)));
