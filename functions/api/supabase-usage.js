@@ -100,21 +100,50 @@ async function billingUsage(env) {
   } catch (_) {}
   const slug = Array.isArray(orgs) && orgs[0] && (orgs[0].slug || orgs[0].id);
 
+  /* Supabase's dashboard clearly HAS these numbers — cached egress, database
+     size, MAU, edge invocations — so a route exists. It is not in the
+     documented stable API, which is why this is a list rather than a call: the
+     org-scoped v1 routes, the project-scoped one, and the `platform/` prefix
+     the dashboard itself uses. Whichever answers wins.
+
+     The previous version tried three and, when none worked, said only
+     "no_endpoint" — which is indistinguishable from a bad token, an expired
+     token, a wrong org, and a route that has simply moved. Four different
+     problems reported as one word, so there was nothing to act on. Each attempt
+     now records its status, and the panel can say WHICH failure this is. */
   const candidates = [
     slug ? `https://api.supabase.com/v1/organizations/${encodeURIComponent(slug)}/usage` : null,
-    `https://api.supabase.com/v1/projects/${encodeURIComponent(ref)}/usage`,
+    slug ? `https://api.supabase.com/platform/organizations/${encodeURIComponent(slug)}/usage` : null,
     slug ? `https://api.supabase.com/v1/organizations/${encodeURIComponent(slug)}/billing/usage` : null,
+    slug ? `https://api.supabase.com/platform/organizations/${encodeURIComponent(slug)}/billing/usage` : null,
+    `https://api.supabase.com/v1/projects/${encodeURIComponent(ref)}/usage`,
+    `https://api.supabase.com/platform/projects/${encodeURIComponent(ref)}/usage`,
+    `https://api.supabase.com/v1/projects/${encodeURIComponent(ref)}/billing/usage`,
   ].filter(Boolean);
 
+  const attempts = [];
   for (const url of candidates) {
     try {
       const r = await fetch(url, { headers: H });
+      // Recorded whether it worked or not — the failures are the diagnosis.
+      attempts.push({ url: url.replace('https://api.supabase.com', ''), status: r.status });
       if (!r.ok) continue;
       const data = await r.json().catch(() => null);
-      if (data) return { available: true, source: url, data };
-    } catch (_) {}
+      if (data) return { available: true, source: url, data, attempts };
+    } catch (e) {
+      attempts.push({ url: url.replace('https://api.supabase.com', ''), status: 'threw: ' + (e && e.message) });
+    }
   }
-  return { available: false, reason: 'no_endpoint', tried: candidates.length, org: slug || null };
+  /* 401 everywhere means the token; 404 everywhere means the routes moved; a
+     mix means the org slug is wrong. Naming which of those it is turns "did not
+     answer" into something someone can actually fix. */
+  const codes = attempts.map((a) => a.status);
+  const reason =
+    codes.every((c) => c === 401 || c === 403) ? 'token_rejected'
+    : codes.every((c) => c === 404)            ? 'routes_moved'
+    : !slug                                    ? 'no_org_found'
+    : 'no_endpoint';
+  return { available: false, reason, org: slug || null, attempts };
 }
 
 export async function onRequestOptions() {

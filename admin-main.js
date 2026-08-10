@@ -3104,7 +3104,18 @@
                         ? 'No <code>SUPABASE_ACCESS_TOKEN</code> set, so egress and billed database size cannot be read from here. Everything below is measured directly instead.'
                         : 'A token is set but Supabase\'s usage endpoint did not answer (it is not part of their documented stable API). Egress is only visible on the Supabase dashboard for now.';
                     html += '<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:10px 12px;margin-bottom:16px;line-height:1.6;">'
-                        + '⚠️ ' + why + '</div>';
+                        + '⚠️ ' + why
+                        /* The status of each route tried, folded away. This is
+                           what turns "it does not work" into a message someone
+                           can send back and have fixed. */
+                        + (Array.isArray(b.attempts) && b.attempts.length
+                            ? '<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:.78rem;opacity:.8;">What was tried</summary>'
+                              + '<pre style="margin:6px 0 0;font-size:.72rem;white-space:pre-wrap;">'
+                              + escapeHtml(b.attempts.map(a => a.status + '  ' + a.url).join(String.fromCharCode(10)))
+
+                              + '</pre></details>'
+                            : '')
+                        + '</div>';
                 }
 
                 const m = j.measured || {};
