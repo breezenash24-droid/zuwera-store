@@ -111,6 +111,21 @@ function pickItemImage(item, variantMap, defaults) {
       || '';
 }
 
+/* Radar scores live on the charge, not the PaymentIntent, and the charge is
+   only present when the webhook payload expanded it. Reading it defensively
+   rather than assuming: an outcome that is not there must yield null, never a
+   guess, because a fabricated 'normal' is indistinguishable from a real one the
+   moment anyone looks at the numbers. */
+function riskOf(pi) {
+  const charge = (pi && pi.charges && Array.isArray(pi.charges.data) && pi.charges.data[0])
+    || (pi && typeof pi.latest_charge === 'object' ? pi.latest_charge : null);
+  const outcome = charge && charge.outcome;
+  if (!outcome) return { level: null, score: null };
+  const level = typeof outcome.risk_level === 'string' ? outcome.risk_level : null;
+  const score = Number.isInteger(outcome.risk_score) ? outcome.risk_score : null;
+  return { level, score };
+}
+
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 export async function onRequestPost({ request, env }) {
@@ -740,6 +755,33 @@ async function saveOrderToSupabase(pi, meta, tracking, env) {
   if (!resp.ok) {
     const detail = await resp.text();
     throw new Error('Supabase insert failed (' + resp.status + '): ' + detail);
+  }
+
+  /* Radar's verdict, stamped AFTER the order is saved and fully non-fatal —
+     the same shape the feature-flag stamp below uses, and for the same reason:
+     PostgREST rejects the WHOLE row for one unknown column, so putting these in
+     the insert would mean every order failing to save until migration 0006 is
+     applied. A payment succeeded; nothing about recording a risk score is worth
+     losing the order over.
+
+     Captured at all because Radar does essentially nothing in test mode and the
+     score is NOT recoverable — a charge scored last week cannot be re-scored,
+     so a day without this is a day of evidence gone about whether real
+     customers are being wrongly flagged. */
+  try {
+    const risk = riskOf(pi);
+    if (risk.level || risk.score !== null) {
+      await fetch(env.SUPABASE_URL + '/rest/v1/orders?stripe_payment_intent_id=eq.' + encodeURIComponent(pi.id), {
+        method: 'PATCH',
+        headers: {
+          apikey: serviceKey, Authorization: 'Bearer ' + serviceKey,
+          'Content-Type': 'application/json', Prefer: 'return=minimal',
+        },
+        body: JSON.stringify({ risk_level: risk.level, risk_score: risk.score }),
+      });
+    }
+  } catch (e) {
+    console.warn('Risk stamp skipped (non-fatal):', e.message);
   }
 
   // Best-effort: stamp the buyer's active feature-flag variants onto the order so
