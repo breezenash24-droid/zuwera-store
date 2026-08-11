@@ -280,7 +280,18 @@ const TOKEN_SAFETY_WINDOW_S = 120;
 
 async function getCheckoutAuthPayload() {
   const sb = window.sb || window._sb || null;
-  if (!sb?.auth?.getSession) return { accessToken: '' };
+  /* No Supabase client on this page — checkout.html does not build one. That
+     used to mean an empty token, so the payment request carried no proof of
+     who the shopper was and the server priced them as a guest. A member was
+     not merely SHOWN the wrong price, they were charged it.
+     The stored token is the same credential the SDK would have handed over,
+     read from the same place; it just cannot be refreshed without the SDK, so
+     only a live one is used. */
+  if (!sb?.auth?.getSession) {
+    const stored = window.ZWStock && typeof ZWStock.storedAccessToken === 'function'
+      ? ZWStock.storedAccessToken() : '';
+    return { accessToken: stored };
+  }
 
   const result = await sb.auth.getSession().catch(() => null);
   let session = result?.data?.session || null;
