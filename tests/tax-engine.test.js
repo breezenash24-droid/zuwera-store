@@ -10,20 +10,39 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
 /* Load _tax.js with its ESM wrapper stripped and its one import stubbed. The
    settings read is the only thing it needs from outside, so the stub is the
    whole seam. */
-function loadTax(settings = {}) {
+function loadTax(settings = {}, fetchStub) {
   let src = fs.readFileSync(ROOT + '/functions/api/_tax.js', 'utf8')
     .replace(/^import [^\n]*\n/gm, '')
     .replace(/^export /gm, '');
-  src += '\n;module.exports={resolveTax,getTaxRateForAddress,getTaxEngineConfig,normalizeStateCode,TAX_ENGINES};';
+  src += '\n;module.exports={resolveTax,getTaxRateForAddress,getTaxEngineConfig,normalizeStateCode,'
+      +  'TAX_ENGINES,TAX_CATEGORIES,taxCodeFor,recordTaxSale,reverseTaxSale};';
   const mod = { exports: {} };
   new Function('module', 'fetchSiteSettings', 'fetch', 'console', 'setTimeout', src)(
     mod,
     async () => settings,
-    globalThis.fetch,
+    fetchStub || globalThis.fetch,
     { error() {}, warn() {}, log() {} },  // quiet: failures here are the point
     setTimeout
   );
   return mod.exports;
+}
+
+/* Records every outbound call so a test can assert what a provider was actually
+   sent, not merely what came back. Most of the bugs in this layer are things
+   never put in the request. */
+function spyFetch(responder) {
+  const calls = [];
+  const fn = async (url, init) => {
+    calls.push({ url: String(url), body: init && init.body ? String(init.body) : '', init });
+    const r = responder ? responder(String(url), init) : null;
+    return {
+      ok: r ? r.ok !== false : true,
+      status: r && r.status ? r.status : 200,
+      json: async () => (r && r.body) || {},
+    };
+  };
+  fn.calls = calls;
+  return fn;
 }
 
 const OHIO = { state: 'OH', zip: '45202', country: 'US', city: 'Cincinnati', line1: '1 Main St' };
@@ -191,6 +210,185 @@ const OHIO = { state: 'OH', zip: '45202', country: 'US', city: 'Cincinnati', lin
     const hook = fs.readFileSync(ROOT + '/functions/api/stripe-webhook.js', 'utf8')
       + fs.readFileSync(ROOT + '/functions/api/_fulfil.js', 'utf8');
     ok('the webhook records it on the order', /tax_engine:\s*meta\.tax_engine/.test(hook));
+  }
+
+  /* ── Switching provider must be a setting, not a project ─────────────────
+     The store wants Stripe Tax now and might want TaxJar later. That is only
+     true if everything downstream of "who prices it" is provider-neutral: the
+     cart lines, the product categories, reporting the sale, reversing it on a
+     refund. These check the seams where a provider name could leak out. */
+  console.log('\n  the cart reaches the provider as real lines');
+  {
+    const CART = [
+      { sku: 'TEE-S', name: 'Tee', quantity: 3, amountTotal: 8000, taxCategory: 'clothing' },
+      { sku: 'CAP',   name: 'Cap', quantity: 1, amountTotal: 2000, taxCategory: 'general'  },
+    ];
+
+    const stripeSpy = spyFetch(() => ({ body: { id: 'taxcalc_1', tax_amount_exclusive: 812 } }));
+    const { resolveTax: stripeTax } = loadTax({
+      tax_engine: { engine: 'stripe_tax', taxCodes: { stripe_tax: { clothing: 'txcd_CLOTHES' } } },
+    }, stripeSpy);
+    const sOut = await stripeTax({
+      env: { STRIPE_SECRET_KEY: 'sk_test' }, request: null, address: OHIO,
+      taxableCents: 10000, shippingCents: 815, lineItems: CART,
+    });
+    const sBody = decodeURIComponent(stripeSpy.calls[0].body).replace(/\+/g, ' ');
+
+    ok('each cart line is sent separately, not as one lump',
+      /line_items\[0\]\[amount\]=8000/.test(sBody) && /line_items\[1\]\[amount\]=2000/.test(sBody), sBody.slice(0, 200));
+    /* Why it matters: New York exempts clothing under $110 per garment. A lump
+       cannot express that; three $80 shirts and one $240 line are different
+       questions with different right answers. */
+    ok('…with the quantity, so per-item thresholds can apply',
+      /line_items\[0\]\[quantity\]=3/.test(sBody), sBody.slice(0, 200));
+    ok('the category becomes the provider\'s own code',
+      /line_items\[0\]\[tax_code\]=txcd_CLOTHES/.test(sBody), sBody.slice(0, 200));
+    ok('a category with no code configured sends none, rather than a guess',
+      !/line_items\[1\]\[tax_code\]/.test(sBody), sBody.slice(0, 200));
+    ok('shipping is declared, since many states tax it',
+      /shipping_cost\[amount\]=815/.test(sBody), sBody.slice(0, 200));
+    ok('the calculation handle comes back for reporting', sOut.ref === 'taxcalc_1', sOut.ref);
+
+    /* Same cart, same categories, different provider — and nothing about the
+       cart had to change. This is the claim the whole layer exists to make. */
+    const jarSpy = spyFetch(() => ({ body: { tax: { amount_to_collect: 8.12, rate: 0.0812 } } }));
+    const { resolveTax: jarTax } = loadTax({
+      tax_engine: { engine: 'taxjar', taxCodes: { taxjar: { clothing: '20010' } } },
+    }, jarSpy);
+    const jOut = await jarTax({
+      env: { TAXJAR_API_KEY: 'k' }, request: null, address: OHIO,
+      taxableCents: 10000, shippingCents: 815, lineItems: CART,
+    });
+    const jBody = JSON.parse(jarSpy.calls[0].body);
+
+    ok('the same cart goes to TaxJar as lines too', jBody.line_items.length === 2, JSON.stringify(jBody.line_items));
+    ok('…with TaxJar\'s code for the same neutral category',
+      jBody.line_items[0].product_tax_code === '20010', JSON.stringify(jBody.line_items[0]));
+    ok('…and no code where none is configured',
+      !('product_tax_code' in jBody.line_items[1]), JSON.stringify(jBody.line_items[1]));
+    ok('both providers priced the same cart to the same cents',
+      sOut.taxCents === jOut.taxCents, sOut.taxCents + ' vs ' + jOut.taxCents);
+  }
+
+  console.log('\n  a completed sale is reported, so there is something to file');
+  {
+    const ORDER = {
+      orderNumber: 'ZW-1001', createdAt: '2026-08-11T00:00:00Z',
+      subtotalCents: 10000, shippingCents: 815, taxCents: 812,
+      address: { state: 'OH', zip: '45202', city: 'Cincinnati', line1: '1 Main St', country: 'US' },
+    };
+
+    const spy = spyFetch(() => ({ body: { id: 'tax_txn_1' } }));
+    const { recordTaxSale } = loadTax({ tax_engine: { engine: 'stripe_tax' } }, spy);
+    const r = await recordTaxSale({ env: { STRIPE_SECRET_KEY: 'sk' }, ref: 'taxcalc_1', order: ORDER });
+    ok('Stripe Tax is told the calculation became a sale',
+      r.ok && /tax\/transactions\/create_from_calculation/.test(spy.calls[0].url), JSON.stringify(r));
+    ok('…tagged with the order number, so it can be found again',
+      /reference=ZW-1001/.test(decodeURIComponent(spy.calls[0].body)), spy.calls[0].body);
+    ok('…and the transaction id comes back to be stored', r.id === 'tax_txn_1', r.id);
+
+    const jarSpy = spyFetch(() => ({ body: { order: { transaction_id: 'ZW-1001' } } }));
+    const { recordTaxSale: jarRecord } = loadTax({ tax_engine: { engine: 'taxjar' } }, jarSpy);
+    const jr = await jarRecord({ env: { TAXJAR_API_KEY: 'k' }, ref: '', order: ORDER });
+    ok('TaxJar is told too, from the same call with the same arguments',
+      jr.ok && /transactions\/orders/.test(jarSpy.calls[0].url), JSON.stringify(jr));
+    /* TaxJar files from the order rather than from a prior quote, so it needs no
+       handle — proving the caller genuinely does not have to know which. */
+    ok('…even though it was given no calculation handle', jr.ok && jr.id === 'ZW-1001', jr.id);
+
+    /* Engines with no filing product must not be made to look like a failure —
+       otherwise every order on the built-in table logs an error for ever. */
+    for (const engine of ['builtin', 'ziptax', 'none']) {
+      const { recordTaxSale: skipRecord } = loadTax({ tax_engine: { engine } }, spyFetch());
+      const sr = await skipRecord({ env: {}, ref: '', order: ORDER });
+      ok(engine + ' reports nothing, and says so rather than failing',
+        sr.ok && !!sr.skipped, JSON.stringify(sr));
+    }
+
+    /* The customer has already paid. A provider outage here is a bookkeeping
+       retry, never an exception into the fulfilment path. */
+    const boom = spyFetch(() => { throw new Error('provider down'); });
+    const { recordTaxSale: failRecord } = loadTax({ tax_engine: { engine: 'stripe_tax' } }, boom);
+    let threw = false;
+    let fr = null;
+    try { fr = await failRecord({ env: { STRIPE_SECRET_KEY: 'sk' }, ref: 'taxcalc_1', order: ORDER }); }
+    catch (_) { threw = true; }
+    ok('a provider outage never throws into fulfilment', !threw);
+    ok('…it reports the failure instead, so it is visible', fr && fr.ok === false && !!fr.error, JSON.stringify(fr));
+  }
+
+  console.log('\n  a refund reverses the filing, or you pay tax on a sale that came back');
+  {
+    const ORDER = { orderNumber: 'ZW-1001', address: { state: 'OH', zip: '45202', country: 'US' } };
+
+    const spy = spyFetch(() => ({ body: { id: 'rev_1' } }));
+    const { reverseTaxSale } = loadTax({ tax_engine: { engine: 'stripe_tax' } }, spy);
+    const full = await reverseTaxSale({
+      env: { STRIPE_SECRET_KEY: 'sk' }, transactionId: 'tax_txn_1',
+      order: ORDER, amountCents: 10812, taxCents: 812, full: true,
+    });
+    ok('Stripe Tax gets a reversal against the recorded transaction',
+      full.ok && /create_reversal/.test(spy.calls[0].url), JSON.stringify(full));
+    ok('…referring to the transaction the sale was filed under',
+      /original_transaction=tax_txn_1/.test(decodeURIComponent(spy.calls[0].body)), spy.calls[0].body);
+    ok('…as a full reversal when the whole order came back',
+      /mode=full/.test(decodeURIComponent(spy.calls[0].body)), spy.calls[0].body);
+
+    const partSpy = spyFetch(() => ({ body: { id: 'rev_2' } }));
+    const { reverseTaxSale: partial } = loadTax({ tax_engine: { engine: 'stripe_tax' } }, partSpy);
+    await partial({
+      env: { STRIPE_SECRET_KEY: 'sk' }, transactionId: 'tax_txn_1',
+      order: ORDER, amountCents: 4000, taxCents: 300, full: false,
+    });
+    const pBody = decodeURIComponent(partSpy.calls[0].body);
+    ok('a partial refund reverses only its share', /mode=partial/.test(pBody), pBody);
+    ok('…as a negative amount, which is what a reversal is', /flat_amount=-4000/.test(pBody), pBody);
+
+    const jarSpy = spyFetch(() => ({ body: { refund: { transaction_id: 'ZW-1001-refund' } } }));
+    const { reverseTaxSale: jarReverse } = loadTax({ tax_engine: { engine: 'taxjar' } }, jarSpy);
+    const jr = await jarReverse({
+      env: { TAXJAR_API_KEY: 'k' }, transactionId: '',
+      order: ORDER, amountCents: 4000, taxCents: 300, full: false,
+    });
+    const jBody = JSON.parse(jarSpy.calls[0].body);
+    ok('TaxJar gets the refund from the same call', jr.ok && /transactions\/refunds/.test(jarSpy.calls[0].url));
+    ok('…pointing back at the order it reverses', jBody.transaction_reference_id === 'ZW-1001', JSON.stringify(jBody));
+    ok('…with negative amounts, since a refund is a sale in reverse',
+      jBody.amount < 0 && jBody.sales_tax < 0, JSON.stringify(jBody));
+  }
+
+  console.log('\n  the money path carries all of it');
+  {
+    const pricing = fs.readFileSync(ROOT + '/functions/api/_cart-pricing.js', 'utf8');
+    const cpi     = fs.readFileSync(ROOT + '/functions/api/create-payment-intent.js', 'utf8');
+    const fulfil  = fs.readFileSync(ROOT + '/functions/api/_fulfil.js', 'utf8');
+    const refund  = fs.readFileSync(ROOT + '/functions/api/admin-refund.js', 'utf8');
+
+    ok('the quote sends the cart as lines', /lineItems: taxLineItems/.test(pricing));
+    /* Lines that do not add up to what is charged would have the provider tax
+       money nobody paid, which a promo makes routine rather than rare. */
+    ok('…scaled to the discounted total, exactly', /remainder/.test(pricing) && /discountedSubtotalCents \/ subtotalCents/.test(pricing));
+    ok('the calculation handle is carried on the payment', /tax_ref: tax\.ref/.test(cpi));
+    ok('a completed sale is reported from fulfilment', /reportSaleToTaxProvider/.test(fulfil));
+    ok('…and the provider\'s transaction id stored for the refund to find',
+      /metadata\[tax_txn\]/.test(fulfil));
+    ok('a refund reverses it', /reverseTaxSale\(/.test(refund));
+
+    /* The Tax page writes the whole engine config back on every save. It used
+       to write only { engine, fallback, endpoint }, so saving the engine picker
+       would silently drop the categories and provider codes underneath it —
+       the same read-modify-write loss this codebase has hit before. */
+    const adminTax = fs.readFileSync(ROOT + '/admin-tax.js', 'utf8');
+    ok('saving the engine keeps the categories and codes',
+      /\.\.\._taxEngineCfg,/.test(adminTax));
+    ok('…and the category picker is actually reachable',
+      /tax-default-category/.test(adminTax) && /tax-category-wrap/.test(fs.readFileSync(ROOT + '/admin.html', 'utf8')));
+    /* The seam that matters: none of these files may name a provider. The
+       moment one does, switching provider stops being a setting. */
+    for (const [name, src] of [['the quote', pricing], ['fulfilment', fulfil], ['the refund', refund]]) {
+      ok(name + ' names no tax provider of its own',
+        !/taxjar|stripe_tax|ziptax|avalara/i.test(src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')));
+    }
   }
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

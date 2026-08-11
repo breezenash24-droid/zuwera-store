@@ -70,6 +70,80 @@ function recallRate(engine, address) {
 
 export const TAX_ENGINES = ['builtin', 'taxjar', 'ziptax', 'stripe_tax', 'external', 'none'];
 
+/* ── What a store sells, in nobody's vocabulary in particular ────────────────
+   Every provider has its own code system for "this is clothing": Stripe writes
+   txcd_30011000, TaxJar writes 20010, Avalara writes something else again. Tag
+   products with a provider's codes and switching provider means re-tagging the
+   catalogue — which is the thing that makes a tax provider hard to leave.
+
+   So products carry a neutral category and each engine maps it to its own code
+   on the way out. Switching from Stripe Tax to TaxJar is then a setting change
+   and nothing else, which is the point.
+
+   This matters most for a clothing store: clothing is exempt in PA, NJ and MN
+   and exempt under $110 per garment in NY. A provider that is not told the
+   goods are clothing charges full rate on all of it, and the exemption is most
+   of why you would pay for a provider at all. */
+export const TAX_CATEGORIES = {
+  general:  'General goods',
+  clothing: 'Clothing',
+  footwear: 'Footwear',
+  digital:  'Digital goods',
+  exempt:   'Not taxable',
+};
+
+/* Deliberately EMPTY rather than pre-filled with codes I would be guessing at.
+   A blank code means "send no code", and every provider then applies the
+   default set in its own dashboard — which for Stripe Tax is a real setting
+   (Tax → Default product tax code) and the right place for it to live.
+
+   A wrong tax code is a compliance error that looks like a working checkout,
+   so these are filled in from Admin → Tax against the provider's own published
+   list, never inferred here. */
+const DEFAULT_TAX_CODES = { stripe_tax: {}, taxjar: {} };
+
+/** The provider's own code for one of our categories, or '' to send none. */
+export function taxCodeFor(engine, category, config = {}) {
+  const cat = String(category || 'general').toLowerCase();
+  if (!Object.prototype.hasOwnProperty.call(TAX_CATEGORIES, cat)) return '';
+  const configured = (config.taxCodes || {})[engine] || {};
+  const shipped = DEFAULT_TAX_CODES[engine] || {};
+  return String(configured[cat] ?? shipped[cat] ?? '');
+}
+
+/* Cart lines in the shape a provider wants, with the category resolved to that
+   provider's code. Falls back to one lumped line when the caller has no item
+   detail — the display path asking "what is the rate around here?" rather than
+   pricing a real cart. A lump is a worse question: per-item rules like New
+   York's $110 clothing threshold cannot be applied to it. */
+function providerLines(engine, lineItems, taxableCents, config) {
+  const items = Array.isArray(lineItems)
+    ? lineItems.filter((i) => i && (Number(i.amountTotal) > 0 || Number(i.amount) > 0))
+    : [];
+  if (!items.length) {
+    return [{
+      amount: Math.max(0, Math.round(taxableCents)),
+      quantity: 1,
+      reference: 'cart',
+      code: taxCodeFor(engine, config.defaultCategory, config),
+    }];
+  }
+  return items.map((item, i) => ({
+    /* Line TOTAL, not unit price: both providers want the extended amount.
+       `amountTotal` wins when the caller has already worked it out — a cart
+       with a promo on it has line totals that do not divide evenly by quantity,
+       and re-deriving them here would not add back up to what is being charged. */
+    amount: Math.max(0, Math.round(
+      Number.isFinite(Number(item.amountTotal))
+        ? Number(item.amountTotal)
+        : Number(item.amount) * (Number(item.quantity) || 1),
+    )),
+    quantity: Number(item.quantity) || 1,
+    reference: String(item.sku || item.name || ('line' + i)).slice(0, 60),
+    code: taxCodeFor(engine, item.taxCategory || config.defaultCategory, config),
+  }));
+}
+
 // ─── The built-in table ────────────────────────────────────────────────────
 // Moved here from create-payment-intent so both the engine layer and the
 // payment path read one copy. Behaviour is unchanged.
@@ -280,6 +354,20 @@ export async function getTaxEngineConfig(env) {
     // amount is worse for you than collecting an approximate one.
     fallback: raw.fallback !== false,
     endpoint: String(raw.endpoint || ''),   // 'external' engine only
+
+    /* What this store sells, when a product does not say for itself. A clothing
+       store sets this once and every line is priced as clothing. */
+    defaultCategory: Object.prototype.hasOwnProperty.call(TAX_CATEGORIES, raw.defaultCategory)
+      ? raw.defaultCategory : 'general',
+
+    /* { stripe_tax: { clothing: 'txcd_…' }, taxjar: { clothing: '20010' } } —
+       each provider's own codes for our neutral categories. Blank sends none. */
+    taxCodes: (raw.taxCodes && typeof raw.taxCodes === 'object') ? raw.taxCodes : {},
+
+    /* Whether a completed sale is reported back to the provider for filing.
+       On by default: a provider that priced the order and never heard it
+       completed bills you for the calculation and has nothing to file from. */
+    reportSales: raw.reportSales !== false,
   };
 }
 
@@ -295,9 +383,10 @@ function withTimeout(promise, ms, label) {
   ]);
 }
 
-async function fromTaxJar({ env, address, taxableCents, shippingCents }) {
+async function fromTaxJar({ env, config, address, taxableCents, shippingCents, lineItems }) {
   const key = env.TAXJAR_API_KEY;
   if (!key) throw new Error('TAXJAR_API_KEY not set');
+  const lines = providerLines('taxjar', lineItems, taxableCents, config);
   const resp = await withTimeout(fetch('https://api.taxjar.com/v2/taxes', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
@@ -312,6 +401,14 @@ async function fromTaxJar({ env, address, taxableCents, shippingCents }) {
       to_street: address.line1 || '',
       amount: taxableCents / 100,
       shipping: (shippingCents || 0) / 100,
+      /* Per line, so a clothing exemption applies to the garments and not to
+         the whole cart. Sending only `amount` gets everything taxed alike. */
+      line_items: lines.map((l, i) => ({
+        id: String(i + 1),
+        quantity: l.quantity,
+        unit_price: (l.amount / l.quantity) / 100,
+        ...(l.code ? { product_tax_code: l.code } : {}),
+      })),
     }),
   }), TAX_API_TIMEOUT_MS, 'TaxJar');
   if (!resp.ok) throw new Error('TaxJar ' + resp.status);
@@ -335,14 +432,12 @@ async function fromZipTax({ env, address, taxableCents }) {
   return { taxCents: Math.round(taxableCents * rate), rate, note: 'ziptax' };
 }
 
-async function fromStripeTax({ env, address, taxableCents }) {
+async function fromStripeTax({ env, config, address, taxableCents, shippingCents, lineItems }) {
   const key = env.STRIPE_SECRET_KEY;
   if (!key) throw new Error('STRIPE_SECRET_KEY not set');
   // Tax Calculations API. Form-encoded, like the rest of Stripe.
   const body = new URLSearchParams({
     currency: 'usd',
-    'line_items[0][amount]': String(taxableCents),
-    'line_items[0][reference]': 'cart',
     'customer_details[address][country]': address.country || 'US',
     'customer_details[address][postal_code]': address.zip || '',
     'customer_details[address][state]': normalizeStateCode(address.state),
@@ -350,6 +445,21 @@ async function fromStripeTax({ env, address, taxableCents }) {
     'customer_details[address][line1]': address.line1 || '',
     'customer_details[address_source]': 'shipping',
   });
+
+  /* Real lines rather than one lump. New York exempts clothing under $110 PER
+     GARMENT — a single $240 line is over the threshold and a cart of three $80
+     shirts is not, and only one of those is the truth. */
+  providerLines('stripe_tax', lineItems, taxableCents, config).forEach((l, i) => {
+    body.set(`line_items[${i}][amount]`, String(l.amount));
+    body.set(`line_items[${i}][quantity]`, String(l.quantity));
+    body.set(`line_items[${i}][reference]`, l.reference);
+    if (l.code) body.set(`line_items[${i}][tax_code]`, l.code);
+  });
+
+  /* Shipping is taxable in a good many states and was not being declared at
+     all, so those orders under-collected on the postage. */
+  if (shippingCents > 0) body.set('shipping_cost[amount]', String(Math.round(shippingCents)));
+
   const resp = await withTimeout(fetch('https://api.stripe.com/v1/tax/calculations', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -363,6 +473,10 @@ async function fromStripeTax({ env, address, taxableCents }) {
     taxCents: Math.round(amount),
     rate: taxableCents > 0 ? amount / taxableCents : 0,
     note: 'stripe_tax',
+    /* The calculation's id. Stripe will only file a sale you report back to it,
+       and reporting is done by referring to this calculation — so it has to
+       survive as far as the webhook that sees the payment succeed. */
+    ref: String(data?.id || ''),
   };
 }
 
@@ -426,7 +540,7 @@ const ADAPTERS = {
  * is the one that actually produced the number, which is not always the one
  * that was configured, and that difference is the thing worth recording.
  */
-export async function resolveTax({ env, request, address, taxableCents, shippingCents = 0, dbOverrides = null }) {
+export async function resolveTax({ env, request, address, taxableCents, shippingCents = 0, dbOverrides = null, lineItems = null }) {
   const config = await getTaxEngineConfig(env);
   /* A caller that did not bring the admin's overrides gets them read here rather
      than quietly pricing without them. The payment path passes its own (it is
@@ -457,7 +571,7 @@ export async function resolveTax({ env, request, address, taxableCents, shipping
   if (!adapter) return { ...builtin(), engine: 'builtin', fallbackFrom: config.engine, note: 'no adapter' };
 
   try {
-    const out = await adapter({ env, config, address, taxableCents, shippingCents });
+    const out = await adapter({ env, config, address, taxableCents, shippingCents, lineItems });
     const rate = out.rate || (taxableCents > 0 ? out.taxCents / taxableCents : 0);
     rememberRate(config.engine, address, rate);
     return {
@@ -465,6 +579,9 @@ export async function resolveTax({ env, request, address, taxableCents, shipping
       rate,
       stateCode: normalizeStateCode(address?.state),
       engine: config.engine,
+      /* The provider's handle on this calculation, for reporting the sale once
+         it completes. Empty for engines with nothing to report to. */
+      ref: out.ref || '',
     };
   } catch (err) {
     console.error('[tax] ' + config.engine + ' failed:', err.message);
@@ -495,5 +612,165 @@ export async function resolveTax({ env, request, address, taxableCents, shipping
       };
     }
     return { ...builtin(), fallbackFrom: config.engine, failed: true };
+  }
+}
+
+/* ── Telling the provider the sale actually happened ─────────────────────────
+
+   A calculation is a quote, not a record. Stripe Tax and TaxJar both bill for
+   pricing an order and both file from a separate list of COMPLETED sales — so
+   an integration that only ever calculates gets charged for every checkout and
+   arrives at filing season with nothing to file from. That was the state of
+   this repo before now: nothing anywhere called either provider's transaction
+   API.
+
+   Both verbs below are deliberately shaped the same and take the same neutral
+   arguments, so which provider is configured is not something the fulfilment
+   or refund code has to know. Adding Avalara later means adding two functions
+   here and nothing anywhere else.
+
+   Neither may ever throw into its caller. The customer has already paid; a
+   provider being down is a bookkeeping problem to retry, not a reason to fail
+   an order that has money attached to it. Both report what happened so a
+   failure is visible rather than silent. */
+
+/** Report a completed sale. Returns { ok, id, engine, skipped?, error? }. */
+export async function recordTaxSale({ env, ref, order }) {
+  const config = await getTaxEngineConfig(env);
+  const engine = config.engine;
+
+  if (!config.reportSales) return { ok: true, skipped: 'reporting turned off', engine };
+  /* Nothing to report to: the table is ours, Zip-Tax is a rate lookup with no
+     filing product, and 'none' means something outside this checkout handles
+     tax entirely. */
+  if (engine === 'builtin' || engine === 'ziptax' || engine === 'none') {
+    return { ok: true, skipped: 'engine files nothing', engine };
+  }
+
+  try {
+    if (engine === 'stripe_tax') {
+      if (!ref) return { ok: false, engine, error: 'no calculation to report' };
+      const key = env.STRIPE_SECRET_KEY;
+      if (!key) return { ok: false, engine, error: 'STRIPE_SECRET_KEY not set' };
+      const body = new URLSearchParams({ calculation: ref, reference: String(order?.orderNumber || '') });
+      const resp = await withTimeout(fetch('https://api.stripe.com/v1/tax/transactions/create_from_calculation', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+      }), TAX_API_TIMEOUT_MS, 'Stripe Tax record');
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok) return { ok: false, engine, error: 'Stripe ' + resp.status + ' ' + (data?.error?.message || '') };
+      return { ok: true, engine, id: String(data?.id || '') };
+    }
+
+    if (engine === 'taxjar') {
+      const key = env.TAXJAR_API_KEY;
+      if (!key) return { ok: false, engine, error: 'TAXJAR_API_KEY not set' };
+      /* TaxJar files from the order itself rather than from a prior quote, so
+         there is no handle to carry — the order number is the id on both
+         sides, which is also what a refund later refers back to. */
+      const resp = await withTimeout(fetch('https://api.taxjar.com/v2/transactions/orders', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction_id: String(order?.orderNumber || ''),
+          transaction_date: order?.createdAt || new Date().toISOString(),
+          from_country: 'US',
+          from_zip: env.SHIPPO_FROM_ZIP || '',
+          from_state: env.SHIPPO_FROM_STATE || '',
+          to_country: order?.address?.country || 'US',
+          to_zip: order?.address?.zip || '',
+          to_state: normalizeStateCode(order?.address?.state),
+          to_city: order?.address?.city || '',
+          to_street: order?.address?.line1 || '',
+          amount: (order?.subtotalCents || 0) / 100,
+          shipping: (order?.shippingCents || 0) / 100,
+          sales_tax: (order?.taxCents || 0) / 100,
+        }),
+      }), TAX_API_TIMEOUT_MS, 'TaxJar record');
+      const data = await resp.json().catch(() => null);
+      /* Already filed — a webhook retry, not a fault. */
+      if (resp.status === 422 && /already exists/i.test(JSON.stringify(data || ''))) {
+        return { ok: true, engine, id: String(order?.orderNumber || ''), duplicate: true };
+      }
+      if (!resp.ok) return { ok: false, engine, error: 'TaxJar ' + resp.status };
+      return { ok: true, engine, id: String(data?.order?.transaction_id || order?.orderNumber || '') };
+    }
+
+    return { ok: true, skipped: 'engine has no reporting API', engine };
+  } catch (err) {
+    return { ok: false, engine, error: (err && err.message) || String(err) };
+  }
+}
+
+/** Reverse a reported sale, in full or in part. Same contract as above. */
+export async function reverseTaxSale({ env, transactionId, order, amountCents, taxCents, full = false }) {
+  const config = await getTaxEngineConfig(env);
+  const engine = config.engine;
+
+  if (!config.reportSales) return { ok: true, skipped: 'reporting turned off', engine };
+  if (engine === 'builtin' || engine === 'ziptax' || engine === 'none') {
+    return { ok: true, skipped: 'engine files nothing', engine };
+  }
+
+  try {
+    if (engine === 'stripe_tax') {
+      if (!transactionId) return { ok: false, engine, error: 'no recorded transaction to reverse' };
+      const key = env.STRIPE_SECRET_KEY;
+      if (!key) return { ok: false, engine, error: 'STRIPE_SECRET_KEY not set' };
+      const body = new URLSearchParams({
+        original_transaction: transactionId,
+        mode: full ? 'full' : 'partial',
+        /* Stripe requires a reference unique to the reversal, not the order —
+           two partial refunds on one order are two reversals. */
+        reference: 'refund-' + String(order?.orderNumber || '') + '-' + Date.now(),
+      });
+      if (!full) {
+        body.set('flat_amount', String(-Math.abs(Math.round(amountCents || 0))));
+      }
+      const resp = await withTimeout(fetch('https://api.stripe.com/v1/tax/transactions/create_reversal', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+      }), TAX_API_TIMEOUT_MS, 'Stripe Tax reversal');
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok) return { ok: false, engine, error: 'Stripe ' + resp.status + ' ' + (data?.error?.message || '') };
+      return { ok: true, engine, id: String(data?.id || '') };
+    }
+
+    if (engine === 'taxjar') {
+      const key = env.TAXJAR_API_KEY;
+      if (!key) return { ok: false, engine, error: 'TAXJAR_API_KEY not set' };
+      const orderId = String(order?.orderNumber || '');
+      const resp = await withTimeout(fetch('https://api.taxjar.com/v2/transactions/refunds', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          /* TaxJar wants a refund id distinct from the order id it refers to. */
+          transaction_id: orderId + '-refund-' + Date.now(),
+          transaction_reference_id: orderId,
+          transaction_date: new Date().toISOString(),
+          from_country: 'US',
+          from_zip: env.SHIPPO_FROM_ZIP || '',
+          from_state: env.SHIPPO_FROM_STATE || '',
+          to_country: order?.address?.country || 'US',
+          to_zip: order?.address?.zip || '',
+          to_state: normalizeStateCode(order?.address?.state),
+          to_city: order?.address?.city || '',
+          to_street: order?.address?.line1 || '',
+          /* Negative: a refund is a sale in reverse in TaxJar's ledger. */
+          amount: -Math.abs((amountCents || 0) / 100),
+          shipping: 0,
+          sales_tax: -Math.abs((taxCents || 0) / 100),
+        }),
+      }), TAX_API_TIMEOUT_MS, 'TaxJar reversal');
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok) return { ok: false, engine, error: 'TaxJar ' + resp.status };
+      return { ok: true, engine, id: String(data?.refund?.transaction_id || '') };
+    }
+
+    return { ok: true, skipped: 'engine has no reporting API', engine };
+  } catch (err) {
+    return { ok: false, engine, error: (err && err.message) || String(err) };
   }
 }

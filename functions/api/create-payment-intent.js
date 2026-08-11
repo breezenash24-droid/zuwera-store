@@ -150,6 +150,11 @@ export async function onRequestPost({ request, env }) {
           // since an external provider that failed falls back to the table. The
           // Tax page reads this so a figure at filing time can be attributed.
           tax_engine: tax.fallbackFrom ? `${tax.fallbackFrom}→builtin` : (tax.engine || 'builtin'),
+          /* The provider's handle on the calculation. A tax provider only files
+             sales it has been told completed, and it is told by referring back
+             to this — so it has to survive from here to the webhook. Empty for
+             engines with nothing to file. */
+          tax_ref: tax.ref || '',
           total_amount_cents: String(totalCents),
           feature_flags: featureFlagsMeta,
           ship_line1: address.line1 || '',
