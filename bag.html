@@ -750,6 +750,7 @@ body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-co
      "how many are there?" the same way the payment path does — the bag used to
      answer it from a stockQty snapshot taken when the item was added and never
      refreshed, which is why a bag could hold 3 of something with 1 in stock. -->
+<script src="customer-messages.js?v=1"></script>
 <script src="stock-rules.js?v=7d59dc24"></script>
 <script>
 /* ===================== CORE SETUP ===================== */
@@ -1076,7 +1077,9 @@ function applyStockLimits(cart) {
       if (plus && combined >= available) {
         plus.disabled = true;
         plus.setAttribute('aria-disabled', 'true');
-        plus.title = available > 0 ? `Only ${available} in stock` : 'Out of stock';
+        plus.title = available > 0
+          ? ZWStock.msg('capReached', { count: available, size: item.size })
+          : ZWStock.msg('soldOut');
       }
 
       const note = document.createElement('div');
@@ -1087,11 +1090,11 @@ function applyStockLimits(cart) {
            and checkout would otherwise refuse the whole order with no way to
            act on it. */
         note.classList.add('is-out');
-        note.textContent = 'Out of stock — remove it to check out';
+        ZWStock.applyMsg(note, 'soldOutInBag');
         card.querySelector('.cart-item-details')?.appendChild(note);
         mountRestockPrompt(card, item);
       } else if (combined >= available) {
-        note.textContent = `Only ${available} left`;
+        ZWStock.applyMsg(note, 'lowStockShort', { count: available });
         card.querySelector('.cart-item-details')?.appendChild(note);
       }
     });
@@ -1126,7 +1129,9 @@ function mountRestockPrompt(card, item) {
       productId: item.productId, size: item.size,
       colorName: item.colorName, email: input.value,
     }).then((res) => {
-      msg.textContent = res.message;
+      // Wording AND colour from the admin's settings; see customer-messages.js.
+      if (res.key) ZWStock.applyMsg(msg, res.key, { size: item.size });
+      else msg.textContent = res.message;
       msg.classList.toggle('is-err', !res.ok);
       btn.disabled = false; btn.textContent = 'Notify Me';
       if (res.ok) input.disabled = true;
@@ -1159,8 +1164,8 @@ window.updateCartQuantity = function(idx, delta) {
         const combined = ZWStock.cartQtyFor(cart, item);
         if (combined >= available) {
           showToast(available > 0
-            ? `Only ${available} in stock for ${item.size}`
-            : `${item.title || 'That item'} (${item.size}) is out of stock`);
+            ? ZWStock.msg('capReached', { count: available, size: item.size })
+            : ZWStock.msg('soldOutItem', { title: item.title, size: item.size }));
           return;
         }
       }

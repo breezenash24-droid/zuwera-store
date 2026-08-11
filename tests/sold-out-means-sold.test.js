@@ -113,17 +113,22 @@ console.log('\n  the pages say it the way the rule says it');
   ok('the product page asks for the distinction', /ZWStock\.availability\(/.test(src),
     'it is back to deriving sold-out from a bare number');
 
-  /* Proximity, in LINES and after normalising endings — counting characters
+  /* The wording itself now lives in customer-messages.js, so what is checked
+     here is the BRANCHING: which message key each case reaches for. That is the
+     part this file is about — the sentences moved, the rule did not.
+
+     Proximity, in LINES and after normalising endings — counting characters
      made an earlier guard's verdict depend on git autocrlf, so it passed on
      Windows and failed in CI. */
   const lines = src.replace(/\r\n/g, '\n').split('\n');
-  const idx = lines.findIndex((l) => /textContent\s*=\s*'Out of stock'/.test(l));
+  const idx = lines.findIndex((l) => /msg\(\s*'soldOut'\s*\)/.test(l));
   const near = idx === -1 ? '' : lines.slice(Math.max(0, idx - 4), idx + 2).join('\n');
-  ok('…and prints "Out of stock" only under the shelf-derived flag',
-    idx !== -1 && /soldOut/.test(near), idx === -1 ? 'no such line' : near.trim());
+  ok('…and reaches for the sold-out message only under the shelf-derived flag',
+    idx !== -1 && /soldOut\b/.test(near), idx === -1 ? 'no such line' : near.trim());
 
   ok('…and tells the shopper when it is their own bag stopping them',
-    /in your bag/.test(src), 'the held-by-you case has no wording of its own');
+    /'lastInBag'/.test(src) && /'allInBag'/.test(src),
+    'the held-by-you case has no message of its own');
 }
 
 {

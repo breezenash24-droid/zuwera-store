@@ -3595,9 +3595,10 @@ function updateStockInfo() {
     btn.classList.toggle('disabled', !enabled);
   };
 
+  // Wording from ZWMessages so the admin can edit it; see customer-messages.js.
   if (avail.soldOut) {
     // Genuinely gone: someone paid for the last one.
-    info.textContent = 'Out of stock';
+    info.textContent = ZWStock.msg('soldOut');
     setBtn(false);
   } else if (avail.heldByYou) {
     /* Still in stock — they are holding it. Add to Bag is off because there is
@@ -3605,11 +3606,11 @@ function updateStockInfo() {
        cannot be read as the store having sold out. Matches the toast the add
        handler shows for the same situation. */
     info.textContent = avail.inBag === 1
-      ? 'The only one is in your bag'
-      : `All ${avail.inBag} are in your bag`;
+      ? ZWStock.msg('lastInBag')
+      : ZWStock.msg('allInBag', { count: avail.inBag });
     setBtn(false);
   } else if (avail.left <= threshold) {
-    info.textContent = `Only ${avail.left} left in stock`;
+    info.textContent = ZWStock.msg('lowStock', { count: avail.left });
     setBtn(true);
   } else {
     info.textContent = '';
@@ -3959,7 +3960,7 @@ function openRestockPanel(size) {
   const msg = document.getElementById('restock-msg');
   const emailEl = document.getElementById('restock-email');
   if (!panel) return;
-  if (label) label.textContent = `Size ${size} is sold out — get notified when it's back`;
+  if (label) ZWStock.applyMsg(label, 'restockPrompt', { size });
   if (msg) { msg.textContent = ''; msg.style.color = ''; }
   // Prefill from the signed-in session when available.
   if (emailEl && !emailEl.value.trim()) {
@@ -4003,16 +4004,16 @@ window.submitRestockRequest = async function() {
     if (error) {
       // Unique violation = already registered; everything else surfaces.
       if (String(error.code) === '23505') {
-        if (msg) { msg.textContent = "You're already on the list for this size."; msg.style.color = ''; }
+        if (msg) ZWStock.applyMsg(msg, 'restockAlready');
       } else {
         throw error;
       }
     } else {
-      if (msg) { msg.textContent = `✓ We'll email you when ${_restockSize} is back.`; msg.style.color = 'rgba(110,210,130,.9)'; }
+      if (msg) ZWStock.applyMsg(msg, 'restockSuccess', { size: _restockSize });
     }
     if (btn) { btn.textContent = 'Notify Me'; btn.disabled = false; }
   } catch (e) {
-    if (msg) { msg.textContent = e?.message || 'Could not save that — try again.'; msg.style.color = 'var(--red,#dc2626)'; }
+    if (msg) ZWStock.applyMsg(msg, 'restockFailed');
     if (btn) { btn.textContent = 'Notify Me'; btn.disabled = false; }
   }
 };
@@ -4079,8 +4080,8 @@ function addToCart() {
     const avail = ZWStock.availability(stockQty, cartItem, cart);
     if (!avail.canAdd) {
       showToast(avail.soldOut
-        ? `${cartItem.size} is out of stock`
-        : `That's all we have — ${avail.inBag} in your bag already`);
+        ? ZWStock.msg('soldOutItem', { title: currentProduct.title, size: cartItem.size })
+        : ZWStock.msg('maxedOut', { count: avail.inBag }));
       return;
     }
   }
@@ -5498,6 +5499,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 <script src="zw-login.js?v=5a23b163" defer></script>
 <!-- Shared stock rules. The page must subtract what is already in the bag from
      what it advertises, using the same matching the bag and checkout use. -->
+<script src="customer-messages.js?v=1" defer></script>
 <script src="stock-rules.js?v=1" defer></script>
 <script src="/nav-menu.js?v=5c1c1e4d" defer></script>
 </body>

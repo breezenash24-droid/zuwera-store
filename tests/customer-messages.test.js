@@ -1,0 +1,217 @@
+/* The words the shopper reads, and who is allowed to write them.
+ *
+ * There were five ways to say "only N left" and three copies of every
+ * back-in-stock line, spread over product.html, bag.html, quick-add-modal.js
+ * and stock-rules.js. Nobody could change the wording without finding all of
+ * them, and nobody ever found all of them.
+ *
+ * customer-messages.js is now the only place any of it is written. This file
+ * holds that: the defaults, the placeholder rules, the colour handling, and —
+ * the part that actually stops the regression — that no storefront file has
+ * quietly grown its own copy of a sentence again.
+ */
+const fs = require('fs');
+const path = require('path');
+const ROOT = path.resolve(__dirname, '..');
+
+let pass = 0, fail = 0;
+function ok(name, cond, extra) {
+  if (cond) { pass++; console.log('  ✓ ' + name); }
+  else { fail++; console.log('  ✗ ' + name + (extra ? '  — ' + extra : '')); }
+}
+
+const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+const w = {};
+new Function('window', read('customer-messages.js'))(w);
+const M = w.ZWMessages;
+
+console.log('\n  the shipped copy answers before anything has loaded');
+{
+  /* Every one of these is read by a click handler or a render pass that cannot
+     wait for a fetch, so the defaults have to be usable with no settings at
+     all. A store that never opens the editor still has to read correctly. */
+  ok('a message resolves with no overrides', M.get('soldOut') === 'Out of stock');
+  ok('placeholders fill in', M.get('lowStock', { count: 3 }) === 'Only 3 left in stock');
+  ok('every key has shipped text',
+    M.keys().every((k) => typeof M.DEFAULTS[k].text === 'string' && M.DEFAULTS[k].text.trim()));
+  ok('every key has a colour decision recorded',
+    M.keys().every((k) => typeof M.DEFAULTS[k].color === 'string'));
+  ok('an unknown key is empty rather than "undefined"', M.get('nope') === '');
+}
+
+console.log('\n  placeholders are checked, not trusted');
+{
+  ok('a placeholder the message can use is accepted', M.validate('lowStock', 'Just {count} left!') === null);
+  ok('one it cannot is refused', typeof M.validate('lowStock', 'Only {title} left') === 'string');
+  ok('…and the refusal says what IS available',
+    /\{count\}/.test(M.validate('lowStock', 'Only {title} left')));
+  ok('a message that takes none refuses all of them',
+    /takes no placeholders/.test(M.validate('soldOut', 'Gone {count}')));
+  ok('plain text is always fine', M.validate('soldOut', 'All gone') === null);
+  ok('empty reports as Empty, which means "use the default"', M.validate('soldOut', '  ') === 'Empty');
+
+  /* The rule that matters: a bad override must not reach a shopper. */
+  M.setOverrides({ lowStock: 'Only {title} left' });
+  ok('a refused override leaves the default standing',
+    M.get('lowStock', { count: 2 }) === 'Only 2 left in stock');
+  M.setOverrides({});
+}
+
+console.log('\n  overrides');
+{
+  M.setOverrides({ soldOut: 'All gone', lowStock: { text: 'Just {count} left!', color: '#ff8800' } });
+  ok('a plain string still works, since that shape shipped first', M.get('soldOut') === 'All gone');
+  ok('text and colour can both be set', M.get('lowStock', { count: 2 }) === 'Just 2 left!');
+  ok('…and the colour comes back', M.color('lowStock') === '#ff8800');
+  ok('an untouched message keeps its shipped colour',
+    M.color('restockSuccess') === M.DEFAULTS.restockSuccess.color);
+
+  /* One bad field must not cost the store the other twelve — an admin who
+     fat-fingers a colour should not silently lose their wording too. */
+  const rejected = M.setOverrides({ soldOut: { text: 'All gone', color: 'red; drop shadow' } });
+  ok('a bad colour is rejected', rejected.some((r) => /colour/i.test(r.key)));
+  ok('…while the good text on the same message survives', M.get('soldOut') === 'All gone');
+  ok('…and the colour falls back to the shipped one',
+    M.color('soldOut') === M.DEFAULTS.soldOut.color);
+
+  M.setOverrides({ soldOut: { text: 'All gone', color: '' } });
+  ok('an explicitly empty colour means inherit, not "use the default"', M.color('soldOut') === '');
+
+  M.setOverrides({ soldOut: '   ' });
+  ok('clearing a box restores the shipped wording', M.get('soldOut') === 'Out of stock');
+
+  M.setOverrides({ notAMessage: 'hello' });
+  ok('an unknown key cannot be introduced from settings', M.get('notAMessage') === '');
+  M.setOverrides(null);
+  ok('a missing settings blob is survivable', M.get('soldOut') === 'Out of stock');
+}
+
+console.log('\n  colours are colours');
+{
+  ok('hex is fine', M.validateColor('#dc2626') === null);
+  ok('rgba is fine', M.validateColor('rgba(110,210,130,.95)') === null);
+  ok('a CSS variable is fine, since the shipped defaults use them',
+    M.validateColor('var(--red,#dc2626)') === null);
+  ok('a named colour is fine', M.validateColor('inherit') === null);
+  ok('anything with a semicolon is not', typeof M.validateColor('red;background:url(x)') === 'string');
+  ok('nor is a brace', typeof M.validateColor('red}') === 'string');
+}
+
+console.log('\n  a token with no value degrades to a sentence, not to debris');
+{
+  /* The bag knows the size; the product page's toast may not know the title.
+     A half-supplied message has to still read like English. */
+  ok('a missing token leaves no gap',
+    M.get('soldOutItem', { size: 'M' }) === '(M) is out of stock');
+  ok('…and empty brackets are not left behind',
+    M.get('soldOutItem', { title: 'Aero Pro' }) === 'Aero Pro is out of stock');
+  ok('nothing supplied still reads', M.get('soldOutItem') === 'is out of stock');
+}
+
+console.log('\n  text and colour are written together');
+{
+  const el = { textContent: '', style: {} };
+  M.setOverrides({});
+  M.apply(el, 'restockSuccess', { size: 'L' });
+  ok('apply() sets the text', /L is back/.test(el.textContent));
+  ok('…and the colour in the same call', el.style.color === M.DEFAULTS.restockSuccess.color);
+
+  /* The bug this shape prevents: "you're already on the list" was reworded into
+     good news and went on being painted in the error colour, because the two
+     were set by different lines in different files. */
+  M.apply(el, 'restockAlready');
+  ok('a message that is not a failure is not coloured like one',
+    el.style.color !== M.DEFAULTS.restockFailed.color);
+  ok('…and the shipped "already on the list" is deliberately not red',
+    M.DEFAULTS.restockAlready.color !== M.DEFAULTS.restockFailed.color);
+}
+
+console.log('\n  the storefront asks rather than answering');
+{
+  /* The guard-rail. Fixing the four files that carried copies does not stop the
+     fifth being written, so any storefront file holding one of these sentences
+     as a literal fails here — on the day it is written, not years later in
+     someone's bag. */
+  const SURFACES = ['product.html', 'bag.html', 'quick-add-modal.js', 'stock-rules.js'];
+  const SENTENCES = [
+    /Out of stock/,
+    /Only \$?\{?\w*\}? ?left/,
+    /in your bag/,
+    /already on the list/,
+    /We'?.?ll email you when/,
+    /get notified when it/,
+  ];
+  const offenders = [];
+  for (const file of SURFACES) {
+    const src = strip(read(file));
+    for (const re of SENTENCES) {
+      if (re.test(src)) offenders.push(file + ' :: ' + re);
+    }
+  }
+  ok('no surface still carries the wording as a literal', offenders.length === 0,
+    offenders.join(', ') + ' — use ZWMessages.get()/apply() instead');
+
+  for (const file of SURFACES) {
+    const src = strip(read(file));
+    ok(file + ' goes through the shared messages', /ZWMessages|ZWStock\.(msg|applyMsg)|quickAddMsg|quickAddApplyMsg/.test(src));
+  }
+}
+
+console.log('\n  the file is actually loaded where it is used');
+{
+  /* ZWStock.msg() swallows a missing ZWMessages and returns '' — an absent
+     sentence beats a wrong one — which also means a forgotten script tag would
+     show up as blank labels rather than as an error. This is what catches it. */
+  const PAGES = ['product.html', 'bag.html', 'index.html', 'checkout.html', 'account.html', 'admin.html'];
+  for (const page of PAGES) {
+    const src = read(page);
+    ok(page + ' loads customer-messages.js',
+      /<script[^>]+src="[^"]*customer-messages\.js/.test(src), 'no script tag');
+  }
+
+  /* Order matters on the pages that render during parse, for the same reason
+     it did for stock-rules.js: the answer has to exist before it is asked for. */
+  for (const page of ['product.html', 'bag.html', 'index.html', 'checkout.html']) {
+    const src = read(page);
+    const messages = src.search(/<script[^>]+src="[^"]*customer-messages\.js/);
+    const rules = src.search(/<script[^>]+src="[^"]*stock-rules\.js/);
+    ok(page + ' loads it before stock-rules.js', messages !== -1 && rules !== -1 && messages < rules,
+      'messages at ' + messages + ', rules at ' + rules);
+  }
+}
+
+console.log('\n  the admin editor and the storefront cannot describe different messages');
+{
+  /* The editor builds its fields from ZWMessages.keys() and validates with
+     ZWMessages.validate(), rather than from a list typed out in admin-main.js.
+     A hand-kept copy would drift within a release — which is the whole reason
+     this module exists. */
+  const admin = strip(read('admin-main.js'));
+  ok('the editor reads its keys from the shared module', /ZWMessages\.keys\(\)|M\.keys\(\)/.test(admin));
+  ok('…and validates with the storefront\'s own rules', /\.validate\(/.test(admin) && /\.validateColor\(/.test(admin));
+  ok('…and does not hardcode the shipped wording',
+    !/Only \{count\} left in stock/.test(admin), 'admin-main.js carries its own copy of a default');
+}
+
+console.log('\n  the popup validation copy is editable and no longer written twice');
+{
+  /* The reported one: "Pop your email in above and the code is yours." was
+     hardcoded, and hardcoded TWICE in the same file — once for the live popup
+     and once for the admin preview, so the preview could show copy the shopper
+     would never see. */
+  const src = strip(read('email-popup.js'));
+  /* The whole sentence, not the shared opening words: 'Pop your email in
+     above' legitimately begins two different defaults (discount and signup). */
+  const literal = (src.match(/Pop your email in above and the code is yours/g) || []).length;
+  ok('the copy appears once, as a default', literal === 1, 'found ' + literal + ' copies');
+  ok('…and both the live popup and the preview read it from config',
+    (src.match(/showErr\(/g) || []).length >= 6, 'one of the two paths still writes its own');
+  ok('…and it is normalised like the rest of the settings', /errors:\s*\{/.test(src));
+  ok('…and carries a colour, so a nudge need not look like an error',
+    /msgField\(/.test(src));
+}
+
+console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
+process.exit(fail ? 1 : 0);

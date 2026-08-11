@@ -64,11 +64,23 @@
       '</div>' +
     '</div>';
 
+  /* The shopper-facing copy lives in customer-messages.js and is editable in
+     admin. This file used to carry its own third copy of every back-in-stock
+     line — the product page had one, stock-rules.js had one, and they had
+     already drifted apart in wording by the time anyone noticed. */
+  function quickAddMsg(key, vars) {
+    try { return window.ZWMessages.get(key, vars); } catch (_) { return ''; }
+  }
+  function quickAddApplyMsg(el, key, vars) {
+    try { return window.ZWMessages.apply(el, key, vars); } catch (_) { return ''; }
+  }
+
   // Back-in-stock capture markup — also injected into a STATIC modal (e.g. the
   // homepage pre-renders #quick-add-review-modal in index.html) that predates it.
   // Styled to match the product page's #restock-panel exactly (pink-tinted box,
   // --white/--black button so the label reads on any theme).
-  var RESTOCK_HINT_HTML = '<p class="quick-add-size-hint" id="quick-add-size-hint" style="display:none;font-family:var(--fm);font-size:.62rem;letter-spacing:.08em;opacity:.7;margin:.5rem 0 0">Tap a sold-out size to get notified when it\'s back.</p>';
+  // Text filled in at render time from the shared messages, not baked in here.
+  var RESTOCK_HINT_HTML = '<p class="quick-add-size-hint" id="quick-add-size-hint" style="display:none;font-family:var(--fm);font-size:.62rem;letter-spacing:.08em;opacity:.7;margin:.5rem 0 0"></p>';
   var RESTOCK_PANEL_HTML = '<div class="quick-add-restock" id="quick-add-restock" style="display:none;margin-top:.9rem;padding:.95rem 1rem;border:1px solid rgba(248,145,165,.3);background:rgba(248,145,165,.05)">' +
       '<p id="quick-add-restock-label" style="font-family:var(--fm);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem;opacity:.85"></p>' +
       '<div style="display:flex;gap:.5rem">' +
@@ -128,7 +140,7 @@
     panel.dataset.size = size;
     panel.dataset.productId = item.productId || '';
     panel.dataset.color = (item.selectedColor && item.selectedColor.color_name) || '';
-    if (label) label.textContent = 'Size ' + size + " is sold out — get notified when it's back";
+    if (label) quickAddApplyMsg(label, 'restockPrompt', { size: size });
     if (msg) { msg.textContent = ''; msg.style.color = ''; }
     if (email && !email.value.trim()) {
       try {
@@ -158,25 +170,25 @@
     var productId = panel.dataset.productId;
     var color = panel.dataset.color || null;
     if (!size || !productId) return;
-    if (!val || val.indexOf('@') < 0) { if (msg) { msg.textContent = 'Enter a valid email.'; msg.style.color = 'var(--red,#dc2626)'; } return; }
+    if (!val || val.indexOf('@') < 0) { if (msg) quickAddApplyMsg(msg, 'restockInvalid'); return; }
     if (btn) { btn.disabled = true; btn.textContent = '…'; }
     // The homepage loads Supabase lazily — make sure the client exists before inserting.
     if (!window.sb && typeof window.zwEnsureSupabase === 'function') {
       try { await window.zwEnsureSupabase(); } catch (_) {}
     }
     if (!window.sb) {
-      if (msg) { msg.textContent = 'Could not connect — please try again.'; msg.style.color = 'var(--red,#dc2626)'; }
+      if (msg) quickAddApplyMsg(msg, 'restockFailed');
       if (btn) { btn.disabled = false; btn.textContent = 'Notify Me'; }
       return;
     }
     try {
       var res = await window.sb.from('restock_requests').insert({ product_id: productId, size: size, color_name: color, email: val });
       if (res.error) {
-        if (String(res.error.code) === '23505') { if (msg) { msg.textContent = "You're already on the list for this size."; msg.style.color = ''; } }
+        if (String(res.error.code) === '23505') { if (msg) quickAddApplyMsg(msg, 'restockAlready'); }
         else throw res.error;
-      } else if (msg) { msg.textContent = "✓ We'll email you when " + size + ' is back.'; msg.style.color = 'rgba(110,210,130,.95)'; }
+      } else if (msg) quickAddApplyMsg(msg, 'restockSuccess', { size: size });
     } catch (e) {
-      if (msg) { msg.textContent = (e && e.message) || 'Could not save that — try again.'; msg.style.color = 'var(--red,#dc2626)'; }
+      if (msg) quickAddApplyMsg(msg, 'restockFailed');
     }
     if (btn) { btn.disabled = false; btn.textContent = 'Notify Me'; }
   }
@@ -480,7 +492,9 @@
         var anySoldOut = sizes.some(function (pair) { return Number(pair[1]) <= 0; });
         var bisOff = false;
         try { var ff = window.__zwFlags && window.__zwFlags.feature_back_in_stock; bisOff = !!(ff && ff.enabled === false); } catch (e) {}
-        sizeHint.style.display = (anySoldOut && !bisOff) ? '' : 'none';
+        var show = anySoldOut && !bisOff;
+        if (show) quickAddApplyMsg(sizeHint, 'restockHint');
+        sizeHint.style.display = show ? '' : 'none';
       }
     }
 
