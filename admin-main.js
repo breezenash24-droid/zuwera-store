@@ -9051,6 +9051,101 @@ function escapeAttr(value) {
            page, is a question someone can answer. */
         window._zwMediaPending = null;
 
+
+        /* ── Does a sale actually take the right stock off the shelf? ──────────
+           decrement_stock is a Postgres function. No JavaScript test can reach
+           it, so it has been shipped and applied but never once confirmed — and
+           if it matches the wrong row, the store oversells with no error and no
+           log. That is the worst failure shape available here: silent, and only
+           visible when someone is told an order cannot be filled.
+
+           Waiting for a real sale is a poor way to learn it. This calls the real
+           RPC against real rows and puts everything back.
+
+           What it checks is the bug that actually happened: colour. The old
+           version matched `color_name = p_color_name` exactly, so a "Yellow"
+           order missed a "yellow" row and fell through to a colour-blind
+           fallback that took stock from whichever row it found first. So it is
+           not enough that the total went down — the RIGHT row must go down and
+           every other row must be untouched.
+
+           Restores by writing the original numbers back, and reports loudly if
+           it cannot, because a verifier that leaves stock wrong is worse than
+           no verifier. */
+        window.zwVerifyStockDecrement = async function (productId) {
+            const log = [];
+            const say = (m, bad) => { log.push(m); (bad ? console.error : console.log)(m); };
+            const restore = async (rows) => {
+                for (const r of rows) {
+                    await sb.from('product_sizes').update({ stock_quantity: r.stock_quantity }).eq('id', r.id);
+                }
+            };
+            try {
+                let q = sb.from('product_sizes').select('id,product_id,size,color_name,stock_quantity').gt('stock_quantity', 0);
+                if (productId) q = q.eq('product_id', productId);
+                const { data: rows, error } = await q.limit(200);
+                if (error) throw error;
+                if (!rows || !rows.length) { say('No size has stock, so there is nothing to decrement. Add stock and retry.', true); return log; }
+
+                /* Prefer a product whose size exists in MORE THAN ONE colour —
+                   that is the only shape where a colour mismatch is visible.
+                   A single-colour product would pass either way. */
+                const byKey = {};
+                rows.forEach((r) => {
+                    const k = r.product_id + '|' + String(r.size || '').toLowerCase();
+                    (byKey[k] = byKey[k] || []).push(r);
+                });
+                const multi = Object.values(byKey).filter((g) => g.length > 1 && g.some((r) => r.color_name));
+                const group = multi[0] || Object.values(byKey)[0];
+                const target = group.find((r) => r.color_name) || group[0];
+
+                say('Testing: product ' + target.product_id + ', size ' + target.size +
+                    ', colour ' + (target.color_name || '(none)') +
+                    (multi.length ? '  — this size exists in ' + group.length + ' colours, so a mismatch would show'
+                                  : '  — only one colour for this size, so a colour mismatch CANNOT be detected here'));
+                const before = group.map((r) => ({ id: r.id, color_name: r.color_name, stock_quantity: r.stock_quantity }));
+                before.forEach((r) => say('  before: ' + (r.color_name || '(none)') + ' = ' + r.stock_quantity));
+
+                const body = { p_product_id: target.product_id, p_size: target.size, p_qty: 1 };
+                if (target.color_name) body.p_color_name = target.color_name;
+                const { error: rpcErr } = await sb.rpc('decrement_stock', body);
+                if (rpcErr) { say('The RPC itself failed: ' + rpcErr.message, true); return log; }
+
+                const { data: after } = await sb.from('product_sizes')
+                    .select('id,color_name,stock_quantity').in('id', before.map((r) => r.id));
+                const now = {};
+                (after || []).forEach((r) => { now[r.id] = r.stock_quantity; });
+
+                let ok = true;
+                for (const r of before) {
+                    const delta = r.stock_quantity - (now[r.id] ?? r.stock_quantity);
+                    const expected = r.id === target.id ? 1 : 0;
+                    const good = delta === expected;
+                    if (!good) ok = false;
+                    say('  after:  ' + (r.color_name || '(none)') + ' = ' + now[r.id] +
+                        '  (moved ' + delta + ', expected ' + expected + ')' + (good ? '' : '   ← WRONG'), !good);
+                }
+
+                await restore(before);
+                const { data: check } = await sb.from('product_sizes')
+                    .select('id,stock_quantity').in('id', before.map((r) => r.id));
+                const restored = before.every((r) => (check || []).some((c) => c.id === r.id && c.stock_quantity === r.stock_quantity));
+                say(restored ? 'Stock restored.' : 'COULD NOT RESTORE — fix these rows by hand before selling.', !restored);
+
+                say(ok
+                    ? '✓ decrement_stock took one off the right row and touched nothing else.'
+                    : '✗ decrement_stock moved the wrong row. Do not sell until this is fixed — it will oversell silently.',
+                    !ok);
+                if (ok && !multi.length) {
+                    say('Note: no size in this catalogue exists in two colours with stock, so the colour-matching ' +
+                        'bug this was written for was NOT exercised. Add stock to a second colourway and run again.');
+                }
+            } catch (e) {
+                say('Verification could not run: ' + ((e && e.message) || e), true);
+            }
+            return log;
+        };
+
         window.zwMediaAction = async function (kind) {
             const host = document.getElementById('zwMediaAct');
             if (!host) return;
