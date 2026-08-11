@@ -165,11 +165,17 @@ console.log('\n  and a store owner can write one');
   ok('an empty list is refused at save', /would refuse everything/.test(adm),
     'a list matching nothing refuses every action of that kind');
 
-  /* The one that stops a limit being a foot-gun: the engine denies what it
-     cannot evaluate, so a limit whose attribute nothing sends does not sit
-     inert — it blocks everything. */
-  ok('a limit says when it cannot be enforced yet', /Not enforced yet/.test(adm),
-    'switching on an unwired limit refuses every action of that kind');
+  /* This assertion was guarding the wrong sentence. It checked for "Not
+     enforced yet — … or it will refuse every X", which reasons from the
+     engine's fail-closed rule: deny what you cannot evaluate. True of the
+     engine, but not of the situation — an unwired action never reaches the
+     engine at all, because no endpoint calls decide() for it. The rule is not
+     consulted, and switching it on does nothing.
+     Both readings tell you to leave it off, so the bug was invisible. It
+     matters anyway: one says "this is dangerous", the other says "this is not
+     protecting you", and only the second is true today. */
+  ok('a limit that cannot be enforced says it does nothing', /This does nothing yet/.test(adm),
+    'an unwired action never reaches the engine, so the rule is never consulted');
   ok('…and readiness is recorded per limit', /ready: (true|false)/.test(block));
   ok('…that writes where the engine reads', /key: 'abac_rules'/.test(adm),
     'a rule saved anywhere else is a rule nothing enforces');
@@ -187,8 +193,34 @@ console.log('\n  and a store owner can write one');
     /needs a number/.test(adm),
     'saving one would quietly deny every action of that kind');
 
-  ok('no roles means every role, not no roles',
-    /if \(list\.length\) r\.roles = list; else delete r\.roles/.test(adm));
+  /* The invariant moved when the text boxes became pickers, so this moved with
+     it rather than staying pointed at code nothing calls. Same rule either
+     way: the engine reads an ABSENT list as "everyone this rule already
+     covers" and an EMPTY one as "nobody matches", so removing the last chip
+     has to delete the key. Leaving [] behind switches the limit off while it
+     still renders as on. */
+  ok('removing the last one deletes the key rather than leaving []',
+    /if \(!r\[field\]\.length\) delete r\[field\]/.test(adm),
+    'an empty array matches nobody, so the limit would silently stop applying');
+
+  /* The whole reason for the directory. A typed role or email that matches
+     nothing does not error — it scopes the limit to no one, and the rule sits
+     there looking configured. */
+  ok('roles and people are chosen from a list, not typed',
+    /function abacPicker\(/.test(adm) && /window\.abacPick =/.test(adm)
+      && !/placeholder="everyone — or: manager, support"/.test(adm),
+    'the free-text boxes are gone');
+
+  ok('an entry matching nobody is shown, not dropped',
+    /matches nobody/.test(adm),
+    'silently discarding it would hide the failure this replaced');
+
+  /* Read from the list the Users table already loaded. Two lists of "who is an
+     admin" on one page eventually disagree, and the one in the authorization
+     editor is the worse of the two to be wrong. */
+  ok('the directory is the profiles the page already has',
+    /_zwProfilesById/.test(adm.slice(adm.indexOf('async function abacDirectory'),
+                                     adm.indexOf('function abacPicker'))));
 
   /* The copy is the feature here: a rule nobody trusts gets worked around by
      handing out super admin, which is worse than having no rules. */
@@ -210,6 +242,58 @@ console.log('\n  and a store owner can write one');
   const upto = html.slice(0, html.indexOf('id="abacRules"'));
   const page = (upto.match(/id="([a-zA-Z0-9_-]+)" class="page"/g) || []).pop() || '';
   ok('…which is Users, beside the roles it narrows', /id="users"/.test(page), page);
+
+  /* The warning on a not-ready limit said the wrong thing, and the wrong thing
+     was the safer-sounding of the two. It read "leave it off or it will refuse
+     every X" — describing a hazard that cannot happen yet, and hiding the one
+     that is happening: nothing calls the engine for these actions, so the rule
+     is never consulted. Ticked on, it protects nothing.
+     Believing a limit works when it does not is the failure that goes
+     unnoticed, so that is the sentence the panel has to lead with. */
+  ok('a limit that cannot bite says it does nothing, not that it refuses everything',
+    /This does nothing yet/.test(adm) && !/it will refuse every/.test(adm),
+    'the old wording described a future hazard and hid the present one');
+
+  ok('…and says so next to the switch, not only in the small print',
+    /not working yet/.test(adm));
+
+  /* Switching a rule from Refunds to Discount codes left the old sentence
+     behind, so the refused person was told about a limit unrelated to what
+     they tried. One author for that sentence, and it follows the kind unless
+     somebody wrote their own. */
+  ok('the refusal message follows the limit it belongs to',
+    /function abacDefaultLabel\(/.test(adm)
+      && /r\.label === abacDefaultLabel\(prev\)/.test(adm),
+    'a hand-written message is kept; a default is not left pointing at the wrong limit');
+}
+
+
+console.log('\n  who did what');
+{
+  const adm = fs.readFileSync(ROOT + 'admin-main.js', 'utf8');
+  const html = fs.readFileSync(ROOT + 'admin.html', 'utf8');
+
+  /* Every refund attempt was already being recorded, with the admin who was
+     signed in — and nothing ever displayed it, so "who did what refund" looked
+     like a missing feature rather than an unopened drawer. */
+  ok('the refund log is shown somewhere', /window\.zwRefundLog =/.test(adm) && /id="zwRefundLogBody"/.test(html));
+
+  const upto = html.slice(0, html.indexOf('id="zwRefundLogBody"'));
+  const page = (upto.match(/id="([a-zA-Z0-9_-]+)" class="page"/g) || []).pop() || '';
+  ok('…on Users, with the people it names', /id="users"/.test(page), page);
+
+  const usersInit = adm.slice(adm.indexOf("page === 'users'"), adm.indexOf("page === 'analytics'"));
+  ok('and its loader runs on that page', /zwRefundLog\(\)/.test(usersInit));
+
+  /* A failed attempt has to say WHY. Without the note, a mistyped
+     authorization code and a limit refusing look identical in the log, and
+     they call for completely different responses. */
+  ok('a refusal shows its reason, not just that it failed', /e\.note/.test(adm));
+
+  /* The endpoint unshifts, so the array is newest-first today. Depending on
+     that means the day it changes, the panel shows the oldest attempts and
+     looks fine doing it. */
+  ok('sorted rather than trusted to arrive in order', /\.sort\(\(a, b\) => String\(\(b && b\.at\)/.test(adm));
 }
 
 
