@@ -167,7 +167,16 @@ console.log('\n  and a store owner can write one');
      handing out super admin, which is worse than having no rules. */
   ok('the panel says limits can only take permission away',
     /take permission away/.test(html));
+
+  /* The panel and its loader have to be on the SAME page. They were not: the
+     markup went on APIs and the loader ran from the Loyalty page's init, so
+     the panel rendered empty where it lived and loaded into nothing where it
+     did not. */
+  const apis = adm.slice(adm.indexOf("page === 'apis'"), adm.indexOf("page === 'meta'"));
+  ok('the editor loads on the page it is on', /abacLoad\(\)/.test(apis),
+    'a panel whose loader runs elsewhere is a panel that is always empty');
 }
+
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

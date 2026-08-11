@@ -1054,6 +1054,10 @@
                 loadApiStatus();
                 loadIntegrations();
                 loadOpsAlerts();
+                /* The limits panel lives on THIS page. Its loader was called
+                   from the Loyalty page's init, so the panel rendered empty
+                   here and loaded data into an element that was not there. */
+                if (typeof abacLoad === 'function') abacLoad();
             } else if (page === 'meta') {
                 loadMetaStatus();
             } else if (page === 'audit') {
@@ -5343,7 +5347,6 @@
         async function loadReferralSettings() {
             loadStockRulesSettings();
             loadCustomerMessages();
-            if (typeof abacLoad === 'function') abacLoad();
             ['rf-type', 'rf-value', 'rf-min', 'rf-points', 'rf-max-uses', 'rf-expiry', 'rf-prefix', 'rf-message'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el && !el._rfBound) { el._rfBound = true; el.addEventListener('input', referralPreview); el.addEventListener('change', referralPreview); }
