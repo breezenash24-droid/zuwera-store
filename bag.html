@@ -874,7 +874,11 @@ function zwApplyPromo(promo) {
   if (rowEl)      rowEl.style.display = '';
   if (discountEl) discountEl.textContent = '-$' + promo.discount;
   if (applyBtn)   { applyBtn.textContent = 'Remove'; applyBtn.disabled = false; }
-  if (msgEl)      { msgEl.textContent = promo.message || (promo.label + ' applied!'); msgEl.style.color = 'rgba(110,210,130,.9)'; }
+  if (msgEl) {
+    ZWStock.applyMsg(msgEl, 'promoApplied', { label: promo.label });
+    // A coupon's own message, where it has one, beats the generic line.
+    if (promo.message) msgEl.textContent = promo.message;
+  }
   zwPromoUpdateSummaryTotals();
   try { bagSyncWallet(); } catch (_) {}
 }
@@ -1365,7 +1369,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       var code = (_promoInputEl ? _promoInputEl.value : '').trim().toUpperCase();
       if (!code) {
-        if (_promoMsgEl) { _promoMsgEl.textContent = 'Enter a promo code.'; _promoMsgEl.style.color = ''; }
+        ZWStock.applyMsg(_promoMsgEl, 'promoEmpty');
         return;
       }
       _promoApplyBtn.disabled = true;
@@ -1391,12 +1395,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.valid) {
           zwApplyPromo(data);
         } else {
-          if (_promoMsgEl) { _promoMsgEl.textContent = data.message || 'Invalid promo code.'; _promoMsgEl.style.color = ''; }
+          /* The server's message wins where it has one -- "expired on 1 June"
+             is more use than a generic refusal -- but it is coloured the same
+             either way. */
+          ZWStock.applyMsg(_promoMsgEl, 'promoInvalid');
+          if (_promoMsgEl && data.message) _promoMsgEl.textContent = data.message;
           _promoApplyBtn.disabled = false;
           _promoApplyBtn.textContent = 'Apply';
         }
       } catch (_e) {
-        if (_promoMsgEl) { _promoMsgEl.textContent = 'Could not validate code. Try again.'; _promoMsgEl.style.color = ''; }
+        ZWStock.applyMsg(_promoMsgEl, 'promoFailed');
         _promoApplyBtn.disabled = false;
         _promoApplyBtn.textContent = 'Apply';
       }

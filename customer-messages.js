@@ -87,6 +87,15 @@
     restockSuccess: { label: 'They joined the back-in-stock list', text: "✓ We'll email you when {size} is back.", color: ROLE.good },
     restockAlready: { label: 'They were already on the list', text: "You're already on the list for this size.", color: ROLE.plain },
     restockInvalid: { label: 'The email they typed is not usable', text: 'Enter a valid email.', color: ROLE.bad },
+    /* ── promo codes ──────────────────────────────────────────────────────────
+       A coupon can also carry its OWN message (set per code in admin), and that
+       still wins where it exists -- "expired on 1 June" beats a generic refusal.
+       These are what a shopper sees when the code has nothing specific to say. */
+    promoApplied:   { label: 'Promo code worked', text: '{label} applied!', color: ROLE.good },
+    promoEmpty:     { label: 'They pressed Apply with an empty box', text: 'Enter a promo code.', color: ROLE.plain },
+    promoInvalid:   { label: 'Promo code was not accepted', text: 'Invalid promo code.', color: ROLE.bad },
+    promoFailed:    { label: 'Could not check the promo code', text: 'Could not validate code. Try again.', color: ROLE.bad },
+
     restockFailed:  { label: 'Joining the list did not work', text: 'Could not save that — try again.', color: ROLE.bad },
 
     /* ── card declines ────────────────────────────────────────────────────────
@@ -180,6 +189,7 @@
     capReached:     ['count', 'size'],
     restockPrompt:  ['size'],
     restockSuccess: ['size'],
+    promoApplied:   ['label'],
   };
 
 
@@ -223,7 +233,8 @@
      message by context (the bag's shorter "Only 2 left", say). They are still
      fully editable; they are just not what the panel opens on. */
   var SECONDARY = {
-    soldOutBadge: 1, lowStockBadge: 1, lowStockShort: 1, capReached: 1, allInBag: 1, maxedOut: 1,
+    soldOutBadge: 1, lowStockBadge: 1, lowStockShort: 1,
+    promoEmpty: 1, promoFailed: 1, capReached: 1, allInBag: 1, maxedOut: 1,
     restockHint: 1, restockInvite: 1, restockAlready: 1, restockInvalid: 1, restockFailed: 1,
     declinePostcode: 1, declineCallBank: 1, declineNoReason: 1, declineRetry: 1,
   };
@@ -241,6 +252,7 @@
     { title: 'When stock is running low', keys: ['lowStock', 'lowStockBadge', 'lowStockShort', 'capReached'] },
     { title: 'When they already have it in their bag', keys: ['lastInBag', 'allInBag', 'maxedOut'] },
     { title: 'Back-in-stock signup', keys: ['restockHint', 'restockInvite', 'restockPrompt', 'restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed'] },
+    { title: 'Promo codes', keys: ['promoApplied', 'promoEmpty', 'promoInvalid', 'promoFailed'] },
     { title: 'When a card is declined', keys: ['declineFunds', 'declineCvc', 'declineNumber', 'declineExpired', 'declinePostcode', 'declineCallBank', 'declineNoReason', 'declineRetry', 'declined'] },
   ];
 

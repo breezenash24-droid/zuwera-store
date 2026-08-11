@@ -154,6 +154,10 @@ console.log('\n  the storefront asks rather than answering');
     />Sold Out</,
     /' - Sold Out'/,
     />Low Stock</,
+    /Invalid promo code/,
+    /Enter a promo code/,
+    /Could not validate code/,
+    /' applied!'/,
   ];
   const offenders = [];
   for (const file of SURFACES) {
@@ -297,6 +301,20 @@ console.log('\n  the editor describes each message in words, and inserts the val
 
   ok('the colour box says what it accepts',
     /rgb\(220,38,38\)/.test(read('admin.html')), 'no format hint for the colour field');
+}
+
+console.log('\n  a coupon can still speak for itself');
+{
+  /* validate-promo returns a per-code message where one is set in admin —
+     "expired on 1 June" is more use to a shopper than a generic refusal. The
+     shared message is the fallback and the COLOUR, not a replacement for it. */
+  const bag = strip(read('bag.html'));
+  ok('the promo replies come from the shared messages', /'promoInvalid'/.test(bag) && /'promoApplied'/.test(bag));
+  ok('…and a code\'s own message still wins where it has one',
+    /data\.message/.test(bag) && /promo\.message/.test(bag),
+    'a per-coupon explanation would be thrown away');
+  ok('a working code reads as good news', M.paletteName(M.recommendedColor('promoApplied')) === 'Positive');
+  ok('…and a refused one as a problem', M.paletteName(M.recommendedColor('promoInvalid')) === 'Alert');
 }
 
 console.log('\n  a message has to stop being shown when it stops being true');
