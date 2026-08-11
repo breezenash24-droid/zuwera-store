@@ -97,5 +97,43 @@ console.log('\n  a decision can be explained');
     rulesFor([refundUnder100, { ...refundUnder100, action: 'other' }], 'order.refund').length === 1);
 }
 
+
+/* ── it is actually connected ─────────────────────────────────────────────
+   This engine was complete, tested, and imported by NOTHING. Every rule a
+   store could write was inert, and the passing tests made it look done — which
+   is exactly how it stayed unfinished. */
+console.log('\n  the engine is wired to something');
+{
+  const fs2 = require('fs');
+  const P = require('path').resolve(__dirname, '..') + '/functions/api/';
+  const commerce = fs2.readFileSync(P + '_commerce.js', 'utf8');
+
+  ok('the permission gate imports it', /from '\.\/_abac\.js'/.test(commerce));
+  ok('…and calls it', /\bcan\(rbacAllowed, rules/.test(commerce));
+
+  /* One gate, not two. A second authorization path is a second place for a
+     bypass, and "who can do X" would stop being one lookup. */
+  ok('verifyAdminCan goes through the same decision', /await decide\(env, accessToken, permission, ctx\)/.test(commerce));
+
+  /* Direction. ABAC is handed the RBAC answer and can only take away — a
+     mode switch was rejected because turning it off would be a silent
+     privilege escalation. */
+  ok('RBAC decides first and ABAC receives that answer',
+    /const rbacAllowed = permsHave\(admin\.permissions, permission\)/.test(commerce));
+
+  /* The identity cannot be spoofed by the endpoint asking the question. */
+  const decide = commerce.slice(commerce.indexOf('export async function decide'));
+  ok('the subject comes from the verified session, not the caller',
+    decide.indexOf('...ctx') < decide.indexOf('subject:'),
+    'ctx spread after subject would let an endpoint claim a different identity');
+
+  /* Adoption has to cost nothing, or nobody turns it on. */
+  ok('a store with no rules behaves exactly as before',
+    /Array\.isArray\(cfg\) \? cfg/.test(commerce) && /return \[\];/.test(commerce));
+  ok('…and unreadable rules do not lock every admin out',
+    /rules unreadable, proceeding on RBAC alone/.test(commerce),
+    'failing closed here locks the whole panel over a transient read');
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
