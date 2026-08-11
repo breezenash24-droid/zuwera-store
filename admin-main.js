@@ -7329,6 +7329,13 @@
             const ids = prodSelectedIds();
             if (!ids.length) return;
             if (!confirm(`Set ${ids.length} product${ids.length !== 1 ? 's' : ''} to "${status}"?`)) { const sel = document.getElementById('prodBulkStatusSel'); if (sel) sel.value = ''; return; }
+            /* Asked after the confirm, so somebody who was going to change
+               their mind is not told about a limit they were never going to
+               hit — and before the write, which is the only place it counts. */
+            if (!await zwGuard('bulk_edit', { count: ids.length, status })) {
+                const sel = document.getElementById('prodBulkStatusSel'); if (sel) sel.value = '';
+                return;
+            }
             try {
                 const { error } = await sb.from('products').update({ status }).in('id', ids);
                 if (error) throw error;
@@ -9238,61 +9245,87 @@ function escapeAttr(value) {
         const ABAC_LIMITS = [
             // ── money ────────────────────────────────────────────────────────
             { id: 'refund_max', action: 'refund', attr: 'resource.amount', op: 'lte', kind: 'number',
-              label: 'Refunds', unit: '$', value: 500, ready: true,
+              label: 'Refunds', unit: '$', value: 500, ready: true, sealed: true,
               say: (v) => 'refund more than $' + v + ' at once',
               help: 'Refuse refunds above this amount.' },
             { id: 'refund_items_max', action: 'refund', attr: 'resource.itemCount', op: 'lte', kind: 'number',
-              label: 'Items in one refund', unit: 'items', value: 5, ready: true,
+              label: 'Items in one refund', unit: 'items', value: 5, ready: true, sealed: true,
               say: (v) => 'refund more than ' + v + ' items at once',
               help: 'Refuse a refund covering more items than this, whatever it is worth. A ten-item refund is a different kind of decision from a large one.' },
             { id: 'discount_max', action: 'promo_create', attr: 'resource.percent', op: 'lte', kind: 'number',
-              label: 'Discount codes', unit: '%', value: 30, ready: false,
+              label: 'Discount codes', unit: '%', value: 30, ready: true, sealed: false,
               say: (v) => 'create a discount code worth more than ' + v + '%',
               help: 'Refuse promo codes worth more than this.' },
             { id: 'order_edit_max', action: 'order_edit', attr: 'resource.total', op: 'lte', kind: 'number',
-              label: 'Editing an order', unit: '$', value: 1000, ready: false,
+              label: 'Editing an order', unit: '$', value: 1000, ready: false, sealed: false,
               say: (v) => 'edit an order worth more than $' + v,
               help: 'Refuse edits to orders above this total.' },
             { id: 'reward_max', action: 'loyalty_adjust', attr: 'resource.points', op: 'lte', kind: 'number',
-              label: 'Awarding loyalty points', unit: 'pts', value: 1000, ready: false,
+              label: 'Awarding loyalty points', unit: 'pts', value: 1000, ready: false, sealed: false,
               say: (v) => 'award more than ' + v + ' points at once',
               help: 'Refuse manual points adjustments larger than this.' },
             { id: 'price_change_max', action: 'product_price', attr: 'resource.percent_change', op: 'lte', kind: 'number',
-              label: 'Changing a price', unit: '%', value: 25, ready: false,
+              label: 'Changing a price', unit: '%', value: 25, ready: true, sealed: false,
               say: (v) => 'change a price by more than ' + v + '%',
               help: 'Refuse price changes bigger than this, up or down.' },
 
             // ── destructive ──────────────────────────────────────────────────
             { id: 'bulk_max', action: 'bulk_edit', attr: 'resource.count', op: 'lte', kind: 'number',
-              label: 'Bulk actions', unit: 'items', value: 50, ready: false,
+              label: 'Bulk actions', unit: 'items', value: 50, ready: true, sealed: false,
               say: (v) => 'change more than ' + v + ' things at once',
               help: 'Refuse bulk edits or deletes touching more rows than this.' },
             { id: 'export_max', action: 'customer_export', attr: 'resource.count', op: 'lte', kind: 'number',
-              label: 'Exporting customers', unit: 'rows', value: 500, ready: true,
+              label: 'Exporting customers', unit: 'rows', value: 500, ready: true, sealed: false,
               say: (v) => 'export more than ' + v + ' customers at once',
               help: 'Refuse customer exports larger than this. Worth setting — an export is the whole list leaving the building.' },
             { id: 'no_delete_products', action: 'product_delete', attr: 'resource.status', op: 'nin', kind: 'list',
-              label: 'Deleting products', unit: '', value: ['Live'], ready: true,
+              label: 'Deleting products', unit: '', value: ['Live'], ready: true, sealed: true,
               say: (v) => 'delete a product that is ' + [].concat(v).join(' or '),
               help: 'Refuse deleting products in these states. Leave "Live" here and only drafts can be deleted.' },
 
             // ── scope ────────────────────────────────────────────────────────
             { id: 'region_only', action: 'order_edit', attr: 'resource.ship_state', op: 'in', kind: 'list',
-              label: 'Orders in certain regions only', unit: '', value: [], ready: false,
+              label: 'Orders in certain regions only', unit: '', value: [], ready: false, sealed: false,
               say: (v) => 'touch an order shipping anywhere except ' + ([].concat(v).join(', ') || '(nowhere set yet)'),
               help: 'Only orders shipping to these states or regions. Two-letter codes, comma separated.' },
             { id: 'own_orders', action: 'order_edit', attr: 'resource.assigned_to', op: 'eq', kind: 'subject',
-              label: 'Only orders assigned to them', unit: '', value: 'subject.id', ready: false,
+              label: 'Only orders assigned to them', unit: '', value: 'subject.id', ready: false, sealed: false,
               say: () => 'touch an order assigned to somebody else',
               help: 'Refuse touching an order assigned to somebody else.' },
 
             // ── who may promote whom ─────────────────────────────────────────
             { id: 'no_role_grant', action: 'role_manage', attr: 'resource.role', op: 'nin', kind: 'list',
-              label: 'Granting roles', unit: '', value: ['super_admin'], ready: true,
+              label: 'Granting roles', unit: '', value: ['super_admin'], ready: true, sealed: true,
               say: (v) => 'give anybody the role ' + [].concat(v)
                   .map((x) => (typeof ZW_ROLE_LABELS !== 'undefined' && ZW_ROLE_LABELS[x]) || x).join(' or '),
               help: 'Refuse granting these roles. Stops an admin promoting anyone — including themselves — past their own level.' },
         ];
+
+        /* Ask the limits before doing something the browser then does itself.
+           Advisory, and deliberately so — see functions/api/admin-guard.js. It
+           returns TRUE on any failure that is not a refusal: a limits check
+           that cannot run must not become an outage across half the panel, and
+           the actions it covers are ones an admin's role already permits. */
+        window.zwGuard = async function (action, resource) {
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const resp = await fetch('/api/admin-guard', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session && session.access_token, action, resource }),
+                });
+                const out = await resp.json().catch(() => ({}));
+                if (resp.ok && out.allow) return true;
+                if (resp.status === 403) {
+                    showToast(out.reason || 'A limit on your account stopped that.', 'error');
+                    return false;
+                }
+                console.warn('zwGuard: check failed, allowing —', out.error || resp.status);
+                return true;
+            } catch (e) {
+                console.warn('zwGuard: check failed, allowing —', e && e.message);
+                return true;
+            }
+        };
 
         let _abacState = [];
 
@@ -9508,9 +9541,21 @@ function escapeAttr(value) {
                     +   '<label style="display:flex;align-items:center;gap:6px;font-size:.82rem">'
                     +     '<input type="checkbox" ' + (r.enabled === false ? '' : 'checked')
                     +     ' onchange="abacSet(' + i + ',\'enabled\',this.checked)"> on</label>'
-                    +   (kind.ready ? ''
-                        : '<span style="font-size:.66rem;padding:2px 7px;border-radius:999px;white-space:nowrap;'
-                          + 'border:1px solid var(--red,#dc2626);color:var(--red,#dc2626)">not working yet</span>')
+                    /* Three states, not two. "Working" hid a real difference:
+                       some of these the browser cannot go around because the
+                       permission was taken away, and some are a question the
+                       panel politely asks itself before doing the thing with
+                       its own credentials. Both refuse in the panel. Only one
+                       survives somebody with a console, and an owner deciding
+                       who to trust with what needs to know which is which. */
+                    +   (!kind.ready
+                        ? '<span style="font-size:.66rem;padding:2px 7px;border-radius:999px;white-space:nowrap;'
+                          + 'border:1px solid var(--red,#dc2626);color:var(--red,#dc2626)">not working yet</span>'
+                        : kind.sealed ? ''
+                        : '<span title="Enforced in the panel. An admin who knows their way around a browser console '
+                          + 'could still go around it — the panel needs this permission for ordinary work, so it cannot be taken away." '
+                          + 'style="font-size:.66rem;padding:2px 7px;border-radius:999px;white-space:nowrap;cursor:help;'
+                          + 'border:1px solid var(--text-secondary);color:var(--text-secondary)">stops mistakes, not people</span>')
                     /* Only limits that work are offered. Twelve options where
                        nine did nothing made the feature look three times its
                        real size, and each fake one then needed a red warning
@@ -11083,6 +11128,26 @@ function escapeAttr(value) {
                 if (document.getElementById('specialtyPlus').checked) specialty.push('Plus');
                 if (document.getElementById('specialtyMaternity').checked) specialty.push('Maternity');
                 productData.specialty_sizing = specialty;
+
+                /* A price limit is written about the SIZE of the change, so it
+                   needs both numbers — and only an edit has an old one. A new
+                   product has nothing to compare against and is not a price
+                   change, so it is not asked about. */
+                if (currentProduct) {
+                    const was = Number(currentProduct.price);
+                    const now = Number(productData.price);
+                    if (Number.isFinite(was) && was > 0 && Number.isFinite(now) && now !== was) {
+                        /* Absolute, because a limit reading "no more than 25%"
+                           means the size of the move. Halving a price is as
+                           much a decision as doubling it, and signing this
+                           would let one of the two through unremarked. */
+                        const pct = Math.abs((now - was) / was) * 100;
+                        if (!await zwGuard('product_price', {
+                            percent_change: Math.round(pct * 100) / 100,
+                            from: was, to: now, id: currentProduct.id,
+                        })) return;
+                    }
+                }
 
                 let productId;
                 if (currentProduct) {

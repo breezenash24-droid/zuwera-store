@@ -362,6 +362,11 @@ console.log('\n  a limit marked ready really is');
     role_manage: 'functions/api/set-admin-role.js',
     customer_export: 'functions/api/admin-export.js',
     product_delete: 'functions/api/admin-product-delete.js',
+    /* Advisory ones share a single endpoint. Five near-copies would be five
+       places for the ctx shape to drift from what the rules read. */
+    product_price: 'functions/api/admin-guard.js',
+    bulk_edit: 'functions/api/admin-guard.js',
+    promo_create: 'functions/api/admin-guard.js',
   };
 
   const entries = [...block4.matchAll(/\{ id: '([a-z_]+)', action: '([a-z_]+)'[\s\S]*?ready: (true|false)/g)]
@@ -738,6 +743,61 @@ console.log('\n  deleting a product is the only one that fully binds');
     !/ON public\.product_images/.test(sql) && !/ON public\.color_variants/.test(sql),
     'blocking those would break removing an image while editing');
   ok('…and it narrows rather than replaces', /AS RESTRICTIVE/.test(sql));
+}
+
+console.log('\n  a limit says whether it can be walked around');
+{
+  const adm = fs.readFileSync(ROOT + 'admin-main.js', 'utf8');
+  const guard = fs.readFileSync(ROOT + 'functions/api/admin-guard.js', 'utf8');
+  const block = adm.slice(adm.indexOf('const ABAC_LIMITS'), adm.indexOf('let _abacState'));
+
+  /* "Working" hid a real difference. Some of these the browser cannot go
+     around because the permission was removed; some are a question the panel
+     politely asks itself before acting with its own credentials. Both refuse
+     in the panel. Only one survives a console. */
+  ok('every limit says whether it is sealed',
+    (block.match(/id: '/g) || []).length === (block.match(/sealed: /g) || []).length);
+
+  ok('sealed is claimed only where the permission was actually removed',
+    /id: 'no_delete_products'[\s\S]{0,200}sealed: true/.test(block)
+      && /id: 'refund_max'[\s\S]{0,200}sealed: true/.test(block)
+      && /id: 'no_role_grant'[\s\S]{0,200}sealed: true/.test(block));
+
+  /* Exporting goes through an endpoint but an admin can still read profiles,
+     so it must NOT claim to be sealed. It was the first case of the
+     distinction and is the easiest one to get wrong. */
+  ok('…and not where an endpoint is only the polite route',
+    /id: 'export_max'[\s\S]{0,200}sealed: false/.test(block)
+      && /id: 'price_change_max'[\s\S]{0,200}sealed: false/.test(block));
+
+  ok('the panel says so on the rule', /stops mistakes, not people/.test(adm));
+
+  /* An open action parameter lets a caller invent an action no rule mentions
+     and be told yes — a check that passed because nothing matched. */
+  ok('the guard only answers about actions it knows', /const GUARDED = \{/.test(guard)
+    && /if \(!permission\) return json\(\{ error: 'Unknown action\.' \}/.test(guard));
+
+  /* A limits check that cannot run must not take half the panel down with it,
+     and these actions are ones the role already permits. */
+  ok('a check that cannot run allows rather than blocks',
+    /zwGuard: check failed, allowing/.test(adm));
+
+  ok('the file says outright that it is advisory', /This is ADVISORY/.test(guard),
+    'anything describing it as enforcement is the bug this flag exists to prevent');
+
+  // the call sites
+  ok('a bulk status change is asked about', /zwGuard\('bulk_edit', \{ count: ids\.length/.test(adm));
+  ok('…after the confirm, before the write', adm.indexOf("zwGuard('bulk_edit'") > adm.indexOf('Set ${ids.length} product'));
+  ok('a price change is measured, not guessed', /percent_change: Math\.round\(pct \* 100\) \/ 100/.test(adm));
+  /* Halving a price is as much a decision as doubling it. */
+  ok('…and it is the size of the move, either direction', /Math\.abs\(\(now - was\) \/ was\)/.test(adm));
+  ok('…and a brand new product is not a price change', /if \(currentProduct\) \{[\s\S]{0,300}Number\(currentProduct\.price\)/.test(adm));
+
+  const com = fs.readFileSync(ROOT + 'commerce-admin.js', 'utf8');
+  /* The save writes every promo at once, so asking per-code would either
+     refuse over one nobody touched or write some and abandon the rest. */
+  ok('promos are asked about as one save, on the largest percent',
+    /zwGuard\('promo_create', \{ percent: worst \}\)/.test(com));
 }
 
 console.log('\n  you cannot choose your own role');
