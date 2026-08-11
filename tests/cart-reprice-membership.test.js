@@ -32,9 +32,18 @@ if (start < 0 || end < 0 || end <= start) {
   console.log('  ✗ could not locate isLoggedIn in checkout.js');
   process.exit(1);
 }
-const build = (store) => new Function('localStorage',
-  SRC.slice(start, end) + '\n;return isLoggedIn;'
-)(store);
+/* A window stub, because the slice now also publishes the function as
+   window.zwHasValidSession so the bag can share it. Handed in rather than
+   trimmed out of the slice: the publication is part of what ships, and a test
+   that quietly excised it could pass while the bag lost its shared answer. */
+const build = (store) => {
+  const win = {};
+  const fn = new Function('localStorage', 'window',
+    SRC.slice(start, end) + '\n;return isLoggedIn;'
+  )(store, win);
+  fn.published = win.zwHasValidSession;
+  return fn;
+};
 
 // Minimal localStorage: only what the function touches.
 function storage(entries) {
@@ -99,6 +108,16 @@ console.log('\n  the member price goes to members');
     [KEY]: JSON.stringify({ access_token: 'tok', expires_at: soon(3600) }),
   }));
   ok('a live session still counts beside a dead one', two() === true);
+}
+
+/* The bag derives prices too, and used to answer membership itself with
+   Boolean(_bagUser) — then wrote the result back over the price the repricing
+   had just corrected. It now calls this one, so the publication is part of the
+   contract rather than an incidental global. */
+{
+  const live = build(storage({ [KEY]: JSON.stringify({ access_token: 'tok', expires_at: soon(3600) }) }));
+  ok('the check is published for the bag to share', typeof live.published === 'function');
+  ok('…and it is the same function, not a copy', live.published === live);
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
