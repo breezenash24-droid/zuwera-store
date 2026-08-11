@@ -311,14 +311,14 @@ console.log('\n  the admin map describes the code, not someone\'s memory of it')
   ok('the map is built from the shared module', typeof M.surfaces === 'function');
 
   const listed = new Set();
-  M.surfaces().forEach((s) => s.keys.forEach((k) => listed.add(k)));
+  M.surfaces().forEach((s) => [...s.keys, ...s.rare].forEach((k) => listed.add(k)));
 
   const invisible = M.keys().filter((k) => !listed.has(k));
   ok('every message appears on at least one surface', invisible.length === 0,
     invisible.join(', ') + ' — a message missing here is invisible on the map');
 
   const ghosts = [];
-  M.surfaces().forEach((s) => s.keys.forEach((k) => { if (!M.has(k)) ghosts.push(s.name + '/' + k); }));
+  M.surfaces().forEach((s) => [...s.keys, ...s.rare].forEach((k) => { if (!M.has(k)) ghosts.push(s.name + '/' + k); }));
   ok('…and no surface lists a message that does not exist', ghosts.length === 0, ghosts.join(', '));
 
   /* The genuinely useful fact the map carries: which messages are shared, and
@@ -349,7 +349,7 @@ console.log('\n  the admin map describes the code, not someone\'s memory of it')
     /* Only surfaces with a hand-drawn mockup; anything else falls back to a
        plain list, which is allowed. */
     if (!mockSrc.includes("'" + surface.name + "'")) return;
-    surface.keys.forEach((k) => {
+    surface.keys.forEach((k) => {   // rare ones render in their own block, not the drawing
       if (!mockSrc.includes("'" + k + "'")) undrawn.push(surface.name + '/' + k);
     });
   });
