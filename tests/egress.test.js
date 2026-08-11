@@ -314,5 +314,25 @@ console.log('\n  uploads have one destination');
     'moving where bytes land must not move who may put them there');
 }
 
+
+/* ── a delete has to report what it DID ───────────────────────────────────
+   remove() returns the objects it actually removed, and that is not always
+   what was asked for: a storage policy can refuse individual files without
+   failing the call. Reporting the requested count as the outcome made a
+   partial delete look complete — "Deleted 30" while removing 2 — which is the
+   worst kind of wrong, because it stops you checking. */
+console.log('\n  the delete does not overstate itself');
+{
+  const a = fs.readFileSync(R + 'admin-main.js', 'utf8');
+  ok('it reads what storage says it removed', /const \{ data, error \} = await sb\.storage/.test(a),
+    'the requested count is not the result');
+  ok('…and reports that count, not the requested one', /removed\.length \+ ' of ' \+ wanted\.length/.test(a));
+  ok('…naming anything storage refused', /NOT deleted/.test(a));
+  ok('…and carrying it back for the panel to show', /out\.refused = left/.test(a));
+  ok('…and only counts bytes for files that actually went',
+    /removed\.indexOf\(f\.name\) !== -1/.test(a),
+    'freeing 35MB on paper while freeing 2 is the same lie in another unit');
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
