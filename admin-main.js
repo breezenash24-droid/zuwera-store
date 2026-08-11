@@ -9198,6 +9198,15 @@ function escapeAttr(value) {
             }
             const form = new FormData();
             form.append('file', upload);
+            /* What the file IS, so the key can say so. Title plus colourway is
+               what a shopper would call it and what image search reads. */
+            try {
+                const title = (currentProduct && currentProduct.title)
+                    || document.getElementById('title')?.value || '';
+                const colour = document.getElementById('colorName')?.value || '';
+                const label = [title, colour].filter(Boolean).join(' ');
+                if (label) form.append('label', label);
+            } catch (_) {}
             form.append('productId', currentProduct?.id || document.getElementById('sku')?.value || 'unassigned');
 
             const resp = await fetch('/api/upload-product-image', {

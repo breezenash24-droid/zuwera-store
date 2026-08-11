@@ -122,6 +122,54 @@ function extensionForType(type, fallbackName = '') {
   return ext && /^[a-z0-9]+$/.test(ext) ? ext : 'webp';
 }
 
+
+/* ── Filenames people can read ────────────────────────────────────────────────
+ * Uploads were keyed `1782693080333-z0ush1.jpg`. Unique, and useless: it tells
+ * nobody what the file is, which matters in three places that all cost
+ * something.
+ *
+ *  - SEARCH. An image filename is a ranking signal for image search, and image
+ *    search is how a lot of apparel gets found. "zuwera-aero-pro-yellow.webp"
+ *    is a description; a timestamp is noise.
+ *  - AUDITING. The storage report in the admin listed thirteen files over 1MB
+ *    and could not say what any of them were. Deciding what to delete meant
+ *    opening each one.
+ *  - HANDOVER. Someone running this store is not the person who uploaded the
+ *    files. Opaque keys are a small, permanent tax on everyone after you.
+ *
+ * A short random suffix stays, because two photos of the same product in the
+ * same colour must not collide — but it is a tiebreaker now rather than the
+ * whole name.
+ */
+export function slugify(value, fallback = '') {
+  const out = String(value == null ? '' : value)
+    .normalize('NFKD').replace(/[̀-ͯ]/g, '')   // "Café" → "Cafe"
+    .toLowerCase()
+    .replace(/['’]/g, '')                                 // "men's" → "mens", not "men-s"
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+    .replace(/-+$/, '');
+  return out || fallback;
+}
+
+/**
+ * A readable, unique object key.
+ * @param folder  top-level bucket folder, e.g. 'products' or 'builder'
+ * @param label   what the file IS — product title, colour, section name
+ * @param ext     file extension
+ */
+export function describedKey(folder, label, ext) {
+  const slug = slugify(label, 'media');
+  /* Six hex characters: enough that a collision needs ~16 million files in one
+     name, short enough that the name still reads as a name. */
+  const rand = crypto.randomUUID().replace(/-/g, '').slice(0, 6);
+  const now = new Date();
+  const yyyy = now.getUTCFullYear();
+  const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+  return `${folder}/${yyyy}/${mm}/${slug}-${rand}.${ext}`;
+}
+
 function safeSegment(value, fallback) {
   return String(value || fallback)
     .toLowerCase()
@@ -313,11 +361,12 @@ export async function onRequestPost({ request, env }) {
       }, 413);
     }
 
-    const now = new Date();
-    const yyyy = now.getUTCFullYear();
-    const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
     const ext = extensionForType(file.type, file.name);
-    const key = `products/${yyyy}/${mm}/${productId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+    /* `label` is what the admin knows and the key could never say: the product
+       title, and the colourway if one is selected. Absent, this falls back to
+       the product id, which is what the key used to carry anyway. */
+    const label = String(form.get('label') || '').trim() || productId;
+    const key = describedKey('products', label, ext);
     const body = await file.arrayBuffer();
 
     await putR2Object(env, key, body, file.type);

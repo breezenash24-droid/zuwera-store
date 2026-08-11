@@ -334,5 +334,45 @@ console.log('\n  the delete does not overstate itself');
     'freeing 35MB on paper while freeing 2 is the same lie in another unit');
 }
 
+
+/* ── filenames people can read ────────────────────────────────────────────
+   Keys were `1782693080333-z0ush1.jpg`: unique and useless. An image filename
+   is a ranking signal for image search, and the storage report could list
+   thirteen files over 1MB without being able to say what any of them were. */
+console.log('\n  uploads are named after what they are');
+{
+  const up = fs.readFileSync(R + 'functions/api/upload-product-image.js', 'utf8');
+  const a = up.indexOf('export function slugify');
+  const b = up.indexOf('function safeSegment');
+  const { slugify, describedKey } = new Function('crypto',
+    up.slice(a, b).replace(/export /g, '') + '\nreturn { slugify, describedKey };'
+  )(require('crypto').webcrypto);
+
+  ok('a title becomes a readable slug', slugify('Zuwera Aero Pro') === 'zuwera-aero-pro');
+  ok('…apostrophes close up rather than splitting a word',
+    slugify("Men's Tee") === 'mens-tee', slugify("Men's Tee"));
+  ok('…accents fold to ascii', slugify('Café Blanc') === 'cafe-blanc', slugify('Café Blanc'));
+  ok('…nothing usable falls back', slugify('   ', 'media') === 'media');
+  ok('…and it cannot run away with a long title', slugify('x'.repeat(300)).length <= 60);
+
+  const key = describedKey('products', 'Zuwera Aero Pro Yellow', 'webp');
+  ok('the key says what the file is', /zuwera-aero-pro-yellow/.test(key), key);
+  ok('…keeps the extension', key.endsWith('.webp'));
+  ok('…stays sorted by date', /^products\/\d{4}\/\d{2}\//.test(key), key);
+
+  /* Two photos of the same product in the same colour must not collide — the
+     name is descriptive, the suffix is what makes it unique. */
+  const many = new Set(Array.from({ length: 200 }, () => describedKey('products', 'same name', 'webp')));
+  ok('…and two files with the same name never collide', many.size === 200);
+
+  const bu = fs.readFileSync(R + 'functions/api/upload-image.js', 'utf8');
+  ok('builder media is named the same way', /describedKey\('builder'/.test(bu));
+  ok('…from the section it is placed into', /form\.get\('label'\)/.test(bu));
+
+  const adm = fs.readFileSync(R + 'admin-main.js', 'utf8');
+  ok('the admin sends the product title and colourway',
+    /form\.append\('label', label\)/.test(adm));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
