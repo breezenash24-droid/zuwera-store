@@ -16,8 +16,9 @@ function ok(name, cond, detail) {
 /* Same shim the ABAC suite uses: the module is ESM for the Worker, the tests
    are CommonJS, and stripping `export` is cheaper than a build step. */
 const RSRC = fs.readFileSync(ROOT + 'functions/api/_returns.js', 'utf8');
-const { returnEligibility, isLiveRequest, itemKey } = new Function(
-  RSRC.replace(/^export\s+/gm, '') + '\n;return { returnEligibility, isLiveRequest, itemKey };')();
+const { returnEligibility, isLiveRequest, itemKey, reconcileReturnItems, spokenForOn, lineQty } = new Function(
+  RSRC.replace(/^export\s+/gm, '')
+  + '\n;return { returnEligibility, isLiveRequest, itemKey, reconcileReturnItems, spokenForOn, lineQty };')();
 
 const ORDER = { id: 'ord_1', status: 'paid', items: [
   { name: 'Aero Pro', size: 'S', color: 'Yellow' },
@@ -128,6 +129,75 @@ console.log('\n  and it is wired to the things that decide');
     && /action: 'check'/.test(rec));
   ok('…and a check that cannot run says nothing rather than all-clear',
     /!d\.known/.test(rec));
+}
+
+console.log('\n  you cannot return what you did not buy');
+{
+  /* The request body is whatever somebody POSTs. The only check used to be
+     that the NAME appeared on the order — size, colour, quantity and price all
+     came from the request and were stored as sent. */
+  const ORD = { id: 'o1', status: 'paid', items: [
+    { name: 'Aero Pro', size: 'S', color: 'Yellow', quantity: 2, price: 40 },
+    { name: 'Track Tee', size: 'M', color: 'Black' },
+  ] };
+  const R = (req, spoken) => reconcileReturnItems(ORD, req, spoken || new Map());
+
+  ok('a size that was never bought is refused',
+    R([{ name: 'Aero Pro', size: 'XXL', color: 'Yellow' }]).items.length === 0);
+  ok('a colour that was never bought is refused',
+    R([{ name: 'Aero Pro', size: 'S', color: 'Black' }]).items.length === 0);
+  ok('…and an item from no order at all',
+    R([{ name: 'Something Else', size: 'S' }]).items.length === 0);
+  ok('…each said back rather than silently dropped',
+    R([{ name: 'Aero Pro', size: 'XXL' }]).rejected[0].why === 'not on this order');
+
+  ok('what WAS bought goes through', R([{ name: 'Aero Pro', size: 'S', color: 'Yellow' }]).items.length === 1);
+
+  /* Two of a line is two, not unlimited and not one. */
+  ok('you cannot return more of an item than you bought',
+    R([{ name: 'Aero Pro', size: 'S', color: 'Yellow', quantity: 9 }]).items[0].quantity === 2);
+  ok('…and asking repeatedly does not get you more',
+    R([{ name: 'Aero Pro', size: 'S', color: 'Yellow', quantity: 2 },
+       { name: 'Aero Pro', size: 'S', color: 'Yellow', quantity: 2 }])
+      .items.reduce((n, i) => n + i.quantity, 0) === 2);
+  ok('…nor does a line with no quantity mean unlimited',
+    R([{ name: 'Track Tee', size: 'M', color: 'Black', quantity: 5 }]).items[0].quantity === 1);
+  ok('a missing quantity is one, not zero', lineQty({}) === 1 && lineQty({ quantity: 3 }) === 3);
+  ok('…and nonsense collapses to one',
+    lineQty({ quantity: -4 }) === 1 && lineQty({ quantity: 'abc' }) === 1 && lineQty({ quantity: 2.7 }) === 2);
+
+  /* Nothing a requester wrote reaches the admin queue, because the queue is
+     what a refund gets read from. */
+  const forged = R([{ name: 'Aero Pro', size: 'S', color: 'Yellow', price: 9999, sku: 'FAKE' }]).items[0];
+  ok('the stored item is the order\'s, not the request\'s',
+    forged.price === 40 && forged.sku === undefined);
+
+  /* Already-returned quantity comes off the top. */
+  const spoken = spokenForOn([{ orderId: 'o1', status: 'item_received',
+    returnItems: [{ name: 'Aero Pro', size: 'S', color: 'Yellow', quantity: 1 }] }], 'o1');
+  ok('one of a pair already returned leaves one',
+    R([{ name: 'Aero Pro', size: 'S', color: 'Yellow', quantity: 2 }], spoken).items[0].quantity === 1);
+  ok('…and both returned leaves none',
+    R([{ name: 'Aero Pro', size: 'S', color: 'Yellow' }],
+      spokenForOn([{ orderId: 'o1', status: 'refunded',
+        returnItems: [{ name: 'Aero Pro', size: 'S', color: 'Yellow', quantity: 2 }] }], 'o1')).items.length === 0);
+
+  /* The counted version fixed a real refusal too: a Set could not tell
+     "bought two, returned one" from "bought two, returned both". */
+  const half = returnEligibility(ORD, [{ orderId: 'o1', status: 'refunded',
+    returnItems: [{ name: 'Aero Pro', size: 'S', color: 'Yellow', quantity: 1 }] }]);
+  ok('returning one of two still leaves the other returnable',
+    half.ok === true && half.availableItems.some(i => i.size === 'S' && i.quantity === 1));
+
+  const hub = fs.readFileSync(ROOT + 'functions/api/customer-hub.js', 'utf8');
+  ok('the endpoint reconciles instead of matching names',
+    /reconcileReturnItems\(matchedOrder/.test(hub)
+      && !/const allNames = new Set/.test(hub));
+  /* The worst possible reading of "none of that was valid". */
+  ok('all-invalid is refused, not turned into the whole order',
+    /code: 'items_invalid'/.test(hub),
+    'the old code fell back to every item on the order');
+  ok('an over-ask is recorded for the admin to see', /rejectedItems/.test(hub));
 }
 
 console.log('\n  the returns workspace shows one step at a time');

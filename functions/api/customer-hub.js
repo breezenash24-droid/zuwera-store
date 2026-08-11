@@ -8,7 +8,7 @@ import {
   verifyUser,
 } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
-import { returnEligibility } from './_returns.js';
+import { returnEligibility, reconcileReturnItems, spokenForOn } from './_returns.js';
 
 // ─── Loops subscriber sync ─────────────────────────────────────────────────────
 // Called after save_profile — syncs the customer into Loops if they consented to marketing.
@@ -213,12 +213,41 @@ export async function onRequestPost({ request, env }) {
       try {
         const allItems = typeof matchedOrder.items === 'string' ? JSON.parse(matchedOrder.items) : (Array.isArray(matchedOrder.items) ? matchedOrder.items : []);
         nextRequest.orderItems = allItems;
-        // If customer selected specific items, validate they're plausible (name match)
-        if (nextRequest.returnItems.length > 0) {
-          const allNames = new Set(allItems.map(i => String(i.name || i.title || '').trim().toLowerCase()));
-          nextRequest.returnItems = nextRequest.returnItems.filter(i => allNames.has(String(i.name || i.title || '').trim().toLowerCase()));
+
+        /* The old check here was that the NAME appeared somewhere on the order,
+           and nothing else. Size, colour, quantity and price all came from the
+           request body and were stored as sent — so somebody who bought one
+           small yellow shirt could ask for an extra-large black one, or ask
+           five times, and the admin queue would show exactly that against a
+           real order. The request is what a refund gets read from.
+
+           Sending nothing still means "the whole order", which is the only
+           reading of an empty selection. Sending something means that something
+           gets checked. */
+        if (nextRequest.returnItems.length === 0) {
+          nextRequest.returnItems = eligible.availableItems.length ? eligible.availableItems : allItems;
+        } else {
+          const { items, rejected } = reconcileReturnItems(matchedOrder, nextRequest.returnItems, spokenForOn(myRequests, matchedOrder.id));
+          /* Refused, not trimmed. The old code fell back to the ENTIRE order
+             when every submitted item failed its check — so garbage in
+             produced a request for everything, which is the worst possible
+             reading of "none of that was valid". */
+          if (!items.length) {
+            return json({
+              success: false,
+              error: rejected.length
+                ? 'Those items are not available to return on this order.'
+                : 'Choose at least one item to return.',
+              code: 'items_invalid',
+            }, 409, cors(env));
+          }
+          nextRequest.returnItems = items;
+          /* Kept so an admin can see somebody asked for more than they had.
+             Once is a mis-tap; a pattern is worth knowing about. */
+          if (rejected.length) {
+            nextRequest.rejectedItems = rejected.slice(0, 20);
+          }
         }
-        if (nextRequest.returnItems.length === 0) nextRequest.returnItems = allItems;
       } catch (_) { nextRequest.orderItems = []; }
       nextRequest.shippingAddress = {
         name: nextRequest.customerName,
