@@ -1932,7 +1932,10 @@
                             nothing changes.
                         </p>
                         <div id="abacRules"></div>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                        <!-- Hidden for anyone who cannot change these. The real
+                             enforcement is migration 0008; this only stops the
+                             panel offering a button that will fail. -->
+                        <div id="abacActions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
                             <button class="btn btn-secondary" type="button" onclick="abacAdd()">+ Add a limit</button>
                             <button class="btn btn-primary" type="button" onclick="abacSave()">Save limits</button>
                         </div>
