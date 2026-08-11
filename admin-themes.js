@@ -16,7 +16,11 @@
 (function () {
   'use strict';
 
-  var BUILTIN_IDS = ['dark', 'light', 'super-light'];
+  /* All four that ship. two-tone was missing from this list while sitting in
+     DEFAULT_MODES, so it was the one built-in a click could delete — and
+     "Restore built-ins" would then offer it back, which is a confusing round
+     trip for something the other three simply refuse. */
+  var BUILTIN_IDS = ['dark', 'light', 'super-light', 'two-tone'];
 
   var DEFAULT_MODES = [
     { id: 'dark', label: 'Dark', icon: '🌙', base: 'dark',
@@ -479,7 +483,32 @@
   function render() {
     var host = document.getElementById('theme-list');
     if (!host) return;
-    host.innerHTML = state.modes.map(function (m, i) {
+
+    /* Say when the built-ins are gone. An import applied before that was fixed
+       could overwrite this list, and the result is silent: the themes are
+       simply not there, with nothing to explain where they went or that a
+       button exists to bring them back. Someone hunting for Dark and Light has
+       no reason to read a button called "Restore built-ins" as the answer —
+       they are looking for a list, not a repair.
+
+       Rendered above the list rather than as a toast, because the state
+       persists and a toast does not. */
+    var absent = DEFAULT_MODES.filter(function (d) {
+      return !state.modes.some(function (m) { return m.id === d.id; });
+    });
+    var notice = absent.length
+      ? '<div style="border:1px solid var(--accent,#F891A5);border-radius:8px;padding:14px 16px;background:var(--bg-primary);">' +
+          '<strong style="font-size:.9rem;">' + absent.length + ' built-in theme' + (absent.length > 1 ? 's are' : ' is') + ' missing</strong>' +
+          '<div style="font-size:.8rem;color:var(--text-secondary);margin:6px 0 10px;line-height:1.6;">' +
+            esc(absent.map(function (m) { return m.label; }).join(', ')) +
+            ' — most likely overwritten by a theme import. Bringing them back leaves everything currently in the list alone, ' +
+            'including a built-in you have recoloured on purpose.' +
+          '</div>' +
+          '<button class="btn btn-secondary" onclick="themeRestoreBuiltins()">Bring them back</button>' +
+        '</div>'
+      : '';
+
+    host.innerHTML = notice + state.modes.map(function (m, i) {
       var isDefault = state.default === m.id;
       return '<div style="border:1px solid var(--border);border-radius:8px;padding:16px;background:var(--bg-primary);">' +
         '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;cursor:pointer;" onclick="themeToggle(\'' + esc(m.id) + '\')">' +
