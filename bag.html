@@ -924,7 +924,13 @@ function getCheckoutTaxStateCode(fallback = '') {
   return ((stateEl ? stateEl.value : '') || fallback || '').trim().toUpperCase().slice(0, 2);
 }
 
+/* The subtotal the summary was last drawn with, so the tax quote landing can
+   redraw it without re-running the whole item list (which recomputes it from
+   the cart) or inventing a getter that does not exist. */
+let _bagLastSubtotal = 0;
+
 function updateCartSummary(subtotal) {
+  _bagLastSubtotal = subtotal;
   // Keep the wallet sheet's amount on the same number the summary shows.
   try { bagSyncWallet(); } catch (_) {}
   const policy = window._shippingPolicy || { enabled: true, threshold: 100, standardRate: 8 };
@@ -951,11 +957,25 @@ function updateCartSummary(subtotal) {
   }
   const state = getCheckoutTaxStateCode ? getCheckoutTaxStateCode() : '';
   const zip   = (document.getElementById('pay-zip')?.value || '').trim();
-  const tax = window.ZWCheckoutTax && state ? window.ZWCheckoutTax.taxDollars(subtotal, state, zip) : 0;
+
+  /* This block used to work a tax figure out, print "Calculated at checkout"
+     next to a dash, and then quietly add that undisclosed figure into the
+     total. So the bag's total was tax-inclusive while the line above it said
+     tax had not been worked out — which is most of why a bag saying $35 became
+     a checkout saying $40 with nothing visibly accounting for the difference.
+     Now the two agree: if we have a real answer we show it AND count it; if we
+     do not, we say so AND leave it out. */
+  window.ZWCheckoutTax?.ensure(state, zip, Math.round(subtotal * 100));
+  const known = window.ZWCheckoutTax?.isKnown(state, zip) || false;
+  const tax = known ? (window.ZWCheckoutTax?.taxDollars(subtotal, state, zip) || 0) : 0;
+  const forState = window.ZWCheckoutTax?.stateFor(state, zip) || '';
+
   const taxEl = document.getElementById('summary-tax');
   const taxNote = document.getElementById('tax-note');
-  if (taxEl) taxEl.textContent = '-';
-  if (taxNote) taxNote.textContent = 'Calculated at checkout';
+  if (taxEl) taxEl.textContent = known ? '$' + tax.toFixed(2) : '-';
+  if (taxNote) taxNote.textContent = known
+    ? (forState ? 'Estimated for ' + forState : 'Estimated')
+    : 'Calculated at checkout';
   const shippingEl = document.getElementById('summary-shipping');
   const totalEl = document.getElementById('summary-total');
   if (qualifiesFree) {
@@ -966,6 +986,11 @@ function updateCartSummary(subtotal) {
     if (totalEl) totalEl.textContent = '$' + (subtotal + tax).toFixed(2);
   }
 }
+
+/* The quote arrives after the bag has rendered, so redraw when it does. */
+window.addEventListener('zw:tax', () => {
+  if (_bagLastSubtotal > 0) updateCartSummary(_bagLastSubtotal);
+});
 
 function esc(v) {
   return String(v == null ? '' : v)

@@ -55,8 +55,13 @@ console.log('\n  checkout totals');
 
   ok('shipping is not fetched until there is an address to ship to',
     /zip\.length < 5 \|\| state\.length < 2\) return;/.test(js));
-  ok('tax shows a dash until a state is entered, then a real figure',
-    /tax > 0 \? `\$\$\{tax\.toFixed\(2\)\}` : \(state \? '\$0\.00' : '—'\)/.test(js));
+  /* Was pinned to `tax > 0 ? … : (state ? '$0.00' : '—')`, which dashed until a
+     state was TYPED. The condition is now whether the server has quoted this
+     address — strictly stronger, because it also dashes while the quote is in
+     flight rather than showing a figure the browser guessed at. */
+  ok('tax shows a dash until the server has quoted it, then a real figure',
+    /const known = window\.ZWCheckoutTax\.isKnown\(state, zip\)/.test(js) &&
+    /const taxText = known \? `\$\$\{tax\.toFixed\(2\)\}` : '—'/.test(js));
   ok('both recompute as the address is typed',
     /zipInput\?\.addEventListener\('input'/.test(js) && /stateInput\?\.addEventListener\('input'/.test(js));
 

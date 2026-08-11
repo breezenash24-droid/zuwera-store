@@ -5052,8 +5052,17 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     const fieldState = document.getElementById('pay-state')?.value || '';
     return window.ZWCheckoutTax?.normalizeStateCode(fieldState || fallback || _detectedStateCode) || '';
   }
+  /* The ZIP as well as the state: Ohio is priced by county and Illinois by ZIP3,
+     so asking with the state alone quoted a different rate here than checkout
+     quoted for the same address. */
+  function getCheckoutTaxZip() {
+    return (document.getElementById('pay-zip')?.value || '').trim();
+  }
   function getCheckoutTaxCents(subtotalCents, stateCode = '') {
-    return window.ZWCheckoutTax?.taxCents(subtotalCents, getCheckoutTaxStateCode(stateCode)) || 0;
+    const st = getCheckoutTaxStateCode(stateCode);
+    const zip = getCheckoutTaxZip();
+    window.ZWCheckoutTax?.ensure(st, zip, subtotalCents);
+    return window.ZWCheckoutTax?.taxCents(subtotalCents, st, zip) || 0;
   }
   function getWalletTaxCents(subtotalCents, stateCode = '') {
     return getCheckoutTaxCents(subtotalCents, stateCode);
@@ -5391,16 +5400,24 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   function updateTaxEstimateForState() {
     const subtotal = parseFloat((document.getElementById('summary-subtotal')?.textContent||'0').replace(/[^0-9.]/g,'')) || 0;
     if (!subtotal) return;
-    const tax = window.ZWCheckoutTax?.taxDollars(subtotal, getCheckoutTaxStateCode()) || 0;
+    const st = getCheckoutTaxStateCode();
+    const zip = getCheckoutTaxZip();
+    window.ZWCheckoutTax?.ensure(st, zip, Math.round(subtotal * 100));
+    /* A dash until the server has answered, rather than a locally invented
+       figure — that invention is what disagreed with the card charge. */
+    const known = window.ZWCheckoutTax?.isKnown(st, zip) || false;
+    const tax = known ? (window.ZWCheckoutTax?.taxDollars(subtotal, st, zip) || 0) : 0;
     const taxEl = document.getElementById('summary-tax');
     const totalEl = document.getElementById('summary-total');
     const shippingText = document.getElementById('summary-shipping')?.textContent || '';
     const shipping = /^free$/i.test(shippingText.trim()) ? 0 : (parseFloat(shippingText.replace(/[^0-9.]/g, '')) || 0);
-    if (taxEl) taxEl.textContent = '$' + tax.toFixed(2);
+    if (taxEl) taxEl.textContent = known ? '$' + tax.toFixed(2) : '—';
     if (totalEl) totalEl.textContent = '$' + (subtotal + shipping + tax).toFixed(2);
   }
-  document.getElementById('pay-zip').addEventListener('input', maybeLoadRates);
+  document.getElementById('pay-zip').addEventListener('input', () => { updateTaxEstimateForState(); maybeLoadRates(); });
   document.getElementById('pay-state').addEventListener('input', () => { updateTaxEstimateForState(); maybeLoadRates(); });
+  /* The quote lands after the summary is drawn; without this the dash sticks. */
+  window.addEventListener('zw:tax', () => { try { updateTaxEstimateForState(); } catch (_) {} });
   document.getElementById('payment-close').addEventListener('click', () => { closePayModal('payment-modal'); document.getElementById('pay-error').textContent=''; });
   document.getElementById('payment-modal').addEventListener('click', e => { if (e.target===e.currentTarget) closePayModal('payment-modal'); });
 

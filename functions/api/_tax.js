@@ -199,39 +199,64 @@ function detectUsStateFromRequest(request) {
   return '';
 }
 
+/**
+ * The built-in table after every layer of override has been applied: the
+ * shipped defaults, then Cloudflare env vars, then Admin → Tax.
+ *
+ * Extracted so the merge exists once. It used to happen inline in the function
+ * below, which meant anything else wanting to know a rate — the admin page, the
+ * checkout summary — had no way to ask and grew its own copy of the numbers
+ * instead. Three copies of a tax table is three answers to one question.
+ */
+export function effectiveTables(env = {}, dbOverrides = {}) {
+  const configuredRates = parseConfiguredStateRates(env.STATE_TAX_RATES || env.SALES_TAX_BY_STATE || env.TAX_RATES_BY_STATE);
+  return {
+    stateRates: { ...DEFAULT_US_STATE_TAX_RATES, ...configuredRates, ...(dbOverrides.stateRates || {}) },
+    ohCounty:   { ...OH_COUNTY_RATES, ...(dbOverrides.ohCountyRates || {}) },
+    ohZip3:     { ...OH_ZIP3_TO_COUNTY },
+    ilZip3:     { ...IL_ZIP3_RATES,   ...(dbOverrides.ilZip3Rates   || {}) },
+    flat:       { KY: 0.06, IN: 0.07, ...(dbOverrides.flatRates     || {}) },
+    fallback:   normalizeRate(env.DEFAULT_SALES_TAX_RATE) ?? 0,
+  };
+}
+
+/** Admin → Tax's saved overrides. Callers that do not pass their own get these. */
+export async function loadTaxOverrides(env) {
+  try {
+    const settings = await fetchSiteSettings(['tax_rate_overrides'], env);
+    const v = settings.tax_rate_overrides;
+    return (v && typeof v === 'object') ? v : JSON.parse(v || '{}');
+  } catch (_) { return {}; }
+}
+
 /** The built-in table's answer. Unchanged from where it used to live. */
 export function getTaxRateForAddress(address, env, request, dbOverrides = {}) {
   const country = String(address?.country || 'US').trim().toUpperCase();
   if (country !== 'US') return { stateCode: '', taxRate: 0 };
   const stateCode = normalizeStateCode(address?.state) || detectUsStateFromRequest(request);
-  const configuredRates = parseConfiguredStateRates(env.STATE_TAX_RATES || env.SALES_TAX_BY_STATE || env.TAX_RATES_BY_STATE);
-  const ohCounty = { ...OH_COUNTY_RATES, ...(dbOverrides.ohCountyRates || {}) };
-  const ilZip3   = { ...IL_ZIP3_RATES,   ...(dbOverrides.ilZip3Rates   || {}) };
-  const flat     = { KY: 0.06, IN: 0.07, ...(dbOverrides.flatRates     || {}) };
-  const mergedRates = { ...DEFAULT_US_STATE_TAX_RATES, ...configuredRates, ...(dbOverrides.stateRates || {}) };
-  const fallbackRate = normalizeRate(env.DEFAULT_SALES_TAX_RATE) ?? 0;
+  const t = effectiveTables(env, dbOverrides);
 
-  if (!stateCode) return { stateCode: '', taxRate: fallbackRate };
+  if (!stateCode) return { stateCode: '', taxRate: t.fallback };
 
   // KY/IN: flat statewide rates, no county add-ons
-  if (flat[stateCode] !== undefined) return { stateCode, taxRate: flat[stateCode] };
+  if (t.flat[stateCode] !== undefined) return { stateCode, taxRate: t.flat[stateCode] };
 
   const zip = String(address?.zip || address?.postal_code || '').replace(/\D/g, '');
 
   // Ohio: county-level lookup via ZIP3 prefix
   if (stateCode === 'OH' && zip.length >= 3) {
-    const county = OH_ZIP3_TO_COUNTY[zip.slice(0, 3)];
-    const taxRate = (county && ohCounty[county]) ? ohCounty[county] : (mergedRates.OH || 0.0725);
+    const county = t.ohZip3[zip.slice(0, 3)];
+    const taxRate = (county && t.ohCounty[county]) ? t.ohCounty[county] : (t.stateRates.OH || 0.0725);
     return { stateCode, taxRate };
   }
 
   // Illinois: ZIP3-level lookup
   if (stateCode === 'IL' && zip.length >= 3) {
-    const taxRate = ilZip3[zip.slice(0, 3)] ?? (mergedRates.IL || 0.0625);
+    const taxRate = t.ilZip3[zip.slice(0, 3)] ?? (t.stateRates.IL || 0.0625);
     return { stateCode, taxRate };
   }
 
-  const taxRate = mergedRates[stateCode] ?? fallbackRate;
+  const taxRate = t.stateRates[stateCode] ?? t.fallback;
   return { stateCode, taxRate };
 }
 
@@ -401,10 +426,16 @@ const ADAPTERS = {
  * is the one that actually produced the number, which is not always the one
  * that was configured, and that difference is the thing worth recording.
  */
-export async function resolveTax({ env, request, address, taxableCents, shippingCents = 0, dbOverrides = {} }) {
+export async function resolveTax({ env, request, address, taxableCents, shippingCents = 0, dbOverrides = null }) {
   const config = await getTaxEngineConfig(env);
+  /* A caller that did not bring the admin's overrides gets them read here rather
+     than quietly pricing without them. The payment path passes its own (it is
+     already reading settings for other reasons); anything else — the checkout
+     summary's quote, say — would otherwise have to remember, and forgetting
+     looks exactly like the drift this whole file exists to stop. */
+  const overrides = dbOverrides || await loadTaxOverrides(env);
   const builtin = () => {
-    const { stateCode, taxRate } = getTaxRateForAddress(address, env, request, dbOverrides);
+    const { stateCode, taxRate } = getTaxRateForAddress(address, env, request, overrides);
     return {
       taxCents: taxableCents > 0 ? Math.round(taxableCents * taxRate) : 0,
       rate: taxRate,

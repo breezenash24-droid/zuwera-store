@@ -633,7 +633,18 @@ function initPaymentRequestButton(subtotalCents) {
       });
       // The curated rate, not raw rates[0]: that can be a restricted service.
       if (data.rates?.length) selectedShippingRate = pickShippingRate(data.rates) || data.rates[0];
-      prTaxCents = window.ZWCheckoutTax ? window.ZWCheckoutTax.taxCents(prSubtotalCents, addr.region || '', addr.postalCode || '') : 0;
+      /* Wait for the tax quote before pricing the sheet. A wallet confirms
+         against the total shown HERE — the customer never sees the amount the
+         PaymentIntent is created for — so a tax figure that is still resolving
+         becomes an amount they agreed to without being shown it. We are already
+         awaiting shipping rates in this handler, so it costs no extra wait in
+         practice; the quote is usually cached by now anyway. */
+      if (window.ZWCheckoutTax) {
+        await window.ZWCheckoutTax.ensure(addr.region || '', addr.postalCode || '', prSubtotalCents);
+        prTaxCents = window.ZWCheckoutTax.taxCents(prSubtotalCents, addr.region || '', addr.postalCode || '');
+      } else {
+        prTaxCents = 0;
+      }
       const ship = walletShipping();
       prShipCents = ship.cents;
       ev.updateWith({
@@ -929,11 +940,21 @@ function refreshTaxDisplay() {
   if (!subtotal) return;
   const state = (_pay.stateInput?.value || '').trim().toUpperCase().slice(0, 2);
   const zip   = (_pay.zipInput?.value   || '').trim();
-  const tax = window.ZWCheckoutTax.taxDollars(subtotal, state, zip);
+
+  /* Ask the server, and render what it has actually said. `known` is the whole
+     point: it separates "Oregon charges no sales tax" from "we have not been
+     told yet", which the old code could not tell apart because it always had a
+     table to answer from — including when the table was wrong. Unknown shows a
+     dash and leaves it out of the total, exactly as an unentered state already
+     did, and the zw:tax listener below re-renders the moment an answer lands. */
+  window.ZWCheckoutTax.ensure(state, zip, Math.round(subtotal * 100));
+  const known = window.ZWCheckoutTax.isKnown(state, zip);
+  const tax = known ? window.ZWCheckoutTax.taxDollars(subtotal, state, zip) : 0;
+  const taxText = known ? `$${tax.toFixed(2)}` : '—';
   const total = subtotal + tax;
 
   // Update cart sidebar elements (kept in sync even though hidden behind modal)
-  if (_pay.taxEl) _pay.taxEl.textContent = tax > 0 ? `$${tax.toFixed(2)}` : (state ? '$0.00' : '—');
+  if (_pay.taxEl) _pay.taxEl.textContent = taxText;
   if (_pay.totalEl) _pay.totalEl.textContent = `$${total.toFixed(2)}`;
 
   // Update payment modal order summary panel
@@ -943,8 +964,13 @@ function refreshTaxDisplay() {
   const pmToggleTot  = document.getElementById('pm-toggle-total');
   const pmSubtotal   = document.getElementById('pm-subtotal');
   if (pmSubtotal)   pmSubtotal.textContent   = `$${subtotal.toFixed(2)}`;
-  if (pmTax)        pmTax.textContent        = tax > 0 ? `$${tax.toFixed(2)}` : (state ? '$0.00' : '—');
-  if (pmTaxLbl)     pmTaxLbl.textContent     = state && tax > 0 ? `Tax (${state})` : 'Tax';
+  if (pmTax)        pmTax.textContent        = taxText;
+  /* The state the tax is FOR, which before an address is typed is the one the
+     server worked out from the connection — not the empty input field. */
+  if (pmTaxLbl) {
+    const forState = window.ZWCheckoutTax.stateFor(state, zip);
+    pmTaxLbl.textContent = known && forState ? `Tax (${forState})` : 'Tax';
+  }
   if (pmTotal)      pmTotal.textContent      = `$${total.toFixed(2)}`;
   if (pmToggleTot)  pmToggleTot.textContent  = `$${total.toFixed(2)}`;
   // We just wrote an undiscounted total; re-apply any active promo so the discount
@@ -954,6 +980,10 @@ function refreshTaxDisplay() {
 
 _pay.zipInput?.addEventListener('input', () => { updateDeliveryOptions(); maybeLoadRates(); if ((_pay.zipInput?.value || '').length >= 5) refreshTaxDisplay(); });
 _pay.stateInput?.addEventListener('input', () => { maybeLoadRates(); refreshTaxDisplay(); });
+
+/* The quote arrives after the summary has already been drawn, so the summary
+   has to be told. Without this the tax line renders '—' once and stays there. */
+window.addEventListener('zw:tax', () => refreshTaxDisplay());
 
 // ===================== CAMPUS HAND-DELIVERY =====================
 // Reveal a free in-person delivery option when the ZIP is on the admin-managed

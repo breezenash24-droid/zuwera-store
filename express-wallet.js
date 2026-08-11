@@ -235,12 +235,23 @@
         address: { name: '', line1: '', city: addr.city || '', state: state, zip: zip, country: addr.country || 'US' },
       }).then(function (data) {
         if (data && data.rates && data.rates.length) selectedRate = pickRate(data.rates) || data.rates[0];
-        var ship = shipping();
-        taxCents = window.ZWCheckoutTax ? window.ZWCheckoutTax.taxCents(subtotalCents, state, zip) : 0;
-        setAmount(subtotalCents + taxCents + ship.cents);
-        ev.resolve({
-          lineItems: lineItems(),
-          shippingRates: [{ id: 'standard', displayName: ship.label, amount: ship.cents, deliveryEstimate: DELIVERY_ESTIMATE }],
+        /* Wait for the tax quote before setting the sheet's amount. This is the
+           number the customer confirms against — they never see what the
+           PaymentIntent is created for — so pricing the sheet from a rate that
+           has not arrived yet is how a total gets agreed to without being
+           shown. The shipping call above has already cost a round trip; the
+           quote is almost always cached by the time we get here. */
+        return (window.ZWCheckoutTax
+          ? window.ZWCheckoutTax.ensure(state, zip, subtotalCents)
+          : Promise.resolve(null)
+        ).then(function () {
+          var ship = shipping();
+          taxCents = window.ZWCheckoutTax ? window.ZWCheckoutTax.taxCents(subtotalCents, state, zip) : 0;
+          setAmount(subtotalCents + taxCents + ship.cents);
+          ev.resolve({
+            lineItems: lineItems(),
+            shippingRates: [{ id: 'standard', displayName: ship.label, amount: ship.cents, deliveryEstimate: DELIVERY_ESTIMATE }],
+          });
         });
       })['catch'](function () { ev.reject(); });
     });

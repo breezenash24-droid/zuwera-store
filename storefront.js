@@ -4124,8 +4124,18 @@ function getCheckoutTaxStateCode(fallback = '') {
   const fieldState = document.getElementById('pay-state')?.value || '';
   return window.ZWCheckoutTax?.normalizeStateCode(fieldState || fallback || _detectedStateCode) || '';
 }
+/* The ZIP, not just the state. Ohio and Illinois are priced by county and by
+   ZIP3 respectively, and this page was asking with the state alone — so an
+   Ohio shopper was quoted the 5.75% state rate here while checkout, which does
+   pass the ZIP, quoted their county's. Same table, same store, two answers. */
+function getCheckoutTaxZip() {
+  return (document.getElementById('pay-zip')?.value || '').trim();
+}
 function getCheckoutTaxCents(subtotalCents, stateCode = '') {
-  return window.ZWCheckoutTax?.taxCents(subtotalCents, getCheckoutTaxStateCode(stateCode)) || 0;
+  const st = getCheckoutTaxStateCode(stateCode);
+  const zip = getCheckoutTaxZip();
+  window.ZWCheckoutTax?.ensure(st, zip, subtotalCents);
+  return window.ZWCheckoutTax?.taxCents(subtotalCents, st, zip) || 0;
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); setPageScrollLock(false); }
 let _paymentReturnModalId = null;
@@ -4542,16 +4552,24 @@ function updateShip(amount) {
 function updateTaxEstimateForState() {
   const subtotal = _getCurrentSubtotal();
   if (!subtotal) return;
-  const tax = window.ZWCheckoutTax?.taxDollars(subtotal, getCheckoutTaxStateCode()) || 0;
+  const st = getCheckoutTaxStateCode();
+  const zip = getCheckoutTaxZip();
+  window.ZWCheckoutTax?.ensure(st, zip, Math.round(subtotal * 100));
+  /* Show what the server has said, and a dash until it has said it. A figure
+     invented locally is how this page came to disagree with the card charge. */
+  const known = window.ZWCheckoutTax?.isKnown(st, zip) || false;
+  const tax = known ? (window.ZWCheckoutTax?.taxDollars(subtotal, st, zip) || 0) : 0;
   const taxEl = document.getElementById('summary-tax');
   const totalEl = document.getElementById('summary-total');
   const shippingText = document.getElementById('summary-shipping')?.textContent || '';
   const shipping = /^free$/i.test(shippingText.trim()) ? 0 : (parseFloat(shippingText.replace(/[^0-9.]/g, '')) || 0);
-  if (taxEl) taxEl.textContent = '$' + tax.toFixed(2);
+  if (taxEl) taxEl.textContent = known ? '$' + tax.toFixed(2) : '—';
   if (totalEl) totalEl.textContent = '$' + (subtotal + shipping + tax).toFixed(2);
 }
-document.getElementById('pay-zip').addEventListener('input', maybeLoadRates);
+document.getElementById('pay-zip').addEventListener('input', () => { updateTaxEstimateForState(); maybeLoadRates(); });
 document.getElementById('pay-state').addEventListener('input', () => { updateTaxEstimateForState(); maybeLoadRates(); });
+/* The quote lands after the summary is drawn; without this the dash sticks. */
+window.addEventListener('zw:tax', () => { try { updateTaxEstimateForState(); } catch (_) {} });
 document.getElementById('co-back')?.addEventListener('click', () => { closePaymentModal(); document.getElementById('pay-error').textContent=''; });
 
 document.getElementById('pay-submit').addEventListener('click', async () => {

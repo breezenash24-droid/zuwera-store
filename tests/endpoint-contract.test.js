@@ -40,6 +40,10 @@ const CRITICAL = [
      were in payment code that looked finished. */
   'paypal-create-order.js',
   'me.js',
+  /* The figure the checkout summary shows as tax. It cannot take money, but it
+     is on the money path: every storefront page now asks it rather than working
+     tax out locally, so a throw here is a checkout that displays no tax at all. */
+  'tax-quote.js',
 ];
 
 const mockRequest = (body) => new Request('https://zuwera.store/api/x', {
@@ -53,7 +57,10 @@ const emptyEnv = {};
 
 /* Endpoints that read rather than charge. These may answer 200 with defaults on
    an unconfigured store; the ones that move money may not. */
-const READ_ONLY = new Set(['tax-config.js', 'me.js']);
+/* tax-quote answers 200 with a zero rate on an unconfigured store, and that is
+   the correct answer rather than a shrug: a store with no tax settings collects
+   no tax. Refusing would only stop the summary rendering. */
+const READ_ONLY = new Set(['tax-config.js', 'me.js', 'tax-quote.js']);
 
 async function run() {
   console.log('\n  every payment endpoint returns a Response, never throws');
