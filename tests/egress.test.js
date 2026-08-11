@@ -242,5 +242,22 @@ console.log('\n  the media tools cannot quietly break the store');
     a.includes('would re-encode a video and silently'));
 }
 
+
+console.log('\n  and they are buttons, not console commands');
+{
+  const a = fs.readFileSync(R + 'admin-main.js', 'utf8');
+  const h = fs.readFileSync(R + 'admin.html', 'utf8');
+  ok('the panel has real action buttons', /zwMediaAction\('migrate'\)/.test(h) && /zwMediaAction\('delete'\)/.test(h));
+  ok('…that name the files before doing anything', /_zwMediaPending = kind/.test(a),
+    'a one-click destructive action is not a question anyone answers');
+  ok('…and take a second, separate confirmation', /window\.zwMediaConfirm/.test(a));
+  ok('…which can be cancelled', /window\.zwMediaCancel/.test(a));
+  ok('…and refuses outright on an incomplete scan',
+    a.includes('so nothing here is safe to act on'));
+  ok('after a move it says to check the site before deleting',
+    a.includes('check the video still plays'),
+    'the originals are the safety net, and only work if somebody looks');
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

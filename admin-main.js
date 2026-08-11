@@ -9009,6 +9009,96 @@ function escapeAttr(value) {
 
         /* The panel. Same scan the console tools use, so what is shown and what
            a move would act on cannot disagree. */
+
+        /* ── The buttons ──────────────────────────────────────────────────────
+           Two clicks, no console. The first shows exactly what will happen and
+           to which files; the second carries it out.
+
+           Two steps rather than one because these are not like saving a
+           setting: one rewrites what the homepage points at, the other cannot be
+           undone. A single button with a browser confirm() would technically be
+           asking, but nobody reads those — a list of the actual files, on the
+           page, is a question someone can answer. */
+        window._zwMediaPending = null;
+
+        window.zwMediaAction = async function (kind) {
+            const host = document.getElementById('zwMediaAct');
+            if (!host) return;
+            const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            host.innerHTML = '<p style="font-size:.82rem;color:var(--text-secondary)">Checking…</p>';
+            try {
+                const { files, complete } = await zwMediaScan();
+                if (!complete) {
+                    host.innerHTML = '<p style="color:var(--red,#dc2626);font-size:.82rem">A reference source could not be read, '
+                        + 'so nothing here is safe to act on. Reload and try again.</p>';
+                    return;
+                }
+                const list = kind === 'migrate'
+                    ? files.filter((f) => f.usedBy.length && f.isVideo)
+                    : files.filter((f) => !f.usedBy.length);
+                if (!list.length) {
+                    host.innerHTML = '<p style="font-size:.82rem;color:var(--text-secondary)">Nothing to do — '
+                        + (kind === 'migrate' ? 'no video left on Supabase.' : 'every file is still in use.') + '</p>';
+                    return;
+                }
+                const mb = (b) => (b / 1048576).toFixed(2) + ' MB';
+                const total = list.reduce((n, f) => n + f.bytes, 0);
+                window._zwMediaPending = kind;
+
+                host.innerHTML =
+                    '<div style="border:1px solid var(--accent,#F891A5);border-radius:8px;padding:14px 16px">'
+                    + '<strong style="font-size:.9rem">' + (kind === 'migrate'
+                        ? 'Move ' + list.length + ' video file(s) to R2 — ' + mb(total)
+                        : 'Delete ' + list.length + ' unused file(s) — ' + mb(total)) + '</strong>'
+                    + '<div style="font-size:.8rem;color:var(--text-secondary);margin:6px 0 10px;line-height:1.6">'
+                    +   (kind === 'migrate'
+                        ? 'Each is copied to R2, the pages pointing at it are repointed, and the Supabase copy is '
+                          + '<strong>left in place</strong> until you have checked the site. Nothing is deleted here.'
+                        : 'Nothing on the site references these. This <strong>cannot be undone</strong>.')
+                    + '</div>'
+                    + '<ul style="margin:0 0 12px;padding-left:1.1rem;font-size:.78rem;color:var(--text-secondary);max-height:180px;overflow:auto">'
+                    +   list.map((f) => '<li>' + mb(f.bytes) + ' — ' + esc(f.name) + '</li>').join('')
+                    + '</ul>'
+                    + '<button class="btn btn-primary" type="button" onclick="zwMediaConfirm()">'
+                    +   (kind === 'migrate' ? 'Move them' : 'Delete them') + '</button>'
+                    + '<button class="btn btn-secondary" type="button" onclick="zwMediaCancel()" style="margin-left:8px">Cancel</button>'
+                    + '</div>';
+            } catch (e) {
+                host.innerHTML = '<p style="color:var(--red,#dc2626);font-size:.82rem">Could not check: '
+                    + esc(e && e.message || e) + '</p>';
+            }
+        };
+
+        window.zwMediaCancel = function () {
+            window._zwMediaPending = null;
+            const host = document.getElementById('zwMediaAct');
+            if (host) host.innerHTML = '';
+        };
+
+        window.zwMediaConfirm = async function () {
+            const kind = window._zwMediaPending;
+            const host = document.getElementById('zwMediaAct');
+            if (!kind || !host) return;
+            window._zwMediaPending = null;
+            host.innerHTML = '<p style="font-size:.82rem;color:var(--text-secondary)">Working… large video can take a minute.</p>';
+            try {
+                const done = kind === 'migrate'
+                    ? await zwMigrateToR2({ confirm: true })
+                    : await zwDeleteOrphans({ confirm: true });
+                const n = (done || []).length;
+                host.innerHTML = '<p style="font-size:.85rem;color:rgba(110,210,130,.95)">'
+                    + (kind === 'migrate'
+                        ? 'Moved ' + n + ' file(s). <strong>Open your homepage and check the video still plays</strong> — '
+                          + 'then come back and delete the unused files, which will now include the originals.'
+                        : 'Deleted ' + n + ' file(s).')
+                    + '</p>';
+                zwMediaPanel();
+            } catch (e) {
+                host.innerHTML = '<p style="color:var(--red,#dc2626);font-size:.82rem">Stopped: '
+                    + String(e && e.message || e) + '. Nothing further was changed — the console has the detail.</p>';
+            }
+        };
+
         window.zwMediaPanel = async function () {
             const host = document.getElementById('zwMediaPanel');
             if (!host) return;

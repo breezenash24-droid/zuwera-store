@@ -576,14 +576,11 @@
                             </p>
                             <div style="display:flex;gap:8px;flex-wrap:wrap">
                                 <button class="btn btn-secondary" type="button" onclick="zwMediaPanel()">Scan storage</button>
-                                <button class="btn btn-secondary" type="button" onclick="zwMigrateToR2().then(zwMediaPanel)">Preview move to R2</button>
-                                <button class="btn btn-secondary" type="button" onclick="zwDeleteOrphans().then(zwMediaPanel)">Preview delete unused</button>
+                                <button class="btn btn-secondary" type="button" onclick="zwMediaAction('migrate')">Move video to R2</button>
+                                <button class="btn btn-secondary" type="button" onclick="zwMediaAction('delete')">Delete unused files</button>
                             </div>
-                            <p style="font-size:.78rem;color:var(--text-secondary);margin:10px 0 0;line-height:1.6">
-                                Both actions preview first and change nothing. To carry one out, run
-                                <code>zwMigrateToR2({confirm:true})</code> or <code>zwDeleteOrphans({confirm:true})</code> in the console —
-                                deliberately, because one rewrites what the homepage points at and the other cannot be undone.
-                            </p>
+                            <p style="font-size:.78rem;color:var(--text-secondary);margin:10px 0 0;line-height:1.6">Both list exactly which files they would touch before doing anything. Moving leaves the Supabase copy in place so you can check the site first; deleting cannot be undone.</p>
+                            <div id="zwMediaAct" style="margin-top:12px"></div>
                             <div id="zwMediaPanel" style="margin-top:14px"></div>
                         </div>
                         <div id="supabaseUsage" style="font-size:.85rem;">
