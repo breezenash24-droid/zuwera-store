@@ -202,7 +202,11 @@ async function run() {
       if (u.includes('/products?')) {
         return reply([{ id: 'p1', title: 'Test Jacket', sku: 'TJ-1', current_price: '129.99', shipping_weight_lb: '2' }]);
       }
-      if (u.includes('product_sizes')) return reply([{ stock_quantity: 10 }]);
+      /* A realistic row: size and colour included. A bare { stock_quantity }
+         used to pass because the old lookup read whatever row came back without
+         checking it was the right size — the fixture was wrong in the same way
+         the code was. See stock-availability.test.js. */
+      if (u.includes('product_sizes')) return reply([{ size: 'M', color_name: null, stock_quantity: 10 }]);
       return reply([]);
     };
 

@@ -1090,7 +1090,13 @@ body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
    mode) so the contained product photo floats on the modal surface — no fixed
    cream/white strip that goes stark on the dark modal or seams in super-light. */
 .quick-add-review-media{position:relative;background:var(--ink);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y pinch-zoom}
-.quick-add-review-media img{width:100%;height:100%;object-fit:cover;object-position:center center;display:block}
+/* contain, not cover. The band above is painted with the page background
+   precisely so a photo that does not match 4/3 can letterbox against it — the
+   comment there already said "contained", but the rule said cover, so every
+   portrait product shot was being cropped to fill the band instead. On a
+   garment that crops the hem off, which is the one part a shopper opened the
+   quick view to look at. */
+.quick-add-review-media img{width:100%;height:100%;object-fit:contain;object-position:center center;display:block}
 .quick-add-review-media :is(img,video).zw-img-in{animation:qaImgIn .4s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)) both}
 .quick-add-review-media :is(img,video).zw-slide-next{animation:qaSlideNext .4s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)) both}
 .quick-add-review-media :is(img,video).zw-slide-prev{animation:qaSlidePrev .4s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)) both}

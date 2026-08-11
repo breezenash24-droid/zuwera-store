@@ -168,26 +168,79 @@ async function fetchProductByFilter(env, filterKey, filterValue) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+/* Size labels are written inconsistently — the size button renders "XXL" while
+   the inventory row may say "2XL". product.html folds them before comparing;
+   this is the same fold, so the two agree. Without it the server compares raw
+   strings and a size that displays as in stock is refused at the till. */
+function canonSize(value) {
+  const s = String(value || '').trim().toLowerCase().replace(/\s+/g, '');
+  const m = s.match(/^([2-5])x(s|l)$/);          // 2xl → xxl, 3xs → xxxs
+  if (m) return 'x'.repeat(Number(m[1])) + m[2];
+  const r = s.match(/^(x{2,5})(s|l)$/);          // already xxl form
+  if (r) return r[1] + r[2];
+  return s;
+}
+
+/* How much of this size, in this colour, is actually on the shelf.
+ *
+ * THIS MUST AGREE WITH sizeStockForColor() IN product.html. It did not, and the
+ * disagreement was customer-visible: the page offered "Only 1 left in stock",
+ * the shopper added it, and checkout answered "is out of stock." Three separate
+ * divergences could each produce that, and all three are fixed here:
+ *
+ *   - the colour was matched with PostgREST eq, which is case- and
+ *     whitespace-sensitive. The page lowercases both sides first, so "Yellow"
+ *     in the cart against "yellow" in the row matched on the page and missed
+ *     on the server.
+ *   - a missed colour then fell back to the OLDEST row for that size in ANY
+ *     colour. That is wrong in both directions: it can report a sold-out
+ *     colourway's stock for one that has plenty (blocking a real sale, which is
+ *     what happened here) and equally report a stocked colourway's for one that
+ *     is empty, overselling it.
+ *   - limit=1 read a single row where the page SUMS them, so a size split
+ *     across rows read low.
+ *
+ * So the rows are fetched once and reduced here, by the page's rules. One
+ * algorithm, expressed twice, is what caused this; the fix is for the server's
+ * copy to be a faithful port rather than an approximation of it.
+ *
+ * Returns null only when availability is genuinely unknown (no inventory rows
+ * at all, or the lookup failed) — the caller reads null as "no guard", matching
+ * the page, which lets a product with no inventory configured be bought. Rows
+ * that exist but do not match return 0, which blocks. */
 async function fetchSizeStockQty(env, productId, size, colorName) {
   const headers = catalogHeaders(env);
   if (!headers || !productId || !size) return null;
-  const base = `${env.SUPABASE_URL}/rest/v1/product_sizes?select=stock_quantity&product_id=eq.${encodeURIComponent(productId)}&size=eq.${encodeURIComponent(size)}`;
-  const q = async (url) => {
-    const resp = await fetch(url, { headers, cache: 'no-store' }).catch(() => null);
-    if (!resp || !resp.ok) return null;
-    const rows = await resp.json().catch(() => []);
-    return Array.isArray(rows) && rows.length ? rows : null;
-  };
-  // Try an exact colour match first; if none exists, fall back to the product+size
-  // row regardless of colour. Stock is saved color-agnostically (color_name NULL),
-  // so without this fallback the colour filter matches nothing → returns null →
-  // the stock guard is skipped and a sold-out item can be oversold. Mirrors the
-  // decrement_stock RPC's fallback so availability and decrement stay consistent.
-  let rows = colorName ? await q(`${base}&color_name=eq.${encodeURIComponent(colorName)}&limit=1`) : null;
-  if (!rows) rows = await q(`${base}&order=created_at.asc&limit=1`);
-  if (!rows) return null;
-  const qty = rows[0]?.stock_quantity;
-  return typeof qty === 'number' ? qty : null;
+
+  const url = `${env.SUPABASE_URL}/rest/v1/product_sizes`
+    + `?select=size,color_name,stock_quantity&product_id=eq.${encodeURIComponent(productId)}`;
+  const resp = await fetch(url, { headers, cache: 'no-store' }).catch(() => null);
+  if (!resp || !resp.ok) return null;
+  const all = await resp.json().catch(() => []);
+  /* No inventory configured for this product at all — not "sold out". The page
+     enables Add to Bag in exactly this case, so refusing here would block a
+     sale the store never said was limited. */
+  if (!Array.isArray(all) || all.length === 0) return null;
+
+  const wanted = canonSize(size);
+  const rows = all.filter((r) => canonSize(r?.size) === wanted);
+  if (!rows.length) return 0;
+
+  const sum = (list) => list.reduce((s, r) => s + (Number(r?.stock_quantity) || 0), 0);
+  const norm = (v) => String(v || '').trim().toLowerCase();
+
+  if (colorName) {
+    const colorRows = rows.filter((r) => norm(r.color_name) === norm(colorName));
+    if (colorRows.length) return sum(colorRows);
+    /* Legacy products save stock colour-agnostically (color_name NULL). Those
+       rows cover every colourway, so they are the correct fallback — unlike
+       another colour's rows, which describe a different garment. */
+    const nullRows = rows.filter((r) => !r.color_name);
+    return nullRows.length ? sum(nullRows) : 0;
+  }
+
+  const nullRows = rows.filter((r) => !r.color_name);
+  return nullRows.length ? sum(nullRows) : sum(rows);
 }
 
 export async function verifyAccessToken(accessToken, env) {
