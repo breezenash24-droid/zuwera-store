@@ -1,5 +1,6 @@
 import { resolvePerms, permsHave } from './_rbac.js';
 
+import { can } from './_abac.js';
 export function json(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
     status,
@@ -182,11 +183,74 @@ export async function verifyAdmin(env, accessToken) {
 // Like verifyAdmin, but also requires the person to hold `permission`
 // (resolved from their role preset + per-user access overrides).
 // Returns the admin object on success, or null if unauthenticated / not permitted.
-export async function verifyAdminCan(env, accessToken, permission) {
+/* ── ABAC: the layer that can only narrow ─────────────────────────────────────
+ * RBAC answers "does this role grant the action". ABAC answers "and is it
+ * allowed in THIS case" — a refund under $100, an order in your own region,
+ * business hours. The engine has existed and been tested for a while; nothing
+ * called it, so every rule a store could write was inert.
+ *
+ * It goes here, on the one gate every admin action already passes through,
+ * because a second authorization path is a second place for a bypass. A store
+ * with no rules behaves exactly as it does today: can() returns allow when the
+ * list is empty, so adoption costs nothing and there is no branch to keep in
+ * step.
+ *
+ * Direction is the whole design and is enforced by the engine, not here: ABAC
+ * may only take permission away. It is handed the RBAC answer and cannot turn a
+ * false into a true. See abac-layering-decision — a mode switch was rejected
+ * because turning ABAC off would be a silent privilege ESCALATION, with
+ * constraints like "refunds under $100" simply vanishing.
+ *
+ * Rules that cannot be read are treated as NO rules, deliberately. The
+ * alternative — failing closed on an unreadable settings row — locks every
+ * admin out of the whole panel over a transient read, and RBAC is still doing
+ * its job underneath. Narrowing that silently stops narrowing is a real risk
+ * and it is logged, not swallowed.
+ */
+async function abacRules(env) {
+  try {
+    const cfg = await getSetting(env, 'abac_rules', null);
+    const list = Array.isArray(cfg) ? cfg : (cfg && Array.isArray(cfg.rules) ? cfg.rules : []);
+    return list;
+  } catch (e) {
+    console.warn('abac: rules unreadable, proceeding on RBAC alone —', e && e.message);
+    return [];
+  }
+}
+
+/**
+ * The full decision. `ctx` carries what the rules are written about: the action,
+ * plus whatever the endpoint knows (amount, region, the resource being touched).
+ * @returns { allow, reason, admin }
+ */
+export async function decide(env, accessToken, permission, ctx = {}) {
   const admin = await verifyAdmin(env, accessToken);
-  if (!admin) return null;
-  if (!permsHave(admin.permissions, permission)) return null;
-  return admin;
+  if (!admin) return { allow: false, reason: 'not signed in as an admin', admin: null };
+
+  const rbacAllowed = permsHave(admin.permissions, permission);
+  const rules = await abacRules(env);
+  const verdict = can(rbacAllowed, rules, {
+    action: ctx.action || permission,
+    ...ctx,
+    /* The subject, so a rule can say "your own region" or "not your own
+       order". Spread AFTER ctx so an endpoint cannot pass itself a different
+       identity than the one that just authenticated. */
+    subject: {
+      id: admin.id,
+      email: admin.email,
+      role: admin.admin_role || admin.role,
+    },
+  });
+  return { allow: verdict.allow, reason: verdict.reason, rule: verdict.rule, admin: verdict.allow ? admin : null };
+}
+
+export async function verifyAdminCan(env, accessToken, permission, ctx = {}) {
+  /* Every existing caller passes no ctx and keeps working: with no context and
+     no rules, this is the RBAC check it always was. A caller that has something
+     to say about the case — an amount, a region — passes it and the rules can
+     act on it. */
+  const { allow, admin } = await decide(env, accessToken, permission, ctx);
+  return allow ? admin : null;
 }
 
 export async function getOrdersForUser(env, userId, userEmail = '') {
