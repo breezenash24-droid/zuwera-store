@@ -9163,13 +9163,60 @@ function escapeAttr(value) {
            attribute-path-and-operator form is a thing they will get wrong and
            then not trust. Untrusted rules get worked around by handing out
            super admin, which is worse than having no rules at all. */
+        /* The limits a store can set. Each is a sentence an owner can check,
+           not an expression language — the engine's operators are a fixed set
+           for the same reason: this decides who can refund money.
+
+           `kind` is what the value looks like, because "no more than $500" and
+           "only these regions" are different questions and a single number box
+           answers one of them badly.
+
+           `ready` is whether the ENDPOINT passes the attribute yet. It matters
+           more than it looks: the engine denies when an attribute cannot be
+           read, so switching on a limit nothing supplies does not do nothing —
+           it refuses every action of that kind. A limit that is not ready is
+           shown, and says so, rather than being hidden or quietly lying. */
         const ABAC_LIMITS = [
-            { id: 'refund_max', action: 'refund', attr: 'resource.amount', op: 'lte',
-              label: 'Refunds', unit: '$', help: 'Refuse refunds above this amount.', value: 500 },
-            { id: 'discount_max', action: 'promo_create', attr: 'resource.percent', op: 'lte',
-              label: 'Discount codes', unit: '%', help: 'Refuse promo codes above this percentage.', value: 30 },
-            { id: 'order_edit_max', action: 'order_edit', attr: 'resource.total', op: 'lte',
-              label: 'Editing an order', unit: '$', help: 'Refuse edits to orders above this total.', value: 1000 },
+            // ── money ────────────────────────────────────────────────────────
+            { id: 'refund_max', action: 'refund', attr: 'resource.amount', op: 'lte', kind: 'number',
+              label: 'Refunds', unit: '$', value: 500, ready: false,
+              help: 'Refuse refunds above this amount.' },
+            { id: 'discount_max', action: 'promo_create', attr: 'resource.percent', op: 'lte', kind: 'number',
+              label: 'Discount codes', unit: '%', value: 30, ready: false,
+              help: 'Refuse promo codes worth more than this.' },
+            { id: 'order_edit_max', action: 'order_edit', attr: 'resource.total', op: 'lte', kind: 'number',
+              label: 'Editing an order', unit: '$', value: 1000, ready: false,
+              help: 'Refuse edits to orders above this total.' },
+            { id: 'reward_max', action: 'loyalty_adjust', attr: 'resource.points', op: 'lte', kind: 'number',
+              label: 'Awarding loyalty points', unit: 'pts', value: 1000, ready: false,
+              help: 'Refuse manual points adjustments larger than this.' },
+            { id: 'price_change_max', action: 'product_price', attr: 'resource.percent_change', op: 'lte', kind: 'number',
+              label: 'Changing a price', unit: '%', value: 25, ready: false,
+              help: 'Refuse price changes bigger than this, up or down.' },
+
+            // ── destructive ──────────────────────────────────────────────────
+            { id: 'bulk_max', action: 'bulk_edit', attr: 'resource.count', op: 'lte', kind: 'number',
+              label: 'Bulk actions', unit: 'items', value: 50, ready: false,
+              help: 'Refuse bulk edits or deletes touching more rows than this.' },
+            { id: 'export_max', action: 'customer_export', attr: 'resource.count', op: 'lte', kind: 'number',
+              label: 'Exporting customers', unit: 'rows', value: 500, ready: false,
+              help: 'Refuse customer exports larger than this. Worth setting — an export is the whole list leaving the building.' },
+            { id: 'no_delete_products', action: 'product_delete', attr: 'resource.status', op: 'nin', kind: 'list',
+              label: 'Deleting products', unit: '', value: ['Live'], ready: false,
+              help: 'Refuse deleting products in these states. Leave "Live" here and only drafts can be deleted.' },
+
+            // ── scope ────────────────────────────────────────────────────────
+            { id: 'region_only', action: 'order_edit', attr: 'resource.ship_state', op: 'in', kind: 'list',
+              label: 'Orders in certain regions only', unit: '', value: [], ready: false,
+              help: 'Only orders shipping to these states or regions. Two-letter codes, comma separated.' },
+            { id: 'own_orders', action: 'order_edit', attr: 'resource.assigned_to', op: 'eq', kind: 'subject',
+              label: 'Only orders assigned to them', unit: '', value: 'subject.id', ready: false,
+              help: 'Refuse touching an order assigned to somebody else.' },
+
+            // ── who may promote whom ─────────────────────────────────────────
+            { id: 'no_role_grant', action: 'role_manage', attr: 'resource.role', op: 'nin', kind: 'list',
+              label: 'Granting roles', unit: '', value: ['super_admin'], ready: false,
+              help: 'Refuse granting these roles. Stops an admin promoting anyone — including themselves — past their own level.' },
         ];
 
         let _abacState = [];
@@ -9209,10 +9256,21 @@ function escapeAttr(value) {
                     +     ABAC_LIMITS.map((k) => '<option value="' + k.id + '"' + (k.id === kind.id ? ' selected' : '') + '>'
                     +        esc(k.label) + '</option>').join('')
                     +   '</select>'
-                    +   '<span style="font-size:.82rem;color:var(--text-secondary)">no more than</span>'
-                    +   '<input type="number" class="form-input" style="flex:0 1 110px;padding:5px 8px;font-size:.8rem" '
-                    +     'value="' + esc(r.value) + '" oninput="abacSet(' + i + ',\'value\',this.value)">'
-                    +   '<span style="font-size:.82rem;color:var(--text-secondary)">' + esc(kind.unit) + '</span>'
+                    +   (kind.kind === 'number'
+                        ? '<span style="font-size:.82rem;color:var(--text-secondary)">no more than</span>'
+                          + '<input type="number" class="form-input" style="flex:0 1 110px;padding:5px 8px;font-size:.8rem" '
+                          + 'value="' + esc(r.value) + '" oninput="abacSet(' + i + ',\'value\',this.value)">'
+                          + '<span style="font-size:.82rem;color:var(--text-secondary)">' + esc(kind.unit) + '</span>'
+                        : kind.kind === 'list'
+                        ? '<span style="font-size:.82rem;color:var(--text-secondary)">'
+                          + (kind.op === 'nin' ? 'except' : 'only') + '</span>'
+                          + '<input type="text" class="form-input" style="flex:1;min-width:140px;padding:5px 8px;font-size:.8rem" '
+                          + 'placeholder="comma separated" value="' + esc(Array.isArray(r.value) ? r.value.join(', ') : r.value) + '" '
+                          + 'oninput="abacSet(' + i + ',\'value\',this.value)">'
+                        /* `subject` limits compare against the person acting, so
+                           there is nothing to type — offering an empty box would
+                           invite a value that means nothing. */
+                        : '<span style="font-size:.82rem;color:var(--text-secondary)">— compared against the admin themselves</span>')
                     +   '<button class="btn btn-secondary btn-sm" type="button" onclick="abacRemove(' + i + ')" '
                     +     'style="margin-left:auto">Remove</button>'
                     + '</div>'
@@ -9223,6 +9281,16 @@ function escapeAttr(value) {
                     +     'oninput="abacSet(' + i + ',\'roles\',this.value)">'
                     + '</div>'
                     + '<div style="font-size:.74rem;color:var(--text-secondary);margin-top:6px">' + esc(kind.help) + '</div>'
+                    /* Say when a limit cannot bite yet. Silence here would be
+                       the dangerous kind: the engine refuses what it cannot
+                       evaluate, so switching this on before the endpoint sends
+                       the attribute blocks every action of that kind rather
+                       than doing nothing. */
+                    + (kind.ready ? '' :
+                        '<div style="font-size:.74rem;color:var(--red,#dc2626);margin-top:4px">'
+                        + 'Not enforced yet — this action does not send the information to check against. '
+                        + 'Leave it off until it does, or it will refuse every ' + esc(kind.label.toLowerCase()) + '.'
+                        + '</div>')
                     + '</div>';
             }).join('');
         }
@@ -9238,7 +9306,15 @@ function escapeAttr(value) {
                 if (list.length) r.roles = list; else delete r.roles;
                 return;
             }
-            r[field] = field === 'value' ? Number(value) : value;
+            if (field === 'value') {
+                const kind = ABAC_LIMITS.find((k) => k.id === r.id) || ABAC_LIMITS[0];
+                r.value = kind.kind === 'list'
+                    ? String(value).split(',').map((x) => x.trim()).filter(Boolean)
+                    : kind.kind === 'subject' ? kind.value
+                    : Number(value);
+                return;
+            }
+            r[field] = value;
         };
 
         window.abacSetKind = function (i, id) {
@@ -9270,8 +9346,20 @@ function escapeAttr(value) {
             /* A limit with no number is not a limit — the engine denies when an
                attribute cannot be compared, so saving one would quietly refuse
                every action of that kind rather than doing nothing. */
-            const bad = _abacState.find((r) => r.value == null || isNaN(Number(r.value)));
-            if (bad) { say('Every limit needs a number. Fix the empty one and save again.', true); return; }
+            const kindOf = (r) => ABAC_LIMITS.find((k) => k.id === r.id) || ABAC_LIMITS[0];
+            const bad = _abacState.find((r) => {
+                const k = kindOf(r);
+                if (k.kind === 'number') return r.value == null || isNaN(Number(r.value));
+                if (k.kind === 'list') return !Array.isArray(r.value) || !r.value.length;
+                return false;
+            });
+            if (bad) {
+                const k = kindOf(bad);
+                say(k.kind === 'list'
+                    ? '"' + k.label + '" needs at least one value. An empty list matches nothing, so it would refuse everything.'
+                    : '"' + k.label + '" needs a number.', true);
+                return;
+            }
 
             try {
                 const { error } = await sb.from('site_settings')
