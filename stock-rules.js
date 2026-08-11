@@ -116,6 +116,43 @@
     return Math.max(0, Number(stock) - cartQtyFor(cart, item));
   }
 
+  /* ── "sold out" and "you are holding them all" are not the same fact ────────
+     They were the same number. availableToAdd returns shelf minus bag, so one
+     left with that one in the shopper's own bag came back 0 — and the product
+     page rendered every 0 as "Out of stock" with the button disabled.
+     Nothing had sold.
+
+     Only a completed payment can empty a shelf: decrement_stock runs in the
+     Stripe webhook on payment_intent.succeeded and nowhere else in this
+     codebase — no reservation table, no hold at checkout, no trigger. A bag is
+     not a claim on stock, so it must never be able to produce sold-out
+     language, the struck-through size, or the back-in-stock prompt.
+
+     So the zero is split in two and `soldOut` is derived from the SHELF alone.
+     No quantity in any bag can set it. That is the invariant; callers should
+     ask this rather than re-deriving it from a bare number, because the bare
+     number is what lost the distinction in the first place. */
+  function availability(onShelf, item, cart) {
+    var known = !(onShelf === null || onShelf === undefined);
+    var shelf = known ? Number(onShelf) : null;
+    var inBag = cartQtyFor(cart, item);
+    var left = known ? Math.max(0, shelf - inBag) : null;
+    return {
+      onShelf: shelf,          // what exists, or null when unknown
+      inBag: inBag,            // what this shopper already holds
+      left: left,              // what they may still add, or null
+      /* Paid for and gone. The only state that earns sold-out wording. */
+      soldOut: known && shelf <= 0,
+      /* Stock remains; this shopper simply has all of it. They cannot add
+         more, but the item has not sold and must not be described as if it
+         had — someone else can still buy it, and so can they. */
+      heldByYou: known && shelf > 0 && left <= 0,
+      /* Unknown stays permissive, for the same reason stockFor returns null:
+         a shop with no inventory configured must still be able to sell. */
+      canAdd: !known || left > 0,
+    };
+  }
+
   /* One in-flight request per page, shared by every caller. The bag re-renders
      on each quantity change and must not refetch each time. */
   var _cache = null;
@@ -311,6 +348,7 @@
     stockFor: stockFor,
     cartQtyFor: cartQtyFor,
     availableToAdd: availableToAdd,
+    availability: availability,
     load: load,
     peek: peek,
     restockEnabled: restockEnabled,
