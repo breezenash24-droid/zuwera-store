@@ -240,6 +240,31 @@ console.log('\n  the editor describes each message in words, and inserts the val
     /rgb\(220,38,38\)/.test(read('admin.html')), 'no format hint for the colour field');
 }
 
+console.log('\n  a message needs somewhere to appear');
+{
+  /* Delivering the right words into a box that cannot hold them is not
+     delivering them. The bag's rows were sized to the product image with a
+     FIXED height, and bag.html appends the stock note and the back-in-stock
+     form into that row after /api/stock answers — so the moment a message
+     actually showed up, it ran past the bottom of the row and overlapped the
+     one below.
+
+     Anything a row can have appended to it has to be able to grow. */
+  const css = read('cart.css');
+  const rule = (name) => {
+    const m = css.match(new RegExp('\\.' + name + '\\s*\\{([^}]*)\\}'));
+    return m ? m[1] : '';
+  };
+  for (const name of ['cart-item-details', 'cart-item-right']) {
+    const body = rule(name);
+    ok('.' + name + ' can grow with what is appended to it',
+      /min-height:/.test(body) && !/(^|[^-])\bheight:\s*\d/.test(body),
+      'a fixed height clips the stock note and the restock form');
+  }
+  ok('the row aligns to the top, so a taller column does not drag the rest down',
+    /align-items:\s*flex-start/.test(rule('cart-item-card')));
+}
+
 console.log('\n  card declines');
 {
   /* Keyed by Stripe's own decline code, so the lookup is `decline:` + whatever

@@ -449,7 +449,11 @@ body.light-mode .summary-row {
 .cart-item-card {
   display: flex;
   gap: 1.2rem;
-  align-items: center;
+  /* Top, not centre. The details column GROWS when a stock note or the
+     back-in-stock prompt is appended, and centring made the image and the
+     price column drift down against it while the extra content ran past the
+     row's bottom edge into the next one. */
+  align-items: flex-start;
   padding: 1.4rem 0;
   margin-bottom: 0;
   border: none;
@@ -489,7 +493,12 @@ body.super-light-mode .cart-item-img-wrap { background: #f2f2f2; }
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 112px;
+  /* MIN-height, matching the image so an ordinary line still sits square
+     against it. It was a fixed height, which is fine until bag.html appends a
+     stock note and the restock form after /api/stock answers — those have
+     nowhere to go in a box that cannot grow, so they overlapped whatever came
+     next. Anything appended here has to be able to make this taller. */
+  min-height: 112px;
 }
 
 .cart-item-title {
@@ -535,7 +544,10 @@ body.light-mode .cart-item-stock-note { color: var(--zw-muted-light); }
 .cart-item-stock-note.is-out { color: var(--red, #dc2626); }
 
 .cart-restock {
-  margin-top: 0.6rem;
+  /* Sits below the qty pill inside the details column, so it needs its own
+     space rather than borrowing the row's. */
+  width: 100%;
+  margin-top: 0.75rem;
   padding-top: 0.6rem;
   border-top: 1px solid rgb(var(--fg-rgb) / 12%);
   max-width: 22rem;
@@ -645,7 +657,9 @@ body.light-mode .cart-qty-btn:hover {
   flex-direction: column;
   align-items: flex-end;
   justify-content: space-between;
-  height: 112px;
+  /* Same reasoning as the details column: price and Remove stay put at the top
+     of a row that has grown, rather than being spread down its new height. */
+  min-height: 112px;
   flex-shrink: 0;
 }
 
@@ -749,7 +763,7 @@ body.light-mode .cart-item-remove:hover {
     height: 100px;
   }
   .cart-item-details, .cart-item-right {
-    height: 100px;
+    min-height: 100px;
   }
   .cart-item-title {
     font-size: 0.95rem;
