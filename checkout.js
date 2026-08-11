@@ -360,7 +360,51 @@ async function getCheckoutAuthPayload() {
     } catch (_) { return 'null'; }
   }
 
+  /* THE answer, once the server has given it. Everything below is a guess made
+     while waiting for this.
+
+     Five browser-side checks disagreed with the server on five different days,
+     each for a different reason. The browser is simply not in a position to
+     decide token validity, so it stops trying: /api/me runs verifyAccessToken —
+     the same function that decides which price is CHARGED — and the result is
+     cached here for every price derivation on the page.
+
+     sessionStorage so a second page in the same tab starts with the right
+     answer instead of guessing again. Not localStorage: this is per-session
+     state and must not outlive signing out in another tab. */
+  const MEMBER_CACHE_KEY = 'zw_member_verified';
+  let verifiedMember = null;
+  try {
+    const cached = sessionStorage.getItem(MEMBER_CACHE_KEY);
+    if (cached === '1') verifiedMember = true;
+    else if (cached === '0') verifiedMember = false;
+  } catch (_) {}
+
+  async function confirmMembershipWithServer() {
+    let token = '';
+    try { token = (await getCheckoutAuthPayload()).accessToken || ''; } catch (_) {}
+    try {
+      const resp = await fetch('/api/me', {
+        headers: token ? { Authorization: 'Bearer ' + token } : {},
+        cache: 'no-store',
+      });
+      if (!resp.ok) return;                       // leave the guess in place
+      const data = await resp.json().catch(() => null);
+      if (!data || typeof data.member !== 'boolean') return;
+
+      const changed = verifiedMember !== data.member;
+      verifiedMember = data.member;
+      try { sessionStorage.setItem(MEMBER_CACHE_KEY, data.member ? '1' : '0'); } catch (_) {}
+      /* Re-derive prices only when the server contradicted the guess —
+         otherwise this is a no-op and the page must not flicker. */
+      if (changed) { try { await run(); } catch (_) {} }
+      try { if (typeof renderCart === 'function') renderCart(); } catch (_) {}
+    } catch (_) { /* offline or blocked: the guess stands */ }
+  }
+
   function isLoggedIn() {
+    /* The server's answer wins whenever we have it. */
+    if (verifiedMember !== null) return verifiedMember;
     try {
       for (let i = 0; i < localStorage.length; i += 1) {
         const k = localStorage.key(i);
@@ -452,8 +496,15 @@ async function getCheckoutAuthPayload() {
     try { if (typeof window.zwSyncWalletTotal === 'function') window.zwSyncWalletTotal(); } catch (_) {}
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { run().catch(() => {}); });
-  else run().catch(() => {});
+  /* Price from the best guess immediately so the page is not blank, then ask
+     the server and correct if it disagrees. The guess is only ever wrong for
+     the length of one request, and the correction re-renders. */
+  function start() {
+    run().catch(() => {});
+    confirmMembershipWithServer();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
 })();
 
 // ── Cache payment DOM refs once ───────────────────────────────────
