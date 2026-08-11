@@ -694,7 +694,11 @@ console.log('\n  asking, when a limit says no');
   ok('only a super admin answers one', /permsHave\(admin\.permissions, 'role_manage'\)/.test(req));
   ok('nobody answers their own', /You cannot approve your own request/.test(req));
   ok('asking twice is one ask', /r\.status === 'pending'/.test(req) && /dupe !== -1/.test(req));
-  ok('an approval expires', /WAIVER_TTL_MS/.test(req) && /expiresAt: approve \?/.test(req));
+  /* Only an UNSPENT approval expires now. One carried out on the spot has
+     nothing left to run out — and setting an expiry on it would leave a live
+     waiver behind a refund that already happened, which is a second bite. */
+  ok('an unspent approval expires', /WAIVER_TTL_MS/.test(req)
+    && /expiresAt: \(approve && !completed\) \?/.test(req));
 
   /* Requests and approvals are one list. Two would eventually disagree about
      whether something was approved, with the authorization system reading
@@ -905,8 +909,13 @@ console.log('\n  the asking is reachable');
   ok('the queue hides itself when empty',
     /if \(!pending\.length && !recent\.length\) \{ wrap\.style\.display = 'none'; return; \}/.test(adm));
 
-  ok('approving says what it granted, which is once',
-    /Approved — good for that one order, once\./.test(adm));
+  /* Three outcomes, said differently, because they leave the approver
+     expecting different things: nothing, somebody else acting, or a
+     conversation. "Approved" alone covered two of them and misdescribed one. */
+  ok('approving says which of the three things happened',
+    /Done — the refund went through and they have been emailed\./.test(adm)
+      && /Approved — they can run it once, and have been emailed\./.test(adm)
+      && /Declined — they have been told\./.test(adm));
 }
 
 console.log('\n  a role that was replaced does not still claim to apply');
