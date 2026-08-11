@@ -55,6 +55,7 @@ for (const file of DERIVERS) {
     /sessionStorage/.test(co) && !/localStorage\.setItem\(\s*['"]zw_member_verified/.test(co));
 }
 
+
 /* ── the answer has to exist BEFORE anything prices anything ────────────────
    Every caller consulted the right function and the price still alternated,
    because checkout.html prices the cart in an inline block near the top of the
@@ -101,18 +102,65 @@ console.log('\n  the answer exists before the price is decided');
   const live = { access_token: 'TOKEN123', expires_at: Math.floor(Date.now() / 1000) + 3600 };
   const enc = (o) => 'base64-' + Buffer.from(JSON.stringify(o), 'utf8')
     .toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  const store = { 'sb-x-auth-token': enc(live) };
+  const store = { 'zuwera-auth': enc(live) };   // the key this site actually uses
   const keys = Object.keys(store);
   global.localStorage = { length: keys.length, key: (i) => keys[i], getItem: (k) => (k in store ? store[k] : null) };
   new Function('window', sr0)(w);
 
   ok('the token can be read without the SDK', w.ZWStock.storedAccessToken() === 'TOKEN123');
-  store['sb-x-auth-token'] = enc({ access_token: 'X', expires_at: Math.floor(Date.now() / 1000) - 60 });
+  store['zuwera-auth'] = enc({ access_token: 'X', expires_at: Math.floor(Date.now() / 1000) - 60 });
   /* An expired token cannot be refreshed without the SDK and would just be
      rejected — the same outcome as sending nothing, plus a misleading round
      trip. */
   ok('…and an expired one is withheld rather than sent', w.ZWStock.storedAccessToken() === '');
   ok('…and expiry is what decides it', w.ZWStock.hasValidSession() === false);
+
+  /* ── THE key ───────────────────────────────────────────────────────────────
+     auth.js and checkout.html create the client with storageKey:'zuwera-auth',
+     so the session has NEVER lived under Supabase's default
+     sb-<ref>-auth-token. Every storage check written against that default found
+     nothing and concluded "signed out" — which is why a member was priced as a
+     guest on every page that reads storage, while the bag, which has a working
+     SDK client, priced them correctly. The store above uses 'zuwera-auth', so
+     the two assertions further up already depend on this being right. */
+  ok('the reader knows the key this site actually uses',
+    /zuwera-auth/.test(fs.readFileSync(ROOT + 'stock-rules.js', 'utf8')),
+    'stock-rules.js still only looks for sb-*-auth-token');
+  ok('…and so does checkout.js',
+    /zuwera-auth/.test(fs.readFileSync(ROOT + 'checkout.js', 'utf8')));
+  {
+    /* The Supabase default must keep working too — it is what a client created
+       without an explicit storageKey would write, and guessing wrong about
+       this once has already cost a night. */
+    const w2 = {};
+    const s2 = { 'sb-proj-auth-token': enc(live) };
+    const k2 = Object.keys(s2);
+    global.localStorage = { length: k2.length, key: (i) => k2[i], getItem: (k) => (k in s2 ? s2[k] : null) };
+    new Function('window', sr0)(w2);
+    ok('…and still reads the Supabase default', w2.ZWStock.hasValidSession() === true);
+  }
+
+
+  /* THE key. auth.js and checkout.html create the client with
+     storageKey:'zuwera-auth', so the session has never lived under Supabase's
+     default sb-<ref>-auth-token. Every storage check written against that
+     default found nothing and concluded "signed out" — which is why a member
+     was priced as a guest on the pages that read storage instead of asking the
+     SDK, while the bag (which had a working client) priced them correctly. */
+  ok('the reader knows the key this site actually uses',
+    /zuwera-auth/.test(fs.readFileSync(ROOT + 'stock-rules.js', 'utf8')),
+    'stock-rules.js still only looks for sb-*-auth-token');
+  ok('…and so does checkout.js',
+    /zuwera-auth/.test(fs.readFileSync(ROOT + 'checkout.js', 'utf8')));
+  {
+    const w2 = {};
+    const s2 = { 'sb-proj-auth-token': enc(live) };
+    const k2 = Object.keys(s2);
+    global.localStorage = { length: k2.length, key: (i) => k2[i], getItem: (k) => (k in s2 ? s2[k] : null) };
+    new Function('window', sr0)(w2);
+    ok('…and still reads the Supabase default, which a fresh client would write',
+      w2.ZWStock.hasValidSession() === true);
+  }
 
   const co = strip(fs.readFileSync(ROOT + 'checkout.js', 'utf8'));
   ok('the payment path falls back to the stored token', /storedAccessToken/.test(co),
