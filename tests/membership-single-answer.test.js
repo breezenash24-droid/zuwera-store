@@ -55,6 +55,51 @@ for (const file of DERIVERS) {
     /sessionStorage/.test(co) && !/localStorage\.setItem\(\s*['"]zw_member_verified/.test(co));
 }
 
+/* ── the answer has to exist BEFORE anything prices anything ────────────────
+   Every caller consulted the right function and the price still alternated,
+   because checkout.html prices the cart in an inline block near the top of the
+   document while checkout.js loads at the bottom. window.zwHasValidSession did
+   not exist yet, so it fell back to a page-local guess — the answer arrived
+   after the decision that needed it.
+
+   So stock-rules.js publishes a best-effort version and must load BEFORE the
+   pricing code on every page that prices. Checked by position, because "the
+   script is present" was already true when this was broken. */
+console.log('\n  the answer exists before the price is decided');
+{
+  /* Presence on every page that derives a price. */
+  for (const file of ['checkout.html', 'bag.html', 'index.html', 'product.html']) {
+    const src = fs.readFileSync(ROOT + file, 'utf8');
+    ok(file + ' loads stock-rules.js',
+      src.search(/<script[^>]+src="[^"]*stock-rules\.js/) !== -1, 'no stock-rules.js tag');
+  }
+
+  /* ORDER only matters where the pricing runs during parse. checkout.html and
+     bag.html both call normalizeCartPricing from an inline block, so the tag
+     must come first — that is the bug this whole section is about.
+
+     index.html and product.html call theirs from functions that run after load,
+     by which time a deferred script has executed, so position is irrelevant
+     there. Asserting it anyway would fail for a reason unconnected to the
+     defect, which is how a test starts getting ignored. */
+  for (const file of ['checkout.html', 'bag.html']) {
+    const src = fs.readFileSync(ROOT + file, 'utf8');
+    const tag = src.search(/<script[^>]+src="[^"]*stock-rules\.js/);
+    const call = src.indexOf('normalizeCartPricing(raw)');
+    ok(file + ' loads it before pricing at parse time', tag !== -1 && call !== -1 && tag < call,
+      'tag at ' + tag + ', call at ' + call);
+    ok('…and not deferred, which would run it after that block',
+      !/<script[^>]+src="[^"]*stock-rules\.js[^>]*\sdefer/.test(src));
+  }
+  const sr = strip(fs.readFileSync(ROOT + 'stock-rules.js', 'utf8'));
+  ok('stock-rules.js publishes the answer', /zwHasValidSession\s*=/.test(sr));
+  ok('…without clobbering the server-verified one',
+    /typeof\s+w\.zwHasValidSession\s*!==\s*['"]function['"]/.test(sr),
+    'it assigns unconditionally, so load order decides which wins');
+  ok('…and checks expiry rather than presence', /expires_at/.test(sr));
+  ok('…and understands the base64 storage shape', /base64-/.test(sr));
+}
+
 {
   /* The endpoint must use the same function that prices the cart. A separate
      implementation of "is this token valid" would put us straight back to two

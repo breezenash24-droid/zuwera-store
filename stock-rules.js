@@ -213,8 +213,59 @@
     });
   }
 
+  /* ── "is this shopper a member", available before anything prices anything ──
+     checkout.js publishes the authoritative version — the one that has asked
+     /api/me — but it loads far too late: checkout.html prices the cart in an
+     inline block near the top of the document, so window.zwHasValidSession did
+     not exist yet and it fell back to a page-local guess. The answer arrived
+     after the decision that needed it, which is why the price kept alternating
+     even once every caller was consulting the right function.
+
+     So a best-effort version is defined HERE, in a file loaded before any
+     pricing runs. It reads the stored session and checks the expiry, handling
+     both storage shapes supabase-js uses. checkout.js overwrites it later with
+     the server-verified answer; until then this is close enough to be right,
+     and it is never a PRESENCE check — an expired session reads as signed out,
+     which was the original fault. */
+  function readStoredSession(raw) {
+    var s = String(raw || '');
+    if (!s) return 'null';
+    if (s.indexOf('base64-') !== 0) return s;
+    var b64 = s.slice(7).replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    try {
+      var bin = atob(b64);
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    } catch (_) { return 'null'; }
+  }
+
+  function hasValidSession() {
+    try {
+      for (var i = 0; i < localStorage.length; i += 1) {
+        var k = localStorage.key(i);
+        if (!/^sb-.*-auth-token$/.test(k || '')) continue;
+        var parsed;
+        try { parsed = JSON.parse(readStoredSession(localStorage.getItem(k))); } catch (_) { continue; }
+        var s = parsed && (parsed.access_token ? parsed : parsed.currentSession);
+        if (!s || !s.access_token) continue;
+        var exp = Number(s.expires_at) || 0;
+        if (!exp) continue;                                   // cannot tell is not yes
+        if (exp - Math.floor(Date.now() / 1000) <= 0) continue;
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  /* Only if nothing better is already there — checkout.js's server-verified
+     version must win wherever both load, whatever the order. */
+  if (typeof w.zwHasValidSession !== 'function') w.zwHasValidSession = hasValidSession;
+
   w.ZWStock = {
     canonSize: canonSize,
+    hasValidSession: hasValidSession,
     stockFor: stockFor,
     cartQtyFor: cartQtyFor,
     availableToAdd: availableToAdd,
