@@ -4531,13 +4531,27 @@
             let groupIndex = 0;
             const openFirst = () => (groupIndex++ === 0);
 
-            host.innerHTML = customerMessagesFields().map(({ title, keys }) => {
-                const rows = keys.map((key) => {
+            host.innerHTML = customerMessagesFields().map(({ title, keys, main, more }) => {
+                const renderRow = (key) => {
                     const def = M.DEFAULTS[key] || { text: '', color: '', label: key };
                     const cur = saved[key];
                     const entry = (cur && typeof cur === 'object') ? cur : { text: cur };
-                    const text = entry && entry.text !== undefined && entry.text !== null ? entry.text : '';
-                    const colr = entry && entry.color !== undefined && entry.color !== null ? entry.color : '';
+                    /* The box carries the REAL sentence, not a placeholder of
+                       it. It used to be empty with the shipped copy shown as a
+                       placeholder, which looks identical to filled-in text and
+                       is not: clicking in and trying to edit it did nothing,
+                       because there was nothing there. "It didn't allow me to
+                       change the text" is exactly what that feels like.
+
+                       Empty still means "use the shipped copy" in STORAGE --
+                       saving text that matches the default writes no override
+                       (see customerMessagesRow), so this stays a display
+                       decision and settings do not fill up with copies of the
+                       defaults. */
+                    const saved_ = entry && entry.text !== undefined && entry.text !== null ? entry.text : '';
+                    const text = saved_ || def.text;
+                    const savedColor_ = entry && entry.color !== undefined && entry.color !== null ? entry.color : '';
+                    const colr = savedColor_ || def.color;
                     const tokens = M.PLACEHOLDERS[key] || [];
 
                     /* The tokens are BUTTONS, not something to type. Writing
@@ -4577,15 +4591,33 @@
                         +     '<span style="opacity:.55;font-weight:400;font-size:.72rem;white-space:nowrap">' + (tokens.length ? esc(tokens.map((t) => '{' + t + '}').join(' ')) : 'No values') + '</span>'
                         +   '</label>'
                         +   '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
-                        +     '<input type="text" class="form-input cm-text" style="flex:3;min-width:200px" value="' + esc(text) + '" placeholder="' + esc(def.text) + '">'
+                        +     '<input type="text" class="form-input cm-text" style="flex:3;min-width:200px" value="' + esc(text) + '" placeholder="' + esc(def.text) + '" aria-label="Message text">'
                         +     '<span class="cm-swatch" title="Colour preview" style="width:26px;height:26px;flex:none;border:1px solid var(--border);border-radius:6px;background:' + esc(swatch) + '"></span>'
                         +     '<input type="text" class="form-input cm-color" style="flex:1;min-width:180px" value="' + esc(colr) + '" placeholder="' + esc(def.color || '#dc2626 or rgb(220,38,38)') + '">'
                         +     '<button type="button" class="btn btn-secondary btn-sm cm-row-save" style="flex:none">Save</button>'
                         +   '</div>'
                         +   tokenUI
+                        +   '<div style="display:flex;gap:8px;align-items:baseline;margin:8px 0 0">'
+                        +     '<span style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);flex:none">Shopper sees</span>'
+                        +     '<span class="cm-preview" style="font-size:.85rem"></span>'
+                        +   '</div>'
                         +   '<p class="cm-row-msg" style="font-size:.75rem;margin:6px 0 0;min-height:.9rem;color:var(--text-secondary)"></p>'
                         + '</div>';
-                }).join('');
+                };
+
+                /* The ones a shopper meets often are simply there. The rarer
+                   ones are behind a toggle rather than left out, because a
+                   message you cannot find is the same as a message you cannot
+                   edit -- and this panel got unusable at twenty-odd boxes. */
+                const rows = (main || keys).map(renderRow).join('')
+                    + ((more && more.length) ? ''
+                        + '<details style="margin:2px 0 4px">'
+                        +   '<summary style="cursor:pointer;font-size:.75rem;color:var(--text-secondary);padding:6px 0">'
+                        +     'Show ' + more.length + ' less common message' + (more.length === 1 ? '' : 's')
+                        +   '</summary>'
+                        +   '<div style="padding-top:10px">' + more.map(renderRow).join('') + '</div>'
+                        + '</details>'
+                        : '');
                 /* Collapsible: the card-decline group alone is twenty-odd
                    rows, and an editor that opens as one unbroken wall of text
                    boxes is one nobody reads. First group open so the panel does
@@ -4593,7 +4625,7 @@
                 return ''
                     + '<details class="cm-group"' + (openFirst() ? ' open' : '') + ' style="margin:0 0 10px;border:1px solid var(--border);border-radius:8px">'
                     +   '<summary style="cursor:pointer;padding:10px 12px;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary)">'
-                    +     esc(title) + ' <span style="opacity:.5">(' + keys.length + ')</span>'
+                    +     esc(title) + ' <span style="opacity:.5">(' + (main || keys).length + (more && more.length ? ' + ' + more.length : '') + ')</span>'
                     +   '</summary>'
                     +   '<div style="padding:4px 12px 12px">' + rows + '</div>'
                     + '</details>';
@@ -4622,9 +4654,28 @@
                         swatchEl.style.background = colorEl.value.trim() || def.color || 'transparent';
                     });
                 }
+                /* The finished sentence, filled in and coloured, updating as it
+                   is typed. Checking a change used to mean deploying it and then
+                   either opening a browser console or putting a declined card
+                   through a real checkout -- for copy, that is an absurd
+                   feedback loop, and it is the reason wording went unverified.
+
+                   Rendered through ZWMessages.render, the same substitution the
+                   storefront uses, so this cannot show something a shopper would
+                   not get. */
+                const preview = row.querySelector('.cm-preview');
+                const paint = () => {
+                    if (!preview) return;
+                    const raw = (textEl && textEl.value.trim()) || def.text;
+                    preview.textContent = M.render(raw) || '(nothing)';
+                    preview.style.color = (colorEl && colorEl.value.trim()) || def.color || '';
+                };
+                paint();
+
                 row.querySelectorAll('.cm-text, .cm-color').forEach((el) => {
                     el.addEventListener('input', () => {
                         if (note) { note.textContent = ''; note.style.color = 'var(--text-secondary)'; }
+                        paint();
                     });
                 });
 
@@ -4663,11 +4714,19 @@
         function customerMessagesRow(key) {
             const row = document.querySelector('#cm-fields [data-cm-key="' + key + '"]');
             if (!row) return null;
+            const M = window.ZWMessages;
+            const def = (M && M.DEFAULTS[key]) || { text: '', color: '' };
             const text = String(row.querySelector('.cm-text')?.value || '').trim();
             const color = String(row.querySelector('.cm-color')?.value || '').trim();
             const entry = {};
-            if (text) entry.text = text;
-            if (color) entry.color = color;
+            /* Only a CHANGE is stored. The boxes are pre-filled with the shipped
+               wording so they can be edited in place, so most of them will come
+               back holding exactly what we ship -- writing those would fill the
+               settings blob with copies of the defaults and, worse, freeze them:
+               a later improvement to the shipped copy would never reach a store
+               that had once pressed Save. */
+            if (text && text !== def.text) entry.text = text;
+            if (color && color !== def.color) entry.color = color;
             return { row, entry };
         }
 

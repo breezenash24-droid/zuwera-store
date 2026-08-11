@@ -26,38 +26,34 @@ function getStripeCardTheme() {
    Inventing a reason is worse than not having one, because the shopper spends
    their next five minutes fixing something that was never wrong. */
 /* The copy lives in customer-messages.js and is editable in Admin -> Loyalty ->
-   Customer messages, keyed by Stripe's own decline code: `decline:` + whatever
-   Stripe sent. There is no translation table in between, so nothing can fall
-   out of step with the codes Stripe actually uses.
-
-   Which codes get their own wording, and why some deliberately share neutral
-   copy, is documented beside the messages themselves. */
+   Customer messages. Stripe's twenty-odd decline codes map onto nine messages
+   there -- the grouping is in DECLINE_MAP beside them, so this file carries no
+   table of its own to fall out of step with. */
 function declineMessage(err) {
   const M = typeof window !== 'undefined' ? window.ZWMessages : null;
   /* Without the module there is still an answer, because a refused payment
      with no explanation is the worst outcome available here. It is the only
-     sentence in this file, and it is the same one shipped as the fallback
-     message, so it cannot say something different from the editable copy. */
-  const generic = 'That payment could not be completed. Please try again.';
-  const say = (key) => (M && M.has(key) ? M.get(key) : '');
+     sentence in this file, and it is word-for-word the shipped catch-all, so
+     it cannot say something different from the editable copy. */
+  const generic = 'That card was declined. Try another card, or call your bank.';
+  if (!M) return (err && err.message) || generic;
 
-  if (!err) return say('decline:unknown') || generic;
+  const say = (code) => M.get(M.declineKey(code));
+
+  if (!err) return say('') || generic;
 
   /* Stripe puts the reason in decline_code for card_declined, and in code for
-     everything else (expired_card, incorrect_cvc arrive either way). */
+     everything else (expired_card, incorrect_cvc arrive either way). The
+     specific one wins when both are present. */
   const code = String(err.decline_code || '').trim();
-  if (code) {
-    const copy = say('decline:' + code);
-    if (copy) return copy;
-  }
   const top = String(err.code || '').trim();
-  if (top) {
-    const copy = say('decline:' + top);
-    if (copy) return copy;
-  }
-  /* Stripe's own message before the generic one: it is written for shoppers and
-     is usually more specific than "could not be completed". */
-  return err.message || say('decline:unknown') || generic;
+  const known = (c) => c && M.declineKey(c) !== 'declined';
+
+  if (known(code)) return say(code) || generic;
+  if (known(top)) return say(top) || generic;
+  /* Nothing we recognise. Stripe's own message first -- it is written for
+     shoppers and is often more specific than our catch-all. */
+  return err.message || say('') || generic;
 }
 
 if (typeof window !== 'undefined') window.zwDeclineMessage = declineMessage;
