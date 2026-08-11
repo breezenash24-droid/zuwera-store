@@ -16,7 +16,7 @@
  * Response: { url } (public URL) or { error }
  */
 
-import { putR2Object, publicUrlForKey } from './upload-product-image.js';
+import { putR2Object, publicUrlForKey, describedKey } from './upload-product-image.js';
 
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
@@ -62,7 +62,12 @@ export async function onRequestPost({ request, env }) {
 
     const name = String(file.name || 'upload').toLowerCase();
     const ext = (name.split('.').pop() || 'bin').replace(/[^a-z0-9]/g, '') || 'bin';
-    const key = 'builder/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+    /* The builder knows which section it is placing into; that is the only
+       thing that makes one hero image distinguishable from the next. Falls
+       back to the uploaded file's own name, which is at least what the person
+       called it. */
+    const label = String(form.get('label') || '').trim() || name.replace(/\.[^.]+$/, '');
+    const key = describedKey('builder', label, ext);
     const contentType = file.type || 'application/octet-stream';
     const buf = await file.arrayBuffer();
 
