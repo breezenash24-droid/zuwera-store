@@ -149,6 +149,25 @@ console.log('\n  no quantity in any bag can produce the sold-out message');
   ok('checked across every shelf and bag combination', bad === null, bad);
 }
 
+console.log('\n  and the situation can actually be reached');
+{
+  /* Knowing updateStockInfo() SAYS sold-out for an empty shelf is only half of
+     it. The other half is whether a shopper can ever get the page into that
+     state — and for a long time they could not: clicking a sold-out size opened
+     the back-in-stock panel and returned before selecting anything, so
+     updateStockInfo never ran for that size and the message was dead copy.
+
+     The two halves together are the proof. The matrix above is the first;
+     this is the second. */
+  const click = SRC.slice(SRC.indexOf("btn.addEventListener('click'"), SRC.indexOf('sizeGrid.appendChild(btn)'));
+  const soldOutBranch = click.slice(0, click.indexOf('hideRestockPanel()'));
+
+  ok('clicking a sold-out size selects it', /selectedSize = size/.test(soldOutBranch),
+    'the branch returns before selecting, so the sold-out line can never show');
+  ok('…and asks the page to say so', /updateStockInfo\(\)/.test(soldOutBranch));
+  ok('…while still offering the waitlist', /openRestockPanel\(size\)/.test(soldOutBranch));
+}
+
 console.log('\n  an admin edit moves the branch it belongs to, and no other');
 {
   /* If editing one message changed what another situation showed, the branching

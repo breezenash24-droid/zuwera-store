@@ -4922,6 +4922,18 @@
                         +   '<div style="font-size:.8rem;font-weight:700">' + esc(surface.name) + '</div>'
                         +   '<div style="font-size:.7rem;color:var(--text-secondary);margin:2px 0 10px">' + esc(surface.where) + '</div>'
                         +   (draw ? draw() : many(surface.keys))
+                        +   (surface.rare && surface.rare.length ? ''
+                                + '<details style="margin-top:10px">'
+                                +   '<summary style="cursor:pointer;font-size:.68rem;color:var(--text-secondary)">'
+                                +     surface.rare.length + ' rarely seen</summary>'
+                                +   '<div style="opacity:.75;margin-top:6px">'
+                                +     '<div style="font-size:.64rem;color:var(--text-secondary);margin-bottom:4px">'
+                                +       'Only when something has already gone wrong — a shopper should not meet these.'
+                                +     '</div>'
+                                +     many(surface.rare)
+                                +   '</div>'
+                                + '</details>'
+                                : '')
                         + '</div>';
                 }).join('')
                 + '</div>';

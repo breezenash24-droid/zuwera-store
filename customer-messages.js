@@ -273,21 +273,30 @@
     {
       name: 'Product page',
       where: 'Under the size buttons, and the toasts',
-      keys: ['soldOut', 'lowStock', 'lastInBag', 'allInBag', 'maxedOut', 'soldOutItem',
-             'lowStockBadge', 'restockPrompt', 'restockSuccess', 'restockAlready', 'restockFailed'],
+      keys: ['soldOut', 'lowStock', 'lastInBag', 'allInBag', 'maxedOut',
+             'lowStockBadge', 'restockPrompt', 'restockSuccess', 'restockAlready'],
+      /* Referenced here, but only as a safety net: Add to Bag is already
+         disabled by the time either could fire, so a shopper should never meet
+         them on this screen. Kept because the guard is correct -- a disabled
+         button is a display, not a rule -- but listed separately so nobody
+         spends time on wording that is not read. */
+      rare: ['soldOutItem', 'restockFailed'],
     },
     {
       name: 'Bag',
       where: 'On each line, and the promo box',
       keys: ['soldOutInBag', 'lowStockShort', 'capReached', 'soldOut', 'soldOutItem',
-             'restockInvite', 'restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed',
-             'promoApplied', 'promoEmpty', 'promoInvalid', 'promoFailed'],
+             'restockInvite', 'restockSuccess', 'restockAlready', 'restockInvalid',
+             'promoApplied', 'promoEmpty', 'promoInvalid'],
+      // Only when the database itself refuses the write, or the code call fails.
+      rare: ['restockFailed', 'promoFailed'],
     },
     {
       name: 'Quick-add panel',
       where: 'Homepage, saved items, account',
       keys: ['soldOutBadge', 'restockHint', 'restockPrompt', 'restockSuccess',
-             'restockAlready', 'restockInvalid', 'restockFailed'],
+             'restockAlready', 'restockInvalid'],
+      rare: ['restockFailed'],
     },
     {
       name: 'Collection grid',
@@ -303,32 +312,46 @@
     {
       name: 'Checkout — refused by the server',
       where: 'Before the card is charged',
-      keys: ['soldOutItem', 'checkoutNotEnough', 'checkoutPriceChanged', 'checkoutUnavailable',
-             'checkoutNoPrice', 'checkoutRateExpired', 'checkoutRateInvalid'],
+      keys: ['soldOutItem', 'checkoutNotEnough', 'checkoutPriceChanged', 'checkoutRateExpired'],
+      /* checkoutUnavailable and checkoutNoPrice describe a CATALOGUE mistake --
+         a product unpublished or priced at nothing while sitting in a bag --
+         and checkoutRateInvalid means a shipping token failed its signature.
+         Real, worth having, and not things a working store produces. */
+      rare: ['checkoutUnavailable', 'checkoutNoPrice', 'checkoutRateInvalid'],
     },
     {
       name: 'Log in',
       where: 'The sign-in, sign-up and reset forms',
       keys: ['authBadCredentials', 'authEmailInUse', 'authMissingFields', 'authNeedEmail',
-             'authPasswordShort', 'authNoConnection', 'authFailed'],
+             'authPasswordShort'],
+      // Only when the auth service cannot be reached, or answers unexpectedly.
+      rare: ['authNoConnection', 'authFailed'],
     },
   ];
 
   /** Surfaces, with any key that no longer exists dropped. */
   function surfaces() {
+    var live = function (list) {
+      return (list || []).filter(function (k) { return !!DEFAULTS[k]; });
+    };
     return SURFACES.map(function (s) {
       return {
         name: s.name,
         where: s.where,
-        keys: s.keys.filter(function (k) { return !!DEFAULTS[k]; }),
+        keys: live(s.keys),
+        /* Reached only when something has already gone wrong. Shown, because a
+           message nobody can find is a message nobody can fix -- but shown
+           apart, so time goes on the wording shoppers actually read. */
+        rare: live(s.rare),
       };
     });
   }
 
   /** Every surface a message appears on, by name. */
   function surfacesFor(key) {
-    return SURFACES.filter(function (s) { return s.keys.indexOf(key) > -1; })
-      .map(function (s) { return s.name; });
+    return SURFACES.filter(function (s) {
+      return s.keys.indexOf(key) > -1 || (s.rare || []).indexOf(key) > -1;
+    }).map(function (s) { return s.name; });
   }
 
   /* Which messages the editor keeps out of the way.

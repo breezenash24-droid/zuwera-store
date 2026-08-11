@@ -75,7 +75,9 @@ for (const surface of M.surfaces()) {
   const files = SOURCE[surface.name];
   if (!files) continue;
   const actual = keysIn(files);
-  const claimed = new Set(surface.keys);
+  /* `rare` is still a claim about this surface — the message IS referenced
+     there, it just should not fire in normal use — so it counts as listed. */
+  const claimed = new Set([...surface.keys, ...surface.rare]);
 
   /* The dangerous direction: the map advertises a message on a screen that
      never shows it, so somebody edits it expecting to change that screen. */

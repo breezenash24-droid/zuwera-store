@@ -3507,6 +3507,19 @@ function renderSizes() {
 
     btn.addEventListener('click', () => {
       if (hasInventory && stock === 0) {
+        /* SELECT it as well as offering the waitlist. This used to return here,
+           so a sold-out size could never become the selected one — which meant
+           updateStockInfo() never ran for it and the line under the sizes never
+           said "Out of stock". Clicking a sold-out size, the obvious way anyone
+           would try to find that message, was the one way that could not.
+
+           The strikethrough was doing all the work alone. Now the line
+           underneath says what is wrong and the panel offers the fix. */
+        document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedSize = size;
+        updateStockInfo();
+        updateSizeGuideLink();
         openRestockPanel(size);
         return;
       }
