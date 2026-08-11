@@ -5343,6 +5343,7 @@
         async function loadReferralSettings() {
             loadStockRulesSettings();
             loadCustomerMessages();
+            if (typeof abacLoad === 'function') abacLoad();
             ['rf-type', 'rf-value', 'rf-min', 'rf-points', 'rf-max-uses', 'rf-expiry', 'rf-prefix', 'rf-message'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el && !el._rfBound) { el._rfBound = true; el.addEventListener('input', referralPreview); el.addEventListener('change', referralPreview); }
@@ -9144,6 +9145,139 @@ function escapeAttr(value) {
                 say('Verification could not run: ' + ((e && e.message) || e), true);
             }
             return log;
+        };
+
+
+        /* ── Writing the limits ───────────────────────────────────────────────
+           The engine has been able to read these for a while; there was no way
+           to write one without editing a settings row by hand, which is the
+           same as not having the feature.
+
+           Deliberately narrow. Not a rule builder for arbitrary logic — a short
+           list of the constraints a store actually wants, in the words a store
+           owner uses. "Refunds over $500" is a sentence someone can check; an
+           attribute-path-and-operator form is a thing they will get wrong and
+           then not trust. Untrusted rules get worked around by handing out
+           super admin, which is worse than having no rules at all. */
+        const ABAC_LIMITS = [
+            { id: 'refund_max', action: 'refund', attr: 'resource.amount', op: 'lte',
+              label: 'Refunds', unit: '$', help: 'Refuse refunds above this amount.', value: 500 },
+            { id: 'discount_max', action: 'promo_create', attr: 'resource.percent', op: 'lte',
+              label: 'Discount codes', unit: '%', help: 'Refuse promo codes above this percentage.', value: 30 },
+            { id: 'order_edit_max', action: 'order_edit', attr: 'resource.total', op: 'lte',
+              label: 'Editing an order', unit: '$', help: 'Refuse edits to orders above this total.', value: 1000 },
+        ];
+
+        let _abacState = [];
+
+        window.abacLoad = async function () {
+            const host = document.getElementById('abacRules');
+            if (!host) return;
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'abac_rules').limit(1);
+                let v = data && data[0] && data[0].value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                _abacState = Array.isArray(v) ? v : (v && Array.isArray(v.rules) ? v.rules : []);
+            } catch (_) { _abacState = []; }
+            abacRender();
+        };
+
+        function abacRender() {
+            const host = document.getElementById('abacRules');
+            if (!host) return;
+            const esc = (t) => String(t == null ? '' : t)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+            if (!_abacState.length) {
+                host.innerHTML = '<p style="font-size:.82rem;color:var(--text-secondary)">'
+                    + 'No limits. Every admin can do whatever their role allows.</p>';
+                return;
+            }
+            host.innerHTML = _abacState.map((r, i) => {
+                const kind = ABAC_LIMITS.find((k) => k.id === r.id) || ABAC_LIMITS[0];
+                const roles = Array.isArray(r.roles) ? r.roles.join(', ') : '';
+                return '<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px">'
+                    + '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">'
+                    +   '<label style="display:flex;align-items:center;gap:6px;font-size:.82rem">'
+                    +     '<input type="checkbox" ' + (r.enabled === false ? '' : 'checked')
+                    +     ' onchange="abacSet(' + i + ',\'enabled\',this.checked)"> on</label>'
+                    +   '<select onchange="abacSetKind(' + i + ',this.value)" class="form-input" style="flex:0 1 220px;padding:5px 8px;font-size:.8rem">'
+                    +     ABAC_LIMITS.map((k) => '<option value="' + k.id + '"' + (k.id === kind.id ? ' selected' : '') + '>'
+                    +        esc(k.label) + '</option>').join('')
+                    +   '</select>'
+                    +   '<span style="font-size:.82rem;color:var(--text-secondary)">no more than</span>'
+                    +   '<input type="number" class="form-input" style="flex:0 1 110px;padding:5px 8px;font-size:.8rem" '
+                    +     'value="' + esc(r.value) + '" oninput="abacSet(' + i + ',\'value\',this.value)">'
+                    +   '<span style="font-size:.82rem;color:var(--text-secondary)">' + esc(kind.unit) + '</span>'
+                    +   '<button class="btn btn-secondary btn-sm" type="button" onclick="abacRemove(' + i + ')" '
+                    +     'style="margin-left:auto">Remove</button>'
+                    + '</div>'
+                    + '<div style="display:flex;gap:8px;align-items:center;margin-top:8px">'
+                    +   '<span style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap">Applies to roles</span>'
+                    +   '<input type="text" class="form-input" style="flex:1;padding:5px 8px;font-size:.78rem" '
+                    +     'placeholder="everyone — or: manager, support" value="' + esc(roles) + '" '
+                    +     'oninput="abacSet(' + i + ',\'roles\',this.value)">'
+                    + '</div>'
+                    + '<div style="font-size:.74rem;color:var(--text-secondary);margin-top:6px">' + esc(kind.help) + '</div>'
+                    + '</div>';
+            }).join('');
+        }
+
+        window.abacSet = function (i, field, value) {
+            const r = _abacState[i];
+            if (!r) return;
+            if (field === 'roles') {
+                const list = String(value).split(',').map((x) => x.trim()).filter(Boolean);
+                /* Empty means every role, which is the safer reading of
+                   "unspecified" — a limit nobody is scoped to would be a limit
+                   that silently does nothing. */
+                if (list.length) r.roles = list; else delete r.roles;
+                return;
+            }
+            r[field] = field === 'value' ? Number(value) : value;
+        };
+
+        window.abacSetKind = function (i, id) {
+            const kind = ABAC_LIMITS.find((k) => k.id === id);
+            const r = _abacState[i];
+            if (!kind || !r) return;
+            /* The action and attribute are what the engine matches on, so they
+               move together with the choice — a rule whose action says "refund"
+               and whose attribute reads a promo percentage would never fire,
+               and would look enabled while doing nothing. */
+            r.id = kind.id; r.action = kind.action; r.attr = kind.attr; r.op = kind.op;
+            if (r.value == null || isNaN(r.value)) r.value = kind.value;
+            abacRender();
+        };
+
+        window.abacAdd = function () {
+            const k = ABAC_LIMITS[0];
+            _abacState.push({ id: k.id, action: k.action, attr: k.attr, op: k.op, value: k.value, enabled: true,
+                              label: k.label + ' limit' });
+            abacRender();
+        };
+
+        window.abacRemove = function (i) { _abacState.splice(i, 1); abacRender(); };
+
+        window.abacSave = async function () {
+            const msg = document.getElementById('abacMsg');
+            const say = (t, bad) => { if (msg) { msg.textContent = t; msg.style.color = bad ? 'var(--red,#dc2626)' : 'rgba(110,210,130,.95)'; } };
+
+            /* A limit with no number is not a limit — the engine denies when an
+               attribute cannot be compared, so saving one would quietly refuse
+               every action of that kind rather than doing nothing. */
+            const bad = _abacState.find((r) => r.value == null || isNaN(Number(r.value)));
+            if (bad) { say('Every limit needs a number. Fix the empty one and save again.', true); return; }
+
+            try {
+                const { error } = await sb.from('site_settings')
+                    .upsert({ key: 'abac_rules', value: _abacState }, { onConflict: 'key' });
+                if (error) throw error;
+                const on = _abacState.filter((r) => r.enabled !== false).length;
+                say(on ? 'Saved — ' + on + ' limit' + (on === 1 ? '' : 's') + ' in force.' : 'Saved — no limits in force.');
+            } catch (e) {
+                say(e?.message || 'Could not save that.', true);
+            }
         };
 
         window.zwMediaAction = async function (kind) {
