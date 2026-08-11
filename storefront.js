@@ -2580,7 +2580,15 @@ function normalizeCartPricing(cart) {
     const snapshot = item?.productId ? getHomeProductPriceSnapshot(item.productId) : null;
     const regularPrice = parseFloat(item?.regularPrice ?? item?.basePrice ?? snapshot?.regularPrice ?? item?.price ?? 0) || 0;
     const memberPrice = parseFloat(item?.memberPrice ?? item?.member_price ?? snapshot?.memberPrice ?? 0) || 0;
-    const effectivePrice = (isSignedInMember() && memberPrice > 0 && (!regularPrice || memberPrice < regularPrice))
+    /* Same rule as the bag and checkout: prefer the server-verified answer,
+       fall back to the local guess only where it has not been published. Three
+       copies of this function existed, each with its own membership test, and
+       each REWRITES the stored cart — so whichever page rendered last decided
+       the price, and they disagreed. */
+    const memberNow = (typeof window.zwHasValidSession === 'function')
+      ? window.zwHasValidSession()
+      : isSignedInMember();
+    const effectivePrice = (memberNow && memberPrice > 0 && (!regularPrice || memberPrice < regularPrice))
       ? memberPrice
       : regularPrice;
 
