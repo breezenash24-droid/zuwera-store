@@ -39,6 +39,7 @@ const CRITICAL = [
   /* Added with the endpoint, not after it. Both live 1101s this file has caught
      were in payment code that looked finished. */
   'paypal-create-order.js',
+  'me.js',
 ];
 
 const mockRequest = (body) => new Request('https://zuwera.store/api/x', {
@@ -52,7 +53,7 @@ const emptyEnv = {};
 
 /* Endpoints that read rather than charge. These may answer 200 with defaults on
    an unconfigured store; the ones that move money may not. */
-const READ_ONLY = new Set(['tax-config.js']);
+const READ_ONLY = new Set(['tax-config.js', 'me.js']);
 
 async function run() {
   console.log('\n  every payment endpoint returns a Response, never throws');
