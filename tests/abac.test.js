@@ -144,6 +144,33 @@ console.log('\n  and a store owner can write one');
   const html = fs3.readFileSync(R3 + 'admin.html', 'utf8');
 
   ok('there is an editor', /window\.abacSave/.test(adm) && /id="abacRules"/.test(html));
+
+  /* Enough limits to be worth having. Three covered money and nothing else —
+     no destructive actions, no scoping, no ceiling on who may promote whom. */
+  const limits = (adm.match(/\{ id: '[a-z_]+', action:/g) || []).length;
+  ok('there are limits worth choosing between', limits >= 10, limits + ' defined');
+
+  const block = adm.slice(adm.indexOf('const ABAC_LIMITS'), adm.indexOf('let _abacState'));
+  ok('…covering destructive actions, not just money',
+    /product_delete/.test(block) && /customer_export/.test(block) && /bulk_edit/.test(block));
+  ok('…and who may grant which role', /role_manage/.test(block),
+    'without this an admin can promote themselves past their own level');
+  ok('…every one using an operator the engine has',
+    (block.match(/op: '([a-z]+)'/g) || []).every((o) => /'(lt|lte|gt|gte|eq|neq|in|nin)'/.test(o)));
+
+  /* A limit is a different question depending on its kind, and one number box
+     answers "only these regions" badly. */
+  ok('…and a value control that fits the question',
+    /kind\.kind === 'list'/.test(adm) && /kind\.kind === 'number'/.test(adm));
+  ok('an empty list is refused at save', /would refuse everything/.test(adm),
+    'a list matching nothing refuses every action of that kind');
+
+  /* The one that stops a limit being a foot-gun: the engine denies what it
+     cannot evaluate, so a limit whose attribute nothing sends does not sit
+     inert — it blocks everything. */
+  ok('a limit says when it cannot be enforced yet', /Not enforced yet/.test(adm),
+    'switching on an unwired limit refuses every action of that kind');
+  ok('…and readiness is recorded per limit', /ready: (true|false)/.test(block));
   ok('…that writes where the engine reads', /key: 'abac_rules'/.test(adm),
     'a rule saved anywhere else is a rule nothing enforces');
   ok('…and loads what is already there', /window\.abacLoad/.test(adm));
@@ -157,7 +184,7 @@ console.log('\n  and a store owner can write one');
   /* The engine denies when an attribute cannot be compared, so an empty value
      does not mean "no limit" — it means "refuse everything of this kind". */
   ok('a limit with no number is refused at save',
-    /Every limit needs a number/.test(adm),
+    /needs a number/.test(adm),
     'saving one would quietly deny every action of that kind');
 
   ok('no roles means every role, not no roles',
