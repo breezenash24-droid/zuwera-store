@@ -91,6 +91,33 @@ console.log('\n  the answer exists before the price is decided');
     ok('…and not deferred, which would run it after that block',
       !/<script[^>]+src="[^"]*stock-rules\.js[^>]*\sdefer/.test(src));
   }
+  /* ── the token has to survive a page with no Supabase client ──────────────
+     checkout.html builds no Supabase client, so anything reading the token via
+     sb.auth got nothing. That is not a display bug: the PAYMENT request sends
+     this token, so a member was charged the guest price because the request
+     carried no proof of who they were. */
+  const sr0 = fs.readFileSync(ROOT + 'stock-rules.js', 'utf8');
+  const w = {};
+  const live = { access_token: 'TOKEN123', expires_at: Math.floor(Date.now() / 1000) + 3600 };
+  const enc = (o) => 'base64-' + Buffer.from(JSON.stringify(o), 'utf8')
+    .toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const store = { 'sb-x-auth-token': enc(live) };
+  const keys = Object.keys(store);
+  global.localStorage = { length: keys.length, key: (i) => keys[i], getItem: (k) => (k in store ? store[k] : null) };
+  new Function('window', sr0)(w);
+
+  ok('the token can be read without the SDK', w.ZWStock.storedAccessToken() === 'TOKEN123');
+  store['sb-x-auth-token'] = enc({ access_token: 'X', expires_at: Math.floor(Date.now() / 1000) - 60 });
+  /* An expired token cannot be refreshed without the SDK and would just be
+     rejected — the same outcome as sending nothing, plus a misleading round
+     trip. */
+  ok('…and an expired one is withheld rather than sent', w.ZWStock.storedAccessToken() === '');
+  ok('…and expiry is what decides it', w.ZWStock.hasValidSession() === false);
+
+  const co = strip(fs.readFileSync(ROOT + 'checkout.js', 'utf8'));
+  ok('the payment path falls back to the stored token', /storedAccessToken/.test(co),
+    'getCheckoutAuthPayload cannot recover a token without window.sb');
+
   const sr = strip(fs.readFileSync(ROOT + 'stock-rules.js', 'utf8'));
   ok('stock-rules.js publishes the answer', /zwHasValidSession\s*=/.test(sr));
   ok('…without clobbering the server-verified one',

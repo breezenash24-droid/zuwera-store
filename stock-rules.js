@@ -259,6 +259,34 @@
     return false;
   }
 
+  /* The access token itself, straight from storage.
+   *
+   * checkout.html does not construct a Supabase client — the diagnostic showed
+   * hasSbClient:false there — so anything reading the token via sb.auth got
+   * nothing. That is not merely a display problem: the PAYMENT call sends this
+   * token, so a member was quoted AND CHARGED the guest price because the
+   * request carried no proof of who they were.
+   *
+   * Only a live token is returned. An expired one cannot be refreshed without
+   * the SDK, and sending it would be rejected — the same outcome as sending
+   * nothing, with a misleading round trip attached. */
+  function storedAccessToken() {
+    try {
+      for (var i = 0; i < localStorage.length; i += 1) {
+        var k = localStorage.key(i);
+        if (!/^sb-.*-auth-token$/.test(k || '')) continue;
+        var parsed;
+        try { parsed = JSON.parse(readStoredSession(localStorage.getItem(k))); } catch (_) { continue; }
+        var s = parsed && (parsed.access_token ? parsed : parsed.currentSession);
+        if (!s || !s.access_token) continue;
+        var exp = Number(s.expires_at) || 0;
+        if (!exp || exp - Math.floor(Date.now() / 1000) <= 0) continue;
+        return s.access_token;
+      }
+    } catch (_) {}
+    return '';
+  }
+
   /* Only if nothing better is already there — checkout.js's server-verified
      version must win wherever both load, whatever the order. */
   if (typeof w.zwHasValidSession !== 'function') w.zwHasValidSession = hasValidSession;
@@ -266,6 +294,7 @@
   w.ZWStock = {
     canonSize: canonSize,
     hasValidSession: hasValidSession,
+    storedAccessToken: storedAccessToken,
     stockFor: stockFor,
     cartQtyFor: cartQtyFor,
     availableToAdd: availableToAdd,
