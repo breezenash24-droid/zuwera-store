@@ -248,7 +248,7 @@ console.log('\n  a refunded order does not offer a refund');
   /* The order's own state, which the request does not carry: a return can sit
      at "item received" while the order was refunded from Receipts an hour ago. */
   ok('the panel reads the order status, not just the request status',
-    /select\('id,status'\)\.in\('id', ids\)/.test(ui) && /function retOrderSettled/.test(ui));
+    /select\('id,status,order_number,stripe_payment_intent_id'\)/.test(ui) && /function retOrderSettled/.test(ui));
   ok('…and it gates the refund action', /REFUND_ALLOWED_STATUSES\.has\(r\.status \|\| ''\) && !retOrderSettled\(r\)/.test(ui));
 
   /* A failed lookup is not evidence that a refund happened. */
@@ -275,12 +275,11 @@ console.log('\n  an order has one name');
      customer's account page the last eight of the row id. Searching any of
      them anywhere else finds nothing — which is exactly what somebody does
      when asked to approve a refund they want to check first. */
-  ok('there is one formatter', /window\.zwOrderNo = function/.test(adm));
-  ok('…and order_number wins, because it is the real one',
-    /const n = String\(o\.order_number \|\| ''\)\.trim\(\)/.test(adm),
-    'the stored column is what Orders shows and the only one a customer could have been told');
-  ok('…with the old formulas kept as fallbacks for rows predating it',
-    /stripe_payment_intent_id \|\| o\.id \|\| ''\)\.slice\(-8\)/.test(adm));
+  /* The formula itself moved to order-number.js and is covered by
+     tests/order-number.test.js, including that the Worker's copy agrees with
+     it. What matters here is that this file no longer keeps its own. */
+  ok('there is one formatter, and it is not defined here',
+    /window\.zwOrderNo = function/.test(adm) && /window\.ZWOrderNo\(row\)/.test(adm));
 
   /* Panels holding only an id have to look up what it is called, or they
      invent a fourth name. */
@@ -319,6 +318,37 @@ console.log('\n  an order has one name');
       && /Not approved — \$\{what\}/.test(req));
   ok('…without a failed email un-deciding it', /could not notify requester/.test(req));
 }
+
+console.log('\n  no form when there is nothing to submit');
+{
+  const acct = fs.readFileSync(ROOT + 'account.html', 'utf8');
+  const hub = fs.readFileSync(ROOT + 'customer-hub.js', 'utf8');
+
+  /* The form listed every order ever placed, took a resolution and a reason,
+     and refused on submit — "You already have a request open for this order"
+     arriving after the work rather than before it. Twice over, on two screens. */
+  ok('the account page only offers returnable orders',
+    /const returnableOrders = orders\.filter\(o => o && o\.returnable !== false\)/.test(acct));
+  ok('…and hides the whole form when there are none',
+    /const canStart = returnableOrders\.length > 0/.test(acct) && /\$\{canStart \? `/.test(acct));
+  ok('…saying why, rather than just vanishing',
+    /Nothing to return right now/.test(acct),
+    'a section that disappears with no explanation reads as a bug');
+  ok('…while the history stays', /Request History/.test(acct));
+
+  /* Same screen in the account modal. It filtered the picker but still drew
+     the form — half the fix, which is how the first version of this shipped. */
+  ok('the modal does the same', /const canStart = orders\.filter/.test(hub)
+    && /\$\{canStart \? `/.test(hub));
+
+  /* The disabled state was standing in for this and doing it badly: a greyed
+     button under a filled-in form reads as "something is wrong with what I
+     typed", not "there is nothing here to send". */
+  ok('the button no longer fakes it with a disabled state',
+    !/ret-submit[^>]*orders\.length \? '' : 'disabled'/.test(acct)
+      && !/zw-return-submit[^>]*orders\.length \? '' : 'disabled'/.test(hub));
+}
+
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

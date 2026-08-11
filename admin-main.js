@@ -3983,7 +3983,7 @@
                 </tr></thead>
                 <tbody>${recent.map((o, i) => `
                   <tr onclick="navigateTo('receipts')" style="border-bottom:${i<recent.length-1?'1px solid var(--border)':'none'};cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background=''">
-                    <td style="padding:11px 16px;font-family:monospace;font-size:.78rem;">#${(o.id||'').slice(-8).toUpperCase()}<div style="font-size:.68rem;color:var(--text-secondary);margin-top:1px;">${new Date(o.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div></td>
+                    <td style="padding:11px 16px;font-family:monospace;font-size:.78rem;">${window.ZWOrderNo(o)}<div style="font-size:.68rem;color:var(--text-secondary);margin-top:1px;">${new Date(o.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div></td>
                     <td style="padding:11px 16px;">${o.customer_name||o.email||'—'}</td>
                     <td style="padding:11px 16px;text-align:right;">${o.total ? '$'+parseFloat(o.total).toFixed(2) : '—'}</td>
                     <td style="padding:11px 16px;text-align:right;"><span style="color:${statusColor(o.status)};font-size:.75rem;">${o.status||'confirmed'}</span></td>
@@ -9316,11 +9316,12 @@ function escapeAttr(value) {
            what the Orders page shows, and the only one a customer could ever
            have been told. The rest are fallbacks for rows predating it. */
         window.zwOrderNo = function (o) {
-            if (!o) return '';
-            if (typeof o === 'string') return window.zwOrderNo(window._zwOrderIndex[o] || { id: o });
-            const n = String(o.order_number || '').trim();
-            if (n) return n.startsWith('#') ? n : '#' + n;
-            return '#' + String(o.stripe_payment_intent_id || o.id || '').slice(-8).toUpperCase();
+            /* Delegates. This was a second copy of the formula, written the same
+               afternoon as the file that owns it — which is how six of them
+               accumulated. Given a bare id it resolves through the index first,
+               so a looked-up order prints its real number. */
+            const row = (typeof o === 'string') ? (window._zwOrderIndex[o] || o) : o;
+            return window.ZWOrderNo(row);
         };
 
         /* Most places that show an order only hold its id — the refund log, the

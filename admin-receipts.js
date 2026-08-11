@@ -8,7 +8,7 @@
                     window.exportOrdersCSV = function() {
                       const rows = (_filteredReceipts && _filteredReceipts.length ? _filteredReceipts : _allReceipts) || [];
                       window.zwExportCSV('orders-{date}.csv', rows, [
-                        { label: 'Order', get: o => String(o.stripe_payment_intent_id || o.id || '').slice(-8).toUpperCase() },
+                        { label: 'Order', get: o => window.ZWOrderNoPlain(o) },
                         { label: 'Date', get: o => (o.created_at || '').slice(0, 10) },
                         { label: 'Customer', get: o => o.customer_name || '' },
                         { label: 'Email', get: o => o.email || '' },
@@ -48,7 +48,10 @@
                       }
 
                       container.innerHTML = sorted.map(order => {
-                        const orderNum = (order.stripe_payment_intent_id || 'N/A').slice(-8).toUpperCase();
+                        // One formatter (order-number.js). This showed the payment intent's last
+                        // eight while Orders showed order_number, so the same order had two
+                        // names and neither found the other in a search.
+                        const orderNum = window.ZWOrderNoPlain(order) || 'N/A';
                         const items = (() => {
                           try {
                             return typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || []);

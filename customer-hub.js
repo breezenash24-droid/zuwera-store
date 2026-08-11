@@ -143,11 +143,17 @@
        ability to return anything at all. The endpoint still refuses. */
     const options = orders.filter((o) => o && o.returnable !== false).map((order) => {
       const orderId = String(order.id || '');
-      const label = `#${orderId.slice(-8).toUpperCase()} - ${new Date(order.created_at || Date.now()).toLocaleDateString()}`;
+      const label = `${window.ZWOrderNo(order)} - ${new Date(order.created_at || Date.now()).toLocaleDateString()}`;
       return `<option value="${escapeHtml(orderId)}">${escapeHtml(label)}</option>`;
     }).join('');
 
+    /* Same rule as the account page: no form when there is nothing it could
+       submit. Offering one and refusing on submit is the version this
+       replaced. */
+    const canStart = orders.filter((o) => o && o.returnable !== false).length > 0;
+
     host.innerHTML = `
+      ${canStart ? `
       <div class="zw-hub-card">
         <div class="zw-hub-title">Self-Serve Returns & Exchanges</div>
         <div class="zw-hub-meta">Start a return or exchange request without emailing support. Your admin team can approve, refund, or swap from the commerce hub.</div>
@@ -176,16 +182,21 @@
           <textarea id="zw-return-notes" rows="3" placeholder="Anything the team should know about this request"></textarea>
         </div>
         <div class="zw-hub-actions">
-          <button id="zw-return-submit" class="zw-hub-btn primary" ${orders.length ? '' : 'disabled'}>Submit Request</button>
+          <button id="zw-return-submit" class="zw-hub-btn primary">Submit Request</button>
           <span id="zw-return-status" class="zw-hub-status"></span>
         </div>
       </div>
+      ` : `
+      <div class="zw-hub-card">
+        <div class="zw-hub-title">Nothing to return right now</div>
+        <div class="zw-hub-meta">Every order you have is either already refunded, cancelled, or has a request open &mdash; those are below.</div>
+      </div>`}
       <div class="zw-hub-card">
         <div class="zw-hub-title">Request History</div>
         ${requests.length ? requests.map((request) => `
           <div class="zw-hub-address">
             <div style="display:flex;justify-content:space-between;gap:0.75rem;align-items:center;">
-              <strong>${escapeHtml(request.orderLabel || '#' + String(request.orderId || '').slice(-8).toUpperCase())}</strong>
+              <strong>${escapeHtml(window.ZWOrderNo(request.orderId) || request.orderLabel || '')}</strong>
               <span class="zw-hub-badge">${escapeHtml(request.status || 'requested')}</span>
             </div>
             <div class="zw-hub-meta" style="margin-top:0.4rem;">

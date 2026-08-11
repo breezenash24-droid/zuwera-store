@@ -39,6 +39,7 @@
                        loadReturnsPage; empty means unknown, which does not
                        block, because a lookup that failed is not evidence. */
                     let _orderStatusById = {};
+                    let _orderIndexById = {};
                     function retOrderSettled(r) {
                         const s = String(_orderStatusById[String(r && r.orderId || '')] || '').toLowerCase();
                         return s === 'refunded' || s === 'cancelled' || s === 'canceled';
@@ -264,8 +265,12 @@
                             try {
                                 const ids = [...new Set(_returnsData.map(r => String(r.orderId || '')).filter(Boolean))];
                                 if (ids.length) {
-                                    const { data: ords } = await sb.from('orders').select('id,status').in('id', ids);
+                                    const { data: ords } = await sb.from('orders')
+                                        .select('id,status,order_number,stripe_payment_intent_id').in('id', ids);
                                     _orderStatusById = Object.fromEntries((ords || []).map(o => [String(o.id), o.status]));
+                                    /* The whole row, so the panel can print the name the
+                                       Orders page prints instead of the id's last eight. */
+                                    _orderIndexById = Object.fromEntries((ords || []).map(o => [String(o.id), o]));
                                 }
                             } catch (e) { console.warn('returns: could not read order statuses —', e && e.message); }
 
@@ -324,7 +329,7 @@
                         empty.style.display = 'none';
                         cards.innerHTML = rows.map(r => {
                             const id          = retAttr(r.id || '');
-                            const orderLabel  = r.orderLabel || ('#' + String(r.orderId || '').slice(-8).toUpperCase());
+                            const orderLabel  = window.ZWOrderNo(_orderIndexById[String(r.orderId || '')] || r.orderId) || r.orderLabel || '';
                             const name        = r.customerName || r.userName || 'Customer';
                             const email       = r.customerEmail || r.userEmail || '';
                             const color       = RETURN_STATUS_COLORS[r.status] || 'var(--text-secondary)';
@@ -376,7 +381,7 @@
                         if (empty) empty.style.display = 'none';
                         const id = retAttr(r.id || '');
                         const a = r.shippingAddress || {};
-                        const orderLabel = r.orderLabel || ('#' + String(r.orderId || '').slice(-8).toUpperCase());
+                        const orderLabel = window.ZWOrderNo(_orderIndexById[String(r.orderId || '')] || r.orderId) || r.orderLabel || '';
                         function renderItemRows(items) {
                             return items.length ? items.map(item => {
                                 const name = item.name || item.title || item.product_title || 'Item';
