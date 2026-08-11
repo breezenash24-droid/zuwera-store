@@ -303,6 +303,43 @@ console.log('\n  the editor describes each message in words, and inserts the val
     /rgb\(220,38,38\)/.test(read('admin.html')), 'no format hint for the colour field');
 }
 
+console.log('\n  the admin map describes the code, not someone\'s memory of it');
+{
+  /* A hand-kept map goes stale in exactly the way the messages themselves used
+     to, and a wrong map is worse than none — so it is generated from the same
+     module, and these hold it honest in both directions. */
+  ok('the map is built from the shared module', typeof M.surfaces === 'function');
+
+  const listed = new Set();
+  M.surfaces().forEach((s) => s.keys.forEach((k) => listed.add(k)));
+
+  const invisible = M.keys().filter((k) => !listed.has(k));
+  ok('every message appears on at least one surface', invisible.length === 0,
+    invisible.join(', ') + ' — a message missing here is invisible on the map');
+
+  const ghosts = [];
+  M.surfaces().forEach((s) => s.keys.forEach((k) => { if (!M.has(k)) ghosts.push(s.name + '/' + k); }));
+  ok('…and no surface lists a message that does not exist', ghosts.length === 0, ghosts.join(', '));
+
+  /* The genuinely useful fact the map carries: which messages are shared, and
+     therefore what else changes when you edit one. */
+  ok('a shared message is shown on every screen that uses it',
+    M.surfacesFor('soldOutItem').length >= 3,
+    'soldOutItem reaches the product page, the bag and checkout');
+  ok('…and a single-screen one only on its own',
+    M.surfacesFor('restockHint').length === 1);
+
+  const admin = strip(read('admin-main.js'));
+  ok('the editor renders the map', /renderMessageMap/.test(admin));
+  ok('…showing the CURRENT wording, so it doubles as a proof sheet',
+    /M\.get\(key, M\.SAMPLE\)/.test(admin));
+  ok('…and follows a save rather than going stale',
+    /setOverrides\(messages\)[\s\S]{0,80}renderMessageMap/.test(admin));
+  ok('clicking a line opens whatever it is collapsed inside',
+    /node\.tagName === 'DETAILS'/.test(admin),
+    'a jump that leaves the target collapsed is a jump to nothing');
+}
+
 console.log('\n  the payment path says the same things, from the same settings');
 {
   /* customer-messages.js is a classic browser script; functions/api/_messages.js

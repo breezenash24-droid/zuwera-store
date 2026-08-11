@@ -260,6 +260,77 @@
     return null;
   }
 
+
+  /* ── where each message actually appears ───────────────────────────────────
+     The admin map is built from this, so it describes the code rather than
+     someone's memory of it. A message that is not listed on any surface shows
+     up as such in the test below rather than quietly becoming invisible on the
+     map -- which would be the same failure as a message nobody can find in the
+     editor.
+
+     `where` is the screen in a shopper's words, not the filename. */
+  var SURFACES = [
+    {
+      name: 'Product page',
+      where: 'Under the size buttons, and the toasts',
+      keys: ['soldOut', 'lowStock', 'lastInBag', 'allInBag', 'maxedOut', 'soldOutItem',
+             'lowStockBadge', 'restockPrompt', 'restockSuccess', 'restockAlready', 'restockFailed'],
+    },
+    {
+      name: 'Bag',
+      where: 'On each line, and the promo box',
+      keys: ['soldOutInBag', 'lowStockShort', 'capReached', 'soldOut', 'soldOutItem',
+             'restockInvite', 'restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed',
+             'promoApplied', 'promoEmpty', 'promoInvalid', 'promoFailed'],
+    },
+    {
+      name: 'Quick-add panel',
+      where: 'Homepage, saved items, account',
+      keys: ['soldOutBadge', 'restockHint', 'restockPrompt', 'restockSuccess',
+             'restockAlready', 'restockInvalid', 'restockFailed'],
+    },
+    {
+      name: 'Collection grid',
+      where: 'The badges on each card',
+      keys: ['soldOutBadge', 'lowStockBadge'],
+    },
+    {
+      name: 'Checkout — paying',
+      where: 'The line under the card fields',
+      keys: ['declineFunds', 'declineCvc', 'declineNumber', 'declineExpired', 'declinePostcode',
+             'declineCallBank', 'declineNoReason', 'declineRetry', 'declined'],
+    },
+    {
+      name: 'Checkout — refused by the server',
+      where: 'Before the card is charged',
+      keys: ['soldOutItem', 'checkoutNotEnough', 'checkoutPriceChanged', 'checkoutUnavailable',
+             'checkoutNoPrice', 'checkoutRateExpired', 'checkoutRateInvalid'],
+    },
+    {
+      name: 'Log in',
+      where: 'The sign-in, sign-up and reset forms',
+      keys: ['authBadCredentials', 'authEmailInUse', 'authMissingFields', 'authNeedEmail',
+             'authPasswordShort', 'authNoConnection', 'authFailed'],
+    },
+  ];
+
+  /** Surfaces, with any key that no longer exists dropped. */
+  function surfaces() {
+    return SURFACES.map(function (s) {
+      return {
+        name: s.name,
+        where: s.where,
+        keys: s.keys.filter(function (k) { return !!DEFAULTS[k]; }),
+      };
+    });
+  }
+
+  /** Every surface a message appears on, by name. */
+  function surfacesFor(key) {
+    return SURFACES.filter(function (s) { return s.keys.indexOf(key) > -1; })
+      .map(function (s) { return s.name; });
+  }
+
   /* Which messages the editor keeps out of the way.
      Anything NOT listed here is shown straight away, so a message added later
      is visible by default -- the failure mode of the other arrangement is a new
@@ -574,6 +645,8 @@
     ROLE: ROLE,
     keys: function () { return Object.keys(DEFAULTS); },
     groups: groups,
+    surfaces: surfaces,
+    surfacesFor: surfacesFor,
     has: has,
     isMain: isMain,
     PALETTE: PALETTE,
