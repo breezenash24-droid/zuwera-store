@@ -1033,12 +1033,22 @@
             } else if (page === 'reviews') {
                 loadAdminReviews();
             } else if (page === 'users') {
-                loadUsers();
                 /* The limits belong beside the roles they narrow. Someone
                    deciding what a manager may do is already on this page; the
                    APIs page is where you go to look at infrastructure, which is
-                   a different question and a different person's job. */
-                if (typeof abacLoad === 'function') abacLoad();
+                   a different question and a different person's job.
+
+                   Chained rather than fired alongside, because the limits
+                   editor names people and this is the query that knows who
+                   they are. Started in parallel it would usually lose the
+                   race, fall back to fetching the same rows again, and the
+                   page would hold two answers to "who is an admin". */
+                loadUsers().then(() => {
+                    if (typeof abacLoad === 'function') abacLoad();
+                    /* Beside the limits, for the same reason: what someone may
+                       do and what they did are one question from two ends. */
+                    if (typeof window.zwRefundLog === 'function') window.zwRefundLog();
+                });
             } else if (page === 'analytics') {
                 loadAnalytics();
             } else if (page === 'finance') {
@@ -9224,6 +9234,87 @@ function escapeAttr(value) {
 
         let _abacState = [];
 
+        /* Who is actually on the team.
+
+           This replaced two free-text boxes, and the reason is worth keeping:
+           a typed role or email that matches nobody does not fail loudly, it
+           scopes the limit to no one — so the rule reads as configured, sits
+           there with its box ticked, and constrains nothing. The screenshot
+           that prompted this had "Nash" typed where a role goes.
+
+           It reads the profile list the Users table below already loaded
+           rather than keeping a second one, because "who are the admins" is
+           one question and two answerers eventually disagree. The fallback
+           query exists only because both loaders start together and neither
+           is guaranteed to win. */
+        let _abacDir = [];
+
+        async function abacDirectory() {
+            let rows = Object.values(window._zwProfilesById || {});
+            if (!rows.length) {
+                try {
+                    const { data } = await sb.from('profiles')
+                        .select('id,email,full_name,role,admin_role').eq('role', 'admin');
+                    rows = data || [];
+                } catch (_) { rows = []; }
+            }
+            return rows
+                .filter((p) => p && p.role === 'admin')
+                .map((p) => ({
+                    id: String(p.id || ''),
+                    email: String(p.email || ''),
+                    name: String(p.full_name || '').trim(),
+                    role: String(p.admin_role || 'super_admin'),
+                }))
+                .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
+        }
+
+        /* Chips plus an "add" dropdown. Chosen entries are matched on `value`
+           OR `alt` because rules saved before this picker named people by the
+           email somebody typed, and the engine matches id or email either way
+           — so old rules keep working and simply render as their person.
+
+           An entry matching nothing is drawn in red and kept, never dropped.
+           Silently removing it would hide the exact failure this replaced. */
+        function abacPicker(i, field, chosen, catalogue, emptyText) {
+            const esc = (t) => String(t == null ? '' : t)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            const match = (o, v) => String(o.value).toLowerCase() === String(v).toLowerCase()
+                || (o.alt && String(o.alt).toLowerCase() === String(v).toLowerCase());
+            /* Removal is by POSITION, not by value. A value goes into an HTML
+               attribute, and these can be anything a previous version let
+               somebody type. */
+            const chips = chosen.map((v, n) => {
+                const hit = catalogue.find((o) => match(o, v));
+                return '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 9px;'
+                    + 'border-radius:999px;font-size:.75rem;line-height:1.5;border:1px solid '
+                    + (hit ? 'var(--border)' : 'var(--red,#dc2626)') + ';' + (hit ? '' : 'color:var(--red,#dc2626);') + '">'
+                    + esc(hit ? hit.label : String(v))
+                    + (hit ? '' : ' <em style="opacity:.85;margin-left:4px">— matches nobody</em>')
+                    + '<button type="button" title="Remove" onclick="abacDrop(' + i + ',&quot;' + field + '&quot;,' + n + ')" '
+                    + 'style="border:0;background:none;color:inherit;cursor:pointer;font-size:.95rem;line-height:1;padding:0 4px">&times;</button>'
+                    + '</span>';
+            }).join('');
+            const left = catalogue.filter((o) => !chosen.some((v) => match(o, v)));
+            return '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
+                + (chips || '<span style="font-size:.75rem;color:var(--text-secondary)">' + esc(emptyText) + '</span>')
+                + (left.length
+                    ? '<select class="form-input" style="padding:4px 8px;font-size:.75rem;width:auto;min-width:150px" '
+                      + 'onchange="abacPick(' + i + ',&quot;' + field + '&quot;,this.value);this.selectedIndex=0">'
+                      + '<option value="">+ add…</option>'
+                      + left.map((o) => '<option value="' + esc(o.value) + '">' + esc(o.label) + '</option>').join('')
+                      + '</select>'
+                    : '')
+                + '</div>';
+        }
+
+        /* One sentence, one author. It is the default in two places — a new
+           rule, and a rule whose kind changed — and those drifting apart is
+           how somebody gets refused with the wrong explanation. */
+        function abacDefaultLabel(k) {
+            return 'Above your ' + k.label.toLowerCase() + ' limit — ask an admin to approve it.';
+        }
+
         window.abacLoad = async function () {
             const host = document.getElementById('abacRules');
             if (!host) return;
@@ -9233,6 +9324,7 @@ function escapeAttr(value) {
                 if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
                 _abacState = Array.isArray(v) ? v : (v && Array.isArray(v.rules) ? v.rules : []);
             } catch (_) { _abacState = []; }
+            _abacDir = await abacDirectory();
             abacRender();
         };
 
@@ -9247,14 +9339,24 @@ function escapeAttr(value) {
                     + 'No limits. Every admin can do whatever their role allows.</p>';
                 return;
             }
+            /* Built once, not per row: the roles that exist and the people who
+               hold them are the same list for every limit on the page. */
+            const roleCat = Object.keys(ZW_ROLE_LABELS).map((k) => ({ value: k, label: ZW_ROLE_LABELS[k] }));
+            const peopleCat = _abacDir.map((p) => ({
+                value: p.id, alt: p.email,
+                label: (p.name || p.email || p.id) + (ZW_ROLE_LABELS[p.role] ? ' · ' + ZW_ROLE_LABELS[p.role] : ''),
+            }));
+
             host.innerHTML = _abacState.map((r, i) => {
                 const kind = ABAC_LIMITS.find((k) => k.id === r.id) || ABAC_LIMITS[0];
-                const roles = Array.isArray(r.roles) ? r.roles.join(', ') : '';
                 return '<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px">'
                     + '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">'
                     +   '<label style="display:flex;align-items:center;gap:6px;font-size:.82rem">'
                     +     '<input type="checkbox" ' + (r.enabled === false ? '' : 'checked')
                     +     ' onchange="abacSet(' + i + ',\'enabled\',this.checked)"> on</label>'
+                    +   (kind.ready ? ''
+                        : '<span style="font-size:.66rem;padding:2px 7px;border-radius:999px;white-space:nowrap;'
+                          + 'border:1px solid var(--red,#dc2626);color:var(--red,#dc2626)">not working yet</span>')
                     +   '<select onchange="abacSetKind(' + i + ',this.value)" class="form-input" style="flex:0 1 220px;padding:5px 8px;font-size:.8rem">'
                     +     ABAC_LIMITS.map((k) => '<option value="' + k.id + '"' + (k.id === kind.id ? ' selected' : '') + '>'
                     +        esc(k.label) + '</option>').join('')
@@ -9277,21 +9379,21 @@ function escapeAttr(value) {
                     +   '<button class="btn btn-secondary btn-sm" type="button" onclick="abacRemove(' + i + ')" '
                     +     'style="margin-left:auto">Remove</button>'
                     + '</div>'
-                    + '<div style="display:flex;gap:8px;align-items:center;margin-top:8px">'
-                    +   '<span style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap">Applies to roles</span>'
-                    +   '<input type="text" class="form-input" style="flex:1;padding:5px 8px;font-size:.78rem" '
-                    +     'placeholder="everyone — or: manager, support" value="' + esc(roles) + '" '
-                    +     'oninput="abacSet(' + i + ',\'roles\',this.value)">'
+                    + '<div style="display:flex;gap:8px;align-items:flex-start;margin-top:8px">'
+                    +   '<span style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap;padding-top:4px">Applies to roles</span>'
+                    +   '<div style="flex:1">'
+                    +     abacPicker(i, 'roles', Array.isArray(r.roles) ? r.roles : [], roleCat, 'Everyone — any role')
+                    +   '</div>'
                     + '</div>'
                     /* People, not just roles. There is always somebody who needs
                        a different number, and doing that with roles alone means
                        inventing a role per exception. */
-                    + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px">'
-                    +   '<span style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap">Or specific people</span>'
-                    +   '<input type="text" class="form-input" style="flex:1;padding:5px 8px;font-size:.78rem" '
-                    +     'placeholder="anyone in those roles — or: sam@shop.com, alex@shop.com" '
-                    +     'value="' + esc(Array.isArray(r.users) ? r.users.join(', ') : '') + '" '
-                    +     'oninput="abacSet(' + i + ',\'users\',this.value)">'
+                    + '<div style="display:flex;gap:8px;align-items:flex-start;margin-top:6px">'
+                    +   '<span style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap;padding-top:4px">Or specific people</span>'
+                    +   '<div style="flex:1">'
+                    +     abacPicker(i, 'users', Array.isArray(r.users) ? r.users : [], peopleCat,
+                          peopleCat.length ? 'Anyone in those roles' : 'No admins loaded — everyone in those roles')
+                    +   '</div>'
                     + '</div>'
                     /* What the refused person reads. It was the rule's internal
                        label — "Refunds limit" — which tells somebody nothing
@@ -9318,15 +9420,23 @@ function escapeAttr(value) {
                     +     'oninput="abacSet(' + i + ',\'label\',this.value)">'
                     + '</div>'
                     + '<div style="font-size:.74rem;color:var(--text-secondary);margin-top:6px">' + esc(kind.help) + '</div>'
-                    /* Say when a limit cannot bite yet. Silence here would be
-                       the dangerous kind: the engine refuses what it cannot
-                       evaluate, so switching this on before the endpoint sends
-                       the attribute blocks every action of that kind rather
-                       than doing nothing. */
+                    /* Say what is actually true, which is not what this used to
+                       say. The old wording — "leave it off or it will refuse
+                       everything" — described a hazard that does not exist yet
+                       and hid the one that does: nothing calls the decision
+                       engine for these actions, so the rule is never consulted
+                       at all. Ticked on, it protects nothing.
+                       That is the more dangerous of the two readings to get
+                       wrong, because a limit believed to be working is a limit
+                       nobody checks. The refuse-everything case is real but
+                       only arrives if the endpoint is wired without sending the
+                       attribute, so it is named second, as the thing to watch
+                       for rather than the thing happening now. */
                     + (kind.ready ? '' :
-                        '<div style="font-size:.74rem;color:var(--red,#dc2626);margin-top:4px">'
-                        + 'Not enforced yet — this action does not send the information to check against. '
-                        + 'Leave it off until it does, or it will refuse every ' + esc(kind.label.toLowerCase()) + '.'
+                        '<div style="font-size:.74rem;color:var(--red,#dc2626);margin-top:4px;line-height:1.55">'
+                        + '<strong>This does nothing yet.</strong> "' + esc(kind.label) + '" never asks for a decision, '
+                        + 'so this limit is not consulted and switching it on protects nothing. '
+                        + 'It is listed so you can see what is coming — do not rely on it.'
                         + '</div>')
                     + '</div>';
             }).join('');
@@ -9335,22 +9445,12 @@ function escapeAttr(value) {
         window.abacSet = function (i, field, value) {
             const r = _abacState[i];
             if (!r) return;
-            if (field === 'users') {
-                const list = String(value).split(',').map((x) => x.trim()).filter(Boolean);
-                /* Empty means "whoever the roles above cover", not "nobody" —
-                   the same reading as roles, and the only one that does not
-                   silently disable the limit. */
-                if (list.length) r.users = list; else delete r.users;
-                return;
-            }
-            if (field === 'roles') {
-                const list = String(value).split(',').map((x) => x.trim()).filter(Boolean);
-                /* Empty means every role, which is the safer reading of
-                   "unspecified" — a limit nobody is scoped to would be a limit
-                   that silently does nothing. */
-                if (list.length) r.roles = list; else delete r.roles;
-                return;
-            }
+            /* Roles and people are no longer handled here. They used to be
+               parsed out of a comma-separated box on every keystroke; they are
+               now added and removed one at a time by abacPick / abacDrop, from
+               a list of things that exist. Leaving the old branches behind
+               would mean two ways to write the same field, and the dead one
+               still looked like the live one. */
             if (field === 'value') {
                 const kind = ABAC_LIMITS.find((k) => k.id === r.id) || ABAC_LIMITS[0];
                 r.value = kind.kind === 'list'
@@ -9362,10 +9462,41 @@ function escapeAttr(value) {
             r[field] = value;
         };
 
+        /* Add and remove, rather than re-parsing a comma-separated string on
+           every keystroke. The list can now only ever contain things that
+           exist, which is the whole point of the directory. */
+        window.abacPick = function (i, field, value) {
+            const r = _abacState[i];
+            if (!r || !value) return;
+            const list = Array.isArray(r[field]) ? r[field].slice() : [];
+            const seen = list.map((x) => String(x).toLowerCase());
+            if (seen.indexOf(String(value).toLowerCase()) === -1) list.push(String(value));
+            r[field] = list;
+            abacRender();
+        };
+
+        window.abacDrop = function (i, field, n) {
+            const r = _abacState[i];
+            if (!r || !Array.isArray(r[field])) return;
+            r[field].splice(n, 1);
+            /* The key is DELETED when the last one goes, never left as [].
+               The engine reads an absent list as "everyone this rule already
+               covers" and an empty one as "nobody matches" — so leaving []
+               behind would switch the limit off while it still looks on. */
+            if (!r[field].length) delete r[field];
+            abacRender();
+        };
+
         window.abacSetKind = function (i, id) {
             const kind = ABAC_LIMITS.find((k) => k.id === id);
             const r = _abacState[i];
             if (!kind || !r) return;
+            /* The message follows the limit unless somebody wrote their own.
+               Switching a rule from Refunds to Discount codes used to leave
+               "above your refunds limit" behind, so the person refused was
+               told about a limit that had nothing to do with what they tried. */
+            const prev = ABAC_LIMITS.find((k) => k.id === r.id);
+            if (!r.label || (prev && r.label === abacDefaultLabel(prev))) r.label = abacDefaultLabel(kind);
             /* The action and attribute are what the engine matches on, so they
                move together with the choice — a rule whose action says "refund"
                and whose attribute reads a promo percentage would never fire,
@@ -9381,7 +9512,7 @@ function escapeAttr(value) {
                rule exists. Editable, because the right next step depends on how
                the store is run — ask a manager, raise a ticket, call somebody. */
             _abacState.push({ id: k.id, action: k.action, attr: k.attr, op: k.op, value: k.value, enabled: true,
-                              label: 'Above your ' + k.label.toLowerCase() + ' limit — ask an admin to approve it.' });
+                              label: abacDefaultLabel(k) });
             abacRender();
         };
 
@@ -9418,6 +9549,89 @@ function escapeAttr(value) {
             } catch (e) {
                 say(e?.message || 'Could not save that.', true);
             }
+        };
+
+        /* The refund log, on the page where the people are.
+           It was already being written — every attempt, success or failure,
+           with the admin who was signed in — and nothing in the panel ever
+           showed it, which is why "who did what refund" looked unanswered. */
+        window.zwRefundLog = async function () {
+            const host = document.getElementById('zwRefundLogBody');
+            if (!host) return;
+            const esc = (t) => String(t == null ? '' : t)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            host.innerHTML = '<p style="font-size:.82rem;color:var(--text-secondary)">Loading…</p>';
+
+            let rows = [];
+            try {
+                const { data, error } = await sb.from('site_settings')
+                    .select('value').eq('key', 'refund_audit_log').limit(1);
+                if (error) throw error;
+                let v = data && data[0] && data[0].value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                rows = Array.isArray(v) ? v : [];
+            } catch (e) {
+                host.innerHTML = '<p style="font-size:.82rem;color:var(--red,#dc2626)">'
+                    + 'Could not read the refund log — ' + esc((e && e.message) || 'no access') + '</p>';
+                return;
+            }
+            if (!rows.length) {
+                host.innerHTML = '<p style="font-size:.82rem;color:var(--text-secondary)">'
+                    + 'Nothing yet. Refunds and cancellations will appear here as they happen.</p>';
+                return;
+            }
+
+            /* Sorted here rather than trusted. The endpoint unshifts, so the
+               array is newest-first today — but a log that silently shows the
+               oldest entries first is worse than no log. */
+            const shown = rows.slice()
+                .sort((a, b) => String((b && b.at) || '').localeCompare(String((a && a.at) || '')))
+                .slice(0, 50);
+
+            const who = (e) => {
+                const email = String((e && e.adminEmail) || '');
+                const id = String((e && e.adminId) || '');
+                const hit = _abacDir.find((p) => p.id === id
+                    || (email && p.email && p.email.toLowerCase() === email.toLowerCase()));
+                if (hit && hit.name) return hit.name + (email ? ' · ' + email : '');
+                return email || id || 'unknown';
+            };
+            const when = (e) => {
+                const d = new Date(String((e && e.at) || ''));
+                return isNaN(d.getTime()) ? '—' : d.toLocaleString();
+            };
+            const ACTIONS = { refund: 'Refund', cancel: 'Cancel', cancel_refund: 'Cancel + refund' };
+            const money = (c) => (Number.isFinite(Number(c)) ? '$' + (Number(c) / 100).toFixed(2) : '');
+
+            host.innerHTML = '<div style="overflow-x:auto">'
+                + '<table style="width:100%;border-collapse:collapse;font-size:.8rem">'
+                + '<thead><tr style="text-align:left;color:var(--text-secondary)">'
+                +   ['When', 'Who', 'Order', 'What', 'Result'].map((c) =>
+                      '<th style="padding:6px 10px 6px 0;font-weight:600;white-space:nowrap">' + c + '</th>').join('')
+                + '</tr></thead><tbody>'
+                + shown.map((e) => {
+                    const ok = !!(e && e.success);
+                    const amount = money(e && e.stripeRefundAmount);
+                    return '<tr style="border-top:1px solid var(--border)">'
+                        + '<td style="padding:7px 10px 7px 0;white-space:nowrap;color:var(--text-secondary)">' + esc(when(e)) + '</td>'
+                        + '<td style="padding:7px 10px 7px 0">' + esc(who(e)) + '</td>'
+                        + '<td style="padding:7px 10px 7px 0;white-space:nowrap">' + esc(String((e && e.orderId) || '—')) + '</td>'
+                        + '<td style="padding:7px 10px 7px 0;white-space:nowrap">'
+                        +   esc(ACTIONS[String((e && e.action) || '')] || String((e && e.action) || '—'))
+                        +   (amount ? ' <span style="color:var(--text-secondary)">' + esc(amount) + '</span>' : '')
+                        + '</td>'
+                        /* A failure says WHY. "Failed" alone would make a
+                           wrong code and a limit refusing look identical,
+                           and those need completely different responses. */
+                        + '<td style="padding:7px 10px 7px 0;color:' + (ok ? 'inherit' : 'var(--red,#dc2626)') + '">'
+                        +   (ok ? 'Went through' : esc(String((e && e.note) || 'refused')))
+                        + '</td>'
+                        + '</tr>';
+                }).join('')
+                + '</tbody></table></div>'
+                + '<p style="font-size:.75rem;color:var(--text-secondary);margin:10px 0 0">'
+                + 'Showing ' + shown.length + ' of ' + rows.length
+                + '. The log keeps the last 500 attempts, and every one is included in your backups.</p>';
         };
 
         window.zwMediaAction = async function (kind) {

@@ -1939,6 +1939,22 @@
                         <p id="abacMsg" style="font-size:.82rem;margin:10px 0 0;min-height:1rem;color:var(--text-secondary)"></p>
                     </div>
 
+                    <!-- Who did what. This sits beside the limits deliberately: the
+                         two answer the same question from opposite ends — what an
+                         admin is allowed to do, and what they actually did. -->
+                    <div style="border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px">
+                        <h3 style="margin:0 0 6px;font-size:.95rem">Who refunded what</h3>
+                        <p style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6">
+                            Every refund and cancellation <em>attempt</em> — the ones that went through, the ones a limit
+                            stopped, and the ones that got the authorization code wrong. Each is stamped with the admin
+                            who was signed in, so a refund can always be traced back to a person.
+                        </p>
+                        <div id="zwRefundLogBody"></div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                            <button class="btn btn-secondary" type="button" onclick="zwRefundLog()">Refresh</button>
+                        </div>
+                    </div>
+
                     <div class="products-header">
                         <h2>User Management</h2>
                     </div>
