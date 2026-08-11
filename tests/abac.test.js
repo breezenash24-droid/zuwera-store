@@ -360,6 +360,7 @@ console.log('\n  a limit marked ready really is');
   const WIRED = {
     refund: 'functions/api/admin-refund.js',
     role_manage: 'functions/api/set-admin-role.js',
+    customer_export: 'functions/api/admin-export.js',
   };
 
   const entries = [...block4.matchAll(/\{ id: '([a-z_]+)', action: '([a-z_]+)'[\s\S]*?ready: (true|false)/g)]
