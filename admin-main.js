@@ -4795,7 +4795,7 @@
                 const text = M.get(key, M.SAMPLE) || '(empty)';
                 const colour = M.color(key);
                 return '<button type="button" class="cm-map-line" data-key="' + esc(key) + '"'
-                    + ' title="' + esc(M.DEFAULTS[key].label || key) + ' — click to edit"'
+                    + ' title="' + esc(M.DEFAULTS[key].label || key) + ' — click to edit here"'
                     + ' style="display:block;width:100%;text-align:left;cursor:pointer;font:inherit;'
                     +   'border:1px dashed var(--accent,#F891A5);border-radius:3px;background:transparent;'
                     +   'padding:4px 6px;margin:3px 0;font-size:.72rem;line-height:1.45;'
@@ -4927,8 +4927,89 @@
                 + '</div>';
 
             host.querySelectorAll('.cm-map-line').forEach((line) => {
-                line.addEventListener('click', () => focusMessage(line.getAttribute('data-key')));
+                line.addEventListener('click', () => editInPlace(line));
             });
+        }
+
+        /* Edit the wording where it appears, instead of jumping to a form and
+           back. The point of drawing the screens was to see the words in
+           position; being sent somewhere else to change them undoes that.
+
+           The box keeps its size and colour while being edited, so what you are
+           typing into still looks like the thing a shopper reads. */
+        function editInPlace(line) {
+            if (line.dataset.editing === '1') return;
+            const key = line.getAttribute('data-key');
+            const M = window.ZWMessages;
+            if (!M || !M.has(key)) return;
+
+            const def = M.DEFAULTS[key];
+            const before = line.innerHTML;
+            line.dataset.editing = '1';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = M.get(key);              // the raw wording, placeholders and all
+            input.setAttribute('aria-label', def.label || key);
+            input.style.cssText = 'width:100%;border:0;background:transparent;font:inherit;color:inherit;padding:0;outline:none';
+
+            const hint = document.createElement('div');
+            hint.style.cssText = 'font-size:.62rem;color:var(--text-secondary);margin-top:3px';
+            const tokens = M.PLACEHOLDERS[key] || [];
+            hint.textContent = 'Enter to save · Esc to cancel'
+                + (tokens.length ? ' · you can use ' + tokens.map((t) => '{' + t + '}').join(' ') : '');
+
+            line.innerHTML = '';
+            line.appendChild(input);
+            line.appendChild(hint);
+            input.focus();
+            input.select();
+
+            let done = false;
+            const restore = () => { line.innerHTML = before; delete line.dataset.editing; };
+
+            const commit = async () => {
+                if (done) return;
+                done = true;
+                const text = input.value.trim();
+                /* Text only from here. The colour is a separate decision with its
+                   own control in the editor below, and quietly dropping it on an
+                   inline text edit would be a surprise. */
+                const current = M.DEFAULTS[key];
+                const colour = M.color(key);
+                const entry = {};
+                if (text && text !== current.text) entry.text = text;
+                if (colour && colour !== current.color) entry.color = colour;
+
+                hint.textContent = 'Saving...';
+                const res = await persistMessage(key, entry);
+                if (!res.ok) {
+                    done = false;
+                    hint.textContent = res.message;
+                    hint.style.color = 'var(--red,#dc2626)';
+                    input.focus();
+                    return;
+                }
+                /* Redraw everything: this message may appear on more than one
+                   screen, and the editor row below has to agree with what was
+                   just typed. */
+                renderMessageMap();
+                const row = document.querySelector('#cm-fields [data-cm-key="' + key + '"] .cm-text');
+                if (row) row.value = entry.text || '';
+                if (typeof showToast === 'function') {
+                    showToast(res.cleared ? 'Back to the default wording.' : 'Saved.');
+                }
+            };
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); commit(); }
+                if (e.key === 'Escape') { e.preventDefault(); done = true; restore(); }
+            });
+            /* Blur commits rather than discarding: clicking away from a box you
+               have just typed into and losing it is the worse surprise. */
+            input.addEventListener('blur', () => { setTimeout(commit, 120); });
+            /* The click that started this must not re-trigger the handler. */
+            input.addEventListener('click', (e) => e.stopPropagation());
         }
 
         /* Open everything between the top of the page and this message, then
@@ -5019,23 +5100,18 @@
         /* Saves a SINGLE message, merging into whatever is already stored: the
            others are read back and written unchanged, so saving two rows one
            after the other cannot have the second discard the first. */
-        window.customerMessagesSaveOne = async function (key) {
-            const found = customerMessagesRow(key);
-            if (!found) return;
-            const { row, entry } = found;
-            const note = row.querySelector('.cm-row-msg');
-            const btn = row.querySelector('.cm-row-save');
-            const say = (text, bad) => {
-                if (!note) return;
-                note.textContent = text;
-                note.style.color = bad ? 'var(--red,#dc2626)' : 'rgba(110,210,130,.95)';
-            };
-
+        /* ONE save, used by the editor row and by the drawing. Two paths to the
+           same settings key would be two chances to write it differently, which
+           is the fault this whole area was built to remove -- and the map's
+           inline edit and the editor's Save must not be able to disagree about
+           what "cleared" means. */
+        async function persistMessage(key, entry) {
             const problem = customerMessagesProblem(key, entry);
-            if (problem) { say(problem, true); return; }
-
-            if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+            if (problem) return { ok: false, message: problem };
             try {
+                /* Read-modify-write on a shared blob: re-read immediately before
+                   writing and touch only this key, so saving one message cannot
+                   roll back another edited a moment ago. */
                 const { data: rows, error } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
                 if (error) throw error;
                 let cfg = (rows && rows[0] && rows[0].value) || {};
@@ -5048,19 +5124,34 @@
                 cfg.customerExperience = cx;
                 const { error: sErr } = await sb.from('site_settings').upsert({ key: 'commerce_config', value: cfg }, { onConflict: 'key' });
                 if (sErr) throw sErr;
-                say(Object.keys(entry).length ? 'Saved.' : 'Saved - back to the default.', false);
-                /* The map shows live wording, so it has to follow a save --
-                   otherwise it quietly becomes the stale hand-kept map this was
-                   built to avoid. */
-                try {
-                    window.ZWMessages.setOverrides(messages);
-                    renderMessageMap();
-                } catch (_) {}
+                /* Everything on screen shows live wording, so it all has to
+                   follow a save -- otherwise the drawing quietly becomes the
+                   stale hand-kept map this was built to avoid. */
+                try { window.ZWMessages.setOverrides(messages); } catch (_) {}
+                return { ok: true, cleared: !Object.keys(entry).length };
             } catch (e) {
-                say(e?.message || 'Could not save that.', true);
-            } finally {
-                if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+                return { ok: false, message: e?.message || 'Could not save that.' };
             }
+        }
+
+        window.customerMessagesSaveOne = async function (key) {
+            const found = customerMessagesRow(key);
+            if (!found) return;
+            const { row, entry } = found;
+            const note = row.querySelector('.cm-row-msg');
+            const btn = row.querySelector('.cm-row-save');
+            const say = (text, bad) => {
+                if (!note) return;
+                note.textContent = text;
+                note.style.color = bad ? 'var(--red,#dc2626)' : 'rgba(110,210,130,.95)';
+            };
+
+            if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+            const res = await persistMessage(key, entry);
+            if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+            if (!res.ok) { say(res.message, true); return; }
+            say(res.cleared ? 'Saved - back to the default.' : 'Saved.', false);
+            renderMessageMap();
         };
 
         window.customerMessagesResetAll = function () {

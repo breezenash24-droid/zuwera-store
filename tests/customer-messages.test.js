@@ -360,8 +360,26 @@ console.log('\n  the admin map describes the code, not someone\'s memory of it')
      being cross-referenced there is no way to answer "where are the login
      messages?" from inside the editor. */
   ok('each row says which screens it reaches', /Appears on: /.test(admin));
-  ok('…and follows a save rather than going stale',
-    /setOverrides\(messages\)[\s\S]{0,80}renderMessageMap/.test(admin));
+  /* A save has to reach the screen, or the drawing becomes the stale hand-kept
+     map this was built to avoid. Checked as the two halves it now is: the write
+     updates the module, and every path that writes redraws. */
+  ok('…and a save updates the module', /setOverrides\(messages\)/.test(admin));
+  ok('…and every save path redraws the map',
+    (admin.match(/renderMessageMap\(\)/g) || []).length >= 3,
+    'one of the save paths leaves the drawing stale');
+
+  /* Editing where the words appear, rather than being sent to a form and back.
+     Drawing the screens is pointless if changing them means leaving. */
+  ok('the drawing can be edited in place', /function editInPlace/.test(admin));
+  ok('…through the same save the editor rows use',
+    /async function persistMessage/.test(admin)
+    && (admin.match(/persistMessage\(key, entry\)/g) || []).length >= 2,
+    'two paths to one settings key is two chances to write it differently');
+  ok('…committing on blur rather than discarding what was typed',
+    /addEventListener\('blur'[\s\S]{0,60}commit/.test(admin));
+  ok('…and Escape still abandons the edit', /'Escape'[\s\S]{0,60}restore\(\)/.test(admin));
+  ok('…while an invalid edit keeps the box open to be fixed',
+    /done = false;[\s\S]{0,240}input\.focus\(\)/.test(admin));
   ok('clicking a line opens whatever it is collapsed inside',
     /node\.tagName === 'DETAILS'/.test(admin),
     'a jump that leaves the target collapsed is a jump to nothing');
