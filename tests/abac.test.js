@@ -150,7 +150,7 @@ console.log('\n  and a store owner can write one');
   const limits = (adm.match(/\{ id: '[a-z_]+', action:/g) || []).length;
   ok('there are limits worth choosing between', limits >= 10, limits + ' defined');
 
-  const block = adm.slice(adm.indexOf('const ABAC_LIMITS'), adm.indexOf('let _abacState'));
+  const block = adm.slice(adm.indexOf('const ABAC_LIMITS'), adm.indexOf('];', adm.indexOf('const ABAC_LIMITS')));
   ok('…covering destructive actions, not just money',
     /product_delete/.test(block) && /customer_export/.test(block) && /bulk_edit/.test(block));
   ok('…and who may grant which role', /role_manage/.test(block),
@@ -372,7 +372,7 @@ console.log('\n  a limit marked ready really is');
   const fs4 = require('fs');
   const R4 = require('path').resolve(__dirname, '..') + '/';
   const adm4 = fs4.readFileSync(R4 + 'admin-main.js', 'utf8');
-  const block4 = adm4.slice(adm4.indexOf('const ABAC_LIMITS'), adm4.indexOf('let _abacState'));
+  const block4 = adm4.slice(adm4.indexOf('const ABAC_LIMITS'), adm4.indexOf('];', adm4.indexOf('const ABAC_LIMITS')));
 
   /* `ready` tells an owner it is safe to switch a limit on. If it lies, the
      first person to enable one takes that action offline for everybody — the
@@ -582,7 +582,7 @@ console.log('\n  a limit the person it binds can edit is not a limit');
 console.log('\n  a rule reads as a sentence');
 {
   const adm = fs.readFileSync(ROOT + 'admin-main.js', 'utf8');
-  const block = adm.slice(adm.indexOf('const ABAC_LIMITS'), adm.indexOf('let _abacState'));
+  const block = adm.slice(adm.indexOf('const ABAC_LIMITS'), adm.indexOf('];', adm.indexOf('const ABAC_LIMITS')));
 
   /* Five stacked controls do not add up to a sentence in anybody's head, and
      permissions are exactly where somebody needs to check what they built
@@ -770,7 +770,7 @@ console.log('\n  a limit says whether it can be walked around');
 {
   const adm = fs.readFileSync(ROOT + 'admin-main.js', 'utf8');
   const guard = fs.readFileSync(ROOT + 'functions/api/admin-guard.js', 'utf8');
-  const block = adm.slice(adm.indexOf('const ABAC_LIMITS'), adm.indexOf('let _abacState'));
+  const block = adm.slice(adm.indexOf('const ABAC_LIMITS'), adm.indexOf('];', adm.indexOf('const ABAC_LIMITS')));
 
   /* "Working" hid a real difference. Some of these the browser cannot go
      around because the permission was removed; some are a question the panel
@@ -862,19 +862,32 @@ console.log('\n  the asking is reachable');
   /* The button, on the refusal it is about. A limit refusal used to arrive as
      a bare message like any other failure, leaving deleting the limit as the
      only available response. */
-  ok('a limit refusal offers to ask', /Ask an admin/.test(rec));
-  ok('…only for refusals somebody can grant', /if \(!resp\.ok && data\.limited\)/.test(rec),
+  /* THERE ARE TWO REFUND MODALS. Receipts, and the Returns workspace — and a
+     return that has come back is refunded from the second one, so putting the
+     Ask button in the first covered the rarer half. Both call one helper now;
+     two copies is how they came to differ. */
+  const rui = fs.readFileSync(ROOT + 'admin-returns-ui.js', 'utf8');
+  ok('a limit refusal offers to ask', /Ask an admin/.test(adm));
+  ok('…from the Receipts modal', /window\.zwRefundRefusal\(errEl, data/.test(rec));
+  ok('…and from the Returns workspace, which is where most refunds happen',
+    /window\.zwRefundRefusal\(errEl, data/.test(rui));
+  ok('…through one implementation, not a copy each',
+    (adm.match(/window\.zwRefundRefusal = function/g) || []).length === 1
+      && !/const ask = document\.createElement\('button'\)/.test(rec),
+    'the copy in Receipts is what let the Returns one be forgotten');
+
+  ok('…only for refusals somebody can grant', /if \(!errEl \|\| !data \|\| !data\.limited\) return false/.test(adm),
     '"your role cannot do this" is not worth asking about');
 
   /* The owner is told to change their own rule instead. Approving your own
      request reads in the log exactly like somebody else approving it. */
   ok('…and the owner is sent to the limit, not to a request',
-    /data\.ownerMayOverride/.test(rec) && /Change the limit/.test(rec));
+    /data\.ownerMayOverride/.test(adm) && /Change the limit/.test(adm));
 
   /* A request that does not name its rule cannot become a waiver — the engine
      matches on ruleId, and a yes to one limit is not a yes to all. */
   ok('the refusal says which limit it was', /rule: verdict\.rule/.test(ref));
-  ok('…and the request carries it', /ruleId: data\.rule/.test(rec));
+  ok('…and the request carries it', /ruleId: data\.rule/.test(adm));
 
   ok('there is somewhere to answer them', /window\.zwAbacQueue =/.test(adm) && /id="abacQueue"/.test(html));
   const usersInit = adm.slice(adm.indexOf("page === 'users'"), adm.indexOf("page === 'analytics'"));

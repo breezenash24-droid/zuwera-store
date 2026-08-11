@@ -296,52 +296,17 @@
                           if (note) body.customerNote = note;
                           const resp = await fetch('/api/admin-refund', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                           const data = await resp.json().catch(() => ({}));
-                          /* A refusal by LIMIT is the one worth acting on, and
-                             it used to arrive as a bare message like every
-                             other failure. The only response it left was to go
-                             and delete the limit, which is how limits stop
-                             being used. `limited` marks the refusals somebody
-                             can be asked about; a role that simply cannot
-                             refund is not one of them, and offering to ask
-                             would waste both people's time. */
-                          if (!resp.ok && data.limited) {
-                            errEl.innerHTML = '';
-                            errEl.append(String(data.error || 'A limit stopped this refund.'));
-                            const ask = document.createElement('button');
-                            ask.type = 'button';
-                            ask.className = 'btn btn-secondary btn-sm';
-                            ask.style.cssText = 'margin-left:8px';
-                            ask.textContent = data.ownerMayOverride ? 'Change the limit' : 'Ask an admin';
-                            /* The owner is not asking anybody — they are being
-                               told they may proceed by changing their own
-                               rule, which is a deliberate edit rather than a
-                               self-approval that reads in the log exactly like
-                               somebody else's. */
-                            ask.onclick = data.ownerMayOverride
-                              ? () => { window.location.hash = '#users'; modal.remove(); }
-                              : async () => {
-                                  ask.disabled = true; ask.textContent = 'Asking…';
-                                  try {
-                                    const r = await fetch('/api/abac-request', {
-                                      method: 'POST', headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                        accessToken: token, op: 'create', action: 'refund',
-                                        ruleId: data.rule || '', resourceId: String(orderId),
-                                        amount: (body.amountCents != null ? body.amountCents / 100 : null),
-                                        reason: note || '', refusedWith: String(data.error || ''),
-                                      }),
-                                    });
-                                    const out = await r.json().catch(() => ({}));
-                                    if (!r.ok) throw new Error(out.error || 'Could not send that.');
-                                    ask.textContent = 'Asked — waiting for an answer';
-                                  } catch (err) {
-                                    ask.disabled = false;
-                                    ask.textContent = 'Ask an admin';
-                                    errEl.append(' ' + err.message);
-                                  }
-                                };
-                            errEl.appendChild(ask);
-                            errEl.style.display = '';
+                          /* Handled by the shared helper in admin-main.js.
+                             This used to be its own copy, and the Returns
+                             workspace — the other refund modal — had none, so a
+                             limit refusing there was a dead end. Two copies is
+                             how they came to differ; one is how they stop. */
+                          if (!resp.ok && typeof window.zwRefundRefusal === 'function'
+                              && window.zwRefundRefusal(errEl, data, {
+                                  token, orderId, note,
+                                  amount: body.amountCents != null ? body.amountCents / 100 : null,
+                                  onClose: () => modal.remove(),
+                              })) {
                             btn.disabled = false; btn.textContent = 'Refund';
                             return;
                           }

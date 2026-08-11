@@ -9305,6 +9305,50 @@ function escapeAttr(value) {
               help: 'Refuse granting these roles. Stops an admin promoting anyone — including themselves — past their own level.' },
         ];
 
+        /* A limit refusing a refund, rendered the same way wherever it happens.
+           There are TWO refund modals — Receipts and the Returns workspace —
+           and the Ask button went into one of them, so half the refunds in the
+           store hit a dead end. Both call this now rather than carrying a copy
+           each, because a copy is how they came to differ in the first place.
+           Returns TRUE when it handled the response; the caller stops. */
+        window.zwRefundRefusal = function (errEl, data, ctx) {
+            if (!errEl || !data || !data.limited) return false;
+            errEl.innerHTML = '';
+            errEl.append(String(data.error || 'A limit stopped this refund.'));
+            const ask = document.createElement('button');
+            ask.type = 'button';
+            ask.style.cssText = 'margin-left:8px;background:transparent;border:1px solid currentColor;'
+                + 'color:inherit;padding:.25rem .6rem;border-radius:6px;font-size:.78rem;cursor:pointer';
+            /* The owner is not asking anybody — they are being told they may
+               proceed by changing their own rule. */
+            ask.textContent = data.ownerMayOverride ? 'Change the limit' : 'Ask an admin';
+            ask.onclick = data.ownerMayOverride
+                ? () => { window.location.hash = '#users'; if (ctx && ctx.onClose) ctx.onClose(); }
+                : async () => {
+                    ask.disabled = true; ask.textContent = 'Asking…';
+                    try {
+                        const resp = await fetch('/api/abac-request', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                accessToken: ctx && ctx.token, op: 'create', action: 'refund',
+                                ruleId: data.rule || '', resourceId: String((ctx && ctx.orderId) || ''),
+                                amount: (ctx && ctx.amount != null) ? ctx.amount : null,
+                                reason: (ctx && ctx.note) || '', refusedWith: String(data.error || ''),
+                            }),
+                        });
+                        const out = await resp.json().catch(() => ({}));
+                        if (!resp.ok) throw new Error(out.error || 'Could not send that.');
+                        ask.textContent = 'Asked — waiting for an answer';
+                    } catch (err) {
+                        ask.disabled = false; ask.textContent = 'Ask an admin';
+                        errEl.append(' ' + err.message);
+                    }
+                };
+            errEl.appendChild(ask);
+            errEl.style.display = '';
+            return true;
+        };
+
         /* Ask the limits before doing something the browser then does itself.
            Advisory, and deliberately so — see functions/api/admin-guard.js. It
            returns TRUE on any failure that is not a refusal: a limits check

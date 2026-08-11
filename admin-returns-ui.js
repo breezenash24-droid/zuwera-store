@@ -682,6 +682,20 @@
                                 if (note) body.customerNote = note;
                                 const resp = await fetch('/api/admin-refund', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                                 const data = await resp.json().catch(() => ({}));
+                                /* This modal is the OTHER refund path. The Ask
+                                   button went into the Receipts one only, so a
+                                   limit refusing here was a dead end — which is
+                                   most refunds, since a return that has come
+                                   back is refunded from this workspace. */
+                                if (!resp.ok && typeof window.zwRefundRefusal === 'function'
+                                    && window.zwRefundRefusal(errEl, data, {
+                                        token, orderId: req.orderId, note,
+                                        amount: body.amountCents != null ? body.amountCents / 100 : null,
+                                        onClose: () => modal.remove(),
+                                    })) {
+                                    btn.disabled = false; btn.textContent = 'Refund';
+                                    return;
+                                }
                                 if (!resp.ok || !data.success) throw new Error(data.error || 'Refund failed.');
                                 await persistReturnUpdate(requestId, { status: 'refunded' });
                                 await logAdminAudit('return.stripe_refund', 'return_requests', requestId, { reason, amountCents: body.amountCents || null, stripeRefundId: data.stripeRefundId });
