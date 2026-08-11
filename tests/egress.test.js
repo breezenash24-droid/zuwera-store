@@ -136,3 +136,38 @@ console.log('\n  the arithmetic');
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
+
+/* ── the admin was the expensive page ──────────────────────────────────────
+   Every thumbnail in the admin and the page builder requested the FULL-SIZE
+   original from storage: a multi-megabyte photo to fill a 56px box, forty of
+   them on the products list, re-pulled on every reload — and the builder
+   re-renders its previews on every keystroke.
+
+   With two people using the admin, that was the entire cached-egress bill.
+   Not shopper traffic. Us. The storefront had routed images through the
+   optimiser for ages; nobody had looked at the bandwidth cost of a page only
+   staff see. */
+console.log('\n  staff pages pay for images too');
+{
+  for (const page of ['admin.html', 'builder.html']) {
+    const src = fs.readFileSync(R + page, 'utf8');
+    ok(page + ' loads the image optimiser',
+      /<script[^>]+src="[^"]*image-utils\.js/.test(src),
+      'thumbnails here fetch full-size originals');
+  }
+
+  const admin = fs.readFileSync(R + 'admin-main.js', 'utf8');
+  ok('admin thumbnails ask for a thumbnail-sized image', /function zwThumb/.test(admin));
+  ok('…and every <img> it renders uses it',
+    (admin.match(/<img[^>]*src="\$\{(?:escapeAttr\()?zwThumb\(/g) || []).length >= 2,
+    'a raw src here is a full-size original');
+  ok('…falling back to the raw URL if the optimiser is missing',
+    /typeof optimizeImage === 'function'/.test(admin),
+    'a heavy thumbnail beats a broken one');
+
+  const builder = fs.readFileSync(R + 'builder.html', 'utf8');
+  ok('builder previews do the same', /function bThumb/.test(builder));
+  ok('…on every preview it draws',
+    (builder.match(/bThumb\(/g) || []).length >= 6,
+    'the builder re-renders these on every keystroke');
+}

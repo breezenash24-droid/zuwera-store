@@ -4341,7 +4341,11 @@
     <!-- Before admin-main: the Customer messages editor reads its keys,
          defaults and placeholder rules from ZWMessages, which is the same
          file the storefront reads them from. -->
-    <script src="customer-messages.js?v=1"></script>
+    <!-- Image optimiser. Without it every thumbnail in here pulled the FULL-SIZE
+     original straight from Supabase Storage — a 4MB photo for a 56px preview —
+     which is where this project's cached-egress bill was going. -->
+<script src="image-utils.js?v=1"></script>
+<script src="customer-messages.js?v=1"></script>
     <script src="admin-main.js?v=db894ca5"></script>
     <!-- After admin-main: it needs `sb`, which that file creates at top level. -->
     <script src="admin-themes.js?v=9f80018d"></script>

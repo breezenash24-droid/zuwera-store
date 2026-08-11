@@ -464,6 +464,10 @@ body{display:flex;flex-direction:column}
 <div id="imgZoom" onclick="this.classList.remove('on')"><div class="iz-hint">Click anywhere to close</div><img id="imgZoomImg" alt="Enlarged preview"></div>
 <div id="errBox"><div style="display:flex;justify-content:space-between;margin-bottom:.28rem"><b>Error</b><button onclick="this.closest('#errBox').classList.remove('on')" style="background:none;border:none;color:inherit;cursor:pointer">×</button></div><div id="errMsg"></div></div>
 
+<!-- Image optimiser. Without it every thumbnail in here pulled the FULL-SIZE
+     original straight from Supabase Storage — a 4MB photo for a 56px preview —
+     which is where this project's cached-egress bill was going. -->
+<script src="image-utils.js?v=1"></script>
 <script src="/supabase.min.js?v=4b6a655b"></script>
 <script src="/supabase-client.js?v=0bf64814"></script>
 <!-- Shared video-embed resolver. Loaded (not deferred) so buildForm can call
@@ -570,6 +574,11 @@ async function fetchSettingAuthed(key){
 })();
 
 // ── SECTION TYPE REGISTRY ─────────────────────────────────────────────────
+
+/* Same reasoning as the admin: these previews pulled full-size originals from
+   storage on every re-render, and this panel re-renders on every keystroke. */
+function bThumb(u,w){ try{ if(typeof optimizeImage==='function') return optimizeImage(u,(w||100)*2); }catch(e){} return u; }
+
 const TYPES={
   hero:{icon:'🎯',cat:'store',desc:'Full-screen hero, image, headings & CTAs'},
   marquee:{icon:'📜',cat:'store',desc:'Scrolling ticker strip'},
@@ -1784,9 +1793,9 @@ function renderPagesTab(container){
     }
   }
 
-  const heroImg = h.image ? `<img src="${he(h.image)}" title="Click to enlarge" style="width:100%;height:130px;object-fit:contain;background:var(--sf2);border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">` : '';
-  const heroMobImg = h.mobileImage ? `<img src="${he(h.mobileImage)}" title="Mobile hero" style="width:55%;max-width:170px;aspect-ratio:9/16;object-fit:cover;background:var(--sf2);border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">` : '';
-  const heroTabImg = h.tabletImage ? `<img src="${he(h.tabletImage)}" title="Tablet hero" style="width:75%;max-width:230px;aspect-ratio:4/3;object-fit:cover;background:var(--sf2);border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">` : '';
+  const heroImg = h.image ? `<img src="${he(bThumb(h.image,120))}" title="Click to enlarge" style="width:100%;height:130px;object-fit:contain;background:var(--sf2);border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">` : '';
+  const heroMobImg = h.mobileImage ? `<img src="${he(bThumb(h.mobileImage,120))}" title="Mobile hero" style="width:55%;max-width:170px;aspect-ratio:9/16;object-fit:cover;background:var(--sf2);border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">` : '';
+  const heroTabImg = h.tabletImage ? `<img src="${he(bThumb(h.tabletImage,120))}" title="Tablet hero" style="width:75%;max-width:230px;aspect-ratio:4/3;object-fit:cover;background:var(--sf2);border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">` : '';
 
   container.innerHTML=`<div class="tab-pane">
     <div class="tab-hd">Landing Pages</div>
@@ -1956,7 +1965,7 @@ function scrollPreviewToPdp(id){
 // ── SEO TAB ───────────────────────────────────────────────────────────────
 function renderSeoTab(container){
   const g=seoSettings;
-  const prevImg = g.image ? `<img data-preview="image" src="${he(g.image)}" style="width:100%;height:70px;object-fit:cover;border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">` : `<div data-preview="image" style="display:none"></div>`;
+  const prevImg = g.image ? `<img data-preview="image" src="${he(bThumb(g.image,260))}" style="width:100%;height:70px;object-fit:cover;border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">` : `<div data-preview="image" style="display:none"></div>`;
   
   container.innerHTML=`<div class="tab-pane">
     <div class="tab-hd">SEO & Metadata</div>
@@ -2438,7 +2447,7 @@ const lpLayRow=(label,layPath,colPath,snapPath,layV,colV,snapV,barPath,barV)=>`<
    later (number) input clobbered the slider, so dragging did nothing. */
 const bgF=(k,g)=>`${colorF(k,'Section Background Color',g[k]||'')} <div class="fhint">Leave blank for default site background</div>`;
 const imgField=(key,lbl,val='')=>{
-  const prev=val?`<img data-preview="${key}" src="${he(val)}" style="width:100%;height:70px;object-fit:cover;border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">`:`<div data-preview="${key}" style="display:none"></div>`;
+  const prev=val?`<img data-preview="${key}" src="${he(bThumb(val,260))}" style="width:100%;height:70px;object-fit:cover;border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">`:`<div data-preview="${key}" style="display:none"></div>`;
   return `<div class="field"><label>${lbl}</label>${prev}<input type="text" data-f="${key}" value="${he(val)}" placeholder="/images/hero.jpg?v=2 or https://..."><div style="display:flex;gap:.3rem;margin-top:.25rem"><button type="button" class="img-btn" data-pick="${key}">📁 Browse</button></div></div>`;
 };
 const arrField=(key,itemLbl,items,fieldDefs)=>`<div class="flist" data-arr="${key}">${items.map((item,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:2px;padding:.38rem .48rem;margin-bottom:.25rem"><div class="flist-item-hd"><span class="flist-item-lbl">${itemLbl} ${i+1}</span><span class="flist-acts"><button class="flist-mv" onclick="moveArrItem(this,-1)" title="Move up">↑</button><button class="flist-mv" onclick="moveArrItem(this,1)" title="Move down">↓</button><button class="flist-mv" onclick="dupArrItem(this)" title="Duplicate">⎘</button><button class="flist-rm" onclick="removeArrItem(this,'${key}')">✕</button></span></div>${fieldDefs.map(([k,l,type])=>{
