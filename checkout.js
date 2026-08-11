@@ -316,10 +316,44 @@ async function getCheckoutAuthPayload() {
   const SB_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
   const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
+  /* Does this visitor have a session the SERVER would accept?
+   *
+   * This used to return true if a key MATCHING sb-*-auth-token merely existed.
+   * Not whether it held a session, not whether that session had expired —
+   * whether the key was there. supabase-js writes that key when it initialises,
+   * so a signed-out visitor had one, and so did anyone whose token lapsed.
+   *
+   * The consequence was not cosmetic. This function decides which price gets
+   * written into the stored cart, so a guest had the MEMBER price ($35)
+   * persisted into localStorage while the server correctly quoted the regular
+   * one ($40). The header rendered the cart, the summary rendered the server,
+   * and the two disagreed on the same screen. Because the rewrite is async, a
+   * reload showed whichever won — the price looked random and survived
+   * refreshes, because the wrong number had been SAVED.
+   *
+   * The server's test is "does /auth/v1/user accept this token". The closest
+   * honest local answer is "is there a stored session whose token has not
+   * expired", so that is what this asks now. Same rule as
+   * getCheckoutAuthPayload above, so the two cannot disagree about who is a
+   * member. */
   function isLoggedIn() {
     try {
-      for (let i = 0; i < localStorage.length; i++) {
-        if (/^sb-.*-auth-token$/.test(localStorage.key(i))) return true;
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const k = localStorage.key(i);
+        if (!/^sb-.*-auth-token$/.test(k || '')) continue;
+
+        let session;
+        try { session = JSON.parse(localStorage.getItem(k) || 'null'); } catch (_) { continue; }
+        // Supabase has stored this both bare and wrapped over the years.
+        const s = session && (session.access_token ? session : session.currentSession);
+        if (!s || !s.access_token) continue;
+
+        /* No expiry we can read means we cannot claim it is valid. The whole
+           failure here was treating "cannot tell" as "yes". */
+        const expiresAt = Number(s.expires_at) || 0;
+        if (!expiresAt) continue;
+        if (expiresAt - Math.floor(Date.now() / 1000) <= 0) continue;   // lapsed
+        return true;
       }
     } catch (_) {}
     return false;
