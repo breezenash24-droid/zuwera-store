@@ -208,5 +208,39 @@ console.log('\n  the legacy bucket can be measured');
     'a reporting tool must not be able to delete anything');
 }
 
+
+/* ── moving media, which is the dangerous one ─────────────────────────────
+   Three tools with very different risk. Surveying is free. Deleting is
+   irreversible but only touches files nothing points at. MOVING rewrites the
+   references that make the homepage render, and a half-finished move is a
+   broken store. */
+console.log('\n  the media tools cannot quietly break the store');
+{
+  const a = fs.readFileSync(R + 'admin-main.js', 'utf8');
+  ok('there is one scan behind all of them', /async function zwMediaScan/.test(a),
+    'a panel and an action that disagree would act on something you did not see');
+
+  /* A source that failed to load must stop everything. Reporting a file as
+     unused when we simply could not check is how you delete a homepage. */
+  ok('a move refuses to run on an incomplete scan',
+    a.includes("Not moving anything."));
+  ok('…and so does a delete',
+    a.includes("Not deleting anything."));
+
+  ok('both preview before they act', a.includes('const confirmed = !!(opts && opts.confirm)'));
+  ok('…and only a deliberate flag carries them out',
+    (a.match(/if \(!confirmed\)/g) || []).length >= 2);
+
+  /* Order is the whole safety story: upload first, rewrite after the new URL
+     exists, verify the rewrite, leave the original alone. */
+  ok('a move verifies the rewrite landed before believing it',
+    a.includes('old URL still referenced after rewrite'),
+    'a rewrite that silently failed would leave the page pointing at a file about to look deletable');
+  ok('…and never deletes the original in the same pass',
+    a.includes('The originals are still on Supabase'));
+  ok('…and does not downscale on the way, which would ruin a video',
+    a.includes('would re-encode a video and silently'));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

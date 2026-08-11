@@ -8824,6 +8824,236 @@ function escapeAttr(value) {
             return out;
         };
 
+
+        /* ── Media: where everything lives, and moving it somewhere cheaper ────
+           Three jobs, deliberately separate, because they carry very different
+           risk. Surveying is free. Deleting is irreversible but only touches
+           files nothing points at. MOVING rewrites the references that make the
+           homepage render, and a half-finished move is a broken store — so it
+           verifies each rewrite before it trusts it, and never deletes the
+           original in the same pass.
+
+           Everything defaults to a DRY RUN. You see exactly what would happen,
+           then opt in. */
+
+        const ZW_LEGACY_BUCKET = 'product-images';
+
+        /** Every file in the legacy bucket, with where it is referenced. */
+        async function zwMediaScan() {
+            let files = [];
+            for (let page = 0; page < 50; page += 1) {
+                const { data, error } = await sb.storage.from(ZW_LEGACY_BUCKET)
+                    .list('', { limit: 100, offset: page * 100 });
+                if (error) throw error;
+                if (!data || !data.length) break;
+                files = files.concat(data);
+                if (data.length < 100) break;
+            }
+            for (const dir of files.filter((f) => !f.metadata).slice(0, 200)) {
+                const { data } = await sb.storage.from(ZW_LEGACY_BUCKET).list(dir.name, { limit: 100 });
+                (data || []).forEach((f) => { if (f.metadata) files.push({ ...f, name: dir.name + '/' + f.name }); });
+            }
+            const real = files.filter((f) => f.metadata && f.metadata.size);
+
+            /* Every place a reference can live. A source that fails to load
+               makes the whole answer unsafe — reporting a file as unused when
+               we simply could not check is how you delete a homepage. */
+            const sources = [];
+            let complete = true;
+            try {
+                const r = await fetch('/api/catalog');
+                sources.push({ where: 'products', blob: JSON.stringify(await r.json()) });
+            } catch (_) { complete = false; }
+            try {
+                const { data, error } = await sb.from('site_settings').select('key,value');
+                if (error) throw error;
+                (data || []).forEach((row) => sources.push({ where: 'settings:' + row.key, blob: JSON.stringify(row.value) }));
+            } catch (_) { complete = false; }
+
+            real.forEach((f) => {
+                const leaf = f.name.split('/').pop();
+                f.usedBy = sources.filter((s) => s.blob.includes(f.name) || (leaf && s.blob.includes(leaf)))
+                    .map((s) => s.where);
+                f.bytes = Number(f.metadata.size) || 0;
+                f.isVideo = /\.(mp4|webm|mov|m4v)$/i.test(f.name);
+                f.url = sb.storage.from(ZW_LEGACY_BUCKET).getPublicUrl(f.name).data.publicUrl;
+            });
+            return { files: real, complete };
+        }
+
+        /** What is wrong with a file, in the words of what it costs. */
+        function zwMediaFlags(f) {
+            const flags = [];
+            if (f.isVideo) flags.push('video — served straight from storage, no CDN optimises it');
+            else if (f.bytes > 1048576) flags.push('over 1MB — larger than anything the site displays');
+            if (!f.usedBy.length) flags.push('unreferenced');
+            flags.push('on Supabase — egress is billed; R2 is free');
+            return flags;
+        }
+
+        window.zwMediaReport = async function () {
+            const { files, complete } = await zwMediaScan();
+            const mb = (b) => (b / 1048576).toFixed(2) + ' MB';
+            const used = files.filter((f) => f.usedBy.length);
+            const orphan = files.filter((f) => !f.usedBy.length);
+            const rows = files.slice().sort((a, b) => b.bytes - a.bytes).map((f) => ({
+                file: f.name,
+                size: mb(f.bytes),
+                kind: f.isVideo ? 'video' : 'image',
+                used: f.usedBy.length ? f.usedBy.join(', ') : '— nothing',
+                problem: zwMediaFlags(f)[0],
+            }));
+            console.log('%cMedia on Supabase (billed) — ' + files.length + ' files, ' + mb(files.reduce((n, f) => n + f.bytes, 0)),
+                'font-weight:bold');
+            console.log('  in use: ' + used.length + ' (' + mb(used.reduce((n, f) => n + f.bytes, 0)) + ')   ' +
+                        'orphans: ' + orphan.length + ' (' + mb(orphan.reduce((n, f) => n + f.bytes, 0)) + ')');
+            if (!complete) console.warn('A source could not be read — treat "nothing" as unknown, and do not delete.');
+            console.table(rows);
+            console.log('Next: zwMigrateToR2()  ·  zwDeleteOrphans()   (both dry-run until you pass {confirm:true})');
+            return rows;
+        };
+
+        /* Move a file to R2 and repoint everything at it.
+           Order matters and is the whole safety story: upload FIRST, rewrite
+           only after the new URL exists, verify the rewrite landed, and leave
+           the original in place. Deleting is a separate, later decision. */
+        window.zwMigrateToR2 = async function (opts) {
+            const confirmed = !!(opts && opts.confirm);
+            const onlyVideo = !(opts && opts.all);
+            const { files, complete } = await zwMediaScan();
+            if (!complete) { console.error('Could not read every reference source. Not moving anything.'); return; }
+
+            const targets = files.filter((f) => f.usedBy.length && (onlyVideo ? f.isVideo : true));
+            if (!targets.length) { console.log('Nothing to move.'); return; }
+
+            console.log((confirmed ? 'Moving ' : 'DRY RUN — would move ') + targets.length + ' file(s):');
+            targets.forEach((f) => console.log('  ' + (f.bytes / 1048576).toFixed(2) + ' MB  ' + f.name + '  ←  ' + f.usedBy.join(', ')));
+            if (!confirmed) {
+                console.log('Run zwMigrateToR2({confirm:true}) to do it. Add {all:true} to include images.');
+                return targets;
+            }
+
+            const done = [];
+            for (const f of targets) {
+                try {
+                    const blob = await (await fetch(f.url, { cache: 'no-store' })).blob();
+                    const file = new File([blob], f.name.split('/').pop(), { type: blob.type || 'application/octet-stream' });
+                    /* Straight to the R2 endpoint, NOT through uploadProductImageToR2:
+                       that downscales, which would re-encode a video and silently
+                       ruin it. These files are already what the store displays. */
+                    const token = await getAdminAccessToken();
+                    const form = new FormData();
+                    form.append('file', file);
+                    form.append('productId', 'migrated');
+                    const resp = await fetch('/api/upload-product-image', {
+                        method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: form,
+                    });
+                    const data = await resp.json().catch(() => ({}));
+                    if (!resp.ok || !data.url) throw new Error(data.error || 'upload failed');
+
+                    /* Repoint every settings row that mentions it. Exact string
+                       replace on the serialised value, so a URL embedded three
+                       levels down in a section's settings is caught without
+                       knowing the shape of the document. */
+                    const { data: rows, error } = await sb.from('site_settings').select('key,value');
+                    if (error) throw error;
+                    let rewrote = 0;
+                    for (const row of (rows || [])) {
+                        const before = JSON.stringify(row.value);
+                        if (!before.includes(f.url)) continue;
+                        const after = before.split(f.url).join(data.url);
+                        const { error: uErr } = await sb.from('site_settings')
+                            .update({ value: JSON.parse(after) }).eq('key', row.key);
+                        if (uErr) throw uErr;
+                        rewrote += 1;
+                    }
+
+                    /* Verify before believing it. A rewrite that reported success
+                       and did not land would leave the page pointing at a file we
+                       are about to consider deletable. */
+                    const { data: check } = await sb.from('site_settings').select('value');
+                    const still = JSON.stringify(check || []).includes(f.url);
+                    if (still) throw new Error('old URL still referenced after rewrite');
+
+                    console.log('  ✓ ' + f.name + ' → R2 (' + rewrote + ' setting(s) repointed)');
+                    done.push(f.name);
+                } catch (e) {
+                    console.error('  ✗ ' + f.name + ' — ' + (e && e.message || e) + ' (left untouched)');
+                }
+            }
+            console.log('Moved ' + done.length + ' of ' + targets.length + '.');
+            console.log('The originals are still on Supabase. Check the site renders, then run zwDeleteOrphans() — ' +
+                        'they will now scan as unreferenced.');
+            return done;
+        };
+
+        window.zwDeleteOrphans = async function (opts) {
+            const confirmed = !!(opts && opts.confirm);
+            const { files, complete } = await zwMediaScan();
+            if (!complete) { console.error('Could not read every reference source. Not deleting anything.'); return; }
+            const orphans = files.filter((f) => !f.usedBy.length);
+            if (!orphans.length) { console.log('No orphans.'); return; }
+
+            const total = orphans.reduce((n, f) => n + f.bytes, 0);
+            console.log((confirmed ? 'Deleting ' : 'DRY RUN — would delete ') + orphans.length +
+                        ' file(s), ' + (total / 1048576).toFixed(2) + ' MB:');
+            orphans.forEach((f) => console.log('  ' + (f.bytes / 1048576).toFixed(2) + ' MB  ' + f.name));
+            if (!confirmed) { console.log('Run zwDeleteOrphans({confirm:true}) to delete them. This cannot be undone.'); return orphans; }
+
+            const { error } = await sb.storage.from(ZW_LEGACY_BUCKET).remove(orphans.map((f) => f.name));
+            if (error) { console.error('Delete failed: ' + error.message); return; }
+            console.log('Deleted ' + orphans.length + ' file(s), freed ' + (total / 1048576).toFixed(2) + ' MB.');
+            return orphans.map((f) => f.name);
+        };
+
+
+        /* The panel. Same scan the console tools use, so what is shown and what
+           a move would act on cannot disagree. */
+        window.zwMediaPanel = async function () {
+            const host = document.getElementById('zwMediaPanel');
+            if (!host) return;
+            host.innerHTML = '<p style="font-size:.82rem;color:var(--text-secondary)">Scanning…</p>';
+            try {
+                const { files, complete } = await zwMediaScan();
+                const mb = (b) => (b / 1048576).toFixed(2) + ' MB';
+                const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const used = files.filter((f) => f.usedBy.length);
+                const orphan = files.filter((f) => !f.usedBy.length);
+                const vid = files.filter((f) => f.isVideo && f.usedBy.length);
+
+                const stat = (n, label, note) => '<div style="flex:1;min-width:150px;border:1px solid var(--border);'
+                    + 'border-radius:8px;padding:12px 14px"><div style="font-size:1.15rem;font-weight:700">' + n + '</div>'
+                    + '<div style="font-size:.74rem;color:var(--text-secondary)">' + label + '</div>'
+                    + (note ? '<div style="font-size:.7rem;color:var(--text-secondary);margin-top:4px">' + note + '</div>' : '') + '</div>';
+
+                host.innerHTML =
+                    (complete ? '' : '<p style="color:var(--red,#dc2626);font-size:.82rem">A reference source could not be read — '
+                        + '"not used" below is unreliable. Do not delete on this scan.</p>')
+                    + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">'
+                    +   stat(mb(vid.reduce((n, f) => n + f.bytes, 0)), 'video still on Supabase', vid.length + ' file(s) — the expensive one')
+                    +   stat(mb(used.reduce((n, f) => n + f.bytes, 0)), 'in use', used.length + ' file(s)')
+                    +   stat(mb(orphan.reduce((n, f) => n + f.bytes, 0)), 'nothing points at', orphan.length + ' file(s) — safe to delete')
+                    + '</div>'
+                    + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.78rem">'
+                    + '<thead><tr style="text-align:left;color:var(--text-secondary)">'
+                    +   '<th style="padding:6px 8px">File</th><th style="padding:6px 8px">Size</th>'
+                    +   '<th style="padding:6px 8px">Used by</th><th style="padding:6px 8px">Why it costs</th></tr></thead><tbody>'
+                    + files.slice().sort((a, b) => b.bytes - a.bytes).map((f) => {
+                        const flag = zwMediaFlags(f)[0];
+                        const bad = f.isVideo || f.bytes > 1048576;
+                        return '<tr style="border-top:1px solid var(--border)">'
+                            + '<td style="padding:6px 8px;word-break:break-all">' + esc(f.name) + '</td>'
+                            + '<td style="padding:6px 8px;white-space:nowrap' + (bad ? ';color:var(--red,#dc2626);font-weight:600' : '') + '">' + mb(f.bytes) + '</td>'
+                            + '<td style="padding:6px 8px;color:var(--text-secondary)">' + esc(f.usedBy.join(', ') || '— nothing') + '</td>'
+                            + '<td style="padding:6px 8px;color:var(--text-secondary)">' + esc(flag) + '</td>'
+                            + '</tr>';
+                    }).join('')
+                    + '</tbody></table></div>';
+            } catch (e) {
+                host.innerHTML = '<p style="color:var(--red,#dc2626);font-size:.82rem">Could not scan: ' + (e && e.message || e) + '</p>';
+            }
+        };
+
         async function uploadProductImageToR2(file) {
             const token = await getAdminAccessToken();
             // Shrink first: what is uploaded is what is served, and paid for.
