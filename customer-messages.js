@@ -527,7 +527,22 @@
     var next = {};
     var rejected = [];
     if (raw && typeof raw === 'object') {
+      /* Settings written before the twenty-two per-code decline messages were
+         collapsed into nine still hold keys like `decline:lost_card`. Those are
+         unknown now, so every page load logged four warnings and the wording a
+         store had actually written was dropped. Map them across instead: the
+         old key names carry the Stripe code, which is exactly what declineKey
+         takes. Later keys win, so a message edited since is not overwritten. */
+      var migrated = {};
       Object.keys(raw).forEach(function (key) {
+        if (key.indexOf('decline:') !== 0) return;
+        var to = declineKey(key.slice(8));
+        if (!Object.prototype.hasOwnProperty.call(raw, to)) migrated[to] = raw[key];
+      });
+      raw = Object.assign({}, migrated, raw);
+
+      Object.keys(raw).forEach(function (key) {
+        if (key.indexOf('decline:') === 0) return;   // handled above
         if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key)) {
           rejected.push({ key: key, reason: 'Unknown message' });
           return;
