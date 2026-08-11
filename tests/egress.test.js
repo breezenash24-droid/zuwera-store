@@ -287,5 +287,32 @@ console.log('\n  video can reach R2, and a refusal says why');
   ok('…while saying the file itself is untouched', /nothing about them changed/.test(a));
 }
 
+
+/* ── one destination, not two ─────────────────────────────────────────────
+   Two upload routes existed: products went to R2 (free egress), builder media
+   went to Supabase Storage (billed). Every hero image and video the page
+   builder placed landed in the expensive one — which is where the entire
+   cached-egress bill came from, and it would have rebuilt itself after any
+   cleanup for as long as the second route existed. */
+console.log('\n  uploads have one destination');
+{
+  const b = fs.readFileSync(R + 'functions/api/upload-image.js', 'utf8');
+  ok('builder media goes to R2', /putR2Object/.test(b));
+  ok('…through the same helpers the product uploader uses',
+    /from '\.\/upload-product-image\.js'/.test(b),
+    'a second R2 path is a second thing to drift');
+  ok('…and no longer writes to Supabase Storage',
+    !/storage\/v1\/object\/[^p]/.test(b) && !/x-upsert/.test(b));
+  ok('…with a cap that fits a hero video', /100 \* 1024 \* 1024/.test(b));
+
+  /* Falling back to Supabase on an R2 failure would silently restore exactly
+     the behaviour this removed, and stay invisible until the next bill. */
+  ok('a failure is reported rather than falling back to the billed store',
+    b.includes('Upload failed: ') && !/SUPABASE_SERVICE_ROLE_KEY/.test(b));
+
+  ok('the session check is unchanged', /auth\/v1\/user/.test(b) && /Invalid or expired session/.test(b),
+    'moving where bytes land must not move who may put them there');
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
