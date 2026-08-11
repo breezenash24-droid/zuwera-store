@@ -295,7 +295,23 @@ async function getCheckoutAuthPayload() {
 
   const result = await sb.auth.getSession().catch(() => null);
   let session = result?.data?.session || null;
-  if (!session?.access_token) return { accessToken: '' };
+
+  /* A client that reports no session is NOT proof of a signed-out shopper.
+     This codebase runs more than one Supabase client, and they do not all use
+     the same storage key — so the one this page happens to hold can return
+     null while a perfectly good session sits in localStorage under another
+     key. That is the current split: the bag prices as a member, checkout as a
+     guest, same browser, same second.
+
+     So when the SDK comes back empty, look in storage before concluding
+     anything. Only an unexpired token is used, and if there is genuinely none
+     the answer is still "guest" — this only stops us throwing away a session
+     we actually have. */
+  if (!session?.access_token) {
+    const stored = window.ZWStock && typeof ZWStock.storedAccessToken === 'function'
+      ? ZWStock.storedAccessToken() : '';
+    return { accessToken: stored };
+  }
 
   /* expires_at is epoch SECONDS. Treating a missing value as "renew" is the
      safe reading: an unknown expiry we cannot check is exactly the case that
@@ -419,7 +435,7 @@ async function getCheckoutAuthPayload() {
     try {
       for (let i = 0; i < localStorage.length; i += 1) {
         const k = localStorage.key(i);
-        if (!/^sb-.*-auth-token$/.test(k || '')) continue;
+        if (!/^(zuwera-auth|sb-.*-auth-token)$/.test(k || '')) continue;   // this site uses 'zuwera-auth'
 
         /* supabase-js stores this either as plain JSON or, since it started
            handling non-ASCII safely, as "base64-<base64url of the JSON>".

@@ -227,6 +227,19 @@
      the server-verified answer; until then this is close enough to be right,
      and it is never a PRESENCE check — an expired session reads as signed out,
      which was the original fault. */
+  /* The key the session is ACTUALLY under.
+   *
+   * This site creates its Supabase client with storageKey:'zuwera-auth' — see
+   * auth.js and checkout.html — so the session has never been under the
+   * default sb-<ref>-auth-token. Every storage check written against that
+   * default therefore found nothing and concluded "signed out", which is why a
+   * member was priced as a guest on every page that reads storage rather than
+   * asking the SDK.
+   *
+   * Both are matched: the default is still what a fresh client would write, and
+   * being wrong about this once was expensive enough. */
+  var AUTH_KEY = /^(zuwera-auth|sb-.*-auth-token)$/;
+
   function readStoredSession(raw) {
     var s = String(raw || '');
     if (!s) return 'null';
@@ -245,7 +258,7 @@
     try {
       for (var i = 0; i < localStorage.length; i += 1) {
         var k = localStorage.key(i);
-        if (!/^sb-.*-auth-token$/.test(k || '')) continue;
+        if (!AUTH_KEY.test(k || '')) continue;
         var parsed;
         try { parsed = JSON.parse(readStoredSession(localStorage.getItem(k))); } catch (_) { continue; }
         var s = parsed && (parsed.access_token ? parsed : parsed.currentSession);
@@ -274,7 +287,7 @@
     try {
       for (var i = 0; i < localStorage.length; i += 1) {
         var k = localStorage.key(i);
-        if (!/^sb-.*-auth-token$/.test(k || '')) continue;
+        if (!AUTH_KEY.test(k || '')) continue;
         var parsed;
         try { parsed = JSON.parse(readStoredSession(localStorage.getItem(k))); } catch (_) { continue; }
         var s = parsed && (parsed.access_token ? parsed : parsed.currentSession);
