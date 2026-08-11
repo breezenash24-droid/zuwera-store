@@ -134,7 +134,7 @@ console.log('\n  the storefront asks rather than answering');
      fifth being written, so any storefront file holding one of these sentences
      as a literal fails here — on the day it is written, not years later in
      someone's bag. */
-  const SURFACES = ['product.html', 'bag.html', 'quick-add-modal.js', 'stock-rules.js'];
+  const SURFACES = ['product.html', 'bag.html', 'quick-add-modal.js', 'stock-rules.js', 'drop001.html'];
   const SENTENCES = [
     /Out of stock/,
     /Only \$?\{?\w*\}? ?left/,
@@ -148,6 +148,16 @@ console.log('\n  the storefront asks rather than answering');
        the weakness of a hand-written list — so it grows when one is found. */
     /Email me when it/,
     /sold out\. Get notified/,
+    /* The collection grid and the quick-add size buttons each had their own
+       "Sold Out" and "Low Stock". Short forms, but still shopper-facing copy
+       and still two copies of it. */
+    />Sold Out</,
+    /' - Sold Out'/,
+    />Low Stock</,
+    /Invalid promo code/,
+    /Enter a promo code/,
+    /Could not validate code/,
+    /' applied!'/,
   ];
   const offenders = [];
   for (const file of SURFACES) {
@@ -170,7 +180,7 @@ console.log('\n  the file is actually loaded where it is used');
   /* ZWStock.msg() swallows a missing ZWMessages and returns '' — an absent
      sentence beats a wrong one — which also means a forgotten script tag would
      show up as blank labels rather than as an error. This is what catches it. */
-  const PAGES = ['product.html', 'bag.html', 'index.html', 'checkout.html', 'account.html', 'admin.html'];
+  const PAGES = ['product.html', 'bag.html', 'index.html', 'checkout.html', 'account.html', 'admin.html', 'drop001.html'];
   for (const page of PAGES) {
     const src = read(page);
     ok(page + ' loads customer-messages.js',
@@ -270,8 +280,88 @@ console.log('\n  the editor describes each message in words, and inserts the val
   ok('render() and get() share one substitution',
     M.render('Only {count} left in stock') === M.get('lowStock', M.SAMPLE));
 
+  /* Colour is offered as named MEANINGS, so a store picking "Alert" gets this
+     theme's alert red everywhere rather than three hand-typed reds. */
+  ok('the palette is named for meaning, not for hue',
+    M.PALETTE.every((p) => /^[A-Z]/.test(p.name) && typeof p.value === 'string'));
+  ok('every message recommends a colour from that palette',
+    M.keys().every((k) => M.paletteName(M.recommendedColor(k)) !== null),
+    'a message ships a colour nobody can pick from the editor');
+  ok('the recommendation is the shipped colour',
+    M.recommendedColor('soldOutInBag') === M.DEFAULTS.soldOutInBag.color);
+  ok('…and reads as Alert for the one that blocks checkout',
+    M.paletteName(M.recommendedColor('soldOutInBag')) === 'Alert');
+  ok('…and as Positive for good news',
+    M.paletteName(M.recommendedColor('restockSuccess')) === 'Positive');
+  ok('a custom colour is still allowed', M.validateColor('#ff8800') === null);
+
+  ok('the editor marks the recommended one', /recommended/.test(admin));
+  ok('…and offers the palette rather than a blank box', /cm-swatch-btn/.test(admin));
+  ok('…while keeping free text for a brand colour', /or any CSS colour/.test(admin));
+
   ok('the colour box says what it accepts',
     /rgb\(220,38,38\)/.test(read('admin.html')), 'no format hint for the colour field');
+}
+
+console.log('\n  the payment path says the same things, from the same settings');
+{
+  /* customer-messages.js is a classic browser script; functions/api/_messages.js
+     is an ES module in a Worker. Neither can import the other, so the defaults
+     for shared keys are written twice — and this is what stops the second copy
+     drifting. Same arrangement as the other "two lists must stay identical"
+     invariants here; the duplication is deliberate and checked. */
+  const server = read('functions/api/_messages.js');
+  const serverDefaults = {};
+  const block = server.slice(server.indexOf('export const DEFAULTS = {'));
+  block.slice(0, block.indexOf('};')).replace(
+    /^\s*([a-zA-Z]+):\s*'((?:[^'\\]|\\.)*)',/gm,
+    (_, k, v) => { serverDefaults[k] = v.replace(/\\'/g, "'"); return ''; });
+
+  ok('the worker\'s message list parses', Object.keys(serverDefaults).length >= 6,
+    Object.keys(serverDefaults).length + ' found');
+
+  /* THE point of this section: sold-out is ONE sentence now. It had five
+     wordings across the storefront and a sixth on the payment path, which is
+     how a shopper could read "Only 1 left" on one screen and a differently
+     phrased refusal on the next. */
+  ok('checkout uses the same sold-out message the storefront does',
+    serverDefaults.soldOutItem !== undefined,
+    'the payment path has invented its own wording again');
+  ok('…character for character',
+    serverDefaults.soldOutItem === M.DEFAULTS.soldOutItem.text,
+    JSON.stringify(serverDefaults.soldOutItem) + ' vs ' + JSON.stringify(M.DEFAULTS.soldOutItem.text));
+
+  /* Every key the two sides share has to agree, not just that one. */
+  const shared = Object.keys(serverDefaults).filter((k) => M.has(k));
+  const drifted = shared.filter((k) => serverDefaults[k] !== M.DEFAULTS[k].text);
+  ok('no shared message has drifted between browser and worker', drifted.length === 0,
+    drifted.join(', '));
+
+  /* And an admin edit has to reach the payment path, or the two agree only
+     until somebody changes one of them. */
+  const co = read('functions/api/_cart-pricing.js');
+  ok('the worker reads the admin\'s overrides', /messagesFrom\(cfg\)/.test(co));
+  ok('…from the same settings read as the stock rule, not a second one',
+    /limitToStock, say/.test(co), 'two reads let the rule and its wording arrive out of step');
+  ok('…and falls back to the shipped copy when settings are unreadable',
+    /say: shippedMessages/.test(co), 'a refusal with no reason is the one thing it must not be');
+
+  ok('the refusals no longer carry their wording inline',
+    !/is out of stock\.`/.test(co) && !/Only \$\{available\} left/.test(co));
+}
+
+console.log('\n  a coupon can still speak for itself');
+{
+  /* validate-promo returns a per-code message where one is set in admin —
+     "expired on 1 June" is more use to a shopper than a generic refusal. The
+     shared message is the fallback and the COLOUR, not a replacement for it. */
+  const bag = strip(read('bag.html'));
+  ok('the promo replies come from the shared messages', /'promoInvalid'/.test(bag) && /'promoApplied'/.test(bag));
+  ok('…and a code\'s own message still wins where it has one',
+    /data\.message/.test(bag) && /promo\.message/.test(bag),
+    'a per-coupon explanation would be thrown away');
+  ok('a working code reads as good news', M.paletteName(M.recommendedColor('promoApplied')) === 'Positive');
+  ok('…and a refused one as a problem', M.paletteName(M.recommendedColor('promoInvalid')) === 'Alert');
 }
 
 console.log('\n  a message has to stop being shown when it stops being true');

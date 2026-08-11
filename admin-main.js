@@ -4592,10 +4592,9 @@
                         +   '</label>'
                         +   '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
                         +     '<input type="text" class="form-input cm-text" style="flex:3;min-width:200px" value="' + esc(text) + '" placeholder="' + esc(def.text) + '" aria-label="Message text">'
-                        +     '<span class="cm-swatch" title="Colour preview" style="width:26px;height:26px;flex:none;border:1px solid var(--border);border-radius:6px;background:' + esc(swatch) + '"></span>'
-                        +     '<input type="text" class="form-input cm-color" style="flex:1;min-width:180px" value="' + esc(colr) + '" placeholder="' + esc(def.color || '#dc2626 or rgb(220,38,38)') + '">'
                         +     '<button type="button" class="btn btn-secondary btn-sm cm-row-save" style="flex:none">Save</button>'
                         +   '</div>'
+                        +   colourUI(key, def, colr)
                         +   tokenUI
                         +   '<div style="display:flex;gap:8px;align-items:baseline;margin:8px 0 0">'
                         +     '<span style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);flex:none">Shopper sees</span>'
@@ -4679,6 +4678,17 @@
                     });
                 });
 
+                row.querySelectorAll('.cm-swatch-btn').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        if (!colorEl) return;
+                        colorEl.value = btn.getAttribute('data-color');
+                        colorEl.dispatchEvent(new Event('input', { bubbles: true }));
+                        row.querySelectorAll('.cm-swatch-btn').forEach((b) => {
+                            b.style.borderColor = (b === btn) ? 'var(--accent,#F891A5)' : 'var(--border)';
+                        });
+                    });
+                });
+
                 row.querySelectorAll('.cm-token').forEach((btn) => {
                     btn.addEventListener('click', () => {
                         if (!textEl) return;
@@ -4694,6 +4704,47 @@
                     });
                 });
             });
+        }
+
+
+        /* Colour, offered as a short list of named choices rather than as a
+           blank box. The names say what a colour MEANS -- Normal, Positive,
+           Alert -- so a store picking "Alert" gets this theme's alert red on
+           every message it picks it for, instead of three hand-typed reds that
+           drift apart.
+
+           The colour a message ships with is marked RECOMMENDED and stays one
+           click away, which is what makes overriding safe: nothing is lost by
+           trying something. The free-text box stays too, because a brand colour
+           that is none of these is a perfectly reasonable thing to want. */
+        function colourUI(key, def, current) {
+            const M = window.ZWMessages;
+            const esc = (str) => String(str == null ? '' : str)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            const recommended = M.paletteName ? M.paletteName(def.color) : null;
+            const chips = (M.PALETTE || []).map((p) => {
+                const on = String(current || def.color) === p.value;
+                return '<button type="button" class="cm-swatch-btn" data-color="' + esc(p.value) + '"'
+                    + ' title="' + esc(p.note) + '"'
+                    + ' style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;cursor:pointer;'
+                    +   'font-size:.72rem;background:transparent;color:var(--text-primary);'
+                    +   'border:1px solid ' + (on ? 'var(--accent,#F891A5)' : 'var(--border)') + '">'
+                    +   '<span style="width:10px;height:10px;border-radius:50%;border:1px solid var(--border);background:'
+                    +     esc(p.value || 'transparent') + '"></span>'
+                    +   esc(p.name)
+                    +   (p.name === recommended ? '<span style="opacity:.5;font-size:.66rem">recommended</span>' : '')
+                    + '</button>';
+            }).join('');
+
+            return ''
+                + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0 0">'
+                +   chips
+                +   '<input type="text" class="form-input cm-color" aria-label="Custom colour"'
+                +     ' style="flex:0 1 190px;min-width:140px;padding:4px 8px;font-size:.75rem"'
+                +     ' value="' + esc(current) + '" placeholder="or any CSS colour">'
+                +   '<span class="cm-swatch" title="Colour preview" style="width:22px;height:22px;flex:none;border:1px solid var(--border);border-radius:5px;background:'
+                +     esc(current || def.color || 'transparent') + '"></span>'
+                + '</div>';
         }
 
         /* Drop `token` in at the cursor, leaving the caret after it so a second

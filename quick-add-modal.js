@@ -477,7 +477,7 @@
         var active = selectedSize === size ? ' active' : '';
         // Sold-out sizes stay clickable (no `disabled`) so they open the
         // back-in-stock capture instead of being a dead end.
-        return '<button type="button" class="quick-add-size' + active + (soldOut ? ' sold-out' : '') + '" data-size="' + quickAddEscapeAttr(size) + '"' + (soldOut ? ' data-soldout="1" aria-label="' + quickAddEscapeAttr(size) + ' sold out — get notified"' : '') + '>' + quickAddEscapeAttr(size) + (soldOut ? ' - Sold Out' : '') + '</button>';
+        return '<button type="button" class="quick-add-size' + active + (soldOut ? ' sold-out' : '') + '" data-size="' + quickAddEscapeAttr(size) + '"' + (soldOut ? ' data-soldout="1" aria-label="' + quickAddEscapeAttr(quickAddMsg('restockPrompt', { size: size })) + '"' : '') + '>' + quickAddEscapeAttr(size) + (soldOut ? ' - ' + quickAddEscapeAttr(quickAddMsg('soldOutBadge')) : '') + '</button>';
       }).join('') || '<p class="quick-add-empty-option">One Size</p>';
       sizeWrap.querySelectorAll('.quick-add-size').forEach(function (button) {
         button.addEventListener('click', function () {
