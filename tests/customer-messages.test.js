@@ -303,6 +303,43 @@ console.log('\n  the editor describes each message in words, and inserts the val
     /rgb\(220,38,38\)/.test(read('admin.html')), 'no format hint for the colour field');
 }
 
+console.log('\n  the admin map describes the code, not someone\'s memory of it');
+{
+  /* A hand-kept map goes stale in exactly the way the messages themselves used
+     to, and a wrong map is worse than none — so it is generated from the same
+     module, and these hold it honest in both directions. */
+  ok('the map is built from the shared module', typeof M.surfaces === 'function');
+
+  const listed = new Set();
+  M.surfaces().forEach((s) => s.keys.forEach((k) => listed.add(k)));
+
+  const invisible = M.keys().filter((k) => !listed.has(k));
+  ok('every message appears on at least one surface', invisible.length === 0,
+    invisible.join(', ') + ' — a message missing here is invisible on the map');
+
+  const ghosts = [];
+  M.surfaces().forEach((s) => s.keys.forEach((k) => { if (!M.has(k)) ghosts.push(s.name + '/' + k); }));
+  ok('…and no surface lists a message that does not exist', ghosts.length === 0, ghosts.join(', '));
+
+  /* The genuinely useful fact the map carries: which messages are shared, and
+     therefore what else changes when you edit one. */
+  ok('a shared message is shown on every screen that uses it',
+    M.surfacesFor('soldOutItem').length >= 3,
+    'soldOutItem reaches the product page, the bag and checkout');
+  ok('…and a single-screen one only on its own',
+    M.surfacesFor('restockHint').length === 1);
+
+  const admin = strip(read('admin-main.js'));
+  ok('the editor renders the map', /renderMessageMap/.test(admin));
+  ok('…showing the CURRENT wording, so it doubles as a proof sheet',
+    /M\.get\(key, M\.SAMPLE\)/.test(admin));
+  ok('…and follows a save rather than going stale',
+    /setOverrides\(messages\)[\s\S]{0,80}renderMessageMap/.test(admin));
+  ok('clicking a line opens whatever it is collapsed inside',
+    /node\.tagName === 'DETAILS'/.test(admin),
+    'a jump that leaves the target collapsed is a jump to nothing');
+}
+
 console.log('\n  the payment path says the same things, from the same settings');
 {
   /* customer-messages.js is a classic browser script; functions/api/_messages.js
@@ -348,6 +385,38 @@ console.log('\n  the payment path says the same things, from the same settings')
 
   ok('the refusals no longer carry their wording inline',
     !/is out of stock\.`/.test(co) && !/Only \$\{available\} left/.test(co));
+}
+
+console.log('\n  signing in');
+{
+  const z = strip(read('zw-login.js'));
+  ok('the login copy comes from the shared messages', /authMsg\(/.test(z));
+  ok('…and none of it is written inline any more',
+    !/Enter your email and password|Password must be at least|Connection unavailable|Something went wrong/.test(z));
+
+  /* The auth service's own message is usually the most useful thing available,
+     so it passes through — except for the two cases a shopper actually meets,
+     which were reaching the screen verbatim from Supabase and could not be
+     changed by anyone. */
+  ok('a wrong password maps onto an editable message', /invalid login credentials/i.test(z));
+  ok('an address that already has an account does too', /already registered/i.test(z));
+  ok('…and anything else the service says still passes through',
+    /return raw \|\|/.test(z), 'a specific reason would be replaced by a generic one');
+
+  /* The login modal appears on pages with no reason to load stock rules, so the
+     wording has to reach them too. An edit that applies on some pages and not
+     others looks like it half-worked, which is worse than not applying. */
+  const pages = ['about.html', 'journal.html', 'policies.html', 'returns.html', 'sizeguide.html', 'landing.html'];
+  for (const page of pages) {
+    const src = read(page);
+    if (!/zw-login\.js/.test(src)) continue;
+    ok(page + ' has the wording the login modal needs',
+      /<script[^>]+src="[^"]*customer-messages\.js/.test(src));
+  }
+  ok('…and the module fetches for itself when nothing else will',
+    /function selfFetch/.test(read('customer-messages.js')));
+  ok('…without a second request where stock-rules.js is already fetching',
+    /ZWMessages\.claim/.test(read('stock-rules.js')));
 }
 
 console.log('\n  a coupon can still speak for itself');

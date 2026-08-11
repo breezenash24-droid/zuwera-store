@@ -1237,6 +1237,10 @@
                         <p style="font-size:.78rem;color:var(--text-secondary);margin:0 0 10px;line-height:1.6"><strong>Values in curly braces</strong> — like <code>{count}</code> — are filled in for you when the shopper sees the message. Don't type them: open <em>Insert a value</em> under a message, click where you want it, and pick one. Only the values listed beside each message will work there.</p>
                         <p style="font-size:.78rem;color:var(--text-secondary);margin:0 0 16px;line-height:1.6"><strong>Colour</strong> is offered as three meanings — <strong>Normal</strong>, <strong>Positive</strong>, <strong>Alert</strong> — and the one each message ships with is marked <em>recommended</em>. Picking by meaning keeps every warning the same red instead of three hand-typed ones. To use something else, type any CSS colour in the box: a hex code (<code>#dc2626</code>), <code>rgb(220,38,38)</code>, <code>rgba(220,38,38,.9)</code>, <code>hsl(0,72%,51%)</code>, or a name like <code>tomato</code>. The square previews it. Clicking the recommended chip puts it back.</p>
                         <p style="font-size:.78rem;color:var(--text-secondary);margin:0 0 16px;line-height:1.6">Each message has its own <strong>Save</strong>. The button at the bottom saves everything at once.</p>
+                        <details id="cm-map-wrap" style="margin:0 0 20px;border:1px solid var(--border);border-radius:10px">
+                            <summary style="cursor:pointer;padding:12px 14px;font-size:.85rem;font-weight:600">Where these appear on the site <span style="opacity:.55;font-weight:400">— every screen, and what it says there</span></summary>
+                            <div id="cm-map" style="padding:4px 14px 16px"></div>
+                        </details>
                         <div id="cm-fields"></div>
                         <p id="cm-error" style="font-size:.82rem;color:var(--red,#dc2626);margin:0 0 12px;min-height:1rem"></p>
                         <button class="btn btn-primary" id="cm-save-btn" onclick="customerMessagesSave()">Save all messages</button>

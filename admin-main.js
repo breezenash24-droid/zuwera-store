@@ -4633,6 +4633,8 @@
             /* Listeners attached here rather than written as inline onclick
                attributes: the key would have to be quoted into HTML, and the key
                is the one thing in this row that must not be mangled. */
+            renderMessageMap();
+
             host.querySelectorAll('[data-cm-key]').forEach((row) => {
                 const key = row.getAttribute('data-cm-key');
                 const def = M.DEFAULTS[key] || { text: '', color: '' };
@@ -4747,6 +4749,81 @@
                 + '</div>';
         }
 
+
+        /* ── The map ──────────────────────────────────────────────────────────
+           Which screen says what. Built from ZWMessages.surfaces(), so it
+           describes the code rather than someone's memory of it -- a map kept by
+           hand goes stale in exactly the way the messages themselves used to,
+           and a wrong map is worse than none.
+
+           Each entry shows the CURRENT wording, so this doubles as a proof
+           sheet: change a message, reopen this, and see it in place on every
+           screen it reaches. Clicking one jumps to its editor row, opening
+           whichever group and toggle it is hiding behind. */
+        function renderMessageMap() {
+            const host = document.getElementById('cm-map');
+            const M = window.ZWMessages;
+            if (!host || !M || !M.surfaces) return;
+
+            const esc = (str) => String(str == null ? '' : str)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+            host.innerHTML = ''
+                + '<p style="font-size:.8rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6">'
+                +   'A message used on more than one screen appears more than once here — that is the point of the shared list, '
+                +   'and it is what you are changing everywhere when you edit it. Click any line to jump to its box.'
+                + '</p>'
+                + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:12px">'
+                + M.surfaces().map((surface) => ''
+                    + '<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;background:var(--bg-secondary)">'
+                    +   '<div style="font-size:.8rem;font-weight:700">' + esc(surface.name) + '</div>'
+                    +   '<div style="font-size:.72rem;color:var(--text-secondary);margin:2px 0 10px">' + esc(surface.where) + '</div>'
+                    +   surface.keys.map((key) => {
+                            const def = M.DEFAULTS[key] || { color: '' };
+                            const text = M.get(key, M.SAMPLE);
+                            const colour = M.color(key);
+                            return ''
+                                + '<button type="button" class="cm-map-line" data-key="' + esc(key) + '"'
+                                +   ' title="Edit this message"'
+                                +   ' style="display:block;width:100%;text-align:left;background:transparent;border:0;border-top:1px solid var(--border);'
+                                +     'padding:7px 0;cursor:pointer;font:inherit">'
+                                +   '<span style="display:block;font-size:.82rem;color:' + esc(colour || 'var(--text-primary)') + '">'
+                                +     esc(text) + '</span>'
+                                +   '<span style="display:block;font-size:.66rem;color:var(--text-secondary);margin-top:1px">'
+                                +     esc(def.label || key) + '</span>'
+                                + '</button>';
+                        }).join('')
+                    + '</div>').join('')
+                + '</div>';
+
+            host.querySelectorAll('.cm-map-line').forEach((line) => {
+                line.addEventListener('click', () => focusMessage(line.getAttribute('data-key')));
+            });
+        }
+
+        /* Open everything between the top of the page and this message, then
+           show where it landed. A jump that leaves the target collapsed inside a
+           <details> is a jump to nothing, and there are two levels of them: the
+           group, and the "less common" toggle inside it. */
+        function focusMessage(key) {
+            const row = document.querySelector('#cm-fields [data-cm-key="' + key + '"]');
+            if (!row) return;
+            let node = row.parentElement;
+            while (node && node !== document.body) {
+                if (node.tagName === 'DETAILS') node.open = true;
+                node = node.parentElement;
+            }
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const input = row.querySelector('.cm-text');
+            if (input) input.focus({ preventScroll: true });
+
+            /* A brief highlight, because on a long panel a scroll alone leaves
+               you wondering which of the boxes you were sent to. */
+            row.style.transition = 'background-color .6s ease';
+            row.style.backgroundColor = 'var(--accent-soft, rgba(248,145,165,.18))';
+            setTimeout(() => { row.style.backgroundColor = ''; }, 900);
+        }
+
         /* Drop `token` in at the cursor, leaving the caret after it so a second
            click carries on from where the first one landed. */
         function customerMessagesInsert(input, token) {
@@ -4842,6 +4919,13 @@
                 const { error: sErr } = await sb.from('site_settings').upsert({ key: 'commerce_config', value: cfg }, { onConflict: 'key' });
                 if (sErr) throw sErr;
                 say(Object.keys(entry).length ? 'Saved.' : 'Saved - back to the default.', false);
+                /* The map shows live wording, so it has to follow a save --
+                   otherwise it quietly becomes the stale hand-kept map this was
+                   built to avoid. */
+                try {
+                    window.ZWMessages.setOverrides(messages);
+                    renderMessageMap();
+                } catch (_) {}
             } catch (e) {
                 say(e?.message || 'Could not save that.', true);
             } finally {
