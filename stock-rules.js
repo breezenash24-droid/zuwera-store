@@ -74,6 +74,48 @@
     return anonOnly.length ? sum(anonOnly) : sum(sized);
   }
 
+  /* ── what is left to ADD, as opposed to what is on the shelf ───────────────
+     A page saying "Only 1 left in stock" while that 1 is already in the
+     shopper's bag is telling them something they cannot act on. The number
+     every surface shows should be what they can still add.
+
+     Written once, here, for the same reason stockFor is: the subtraction has
+     to use the same size folding and colour normalisation as the lookup, and
+     four inline copies of "sum the matching cart lines" is how the original
+     mismatch happened.
+
+     The SERVER deliberately does not do this. A bag is not a reservation, so
+     subtracting it server-side would let one shopper's abandoned bag block a
+     sale to somebody else. This is a display and input rule only. */
+  function sameLine(a, b) {
+    return String(a.productId || a.product_id || '') === String(b.productId || b.product_id || '')
+      && canonSize(a.size) === canonSize(b.size)
+      && norm(a.colorName || a.color_name) === norm(b.colorName || b.color_name);
+  }
+
+  /* Quantity of this exact product+size+colour already in the bag. Summed
+     across lines, because a bag can hold the same variant on more than one
+     line and the shelf does not care how the shopper split them. */
+  function cartQtyFor(cart, item) {
+    if (!Array.isArray(cart) || !item) return 0;
+    return cart.reduce(function (n, line) {
+      return line && sameLine(line, item) ? n + (Number(line.quantity) || 0) : n;
+    }, 0);
+  }
+
+  /**
+   * @param stock what stockFor() returned — a number, or null for unknown
+   * @returns units the shopper may still add, or null when stock is unknown.
+   *
+   * null propagates rather than becoming a number: "we do not know" must not
+   * silently turn into "you may add none", which would empty a shop whose
+   * inventory is simply not configured.
+   */
+  function availableToAdd(stock, item, cart) {
+    if (stock === null || stock === undefined) return null;
+    return Math.max(0, Number(stock) - cartQtyFor(cart, item));
+  }
+
   /* One in-flight request per page, shared by every caller. The bag re-renders
      on each quantity change and must not refetch each time. */
   var _cache = null;
@@ -174,6 +216,8 @@
   w.ZWStock = {
     canonSize: canonSize,
     stockFor: stockFor,
+    cartQtyFor: cartQtyFor,
+    availableToAdd: availableToAdd,
     load: load,
     peek: peek,
     restockEnabled: restockEnabled,

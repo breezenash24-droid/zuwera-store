@@ -92,7 +92,7 @@
 <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
 <link rel="stylesheet" href="nav.css?v=da3af1da">
 <link rel="stylesheet" href="product.css?v=cebf612f">
-<link rel="stylesheet" href="cart.css?v=19740276">
+<link rel="stylesheet" href="cart.css?v=71dd9aac">
 <!-- reviews.css styles only below-the-fold review content + hidden review
      modals, so load it non-render-blocking (matches index.html). reviews-vibe.css
      stays blocking — it also styles the above-the-fold .product-fit-actions. -->
@@ -3552,7 +3552,26 @@ function updateStockInfo() {
     return;
   }
 
-  const stock = sizeStockForColor(selectedSize, (selectedColor && selectedColor.color_name) || null);
+  const onShelf = sizeStockForColor(selectedSize, (selectedColor && selectedColor.color_name) || null);
+
+  /* What the shopper can still add, not what exists. With one left and that one
+     already in their bag, "Only 1 left in stock" invites an action that will be
+     refused — so it must read as sold out, and Add to Bag must be disabled.
+     Falls back to the raw figure if the shared rules have not loaded, which
+     only over-offers by whatever is already in the bag. */
+  let stock = onShelf;
+  try {
+    if (window.ZWStock) {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const left = ZWStock.availableToAdd(onShelf, {
+        productId: currentProduct.id,
+        size: selectedSize,
+        colorName: (selectedColor && selectedColor.color_name) || '',
+      }, cart);
+      if (left !== null) stock = left;
+    }
+  } catch (_) {}
+
   const threshold = currentProduct.low_stock_threshold || 10;
 
   if (stock === 0) {
@@ -4016,12 +4035,20 @@ function addToCart() {
              item.colorName === cartItem.colorName
   );
 
-  // stockQty is per-size across all colorways — enforce combined limit
-  if (stockQty !== null && stockQty > 0) {
-    const combinedQty = cart.reduce((sum, ci) =>
-      ci.productId === cartItem.productId && ci.size === cartItem.size ? sum + ci.quantity : sum, 0);
-    if (combinedQty >= stockQty) {
-      showToast(`Only ${stockQty} in stock for size ${cartItem.size}`);
+  /* How many more of THIS variant may be added, not how many exist. Saying
+     "Only 1 in stock" to someone who already has that 1 in their bag describes
+     the shelf rather than their options.
+
+     Counted by ZWStock so the match is the one the bag and checkout use — the
+     old comparison here was product+size and ignored colour, so a bagged Yellow
+     could block adding a Tennesee that was fully stocked. */
+  if (stockQty !== null && stockQty > 0 && window.ZWStock) {
+    const left = ZWStock.availableToAdd(stockQty, cartItem, cart);
+    if (left !== null && left <= 0) {
+      const already = ZWStock.cartQtyFor(cart, cartItem);
+      showToast(already > 0
+        ? `That's all we have — ${stockQty} in your bag already`
+        : `${cartItem.size} is out of stock`);
       return;
     }
   }
@@ -5437,6 +5464,9 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
      keeps the old workaround for the product-page #auth-modal freeze: that modal
      is simply never opened any more. One login entry point — see zw-login.js. -->
 <script src="zw-login.js?v=5a23b163" defer></script>
+<!-- Shared stock rules. The page must subtract what is already in the bag from
+     what it advertises, using the same matching the bag and checkout use. -->
+<script src="stock-rules.js?v=1" defer></script>
 <script src="/nav-menu.js?v=5c1c1e4d" defer></script>
 </body>
 </html>
