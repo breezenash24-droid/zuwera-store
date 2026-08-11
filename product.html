@@ -3560,38 +3560,60 @@ function updateStockInfo() {
 
   const onShelf = sizeStockForColor(selectedSize, (selectedColor && selectedColor.color_name) || null);
 
-  /* What the shopper can still add, not what exists. With one left and that one
-     already in their bag, "Only 1 left in stock" invites an action that will be
-     refused — so it must read as sold out, and Add to Bag must be disabled.
-     Falls back to the raw figure if the shared rules have not loaded, which
-     only over-offers by whatever is already in the bag. */
-  let stock = onShelf;
+  /* Counts describe what the shopper can still ADD; only the shelf decides
+     whether something is sold out.
+
+     Those used to be one number, and it was wrong in a way that cost sales:
+     with one left and that one in the shopper's own bag, this said "Out of
+     stock". Nothing had sold. Stock comes off the shelf when a payment
+     succeeds and at no other moment, so a bag — which anyone can fill with no
+     intention of buying — must never be able to print that sentence.
+
+     ZWStock.availability keeps the two apart. Falls back to the raw shelf
+     figure if the shared rules have not loaded, which only over-offers by
+     whatever is in the bag and never invents a sell-out. */
+  let avail = null;
   try {
-    if (window.ZWStock) {
+    if (window.ZWStock && ZWStock.availability) {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      const left = ZWStock.availableToAdd(onShelf, {
+      avail = ZWStock.availability(onShelf, {
         productId: currentProduct.id,
         size: selectedSize,
         colorName: (selectedColor && selectedColor.color_name) || '',
       }, cart);
-      if (left !== null) stock = left;
     }
   } catch (_) {}
+  if (!avail) {
+    avail = { onShelf, inBag: 0, left: onShelf, soldOut: onShelf === 0, heldByYou: false, canAdd: onShelf !== 0 };
+  }
 
   const threshold = currentProduct.low_stock_threshold || 10;
+  const info = document.getElementById('stockInfo');
+  const btn = document.getElementById('addToCartBtn');
+  const setBtn = (enabled) => {
+    btn.disabled = !enabled;
+    btn.classList.toggle('disabled', !enabled);
+  };
 
-  if (stock === 0) {
-    document.getElementById('stockInfo').textContent = 'Out of stock';
-    document.getElementById('addToCartBtn').disabled = true;
-    document.getElementById('addToCartBtn').classList.add('disabled');
-  } else if (stock <= threshold) {
-    document.getElementById('stockInfo').textContent = `Only ${stock} left in stock`;
-    document.getElementById('addToCartBtn').disabled = false;
-    document.getElementById('addToCartBtn').classList.remove('disabled');
+  if (avail.soldOut) {
+    // Genuinely gone: someone paid for the last one.
+    info.textContent = 'Out of stock';
+    setBtn(false);
+  } else if (avail.heldByYou) {
+    /* Still in stock — they are holding it. Add to Bag is off because there is
+       nothing left to add, but the wording says whose bag it is in, so it
+       cannot be read as the store having sold out. Matches the toast the add
+       handler shows for the same situation. */
+    info.textContent = avail.inBag === 1
+      ? 'The only one is in your bag'
+      : `All ${avail.inBag} are in your bag`;
+    setBtn(false);
+  } else if (avail.left <= threshold) {
+    info.textContent = `Only ${avail.left} left in stock`;
+    setBtn(true);
   } else {
-    document.getElementById('stockInfo').textContent = '';
-    document.getElementById('addToCartBtn').disabled = false;
-    document.getElementById('addToCartBtn').classList.remove('disabled');
+    info.textContent = '';
+    setBtn(true);
   }
 }
 
@@ -4047,14 +4069,18 @@ function addToCart() {
 
      Counted by ZWStock so the match is the one the bag and checkout use — the
      old comparison here was product+size and ignored colour, so a bagged Yellow
-     could block adding a Tennesee that was fully stocked. */
-  if (stockQty !== null && stockQty > 0 && window.ZWStock) {
-    const left = ZWStock.availableToAdd(stockQty, cartItem, cart);
-    if (left !== null && left <= 0) {
-      const already = ZWStock.cartQtyFor(cart, cartItem);
-      showToast(already > 0
-        ? `That's all we have — ${stockQty} in your bag already`
-        : `${cartItem.size} is out of stock`);
+     could block adding a Tennesee that was fully stocked.
+
+     Both refusals stop the same action and mean opposite things, so which one
+     is said comes from .soldOut — the shelf — and never from the count. The
+     count is zero in both cases, which is how the product page came to announce
+     a sell-out because of what was in the shopper's own bag. */
+  if (window.ZWStock && ZWStock.availability) {
+    const avail = ZWStock.availability(stockQty, cartItem, cart);
+    if (!avail.canAdd) {
+      showToast(avail.soldOut
+        ? `${cartItem.size} is out of stock`
+        : `That's all we have — ${avail.inBag} in your bag already`);
       return;
     }
   }
