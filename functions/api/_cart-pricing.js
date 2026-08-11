@@ -532,10 +532,39 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
      has. resolveTax never throws: an external provider that is slow or down
      falls back to the table and says so, because a tax API must not be able
      to stand between a customer and paying. */
+  /* The cart as lines the provider can price individually, scaled to what is
+     actually being charged after any promo.
+
+     Both halves matter. Per-item rules need real lines — New York exempts
+     clothing under $110 A GARMENT, so three $80 shirts are exempt and one $240
+     line is not, and only one of those is true. And the lines have to add up to
+     the discounted total, or the provider taxes money nobody paid. The last
+     line absorbs the rounding remainder so the sum is exact rather than a cent
+     out, which over a year of orders is a reconciliation someone has to do by
+     hand.
+
+     Engines that cannot take lines (the table, Zip-Tax) ignore this entirely. */
+  const taxLineItems = (() => {
+    if (!catalogItems.length || subtotalCents <= 0) return null;
+    const lines = catalogItems.map((item) => ({
+      sku: item.sku,
+      name: item.name,
+      quantity: item.quantity || 1,
+      amountTotal: Math.round(item.amount * (item.quantity || 1) * (discountedSubtotalCents / subtotalCents)),
+      /* What it is, in our vocabulary — each engine maps it to its own code. */
+      taxCategory: item.taxCategory || '',
+    }));
+    const allocated = lines.reduce((sum, l) => sum + l.amountTotal, 0);
+    const remainder = discountedSubtotalCents - allocated;
+    if (remainder !== 0 && lines.length) lines[lines.length - 1].amountTotal += remainder;
+    return lines.filter((l) => l.amountTotal > 0);
+  })();
+
   const tax = await resolveTax({
     env, request, address, dbOverrides,
     taxableCents: discountedSubtotalCents,
     shippingCents: shipping.shippingCents,
+    lineItems: taxLineItems,
   });
 
   const totalCents = discountedSubtotalCents + shipping.shippingCents + tax.taxCents;

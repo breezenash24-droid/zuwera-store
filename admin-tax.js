@@ -723,11 +723,80 @@
                       none: '<b style="color:var(--error);">No tax will be added to any order.</b> Only correct if something outside this checkout collects it, or you genuinely have no obligation anywhere. The figures below will read zero from here on.',
                     };
 
-                    let _taxEngineCfg = { engine: 'builtin', fallback: true, endpoint: '' };
+                    let _taxEngineCfg = {
+                      engine: 'builtin', fallback: true, endpoint: '',
+                      defaultCategory: 'general', taxCodes: {}, reportSales: true,
+                    };
+
+                    /* ── What the store sells, in nobody's vocabulary ──────────
+                       Every provider has its own code for "this is clothing":
+                       Stripe writes txcd_…, TaxJar writes a number, Avalara
+                       writes something else. Tagging products with one
+                       provider's codes is what makes a provider hard to leave,
+                       so the category is neutral and each engine gets its own
+                       code for it here.
+
+                       It matters most for a clothing store: clothing is exempt
+                       in PA, NJ and MN and exempt under $110 a garment in NY.
+                       A provider not told the goods are clothing charges full
+                       rate — which is most of what you are paying it to avoid.
+
+                       Blank is a real answer, and the default: send no code and
+                       the provider uses the default set in its own dashboard.
+                       Nothing here is guessed at, because a wrong tax code is a
+                       compliance error that looks like a working checkout. */
+                    const TAX_CATEGORY_LABELS = {
+                      general:  'General goods',
+                      clothing: 'Clothing',
+                      footwear: 'Footwear',
+                      digital:  'Digital goods',
+                      exempt:   'Not taxable',
+                    };
+                    const TAX_CODE_HELP = {
+                      stripe_tax: { name: 'Stripe Tax', eg: 'txcd_…', where: 'stripe.com/docs/tax/tax-codes' },
+                      taxjar:     { name: 'TaxJar',     eg: '20010',  where: 'developers.taxjar.com/api/reference/#categories' },
+                    };
+
+                    window.taxCategoryRender = function() {
+                      const wrap = document.getElementById('tax-category-wrap');
+                      if (!wrap) return;
+                      const sel = document.getElementById('tax-engine-select');
+                      const engine = sel ? sel.value : (_taxEngineCfg.engine || 'builtin');
+                      const help = TAX_CODE_HELP[engine];
+
+                      const options = Object.keys(TAX_CATEGORY_LABELS).map(function(k) {
+                        return '<option value="' + k + '"' +
+                          (k === (_taxEngineCfg.defaultCategory || 'general') ? ' selected' : '') +
+                          '>' + TAX_CATEGORY_LABELS[k] + '</option>';
+                      }).join('');
+
+                      let html =
+                        '<label for="tax-default-category" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:5px;">Most of what you sell is</label>' +
+                        '<select id="tax-default-category" style="padding:9px 12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:13px;min-width:260px;">' + options + '</select>' +
+                        '<p style="font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.6;max-width:560px;">Used for every line on an order. Clothing is exempt in PA, NJ and MN, and exempt under $110 an item in New York — a provider that is not told will charge full rate on all of it.</p>';
+
+                      if (!help) {
+                        html += '<p style="font-size:12px;color:var(--text-secondary);margin-top:12px;">The table and Zip-Tax price by address only, so there are no product codes to set. Pick Stripe Tax or TaxJar to use categories.</p>';
+                      } else {
+                        const codes = (_taxEngineCfg.taxCodes || {})[engine] || {};
+                        html += '<div style="margin-top:16px;"><div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">' +
+                          help.name + '’s code for each category — leave blank to use the default set in your ' + help.name + ' dashboard.</div>';
+                        Object.keys(TAX_CATEGORY_LABELS).forEach(function(k) {
+                          html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">' +
+                            '<span style="font-size:12px;color:var(--text-primary);min-width:120px;">' + TAX_CATEGORY_LABELS[k] + '</span>' +
+                            '<input data-taxcode="' + k + '" value="' + String(codes[k] || '').replace(/"/g, '&quot;') + '" placeholder="' + help.eg + '" ' +
+                            'style="padding:7px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;width:200px;">' +
+                            '</div>';
+                        });
+                        html += '<p style="font-size:11px;color:var(--text-secondary);margin-top:8px;">Codes come from ' + help.where + '. Nothing is filled in for you — a wrong code collects the wrong tax and still looks like it worked.</p></div>';
+                      }
+                      wrap.innerHTML = html;
+                    };
 
                     window.taxEngineOnChange = function() {
                       const sel = document.getElementById('tax-engine-select');
                       const engine = sel ? sel.value : 'builtin';
+                      try { window.taxCategoryRender(); } catch (_) {}
                       const wrap = document.getElementById('tax-engine-endpoint-wrap');
                       if (wrap) wrap.style.display = engine === 'external' ? '' : 'none';
                       const note = document.getElementById('tax-engine-note');
@@ -746,6 +815,9 @@
                             engine: v.engine || 'builtin',
                             fallback: v.fallback !== false,
                             endpoint: v.endpoint || '',
+                            defaultCategory: v.defaultCategory || 'general',
+                            taxCodes: (v.taxCodes && typeof v.taxCodes === 'object') ? v.taxCodes : {},
+                            reportSales: v.reportSales !== false,
                           };
                         }
                       } catch (_) {}
@@ -777,7 +849,29 @@
 
                       if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
                       try {
-                        const next = { engine, fallback: fb ? fb.checked : true, endpoint };
+                        /* Spread the loaded config first: this used to save only
+                           { engine, fallback, endpoint }, which would silently
+                           drop the categories and tax codes below every time
+                           anyone touched the engine picker. */
+                        const catSel = document.getElementById('tax-default-category');
+                        const codes = { ...(_taxEngineCfg.taxCodes || {}) };
+                        const rows = document.querySelectorAll('#tax-category-wrap input[data-taxcode]');
+                        if (rows.length) {
+                          const forEngine = {};
+                          rows.forEach(function(inp) {
+                            const val = String(inp.value || '').trim();
+                            if (val) forEngine[inp.dataset.taxcode] = val;
+                          });
+                          codes[engine] = forEngine;
+                        }
+                        const next = {
+                          ..._taxEngineCfg,
+                          engine,
+                          fallback: fb ? fb.checked : true,
+                          endpoint,
+                          defaultCategory: catSel ? catSel.value : (_taxEngineCfg.defaultCategory || 'general'),
+                          taxCodes: codes,
+                        };
                         const { error } = await sb.from('site_settings')
                           .upsert({ key: 'tax_engine', value: next }, { onConflict: 'key' });
                         if (error) throw error;

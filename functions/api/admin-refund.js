@@ -16,6 +16,7 @@ import Stripe from 'stripe';
 import { cors, json, verifyAdmin, decide, getSetting, setSetting, getCommerceBundle, mutateSetting } from './_commerce.js';
 import { permsHave } from './_rbac.js';
 import { orderNo } from './_order-no.js';
+import { reverseTaxSale } from './_tax.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
@@ -320,6 +321,53 @@ export async function onRequestPost({ request, env }) {
     } catch (err) {
       await audit(env, { adminId, adminEmail, orderId, action, success: false, note: `stripe: ${err.message}` });
       return json({ error: `Stripe error: ${err.message}` }, 400, h);
+    }
+
+    /* Tell the tax provider the sale came back, so the tax on it stops being
+       something this store owes the state. Refunding the customer without
+       reversing the filing record means paying tax on a sale that no longer
+       exists — quietly, and only discoverable by reconciling by hand.
+
+       Whichever provider is configured; this code does not know which. After
+       the refund, never before: reversing tax on a refund that then fails is
+       worse than the other order, and never fatal, because the customer's money
+       has already moved and a bookkeeping call must not turn that into an
+       error the admin sees as "the refund failed". */
+    try {
+      const orderTax = Math.round(Number(order.tax || 0) * 100);
+      const orderGross = Math.round(Number(order.total || 0) * 100);
+      const refunded = Number(stripeRefundAmount || 0);
+      const isFull = !refunded || refunded >= orderGross;
+      /* The tax inside this refund, in proportion to what was sent back. */
+      const taxPortion = isFull
+        ? orderTax
+        : (orderGross > 0 ? Math.round(orderTax * (refunded / orderGross)) : 0);
+
+      const pi = await stripe.paymentIntents.retrieve(order.stripe_payment_intent_id);
+      const result = await reverseTaxSale({
+        env,
+        transactionId: pi?.metadata?.tax_txn || '',
+        order: {
+          orderNumber: orderNo(order),
+          address: {
+            line1: order.ship_line1 || '', city: order.ship_city || '',
+            state: order.ship_state || '', zip: order.ship_zip || '',
+            country: order.ship_country || 'US',
+          },
+        },
+        amountCents: refunded || orderGross,
+        taxCents: taxPortion,
+        full: isFull,
+      });
+      if (!result.ok && !result.skipped) {
+        console.error('[tax] refund NOT reversed with ' + result.engine + ':', result.error);
+        await audit(env, {
+          adminId, adminEmail, orderId, action, success: true,
+          note: `tax not reversed (${result.engine}): ${result.error}`,
+        });
+      }
+    } catch (e) {
+      console.error('[tax] refund reversal threw:', e && e.message);
     }
   }
 

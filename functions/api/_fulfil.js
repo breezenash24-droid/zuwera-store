@@ -33,6 +33,7 @@ import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } f
 import { buildUserData, sendCapiEvents } from './_capi.js';
 import { veeqoBookShipment } from './_veeqo.js';
 import { incrementShippoMonthlyCount, recordLabelFailure } from './_shipping-usage.js';
+import { recordTaxSale } from './_tax.js';
 
 const SERVICE_TOKEN_MAP = {
   'Priority Mail':         'usps_priority',
@@ -190,7 +191,7 @@ export async function handleSuccessfulPayment(pi, meta, env, onTracking) {
     }
   } catch (_) {}
 
-  const [stripeUpdateResult, emailResult, invResult, promoResult, capiResult, loyaltyResult, referralResult] = await Promise.allSettled([
+  const [stripeUpdateResult, emailResult, invResult, promoResult, capiResult, loyaltyResult, referralResult, taxFilingResult] = await Promise.allSettled([
     /* Writing tracking back onto the payment record is the one thing here that
        was ever processor-specific. The Stripe route passes a callback that
        updates its PaymentIntent; a processor with nothing to write back passes
@@ -217,6 +218,15 @@ export async function handleSuccessfulPayment(pi, meta, env, onTracking) {
 
     // If the order used someone's referral code, pay the referrer.
     creditReferrer(pi, meta, env),
+
+    /* Tell the tax provider the sale completed, so it has something to file.
+       Whichever provider is configured — this code does not know or care which,
+       which is the point: switching from Stripe Tax to TaxJar is a setting, not
+       a change here. Engines with nothing to file (the built-in table, Zip-Tax)
+       skip themselves. Non-fatal like everything else in this list: the money
+       is already taken, so a provider outage is a bookkeeping retry rather than
+       a reason to fail an order. */
+    reportSaleToTaxProvider(pi, meta, env),
   ]);
 
   if (stripeUpdateResult.status === 'rejected') console.error('Tracking write-back failed:', stripeUpdateResult.reason);
@@ -226,6 +236,63 @@ export async function handleSuccessfulPayment(pi, meta, env, onTracking) {
   if (capiResult.status      === 'rejected') console.error('CAPI Purchase failed:',           capiResult.reason);
   if (loyaltyResult.status   === 'rejected') console.error('Loyalty points failed:',          loyaltyResult.reason);
   if (referralResult.status  === 'rejected') console.error('Referral credit failed:',         referralResult.reason);
+  if (taxFilingResult.status === 'rejected') console.error('Tax filing record failed:',       taxFilingResult.reason);
+}
+
+/* Report the completed sale to whichever tax provider priced it.
+
+   A calculation is a quote, not a record: both Stripe Tax and TaxJar bill for
+   pricing an order and file from a separate list of sales they were told
+   completed. Nothing here ever told them, so the store was paying to calculate
+   and would have arrived at filing season with nothing to file from.
+
+   This does not know which provider is configured, and must not learn — that is
+   what makes switching one a setting rather than a change to this file.
+
+   The provider's id for the recorded transaction is written back onto the
+   PaymentIntent, because a refund later has to reverse THAT transaction, and
+   the intent is the one place both halves can reach without a new column. */
+async function reportSaleToTaxProvider(pi, meta, env) {
+  const result = await recordTaxSale({
+    env,
+    ref: meta.tax_ref || '',
+    order: {
+      orderNumber: meta.order_number || pi.id,
+      createdAt: new Date((pi.created || Math.floor(Date.now() / 1000)) * 1000).toISOString(),
+      subtotalCents: parseInt(meta.subtotal_amount_cents || '0', 10),
+      shippingCents: parseInt(meta.charged_shipping_cents || '0', 10),
+      taxCents: parseInt(meta.tax_amount_cents || '0', 10),
+      address: {
+        line1: meta.ship_line1 || '', city: meta.ship_city || '',
+        state: meta.ship_state || '', zip: meta.ship_zip || '',
+        country: meta.ship_country || 'US',
+      },
+    },
+  });
+
+  if (result.skipped) return result;
+  if (!result.ok) {
+    /* Loud, because nothing else will notice: the order is fine and the
+       customer was charged correctly. What is missing is the filing record. */
+    console.error('[tax] sale NOT reported to ' + result.engine + ':', result.error);
+    return result;
+  }
+
+  if (result.id && env.STRIPE_SECRET_KEY && pi.id) {
+    try {
+      await fetch('https://api.stripe.com/v1/payment_intents/' + pi.id, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({ 'metadata[tax_txn]': result.id }),
+      });
+    } catch (e) {
+      console.error('[tax] filed ' + result.id + ' but could not store it on the intent:', e.message);
+    }
+  }
+  return result;
 }
 
 // Pay the referrer when an order used their code. Guards: no self-referral, and
