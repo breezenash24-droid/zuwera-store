@@ -92,9 +92,15 @@ console.log('\n  and nothing keeps its own version');
   /* Deferred, it would render the first list before the formatter existed. */
   const admin = fs.readFileSync(ROOT + 'admin.html', 'utf8');
   const account = fs.readFileSync(ROOT + 'account.html', 'utf8');
+  /* `?v=` accepts a HASH, not digits. postinstall runs bump-cache-version.js,
+     which rewrites every local asset version into a content hash — so the
+     `?v=1` written here becomes `?v=d049b8ca` before the tests run in CI. The
+     first version of this assertion matched \d+ and passed locally, where the
+     hook had not run since the tag was added, and failed the moment CI did a
+     clean install. Nothing was wrong with the code it was guarding. */
+  const tag = /<script src="order-number\.js\?v=[0-9a-f]+"><\/script>/;
   ok('both pages load it, and not deferred',
-    /<script src="order-number\.js\?v=\d+"><\/script>/.test(admin)
-      && /<script src="order-number\.js\?v=\d+"><\/script>/.test(account));
+    tag.test(admin) && tag.test(account));
   ok('…before the scripts that call it',
     admin.indexOf('order-number.js') < admin.indexOf('admin-main.js'));
 }
