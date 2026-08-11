@@ -58,6 +58,12 @@
     /* ── on the shelf ─────────────────────────────────────────────────────── */
     soldOut:        { label: 'A size is sold out', text: 'Out of stock', color: ROLE.plain },
     soldOutItem:    { label: 'A named item is sold out', text: '{title} ({size}) is out of stock', color: ROLE.plain },
+    /* The short forms. A card in a grid and a size button have room for two
+       words, not a sentence, so these are deliberately not `soldOut` -- but
+       they are still written once and shared by the collection grid and the
+       quick-add panel, which each had their own copy. */
+    soldOutBadge:   { label: 'Sold-out badge on a product card', text: 'Sold Out', color: ROLE.plain },
+    lowStockBadge:  { label: 'Low-stock badge on a product card', text: 'Low Stock', color: ROLE.plain },
     soldOutInBag:   { label: 'Something in the bag has sold out', text: 'Out of stock — remove it to check out', color: ROLE.bad },
     lowStock:       { label: 'Only a few left (product page)', text: 'Only {count} left in stock', color: ROLE.plain },
     lowStockShort:  { label: 'Only a few left (bag)', text: 'Only {count} left', color: ROLE.plain },
@@ -217,7 +223,7 @@
      message by context (the bag's shorter "Only 2 left", say). They are still
      fully editable; they are just not what the panel opens on. */
   var SECONDARY = {
-    lowStockShort: 1, capReached: 1, allInBag: 1, maxedOut: 1,
+    soldOutBadge: 1, lowStockBadge: 1, lowStockShort: 1, capReached: 1, allInBag: 1, maxedOut: 1,
     restockHint: 1, restockInvite: 1, restockAlready: 1, restockInvalid: 1, restockFailed: 1,
     declinePostcode: 1, declineCallBank: 1, declineNoReason: 1, declineRetry: 1,
   };
@@ -231,8 +237,8 @@
      under "Other", so a message added above shows up in admin without a second
      edit somewhere else. */
   var GROUPS = [
-    { title: 'When something has sold out', keys: ['soldOut', 'soldOutItem', 'soldOutInBag'] },
-    { title: 'When stock is running low', keys: ['lowStock', 'lowStockShort', 'capReached'] },
+    { title: 'When something has sold out', keys: ['soldOut', 'soldOutBadge', 'soldOutItem', 'soldOutInBag'] },
+    { title: 'When stock is running low', keys: ['lowStock', 'lowStockBadge', 'lowStockShort', 'capReached'] },
     { title: 'When they already have it in their bag', keys: ['lastInBag', 'allInBag', 'maxedOut'] },
     { title: 'Back-in-stock signup', keys: ['restockHint', 'restockInvite', 'restockPrompt', 'restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed'] },
     { title: 'When a card is declined', keys: ['declineFunds', 'declineCvc', 'declineNumber', 'declineExpired', 'declinePostcode', 'declineCallBank', 'declineNoReason', 'declineRetry', 'declined'] },

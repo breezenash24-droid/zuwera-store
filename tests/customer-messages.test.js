@@ -134,7 +134,7 @@ console.log('\n  the storefront asks rather than answering');
      fifth being written, so any storefront file holding one of these sentences
      as a literal fails here — on the day it is written, not years later in
      someone's bag. */
-  const SURFACES = ['product.html', 'bag.html', 'quick-add-modal.js', 'stock-rules.js'];
+  const SURFACES = ['product.html', 'bag.html', 'quick-add-modal.js', 'stock-rules.js', 'drop001.html'];
   const SENTENCES = [
     /Out of stock/,
     /Only \$?\{?\w*\}? ?left/,
@@ -148,6 +148,12 @@ console.log('\n  the storefront asks rather than answering');
        the weakness of a hand-written list — so it grows when one is found. */
     /Email me when it/,
     /sold out\. Get notified/,
+    /* The collection grid and the quick-add size buttons each had their own
+       "Sold Out" and "Low Stock". Short forms, but still shopper-facing copy
+       and still two copies of it. */
+    />Sold Out</,
+    /' - Sold Out'/,
+    />Low Stock</,
   ];
   const offenders = [];
   for (const file of SURFACES) {
@@ -170,7 +176,7 @@ console.log('\n  the file is actually loaded where it is used');
   /* ZWStock.msg() swallows a missing ZWMessages and returns '' — an absent
      sentence beats a wrong one — which also means a forgotten script tag would
      show up as blank labels rather than as an error. This is what catches it. */
-  const PAGES = ['product.html', 'bag.html', 'index.html', 'checkout.html', 'account.html', 'admin.html'];
+  const PAGES = ['product.html', 'bag.html', 'index.html', 'checkout.html', 'account.html', 'admin.html', 'drop001.html'];
   for (const page of PAGES) {
     const src = read(page);
     ok(page + ' loads customer-messages.js',
