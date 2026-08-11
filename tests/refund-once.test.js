@@ -248,7 +248,7 @@ console.log('\n  a refunded order does not offer a refund');
   /* The order's own state, which the request does not carry: a return can sit
      at "item received" while the order was refunded from Receipts an hour ago. */
   ok('the panel reads the order status, not just the request status',
-    /select\('id,status'\)\.in\('id', ids\)/.test(ui) && /function retOrderSettled/.test(ui));
+    /select\('id,status,order_number,stripe_payment_intent_id'\)/.test(ui) && /function retOrderSettled/.test(ui));
   ok('…and it gates the refund action', /REFUND_ALLOWED_STATUSES\.has\(r\.status \|\| ''\) && !retOrderSettled\(r\)/.test(ui));
 
   /* A failed lookup is not evidence that a refund happened. */
@@ -275,12 +275,11 @@ console.log('\n  an order has one name');
      customer's account page the last eight of the row id. Searching any of
      them anywhere else finds nothing — which is exactly what somebody does
      when asked to approve a refund they want to check first. */
-  ok('there is one formatter', /window\.zwOrderNo = function/.test(adm));
-  ok('…and order_number wins, because it is the real one',
-    /const n = String\(o\.order_number \|\| ''\)\.trim\(\)/.test(adm),
-    'the stored column is what Orders shows and the only one a customer could have been told');
-  ok('…with the old formulas kept as fallbacks for rows predating it',
-    /stripe_payment_intent_id \|\| o\.id \|\| ''\)\.slice\(-8\)/.test(adm));
+  /* The formula itself moved to order-number.js and is covered by
+     tests/order-number.test.js, including that the Worker's copy agrees with
+     it. What matters here is that this file no longer keeps its own. */
+  ok('there is one formatter, and it is not defined here',
+    /window\.zwOrderNo = function/.test(adm) && /window\.ZWOrderNo\(row\)/.test(adm));
 
   /* Panels holding only an id have to look up what it is called, or they
      invent a fourth name. */

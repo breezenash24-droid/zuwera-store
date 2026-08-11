@@ -9,6 +9,7 @@ import {
 } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { returnEligibility, reconcileReturnItems, spokenForOn } from './_returns.js';
+import { orderNo } from './_order-no.js';
 
 // ─── Loops subscriber sync ─────────────────────────────────────────────────────
 // Called after save_profile — syncs the customer into Loops if they consented to marketing.
@@ -205,7 +206,9 @@ export async function onRequestPost({ request, env }) {
       if (!eligible.ok) {
         return json({ success: false, error: eligible.reason, code: eligible.code }, 409, cors(env));
       }
-      nextRequest.orderLabel = nextRequest.orderLabel || `#${String(matchedOrder.id || '').slice(-8).toUpperCase()}`;
+      /* Stamped from the order itself, so a request carries the same name the
+         Orders page shows rather than a sixth one invented here. */
+      nextRequest.orderLabel = orderNo(matchedOrder);
       nextRequest.customerEmail = String(matchedOrder.email || matchedOrder.customer_email || user.email || '').trim();
       nextRequest.customerName = String(matchedOrder.customer_name || userName || nextRequest.customerEmail || 'Customer').trim();
       nextRequest.orderTotal = Number(matchedOrder.total || matchedOrder.total_amount || 0);

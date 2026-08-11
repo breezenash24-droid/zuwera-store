@@ -1398,7 +1398,7 @@ async function loadOrders() {
         <div class="order-card">
           <div class="order-card-head">
             <div>
-              <div class="order-id">Order #${escHtml(String(o.id||'').slice(-8).toUpperCase())}</div>
+              <div class="order-id">Order ${escHtml(window.ZWOrderNo(o))}</div>
               <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}${itemCount ? ` · ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}</div>
             </div>
             <div class="order-card-head-right">
@@ -1635,7 +1635,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     const dt = new Date(o.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     let itemCount = 0;
     try { itemCount = JSON.parse(o.items || '[]').length; } catch(_) {}
-    const label = `#${id.slice(-8).toUpperCase()} — ${dt}${itemCount ? ` · ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}`;
+    const label = `${window.ZWOrderNo(o)} — ${dt}${itemCount ? ` · ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}`;
     return `<option value="${escHtml(id)}">${escHtml(label)}</option>`;
   }).join('');
 
@@ -1672,7 +1672,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
       <div class="ret-card">
         <div class="ret-card-head">
           <div>
-            <div class="ret-id">${escHtml(r.orderLabel || '#' + String(r.orderId || '').slice(-8).toUpperCase())}</div>
+            <div class="ret-id">${escHtml(window.ZWOrderNo(orderMap[String(r.orderId)] || r.orderId) || r.orderLabel || '')}</div>
             <div class="ret-meta">${escHtml(resLbl)} · ${escHtml(r.reason || '')} · ${escHtml(dt)}</div>
           </div>
           <div class="ret-card-head-right">
@@ -2142,6 +2142,8 @@ document.addEventListener('DOMContentLoaded', function() { _sb = window.sb; init
 <script src="zw-login.js?v=5a23b163" defer></script>
 <script src="/nav-menu.js?v=5c1c1e4d" defer></script>
 <script src="fit-finder.js?v=f5cdcd6f" defer></script>
+<!-- Not deferred: the orders list formats a number as it renders. -->
+<script src="order-number.js?v=1"></script>
 <script src="/storefront-features.js?v=a00109b1" defer></script>
 <!-- The shared scroll lock. storefront-features.js used to carry its own copy;
      with that removed this is what freezes the page behind the search/bag

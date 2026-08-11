@@ -143,7 +143,7 @@
        ability to return anything at all. The endpoint still refuses. */
     const options = orders.filter((o) => o && o.returnable !== false).map((order) => {
       const orderId = String(order.id || '');
-      const label = `#${orderId.slice(-8).toUpperCase()} - ${new Date(order.created_at || Date.now()).toLocaleDateString()}`;
+      const label = `${window.ZWOrderNo(order)} - ${new Date(order.created_at || Date.now()).toLocaleDateString()}`;
       return `<option value="${escapeHtml(orderId)}">${escapeHtml(label)}</option>`;
     }).join('');
 
@@ -185,7 +185,7 @@
         ${requests.length ? requests.map((request) => `
           <div class="zw-hub-address">
             <div style="display:flex;justify-content:space-between;gap:0.75rem;align-items:center;">
-              <strong>${escapeHtml(request.orderLabel || '#' + String(request.orderId || '').slice(-8).toUpperCase())}</strong>
+              <strong>${escapeHtml(window.ZWOrderNo(request.orderId) || request.orderLabel || '')}</strong>
               <span class="zw-hub-badge">${escapeHtml(request.status || 'requested')}</span>
             </div>
             <div class="zw-hub-meta" style="margin-top:0.4rem;">
