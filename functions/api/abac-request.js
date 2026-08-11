@@ -58,7 +58,44 @@ export async function onRequestPost({ request, env }) {
   // ── list ───────────────────────────────────────────────────────────────────
   if (op === 'list') {
     const mine = mayDecide ? all : all.filter((r) => samePerson(r, meId, meEmail));
-    return json({ requests: mine.slice(0, KEEP), mayDecide }, 200, h);
+    const shown = mine.slice(0, KEEP);
+
+    /* Whether each order has already been settled elsewhere. A refund issued
+       from Receipts or the returns workspace left the request here looking
+       live, and the only way to find out was to approve it and watch it fail.
+       Read, not written: closing rows as a side effect of drawing a list means
+       a page refresh changes data, which is the sort of thing that goes wrong
+       quietly. The queue marks them, and approving one closes it properly. */
+    const pendingIds = [...new Set(shown
+      .filter((r) => r && r.status === 'pending' && r.resourceId)
+      .map((r) => String(r.resourceId)))];
+    let settled = {};
+    if (pendingIds.length) {
+      try {
+        const sbKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_ANON_KEY;
+        const q = pendingIds.map((x) => `"${x}"`).join(',');
+        const res = await fetch(
+          `${env.SUPABASE_URL}/rest/v1/orders?id=in.(${encodeURIComponent(q)})&select=id,status`,
+          { headers: { apikey: sbKey, Authorization: `Bearer ${sbKey}` } }
+        );
+        if (res.ok) {
+          const rows = await res.json().catch(() => []);
+          (rows || []).forEach((o) => {
+            const s = String(o.status || '').toLowerCase();
+            if (s === 'refunded' || s === 'cancelled' || s === 'canceled') settled[String(o.id)] = s;
+          });
+        }
+      } catch (e) {
+        /* Unknown, which shows nothing rather than a wrong claim either way. */
+        console.warn('abac: could not check order states —', e && e.message);
+      }
+    }
+
+    return json({
+      requests: shown.map((r) => (r && settled[String(r.resourceId)]
+        ? { ...r, alreadySettled: settled[String(r.resourceId)] } : r)),
+      mayDecide,
+    }, 200, h);
   }
 
   // ── create ─────────────────────────────────────────────────────────────────
@@ -173,11 +210,34 @@ export async function onRequestPost({ request, env }) {
       }
     }
 
-    /* A failed completion is NOT an approval. Recording "approved" over a
-       refund that did not happen would tell the requester it was done and
-       leave a waiver behind for them to spend on a second attempt — the exact
-       double-refund this all exists to avoid. It stays pending, and the
-       approver is told what went wrong. */
+    /* ALREADY DONE IS NOT A FAILURE.
+       The refund can be issued from Receipts, or from the returns workspace,
+       while a request for it sits here — and then approving it fails, over and
+       over, with no clue why. The queue was the only part of the system that
+       did not know.
+       So an "already refunded" refusal closes the request instead of erroring:
+       the thing was asked for, the thing happened, and the only untrue state
+       is this row still claiming to be waiting. It is recorded as SUPERSEDED
+       rather than approved, because nobody approved it — it was overtaken. */
+    if (completionError && /already/i.test(completionError)) {
+      await mutateSetting(env, ABAC_REQUESTS_KEY, (cur) =>
+        (Array.isArray(cur) ? cur : []).map((r) => (r && String(r.id) === id && r.status === 'pending'
+          ? { ...r, status: 'superseded', decidedById: meId, decidedByEmail: meEmail, decidedAt: at,
+              note: completionError, usedAt: at }
+          : r)));
+      await notifyRequester(env, target, { approved: true, completed: true, by: meEmail, note: '' })
+        .catch(() => {});
+      return json({
+        ok: true, status: 'superseded', completed: true,
+        message: 'That refund had already gone through, so this request is closed rather than run again.',
+      }, 200, h);
+    }
+
+    /* Any OTHER failed completion is not an approval. Recording "approved"
+       over a refund that did not happen would tell the requester it was done
+       and leave a waiver behind for a second attempt — the exact double-refund
+       this all exists to avoid. It stays pending, and the approver is told
+       what actually went wrong rather than a generic failure. */
     if (completionError) {
       return json({ error: `Not approved — ${completionError} Nothing was changed.` }, 502, h);
     }

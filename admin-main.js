@@ -9963,6 +9963,14 @@ function escapeAttr(value) {
                         + esc(r.refusedWith) + '</p>' : '')
                     + (r.reason ? '<p style="margin:0 0 4px;font-size:.78rem">Their note: ' + esc(r.reason) + '</p>' : '')
                     + '<p style="margin:0;font-size:.74rem;color:var(--text-secondary)">' + esc(when(r.at)) + '</p>'
+                    /* Said here rather than discovered by pressing Approve and
+                       watching it fail, which is what happened: the refund was
+                       issued from Receipts and this row went on asking for it. */
+                    + (r.alreadySettled
+                        ? '<p style="margin:6px 0 0;font-size:.78rem;color:var(--red,#dc2626)">'
+                          + '<strong>This order was already ' + esc(r.alreadySettled) + ' elsewhere.</strong> '
+                          + 'Approving will close this request rather than refund again.</p>'
+                        : '')
                     /* The code sits with the button that spends it. Approving
                        now CARRIES OUT the refund rather than handing back a
                        permission — so it moves money, and the person moving it
@@ -10012,12 +10020,17 @@ function escapeAttr(value) {
                                            op: 'decide', id, approve, refundKey }),
                 });
                 const out = await resp.json().catch(() => ({}));
-                if (!resp.ok) throw new Error(out.error || 'Could not save that.');
+                /* The endpoint's own words. "Could not save that." was this
+                   line swallowing a specific, useful message — "already
+                   refunded", "incorrect authorization code" — and replacing it
+                   with something nobody can act on. */
+                if (!resp.ok) throw new Error(out.error || ('The server said ' + resp.status + ' with no reason.'));
                 if (typeof showToast === 'function') {
                     /* Three outcomes, said differently, because they leave the
                        approver with different things to expect: nothing,
                        somebody else acting, or a conversation. */
                     showToast(!approve ? 'Declined — they have been told.'
+                        : out.status === 'superseded' ? (out.message || 'Already done — request closed.')
                         : out.completed ? 'Done — the refund went through and they have been emailed.'
                         : 'Approved — they can run it once, and have been emailed.',
                         approve ? 'success' : 'info');

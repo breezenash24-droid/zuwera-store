@@ -940,5 +940,41 @@ console.log('\n  a role that was replaced does not still claim to apply');
     /cur !== 'super_admin'/.test(adm) && /if \(role === 'super_admin'\) return \['\*'\];/.test(rbac));
 }
 
+console.log('\n  the queue knows what happened elsewhere');
+{
+  const req = fs.readFileSync(ROOT + 'functions/api/abac-request.js', 'utf8');
+  const adm = fs.readFileSync(ROOT + 'admin-main.js', 'utf8');
+
+  /* The refund was issued from Receipts at 6:20. The request for it sat in the
+     queue still asking, and approving it failed — repeatedly, with "Could not
+     save that." The queue was the only part of the system that did not know. */
+  ok('the list checks whether the order was settled elsewhere',
+    /alreadySettled: settled\[String\(r\.resourceId\)\]/.test(req));
+  ok('…without closing rows as a side effect of drawing a list',
+    /Read, not written/.test(req),
+    'a refresh that changes data goes wrong quietly');
+  ok('…and an unreadable check claims nothing either way',
+    /could not check order states/.test(req));
+
+  ok('the card says so before anybody presses approve',
+    /This order was already/.test(adm));
+
+  /* Already done is not a failure. The thing was asked for, the thing
+     happened; the only untrue state is the row claiming to be waiting. */
+  ok('approving an already-refunded request closes it instead of erroring',
+    /if \(completionError && \/already\/i\.test\(completionError\)\)/.test(req));
+  ok('…recorded as superseded, because nobody approved it',
+    /status: 'superseded'/.test(req));
+  ok('…and every other failure still refuses',
+    /Not approved — \$\{completionError\} Nothing was changed\./.test(req));
+
+  /* "Could not save that." was the panel swallowing a specific, useful
+     message and replacing it with one nobody can act on. */
+  ok('the panel shows the reason the server gave',
+    /out\.error \|\| \('The server said ' \+ resp\.status/.test(adm)
+      && !/out\.error \|\| 'Could not save that\.'/.test(adm));
+}
+
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
