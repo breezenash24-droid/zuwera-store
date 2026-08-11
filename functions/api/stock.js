@@ -33,18 +33,48 @@ export async function onRequestGet({ env }) {
     const key = serviceKey(env);
     if (!env.SUPABASE_URL || !key) return json({ ok: false, sizes: [] }, 200, cors(env));
 
-    // Named columns, not *. Everything that reads stock wants these; the rest
-    // (ids, timestamps) is weight on every shopper's connection for data no
-    // renderer touches.
-    //
-    // color_name is here because stock is per-colour and the storefront has to
-    // match colour the way the server does. Without it the browser could only
-    // match on color_variant_id, which bag lines do not carry — so it fell back
-    // to per-size totals and offered stock belonging to a different colourway.
-    const sizesP = fetch(
-      `${env.SUPABASE_URL}/rest/v1/product_sizes?select=product_id,size,stock_quantity,color_name,color_variant_id`,
-      { headers: { apikey: key, Authorization: 'Bearer ' + key }, cache: 'no-store' }
-    ).then((r) => (r.ok ? r.json() : [])).catch(() => []);
+    /* Named columns, not *. Everything that reads stock wants these; the rest
+       (ids, timestamps) is weight on every shopper's connection.
+
+       color_name is here because stock is per-colour and the storefront has to
+       match colour the way the server does. Without it the browser can only
+       match on color_variant_id, which bag lines do not carry.
+
+       BUT it is requested defensively, because it went wrong exactly once and
+       silently: this endpoint answered `ok: true` with ZERO rows, which every
+       caller reads as "nothing is in stock anywhere" rather than "the query
+       failed". A shop with no stock data looks like a working shop that has
+       sold out. The old `r.ok ? r.json() : []` is what turned a rejected
+       SELECT into a plausible empty answer.
+
+       So: ask for the column, and if the database rejects the request, say why
+       in the log and ask again without it. A missing column then costs colour
+       precision — the pre-existing behaviour — instead of costing every
+       shopper the ability to see stock at all. */
+    const BASE = `${env.SUPABASE_URL}/rest/v1/product_sizes?select=product_id,size,stock_quantity`;
+    const headers = { apikey: key, Authorization: 'Bearer ' + key };
+
+    const query = async (cols) => {
+      const resp = await fetch(BASE + cols, { headers, cache: 'no-store' });
+      if (resp.ok) return { ok: true, rows: await resp.json().catch(() => []) };
+      return { ok: false, status: resp.status, detail: (await resp.text().catch(() => '')).slice(0, 300) };
+    };
+
+    let degraded = '';
+    let res = await query(',color_name,color_variant_id');
+    if (!res.ok) {
+      console.error(`stock: SELECT with color_name failed (${res.status}): ${res.detail} — retrying without it`);
+      degraded = 'no_color_name';
+      res = await query(',color_variant_id');
+    }
+    if (!res.ok) {
+      /* Both attempts rejected. This is a real outage of the stock read, and it
+         must NOT be dressed up as an empty catalogue — ok:false lets callers
+         treat availability as UNKNOWN, which is what it is. */
+      console.error(`stock: SELECT failed outright (${res.status}): ${res.detail}`);
+      return json({ ok: false, sizes: [], limitToStock: true, error: 'stock_unavailable' }, 200, cors(env));
+    }
+    const sizesP = Promise.resolve(res.rows);
 
     /* Whether the storefront should stop a shopper ordering more than exists.
        It rides along on this response instead of getting its own endpoint: it
@@ -64,11 +94,19 @@ export async function onRequestGet({ env }) {
 
     const [sizes, limitToStock] = await Promise.all([sizesP, settingsP]);
 
-    return json({ ok: true, sizes: Array.isArray(sizes) ? sizes : [], limitToStock }, 200, {
+    return json({
+      ok: true,
+      sizes: Array.isArray(sizes) ? sizes : [],
+      limitToStock,
+      // Present only when colour precision was lost, so the cause is visible in
+      // the payload and not just in a log nobody is reading at 2am.
+      ...(degraded ? { degraded } : {}),
+    }, 200, {
       ...cors(env),
       'Cache-Control': 'public, max-age=10, s-maxage=20, stale-while-revalidate=30',
     });
-  } catch (_) {
-    return json({ ok: false, sizes: [], limitToStock: true }, 200, cors(env));
+  } catch (e) {
+    console.error('stock: unhandled', e && e.message);
+    return json({ ok: false, sizes: [], limitToStock: true, error: 'stock_unavailable' }, 200, cors(env));
   }
 }

@@ -26,7 +26,7 @@ const PRODUCT = {
 
 /* Runs a checkout attempt against a catalog holding exactly `sizeRows`.
    Resolves to null on success, or the refusal message. */
-async function attempt({ sizeRows, size = 'M', colorName = '', quantity = 1, shownPrice }) {
+async function attempt({ sizeRows, size = 'M', colorName = '', quantity = 1, shownPrice, rejectColorName = false }) {
   const { quoteCart } = await import(PRICING);
   const realFetch = globalThis.fetch;
   const reply = (p) => new Response(JSON.stringify(p), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -39,6 +39,13 @@ async function attempt({ sizeRows, size = 'M', colorName = '', quantity = 1, sho
     const u = String(url);
     if (u.includes('/products?')) return reply([PRODUCT]);
     if (u.includes('product_sizes')) {
+      /* Stands in for a database that does not have the column. PostgREST
+         answers 42703 with a 400, which the old code turned into null — and
+         null means "unknown", which SKIPS the stock guard. */
+      if (rejectColorName && u.includes('color_name')) {
+        return new Response('{"code":"42703","message":"column product_sizes.color_name does not exist"}',
+          { status: 400, headers: { 'Content-Type': 'application/json' } });
+      }
       const qs = new URLSearchParams(u.split('?')[1] || '');
       let rows = sizeRows.slice();
       for (const [field, raw] of qs.entries()) {
@@ -48,6 +55,14 @@ async function attempt({ sizeRows, size = 'M', colorName = '', quantity = 1, sho
       }
       const limit = Number(qs.get('limit'));
       if (Number.isInteger(limit) && limit > 0) rows = rows.slice(0, limit);
+      /* Project to the selected columns. Without this the stub hands back
+         color_name even when the query did not ask for it, so a colour-blind
+         retry would still colour-match and the test would prove nothing about
+         the degraded path it exists to cover. */
+      const select = (qs.get('select') || '').split(',').map((s) => s.trim()).filter(Boolean);
+      if (select.length && !select.includes('*')) {
+        rows = rows.map((r) => Object.fromEntries(select.filter((c) => c in r).map((c) => [c, r[c]])));
+      }
       return reply(rows);
     }
     return reply([]);
@@ -198,6 +213,44 @@ async function run() {
        sellable, or every bag saved before the change breaks. */
     const legacy = await attempt({ sizeRows: rows, colorName: 'yellow' });
     ok('a cart line carrying no price is not blocked by the check', legacy === null, legacy);
+  }
+
+  /* ── a rejected column must not disable the guard ─────────────────────────
+     /api/stock answered `ok: true` with ZERO rows in production because a
+     SELECT naming color_name was rejected and the code read the rejection as
+     an empty result. On this path the same rejection returned null, and null
+     means "availability unknown", which skips the stock check on the one code
+     path that takes money. Both failures are silent, and both look like a
+     working shop.
+
+     The guard has to survive the column not being there. It loses colour
+     precision, which is the correct thing to lose. */
+  console.log('\n  a rejected column costs precision, never the guard');
+  {
+    const sold = await attempt({
+      sizeRows: [{ size: 'M', color_name: 'yellow', stock_quantity: 0 }],
+      colorName: 'yellow', rejectColorName: true,
+    });
+    ok('out of stock is still refused when color_name does not exist',
+      /out of stock/i.test(sold || ''), sold === null ? 'ALLOWED THE SALE' : sold);
+
+    const stocked = await attempt({
+      sizeRows: [{ size: 'M', color_name: 'yellow', stock_quantity: 4 }],
+      colorName: 'yellow', rejectColorName: true,
+    });
+    ok('…and a stocked size still sells', stocked === null, stocked);
+
+    /* Colour-blind means colour-blind: with no color_name the rows for a size
+       are summed across colourways, so this is the precision that is lost. It
+       is asserted so the trade-off is recorded rather than discovered. */
+    const blind = await attempt({
+      sizeRows: [
+        { size: 'M', color_name: 'yellow', stock_quantity: 0 },
+        { size: 'M', color_name: 'black', stock_quantity: 3 },
+      ],
+      colorName: 'yellow', quantity: 2, rejectColorName: true,
+    });
+    ok('without the column, sizes are counted across colourways', blind === null, blind);
   }
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
