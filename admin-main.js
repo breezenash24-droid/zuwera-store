@@ -9186,49 +9186,68 @@ function escapeAttr(value) {
            read, so switching on a limit nothing supplies does not do nothing —
            it refuses every action of that kind. A limit that is not ready is
            shown, and says so, rather than being hidden or quietly lying. */
+        /* `say` turns a rule into a sentence. It exists because the form was
+           readable only to whoever built it: five controls stacked up, and the
+           thing they add up to — "Nash can't refund more than $500" — was
+           nowhere on screen. Anyone configuring permissions is checking their
+           own understanding against what the screen says, so the screen has to
+           say it, not imply it across five fields. */
         const ABAC_LIMITS = [
             // ── money ────────────────────────────────────────────────────────
             { id: 'refund_max', action: 'refund', attr: 'resource.amount', op: 'lte', kind: 'number',
               label: 'Refunds', unit: '$', value: 500, ready: true,
+              say: (v) => 'refund more than $' + v + ' at once',
               help: 'Refuse refunds above this amount.' },
             { id: 'refund_items_max', action: 'refund', attr: 'resource.itemCount', op: 'lte', kind: 'number',
               label: 'Items in one refund', unit: 'items', value: 5, ready: true,
+              say: (v) => 'refund more than ' + v + ' items at once',
               help: 'Refuse a refund covering more items than this, whatever it is worth. A ten-item refund is a different kind of decision from a large one.' },
             { id: 'discount_max', action: 'promo_create', attr: 'resource.percent', op: 'lte', kind: 'number',
               label: 'Discount codes', unit: '%', value: 30, ready: false,
+              say: (v) => 'create a discount code worth more than ' + v + '%',
               help: 'Refuse promo codes worth more than this.' },
             { id: 'order_edit_max', action: 'order_edit', attr: 'resource.total', op: 'lte', kind: 'number',
               label: 'Editing an order', unit: '$', value: 1000, ready: false,
+              say: (v) => 'edit an order worth more than $' + v,
               help: 'Refuse edits to orders above this total.' },
             { id: 'reward_max', action: 'loyalty_adjust', attr: 'resource.points', op: 'lte', kind: 'number',
               label: 'Awarding loyalty points', unit: 'pts', value: 1000, ready: false,
+              say: (v) => 'award more than ' + v + ' points at once',
               help: 'Refuse manual points adjustments larger than this.' },
             { id: 'price_change_max', action: 'product_price', attr: 'resource.percent_change', op: 'lte', kind: 'number',
               label: 'Changing a price', unit: '%', value: 25, ready: false,
+              say: (v) => 'change a price by more than ' + v + '%',
               help: 'Refuse price changes bigger than this, up or down.' },
 
             // ── destructive ──────────────────────────────────────────────────
             { id: 'bulk_max', action: 'bulk_edit', attr: 'resource.count', op: 'lte', kind: 'number',
               label: 'Bulk actions', unit: 'items', value: 50, ready: false,
+              say: (v) => 'change more than ' + v + ' things at once',
               help: 'Refuse bulk edits or deletes touching more rows than this.' },
             { id: 'export_max', action: 'customer_export', attr: 'resource.count', op: 'lte', kind: 'number',
               label: 'Exporting customers', unit: 'rows', value: 500, ready: false,
+              say: (v) => 'export more than ' + v + ' customers at once',
               help: 'Refuse customer exports larger than this. Worth setting — an export is the whole list leaving the building.' },
             { id: 'no_delete_products', action: 'product_delete', attr: 'resource.status', op: 'nin', kind: 'list',
               label: 'Deleting products', unit: '', value: ['Live'], ready: false,
+              say: (v) => 'delete a product that is ' + [].concat(v).join(' or '),
               help: 'Refuse deleting products in these states. Leave "Live" here and only drafts can be deleted.' },
 
             // ── scope ────────────────────────────────────────────────────────
             { id: 'region_only', action: 'order_edit', attr: 'resource.ship_state', op: 'in', kind: 'list',
               label: 'Orders in certain regions only', unit: '', value: [], ready: false,
+              say: (v) => 'touch an order shipping anywhere except ' + ([].concat(v).join(', ') || '(nowhere set yet)'),
               help: 'Only orders shipping to these states or regions. Two-letter codes, comma separated.' },
             { id: 'own_orders', action: 'order_edit', attr: 'resource.assigned_to', op: 'eq', kind: 'subject',
               label: 'Only orders assigned to them', unit: '', value: 'subject.id', ready: false,
+              say: () => 'touch an order assigned to somebody else',
               help: 'Refuse touching an order assigned to somebody else.' },
 
             // ── who may promote whom ─────────────────────────────────────────
             { id: 'no_role_grant', action: 'role_manage', attr: 'resource.role', op: 'nin', kind: 'list',
               label: 'Granting roles', unit: '', value: ['super_admin'], ready: true,
+              say: (v) => 'give anybody the role ' + [].concat(v)
+                  .map((x) => (typeof ZW_ROLE_LABELS !== 'undefined' && ZW_ROLE_LABELS[x]) || x).join(' or '),
               help: 'Refuse granting these roles. Stops an admin promoting anyone — including themselves — past their own level.' },
         ];
 
@@ -9308,6 +9327,30 @@ function escapeAttr(value) {
                 + '</div>';
         }
 
+        /* The rule as one line of English, above the controls that make it.
+           Five stacked fields do not add up to a sentence in anybody's head,
+           and permissions are exactly where a person needs to check what they
+           just built against what they meant. */
+        function abacSentence(r, kind, roleCat, peopleCat) {
+            const nameOf = (cat, v) => {
+                const hit = cat.find((o) => String(o.value).toLowerCase() === String(v).toLowerCase()
+                    || (o.alt && String(o.alt).toLowerCase() === String(v).toLowerCase()));
+                return hit ? String(hit.label).split(' · ')[0] : String(v);
+            };
+            const who = []
+                .concat((Array.isArray(r.roles) ? r.roles : []).map((v) => nameOf(roleCat, v)))
+                .concat((Array.isArray(r.users) ? r.users : []).map((v) => nameOf(peopleCat, v)));
+
+            let deed;
+            try { deed = kind.say(r.value); } catch (_) { deed = 'do this'; }
+
+            const sa = String(r.superAdmin || 'apply');
+            const caveat = sa === 'bypass' ? ' A super admin is not affected.'
+                : sa === 'notify' ? ' A super admin is stopped too, but told they can change it.'
+                : '';
+            return (who.length ? who.join(', ') + " can't " + deed : 'Nobody can ' + deed) + '.' + caveat;
+        }
+
         /* One sentence, one author. It is the default in two places — a new
            rule, and a rule whose kind changed — and those drifting apart is
            how somebody gets refused with the wrong explanation. */
@@ -9334,9 +9377,63 @@ function escapeAttr(value) {
             const esc = (t) => String(t == null ? '' : t)
                 .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+            /* Who may CHANGE these, as opposed to read them.
+               This panel sat on the Users page editable by any admin, because
+               it writes straight to site_settings and the only policy there
+               asks `role = 'admin'` — not which kind. So a manager capped at
+               $500 could open this and raise their own cap. A limit the person
+               it binds can edit is not a limit.
+               `role_manage` is the right gate: super-admin only, never granted
+               by a page level, and already the gate on changing someone's role
+               — which is the same power expressed a different way.
+               Reading stays open on purpose. Somebody refused should be able
+               to see the rule that refused them; hiding it just produces a
+               person asking for super admin so they can find out why. */
+            const mayEdit = typeof can === 'function' ? can('role_manage') : false;
+            const actions = document.getElementById('abacActions');
+            if (actions) actions.style.display = mayEdit ? 'flex' : 'none';
+
+            if (!mayEdit) {
+                const roleCatRO = Object.keys(ZW_ROLE_LABELS).map((k) => ({ value: k, label: ZW_ROLE_LABELS[k] }));
+                const peopleCatRO = _abacDir.map((p) => ({
+                    value: p.id, alt: p.email, label: (p.name || p.email || p.id),
+                }));
+                const live = _abacState.filter((r) => r && r.enabled !== false);
+                host.innerHTML = '<p style="font-size:.82rem;color:var(--text-secondary);margin:0 0 10px">'
+                    + 'Only a super admin can change these. What is in force right now:</p>'
+                    + (live.length
+                        ? '<ul style="margin:0;padding-left:18px;font-size:.85rem;line-height:1.8">'
+                          + live.map((r) => {
+                              const k = ABAC_LIMITS.find((x) => x.id === r.id) || ABAC_LIMITS[0];
+                              return '<li>' + esc(abacSentence(r, k, roleCatRO, peopleCatRO))
+                                  + (k.ready ? '' : ' <span style="color:var(--text-secondary)">(not built yet — no effect)</span>')
+                                  + '</li>';
+                          }).join('')
+                          + '</ul>'
+                        : '<p style="font-size:.85rem">No limits. Every admin can do whatever their role allows.</p>');
+                return;
+            }
+
+            /* Folded away rather than listed. Nine of the twelve kinds do
+               nothing yet, and showing them all at equal weight made the
+               feature look far bigger and more finished than it is — which is
+               the kind of impression somebody configuring permissions acts
+               on. Named, so nobody wonders whether a limit they need exists. */
+            const later = ABAC_LIMITS.filter((k) => !k.ready && !_abacState.some((r) => r && r.id === k.id));
+            const soon = !later.length ? '' :
+                '<details style="margin-top:14px;border:1px solid var(--border);border-radius:8px">'
+                + '<summary style="cursor:pointer;padding:9px 12px;font-size:.8rem;color:var(--text-secondary)">'
+                +   later.length + ' more kinds of limit are planned, but not built yet</summary>'
+                + '<div style="padding:0 12px 12px;font-size:.78rem;color:var(--text-secondary);line-height:1.6">'
+                +   '<p style="margin:0 0 8px">Kept out of the list above so that every limit you can add is one that '
+                +   'works. Each of these needs its part of the admin to ask for a decision first, which is code rather '
+                +   'than a setting.</p><ul style="margin:0;padding-left:18px">'
+                +   later.map((k) => '<li>' + esc(k.label) + '</li>').join('')
+                + '</ul></div></details>';
+
             if (!_abacState.length) {
                 host.innerHTML = '<p style="font-size:.82rem;color:var(--text-secondary)">'
-                    + 'No limits. Every admin can do whatever their role allows.</p>';
+                    + 'No limits. Every admin can do whatever their role allows.</p>' + soon;
                 return;
             }
             /* Built once, not per row: the roles that exist and the people who
@@ -9349,7 +9446,15 @@ function escapeAttr(value) {
 
             host.innerHTML = _abacState.map((r, i) => {
                 const kind = ABAC_LIMITS.find((k) => k.id === r.id) || ABAC_LIMITS[0];
+                const off = r.enabled === false;
                 return '<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px">'
+                    /* Read this and you are done; everything under it is the
+                       machinery that produced it. */
+                    + '<p style="margin:0 0 10px;font-size:.9rem;line-height:1.5;'
+                    +   (off || !kind.ready ? 'color:var(--text-secondary)">' : 'font-weight:600">')
+                    +   (off ? '<span style="font-weight:600">Off.</span> Would say: ' : '')
+                    +   esc(abacSentence(r, kind, roleCat, peopleCat))
+                    + '</p>'
                     + '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">'
                     +   '<label style="display:flex;align-items:center;gap:6px;font-size:.82rem">'
                     +     '<input type="checkbox" ' + (r.enabled === false ? '' : 'checked')
@@ -9357,9 +9462,16 @@ function escapeAttr(value) {
                     +   (kind.ready ? ''
                         : '<span style="font-size:.66rem;padding:2px 7px;border-radius:999px;white-space:nowrap;'
                           + 'border:1px solid var(--red,#dc2626);color:var(--red,#dc2626)">not working yet</span>')
+                    /* Only limits that work are offered. Twelve options where
+                       nine did nothing made the feature look three times its
+                       real size, and each fake one then needed a red warning
+                       to undo the impression it had just made. The row's own
+                       kind stays listed even when unready, or reopening an
+                       older rule would silently change what it is. */
                     +   '<select onchange="abacSetKind(' + i + ',this.value)" class="form-input" style="flex:0 1 220px;padding:5px 8px;font-size:.8rem">'
-                    +     ABAC_LIMITS.map((k) => '<option value="' + k.id + '"' + (k.id === kind.id ? ' selected' : '') + '>'
-                    +        esc(k.label) + '</option>').join('')
+                    +     ABAC_LIMITS.filter((k) => k.ready || k.id === kind.id).map((k) =>
+                             '<option value="' + k.id + '"' + (k.id === kind.id ? ' selected' : '') + '>'
+                             + esc(k.label) + '</option>').join('')
                     +   '</select>'
                     +   (kind.kind === 'number'
                         ? '<span style="font-size:.82rem;color:var(--text-secondary)">no more than</span>'
@@ -9436,10 +9548,10 @@ function escapeAttr(value) {
                         '<div style="font-size:.74rem;color:var(--red,#dc2626);margin-top:4px;line-height:1.55">'
                         + '<strong>This does nothing yet.</strong> "' + esc(kind.label) + '" never asks for a decision, '
                         + 'so this limit is not consulted and switching it on protects nothing. '
-                        + 'It is listed so you can see what is coming — do not rely on it.'
+                        + 'Delete it, or leave it and it will start working when that part is built.'
                         + '</div>')
                     + '</div>';
-            }).join('');
+            }).join('') + soon;
         }
 
         window.abacSet = function (i, field, value) {
@@ -9521,6 +9633,14 @@ function escapeAttr(value) {
         window.abacSave = async function () {
             const msg = document.getElementById('abacMsg');
             const say = (t, bad) => { if (msg) { msg.textContent = t; msg.style.color = bad ? 'var(--red,#dc2626)' : 'rgba(110,210,130,.95)'; } };
+
+            /* Second of three. The database refuses it (migration 0008), the
+               panel does not offer the button, and this catches the call made
+               any other way — with a sentence instead of a Postgres error. */
+            if (typeof can === 'function' && !can('role_manage')) {
+                say('Only a super admin can change these limits.', true);
+                return;
+            }
 
             /* A limit with no number is not a limit — the engine denies when an
                attribute cannot be compared, so saving one would quietly refuse

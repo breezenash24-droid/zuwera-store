@@ -507,5 +507,72 @@ console.log('\n  how many items, not just how much');
     'referencing order before its declaration throws on every refund');
 }
 
+console.log('\n  a limit the person it binds can edit is not a limit');
+{
+  const adm = fs.readFileSync(ROOT + 'admin-main.js', 'utf8');
+  const html = fs.readFileSync(ROOT + 'admin.html', 'utf8');
+  const sql = fs.readFileSync(ROOT + 'migrations/0008_authz_keys_super_admin_only.sql', 'utf8');
+
+  /* Found by signing in as a Manager and saving the limits panel. It worked.
+     site_settings has one admin policy and it asks `role = 'admin'`, not which
+     kind — so anyone with the panel open could raise their own refund cap. */
+  ok('the three keys an admin must not write are named',
+    /'abac_rules', 'refund_audit_log', 'refund_rate_limit'/.test(sql));
+
+  /* RESTRICTIVE, so it ANDs with "Admin full access" instead of replacing it.
+     A second permissive policy would OR, and grant rather than restrict. */
+  ok('…by a restrictive policy, not another permissive one',
+    (sql.match(/AS RESTRICTIVE/g) || []).length === 3,
+    'a permissive policy ORs with the existing one and would widen access');
+
+  /* All three write verbs. The panel calls .upsert(), so protecting INSERT
+     without UPDATE would be one conflict away from meaningless. */
+  ['INSERT', 'UPDATE', 'DELETE'].forEach((verb) => {
+    ok('…covering ' + verb, new RegExp('FOR ' + verb + ' TO authenticated').test(sql));
+  });
+
+  /* And SELECT deliberately left alone. Somebody refused should be able to
+     read the rule that refused them — hiding it produces a person asking for
+     super admin so they can find out why. */
+  ok('reading stays open to any admin', !/FOR SELECT/.test(sql),
+    'a manager should be able to see the limits that bind them');
+
+  ok('super admin is a distinct check from admin',
+    /current_user_is_super_admin/.test(sql) && /coalesce\(admin_role, 'super_admin'\)/.test(sql),
+    'null admin_role means super admin everywhere else, and must here too');
+
+  /* The panel and the save both gate too. Neither is the fix — the database
+     is — but a button that only fails at the last moment is its own bug. */
+  ok('the editor is read-only for anyone who cannot change roles',
+    /const mayEdit = typeof can === 'function' \? can\('role_manage'\)/.test(adm));
+  ok('…and the save refuses as well', /Only a super admin can change these limits/.test(adm));
+  ok('…and the buttons are hidden rather than left to fail', /id="abacActions"/.test(html)
+    && /actions\.style\.display = mayEdit/.test(adm));
+}
+
+
+console.log('\n  a rule reads as a sentence');
+{
+  const adm = fs.readFileSync(ROOT + 'admin-main.js', 'utf8');
+  const block = adm.slice(adm.indexOf('const ABAC_LIMITS'), adm.indexOf('let _abacState'));
+
+  /* Five stacked controls do not add up to a sentence in anybody's head, and
+     permissions are exactly where somebody needs to check what they built
+     against what they meant. */
+  ok('every limit can say itself in words',
+    (block.match(/id: '/g) || []).length === (block.match(/\bsay: /g) || []).length,
+    'a limit with no sentence would render a blank line where the summary goes');
+  ok('…and the panel shows it above the controls', /abacSentence\(r, kind, roleCat, peopleCat\)/.test(adm));
+
+  /* Nine of twelve kinds did nothing, and listing them at equal weight made
+     the feature look three times its real size — each one then needing a red
+     warning to undo the impression the dropdown had just made. */
+  ok('only limits that work are offered',
+    /ABAC_LIMITS\.filter\(\(k\) => k\.ready \|\| k\.id === kind\.id\)/.test(adm));
+  ok('…keeping the row\'s own kind listed, so reopening one cannot change it',
+    /k\.id === kind\.id/.test(adm));
+  ok('…and the rest are named rather than hidden', /planned, but not built yet/.test(adm));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
