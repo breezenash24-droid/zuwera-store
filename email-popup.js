@@ -79,6 +79,23 @@
     successSub: 'Your code is saved to your bag — it will be applied at checkout.',
     successSignup: 'Thanks for signing up. Keep an eye on your inbox.',
 
+    /* What the popup says when the address is not usable yet. Editable for the
+       same reason the rest of the copy is: these are the lines a shopper is
+       most likely to read, and they were the only ones nobody could change.
+       Say what is wrong and what to do about it — "Please fill out this field"
+       tells someone staring at an empty box the one thing they already know. */
+    errors: {
+      /* Colour per line, because these are not all the same kind of message.
+         An empty box is a NUDGE — the shopper has not done anything wrong yet,
+         they simply have not typed — and painting it in the error colour tells
+         them they failed at a form they had not filled in. A malformed address
+         is a genuine rejection and stays red. */
+      emptyDiscount: { text: 'Pop your email in above and the code is yours.', color: 'inherit' },
+      emptySignup: { text: 'Pop your email in above to join the list.', color: 'inherit' },
+      noAt: { text: 'That is missing an @ — an email address looks like name@example.com.', color: '' },
+      incomplete: { text: 'That address looks incomplete — check for a typo after the @.', color: '' },
+    },
+
     discount: {
       source: 'shared',        // shared: one code for everyone | unique: one per email
       code: '',                // the shared code
@@ -135,6 +152,30 @@
   function num(v, fallback) { var n = Number(v); return isFinite(n) ? n : fallback; }
   function oneOf(v, list, fallback) { return list.indexOf(String(v)) > -1 ? String(v) : fallback; }
 
+  /* A message is text plus the colour it is read in. Accepts a bare string too,
+     because settings saved before the colour existed must keep working — and a
+     store that never touches this should not notice it was added. */
+  function msgField(raw, fallback) {
+    var v = (raw && typeof raw === 'object') ? raw : { text: raw };
+    return {
+      text: String(pick(v.text, fallback.text)),
+      color: v.color === undefined || v.color === null ? fallback.color : String(v.color),
+    };
+  }
+
+  /* One place that writes a validation line, so text and colour cannot come
+     apart. '' leaves the stylesheet's .zwp-err colour in charge. */
+  function showErr(el, m) {
+    if (!el) return;
+    el.textContent = (m && m.text) || '';
+    try { el.style.color = (m && m.color) || ''; } catch (_) {}
+  }
+  function clearErr(el) {
+    if (!el) return;
+    el.textContent = '';
+    try { el.style.color = ''; } catch (_) {}
+  }
+
   /**
    * Fill in every missing field from DEFAULTS. A half-written setting (an admin
    * who saved before the discount block existed, say) must never leave the
@@ -144,6 +185,7 @@
     var r = (raw && typeof raw === 'object') ? raw : {};
     var d = DEFAULTS;
     var logo = r.logo || {}, image = r.image || {}, disc = r.discount || {}, mail = r.welcomeEmail || {};
+    var errs = r.errors || {};
     var trig = r.trigger || {}, rules = r.rules || {}, dev = rules.devices || {}, pages = rules.pages || {};
 
     var out = {
@@ -167,6 +209,20 @@
       successHeading: String(pick(r.successHeading, d.successHeading)),
       successSub: String(pick(r.successSub, d.successSub)),
       successSignup: String(pick(r.successSignup, d.successSignup)),
+
+      /* Blank text is not allowed here, unlike `fine` and `decline` above: an
+         empty validation line leaves the shopper looking at a form that refused
+         them and said nothing about why. Clearing the box restores the default.
+
+         Blank COLOUR is allowed and means "whatever the stylesheet says" — the
+         .zwp-err rule, which is the error red. 'inherit' takes the card's own
+         text colour instead, which is what a nudge should look like. */
+      errors: {
+        emptyDiscount: msgField(errs.emptyDiscount, d.errors.emptyDiscount),
+        emptySignup: msgField(errs.emptySignup, d.errors.emptySignup),
+        noAt: msgField(errs.noAt, d.errors.noAt),
+        incomplete: msgField(errs.incomplete, d.errors.incomplete),
+      },
 
       discount: {
         source: oneOf(disc.source, ['shared', 'unique'], d.discount.source),
@@ -547,23 +603,23 @@
     e.preventDefault();
     var c = root._cfg || get();
     var email = String(els.input.value || '').trim();
-    els.err.textContent = '';
-    // Say what is wrong and what to do about it. "Please fill out this field"
-    // tells someone staring at an empty box the one thing they already know.
+    clearErr(els.err);
+    /* Wording from the settings (Admin -> Marketing -> Email Popup), not from
+       here. It used to be written out twice in this file -- once for the live
+       popup and again for the admin preview -- so the preview could show copy
+       the shopper would never see. One source now, used by both. */
     if (!email) {
-      els.err.textContent = c.mode === 'discount'
-        ? 'Pop your email in above and the code is yours.'
-        : 'Pop your email in above to join the list.';
+      showErr(els.err, c.mode === 'discount' ? c.errors.emptyDiscount : c.errors.emptySignup);
       els.input.focus();
       return;
     }
     if (email.indexOf('@') === -1) {
-      els.err.textContent = 'That is missing an @ — an email address looks like name@example.com.';
+      showErr(els.err, c.errors.noAt);
       els.input.focus();
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      els.err.textContent = 'That address looks incomplete — check for a typo after the @.';
+      showErr(els.err, c.errors.incomplete);
       els.input.focus();
       return;
     }
@@ -646,20 +702,19 @@
     inst.els.form.addEventListener('submit', function (e) {
       e.preventDefault();
       var email = String(inst.els.input.value || '').trim();
-      inst.els.err.textContent = '';
-      // The real validation copy, so the preview shows the real rejections too.
+      clearErr(inst.els.err);
+      // The same copy the live popup uses, read from the same config, so the
+      // preview cannot show a rejection the shopper would never get.
       if (!email) {
-        inst.els.err.textContent = c.mode === 'discount'
-          ? 'Pop your email in above and the code is yours.'
-          : 'Pop your email in above to join the list.';
+        showErr(inst.els.err, c.mode === 'discount' ? c.errors.emptyDiscount : c.errors.emptySignup);
         return;
       }
       if (email.indexOf('@') === -1) {
-        inst.els.err.textContent = 'That is missing an @ — an email address looks like name@example.com.';
+        showErr(inst.els.err, c.errors.noAt);
         return;
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        inst.els.err.textContent = 'That address looks incomplete — check for a typo after the @.';
+        showErr(inst.els.err, c.errors.incomplete);
         return;
       }
       // No network, no subscribe, no code minted — a representative code only.

@@ -122,20 +122,36 @@ export async function onRequestGet({ env }) {
        Absent or unreadable means ON. A store that has never opened the setting
        should not be able to accept orders it cannot fill, and a failed settings
        read must not silently become permission to oversell. */
+    /* The admin's wording for the availability messages rides along for the
+       same reason the switch does: every page that shows these numbers is
+       already fetching this, and a separate endpoint would let the wording and
+       the numbers it wraps arrive out of step.
+
+       Passed through verbatim, NOT merged with defaults here. The defaults live
+       in customer-messages.js and the browser applies them, so there is exactly
+       one copy of the shipped wording — a second one in this Worker is how the
+       messages this replaces came to disagree in the first place. An empty or
+       unreadable value simply means every message is the default. */
     const settingsP = fetchSiteSettings(['commerce_config'], env)
       .then((s) => {
         const raw = s && s.commerce_config;
         const cfg = typeof raw === 'string' ? JSON.parse(raw) : raw;
-        return cfg?.customerExperience?.limitQtyToStock !== false;
+        const cx = cfg?.customerExperience;
+        return {
+          limitToStock: cx?.limitQtyToStock !== false,
+          messages: (cx?.messages && typeof cx.messages === 'object') ? cx.messages : {},
+        };
       })
-      .catch(() => true);
+      .catch(() => ({ limitToStock: true, messages: {} }));
 
-    const [sizes, limitToStock] = await Promise.all([sizesP, settingsP]);
+    const [sizes, settings] = await Promise.all([sizesP, settingsP]);
+    const { limitToStock, messages } = settings;
 
     return json({
       ok: true,
       sizes: Array.isArray(sizes) ? sizes : [],
       limitToStock,
+      messages,
       // Present only when colour precision was lost, so the cause is visible in
       // the payload and not just in a log nobody is reading at 2am.
       ...(degraded ? { degraded } : {}),

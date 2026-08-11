@@ -4490,6 +4490,165 @@
                 el.checked = true;
             }
         }
+        /* ── Customer messages ────────────────────────────────────────────────
+           The wording AND colour of every availability line the shopper reads.
+
+           The keys, the shipped defaults and the placeholder rules all come
+           from window.ZWMessages (customer-messages.js), which the storefront
+           loads too — so this editor cannot offer a message the storefront does
+           not have, or accept a placeholder it will not fill. A hand-kept list
+           here would drift from the storefront's within a release; that is
+           exactly what the messages this replaces did to each other. */
+        function customerMessagesFields() {
+            const M = window.ZWMessages;
+            if (!M) return [];
+            /* Grouped for the person editing, not by key name. Anything not
+               named here still renders, under "Other", so a message added to
+               customer-messages.js appears in admin without a second edit. */
+            const GROUPS = [
+                ['When something has sold out', ['soldOut', 'soldOutItem', 'soldOutInBag']],
+                ['When stock is running low', ['lowStock', 'lowStockShort', 'capReached']],
+                ['When they already have it in their bag', ['lastInBag', 'allInBag', 'maxedOut']],
+                ['Back-in-stock signup', ['restockPrompt', 'restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed']],
+            ];
+            const seen = new Set(GROUPS.flatMap(([, keys]) => keys));
+            const rest = M.keys().filter((k) => !seen.has(k));
+            return rest.length ? GROUPS.concat([['Other', rest]]) : GROUPS;
+        }
+
+        async function loadCustomerMessages() {
+            const host = document.getElementById('cm-fields');
+            const M = window.ZWMessages;
+            if (!host) return;
+            if (!M) {
+                host.innerHTML = '<p style="color:var(--red,#dc2626);font-size:.85rem">customer-messages.js did not load, so these cannot be edited safely.</p>';
+                return;
+            }
+
+            let saved = {};
+            try {
+                const { data: rows } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
+                let v = rows && rows[0] && rows[0].value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                saved = (v && v.customerExperience && v.customerExperience.messages) || {};
+            } catch (_) { saved = {}; }
+
+            const esc = (s) => String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+            host.innerHTML = customerMessagesFields().map(([title, keys]) => {
+                const rows = keys.map((key) => {
+                    const def = M.DEFAULTS[key] || { text: '', color: '' };
+                    const cur = saved[key];
+                    const entry = (cur && typeof cur === 'object') ? cur : { text: cur };
+                    const text = entry && entry.text !== undefined && entry.text !== null ? entry.text : '';
+                    const colr = entry && entry.color !== undefined && entry.color !== null ? entry.color : '';
+                    const tokens = M.PLACEHOLDERS[key] || [];
+                    const hint = tokens.length
+                        ? 'Can use ' + tokens.map((t) => '{' + t + '}').join(', ')
+                        : 'No placeholders';
+                    /* The colour input is a text box, not <input type=color>: the
+                       shipped values are CSS variables and rgba(), which a colour
+                       picker cannot represent and would silently rewrite to an
+                       opaque hex the first time it was focused. */
+                    return ''
+                        + '<div class="form-group" style="margin-bottom:14px" data-cm-key="' + esc(key) + '">'
+                        +   '<label class="form-label" style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">'
+                        +     '<span>' + esc(def.text) + '</span>'
+                        +     '<span style="opacity:.55;font-weight:400;font-size:.72rem;white-space:nowrap">' + esc(hint) + '</span>'
+                        +   '</label>'
+                        +   '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+                        +     '<input type="text" class="form-input cm-text" style="flex:3;min-width:220px" value="' + esc(text) + '" placeholder="' + esc(def.text) + '">'
+                        +     '<input type="text" class="form-input cm-color" style="flex:1;min-width:130px" value="' + esc(colr) + '" placeholder="' + esc(def.color || 'default colour') + '">'
+                        +   '</div>'
+                        + '</div>';
+                }).join('');
+                return '<h4 style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:14px 0 10px">'
+                    + esc(title) + '</h4>' + rows;
+            }).join('');
+        }
+
+        /* Reads the boxes into the shape stored in settings. Empty boxes are
+           OMITTED rather than saved as '' — an absent key means "use the
+           shipped default", so clearing a field restores it instead of blanking
+           the message for every shopper. */
+        function customerMessagesCollect() {
+            const out = {};
+            document.querySelectorAll('#cm-fields [data-cm-key]').forEach((row) => {
+                const key = row.getAttribute('data-cm-key');
+                const text = String(row.querySelector('.cm-text')?.value || '').trim();
+                const color = String(row.querySelector('.cm-color')?.value || '').trim();
+                const entry = {};
+                if (text) entry.text = text;
+                if (color) entry.color = color;
+                if (Object.keys(entry).length) out[key] = entry;
+            });
+            return out;
+        }
+
+        window.customerMessagesResetAll = function () {
+            document.querySelectorAll('#cm-fields .cm-text, #cm-fields .cm-color')
+                .forEach((el) => { el.value = ''; });
+            const err = document.getElementById('cm-error');
+            if (err) err.textContent = '';
+            if (typeof showToast === 'function') showToast('Cleared — press Save to go back to the shipped wording.');
+        };
+
+        window.customerMessagesSave = async function () {
+            const btn = document.getElementById('cm-save-btn');
+            const errEl = document.getElementById('cm-error');
+            const M = window.ZWMessages;
+            if (!M) return;
+            if (errEl) errEl.textContent = '';
+
+            const messages = customerMessagesCollect();
+
+            /* Validated HERE, with the storefront's own rules, so a bad
+               placeholder is refused at the moment it is typed rather than
+               reaching a shopper as a literal "{title}". setOverrides() would
+               drop it silently on the storefront; silence is not an answer for
+               someone who just pressed Save. */
+            const problems = [];
+            Object.keys(messages).forEach((key) => {
+                const entry = messages[key];
+                if (entry.text !== undefined) {
+                    const why = M.validate(key, entry.text);
+                    if (why && why !== 'Empty') problems.push(why);
+                }
+                if (entry.color !== undefined) {
+                    const why = M.validateColor(entry.color);
+                    if (why && why !== 'Empty') problems.push(why);
+                }
+            });
+            if (problems.length) {
+                if (errEl) errEl.textContent = problems[0];
+                if (typeof showToast === 'function') showToast('Not saved — ' + problems[0]);
+                return;
+            }
+
+            if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+            try {
+                // Same read-modify-write discipline as the stock switch above:
+                // re-read immediately before writing, touch only this one key.
+                const { data: rows, error } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
+                if (error) throw error;
+                let cfg = (rows && rows[0] && rows[0].value) || {};
+                if (typeof cfg === 'string') { try { cfg = JSON.parse(cfg); } catch (_) { cfg = {}; } }
+                cfg.customerExperience = Object.assign({}, cfg.customerExperience, { messages });
+                const { error: sErr } = await sb.from('site_settings').upsert({ key: 'commerce_config', value: cfg }, { onConflict: 'key' });
+                if (sErr) throw sErr;
+                const n = Object.keys(messages).length;
+                if (typeof showToast === 'function') {
+                    showToast(n ? `Saved — ${n} message${n === 1 ? '' : 's'} customised.` : 'Saved — all messages back to the shipped wording.');
+                }
+            } catch (e) {
+                if (errEl) errEl.textContent = e?.message || 'Could not save that.';
+                if (typeof showToast === 'function') showToast(e?.message || 'Could not save that.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Save messages'; }
+            }
+        };
+
         window.stockRulesSaveSettings = async function () {
             const btn = document.getElementById('sk-save-btn');
             const el = document.getElementById('sk-limit-qty');
@@ -4520,6 +4679,7 @@
 
         async function loadReferralSettings() {
             loadStockRulesSettings();
+            loadCustomerMessages();
             ['rf-type', 'rf-value', 'rf-min', 'rf-points', 'rf-max-uses', 'rf-expiry', 'rf-prefix', 'rf-message'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el && !el._rfBound) { el._rfBound = true; el.addEventListener('input', referralPreview); el.addEventListener('change', referralPreview); }

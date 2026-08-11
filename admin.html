@@ -1231,6 +1231,16 @@
                         <button class="btn btn-primary" id="sk-save-btn" onclick="stockRulesSaveSettings()">Save stock settings</button>
                     </div>
 
+                    <h3 style="font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:0 0 10px">Customer messages</h3>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px;max-width:680px">
+                        <p style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6">Every line a shopper reads when something is low or gone. Each one is used everywhere that situation comes up — the product page, the bag, the quick-add panel — so you write it once. Leave a box empty to go back to the wording we ship.</p>
+                        <p style="font-size:.78rem;color:var(--text-secondary);margin:0 0 16px;line-height:1.6">Words in curly braces are filled in for you. Each message lists the ones it can use; anything else will be refused when you save, because the shopper would otherwise read the braces.</p>
+                        <div id="cm-fields"></div>
+                        <p id="cm-error" style="font-size:.82rem;color:var(--red,#dc2626);margin:0 0 12px;min-height:1rem"></p>
+                        <button class="btn btn-primary" id="cm-save-btn" onclick="customerMessagesSave()">Save messages</button>
+                        <button class="btn btn-secondary" type="button" onclick="customerMessagesResetAll()" style="margin-left:8px">Reset all to default</button>
+                    </div>
+
                     <h3 style="font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:0 0 10px">Refer a friend</h3>
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px;max-width:680px">
                         <p style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6">Each signed-in shopper gets their own code to share. Their friend gets a discount; when that friend's order comes through, the referrer is paid in ${'points'} automatically. Codes are created the first time someone opens Refer a Friend, so your Coupons list only grows for people who actually share.</p>
@@ -4320,6 +4330,10 @@
          until the Preview button asks it to. -->
     <script>window.__zwPopupNoAutoOpen = true;</script>
     <script src="email-popup.js?v=d316db75" defer></script>
+    <!-- Before admin-main: the Customer messages editor reads its keys,
+         defaults and placeholder rules from ZWMessages, which is the same
+         file the storefront reads them from. -->
+    <script src="customer-messages.js?v=1"></script>
     <script src="admin-main.js?v=db894ca5"></script>
     <!-- After admin-main: it needs `sb`, which that file creates at top level. -->
     <script src="admin-themes.js?v=9f80018d"></script>

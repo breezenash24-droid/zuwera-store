@@ -344,6 +344,7 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
 <!-- Before storefront.js, which also re-prices the stored cart and writes it
      back — so the homepage can put a wrong price into localStorage that the bag
      and checkout then display. It needs the same membership answer they use. -->
+<script src="customer-messages.js?v=1"></script>
 <script src="stock-rules.js?v=1"></script>
 <script src="storefront.js?v=5f7a02e6" defer></script>
 <script src="/stripe-client-config.js?v=6cbbcea0" defer></script>

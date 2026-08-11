@@ -153,6 +153,23 @@
     };
   }
 
+  /* The safe way to reach the shared copy. customer-messages.js owns every
+     one of these sentences and is loaded beside this file everywhere (there is
+     a test for the pairing), so the catch is for the case where it somehow is
+     not: an absent sentence is recoverable, a WRONG one is not, and any inline
+     fallback here would be a second copy of the wording — which is the exact
+     thing this replaced. */
+  function msg(key, vars) {
+    try { return w.ZWMessages.get(key, vars); } catch (_) { return ''; }
+  }
+
+  /* Text and colour together. Preferred wherever the surface has an element to
+     write into, because setting one without the other is how a reworded
+     message kept its old colour and went on reading as a failure. */
+  function applyMsg(el, key, vars) {
+    try { return w.ZWMessages.apply(el, key, vars); } catch (_) { return ''; }
+  }
+
   /* One in-flight request per page, shared by every caller. The bag re-renders
      on each quantity change and must not refetch each time. */
   var _cache = null;
@@ -162,6 +179,11 @@
     _cache = fetch('/api/stock', { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
+        /* The admin's wording arrives on the same response as the numbers it
+           wraps, and is handed straight to the module that owns the copy.
+           Before it lands, ZWMessages answers from the shipped defaults — every
+           caller here is a click handler or a render pass that cannot wait. */
+        try { if (w.ZWMessages && d) w.ZWMessages.setOverrides(d.messages); } catch (_) {}
         _resolved = {
           rows: (d && Array.isArray(d.sizes)) ? d.sizes : [],
           /* Whether the storefront should stop a shopper exceeding stock, set
@@ -229,10 +251,10 @@
   function joinWaitlist(req) {
     var email = String((req && req.email) || '').trim();
     if (!email || email.indexOf('@') === -1) {
-      return Promise.resolve({ ok: false, message: 'Enter a valid email.' });
+      return Promise.resolve({ ok: false, key: 'restockInvalid', message: msg('restockInvalid') });
     }
     if (!w.sb || !req || !req.productId) {
-      return Promise.resolve({ ok: false, message: 'Could not save that — try again.' });
+      return Promise.resolve({ ok: false, key: 'restockFailed', message: msg('restockFailed') });
     }
     return w.sb.from('restock_requests').insert({
       product_id: req.productId,
@@ -241,12 +263,18 @@
       email: email,
     }).then(function (res) {
       var err = res && res.error;
-      if (!err) return { ok: true, message: '✓ We’ll email you when it’s back.' };
+      /* The KEY travels with the message so the caller can colour it the way
+         the admin set, rather than deciding from `ok` — "you're already on the
+         list" is a success but was painted as a failure for exactly that
+         reason. */
+      if (!err) return { ok: true, key: 'restockSuccess', message: msg('restockSuccess', { size: req.size }) };
       // 23505 = unique violation: already on the list.
-      if (String(err.code) === '23505') return { ok: true, message: 'You’re already on the list for this one.' };
-      return { ok: false, message: err.message || 'Could not save that — try again.' };
-    }).catch(function (e) {
-      return { ok: false, message: (e && e.message) || 'Could not save that — try again.' };
+      if (String(err.code) === '23505') return { ok: true, key: 'restockAlready', message: msg('restockAlready') };
+      /* The database's own message is for us, not for the shopper — it names
+         tables and constraints. They get the editable one. */
+      return { ok: false, key: 'restockFailed', message: msg('restockFailed') };
+    }).catch(function () {
+      return { ok: false, key: 'restockFailed', message: msg('restockFailed') };
     });
   }
 
@@ -349,6 +377,8 @@
     cartQtyFor: cartQtyFor,
     availableToAdd: availableToAdd,
     availability: availability,
+    msg: msg,
+    applyMsg: applyMsg,
     load: load,
     peek: peek,
     restockEnabled: restockEnabled,
