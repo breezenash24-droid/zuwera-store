@@ -36,7 +36,8 @@ console.log('\n  the alert does not leave through the thing that broke');
   ok('the email channel honours an avoid list',
     /const skip = new Set\(\(avoid \|\| \[\]\)/.test(N) &&
     /!skip\.has\('resend'\)/.test(N) && /!skip\.has\('brevo'\)/.test(N));
-  const W = fs.readFileSync(ROOT + 'functions/api/stripe-webhook.js', 'utf8');
+  const W = fs.readFileSync(ROOT + 'functions/api/stripe-webhook.js', 'utf8')
+    + fs.readFileSync(ROOT + 'functions/api/_fulfil.js', 'utf8');
   ok('the Brevo-fallback alert avoids Resend', /avoid: \['resend'\]/.test(W));
   ok('the both-down alerts avoid Resend AND Brevo',
     (W.match(/avoid: \['resend', 'brevo'\]/g) || []).length >= 2);
@@ -70,7 +71,8 @@ console.log('\n  a bad afternoon is not four hundred messages');
 
 console.log('\n  every failover edge actually alerts');
 {
-  const W = fs.readFileSync(ROOT + 'functions/api/stripe-webhook.js', 'utf8');
+  const W = fs.readFileSync(ROOT + 'functions/api/stripe-webhook.js', 'utf8')
+    + fs.readFileSync(ROOT + 'functions/api/_fulfil.js', 'utf8');
   const S = fs.readFileSync(ROOT + 'functions/api/shippo-rates.js', 'utf8');
   ok('email: Resend → Brevo', /key: 'email-fallback-brevo'/.test(W));
   ok('email: the third-tier Loops send', /key: 'email-fallback-loops'/.test(W));
@@ -123,7 +125,8 @@ console.log('\n  the store decides what is worth waking someone for');
   ok('a muted event is dropped before it can consume a dedupe slot',
     N.indexOf('cfg.mute.indexOf(key)') < N.indexOf('if (!firstSend(key'));
   const S2 = fs.readFileSync(ROOT + 'functions/api/shippo-rates.js', 'utf8');
-  const W2 = fs.readFileSync(ROOT + 'functions/api/stripe-webhook.js', 'utf8');
+  const W2 = fs.readFileSync(ROOT + 'functions/api/stripe-webhook.js', 'utf8')
+    + fs.readFileSync(ROOT + 'functions/api/_fulfil.js', 'utf8');
   ok('every alert call passes the settings, or the overrides are ignored',
     (S2.match(/settings: settingsCache/g) || []).length >= 4 &&
     (W2.match(/settings: emailKeyCache/g) || []).length >= 3);
@@ -145,7 +148,7 @@ console.log('\n  the settings have somewhere to be set');
      with no row is a setting you cannot reach. Both directions are checked
      against the keys the Workers emit. */
   const emitted = new Set();
-  for (const f of ['functions/api/stripe-webhook.js', 'functions/api/shippo-rates.js']) {
+  for (const f of ['functions/api/stripe-webhook.js', 'functions/api/_fulfil.js', 'functions/api/shippo-rates.js']) {
     const src = fs.readFileSync(ROOT + f, 'utf8');
     // Trailing '-' is the month suffix (…'shippo-quota-' + shippoMonthKey()).
     for (const m of src.matchAll(/key: '([a-z-]+?)-?'/g)) emitted.add(m[1].replace(/-$/, ''));

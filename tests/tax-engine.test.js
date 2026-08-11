@@ -188,7 +188,8 @@ const OHIO = { state: 'OH', zip: '45202', country: 'US', city: 'Cincinnati', lin
     ok('…and no longer carries its own copy of the table',
       !/DEFAULT_US_STATE_TAX_RATES/.test(pricing) && !/DEFAULT_US_STATE_TAX_RATES/.test(cpi));
     ok('stamps the engine on the PaymentIntent', /tax_engine:/.test(cpi));
-    const hook = fs.readFileSync(ROOT + '/functions/api/stripe-webhook.js', 'utf8');
+    const hook = fs.readFileSync(ROOT + '/functions/api/stripe-webhook.js', 'utf8')
+      + fs.readFileSync(ROOT + '/functions/api/_fulfil.js', 'utf8');
     ok('the webhook records it on the order', /tax_engine:\s*meta\.tax_engine/.test(hook));
   }
 
