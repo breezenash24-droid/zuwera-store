@@ -3518,9 +3518,10 @@ function renderSizes() {
         document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         selectedSize = size;
+        // Panel first: updateStockInfo defers to it rather than repeating it.
+        openRestockPanel(size);
         updateStockInfo();
         updateSizeGuideLink();
-        openRestockPanel(size);
         return;
       }
       hideRestockPanel();
@@ -3640,8 +3641,17 @@ function updateStockInfo() {
 
   // Wording from ZWMessages so the admin can edit it; see customer-messages.js.
   if (avail.soldOut) {
-    // Genuinely gone: someone paid for the last one.
-    info.textContent = ZWStock.msg('soldOut');
+    /* Genuinely gone: someone paid for the last one.
+
+       Say it ONCE. When the back-in-stock panel is open it already opens with
+       "Size M is sold out — get notified when it's back", so printing "Out of
+       stock" underneath states the same fact a second time, and states it below
+       the thing offering the remedy. The line speaks when the panel is not
+       there — switching to a colourway where the selected size has gone, or a
+       deep link straight to a sold-out size. */
+    const panel = document.getElementById('restock-panel');
+    const panelSpeaking = !!panel && panel.style.display === 'block';
+    info.textContent = panelSpeaking ? '' : ZWStock.msg('soldOut');
     setBtn(false);
   } else if (avail.heldByYou) {
     /* Still in stock — they are holding it. Add to Bag is off because there is

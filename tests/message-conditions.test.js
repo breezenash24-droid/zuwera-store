@@ -40,10 +40,13 @@ const fnSrc = SRC.slice(start, end);
  * Run updateStockInfo for one situation.
  * @returns { text, disabled }  what the shopper is shown, and whether they can add
  */
-function ask({ onShelf, inBag, threshold = 10, noInventory = false }) {
+function ask({ onShelf, inBag, threshold = 10, noInventory = false, panelOpen = false }) {
   const info = { textContent: '' };
   const btn = { disabled: false, classList: { toggle() {}, add() {}, remove() {} } };
-  const els = { stockInfo: info, addToCartBtn: btn };
+  /* The back-in-stock panel, because the sold-out line now defers to it rather
+     than repeating what it says. */
+  const panel = { style: { display: panelOpen ? 'block' : 'none' } };
+  const els = { stockInfo: info, addToCartBtn: btn, 'restock-panel': panel };
 
   const cart = inBag
     ? [{ productId: 'p1', size: 'M', colorName: 'Yellow', quantity: inBag }]
@@ -84,6 +87,14 @@ console.log('\n  the product page picks the message the situation calls for');
   const r = ask({ onShelf: 0, inBag: 0 });
   ok('an empty shelf says sold out', keyOf(r.text) === 'soldOut', keyOf(r.text));
   ok('…and cannot be added', r.disabled === true);
+
+  /* Said ONCE. The back-in-stock panel opens with "Size M is sold out — get
+     notified when it's back", so a line underneath reading "Out of stock" is
+     the same fact twice, printed below the thing offering the remedy. */
+  const withPanel = ask({ onShelf: 0, inBag: 0, panelOpen: true });
+  ok('…but not repeated while the panel is already saying it',
+    withPanel.text === '', withPanel.text);
+  ok('…and Add to Bag is still off either way', withPanel.disabled === true);
 }
 
 {
@@ -166,6 +177,12 @@ console.log('\n  and the situation can actually be reached');
     'the branch returns before selecting, so the sold-out line can never show');
   ok('…and asks the page to say so', /updateStockInfo\(\)/.test(soldOutBranch));
   ok('…while still offering the waitlist', /openRestockPanel\(size\)/.test(soldOutBranch));
+  /* And the line has somewhere left to speak: switching colour re-renders,
+     which closes the panel first, so a size that goes sold-out in the new
+     colourway shows the message rather than nothing. */
+  const render = SRC.slice(SRC.indexOf('function renderSizes()'), SRC.indexOf('sizes.forEach'));
+  ok('…and a colour change closes the panel, leaving the line to say it',
+    /hideRestockPanel\(\)/.test(render));
 }
 
 console.log('\n  an admin edit moves the branch it belongs to, and no other');
