@@ -240,6 +240,54 @@ console.log('\n  the editor describes each message in words, and inserts the val
     /rgb\(220,38,38\)/.test(read('admin.html')), 'no format hint for the colour field');
 }
 
+console.log('\n  card declines');
+{
+  /* Keyed by Stripe's own decline code, so the lookup is `decline:` + whatever
+     Stripe sent. A translation table in between is one more thing to fall out
+     of step with the codes Stripe actually uses. */
+  const co = strip(read('checkout.js'));
+  ok('checkout.js no longer carries its own copy', !/DECLINE_COPY/.test(co));
+  ok('…and looks the wording up by Stripe\'s code',
+    /'decline:'\s*\+\s*code|decline:.\s*\+/.test(co));
+
+  ok('the common codes all have copy',
+    ['insufficient_funds', 'incorrect_cvc', 'expired_card', 'generic_decline', 'do_not_honor']
+      .every((c) => M.has('decline:' + c)));
+  ok('…and each is coloured as a failure, which this one genuinely is',
+    M.DEFAULTS['decline:expired_card'].color === M.DEFAULTS.restockFailed.color);
+
+  /* The shopper must never be refused without an explanation, so there is a
+     catch-all AND a hardcoded last resort in checkout.js for the case where
+     the module did not load at all. */
+  ok('there is copy for a code we do not recognise', M.has('decline:unknown'));
+  ok('…and checkout.js still answers if the module is missing entirely',
+    /could not be completed/.test(co), 'a missing module would refuse in silence');
+  ok('…and that fallback is word-for-word the shipped catch-all',
+    co.includes(M.DEFAULTS['decline:unknown'].text),
+    'the hardcoded fallback says something different from the editable copy');
+
+  /* Neutral copy for lost/stolen is a deliberate decision, not an oversight:
+     the person at the checkout may not be the cardholder. */
+  ok('lost and stolen share neutral wording',
+    M.get('decline:lost_card') === M.get('decline:stolen_card'));
+  ok('…which says nothing about the card being reported',
+    !/stolen|lost|report/i.test(M.get('decline:stolen_card')));
+}
+
+console.log('\n  the editor stays usable as the list grows');
+{
+  ok('the module decides the grouping', typeof M.groups === 'function');
+  const grouped = M.groups().reduce((n, g) => n + g.keys.length, 0);
+  ok('every message lands in exactly one group', grouped === M.keys().length,
+    grouped + ' grouped vs ' + M.keys().length + ' messages');
+
+  const admin = strip(read('admin-main.js'));
+  ok('the editor reads the grouping rather than keeping its own',
+    /M\.groups\(\)/.test(admin));
+  ok('…and groups collapse, since the decline list alone is twenty-odd rows',
+    /details class="cm-group"/.test(admin));
+}
+
 console.log('\n  the admin editor and the storefront cannot describe different messages');
 {
   /* The editor builds its fields from ZWMessages.keys() and validates with
@@ -247,7 +295,10 @@ console.log('\n  the admin editor and the storefront cannot describe different m
      A hand-kept copy would drift within a release — which is the whole reason
      this module exists. */
   const admin = strip(read('admin-main.js'));
-  ok('the editor reads its keys from the shared module', /ZWMessages\.keys\(\)|M\.keys\(\)/.test(admin));
+  /* Either accessor is fine; what matters is that the list of messages comes
+     from the module rather than being typed out again here. */
+  ok('the editor reads its message list from the shared module',
+    /M\.(keys|groups)\(\)|ZWMessages\.(keys|groups)\(\)/.test(admin));
   ok('…and validates with the storefront\'s own rules', /\.validate\(/.test(admin) && /\.validateColor\(/.test(admin));
   ok('…and does not hardcode the shipped wording',
     !/Only \{count\} left in stock/.test(admin), 'admin-main.js carries its own copy of a default');

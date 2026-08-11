@@ -4501,19 +4501,11 @@
            exactly what the messages this replaces did to each other. */
         function customerMessagesFields() {
             const M = window.ZWMessages;
-            if (!M) return [];
-            /* Grouped for the person editing, not by key name. Anything not
-               named here still renders, under "Other", so a message added to
-               customer-messages.js appears in admin without a second edit. */
-            const GROUPS = [
-                ['When something has sold out', ['soldOut', 'soldOutItem', 'soldOutInBag']],
-                ['When stock is running low', ['lowStock', 'lowStockShort', 'capReached']],
-                ['When they already have it in their bag', ['lastInBag', 'allInBag', 'maxedOut']],
-                ['Back-in-stock signup', ['restockPrompt', 'restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed']],
-            ];
-            const seen = new Set(GROUPS.flatMap(([, keys]) => keys));
-            const rest = M.keys().filter((k) => !seen.has(k));
-            return rest.length ? GROUPS.concat([['Other', rest]]) : GROUPS;
+            /* Grouping comes from the module, not from a list typed out here.
+               A message added to customer-messages.js appears in this editor
+               with no second edit, and an editor that grouped messages by its
+               own list would drift from the ones it claims to describe. */
+            return M && M.groups ? M.groups() : [];
         }
 
         async function loadCustomerMessages() {
@@ -4536,7 +4528,10 @@
             const esc = (str) => String(str == null ? '' : str)
                 .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-            host.innerHTML = customerMessagesFields().map(([title, keys]) => {
+            let groupIndex = 0;
+            const openFirst = () => (groupIndex++ === 0);
+
+            host.innerHTML = customerMessagesFields().map(({ title, keys }) => {
                 const rows = keys.map((key) => {
                     const def = M.DEFAULTS[key] || { text: '', color: '', label: key };
                     const cur = saved[key];
@@ -4591,8 +4586,17 @@
                         +   '<p class="cm-row-msg" style="font-size:.75rem;margin:6px 0 0;min-height:.9rem;color:var(--text-secondary)"></p>'
                         + '</div>';
                 }).join('');
-                return '<h4 style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:18px 0 10px">'
-                    + esc(title) + '</h4>' + rows;
+                /* Collapsible: the card-decline group alone is twenty-odd
+                   rows, and an editor that opens as one unbroken wall of text
+                   boxes is one nobody reads. First group open so the panel does
+                   not look empty. */
+                return ''
+                    + '<details class="cm-group"' + (openFirst() ? ' open' : '') + ' style="margin:0 0 10px;border:1px solid var(--border);border-radius:8px">'
+                    +   '<summary style="cursor:pointer;padding:10px 12px;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary)">'
+                    +     esc(title) + ' <span style="opacity:.5">(' + keys.length + ')</span>'
+                    +   '</summary>'
+                    +   '<div style="padding:4px 12px 12px">' + rows + '</div>'
+                    + '</details>';
             }).join('');
 
             /* Listeners attached here rather than written as inline onclick
