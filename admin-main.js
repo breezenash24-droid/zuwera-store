@@ -8649,10 +8649,151 @@ function escapeAttr(value) {
             return session.access_token;
         }
 
+        /* ── Downscale before upload ───────────────────────────────────────────
+           A photo off a phone is 3–5MB and 4000px wide. Nothing downsizes it
+           later — the storage plan here has no image transformations — so
+           whatever is uploaded is what gets served, and paid for, forever.
+
+           2000px is above any size this storefront displays (the largest is a
+           1400px desktop hero) and leaves room to crop. WebP at 0.82 is
+           visually indistinguishable from the JPEG original at roughly a fifth
+           the bytes.
+
+           Deliberately conservative about when it runs:
+           - anything not an image (video, PDF) passes straight through
+           - GIF is left alone, because a canvas keeps only the first frame and
+             silently killing someone's animation is worse than the bytes
+           - SVG is left alone: it is already tiny, and rasterising it would
+             throw away the one thing it is good at
+           - if the result is BIGGER than the original, the original is used —
+             re-encoding an already-optimised file usually is
+           - if anything at all goes wrong, the original is uploaded. A failed
+             optimisation must never become a failed upload. */
+        const ZW_MAX_UPLOAD_PX = 2000;
+
+        function zwDownscaleImage(file) {
+            return new Promise((resolve) => {
+                try {
+                    const type = String(file && file.type || '');
+                    if (!/^image\//.test(type) || /gif|svg/.test(type)) return resolve(file);
+
+                    const url = URL.createObjectURL(file);
+                    const img = new Image();
+                    img.onload = () => {
+                        try {
+                            const scale = Math.min(1, ZW_MAX_UPLOAD_PX / Math.max(img.width, img.height));
+                            /* Already small enough AND already efficient: leave it. A big
+                               PNG screenshot still benefits from the re-encode below, so
+                               only skip when there is nothing to gain either way. */
+                            if (scale === 1 && /webp|jpeg|jpg/.test(type) && file.size < 400 * 1024) {
+                                URL.revokeObjectURL(url);
+                                return resolve(file);
+                            }
+                            const canvas = document.createElement('canvas');
+                            canvas.width = Math.round(img.width * scale);
+                            canvas.height = Math.round(img.height * scale);
+                            const ctx = canvas.getContext('2d');
+                            ctx.imageSmoothingQuality = 'high';
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            canvas.toBlob((blob) => {
+                                URL.revokeObjectURL(url);
+                                if (!blob || blob.size >= file.size) return resolve(file);
+                                const name = String(file.name || 'image').replace(/\.[^.]+$/, '') + '.webp';
+                                resolve(new File([blob], name, { type: 'image/webp' }));
+                            }, 'image/webp', 0.82);
+                        } catch (_) { URL.revokeObjectURL(url); resolve(file); }
+                    };
+                    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+                    img.src = url;
+                } catch (_) { resolve(file); }
+            });
+        }
+
+
+        /* ── What is still on Supabase, and what it costs ──────────────────────
+           New uploads go to R2, whose egress is free. The Supabase bucket holds
+           LEGACY files, and those are the ones still being paid for — but
+           nobody knew how many, how big, or whether any product still points at
+           them, which made "migrate the legacy images" impossible to scope.
+
+           Lists the bucket largest-first with sizes, and cross-references the
+           catalogue so it can say which are still referenced and which are
+           simply abandoned. Read-only: it moves and deletes nothing. */
+        window.zwLegacyImageReport = async function () {
+            const out = [];
+            const say = (m) => { out.push(m); console.log(m); };
+            try {
+                const bucket = 'product-images';
+                let files = [], page = 0;
+                for (;;) {
+                    const { data, error } = await sb.storage.from(bucket)
+                        .list('', { limit: 100, offset: page * 100, sortBy: { column: 'name', order: 'asc' } });
+                    if (error) throw error;
+                    if (!data || !data.length) break;
+                    files = files.concat(data);
+                    if (data.length < 100) break;
+                    page += 1;
+                    if (page > 50) break;          // 5000 files is not a legacy bucket
+                }
+
+                /* Nested folders are common here (one per product), and list()
+                   only returns one level. A folder has no metadata. */
+                const folders = files.filter((f) => !f.metadata);
+                for (const dir of folders.slice(0, 200)) {
+                    const { data } = await sb.storage.from(bucket).list(dir.name, { limit: 100 });
+                    (data || []).forEach((f) => { if (f.metadata) files.push({ ...f, name: dir.name + '/' + f.name }); });
+                }
+
+                const real = files.filter((f) => f.metadata && f.metadata.size);
+                const total = real.reduce((n, f) => n + Number(f.metadata.size || 0), 0);
+                const mb = (b) => (b / 1048576).toFixed(2) + ' MB';
+
+                say('Legacy images still on Supabase: ' + real.length + ' file(s), ' + mb(total));
+                if (!real.length) { say('Nothing to migrate — this bucket is already empty.'); return out; }
+
+                /* Which are still pointed at. An unreferenced file costs storage
+                   but no egress; a referenced one is being served on every page
+                   that shows it, and is the reason to migrate. */
+                let referenced = new Set();
+                try {
+                    const r = await fetch('/api/catalog');
+                    const d = await r.json();
+                    const blob = JSON.stringify(d);
+                    real.forEach((f) => { if (blob.includes(f.name)) referenced.add(f.name); });
+                } catch (_) { say('(could not read the catalogue — reference counts unavailable)'); }
+
+                const live = real.filter((f) => referenced.has(f.name));
+                const dead = real.filter((f) => !referenced.has(f.name));
+                say('  still used by a product: ' + live.length + ' (' + mb(live.reduce((n, f) => n + +f.metadata.size, 0)) + ')');
+                say('  no longer referenced:    ' + dead.length + ' (' + mb(dead.reduce((n, f) => n + +f.metadata.size, 0)) + ')');
+
+                say('');
+                say('Largest files:');
+                real.sort((a, b) => b.metadata.size - a.metadata.size).slice(0, 15)
+                    .forEach((f) => say('  ' + mb(+f.metadata.size).padStart(10) + '  ' +
+                        (referenced.has(f.name) ? 'in use  ' : 'orphan  ') + f.name));
+
+                const huge = real.filter((f) => +f.metadata.size > 1048576);
+                say('');
+                say(huge.length
+                    ? huge.length + ' file(s) over 1MB. Re-uploading those through the admin now downsizes them automatically.'
+                    : 'Nothing over 1MB — resizing these would be cosmetic, not urgent.');
+            } catch (e) {
+                say('Could not read the bucket: ' + (e && e.message || e));
+            }
+            return out;
+        };
+
         async function uploadProductImageToR2(file) {
             const token = await getAdminAccessToken();
+            // Shrink first: what is uploaded is what is served, and paid for.
+            const upload = await zwDownscaleImage(file);
+            if (upload !== file && typeof showToast === 'function') {
+                const saved = Math.round((1 - upload.size / file.size) * 100);
+                if (saved >= 10) showToast('Image optimised — ' + saved + '% smaller.');
+            }
             const form = new FormData();
-            form.append('file', file);
+            form.append('file', upload);
             form.append('productId', currentProduct?.id || document.getElementById('sku')?.value || 'unassigned');
 
             const resp = await fetch('/api/upload-product-image', {

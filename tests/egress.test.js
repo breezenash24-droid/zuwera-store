@@ -134,8 +134,6 @@ console.log('\n  the arithmetic');
     afterGB.toFixed(2) + ' GB');
 }
 
-console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
-process.exit(fail ? 1 : 0);
 
 /* ── the admin was the expensive page ──────────────────────────────────────
    Every thumbnail in the admin and the page builder requested the FULL-SIZE
@@ -171,3 +169,44 @@ console.log('\n  staff pages pay for images too');
     (builder.match(/bThumb\(/g) || []).length >= 6,
     'the builder re-renders these on every keystroke');
 }
+
+/* ── what gets uploaded is what gets paid for ──────────────────────────────
+   The storage plan has no image transformations, so nothing downsizes a file
+   after the fact: a 4MB photo off a phone stays 4MB and is served at 4MB
+   forever. The only place that can be fixed is before it leaves the browser. */
+console.log('\n  uploads are shrunk before they are stored');
+{
+  const admin = fs.readFileSync(R + 'admin-main.js', 'utf8');
+  ok('there is a downscale step', /function zwDownscaleImage/.test(admin));
+  ok('…and the upload path actually uses it',
+    /zwDownscaleImage\(file\)/.test(admin), 'defined but never called');
+
+  /* Each of these is a way a naive resize quietly ruins a file. */
+  ok('animations are left alone', /gif\|svg/.test(admin),
+    'a canvas keeps only the first frame of a GIF');
+  ok('vectors are left alone', /svg/.test(admin),
+    'rasterising an SVG throws away the one thing it is good at');
+  ok('a re-encode that grew the file is discarded',
+    /blob\.size >= file\.size/.test(admin),
+    'already-optimised files usually get bigger, not smaller');
+  ok('a failed optimisation still uploads the original',
+    /catch \(_\) \{ resolve\(file\); \}/.test(admin),
+    'a failed optimisation must never become a failed upload');
+  ok('non-images pass straight through', admin.includes('^image'),
+    'a video or PDF must not be handed to a canvas');
+}
+
+console.log('\n  the legacy bucket can be measured');
+{
+  /* "Migrate the legacy images" was impossible to scope without knowing how
+     many there are, how big, and whether anything still points at them. */
+  const admin = fs.readFileSync(R + 'admin-main.js', 'utf8');
+  ok('there is a report for what is still on Supabase', /zwLegacyImageReport/.test(admin));
+  ok('…which separates files still in use from orphans', /referenced/.test(admin),
+    'an orphan costs storage but no egress — they are not the same problem');
+  ok('…and reads, never writes', !/zwLegacyImageReport[\s\S]{0,3000}\.remove\(/.test(admin),
+    'a reporting tool must not be able to delete anything');
+}
+
+console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
+process.exit(fail ? 1 : 0);
