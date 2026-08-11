@@ -892,7 +892,15 @@ function normalizeCartPricing(cart) {
   return (cart || []).map(item => {
     const regularPrice = parseFloat(item.regularPrice ?? item.basePrice ?? item.price ?? 0) || 0;
     const memberPrice  = parseFloat(item.memberPrice ?? item.member_price ?? 0) || 0;
-    const isMember     = Boolean(_bagUser);
+    /* The SAME answer the repricing uses, not a second opinion. _bagUser is set
+       from whatever the page happened to resolve, and this function overwrites
+       the stored price on every render — so when the two disagreed, the bag
+       wrote a member price back over the guest price the repricing had just
+       saved, and the shopper saw a number localStorage no longer held.
+       Falls back to _bagUser only if checkout.js has not loaded yet. */
+    const isMember = typeof window.zwHasValidSession === 'function'
+      ? window.zwHasValidSession()
+      : Boolean(_bagUser);
     const effectivePrice = (isMember && memberPrice > 0 && (!regularPrice || memberPrice < regularPrice))
       ? memberPrice
       : (regularPrice || parseFloat(item.price) || 0);
