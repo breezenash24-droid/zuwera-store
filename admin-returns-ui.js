@@ -366,6 +366,91 @@
                             : '';
                         const sendLabelDisabled = retCanAttemptLabel(r) ? '' : 'disabled';
                         const sendLabelText = r.status === 'requested' ? 'Approve + Send Label' : (r.labelUrl ? 'Resend Label' : 'Send Label');
+
+                        /* A return has stages, and the panel did not show them.
+                           Ten buttons sat in one row at equal weight, in three
+                           different hand-picked colours, all present whatever
+                           state the return was in — so the only way to know
+                           which one to press was to already know the process.
+                           Two of them disabled themselves with a tooltip, which
+                           is the panel admitting there IS an order and then
+                           declining to show it.
+
+                           So: where this return is, one button for the step it
+                           is actually on, and the rest folded away. The others
+                           are kept rather than hidden for good — going back a
+                           step is a real thing that happens, and a process you
+                           cannot reverse is worse than a cluttered one. */
+                        const STAGES = [
+                            { key: 'asked',    label: 'Requested' },
+                            { key: 'sent',     label: 'Label sent' },
+                            { key: 'received', label: 'Item back' },
+                            { key: 'done',     label: 'Resolved' },
+                        ];
+                        const stageOf = (s) => (
+                            s === 'requested' ? 0
+                          : s === 'approved' || s === 'label_sent' ? 1
+                          : s === 'item_received' || s === 'exchange_in_progress' ? 2
+                          : 3);
+                        const at = stageOf(String(r.status || 'requested'));
+                        const isDenied = String(r.status || '') === 'denied';
+
+                        const stageBar = isDenied
+                            ? '<div style="font-size:.78rem;color:var(--text-secondary)">Denied — no further steps.</div>'
+                            : '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.72rem">'
+                              + STAGES.map((s, n) => {
+                                  const done = n < at, now = n === at;
+                                  const colour = done ? 'color:#34d399' : now ? 'color:var(--text-primary);font-weight:600' : 'color:var(--text-secondary);opacity:.6';
+                                  return (n ? '<span style="opacity:.35">→</span>' : '')
+                                      + '<span style="' + colour + '">' + (done ? '✓ ' : '') + s.label + '</span>';
+                              }).join('')
+                              + '</div>';
+
+                        /* One next step, decided from the status and the
+                           resolution — an exchange and a refund diverge here,
+                           and the old row offered both at once with no hint
+                           which applied. */
+                        const wantsExchange = String(r.resolution || '') === 'exchange';
+                        const primary = (
+                            at === 0 ? { label: sendLabelText, call: `sendReturnLabel('${id}', this)`, off: sendLabelDisabled }
+                          : at === 1 ? { label: 'Mark item received', call: `quickReturnStatus('${id}','item_received')`, off: '' }
+                          : at === 2 && String(r.status) === 'exchange_in_progress'
+                                     ? { label: 'Complete', call: `quickReturnStatus('${id}','completed')`, off: '' }
+                          : at === 2 && wantsExchange
+                                     ? { label: 'Start the exchange', call: `quickReturnStatus('${id}','exchange_in_progress')`, off: '' }
+                          : at === 2 ? { label: 'Mark refunded', call: `quickMarkRefunded('${id}')`,
+                                         off: retCanRefund(r) ? '' : 'disabled title="Item must be received before marking refunded"' }
+                          : null);
+
+                        /* Everything else, uniform. The greens and blues were
+                           per-button decisions that made unrelated actions look
+                           related — one colour meant "safe", the same colour
+                           elsewhere meant "email". */
+                        const others = [
+                            ['Approve', `quickReturnStatus('${id}','approved')`, ''],
+                            [sendLabelText, `sendReturnLabel('${id}', this)`, sendLabelDisabled],
+                            ['✉ Email update', `sendReturnStatusEmail('${id}', this)`, ''],
+                            ['Item received', `quickReturnStatus('${id}','item_received')`, ''],
+                            ['Exchange started', `quickReturnStatus('${id}','exchange_in_progress')`, ''],
+                            ['Mark refunded', `quickMarkRefunded('${id}')`,
+                             retCanRefund(r) ? '' : 'disabled title="Item must be received before marking refunded"'],
+                            ['+ Restock', `openRestockModal('${id}')`,
+                             ['item_received', 'refunded', 'completed'].includes(String(r.status)) ? '' : 'disabled title="Restock available after the item is received"'],
+                            ['Complete', `quickReturnStatus('${id}','completed')`, ''],
+                            ['Deny', `quickReturnStatus('${id}','denied')`, ''],
+                            ['Close', `quickReturnStatus('${id}','closed')`, ''],
+                        ].filter(([label]) => !primary || label !== primary.label);
+
+                        const actionsHtml =
+                            (primary
+                              ? `<button class="btn btn-primary btn-sm" onclick="${primary.call}" ${primary.off}>${escapeHtml(primary.label)}</button>`
+                              : '<span style="font-size:.78rem;color:var(--text-secondary)">Finished — nothing left to do.</span>')
+                            + `<details style="position:relative"><summary style="cursor:pointer;font-size:.78rem;color:var(--text-secondary);padding:6px 4px;list-style:none">Other actions ▾</summary>`
+                            + `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;max-width:420px">`
+                            + others.map(([label, call, off]) =>
+                                `<button class="btn btn-secondary btn-sm" onclick="${call}" ${off}>${escapeHtml(label)}</button>`).join('')
+                            + `</div></details>`;
+
                         panel.style.display = 'block';
                         panel.innerHTML = `
                             <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:1rem;">
@@ -375,19 +460,11 @@
                                     <div style="color:var(--text-secondary);font-size:.78rem;">
                                         Created ${r.createdAt ? new Date(r.createdAt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}) : '-'}${r.updatedAt ? ' · Updated ' + new Date(r.updatedAt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}) : ''}
                                     </div>
+                                    <div style="margin-top:8px;">${stageBar}</div>
                                     <div style="margin-top:6px;color:#38bdf8;font-size:.78rem;">→ ${escapeHtml(retNextAction(r))}</div>
                                 </div>
-                                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                                    <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','approved')">Approve</button>
-                                    <button class="btn btn-secondary btn-sm" onclick="sendReturnLabel('${id}', this)" ${sendLabelDisabled}>${sendLabelText}</button>
-                                    <button class="btn btn-secondary btn-sm" onclick="sendReturnStatusEmail('${id}', this)" style="background:rgba(56,189,248,.15);border-color:rgba(56,189,248,.4);color:#38bdf8;">✉ Email Update</button>
-                                    <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','item_received')" style="background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.4);color:#34d399;">Item Received</button>
-                                    <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','exchange_in_progress')">Exchange Started</button>
-                                    <button class="btn btn-secondary btn-sm" onclick="quickMarkRefunded('${id}')" ${retCanRefund(r) ? '' : 'disabled title="Item must be received before marking refunded"'}>Refunded</button>
-                                    <button class="btn btn-secondary btn-sm" onclick="openRestockModal('${id}')" ${r.status === 'item_received' || r.status === 'refunded' || r.status === 'completed' ? '' : 'disabled title="Restock available after item is received"'} style="background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.35);color:#34d399;">+ Restock</button>
-                                    <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','completed')">Complete</button>
-                                    <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','denied')">Deny</button>
-                                    <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','closed')">Close</button>
+                                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;">
+                                    ${actionsHtml}
                                 </div>
                             </div>
 
@@ -396,10 +473,17 @@
                                 <!-- Left: editable fields -->
                                 <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;">
                                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.85rem;">
-                                        <div><label class="form-label">Status</label>
-                                            <select id="ret-detail-status-${id}" class="form-select">${retStatusOptions(r.status)}</select></div>
-                                        <div><label class="form-label">Resolution</label>
-                                            <select id="ret-detail-resolution-${id}" class="form-select">
+                                        <!-- These save on change. Nothing ever locked them — the
+                                             Save Details button that commits them is four fields
+                                             and two text areas further down, so changing the
+                                             dropdown and watching nothing happen reads exactly
+                                             like a control that has been disabled. Which matters
+                                             most for Resolution: misclick "Exchange Started" and
+                                             the way back looked closed. -->
+                                        <div><label class="form-label">Status <span style="opacity:.5;font-weight:400">— saves as you pick</span></label>
+                                            <select id="ret-detail-status-${id}" class="form-select" onchange="saveReturnDetails('${id}')">${retStatusOptions(r.status)}</select></div>
+                                        <div><label class="form-label">Resolution <span style="opacity:.5;font-weight:400">— saves as you pick</span></label>
+                                            <select id="ret-detail-resolution-${id}" class="form-select" onchange="saveReturnDetails('${id}')">
                                                 <option value="return" ${r.resolution === 'return' ? 'selected' : ''}>Return / Refund</option>
                                                 <option value="exchange" ${r.resolution === 'exchange' ? 'selected' : ''}>Exchange</option>
                                                 <option value="store_credit" ${r.resolution === 'store_credit' ? 'selected' : ''}>Store Credit</option>
@@ -708,7 +792,13 @@
                                 inspectionNotes: retField(`ret-detail-inspection-${requestId}`),
                                 exchangeSku:     retField(`ret-detail-exchange-${requestId}`),
                             });
-                            notifyReturns('Return details saved.', 'success');
+                            /* Named, not just "saved". The dropdowns commit on
+                               change now, so this fires without anybody having
+                               pressed a thing — a bare "saved" beside a control
+                               you may have brushed past says nothing about what
+                               moved. */
+                            notifyReturns('Saved — ' + retField(`ret-detail-status-${requestId}`).replace(/_/g, ' ')
+                                + ' · ' + retField(`ret-detail-resolution-${requestId}`).replace(/_/g, ' '), 'success');
                         } catch (e) {
                             notifyReturns('Could not save return: ' + e.message, 'error');
                         } finally {

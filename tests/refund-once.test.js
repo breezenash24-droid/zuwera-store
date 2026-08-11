@@ -130,5 +130,35 @@ console.log('\n  and it is wired to the things that decide');
     /!d\.known/.test(rec));
 }
 
+console.log('\n  the returns workspace shows one step at a time');
+{
+  const ui = fs.readFileSync(ROOT + 'admin-returns-ui.js', 'utf8');
+
+  /* Ten buttons at equal weight, all present in every state, so the only way
+     to know which to press was to already know the process. */
+  ok('there is a stage bar', /const STAGES = \[/.test(ui) && /stageOf = \(s\)/.test(ui));
+  ok('one action is primary, chosen from the stage', /const primary = \(/.test(ui));
+  ok('…and an exchange and a refund do not both offer themselves',
+    /wantsExchange \? \{ label: 'Start the exchange'/.test(ui) || /at === 2 && wantsExchange/.test(ui));
+  ok('the rest are folded away but still reachable', /Other actions ▾/.test(ui),
+    'a process you cannot step back through is worse than a cluttered one');
+
+  /* Three ad-hoc colours meant one hue said "safe" on one button and "email"
+     on another. */
+  ok('the hand-picked button colours are gone',
+    !/background:rgba\(52,211,153,\.15\);border-color:rgba\(52,211,153,\.4\)/.test(ui)
+      && !/background:rgba\(56,189,248,\.15\)/.test(ui));
+
+  /* Nothing ever locked Resolution — the button that commits it is six fields
+     further down, so changing it and seeing nothing happen read exactly like a
+     disabled control. Misclick "Exchange Started" and the way back looked shut. */
+  ok('status and resolution commit when picked',
+    /id="ret-detail-status-\$\{id\}" class="form-select" onchange="saveReturnDetails/.test(ui)
+      && /id="ret-detail-resolution-\$\{id\}" class="form-select" onchange="saveReturnDetails/.test(ui));
+  ok('…and say so on the label', /saves as you pick/.test(ui));
+  ok('…and the confirmation names what it saved', /Saved — /.test(ui),
+    'these now fire without a button press, so "saved" alone says nothing about what moved');
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
