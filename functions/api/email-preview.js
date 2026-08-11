@@ -21,7 +21,8 @@ import { buildEmail as buildAbandoned } from './send-abandoned-cart-emails.js';
 import { buildEmail as buildReturnStatus } from './send-return-status-email.js';
 import { buildReturnLabelEmail } from './generate-return-label.js';
 import { buildRefundEmail } from './admin-refund.js';
-import { buildOrderConfirmation } from './stripe-webhook.js';
+// Moved with the rest of fulfilment when it was split out of the Stripe route.
+import { buildOrderConfirmation } from './_fulfil.js';
 import { shippedEmail, deliveredEmail } from './shippo-webhook.js';
 import { buildJournalEmail } from './send-journal.js';
 
