@@ -252,6 +252,24 @@
     const statusEl = $('commerceStatus');
     if (statusEl) statusEl.textContent = 'Saving…';
     syncFromDom();
+
+    /* The "Discount codes" limit, asked about the BIGGEST percent in the set.
+       This saves every promo at once, so checking them one at a time would
+       either refuse the save over a code somebody did not touch or, worse,
+       write the acceptable ones and abandon the rest halfway. One question
+       about the largest is the only version that matches how the save works.
+       Advisory — see functions/api/admin-guard.js. */
+    if (typeof window.zwGuard === 'function') {
+      const promos = Array.isArray(state.config.promotions) ? state.config.promotions : [];
+      const worst = promos
+        .filter((p) => p && p.type === 'percent' && p.active !== false)
+        .reduce((n, p) => Math.max(n, Number(p.value) || 0), 0);
+      if (worst > 0 && !(await window.zwGuard('promo_create', { percent: worst }))) {
+        if (statusEl) statusEl.textContent = 'Not saved — a limit on your account stopped it.';
+        return false;
+      }
+    }
+
     state.config.updatedAt = new Date().toISOString();
     const result = await window.sb
       .from('site_settings').upsert([{ key: 'commerce_config', value: state.config }], { onConflict: 'key' });
