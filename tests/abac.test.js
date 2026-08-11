@@ -135,5 +135,39 @@ console.log('\n  the engine is wired to something');
     'failing closed here locks the whole panel over a transient read');
 }
 
+
+console.log('\n  and a store owner can write one');
+{
+  const fs3 = require('fs');
+  const R3 = require('path').resolve(__dirname, '..') + '/';
+  const adm = fs3.readFileSync(R3 + 'admin-main.js', 'utf8');
+  const html = fs3.readFileSync(R3 + 'admin.html', 'utf8');
+
+  ok('there is an editor', /window\.abacSave/.test(adm) && /id="abacRules"/.test(html));
+  ok('…that writes where the engine reads', /key: 'abac_rules'/.test(adm),
+    'a rule saved anywhere else is a rule nothing enforces');
+  ok('…and loads what is already there', /window\.abacLoad/.test(adm));
+
+  /* Choosing a limit has to move action and attribute together. A rule whose
+     action says "refund" while its attribute reads a promo percentage never
+     fires, and looks enabled the whole time. */
+  ok('picking a limit sets its action and attribute together',
+    /r\.action = kind\.action; r\.attr = kind\.attr/.test(adm));
+
+  /* The engine denies when an attribute cannot be compared, so an empty value
+     does not mean "no limit" — it means "refuse everything of this kind". */
+  ok('a limit with no number is refused at save',
+    /Every limit needs a number/.test(adm),
+    'saving one would quietly deny every action of that kind');
+
+  ok('no roles means every role, not no roles',
+    /if \(list\.length\) r\.roles = list; else delete r\.roles/.test(adm));
+
+  /* The copy is the feature here: a rule nobody trusts gets worked around by
+     handing out super admin, which is worse than having no rules. */
+  ok('the panel says limits can only take permission away',
+    /take permission away/.test(html));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

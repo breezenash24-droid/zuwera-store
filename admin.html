@@ -568,6 +568,25 @@
                             set as <code style="background:var(--border);padding:1px 5px;border-radius:4px;">SUPABASE_ACCESS_TOKEN</code> in your Cloudflare environment variables. Everything else is read directly and always works.
                         </div>
                         <div style="border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px">
+                            <h3 style="margin:0 0 6px;font-size:.95rem">Extra limits on what admins can do</h3>
+                            <p style="font-size:.82rem;color:var(--text-secondary);margin:0 0 6px;line-height:1.6">
+                                Roles decide <em>what</em> someone may do. These decide <em>when</em> — refunds under a certain
+                                amount, orders in a particular region, and so on.
+                            </p>
+                            <p style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6">
+                                A limit can only <strong>take permission away</strong>, never grant it. Someone whose role does not
+                                allow an action is refused whatever these say, so a limit is always safe to add. With none written,
+                                nothing changes.
+                            </p>
+                            <div id="abacRules"></div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                                <button class="btn btn-secondary" type="button" onclick="abacAdd()">+ Add a limit</button>
+                                <button class="btn btn-primary" type="button" onclick="abacSave()">Save limits</button>
+                            </div>
+                            <p id="abacMsg" style="font-size:.82rem;margin:10px 0 0;min-height:1rem;color:var(--text-secondary)"></p>
+                        </div>
+
+                        <div style="border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px">
                             <h3 style="margin:0 0 6px;font-size:.95rem">Media &amp; storage</h3>
                             <p style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6">
                                 Every image and video still served from Supabase, where egress is billed. New uploads already go to
