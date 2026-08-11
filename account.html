@@ -1630,7 +1630,17 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
   const orderMap = {};
   orders.forEach(o => { if (o.id) orderMap[String(o.id)] = o; });
 
-  const options = orders.map(o => {
+  /* Only orders that can still be returned. This mapped EVERY order the
+     customer had ever placed, so the picker offered ones already refunded and
+     the form refused on submit — walking somebody through choosing items and a
+     reason before telling them there was nothing to return.
+     `returnable` is the server's answer, from the same function that refuses
+     the submission. A missing flag counts as returnable: orders predating it
+     must not silently lose the ability to be returned. */
+  const returnableOrders = orders.filter(o => o && o.returnable !== false);
+  const canStart = returnableOrders.length > 0;
+
+  const options = returnableOrders.map(o => {
     const id = String(o.id || '');
     const dt = new Date(o.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     let itemCount = 0;
@@ -1687,6 +1697,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
 
   content.innerHTML = `
     <div class="ret-form-stack">
+      ${canStart ? `
       <div class="zw-card">
         <div class="zw-card-title">Start a Return or Exchange</div>
         <div class="zw-card-meta">Submit a request — your team will review and process within 1–3 business days.</div>
@@ -1716,10 +1727,14 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
           <textarea id="ret-notes" rows="2" placeholder="Anything the team should know"></textarea>
         </div>
         <div class="zw-actions">
-          <button id="ret-submit" class="zw-btn primary" ${orders.length ? '' : 'disabled'}>Submit Request</button>
+          <button id="ret-submit" class="zw-btn primary">Submit Request</button>
           <span id="ret-status" class="zw-status"></span>
         </div>
       </div>
+      ` : `<div class="zw-card">
+        <div class="zw-card-title">Nothing to return right now</div>
+        <div class="zw-card-meta">Every order you have is either already refunded, cancelled, or has a request open &mdash; those are below. Next time you order, this is where a return would start.</div>
+      </div>`}
       ${requests.length ? `<div class="zw-card">
         <div class="zw-card-title">Request History</div>
         <div style="margin-top:.75rem">${historyHtml}</div>

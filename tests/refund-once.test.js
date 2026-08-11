@@ -319,5 +319,36 @@ console.log('\n  an order has one name');
   ok('…without a failed email un-deciding it', /could not notify requester/.test(req));
 }
 
+console.log('\n  no form when there is nothing to submit');
+{
+  const acct = fs.readFileSync(ROOT + 'account.html', 'utf8');
+  const hub = fs.readFileSync(ROOT + 'customer-hub.js', 'utf8');
+
+  /* The form listed every order ever placed, took a resolution and a reason,
+     and refused on submit — "You already have a request open for this order"
+     arriving after the work rather than before it. Twice over, on two screens. */
+  ok('the account page only offers returnable orders',
+    /const returnableOrders = orders\.filter\(o => o && o\.returnable !== false\)/.test(acct));
+  ok('…and hides the whole form when there are none',
+    /const canStart = returnableOrders\.length > 0/.test(acct) && /\$\{canStart \? `/.test(acct));
+  ok('…saying why, rather than just vanishing',
+    /Nothing to return right now/.test(acct),
+    'a section that disappears with no explanation reads as a bug');
+  ok('…while the history stays', /Request History/.test(acct));
+
+  /* Same screen in the account modal. It filtered the picker but still drew
+     the form — half the fix, which is how the first version of this shipped. */
+  ok('the modal does the same', /const canStart = orders\.filter/.test(hub)
+    && /\$\{canStart \? `/.test(hub));
+
+  /* The disabled state was standing in for this and doing it badly: a greyed
+     button under a filled-in form reads as "something is wrong with what I
+     typed", not "there is nothing here to send". */
+  ok('the button no longer fakes it with a disabled state',
+    !/ret-submit[^>]*orders\.length \? '' : 'disabled'/.test(acct)
+      && !/zw-return-submit[^>]*orders\.length \? '' : 'disabled'/.test(hub));
+}
+
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
