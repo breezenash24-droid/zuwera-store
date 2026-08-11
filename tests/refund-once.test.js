@@ -230,5 +230,95 @@ console.log('\n  the returns workspace shows one step at a time');
     'these now fire without a button press, so "saved" alone says nothing about what moved');
 }
 
+console.log('\n  a refunded order does not offer a refund');
+{
+  const ui = fs.readFileSync(ROOT + 'admin-returns-ui.js', 'utf8');
+  const rec = fs.readFileSync(ROOT + 'admin-receipts.js', 'utf8');
+
+  /* The complaint: it walks you to the end — auth code and all — and only then
+     says no, while the finished refund for the same order sits below it. */
+
+  /* `refunded` was in the set of statuses that ALLOW a refund, so a request
+     already paid out went on offering to pay out again. Same mistake the
+     endpoint had. */
+  ok('a request already refunded stops offering to refund',
+    /new Set\(\['item_received', 'completed', 'closed'\]\)/.test(ui)
+      && !/'item_received', 'completed', 'refunded', 'closed'/.test(ui));
+
+  /* The order's own state, which the request does not carry: a return can sit
+     at "item received" while the order was refunded from Receipts an hour ago. */
+  ok('the panel reads the order status, not just the request status',
+    /select\('id,status'\)\.in\('id', ids\)/.test(ui) && /function retOrderSettled/.test(ui));
+  ok('…and it gates the refund action', /REFUND_ALLOWED_STATUSES\.has\(r\.status \|\| ''\) && !retOrderSettled\(r\)/.test(ui));
+
+  /* A failed lookup is not evidence that a refund happened. */
+  ok('an unknown order status does not block', /empty means unknown, which does not/.test(ui));
+
+  /* Disabling one button is not enough when the same function is reachable
+     from two of them and from the console. */
+  ok('the modal refuses to open on a settled order', /retOrderSettled\(req\)/.test(ui));
+  ok('…including from Other actions', /disabled title="This order has already been refunded"/.test(ui));
+  ok('…and it says which reason applies', /there is nothing left to refund/.test(ui));
+
+  /* Receipts already did this. Named so nobody "fixes" it into a button. */
+  ok('the receipts list already hid its button, and still does',
+    /This order has been refunded\./.test(rec));
+}
+
+console.log('\n  an order has one name');
+{
+  const adm = fs.readFileSync(ROOT + 'admin-main.js', 'utf8');
+  const req = fs.readFileSync(ROOT + 'functions/api/abac-request.js', 'utf8');
+
+  /* Four names for the same order. Orders showed #0RT9CPIA; Receipts the last
+     eight of the payment intent; the refund log, the approval queue and the
+     customer's account page the last eight of the row id. Searching any of
+     them anywhere else finds nothing — which is exactly what somebody does
+     when asked to approve a refund they want to check first. */
+  ok('there is one formatter', /window\.zwOrderNo = function/.test(adm));
+  ok('…and order_number wins, because it is the real one',
+    /const n = String\(o\.order_number \|\| ''\)\.trim\(\)/.test(adm),
+    'the stored column is what Orders shows and the only one a customer could have been told');
+  ok('…with the old formulas kept as fallbacks for rows predating it',
+    /stripe_payment_intent_id \|\| o\.id \|\| ''\)\.slice\(-8\)/.test(adm));
+
+  /* Panels holding only an id have to look up what it is called, or they
+     invent a fourth name. */
+  ok('panels that hold only an id look the name up', /window\.zwLoadOrderNumbers = async function/.test(adm));
+  ok('…the refund log does', /zwLoadOrderNumbers\(shown\.map/.test(adm));
+  ok('…and the approval queue does', /zwLoadOrderNumbers\(rows\.map/.test(adm));
+
+  /* A link landing on a page that calls it something else is the same problem
+     one click along. */
+  ok('the link goes where that name is the one on screen', /href="#orders"/.test(adm)
+    && /document\.getElementById\('ord-search'\)/.test(adm));
+  ok('…and searches by the name it displays', /zwOrderNo\(String\(id\)\) \|\| ''\)\.replace\(\/\^#\/, ''\)/.test(adm));
+
+  /* Number(null) is 0 and finite, so an unknown amount printed as "$0.00" —
+     a refund of nothing, which makes the request look like a mistake. */
+  ok('an unknown amount is not rendered as zero',
+    /if \(n === null \|\| n === undefined \|\| n === ''\) return ''/.test(adm));
+  ok('…it says the full amount instead', /' the full amount'/.test(adm));
+
+  // approving does the thing
+  /* A yes somebody still has to act on is a yes that gets forgotten — they
+     already filled the form in once. */
+  ok('approving can carry the refund out', /admin-refund/.test(req) && /completed = \{ at, stripeRefundId/.test(req));
+  ok('…as the approver, under their own code', /const refundKey = String\(body\.refundKey \|\| ''\)\.trim\(\)/.test(req));
+  ok('…for the amount that was asked about, not whatever is on the order now',
+    /Number\(target\.amount\)/.test(req));
+  /* Recording "approved" over a refund that did not happen would tell them it
+     was done AND leave a waiver behind for a second attempt. */
+  ok('a failed refund is not recorded as an approval',
+    /Not approved — \$\{completionError\} Nothing was changed\./.test(req));
+  ok('…and a completed one leaves nothing to spend',
+    /usedAt: completed \? completed\.at : undefined/.test(req));
+  ok('the requester is told either way', /async function notifyRequester/.test(req));
+  ok('…and the three outcomes read differently',
+    /Done — \$\{what\} has been processed/.test(req) && /is yours to finish/.test(req)
+      && /Not approved — \$\{what\}/.test(req));
+  ok('…without a failed email un-deciding it', /could not notify requester/.test(req));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

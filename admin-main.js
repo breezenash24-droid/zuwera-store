@@ -9305,6 +9305,68 @@ function escapeAttr(value) {
               help: 'Refuse granting these roles. Stops an admin promoting anyone — including themselves — past their own level.' },
         ];
 
+        /* WHAT AN ORDER IS CALLED. One formula, because there were four.
+           Orders showed #0RT9CPIA. Receipts showed the last eight of the Stripe
+           payment intent. The returns panel, the refund log and the customer's
+           own account page each showed the last eight of the row id. Same
+           order, four names, and searching one of them anywhere else finds
+           nothing — which is what a person hits the moment they try to check
+           something they were asked to approve.
+           `order_number` first because it is the real one: a stored column,
+           what the Orders page shows, and the only one a customer could ever
+           have been told. The rest are fallbacks for rows predating it. */
+        window.zwOrderNo = function (o) {
+            if (!o) return '';
+            if (typeof o === 'string') return window.zwOrderNo(window._zwOrderIndex[o] || { id: o });
+            const n = String(o.order_number || '').trim();
+            if (n) return n.startsWith('#') ? n : '#' + n;
+            return '#' + String(o.stripe_payment_intent_id || o.id || '').slice(-8).toUpperCase();
+        };
+
+        /* Most places that show an order only hold its id — the refund log, the
+           approval queue, a return request. One lookup fills in what those ids
+           are actually called, so they can print the same name as everywhere
+           else instead of inventing a fourth. */
+        window._zwOrderIndex = {};
+        window.zwLoadOrderNumbers = async function (ids) {
+            const want = [...new Set((ids || []).map(String).filter(Boolean))]
+                .filter((id) => !window._zwOrderIndex[id]);
+            if (!want.length) return;
+            try {
+                const { data } = await sb.from('orders')
+                    .select('id,order_number,stripe_payment_intent_id,status').in('id', want);
+                (data || []).forEach((o) => { window._zwOrderIndex[String(o.id)] = o; });
+            } catch (e) { console.warn('order numbers: lookup failed —', e && e.message); }
+        };
+
+        window.zwOrderLink = function (id) {
+            const full = String(id || '');
+            if (!full) return '—';
+            const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            return '<a href="#orders" onclick="zwOpenOrder(&quot;' + esc(full) + '&quot;);return false;" '
+                + 'style="color:var(--accent,#F891A5);text-decoration:underline;cursor:pointer" '
+                + 'title="' + esc(full) + '">' + esc(window.zwOrderNo(full)) + '</a>';
+        };
+
+        /* Orders rather than Receipts, because Orders is where that number is
+           the one on screen — a link that lands on a page calling it something
+           else is the same problem one click further along. Searched by the
+           name it displays, so the box shows what the row shows. */
+        window.zwOpenOrder = function (id) {
+            const nav = document.querySelector('[data-page="orders"]');
+            window.location.hash = '#orders';
+            if (nav && typeof nav.click === 'function') { try { nav.click(); } catch (_) {} }
+            setTimeout(() => {
+                const box = document.getElementById('ord-search')
+                    || document.querySelector('#orders input[type="text"]');
+                if (!box) return;
+                box.value = String(window.zwOrderNo(String(id)) || '').replace(/^#/, '');
+                box.dispatchEvent(new Event('input', { bubbles: true }));
+                box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        };
+
         /* A limit refusing a refund, rendered the same way wherever it happens.
            There are TWO refund modals — Receipts and the Returns workspace —
            and the Ask button went into one of them, so half the refunds in the
@@ -9863,6 +9925,8 @@ function escapeAttr(value) {
                 mayDecide = !!out.mayDecide;
             } catch (_) { wrap.style.display = 'none'; return; }
 
+            await window.zwLoadOrderNumbers(rows.map((r) => r && r.resourceId));
+
             const pending = rows.filter((r) => r && r.status === 'pending');
             const recent = rows.filter((r) => r && r.status !== 'pending').slice(0, 5);
             /* Hidden entirely when there is nothing. An empty panel on every
@@ -9870,17 +9934,27 @@ function escapeAttr(value) {
             if (!pending.length && !recent.length) { wrap.style.display = 'none'; return; }
             wrap.style.display = '';
 
-            const money = (n) => (Number.isFinite(Number(n)) ? '$' + Number(n).toFixed(2) : '');
+            /* null is not zero. Number(null) is 0 and finite, so an unknown
+               amount rendered as "$0.00" — which reads as a refund of nothing
+               and is the one number that makes the request look like a
+               mistake. A blank amount means a FULL refund, so say that. */
+            const money = (n) => {
+                if (n === null || n === undefined || n === '') return '';
+                const v = Number(n);
+                return Number.isFinite(v) ? '$' + v.toFixed(2) : '';
+            };
             const when = (s) => { const d = new Date(String(s || '')); return isNaN(d.getTime()) ? '' : d.toLocaleString(); };
             const nameOf = (r) => esc(r.byName || r.byEmail || r.byId || 'somebody');
+
+            const orderLink = window.zwOrderLink;
 
             const card = (r) => {
                 const amt = money(r.amount);
                 return '<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px">'
                     + '<p style="margin:0 0 4px;font-size:.88rem;line-height:1.5">'
                     +   '<strong>' + nameOf(r) + '</strong> asked to ' + esc(String(r.action || 'do something'))
-                    +   (amt ? ' ' + esc(amt) : '')
-                    +   ' on order <strong>' + esc(String(r.resourceId || '—')) + '</strong>.'
+                    +   (amt ? ' ' + esc(amt) : ' the full amount')
+                    +   ' on order ' + orderLink(r.resourceId) + '.'
                     + '</p>'
                     /* What the limit actually said, verbatim. Approving without
                        it means approving a name and a number. */
@@ -9888,10 +9962,23 @@ function escapeAttr(value) {
                         + esc(r.refusedWith) + '</p>' : '')
                     + (r.reason ? '<p style="margin:0 0 4px;font-size:.78rem">Their note: ' + esc(r.reason) + '</p>' : '')
                     + '<p style="margin:0;font-size:.74rem;color:var(--text-secondary)">' + esc(when(r.at)) + '</p>'
+                    /* The code sits with the button that spends it. Approving
+                       now CARRIES OUT the refund rather than handing back a
+                       permission — so it moves money, and the person moving it
+                       supplies their own authorization, which is what the
+                       audit log will name. Left blank it falls back to the
+                       older behaviour: the requester is let through and runs it
+                       themselves. */
                     + (mayDecide
-                        ? '<div style="display:flex;gap:8px;margin-top:10px">'
-                          + '<button class="btn btn-primary btn-sm" type="button" onclick="zwAbacDecide(\'' + esc(r.id) + '\',true)">Approve once</button>'
+                        ? '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">'
+                          + '<input type="password" id="abacKey' + esc(r.id) + '" class="form-input" '
+                          +   'placeholder="Your refund auth code" autocomplete="off" '
+                          +   'style="flex:0 1 210px;padding:6px 9px;font-size:.78rem">'
+                          + '<button class="btn btn-primary btn-sm" type="button" onclick="zwAbacDecide(\'' + esc(r.id) + '\',true)">Approve &amp; do it</button>'
                           + '<button class="btn btn-secondary btn-sm" type="button" onclick="zwAbacDecide(\'' + esc(r.id) + '\',false)">Decline</button>'
+                          + '<span style="font-size:.72rem;color:var(--text-secondary);flex-basis:100%">'
+                          +   'With the code, this refund goes through now and they are emailed. '
+                          +   'Without it, they are let through to run it themselves.</span>'
                           + '</div>'
                         : '<p style="margin:8px 0 0;font-size:.78rem;color:var(--text-secondary)">Waiting for a super admin.</p>')
                     + '</div>';
@@ -9914,16 +10001,24 @@ function escapeAttr(value) {
         };
 
         window.zwAbacDecide = async function (id, approve) {
+            const keyEl = document.getElementById('abacKey' + id);
+            const refundKey = approve && keyEl ? String(keyEl.value || '').trim() : '';
             try {
                 const { data: { session } } = await sb.auth.getSession();
                 const resp = await fetch('/api/abac-request', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accessToken: session && session.access_token, op: 'decide', id, approve }),
+                    body: JSON.stringify({ accessToken: session && session.access_token,
+                                           op: 'decide', id, approve, refundKey }),
                 });
                 const out = await resp.json().catch(() => ({}));
                 if (!resp.ok) throw new Error(out.error || 'Could not save that.');
                 if (typeof showToast === 'function') {
-                    showToast(approve ? 'Approved — good for that one order, once.' : 'Declined.',
+                    /* Three outcomes, said differently, because they leave the
+                       approver with different things to expect: nothing,
+                       somebody else acting, or a conversation. */
+                    showToast(!approve ? 'Declined — they have been told.'
+                        : out.completed ? 'Done — the refund went through and they have been emailed.'
+                        : 'Approved — they can run it once, and have been emailed.',
                         approve ? 'success' : 'info');
                 }
             } catch (e) {
@@ -9969,6 +10064,10 @@ function escapeAttr(value) {
                 .sort((a, b) => String((b && b.at) || '').localeCompare(String((a && a.at) || '')))
                 .slice(0, 50);
 
+            /* Look up what these orders are called before drawing them, so the
+               log prints the same number the Orders page does. */
+            await window.zwLoadOrderNumbers(shown.map((e) => e && e.orderId));
+
             const who = (e) => {
                 const email = String((e && e.adminEmail) || '');
                 const id = String((e && e.adminId) || '');
@@ -9996,7 +10095,7 @@ function escapeAttr(value) {
                     return '<tr style="border-top:1px solid var(--border)">'
                         + '<td style="padding:7px 10px 7px 0;white-space:nowrap;color:var(--text-secondary)">' + esc(when(e)) + '</td>'
                         + '<td style="padding:7px 10px 7px 0">' + esc(who(e)) + '</td>'
-                        + '<td style="padding:7px 10px 7px 0;white-space:nowrap">' + esc(String((e && e.orderId) || '—')) + '</td>'
+                        + '<td style="padding:7px 10px 7px 0;white-space:nowrap">' + zwOrderLink((e && e.orderId) || '') + '</td>'
                         + '<td style="padding:7px 10px 7px 0;white-space:nowrap">'
                         +   esc(ACTIONS[String((e && e.action) || '')] || String((e && e.action) || '—'))
                         +   (amount ? ' <span style="color:var(--text-secondary)">' + esc(amount) + '</span>' : '')

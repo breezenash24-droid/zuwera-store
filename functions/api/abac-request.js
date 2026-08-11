@@ -133,6 +133,55 @@ export async function onRequestPost({ request, env }) {
     }
 
     const at = new Date().toISOString();
+
+    /* APPROVING CAN JUST DO IT. Granting a waiver and telling somebody to go
+       back and try again is a worse answer than the one they asked for: they
+       have already filled the form in once, and a yes they still have to act
+       on is a yes that gets forgotten.
+
+       Done as the APPROVER, under their own authorization code, because that
+       is who is actually deciding to move the money — the audit log should say
+       so, and the requester should not end up holding an unspent permission.
+       Without a code it falls back to the waiver, so the older behaviour is
+       still there for anyone who wants to hand the action back. */
+    let completed = null;
+    let completionError = null;
+    const refundKey = String(body.refundKey || '').trim();
+    if (approve && refundKey && String(target.action) === 'refund') {
+      try {
+        const origin = new URL(request.url).origin;
+        const r = await fetch(`${origin}/api/admin-refund`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            accessToken, action: 'refund', orderId: String(target.resourceId || ''),
+            refundKey, reason: 'requested_by_customer',
+            /* The amount that was ASKED about, not whatever is on the order
+               now. Approving a number and paying a different one is the thing
+               the whole request exists to prevent. */
+            amountCents: Number.isFinite(Number(target.amount))
+              ? Math.round(Number(target.amount) * 100) : undefined,
+          }),
+        });
+        const out = await r.json().catch(() => ({}));
+        if (r.ok && out.success) {
+          completed = { at, stripeRefundId: out.stripeRefundId || '', amountCents: out.stripeRefundAmount ?? null };
+        } else {
+          completionError = out.error || `Refund failed (${r.status}).`;
+        }
+      } catch (e) {
+        completionError = (e && e.message) || 'Refund could not be carried out.';
+      }
+    }
+
+    /* A failed completion is NOT an approval. Recording "approved" over a
+       refund that did not happen would tell the requester it was done and
+       leave a waiver behind for them to spend on a second attempt — the exact
+       double-refund this all exists to avoid. It stays pending, and the
+       approver is told what went wrong. */
+    if (completionError) {
+      return json({ error: `Not approved — ${completionError} Nothing was changed.` }, 502, h);
+    }
+
     await mutateSetting(env, ABAC_REQUESTS_KEY, (cur) => {
       const list = Array.isArray(cur) ? cur : [];
       return list.map((r) => {
@@ -144,13 +193,33 @@ export async function onRequestPost({ request, env }) {
           decidedByEmail: meEmail,
           decidedAt: at,
           note: String(body.note || '').slice(0, 500),
-          /* Only an approval expires. A decline has nothing to run out. */
-          expiresAt: approve ? new Date(Date.now() + WAIVER_TTL_MS).toISOString() : undefined,
+          /* Carried out already, so there is nothing left to spend. Marking it
+             used here is what stops the waiver being a second bite. */
+          completedAt: completed ? completed.at : undefined,
+          completedBy: completed ? meEmail : undefined,
+          stripeRefundId: completed ? completed.stripeRefundId : undefined,
+          usedAt: completed ? completed.at : undefined,
+          usedBy: completed ? meId : undefined,
+          /* Only an unspent approval expires. */
+          expiresAt: (approve && !completed) ? new Date(Date.now() + WAIVER_TTL_MS).toISOString() : undefined,
         };
       });
     });
 
-    return json({ ok: true, status: approve ? 'approved' : 'declined' }, 200, h);
+    /* Tell them. An answer nobody sees is the same as no answer, and the
+       person who asked has by now moved on to something else. Non-fatal: the
+       decision has already been recorded and an email that fails must not
+       un-decide it. */
+    await notifyRequester(env, target, {
+      approved: approve, completed: !!completed, by: meEmail, note: String(body.note || '').trim(),
+    }).catch((e) => console.warn('abac: could not notify requester —', e && e.message));
+
+    return json({
+      ok: true,
+      status: approve ? 'approved' : 'declined',
+      completed: !!completed,
+      stripeRefundId: completed ? completed.stripeRefundId : '',
+    }, 200, h);
   }
 
   return json({ error: 'Unknown operation.' }, 400, h);
@@ -178,4 +247,43 @@ function samePerson(rec, id, email) {
 function numOrNull(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+/* The three outcomes read differently on purpose. "Approved and done" needs no
+   action; "approved, go ahead" needs one and says what; "declined" needs a
+   conversation, so it names who to have it with rather than ending flat. */
+async function notifyRequester(env, req, { approved, completed, by, note }) {
+  const to = String(req.byEmail || '').trim();
+  if (!to) return;
+
+  const what = String(req.action || 'that') === 'refund'
+    ? `the refund on order ${String(req.resourceId || '').slice(-8).toUpperCase()}`
+    : `your ${String(req.action || 'request')} request`;
+  const amount = Number.isFinite(Number(req.amount)) ? ` ($${Number(req.amount).toFixed(2)})` : '';
+
+  const subject = !approved ? `Not approved — ${what}`
+    : completed ? `Done — ${what} has been processed`
+    : `Approved — ${what} is yours to finish`;
+
+  const line = !approved
+    ? `${by} did not approve ${what}${amount}.${note ? ` They said: “${note}”` : ''} `
+      + `If you still think it should go through, talk to them — this message is not the end of it.`
+    : completed
+    ? `${by} approved ${what}${amount} and carried it out, so there is nothing left for you to do. `
+      + `It is already done — please do not run it again.`
+    : `${by} approved ${what}${amount}. Go back and run it once more and it will go through this time. `
+      + `The approval is good for this one thing and runs out in a day.`;
+
+  const html = `<div style="font-family:system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.6;color:#111">
+    <p>${escapeHtmlBasic(line)}</p>
+    ${note && approved ? `<p style="color:#555">They added: “${escapeHtmlBasic(note)}”</p>` : ''}
+  </div>`;
+
+  const { sendTransactional } = await import('./_email.js');
+  await sendTransactional({ env, to, subject, html });
+}
+
+function escapeHtmlBasic(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

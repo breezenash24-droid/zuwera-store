@@ -24,7 +24,25 @@
                         closed:              '#6b7280',
                         exchange_in_progress:'#a78bfa',
                     };
-                    const REFUND_ALLOWED_STATUSES = new Set(['item_received', 'completed', 'refunded', 'closed']);
+                    /* `refunded` used to be in here, so a request already paid
+                       out went on offering "Mark refunded" — the same mistake
+                       the endpoint had, where a settled return read as
+                       clearance to settle it again. It is the strongest signal
+                       in the list that this is a second attempt. */
+                    const REFUND_ALLOWED_STATUSES = new Set(['item_received', 'completed', 'closed']);
+
+                    /* The order's own state, which the request does not carry.
+                       A return can be sitting at "item received" while the
+                       order was refunded from the Receipts page an hour ago —
+                       and then the workspace walks somebody through typing an
+                       auth code before anything says no. Filled in by
+                       loadReturnsPage; empty means unknown, which does not
+                       block, because a lookup that failed is not evidence. */
+                    let _orderStatusById = {};
+                    function retOrderSettled(r) {
+                        const s = String(_orderStatusById[String(r && r.orderId || '')] || '').toLowerCase();
+                        return s === 'refunded' || s === 'cancelled' || s === 'canceled';
+                    }
 
                     function syncReturnsUI() {
                         renderReturnsStats();
@@ -49,7 +67,11 @@
                         return ['requested', 'approved', 'label_sent', 'item_received', 'exchange_in_progress'].includes(r.status || '');
                     }
                     function retCanRefund(r) {
-                        return REFUND_ALLOWED_STATUSES.has(r.status || '');
+                        /* Two questions, both of which have to say yes: has the
+                           item come back, and is there anything left to refund.
+                           The second was never asked here — it was only asked
+                           at the end, by the endpoint, after an auth code. */
+                        return REFUND_ALLOWED_STATUSES.has(r.status || '') && !retOrderSettled(r);
                     }
                     function retNextAction(r) {
                         if (retLabelError(r)) return 'Fix label issue or save a manual label';
@@ -232,6 +254,21 @@
                             _returnsData = Array.isArray(payload.requests) ? payload.requests : [];
                             _returnsData.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
                             if (_selectedReturnId && !_returnsData.some(r => r.id === _selectedReturnId)) _selectedReturnId = null;
+
+                            /* One query for every order on screen, so the panel
+                               knows what has already been refunded before it
+                               offers to refund it. Failure leaves the map empty
+                               and nothing is blocked — an unanswered lookup is
+                               not evidence that a refund happened, and the
+                               endpoint still refuses either way. */
+                            try {
+                                const ids = [...new Set(_returnsData.map(r => String(r.orderId || '')).filter(Boolean))];
+                                if (ids.length) {
+                                    const { data: ords } = await sb.from('orders').select('id,status').in('id', ids);
+                                    _orderStatusById = Object.fromEntries((ords || []).map(o => [String(o.id), o.status]));
+                                }
+                            } catch (e) { console.warn('returns: could not read order statuses —', e && e.message); }
+
                             document.getElementById('returns-loading').style.display = 'none';
                             document.getElementById('ret-split').style.display = 'flex';
                             renderReturnsStats();
@@ -419,7 +456,10 @@
                           : at === 2 && wantsExchange
                                      ? { label: 'Start the exchange', call: `quickReturnStatus('${id}','exchange_in_progress')`, off: '' }
                           : at === 2 ? { label: 'Mark refunded', call: `quickMarkRefunded('${id}')`,
-                                         off: retCanRefund(r) ? '' : 'disabled title="Item must be received before marking refunded"' }
+                                         off: retCanRefund(r) ? ''
+                                              : retOrderSettled(r)
+                                              ? 'disabled title="This order has already been refunded — there is nothing left to refund"'
+                                              : 'disabled title="Item must be received before marking refunded"' }
                           : null);
 
                         /* Everything else, uniform. The greens and blues were
@@ -432,8 +472,15 @@
                             ['✉ Email update', `sendReturnStatusEmail('${id}', this)`, ''],
                             ['Item received', `quickReturnStatus('${id}','item_received')`, ''],
                             ['Exchange started', `quickReturnStatus('${id}','exchange_in_progress')`, ''],
+                            /* Also here, not just on the primary. "Other
+                               actions" is where somebody goes when the obvious
+                               button is off — an escape hatch that still pays
+                               out would make disabling the first one theatre. */
                             ['Mark refunded', `quickMarkRefunded('${id}')`,
-                             retCanRefund(r) ? '' : 'disabled title="Item must be received before marking refunded"'],
+                             retCanRefund(r) ? ''
+                             : retOrderSettled(r)
+                             ? 'disabled title="This order has already been refunded"'
+                             : 'disabled title="Item must be received before marking refunded"'],
                             ['+ Restock', `openRestockModal('${id}')`,
                              ['item_received', 'refunded', 'completed'].includes(String(r.status)) ? '' : 'disabled title="Restock available after the item is received"'],
                             ['Complete', `quickReturnStatus('${id}','completed')`, ''],
@@ -461,6 +508,9 @@
                                         Created ${r.createdAt ? new Date(r.createdAt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}) : '-'}${r.updatedAt ? ' · Updated ' + new Date(r.updatedAt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}) : ''}
                                     </div>
                                     <div style="margin-top:8px;">${stageBar}</div>
+                                    ${retOrderSettled(r) ? `<div style="margin-top:8px;border:1px solid #ef4444;border-left-width:4px;border-radius:6px;padding:.5rem .7rem;background:rgba(239,68,68,.08);color:#ef4444;font-size:.78rem;line-height:1.5;">
+                                        <strong>This order has already been refunded.</strong> Anything here that would pay out is switched off — refunding again would pay twice for the same item.
+                                    </div>` : ''}
                                     <div style="margin-top:6px;color:#38bdf8;font-size:.78rem;">→ ${escapeHtml(retNextAction(r))}</div>
                                 </div>
                                 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;">
@@ -614,8 +664,15 @@
                     }
                     function quickMarkRefunded(requestId) {
                         const req = _returnsData.find(r => r.id === requestId);
+                        /* The modal will not open on a settled order at all.
+                           Disabling the button is not enough on its own — this
+                           function is reachable from two buttons and from the
+                           console, and the whole complaint was being walked to
+                           the end before anything said no. */
                         if (!req || !retCanRefund(req)) {
-                            notifyReturns('Cannot mark refunded — the item has not been received yet. Mark "Item Received" first.', 'error');
+                            notifyReturns(req && retOrderSettled(req)
+                                ? 'This order has already been refunded — there is nothing left to refund.'
+                                : 'Cannot mark refunded — the item has not been received yet. Mark "Item Received" first.', 'error');
                             return;
                         }
                         const totalStr = retMoney(req.orderTotal || 0);
