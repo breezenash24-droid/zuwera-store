@@ -740,6 +740,37 @@ console.log('\n  deleting a product is the only one that fully binds');
   ok('…and it narrows rather than replaces', /AS RESTRICTIVE/.test(sql));
 }
 
+console.log('\n  you cannot choose your own role');
+{
+  const sql = fs.readFileSync(ROOT + 'migrations/0010_admin_role_is_not_self_service.sql', 'utf8');
+  const old = fs.readFileSync(ROOT + 'supabase-security-hardening.sql', 'utf8');
+
+  /* Every limit in this file is scoped by role. If the subject picks their own
+     subject.role, none of it means anything — including 0008, whose own gate
+     is a column this same person could write. */
+  ok('the privilege columns are guarded', /NEW\.admin_role IS NOT DISTINCT FROM OLD\.admin_role/.test(sql)
+    && /admin_permissions IS NOT DISTINCT FROM OLD\.admin_permissions/.test(sql));
+  ok('…by a trigger, because RLS cannot see which columns changed',
+    /BEFORE UPDATE ON public\.profiles/.test(sql));
+  ok('…requiring a super admin', /NOT public\.current_user_is_super_admin\(\)/.test(sql));
+  ok('…and never on your own row, super admin included',
+    /auth\.uid\(\) = NEW\.id/.test(sql) && /cannot change your own role/.test(sql));
+
+  /* The endpoint has already checked RBAC and the limits by the time it
+     writes. Blocking it would break the route this is pushing people onto. */
+  ok('the server-side path still works', /IF auth\.uid\(\) IS NULL THEN/.test(sql));
+
+  /* The trigger that was already there reads as though it covers this. It
+     fires only when NOT current_user_is_admin(), so it guards customers and
+     exempts every admin — backwards for this — and watches `role`, never
+     `admin_role`. */
+  ok('the existing trigger did not cover it, and this says why',
+    /AND NOT public\.current_user_is_admin\(\)/.test(old)
+      && !/admin_role/.test(old.slice(old.indexOf('prevent_profile_role_self_change'),
+                                      old.indexOf('protect_profile_role_self_change'))),
+    'if the old trigger ever starts watching admin_role, this note needs revisiting');
+}
+
 console.log('\n  the asking is reachable');
 {
   const adm = fs.readFileSync(ROOT + 'admin-main.js', 'utf8');
