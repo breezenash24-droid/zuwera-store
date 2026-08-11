@@ -9280,6 +9280,16 @@ function escapeAttr(value) {
                     +     'placeholder="everyone — or: manager, support" value="' + esc(roles) + '" '
                     +     'oninput="abacSet(' + i + ',\'roles\',this.value)">'
                     + '</div>'
+                    /* People, not just roles. There is always somebody who needs
+                       a different number, and doing that with roles alone means
+                       inventing a role per exception. */
+                    + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px">'
+                    +   '<span style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap">Or specific people</span>'
+                    +   '<input type="text" class="form-input" style="flex:1;padding:5px 8px;font-size:.78rem" '
+                    +     'placeholder="anyone in those roles — or: sam@shop.com, alex@shop.com" '
+                    +     'value="' + esc(Array.isArray(r.users) ? r.users.join(', ') : '') + '" '
+                    +     'oninput="abacSet(' + i + ',\'users\',this.value)">'
+                    + '</div>'
                     + '<div style="font-size:.74rem;color:var(--text-secondary);margin-top:6px">' + esc(kind.help) + '</div>'
                     /* Say when a limit cannot bite yet. Silence here would be
                        the dangerous kind: the engine refuses what it cannot
@@ -9298,6 +9308,14 @@ function escapeAttr(value) {
         window.abacSet = function (i, field, value) {
             const r = _abacState[i];
             if (!r) return;
+            if (field === 'users') {
+                const list = String(value).split(',').map((x) => x.trim()).filter(Boolean);
+                /* Empty means "whoever the roles above cover", not "nobody" —
+                   the same reading as roles, and the only one that does not
+                   silently disable the limit. */
+                if (list.length) r.users = list; else delete r.users;
+                return;
+            }
             if (field === 'roles') {
                 const list = String(value).split(',').map((x) => x.trim()).filter(Boolean);
                 /* Empty means every role, which is the safer reading of

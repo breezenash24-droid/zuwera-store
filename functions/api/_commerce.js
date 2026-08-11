@@ -241,7 +241,16 @@ export async function decide(env, accessToken, permission, ctx = {}) {
       role: admin.admin_role || admin.role,
     },
   });
-  return { allow: verdict.allow, reason: verdict.reason, rule: verdict.rule, admin: verdict.allow ? admin : null };
+  return {
+    allow: verdict.allow,
+    reason: verdict.reason,
+    rule: verdict.rule,
+    /* Only true when the ROLE allowed it and a limit did not. That is the
+       refusal somebody can be asked to approve; "your role cannot do this" is
+       not, and offering to ask about it wastes everyone's time. */
+    limited: !!verdict.limited && rbacAllowed,
+    admin: verdict.allow ? admin : null,
+  };
 }
 
 export async function verifyAdminCan(env, accessToken, permission, ctx = {}) {

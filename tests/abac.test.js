@@ -213,5 +213,53 @@ console.log('\n  and a store owner can write one');
 }
 
 
+
+console.log('\n  a limit can name people, not just roles');
+{
+  const base = { action: 'refund', attr: 'resource.amount', op: 'lte', value: 100 };
+  const ctxFor = (id, email, role) => ({ action: 'refund', resource: { amount: 500 },
+    subject: { id: id, email: email, role: role } });
+
+  /* Roles are the blunt instrument. There is always somebody who needs a
+     different number, and doing it with roles alone means inventing a role per
+     exception — which is how role lists stop being readable. */
+  const byEmail = Object.assign({ users: ['sam@shop.com'] }, base);
+  ok('a rule scoped to one person applies to them',
+    can(true, [byEmail], ctxFor('u1', 'sam@shop.com', 'manager')).allow === false);
+  ok('…and not to anybody else',
+    can(true, [byEmail], ctxFor('u2', 'alex@shop.com', 'manager')).allow === true);
+
+  ok('a person can be named by id as well as email',
+    can(true, [Object.assign({ users: ['u9'] }, base)], ctxFor('u9', 'x@shop.com', 'manager')).allow === false);
+  ok('…matched case-insensitively, since an admin panel and a session disagree on case',
+    can(true, [Object.assign({ users: ['SAM@shop.com'] }, base)], ctxFor('u1', 'sam@shop.com', 'manager')).allow === false);
+
+  ok('naming nobody still means everyone', can(true, [base], ctxFor('u1', 'a@b.c', 'manager')).allow === false);
+
+  /* Both scopes have to agree, or "managers named sam" would apply to every
+     manager. */
+  const both = Object.assign({ roles: ['manager'], users: ['sam@shop.com'] }, base);
+  ok('roles and people narrow together, not separately',
+    can(true, [both], ctxFor('u1', 'sam@shop.com', 'support')).allow === true);
+}
+
+console.log('\n  a refusal says whether it is worth asking about');
+{
+  /* "Your role cannot do this" and "your role can, but a limit stopped this
+     case" are different sentences leading to different actions. Only the second
+     is worth asking somebody to approve. */
+  const rule = { action: 'refund', attr: 'resource.amount', op: 'lte', value: 100 };
+  const ctx = { action: 'refund', resource: { amount: 500 }, subject: { role: 'manager' } };
+
+  const byLimit = can(true, [rule], ctx);
+  ok('a limit refusal is marked as one', byLimit.allow === false && byLimit.limited === true);
+
+  const byRole = can(false, [rule], ctx);
+  ok('…and a role refusal is not', byRole.allow === false && !byRole.limited,
+    'an Ask button on this would offer to request something nobody can grant');
+
+  ok('an allow carries no such flag', can(true, [], ctx).limited === undefined);
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
