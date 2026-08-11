@@ -38,8 +38,16 @@ console.log('\n  stock stays fresh');
   ok('…on a much shorter cache than the catalogue', sMaxAge(stock) > 0 && sMaxAge(stock) <= 60, cacheOf(stock));
   ok('…at least 10x fresher than the catalogue', sMaxAge(cat) / sMaxAge(stock) >= 10,
     sMaxAge(cat) + 's vs ' + sMaxAge(stock) + 's');
-  ok('stock asks for named columns, not everything',
-    /select=product_id,size,stock_quantity,color_variant_id/.test(stock));
+  /* The claim is "named columns, not select=*" — a frozen literal list instead
+     froze the SCHEMA, so adding color_name (needed so the storefront can match
+     colour the way checkout does) failed a test about egress for a reason that
+     had nothing to do with egress. Asserted as the rule plus the columns that
+     must be there, so a real regression — select=*, or dropping one — still
+     fails, and an added column does not. */
+  const sel = (stock.match(/product_sizes\?select=([^&`'"]+)/) || [])[1] || '';
+  ok('stock asks for named columns, not everything', !!sel && !sel.includes('*'), sel || 'no select found');
+  ok('…and still asks for the ones every reader needs',
+    ['product_id', 'size', 'stock_quantity'].every((c) => sel.split(',').includes(c)), sel);
 }
 
 /* ── nothing secret is now public ────────────────────────────────────────── */

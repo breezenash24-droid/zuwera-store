@@ -4466,7 +4466,60 @@
             bits.push('Friend sees: "' + (message ? message.replace(/\{discount\}/gi, off) : `A friend sent you ${off}`) + '"');
             document.getElementById('rf-preview').textContent = bits.join(' ');
         }
+        /* ── Stock & availability (Commerce page) ─────────────────────────────
+           One switch, read by BOTH the storefront (via /api/stock) and the
+           payment path (via quoteCart). They have to come from the same value:
+           the bug this setting was added alongside was the bag and checkout
+           disagreeing about how many were left, and a rule stored in two places
+           is the same mistake wearing a different hat.
+
+           Stored under commerce_config.customerExperience so it travels with
+           the rest of the selling rules. Absent means ON — a store that has
+           never opened this page must not be accepting orders it cannot fill. */
+        async function loadStockRulesSettings() {
+            const el = document.getElementById('sk-limit-qty');
+            if (!el) return;
+            try {
+                const { data: rows } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
+                let v = rows && rows[0] && rows[0].value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                const cx = (v && v.customerExperience) || {};
+                el.checked = cx.limitQtyToStock !== false;
+            } catch (_) {
+                // Unreadable settings must not present as "backorders are on".
+                el.checked = true;
+            }
+        }
+        window.stockRulesSaveSettings = async function () {
+            const btn = document.getElementById('sk-save-btn');
+            const el = document.getElementById('sk-limit-qty');
+            if (!el) return;
+            if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+            try {
+                /* Read-modify-write on a shared JSON blob. Re-read immediately
+                   before writing and touch only this one key, so a save here
+                   cannot roll back a coupon someone edited a moment ago. */
+                const { data: rows, error } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
+                if (error) throw error;
+                let cfg = (rows && rows[0] && rows[0].value) || {};
+                if (typeof cfg === 'string') { try { cfg = JSON.parse(cfg); } catch (_) { cfg = {}; } }
+                cfg.customerExperience = Object.assign({}, cfg.customerExperience, { limitQtyToStock: !!el.checked });
+                const { error: sErr } = await sb.from('site_settings').upsert({ key: 'commerce_config', value: cfg }, { onConflict: 'key' });
+                if (sErr) throw sErr;
+                if (typeof showToast === 'function') {
+                    showToast(el.checked
+                        ? 'Saved — shoppers can only order what you have.'
+                        : 'Saved — backorders allowed. Shoppers can order more than you have.');
+                }
+            } catch (e) {
+                if (typeof showToast === 'function') showToast(e?.message || 'Could not save that.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Save stock settings'; }
+            }
+        };
+
         async function loadReferralSettings() {
+            loadStockRulesSettings();
             ['rf-type', 'rf-value', 'rf-min', 'rf-points', 'rf-max-uses', 'rf-expiry', 'rf-prefix', 'rf-message'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el && !el._rfBound) { el._rfBound = true; el.addEventListener('input', referralPreview); el.addEventListener('change', referralPreview); }
@@ -5289,7 +5342,7 @@
             { key: 'feature_support_widget', page: 'settings',  desc: 'Support widget — a floating Help button (email us, track order, returns, FAQ).' },
             // Back in stock is an EXISTING live feature, so it defaults ON. Turn OFF to
             // hide the "notify me" prompt on sold-out sizes AND stop the restock emails.
-            { key: 'feature_back_in_stock', page: 'products',   desc: 'Back in stock — the “notify me when it’s back” prompt on sold-out sizes + the auto-email to the waitlist when you restock a size. On by default.', enabled: true, rollout: 100 },
+            { key: 'feature_back_in_stock', page: 'products',   desc: 'Back in stock — the “notify me when it’s back” prompt wherever a size is sold out (product page, quick-add, and the bag) + the auto-email to the waitlist when you restock a size. The email is filled in already for signed-in shoppers. On by default.', enabled: true, rollout: 100 },
             { key: 'feature_qa', page: 'questions',              desc: 'Product Q&A — a Questions & Answers section on product pages. Customers ask; you answer/publish in Admin → Q&A.' },
             { key: 'feature_abandoned_cart', page: 'emails',  desc: 'Abandoned-cart recovery — emails shoppers who started checkout (entered their email) but didn’t buy. Kill-switch for the scheduled recovery emails (needs the hourly cron + ABANDONED_CART_TOKEN set up). On by default.', enabled: true, rollout: 100 },
             { key: 'feature_review_requests', page: 'emails', desc: 'Review-request emails — a few days after an order, emails the customer asking them to review what they bought (with a photo). Kill-switch for the scheduled emails (needs the daily cron + REVIEW_REQUEST_TOKEN set up).' },

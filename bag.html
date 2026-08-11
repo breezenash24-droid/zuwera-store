@@ -745,6 +745,12 @@ body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-co
 </div>
 
 <!-- SCRIPTS -->
+<!-- Shared stock rules. Loaded BEFORE the inline block, not deferred, because
+     renderCart() below runs during parse and reads window.ZWStock. It answers
+     "how many are there?" the same way the payment path does — the bag used to
+     answer it from a stockQty snapshot taken when the item was added and never
+     refreshed, which is why a bag could hold 3 of something with 1 in stock. -->
+<script src="stock-rules.js?v=1"></script>
 <script>
 /* ===================== CORE SETUP ===================== */
 // window.sb set by supabase-client.js (deferred) before DOMContentLoaded fires
@@ -1019,6 +1025,106 @@ function renderCart() {
 
   const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) || 0) * item.quantity, 0);
   updateCartSummary(subtotal);
+  applyStockLimits(cart);
+}
+
+/* ── Live stock, applied after the list is drawn ──────────────────────────────
+   Runs async and decorates rather than blocking the render: the bag must paint
+   immediately from localStorage, and stock is a correction that arrives a
+   moment later. Every path back into here re-renders, so this re-runs.
+
+   The per-line stockQty snapshot the bag used to trust was written when the
+   item was ADDED and never refreshed, so a bag opened a day later capped
+   against yesterday's shelf — or, if the add path never set it, against
+   nothing. That is how a bag came to hold 3 of something with 1 in stock. */
+function applyStockLimits(cart) {
+  if (!window.ZWStock || !Array.isArray(cart) || !cart.length) return;
+  ZWStock.load().then((data) => {
+    // Re-read: the shopper may have changed something while this was in flight.
+    const current = JSON.parse(localStorage.getItem('cart') || '[]');
+    if (current.length !== cart.length) return;
+
+    const cards = document.querySelectorAll('#cart-items-list .cart-item-card');
+    cart.forEach((item, idx) => {
+      const card = cards[idx];
+      if (!card) return;
+      const available = ZWStock.stockFor(data.rows, item.productId, item.size, item.colorName);
+      // null = this product has no inventory configured. Not a limit.
+      if (available === null || !data.limitToStock) return;
+
+      /* Stock is held per size+colour, but a bag can carry the same size and
+         colour on more than one line. The shelf does not care how the shopper
+         split them, so the cap is the COMBINED quantity. */
+      const combined = cart.reduce((sum, ci) => (
+        ci.productId === item.productId &&
+        ZWStock.canonSize(ci.size) === ZWStock.canonSize(item.size) &&
+        String(ci.colorName || '').trim().toLowerCase() === String(item.colorName || '').trim().toLowerCase()
+          ? sum + (ci.quantity || 0) : sum
+      ), 0);
+
+      const plus = card.querySelector('.cart-qty-btn:last-of-type');
+      if (plus && combined >= available) {
+        plus.disabled = true;
+        plus.setAttribute('aria-disabled', 'true');
+        plus.title = available > 0 ? `Only ${available} in stock` : 'Out of stock';
+      }
+
+      const note = document.createElement('div');
+      note.className = 'cart-item-stock-note';
+      if (available <= 0) {
+        /* Already in the bag and now gone. Saying so here matters more than on
+           the product page — this is the screen where they are about to pay,
+           and checkout would otherwise refuse the whole order with no way to
+           act on it. */
+        note.classList.add('is-out');
+        note.textContent = 'Out of stock — remove it to check out';
+        card.querySelector('.cart-item-details')?.appendChild(note);
+        mountRestockPrompt(card, item);
+      } else if (combined >= available) {
+        note.textContent = `Only ${available} left`;
+        card.querySelector('.cart-item-details')?.appendChild(note);
+      }
+    });
+  }).catch(() => { /* stock unreachable — leave the bag as drawn, never empty it */ });
+}
+
+/* The "email me when it's back" prompt, same switch and same prefill as the
+   product page — both go through ZWStock so admin turning it off turns it off
+   everywhere, which was the point of moving it into one place. */
+function mountRestockPrompt(card, item) {
+  if (!window.ZWStock || !ZWStock.restockEnabled()) return;
+  if (!item.productId || card.querySelector('.cart-restock')) return;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'cart-restock';
+  wrap.innerHTML =
+    '<label class="cart-restock-label">Email me when it\'s back</label>' +
+    '<div class="cart-restock-row">' +
+      '<input type="email" class="cart-restock-email" placeholder="your@email.com" autocomplete="email">' +
+      '<button type="button" class="cart-restock-btn">Notify Me</button>' +
+    '</div><div class="cart-restock-msg" role="status"></div>';
+
+  const input = wrap.querySelector('.cart-restock-email');
+  const btn = wrap.querySelector('.cart-restock-btn');
+  const msg = wrap.querySelector('.cart-restock-msg');
+  // Signed in? Then we already have the address and should not ask for it.
+  ZWStock.prefillEmail(input);
+
+  btn.addEventListener('click', () => {
+    btn.disabled = true; btn.textContent = '…';
+    ZWStock.joinWaitlist({
+      productId: item.productId, size: item.size,
+      colorName: item.colorName, email: input.value,
+    }).then((res) => {
+      msg.textContent = res.message;
+      msg.classList.toggle('is-err', !res.ok);
+      btn.disabled = false; btn.textContent = 'Notify Me';
+      if (res.ok) input.disabled = true;
+    });
+  });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') btn.click(); });
+
+  card.querySelector('.cart-item-details')?.appendChild(wrap);
 }
 
 window.updateCartQuantity = function(idx, delta) {
@@ -1027,14 +1133,31 @@ window.updateCartQuantity = function(idx, delta) {
   const item = cart[idx];
   if (delta > 0) {
     if (item.quantity >= 99) return;
-    // stockQty is per-size (all colors combined) — enforce combined limit across colorways
-    const stockQty = item.stockQty;
-    if (stockQty !== null && stockQty !== undefined && stockQty > 0) {
-      const combinedQty = cart.reduce((sum, ci) =>
-        ci.productId === item.productId && ci.size === item.size ? sum + ci.quantity : sum, 0);
-      if (combinedQty >= stockQty) {
-        showToast(`Only ${stockQty} in stock for size ${item.size}`);
-        return;
+    /* Against LIVE stock, not item.stockQty. That snapshot was taken when the
+       item was added and never refreshed, so it capped against whatever the
+       shelf held then — or against nothing, when the add path had not set it.
+
+       It also compared size only, ignoring colour, while stock is held per
+       colour. That is the same mismatch the payment path had: it could refuse
+       a colourway that was fully stocked because a different one had sold out.
+
+       ZWStock.load() is cached per page, so this is a lookup and not a fetch. */
+    const cached = window.ZWStock && ZWStock.peek && ZWStock.peek();
+    if (cached && cached.limitToStock) {
+      const available = ZWStock.stockFor(cached.rows, item.productId, item.size, item.colorName);
+      if (available !== null) {
+        const combined = cart.reduce((sum, ci) => (
+          ci.productId === item.productId &&
+          ZWStock.canonSize(ci.size) === ZWStock.canonSize(item.size) &&
+          String(ci.colorName || '').trim().toLowerCase() === String(item.colorName || '').trim().toLowerCase()
+            ? sum + (ci.quantity || 0) : sum
+        ), 0);
+        if (combined >= available) {
+          showToast(available > 0
+            ? `Only ${available} in stock for ${item.size}`
+            : `${item.title || 'That item'} (${item.size}) is out of stock`);
+          return;
+        }
       }
     }
   }
