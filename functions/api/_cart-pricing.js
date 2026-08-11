@@ -31,6 +31,7 @@ import {
 import { fetchSiteSettings } from './_settings.js';
 import { normalizeStateCode, resolveTax } from './_tax.js';
 
+import { messagesFrom, shippedMessages } from './_messages.js';
 /* A rejection the shopper caused and can fix, tagged with the status it should
    actually carry.
 
@@ -273,7 +274,7 @@ export async function verifyAccessToken(accessToken, env) {
    permits overselling, so the unsafe value must be the one you have to ask for
    — a caller that omits it gets the guard, not a store quietly taking orders it
    cannot fill. */
-export async function resolveCatalogItems(items, env, isMember, limitToStock = true) {
+export async function resolveCatalogItems(items, env, isMember, limitToStock = true, say = shippedMessages) {
   if (!Array.isArray(items) || items.length === 0) throw cartError('Missing cart items.', 400);
   if (items.length > 25) throw cartError('Cart has too many line items.', 400);
 
@@ -287,7 +288,7 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
     if (!product && sku) product = await fetchProductByFilter(env, 'sku', sku);
     /* 409, not 404: the request is well-formed and the route is right — it is
        the cart that has gone stale against the catalog. */
-    if (!product) throw cartError(`Product is no longer available: ${raw?.title || raw?.name || productId || sku || 'unknown item'}`, 409);
+    if (!product) throw cartError(say('checkoutUnavailable', { title: raw?.title || raw?.name || productId || sku || 'unknown item' }), 409);
 
     const regularCents = toCents(product.current_price ?? product.price);
     const memberCents = toCents(product.member_price);
@@ -297,7 +298,7 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
     /* A merchant data problem rather than a shopper one, but the shopper is the
        one standing at the till and the item genuinely cannot be sold, so it is
        reported as a cart conflict. It stays loud in the logs either way. */
-    if (priceCents <= 0) throw cartError(`Product has no checkout price: ${product.title || product.name || product.id}`, 409);
+    if (priceCents <= 0) throw cartError(say('checkoutNoPrice', { title: product.title || product.name || product.id }), 409);
 
     /* NEVER CHARGE MORE THAN WAS SHOWN.
      *
@@ -326,10 +327,7 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
         `PRICE MISMATCH ${product.id} (${label}): shown ${shownCents}c, would charge ${priceCents}c` +
         `${isMember ? ' [member]' : ' [non-member]'} — refused rather than billing above the quote.`
       );
-      throw cartError(
-        `The price of ${label} has changed. Refresh your bag to see the current price before paying.`,
-        409
-      );
+      throw cartError(say('checkoutPriceChanged', { title: label }), 409);
     }
 
     const itemSize = String(raw?.size || '').trim();
@@ -339,10 +337,14 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
       const available = await fetchSizeStockQty(env, product.id, itemSize, String(raw?.colorName || '').trim() || null);
       if (available !== null && available < itemQty) {
         const name = product.title || product.name || 'An item';
+        /* The SAME message the product page and the bag use for a sold-out
+           line. It had its own wording here, which is how a shopper could read
+           "Only 1 left" on one screen and a differently-phrased refusal on the
+           next. */
         throw cartError(
           available <= 0
-            ? `${name} (${itemSize}) is out of stock.`
-            : `Only ${available} left in stock for ${name} (${itemSize}).`,
+            ? say('soldOutItem', { title: name, size: itemSize })
+            : say('checkoutNotEnough', { count: available, title: name, size: itemSize }),
           409
         );
       }
@@ -418,7 +420,7 @@ async function getLocalDeliveryConfig(env) {
   }
 }
 
-export async function resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env, deliveryMethod }) {
+export async function resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env, deliveryMethod, say = shippedMessages }) {
   const policy = getShippingPolicy(env);
   const qualifiesFree = subtotalCents >= policy.thresholdCents;
 
@@ -441,7 +443,7 @@ export async function resolveShipping({ shippingRate, address, subtotalCents, ca
     // Only throw when CHECKOUT_RATE_SECRET is configured — without a secret, token
     // signing is disabled so signedRate is always null (not a real expiry).
     if (env.CHECKOUT_RATE_SECRET) {
-      throw cartError('Selected shipping rate expired. Please reload shipping options.', 409);
+      throw cartError(say('checkoutRateExpired'), 409);
     }
   }
 
@@ -454,7 +456,7 @@ export async function resolveShipping({ shippingRate, address, subtotalCents, ca
     /* 400 rather than 409: a zeroed rate is not a stale cart, it is a rejected
        input — and the one case here that may be someone probing the $0-shipping
        exploit above. Worth keeping distinguishable from ordinary staleness. */
-    throw cartError('Invalid shipping rate — please reload shipping options.', 400);
+    throw cartError(say('checkoutRateInvalid'), 400);
   }
   const actualShippingCents = signedRate
     ? rateAmountCents
@@ -498,16 +500,25 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
      The storefront reads the same value off /api/stock, so the quantity a
      shopper is allowed to pick and the quantity checkout accepts come from one
      switch — the two disagreeing is what "Only 1 left" then "out of stock" was. */
-  const limitToStock = await (async () => {
+  /* One settings read covers both the rule and the words it is explained in.
+     Two reads would let them arrive out of step, and this is the request that
+     takes money. */
+  const { limitToStock, say } = await (async () => {
     try {
       const cfg = sanitizeCommerceConfig(await getSetting(env, 'commerce_config', {}));
-      return cfg?.customerExperience?.limitQtyToStock !== false;
-    } catch (_) { return true; }
+      return {
+        limitToStock: cfg?.customerExperience?.limitQtyToStock !== false,
+        say: messagesFrom(cfg),
+      };
+    } catch (_) {
+      // Unreadable settings must not become permission to oversell, nor silence.
+      return { limitToStock: true, say: shippedMessages };
+    }
   })();
 
-  const catalogItems = await resolveCatalogItems(items, env, isMember, limitToStock);
+  const catalogItems = await resolveCatalogItems(items, env, isMember, limitToStock, say);
   const subtotalCents = catalogItems.reduce((sum, item) => sum + item.amount * item.quantity, 0);
-  const shipping = await resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env, deliveryMethod });
+  const shipping = await resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env, deliveryMethod, say });
 
   const promotion = await getPromotionForCode(env, promoCode);
   const normalizedPromoCode = promotion ? normalizePromoCode(promotion.code) : normalizePromoCode(promoCode);

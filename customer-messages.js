@@ -87,6 +87,22 @@
     restockSuccess: { label: 'They joined the back-in-stock list', text: "✓ We'll email you when {size} is back.", color: ROLE.good },
     restockAlready: { label: 'They were already on the list', text: "You're already on the list for this size.", color: ROLE.plain },
     restockInvalid: { label: 'The email they typed is not usable', text: 'Enter a valid email.', color: ROLE.bad },
+    /* ── at checkout, refused by the server ──────────────────────────────────
+       These come from the payment path, which is the code that decides whether
+       money moves. They are repeated in functions/api/_messages.js because a
+       Worker module and a browser script cannot import one another, and a test
+       holds the two character-for-character identical.
+
+       Note what is NOT here: "Missing cart items" and "Cart has too many line
+       items". Those mean the request was malformed, which a shopper cannot
+       cause or fix -- editing them would be dressing up a bug as advice. */
+    checkoutNotEnough:    { label: 'Not enough left, found at checkout', text: 'Only {count} left in stock for {title} ({size}).', color: ROLE.bad },
+    checkoutUnavailable:  { label: 'Product has gone from the catalogue', text: 'Product is no longer available: {title}', color: ROLE.bad },
+    checkoutNoPrice:      { label: 'Product has no price set', text: 'Product has no checkout price: {title}', color: ROLE.bad },
+    checkoutPriceChanged: { label: 'Price changed since the bag was filled', text: 'The price of {title} has changed. Refresh your bag to see the current price before paying.', color: ROLE.bad },
+    checkoutRateExpired:  { label: 'Shipping quote went stale', text: 'Selected shipping rate expired. Please reload shipping options.', color: ROLE.bad },
+    checkoutRateInvalid:  { label: 'Shipping quote was not usable', text: 'Invalid shipping rate — please reload shipping options.', color: ROLE.bad },
+
     /* ── promo codes ──────────────────────────────────────────────────────────
        A coupon can also carry its OWN message (set per code in admin), and that
        still wins where it exists -- "expired on 1 June" beats a generic refusal.
@@ -190,6 +206,10 @@
     restockPrompt:  ['size'],
     restockSuccess: ['size'],
     promoApplied:   ['label'],
+    checkoutNotEnough:    ['count', 'title', 'size'],
+    checkoutUnavailable:  ['title'],
+    checkoutNoPrice:      ['title'],
+    checkoutPriceChanged: ['title'],
   };
 
 
@@ -234,7 +254,8 @@
      fully editable; they are just not what the panel opens on. */
   var SECONDARY = {
     soldOutBadge: 1, lowStockBadge: 1, lowStockShort: 1,
-    promoEmpty: 1, promoFailed: 1, capReached: 1, allInBag: 1, maxedOut: 1,
+    promoEmpty: 1, promoFailed: 1,
+    checkoutNoPrice: 1, checkoutRateExpired: 1, checkoutRateInvalid: 1, capReached: 1, allInBag: 1, maxedOut: 1,
     restockHint: 1, restockInvite: 1, restockAlready: 1, restockInvalid: 1, restockFailed: 1,
     declinePostcode: 1, declineCallBank: 1, declineNoReason: 1, declineRetry: 1,
   };
@@ -252,6 +273,7 @@
     { title: 'When stock is running low', keys: ['lowStock', 'lowStockBadge', 'lowStockShort', 'capReached'] },
     { title: 'When they already have it in their bag', keys: ['lastInBag', 'allInBag', 'maxedOut'] },
     { title: 'Back-in-stock signup', keys: ['restockHint', 'restockInvite', 'restockPrompt', 'restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed'] },
+    { title: 'Refused at checkout', keys: ['checkoutNotEnough', 'checkoutUnavailable', 'checkoutPriceChanged', 'checkoutNoPrice', 'checkoutRateExpired', 'checkoutRateInvalid'] },
     { title: 'Promo codes', keys: ['promoApplied', 'promoEmpty', 'promoInvalid', 'promoFailed'] },
     { title: 'When a card is declined', keys: ['declineFunds', 'declineCvc', 'declineNumber', 'declineExpired', 'declinePostcode', 'declineCallBank', 'declineNoReason', 'declineRetry', 'declined'] },
   ];

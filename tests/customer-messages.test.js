@@ -303,6 +303,53 @@ console.log('\n  the editor describes each message in words, and inserts the val
     /rgb\(220,38,38\)/.test(read('admin.html')), 'no format hint for the colour field');
 }
 
+console.log('\n  the payment path says the same things, from the same settings');
+{
+  /* customer-messages.js is a classic browser script; functions/api/_messages.js
+     is an ES module in a Worker. Neither can import the other, so the defaults
+     for shared keys are written twice — and this is what stops the second copy
+     drifting. Same arrangement as the other "two lists must stay identical"
+     invariants here; the duplication is deliberate and checked. */
+  const server = read('functions/api/_messages.js');
+  const serverDefaults = {};
+  const block = server.slice(server.indexOf('export const DEFAULTS = {'));
+  block.slice(0, block.indexOf('};')).replace(
+    /^\s*([a-zA-Z]+):\s*'((?:[^'\\]|\\.)*)',/gm,
+    (_, k, v) => { serverDefaults[k] = v.replace(/\\'/g, "'"); return ''; });
+
+  ok('the worker\'s message list parses', Object.keys(serverDefaults).length >= 6,
+    Object.keys(serverDefaults).length + ' found');
+
+  /* THE point of this section: sold-out is ONE sentence now. It had five
+     wordings across the storefront and a sixth on the payment path, which is
+     how a shopper could read "Only 1 left" on one screen and a differently
+     phrased refusal on the next. */
+  ok('checkout uses the same sold-out message the storefront does',
+    serverDefaults.soldOutItem !== undefined,
+    'the payment path has invented its own wording again');
+  ok('…character for character',
+    serverDefaults.soldOutItem === M.DEFAULTS.soldOutItem.text,
+    JSON.stringify(serverDefaults.soldOutItem) + ' vs ' + JSON.stringify(M.DEFAULTS.soldOutItem.text));
+
+  /* Every key the two sides share has to agree, not just that one. */
+  const shared = Object.keys(serverDefaults).filter((k) => M.has(k));
+  const drifted = shared.filter((k) => serverDefaults[k] !== M.DEFAULTS[k].text);
+  ok('no shared message has drifted between browser and worker', drifted.length === 0,
+    drifted.join(', '));
+
+  /* And an admin edit has to reach the payment path, or the two agree only
+     until somebody changes one of them. */
+  const co = read('functions/api/_cart-pricing.js');
+  ok('the worker reads the admin\'s overrides', /messagesFrom\(cfg\)/.test(co));
+  ok('…from the same settings read as the stock rule, not a second one',
+    /limitToStock, say/.test(co), 'two reads let the rule and its wording arrive out of step');
+  ok('…and falls back to the shipped copy when settings are unreadable',
+    /say: shippedMessages/.test(co), 'a refusal with no reason is the one thing it must not be');
+
+  ok('the refusals no longer carry their wording inline',
+    !/is out of stock\.`/.test(co) && !/Only \$\{available\} left/.test(co));
+}
+
 console.log('\n  a coupon can still speak for itself');
 {
   /* validate-promo returns a per-code message where one is set in admin —
