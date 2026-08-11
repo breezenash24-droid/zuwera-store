@@ -54,8 +54,19 @@ export async function onRequestGet({ env }) {
     const BASE = `${env.SUPABASE_URL}/rest/v1/product_sizes?select=product_id,size,stock_quantity`;
     const headers = { apikey: key, Authorization: 'Bearer ' + key };
 
+    /* The fetch is wrapped because a THROWN fetch and a REJECTED query are
+       different faults with different owners, and the first version of this
+       reported them identically — the outer catch and the query-failed branch
+       returned the same body, so the answer to "why is stock empty?" was still
+       a guess. A runtime that refuses a request option throws; a database that
+       refuses a SELECT answers. Say which. */
     const query = async (cols) => {
-      const resp = await fetch(BASE + cols, { headers, cache: 'no-store' });
+      let resp;
+      try {
+        resp = await fetch(BASE + cols, { headers, cache: 'no-store' });
+      } catch (e) {
+        return { ok: false, threw: true, reason: String((e && e.message) || e).slice(0, 120) };
+      }
       if (resp.ok) return { ok: true, rows: await resp.json().catch(() => []) };
       return { ok: false, status: resp.status, detail: (await resp.text().catch(() => '')).slice(0, 300) };
     };
@@ -71,8 +82,25 @@ export async function onRequestGet({ env }) {
       /* Both attempts rejected. This is a real outage of the stock read, and it
          must NOT be dressed up as an empty catalogue — ok:false lets callers
          treat availability as UNKNOWN, which is what it is. */
-      console.error(`stock: SELECT failed outright (${res.status}): ${res.detail}`);
-      return json({ ok: false, sizes: [], limitToStock: true, error: 'stock_unavailable' }, 200, cors(env));
+      /* The STATUS is reported, the detail is not. Which of these it is
+         determines who fixes it and how, and without it the failure is only
+         visible to whoever can read Worker logs — which is why this endpoint
+         sat broken while looking like an empty catalogue:
+
+           401 / 403  the key cannot read product_sizes. Either
+                      SUPABASE_SERVICE_ROLE_KEY is unset (so this fell back to
+                      the anon key) or the table has no policy granting it.
+           404        no such table under that name.
+           400        the query is malformed — ours to fix.
+
+         The body is deliberately withheld: PostgREST error text names columns
+         and constraints, and this endpoint is public. */
+      console.error(`stock: SELECT failed outright (${res.status || 'threw'}): ${res.detail || res.reason}`);
+      return json({
+        ok: false, sizes: [], limitToStock: true,
+        error: res.threw ? 'stock_fetch_threw' : 'stock_query_rejected',
+        ...(res.threw ? { reason: res.reason } : { status: res.status }),
+      }, 200, cors(env));
     }
     const sizesP = Promise.resolve(res.rows);
 
@@ -106,7 +134,12 @@ export async function onRequestGet({ env }) {
       'Cache-Control': 'public, max-age=10, s-maxage=20, stale-while-revalidate=30',
     });
   } catch (e) {
+    // Distinct from the query failures above, so "which one was it?" is never
+    // a guess again.
     console.error('stock: unhandled', e && e.message);
-    return json({ ok: false, sizes: [], limitToStock: true, error: 'stock_unavailable' }, 200, cors(env));
+    return json({
+      ok: false, sizes: [], limitToStock: true,
+      error: 'stock_handler_threw', reason: String((e && e.message) || e).slice(0, 120),
+    }, 200, cors(env));
   }
 }
