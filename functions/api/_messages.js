@@ -33,6 +33,15 @@ export const DEFAULTS = {
   checkoutPriceChanged: 'The price of {title} has changed. Refresh your bag to see the current price before paying.',
   checkoutRateExpired:  'Selected shipping rate expired. Please reload shipping options.',
   checkoutRateInvalid:  'Invalid shipping rate — please reload shipping options.',
+
+  /* Return refusals. Same text as customer-messages.js — the parity test
+     below this file's header compares them character for character. */
+  returnAlreadyRefunded: 'This order was refunded, so there is nothing left to return.',
+  returnCancelled:      'This order was cancelled, so there is nothing to return.',
+  returnAlreadyOpen:    'You already have a request open for this order. We will be in touch about that one.',
+  returnItemsSpent:     'Every item on this order has already been returned or refunded.',
+  returnItemsInvalid:   'Those items are not available to return on this order.',
+  returnNoItems:        'Choose at least one item to return.',
 };
 
 /* Same substitution as the browser's: a token with no value collapses, empty

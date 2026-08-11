@@ -30,6 +30,12 @@
 /* An order in one of these has nothing left to give back. `refunded` is set by
    a FULL refund; a partial one deliberately leaves the order alone, which is
    why the item-level check below exists and cannot be skipped. */
+/* The shipped wording, for callers with no settings to hand. Imported rather
+   than repeated: _messages.js is where both copies of this text are kept in
+   step by a test. */
+import { shippedMessages } from './_messages.js';
+const SHIPPED = (k) => shippedMessages(k);
+
 const CLOSED_ORDER_STATUSES = new Set(['refunded', 'cancelled', 'canceled']);
 
 /* A request in any status EXCEPT these still holds its items. Denied frees
@@ -182,7 +188,18 @@ function parseItems(order) {
  * `reason` is customer-facing copy. A refusal a customer cannot understand
  * becomes an email to support, which costs more than the return did.
  */
-export function returnEligibility(order, requests) {
+export function returnEligibility(order, requests, msg) {
+  /* The refusals are editable copy, not strings this file owns. A store's
+     voice is its own, and a refusal a shopper cannot act on becomes an email
+     to support — which costs more than the return would have.
+     `msg` comes from messagesFrom(commerce_config) in the caller, which has
+     the settings loaded already. Absent, it falls back to the shipped wording,
+     so nothing here depends on a settings read succeeding. */
+  /* SHIPPED is a function, and this indexed it — `SHIPPED[k]` is undefined for
+     every key, so with no overrides passed every refusal came back blank. A
+     shopper told "no" with no reason cannot act on it, which is the one thing
+     a refusal must never be. */
+  const say = typeof msg === 'function' ? msg : SHIPPED;
   if (!order || !order.id) {
     return { ok: false, code: 'no_order', reason: 'We could not find that order.', availableItems: [] };
   }
@@ -192,9 +209,7 @@ export function returnEligibility(order, requests) {
     return {
       ok: false,
       code: status === 'refunded' ? 'already_refunded' : 'cancelled',
-      reason: status === 'refunded'
-        ? 'This order was refunded, so there is nothing left to return.'
-        : 'This order was cancelled, so there is nothing to return.',
+      reason: status === 'refunded' ? say('returnAlreadyRefunded') : say('returnCancelled'),
       availableItems: [],
     };
   }
@@ -212,7 +227,7 @@ export function returnEligibility(order, requests) {
     return {
       ok: false,
       code: 'already_open',
-      reason: 'You already have a request open for this order. We will be in touch about that one.',
+      reason: say('returnAlreadyOpen'),
       availableItems: [],
       openRequestId: String(open.id || ''),
     };
@@ -252,7 +267,7 @@ export function returnEligibility(order, requests) {
     return {
       ok: false,
       code: 'items_spent',
-      reason: 'Every item on this order has already been returned or refunded.',
+      reason: say('returnItemsSpent'),
       availableItems: [],
     };
   }

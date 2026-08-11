@@ -87,6 +87,18 @@
     restockSuccess: { label: 'They joined the back-in-stock list', text: "✓ We'll email you when {size} is back.", color: ROLE.good },
     restockAlready: { label: 'They were already on the list', text: "You're already on the list for this size.", color: ROLE.plain },
     restockInvalid: { label: 'The email they typed is not usable', text: 'Enter a valid email.', color: ROLE.bad },
+    /* ── starting a return ────────────────────────────────────────────────────
+       Refusals, so the wording matters more than most: somebody who cannot act
+       on one emails support, which costs more than the return would have. Most
+       are now rare by design — the form is hidden when there is nothing to
+       return — but they still reach anyone who gets to the endpoint another
+       way, and a store may want to say any of it differently. */
+    returnAlreadyRefunded: { label: 'Return refused — the order was already refunded', text: 'This order was refunded, so there is nothing left to return.', color: ROLE.bad },
+    returnCancelled: { label: 'Return refused — the order was cancelled', text: 'This order was cancelled, so there is nothing to return.', color: ROLE.bad },
+    returnAlreadyOpen: { label: 'Return refused — they already have one open', text: 'You already have a request open for this order. We will be in touch about that one.', color: ROLE.plain },
+    returnItemsSpent: { label: 'Return refused — every item is already returned', text: 'Every item on this order has already been returned or refunded.', color: ROLE.bad },
+    returnItemsInvalid: { label: 'Return refused — those items are not on the order', text: 'Those items are not available to return on this order.', color: ROLE.bad },
+    returnNoItems: { label: 'Return refused — nothing was selected', text: 'Choose at least one item to return.', color: ROLE.bad },
     /* ── signing in ───────────────────────────────────────────────────────────
        The auth service returns its own messages, and the two below are the ones
        a shopper actually meets: a wrong password and an address that already
@@ -271,6 +283,16 @@
      `where` is the screen in a shopper's words, not the filename. */
   var SURFACES = [
     {
+      name: 'Starting a return',
+      where: 'The Returns tab of a customer account, when a request is refused',
+      /* Most of these are rare by design now — the form is hidden when there is
+         nothing to return — but they still reach anybody who gets to the
+         endpoint another way, and every one of them is a refusal, which is the
+         copy most worth being able to say in your own words. */
+      keys: ['returnAlreadyRefunded', 'returnCancelled', 'returnAlreadyOpen',
+             'returnItemsSpent', 'returnItemsInvalid', 'returnNoItems'],
+    },
+    {
       name: 'Product page',
       where: 'Under the size buttons, and the toasts',
       keys: ['soldOut', 'lowStock', 'lastInBag', 'allInBag', 'maxedOut',
@@ -387,6 +409,7 @@
     { title: 'Signing in', keys: ['authBadCredentials', 'authEmailInUse', 'authMissingFields', 'authNeedEmail', 'authPasswordShort', 'authNoConnection', 'authFailed'] },
     { title: 'Refused at checkout', keys: ['checkoutNotEnough', 'checkoutUnavailable', 'checkoutPriceChanged', 'checkoutNoPrice', 'checkoutRateExpired', 'checkoutRateInvalid'] },
     { title: 'Promo codes', keys: ['promoApplied', 'promoEmpty', 'promoInvalid', 'promoFailed'] },
+    { title: 'Starting a return', keys: ['returnAlreadyRefunded', 'returnCancelled', 'returnAlreadyOpen', 'returnItemsSpent', 'returnItemsInvalid', 'returnNoItems'] },
     { title: 'When a card is declined', keys: ['declineFunds', 'declineCvc', 'declineNumber', 'declineExpired', 'declinePostcode', 'declineCallBank', 'declineNoReason', 'declineRetry', 'declined'] },
   ];
 
