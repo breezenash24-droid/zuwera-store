@@ -33,6 +33,41 @@ import { fetchSiteSettings } from './_settings.js';
    sick one costs a customer a moment rather than the sale. */
 const TAX_API_TIMEOUT_MS = 3000;
 
+/* ── Why a fallback must not change the price ────────────────────────────────
+   Falling back to the table keeps checkout alive when a provider is sick. That
+   is right. But it silently changed the PRICE: the provider returned Hamilton
+   County's 7.8% and the table returned the store's 7.0% override, so the same
+   cart came to $48.80 or $48.48 depending on whether an API answered inside
+   three seconds. Reloading the page was, in the customer's words, a gamble.
+
+   A rate is not volatile — jurisdictions move them quarterly, not per request.
+   So the last rate a provider gave for an address is a far better answer than
+   the table when that provider is briefly unreachable: it is the SAME number
+   the shopper saw a moment ago, and it is the correct one.
+
+   Keyed by engine + jurisdiction, because two engines may legitimately disagree
+   and a cached Ohio rate must never be served for Oregon. Module scope, so it
+   lives as long as the isolate — good enough to make a reload stable, and it
+   simply misses on a cold start rather than going wrong. */
+const RATE_TTL_MS = 6 * 60 * 60 * 1000;   // 6h — far shorter than rates change
+const rateCache = new Map();
+
+function rateKey(engine, address) {
+  const zip = String(address?.zip || '').replace(/\D/g, '').slice(0, 5);
+  return engine + '|' + normalizeStateCode(address?.state) + '|' + zip;
+}
+
+function rememberRate(engine, address, rate) {
+  if (!Number.isFinite(rate) || rate <= 0) return;
+  rateCache.set(rateKey(engine, address), { rate, at: Date.now() });
+}
+
+function recallRate(engine, address) {
+  const hit = rateCache.get(rateKey(engine, address));
+  if (!hit || Date.now() - hit.at > RATE_TTL_MS) return null;
+  return hit.rate;
+}
+
 export const TAX_ENGINES = ['builtin', 'taxjar', 'ziptax', 'stripe_tax', 'external', 'none'];
 
 // ─── The built-in table ────────────────────────────────────────────────────
@@ -392,14 +427,34 @@ export async function resolveTax({ env, request, address, taxableCents, shipping
 
   try {
     const out = await adapter({ env, config, address, taxableCents, shippingCents });
+    const rate = out.rate || (taxableCents > 0 ? out.taxCents / taxableCents : 0);
+    rememberRate(config.engine, address, rate);
     return {
       taxCents: Math.max(0, out.taxCents),
-      rate: out.rate || (taxableCents > 0 ? out.taxCents / taxableCents : 0),
+      rate,
       stateCode: normalizeStateCode(address?.state),
       engine: config.engine,
     };
   } catch (err) {
     console.error('[tax] ' + config.engine + ' failed:', err.message);
+
+    /* Before the table: the last rate this provider gave for this address.
+       A three-second blip must not reprice the cart. Same jurisdiction, same
+       engine, hours old at most — it is the number the shopper was already
+       quoted, and it is more accurate than the state-level table. */
+    const cached = recallRate(config.engine, address);
+    if (cached != null && config.fallback) {
+      console.warn('[tax] using last known ' + config.engine + ' rate for this address (' + cached + ')');
+      return {
+        taxCents: taxableCents > 0 ? Math.round(taxableCents * cached) : 0,
+        rate: cached,
+        stateCode: normalizeStateCode(address?.state),
+        engine: config.engine,
+        fallbackFrom: config.engine,
+        cached: true,
+      };
+    }
+
     if (!config.fallback) {
       // Explicitly told not to guess. Zero is wrong, but it is wrong in a way
       // that shows up in the Tax page rather than silently mispricing.

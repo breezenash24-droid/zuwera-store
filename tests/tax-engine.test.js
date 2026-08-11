@@ -20,7 +20,7 @@ function loadTax(settings = {}) {
     mod,
     async () => settings,
     globalThis.fetch,
-    { error() {} },                       // quiet: failures here are the point
+    { error() {}, warn() {}, log() {} },  // quiet: failures here are the point
     setTimeout
   );
   return mod.exports;
@@ -127,6 +127,48 @@ const OHIO = { state: 'OH', zip: '45202', country: 'US', city: 'Cincinnati', lin
     const { getTaxEngineConfig } = loadTax({});
     const cfg = await getTaxEngineConfig({});
     ok('no setting at all means the table', cfg.engine === 'builtin');
+  }
+
+  /* ── a blip must not reprice the cart ─────────────────────────────────────
+     Reported by the shop owner as "every time you reload it's a gamble on
+     whether you get the best price". The same cart came to $48.80 or $48.48:
+     the provider returned Hamilton County's 7.8%, the table returned 7.0%, and
+     which one answered depended on whether an API replied inside three seconds.
+
+     Falling back keeps checkout alive and must stay. What must not stay is the
+     fallback silently CHANGING THE PRICE. */
+  console.log('\n  a provider blip does not reprice the cart');
+  {
+    const realFetch = globalThis.fetch;
+    let calls = 0;
+    globalThis.fetch = async () => {
+      calls += 1;
+      if (calls > 1) throw new Error('provider down');     // healthy once, then not
+      return new Response(JSON.stringify({ tax: { amount_to_collect: 7.8, rate: 0.078 } }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } });
+    };
+    const { resolveTax } = loadTax({ tax_engine: { engine: 'taxjar', fallback: true } });
+    globalThis.fetch = realFetch;
+
+    const env = { TAXJAR_API_KEY: 'k' };
+    const first = await resolveTax({ env, request: null, address: OHIO, taxableCents: 10000 });
+    ok('the provider prices it at its own rate', first.taxCents === 780, first.taxCents + ' cents');
+
+    const second = await resolveTax({ env, request: null, address: OHIO, taxableCents: 10000 });
+    ok('…and the same cart costs the same when the provider then fails',
+      second.taxCents === first.taxCents, first.taxCents + ' then ' + second.taxCents);
+    ok('…reusing the last known rate rather than the table',
+      second.cached === true && second.rate === 0.078, JSON.stringify({ cached: second.cached, rate: second.rate }));
+
+    /* The cache must not answer for somewhere it never priced. A remembered
+       Ohio rate applied to Oregon would be a confident wrong number, which is
+       worse than the table's honest approximation. */
+    const elsewhere = await resolveTax({
+      env, request: null, taxableCents: 10000,
+      address: { state: 'OR', zip: '97201', country: 'US', city: 'Portland', line1: '1 Main St' },
+    });
+    ok('a cached rate is never served for another jurisdiction',
+      elsewhere.cached !== true, JSON.stringify({ cached: elsewhere.cached, rate: elsewhere.rate }));
   }
 
   console.log('\n  the payment path uses it');
