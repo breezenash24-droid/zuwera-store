@@ -1048,6 +1048,12 @@ function applyStockLimits(cart) {
     cart.forEach((item, idx) => {
       const card = cards[idx];
       if (!card) return;
+      /* Clear any note from an earlier pass before adding one. renderCart runs
+         more than once per page — on load, and again when the session resolves
+         — and each run starts its own async stock lookup. Both then decorate
+         whichever DOM exists when they finish, so the note appeared twice.
+         Rebuilding the list does not help: the second lookup lands after it. */
+      card.querySelectorAll('.cart-item-stock-note').forEach((n) => n.remove());
       const available = ZWStock.stockFor(data.rows, item.productId, item.size, item.colorName);
       // null = this product has no inventory configured. Not a limit.
       if (available === null || !data.limitToStock) return;
