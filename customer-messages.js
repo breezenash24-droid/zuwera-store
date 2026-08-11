@@ -87,6 +87,22 @@
     restockSuccess: { label: 'They joined the back-in-stock list', text: "✓ We'll email you when {size} is back.", color: ROLE.good },
     restockAlready: { label: 'They were already on the list', text: "You're already on the list for this size.", color: ROLE.plain },
     restockInvalid: { label: 'The email they typed is not usable', text: 'Enter a valid email.', color: ROLE.bad },
+    /* ── signing in ───────────────────────────────────────────────────────────
+       The auth service returns its own messages, and the two below are the ones
+       a shopper actually meets: a wrong password and an address that already
+       has an account. Those were reaching the screen verbatim from Supabase and
+       could not be changed. Everything else it says still passes through as-is,
+       because a specific reason beats a generic one -- these two are mapped
+       because they are the common cases, the same reasoning as the card
+       declines. */
+    authBadCredentials: { label: 'Email or password was wrong', text: 'That email and password do not match. Try again, or reset your password below.', color: ROLE.bad },
+    authEmailInUse:     { label: 'Address already has an account', text: 'There is already an account with that email. Try logging in instead.', color: ROLE.bad },
+    authMissingFields:  { label: 'A box was left empty', text: 'Enter your email and password.', color: ROLE.bad },
+    authNeedEmail:      { label: 'Password reset with no address', text: 'Enter your email.', color: ROLE.bad },
+    authPasswordShort:  { label: 'Chosen password is too short', text: 'Password must be at least 6 characters.', color: ROLE.bad },
+    authNoConnection:   { label: 'Could not reach the login service', text: 'Connection unavailable — use the link below.', color: ROLE.bad },
+    authFailed:         { label: 'Signing in did not work', text: 'Something went wrong. Try again.', color: ROLE.bad },
+
     /* ── at checkout, refused by the server ──────────────────────────────────
        These come from the payment path, which is the code that decides whether
        money moves. They are repeated in functions/api/_messages.js because a
@@ -255,7 +271,8 @@
   var SECONDARY = {
     soldOutBadge: 1, lowStockBadge: 1, lowStockShort: 1,
     promoEmpty: 1, promoFailed: 1,
-    checkoutNoPrice: 1, checkoutRateExpired: 1, checkoutRateInvalid: 1, capReached: 1, allInBag: 1, maxedOut: 1,
+    checkoutNoPrice: 1, checkoutRateExpired: 1, checkoutRateInvalid: 1,
+    authNeedEmail: 1, authPasswordShort: 1, authNoConnection: 1, authFailed: 1, capReached: 1, allInBag: 1, maxedOut: 1,
     restockHint: 1, restockInvite: 1, restockAlready: 1, restockInvalid: 1, restockFailed: 1,
     declinePostcode: 1, declineCallBank: 1, declineNoReason: 1, declineRetry: 1,
   };
@@ -273,6 +290,7 @@
     { title: 'When stock is running low', keys: ['lowStock', 'lowStockBadge', 'lowStockShort', 'capReached'] },
     { title: 'When they already have it in their bag', keys: ['lastInBag', 'allInBag', 'maxedOut'] },
     { title: 'Back-in-stock signup', keys: ['restockHint', 'restockInvite', 'restockPrompt', 'restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed'] },
+    { title: 'Signing in', keys: ['authBadCredentials', 'authEmailInUse', 'authMissingFields', 'authNeedEmail', 'authPasswordShort', 'authNoConnection', 'authFailed'] },
     { title: 'Refused at checkout', keys: ['checkoutNotEnough', 'checkoutUnavailable', 'checkoutPriceChanged', 'checkoutNoPrice', 'checkoutRateExpired', 'checkoutRateInvalid'] },
     { title: 'Promo codes', keys: ['promoApplied', 'promoEmpty', 'promoInvalid', 'promoFailed'] },
     { title: 'When a card is declined', keys: ['declineFunds', 'declineCvc', 'declineNumber', 'declineExpired', 'declinePostcode', 'declineCallBank', 'declineNoReason', 'declineRetry', 'declined'] },
@@ -514,8 +532,43 @@
     return text;
   }
 
+
+  /* ── making sure the overrides are actually fetched ────────────────────────
+     stock-rules.js fetches /api/stock and hands the wording here, and on the
+     shopping pages that is the only request anyone should make. But the login
+     modal appears on pages that have no reason to load stock rules at all --
+     About, Journal, Policies -- and on those the wording would never arrive.
+     An admin edit applying on some pages and not others is worse than it not
+     applying anywhere, because it looks like the edit half-worked.
+
+     So: stock-rules.js CLAIMS this synchronously when it loads, and if nothing
+     has claimed it by the time the document is ready, this fetches for itself.
+     One request either way. */
+  var claimed = false;
+  function claim() { claimed = true; }
+
+  function selfFetch() {
+    if (claimed) return;
+    claimed = true;
+    try {
+      fetch('/api/stock', { cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { if (d) setOverrides(d.messages); })
+        .catch(function () { /* defaults stand — never blank a message */ });
+    } catch (_) {}
+  }
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', selfFetch, { once: true });
+    } else if (typeof setTimeout === 'function') {
+      setTimeout(selfFetch, 0);
+    }
+  }
+
   w.ZWMessages = {
     subscribe: subscribe,
+    claim: claim,
     DEFAULTS: DEFAULTS,
     PLACEHOLDERS: PLACEHOLDERS,
     ROLE: ROLE,

@@ -381,6 +381,10 @@
      load(), so the bag's own call is still a lookup rather than a second trip.
      Deferred a tick so ZWMessages (loaded immediately before this file) is
      definitely there to receive the result. */
+  /* Claimed SYNCHRONOUSLY, before the fetch below is even scheduled, so
+     customer-messages.js knows someone is going to feed it and does not
+     make a second request of its own. */
+  try { if (w.ZWMessages && w.ZWMessages.claim) w.ZWMessages.claim(); } catch (_) {}
   if (typeof setTimeout === 'function') setTimeout(function () { try { load(); } catch (_) {} }, 0);
 
   w.ZWStock = {

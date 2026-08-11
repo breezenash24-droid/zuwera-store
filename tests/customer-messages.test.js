@@ -350,6 +350,38 @@ console.log('\n  the payment path says the same things, from the same settings')
     !/is out of stock\.`/.test(co) && !/Only \$\{available\} left/.test(co));
 }
 
+console.log('\n  signing in');
+{
+  const z = strip(read('zw-login.js'));
+  ok('the login copy comes from the shared messages', /authMsg\(/.test(z));
+  ok('…and none of it is written inline any more',
+    !/Enter your email and password|Password must be at least|Connection unavailable|Something went wrong/.test(z));
+
+  /* The auth service's own message is usually the most useful thing available,
+     so it passes through — except for the two cases a shopper actually meets,
+     which were reaching the screen verbatim from Supabase and could not be
+     changed by anyone. */
+  ok('a wrong password maps onto an editable message', /invalid login credentials/i.test(z));
+  ok('an address that already has an account does too', /already registered/i.test(z));
+  ok('…and anything else the service says still passes through',
+    /return raw \|\|/.test(z), 'a specific reason would be replaced by a generic one');
+
+  /* The login modal appears on pages with no reason to load stock rules, so the
+     wording has to reach them too. An edit that applies on some pages and not
+     others looks like it half-worked, which is worse than not applying. */
+  const pages = ['about.html', 'journal.html', 'policies.html', 'returns.html', 'sizeguide.html', 'landing.html'];
+  for (const page of pages) {
+    const src = read(page);
+    if (!/zw-login\.js/.test(src)) continue;
+    ok(page + ' has the wording the login modal needs',
+      /<script[^>]+src="[^"]*customer-messages\.js/.test(src));
+  }
+  ok('…and the module fetches for itself when nothing else will',
+    /function selfFetch/.test(read('customer-messages.js')));
+  ok('…without a second request where stock-rules.js is already fetching',
+    /ZWMessages\.claim/.test(read('stock-rules.js')));
+}
+
 console.log('\n  a coupon can still speak for itself');
 {
   /* validate-promo returns a per-code message where one is set in admin —

@@ -255,6 +255,24 @@
   }
   function busy(btn, on, label) { if (!btn) return; btn.disabled = on; btn.textContent = on ? '…' : label; }
 
+
+  /* Wording from the shared messages (customer-messages.js), editable in
+     Admin -> Loyalty -> Customer messages. */
+  function authMsg(key, vars) {
+    try { return window.ZWMessages.get(key, vars); } catch (_) { return ''; }
+  }
+
+  /* The auth service's own message, mapped onto ours where it is one of the two
+     cases a shopper actually meets. Anything else passes through unchanged: a
+     specific reason beats a generic one, and Supabase's other messages are
+     already written for people rather than for integrators. */
+  function authError(err, fallbackKey) {
+    var raw = String((err && err.message) || '').trim();
+    if (/invalid login credentials|invalid email or password/i.test(raw)) return authMsg('authBadCredentials');
+    if (/already registered|already exists|user already/i.test(raw)) return authMsg('authEmailInUse');
+    return raw || authMsg(fallbackKey) || authMsg('authFailed');
+  }
+
   function client() { return window.sb || null; }
 
   async function doSignin(btn) {
@@ -262,16 +280,16 @@
     setErr('signin', '');
     var email = (el('#zwlg-si-email') || {}).value || '';
     var pw = (el('#zwlg-si-pw') || {}).value || '';
-    if (!email || !pw) { setErr('signin', 'Enter your email and password.'); return; }
+    if (!email || !pw) { setErr('signin', authMsg('authMissingFields')); return; }
     if (!sb && window.zwEnsureSupabase) { try { sb = await window.zwEnsureSupabase(); } catch (_) {} }
-    if (!sb) { setErr('signin', 'Connection unavailable — use the link below.'); return; }
+    if (!sb) { setErr('signin', authMsg('authNoConnection')); return; }
     busy(btn, true, 'Login');
     try {
       var res = await sb.auth.signInWithPassword({ email: email.trim(), password: pw });
-      if (res.error) { setErr('signin', res.error.message || 'Could not login.'); busy(btn, false, 'Login'); return; }
+      if (res.error) { setErr('signin', authError(res.error, 'authFailed')); busy(btn, false, 'Login'); return; }
       location.reload();
     } catch (e) {
-      setErr('signin', (e && e.message) || 'Something went wrong.');
+      setErr('signin', authError(e, 'authFailed'));
       busy(btn, false, 'Login');
     }
   }
@@ -282,10 +300,10 @@
     var name = (el('#zwlg-su-name') || {}).value || '';
     var email = (el('#zwlg-su-email') || {}).value || '';
     var pw = (el('#zwlg-su-pw') || {}).value || '';
-    if (!email || !pw) { setErr('signup', 'Enter your email and a password.'); return; }
-    if (pw.length < 6) { setErr('signup', 'Password must be at least 6 characters.'); return; }
+    if (!email || !pw) { setErr('signup', authMsg('authMissingFields')); return; }
+    if (pw.length < 6) { setErr('signup', authMsg('authPasswordShort')); return; }
     if (!sb && window.zwEnsureSupabase) { try { sb = await window.zwEnsureSupabase(); } catch (_) {} }
-    if (!sb) { setErr('signup', 'Connection unavailable — use the link below.'); return; }
+    if (!sb) { setErr('signup', authMsg('authNoConnection')); return; }
     busy(btn, true, 'Create Account');
     try {
       var res = await sb.auth.signUp({
@@ -293,11 +311,11 @@
         password: pw,
         options: { data: { full_name: name.trim() }, emailRedirectTo: location.origin + '/account.html' }
       });
-      if (res.error) { setErr('signup', res.error.message || 'Could not create account.'); busy(btn, false, 'Create Account'); return; }
+      if (res.error) { setErr('signup', authError(res.error, 'authFailed')); busy(btn, false, 'Create Account'); return; }
       var ok = el('[data-ok="signup"]'); if (ok) ok.style.display = 'block';
       busy(btn, false, 'Create Account');
     } catch (e) {
-      setErr('signup', (e && e.message) || 'Something went wrong.');
+      setErr('signup', authError(e, 'authFailed'));
       busy(btn, false, 'Create Account');
     }
   }
@@ -306,16 +324,16 @@
     var sb = client();
     setErr('forgot', '');
     var email = (el('#zwlg-fp-email') || {}).value || '';
-    if (!email) { setErr('forgot', 'Enter your email.'); return; }
+    if (!email) { setErr('forgot', authMsg('authNeedEmail')); return; }
     if (!sb && window.zwEnsureSupabase) { try { sb = await window.zwEnsureSupabase(); } catch (_) {} }
-    if (!sb) { setErr('forgot', 'Connection unavailable — use the link below.'); return; }
+    if (!sb) { setErr('forgot', authMsg('authNoConnection')); return; }
     busy(btn, true, 'Send Reset Link');
     try {
       await sb.auth.resetPasswordForEmail(email.trim(), { redirectTo: location.origin + '/account.html' });
       var ok = el('[data-ok="forgot"]'); if (ok) ok.style.display = 'block';
       busy(btn, false, 'Send Reset Link');
     } catch (e) {
-      setErr('forgot', (e && e.message) || 'Something went wrong.');
+      setErr('forgot', authError(e, 'authFailed'));
       busy(btn, false, 'Send Reset Link');
     }
   }
