@@ -574,5 +574,106 @@ console.log('\n  a rule reads as a sentence');
   ok('…and the rest are named rather than hidden', /planned, but not built yet/.test(adm));
 }
 
+console.log('\n  asking, when a limit says no');
+{
+  const NOW = Date.parse('2026-08-11T12:00:00Z');
+  const rule = { id: 'refund_max', action: 'refund', attr: 'resource.amount', op: 'lte', value: 100,
+                 label: 'Above your refunds limit.' };
+  const ctx = (over, extra) => Object.assign({
+    action: 'refund',
+    resource: { amount: over, orderId: 'ord_1' },
+    subject: { id: 'u1', email: 'nash@shop.com', role: 'manager' },
+    now: NOW,
+  }, extra || {});
+  const grant = (over) => Object.assign({
+    id: 'w1', status: 'approved', action: 'refund', ruleId: 'refund_max',
+    resourceId: 'ord_1', forId: 'u1', amount: 600,
+    expiresAt: new Date(NOW + 3600e3).toISOString(),
+  }, over || {});
+
+  ok('without a waiver the limit still refuses', can(true, [rule], ctx(600)).allow === false);
+  ok('a granted waiver lets that one through', can(true, [rule], ctx(600, { waivers: [grant()] })).allow === true);
+  ok('…and says so, so the log does not read like the limit never applied',
+    can(true, [rule], ctx(600, { waivers: [grant()] })).reason === 'a limit was waived for this one');
+  ok('…and names the one to spend',
+    can(true, [rule], ctx(600, { waivers: [grant()] })).usedWaiver === 'w1');
+
+  /* Each of these is a way the waiver could have become a standing
+     exemption. Every field has to match, and a missing one is a no-match
+     rather than a wildcard. */
+  ok('a pending request is not an approval',
+    can(true, [rule], ctx(600, { waivers: [grant({ status: 'pending' })] })).allow === false);
+  ok('a declined one is not either',
+    can(true, [rule], ctx(600, { waivers: [grant({ status: 'declined' })] })).allow === false);
+  ok('a spent waiver does not work twice',
+    can(true, [rule], ctx(600, { waivers: [grant({ usedAt: '2026-08-11T11:00:00Z' })] })).allow === false);
+  ok('an expired one stops working',
+    can(true, [rule], ctx(600, { waivers: [grant({ expiresAt: new Date(NOW - 1).toISOString() })] })).allow === false);
+  ok('one with no expiry at all is not immortal by omission',
+    can(true, [rule], ctx(600, { waivers: [grant({ expiresAt: undefined })] })).allow === true,
+    'an absent expiry is allowed — the endpoint always sets one — but it must be a deliberate read');
+  ok('somebody else cannot use your approval',
+    can(true, [rule], ctx(600, { waivers: [grant({ forId: 'u2' })] })).allow === false);
+  ok('it does not carry to another order',
+    can(true, [rule], ctx(600, { waivers: [grant({ resourceId: 'ord_9' })] })).allow === false);
+  ok('it does not carry to another limit',
+    can(true, [rule], ctx(600, { waivers: [grant({ ruleId: 'refund_items_max' })] })).allow === false);
+
+  /* The one that turns "approve $600" into "approve this order". */
+  ok('approving an amount does not approve a bigger one',
+    can(true, [rule], ctx(6000, { waivers: [grant({ amount: 600 })] })).allow === false);
+
+  /* Two limits refusing is two decisions. A yes to one is not a yes to all. */
+  const second = { id: 'refund_items_max', action: 'refund', attr: 'resource.itemCount', op: 'lte', value: 2,
+                   label: 'Too many items.' };
+  const both = ctx(600, { waivers: [grant()] });
+  both.resource.itemCount = 9;
+  ok('waiving one limit does not waive another',
+    can(true, [rule, second], both).allow === false,
+    'the loop must carry on rather than returning allow on the first waiver');
+
+  /* THE contract. A waiver is read only after rbacAllowed was true, so the
+     most it can restore is what the role already granted. */
+  ok('a waiver cannot grant what the role never had',
+    can(false, [rule], ctx(600, { waivers: [grant()] })).allow === false,
+    'if this ever passes, an approval has become a way to hand out permissions');
+
+  const fs8 = require('fs');
+  const R8 = require('path').resolve(__dirname, '..') + '/';
+  const com = fs8.readFileSync(R8 + 'functions/api/_commerce.js', 'utf8');
+  const req = fs8.readFileSync(R8 + 'functions/api/abac-request.js', 'utf8');
+
+  /* Spent BEFORE the action it permits. A refund that fails partway would
+     otherwise leave the waiver live, and "approved once" would quietly mean
+     "approved until it works". */
+  ok('the waiver is spent inside the decision, not by the caller',
+    /if \(verdict\.allow && verdict\.usedWaiver\)/.test(com));
+  ok('…and failing to spend it refuses rather than proceeding',
+    /Could not record the approval being used/.test(com),
+    'an unburnable waiver is an approval that never runs out');
+
+  /* Scoped to the function body. Matching the whole file found the word in a
+     comment thirty lines above and passed for the wrong reason — which is the
+     same class of mistake as the assertion it is making. */
+  const decideBody = com.slice(com.indexOf('export async function decide'),
+                               com.indexOf('export async function verifyAdminCan'));
+  ok('an endpoint cannot pass its own waivers',
+    decideBody.indexOf('...ctx') < decideBody.indexOf('\n    waivers,'),
+    'spread after ctx, like subject, or a caller could waive anything');
+
+  /* The requester builds none of the record that matters. */
+  ok('a request is always created pending', /status: 'pending',/.test(req));
+  ok('only a super admin answers one', /permsHave\(admin\.permissions, 'role_manage'\)/.test(req));
+  ok('nobody answers their own', /You cannot approve your own request/.test(req));
+  ok('asking twice is one ask', /r\.status === 'pending'/.test(req) && /dupe !== -1/.test(req));
+  ok('an approval expires', /WAIVER_TTL_MS/.test(req) && /expiresAt: approve \?/.test(req));
+
+  /* Requests and approvals are one list. Two would eventually disagree about
+     whether something was approved, with the authorization system reading
+     one of them. */
+  ok('requests and approvals are the same record',
+    /ABAC_REQUESTS_KEY/.test(req) && /ABAC_REQUESTS_KEY/.test(com));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
