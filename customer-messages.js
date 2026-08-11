@@ -178,6 +178,36 @@
 
 
 
+
+  /* The colours worth offering as a choice, named for what they MEAN rather
+     than for what they look like. A store picking "Alert" gets whatever this
+     theme's alert red is, on every message, instead of three hand-typed reds
+     that drift apart.
+
+     Each message's shipped `color` is one of these, and that is the
+     RECOMMENDATION -- the editor marks it as such and can put it back. Anything
+     else is still allowed: the box takes any CSS colour. */
+  var PALETTE = [
+    { name: 'Normal', value: ROLE.plain, note: 'follows the surrounding text' },
+    { name: 'Positive', value: ROLE.good, note: 'good news' },
+    { name: 'Alert', value: ROLE.bad, note: 'something is wrong or blocked' },
+  ];
+
+  /** The colour we recommend for this message, i.e. the one it ships with. */
+  function recommendedColor(key) {
+    var d = DEFAULTS[key];
+    return d ? d.color : '';
+  }
+
+  /** The palette entry a colour corresponds to, or null for a custom one. */
+  function paletteName(value) {
+    var v = String(value == null ? '' : value).trim();
+    for (var i = 0; i < PALETTE.length; i += 1) {
+      if (PALETTE[i].value === v) return PALETTE[i].name;
+    }
+    return null;
+  }
+
   /* Which messages the editor keeps out of the way.
      Anything NOT listed here is shown straight away, so a message added later
      is visible by default -- the failure mode of the other arrangement is a new
@@ -453,6 +483,9 @@
     groups: groups,
     has: has,
     isMain: isMain,
+    PALETTE: PALETTE,
+    recommendedColor: recommendedColor,
+    paletteName: paletteName,
     SAMPLE: SAMPLE,
     render: render,
     declineKey: declineKey,

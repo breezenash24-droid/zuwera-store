@@ -270,6 +270,25 @@ console.log('\n  the editor describes each message in words, and inserts the val
   ok('render() and get() share one substitution',
     M.render('Only {count} left in stock') === M.get('lowStock', M.SAMPLE));
 
+  /* Colour is offered as named MEANINGS, so a store picking "Alert" gets this
+     theme's alert red everywhere rather than three hand-typed reds. */
+  ok('the palette is named for meaning, not for hue',
+    M.PALETTE.every((p) => /^[A-Z]/.test(p.name) && typeof p.value === 'string'));
+  ok('every message recommends a colour from that palette',
+    M.keys().every((k) => M.paletteName(M.recommendedColor(k)) !== null),
+    'a message ships a colour nobody can pick from the editor');
+  ok('the recommendation is the shipped colour',
+    M.recommendedColor('soldOutInBag') === M.DEFAULTS.soldOutInBag.color);
+  ok('…and reads as Alert for the one that blocks checkout',
+    M.paletteName(M.recommendedColor('soldOutInBag')) === 'Alert');
+  ok('…and as Positive for good news',
+    M.paletteName(M.recommendedColor('restockSuccess')) === 'Positive');
+  ok('a custom colour is still allowed', M.validateColor('#ff8800') === null);
+
+  ok('the editor marks the recommended one', /recommended/.test(admin));
+  ok('…and offers the palette rather than a blank box', /cm-swatch-btn/.test(admin));
+  ok('…while keeping free text for a brand colour', /or any CSS colour/.test(admin));
+
   ok('the colour box says what it accepts',
     /rgb\(220,38,38\)/.test(read('admin.html')), 'no format hint for the colour field');
 }
