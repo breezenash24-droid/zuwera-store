@@ -259,5 +259,33 @@ console.log('\n  and they are buttons, not console commands');
     'the originals are the safety net, and only work if somebody looks');
 }
 
+
+/* ── the migration has to be able to carry video ──────────────────────────
+   Its first real run moved nothing. The R2 endpoint accepted four image types
+   and refused everything else, so both videos came back 400 — which is also why
+   they were on Supabase to begin with: refused here, they went there instead,
+   where every play is billed.
+
+   The failure was reported as "Moved 0 file(s)" with the reason in a console
+   nobody had open. Both halves are fixed: video is allowed, and a per-file
+   refusal is shown on the page. */
+console.log('\n  video can reach R2, and a refusal says why');
+{
+  const up = fs.readFileSync(R + 'functions/api/upload-product-image.js', 'utf8');
+  ok('the upload endpoint accepts video', /ALLOWED_VIDEO_TYPES/.test(up));
+  ok('…mp4, webm and mov', ['video/mp4', 'video/webm', 'video/quicktime'].every((t) => up.includes(t)));
+  ok('…with a cap of its own, since a hero clip is legitimately large',
+    /MAX_VIDEO_BYTES/.test(up) && /MAX_IMAGE_BYTES/.test(up),
+    'one cap for both means either images go unchecked or video is refused');
+  ok('…and images stay capped tight', up.includes('6 * 1024 * 1024'));
+  ok('a refusal names the type it got', up.includes('Got: '),
+    '"not allowed" without saying what arrived is a dead end');
+
+  const a = fs.readFileSync(R + 'admin-main.js', 'utf8');
+  ok('a failed file is returned, not only logged', /done\.failed = failed/.test(a));
+  ok('…and shown on the page with its reason', /could not be moved/.test(a));
+  ok('…while saying the file itself is untouched', /nothing about them changed/.test(a));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

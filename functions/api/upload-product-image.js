@@ -4,8 +4,15 @@ const DEFAULT_ADMIN_EMAILS = [
 ];
 
 const DEFAULT_ADMIN_USER_IDS = [];
-const MAX_UPLOAD_BYTES = 6 * 1024 * 1024;
-const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+/* Images are capped tight because nothing here needs a 6MB photo — the admin
+   downscales before upload, and anything bigger is a mistake worth catching.
+   Video gets its own, larger cap: a hero clip is legitimately tens of
+   megabytes, and the alternative is what actually happened — video refused
+   here, so it went to Supabase Storage instead, where every play is billed. */
+const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const ALLOWED_VIDEO_TYPES = new Set(['video/mp4', 'video/webm', 'video/quicktime']);
 const EMPTY_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 
 function json(body, status = 200) {
@@ -108,6 +115,9 @@ function extensionForType(type, fallbackName = '') {
   if (type === 'image/png') return 'png';
   if (type === 'image/webp') return 'webp';
   if (type === 'image/gif') return 'gif';
+  if (type === 'video/mp4') return 'mp4';
+  if (type === 'video/webm') return 'webm';
+  if (type === 'video/quicktime') return 'mov';
   const ext = String(fallbackName).split('.').pop()?.toLowerCase();
   return ext && /^[a-z0-9]+$/.test(ext) ? ext : 'webp';
 }
@@ -288,12 +298,19 @@ export async function onRequestPost({ request, env }) {
       return json({ success: false, error: 'Missing image file.' }, 400);
     }
 
-    if (!ALLOWED_TYPES.has(file.type)) {
-      return json({ success: false, error: 'Only JPEG, PNG, WebP, and GIF images are allowed.' }, 400);
+    const isVideo = ALLOWED_VIDEO_TYPES.has(file.type);
+    if (!ALLOWED_IMAGE_TYPES.has(file.type) && !isVideo) {
+      return json({ success: false, error: 'Allowed: JPEG, PNG, WebP, GIF, MP4, WebM, MOV. Got: ' + (file.type || 'unknown') }, 400);
     }
 
-    if (file.size > MAX_UPLOAD_BYTES) {
-      return json({ success: false, error: 'Image is still too large after compression. Please use an image under 6 MB.' }, 413);
+    const cap = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+    if (file.size > cap) {
+      return json({
+        success: false,
+        error: isVideo
+          ? 'Video is too large. The limit is 100 MB — trim or re-encode it first.'
+          : 'Image is still too large after compression. Please use an image under 6 MB.',
+      }, 413);
     }
 
     const now = new Date();

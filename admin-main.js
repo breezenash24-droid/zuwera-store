@@ -8934,6 +8934,7 @@ function escapeAttr(value) {
             }
 
             const done = [];
+            const failed = [];
             for (const f of targets) {
                 try {
                     const blob = await (await fetch(f.url, { cache: 'no-store' })).blob();
@@ -8978,10 +8979,17 @@ function escapeAttr(value) {
                     console.log('  ✓ ' + f.name + ' → R2 (' + rewrote + ' setting(s) repointed)');
                     done.push(f.name);
                 } catch (e) {
-                    console.error('  ✗ ' + f.name + ' — ' + (e && e.message || e) + ' (left untouched)');
+                    const why = (e && e.message) || String(e);
+                    console.error('  ✗ ' + f.name + ' — ' + why + ' (left untouched)');
+                    failed.push({ name: f.name, why: why });
                 }
             }
             console.log('Moved ' + done.length + ' of ' + targets.length + '.');
+            /* Returned, not just logged. "Moved 0 file(s)" with the reason in a
+               console nobody opened is a dead end — the first real run of this
+               hit exactly that, because the upload endpoint refused video and
+               said so somewhere the person clicking the button could not see. */
+            done.failed = failed;
             console.log('The originals are still on Supabase. Check the site renders, then run zwDeleteOrphans() — ' +
                         'they will now scan as unreferenced.');
             return done;
@@ -9086,12 +9094,24 @@ function escapeAttr(value) {
                     ? await zwMigrateToR2({ confirm: true })
                     : await zwDeleteOrphans({ confirm: true });
                 const n = (done || []).length;
-                host.innerHTML = '<p style="font-size:.85rem;color:rgba(110,210,130,.95)">'
-                    + (kind === 'migrate'
-                        ? 'Moved ' + n + ' file(s). <strong>Open your homepage and check the video still plays</strong> — '
-                          + 'then come back and delete the unused files, which will now include the originals.'
-                        : 'Deleted ' + n + ' file(s).')
-                    + '</p>';
+                const bad = (done && done.failed) || [];
+                const esc2 = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                host.innerHTML =
+                    (n ? '<p style="font-size:.85rem;color:rgba(110,210,130,.95)">'
+                        + (kind === 'migrate'
+                            ? 'Moved ' + n + ' file(s). <strong>Open your homepage and check the video still plays</strong> — '
+                              + 'then come back and delete the unused files, which will now include the originals.'
+                            : 'Deleted ' + n + ' file(s).')
+                        + '</p>' : '')
+                    + (bad.length
+                        ? '<div style="border:1px solid var(--red,#dc2626);border-radius:8px;padding:12px 14px;margin-top:8px">'
+                          + '<strong style="font-size:.85rem;color:var(--red,#dc2626)">'
+                          + bad.length + ' file(s) could not be moved — nothing about them changed</strong>'
+                          + '<ul style="margin:8px 0 0;padding-left:1.1rem;font-size:.78rem;color:var(--text-secondary)">'
+                          + bad.map((b) => '<li>' + esc2(b.name) + ' — ' + esc2(b.why) + '</li>').join('')
+                          + '</ul></div>'
+                        : '')
+                    + (!n && !bad.length ? '<p style="font-size:.85rem;color:var(--text-secondary)">Nothing to do.</p>' : '');
                 zwMediaPanel();
             } catch (e) {
                 host.innerHTML = '<p style="color:var(--red,#dc2626);font-size:.82rem">Stopped: '
