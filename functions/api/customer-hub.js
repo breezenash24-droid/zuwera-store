@@ -10,6 +10,7 @@ import {
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { returnEligibility, reconcileReturnItems, spokenForOn } from './_returns.js';
 import { orderNo } from './_order-no.js';
+import { messagesFrom } from './_messages.js';
 
 // ─── Loops subscriber sync ─────────────────────────────────────────────────────
 // Called after save_profile — syncs the customer into Loops if they consented to marketing.
@@ -102,9 +103,13 @@ export async function onRequestGet({ request, env }) {
        rule — which is to say they had none — and a rule the display and the
        endpoint each decide separately is a rule they will eventually disagree
        about, with the customer seeing the generous half. */
+    /* The store's own wording for every refusal below. Built once from the
+       bundle already loaded, so no extra settings read. */
+    const say = messagesFrom(bundle.config);
+
     const enrichedOrders = (orders || []).map((order) => {
       const merged = mergeOrderWithOps(order, bundle.orderOps, returnsRequests);
-      const eligible = returnEligibility(merged, returnsRequests);
+      const eligible = returnEligibility(merged, returnsRequests, say);
       return { ...merged, returnable: eligible.ok, returnBlockedReason: eligible.reason || '' };
     });
 
@@ -202,7 +207,8 @@ export async function onRequestPost({ request, env }) {
       const myRequests = Array.isArray(submitBundle.returnsState?.requests)
         ? submitBundle.returnsState.requests.filter((r) => r && r.userId === user.id)
         : [];
-      const eligible = returnEligibility(matchedOrder, myRequests);
+      const say = messagesFrom(submitBundle.config);
+      const eligible = returnEligibility(matchedOrder, myRequests, say);
       if (!eligible.ok) {
         return json({ success: false, error: eligible.reason, code: eligible.code }, 409, cors(env));
       }
@@ -239,8 +245,8 @@ export async function onRequestPost({ request, env }) {
             return json({
               success: false,
               error: rejected.length
-                ? 'Those items are not available to return on this order.'
-                : 'Choose at least one item to return.',
+                ? say('returnItemsInvalid')
+                : say('returnNoItems'),
               code: 'items_invalid',
             }, 409, cors(env));
           }

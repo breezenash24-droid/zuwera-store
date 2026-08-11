@@ -17,7 +17,12 @@ function ok(name, cond, detail) {
    are CommonJS, and stripping `export` is cheaper than a build step. */
 const RSRC = fs.readFileSync(ROOT + 'functions/api/_returns.js', 'utf8');
 const { returnEligibility, isLiveRequest, itemKey, reconcileReturnItems, spokenForOn, lineQty } = new Function(
-  RSRC.replace(/^export\s+/gm, '')
+  /* _returns.js now imports the shipped wording from _messages.js. new
+     Function() cannot take an import, so the line is swapped for a stub — the
+     text itself is covered by tests/customer-messages.test.js, which compares
+     both copies of it character for character. */
+  RSRC.replace(/^import .*$/gm, 'const shippedMessages = (k) => String(k);')
+      .replace(/^export\s+/gm, '')
   + '\n;return { returnEligibility, isLiveRequest, itemKey, reconcileReturnItems, spokenForOn, lineQty };')();
 
 const ORDER = { id: 'ord_1', status: 'paid', items: [
@@ -29,8 +34,11 @@ console.log('\n  an order with nothing left to give back');
 {
   ok('a refunded order cannot be returned',
     returnEligibility({ ...ORDER, status: 'refunded' }, []).ok === false);
-  ok('…and says why, in words a customer can act on',
-    /nothing left to return/.test(returnEligibility({ ...ORDER, status: 'refunded' }, []).reason));
+  /* The wording is editable copy now, so this asserts WHICH message is used,
+     not what it says — the text itself lives in customer-messages.js and is
+     compared against the Worker's copy by tests/customer-messages.test.js. */
+  ok('…and says why, from the editable copy',
+    returnEligibility({ ...ORDER, status: 'refunded' }, []).reason === 'returnAlreadyRefunded');
   ok('a cancelled order cannot be returned',
     returnEligibility({ ...ORDER, status: 'cancelled' }, []).ok === false);
   /* American and British spellings both reach this code path depending on who
@@ -46,7 +54,7 @@ console.log('\n  one conversation at a time');
   ok('a second request while one is open is refused',
     returnEligibility(ORDER, open).ok === false);
   ok('…pointing at the one they already have',
-    /already have a request open/.test(returnEligibility(ORDER, open).reason));
+    returnEligibility(ORDER, open).reason === 'returnAlreadyOpen');
 
   /* Denied releases the items — they were told no and may ask again. */
   ok('a denied request does not block a new one',
@@ -75,7 +83,7 @@ console.log('\n  the item, not just the order');
   const bothDone = [{ orderId: 'ord_1', status: 'refunded', returnItems: ORDER.items }];
   ok('…and when none are left, the order is refused',
     returnEligibility(ORDER, bothDone).ok === false);
-  ok('…saying so', /already been returned or refunded/.test(returnEligibility(ORDER, bothDone).reason));
+  ok('…saying so', returnEligibility(ORDER, bothDone).reason === 'returnItemsSpent');
 
   ok('size and colour are part of what makes an item',
     itemKey({ name: 'Aero Pro', size: 'S', color: 'Yellow' })
@@ -92,7 +100,7 @@ console.log('\n  and it is wired to the things that decide');
   const hubjs = fs.readFileSync(ROOT + 'customer-hub.js', 'utf8');
 
   /* Ownership was the only check. That is how the second request got in. */
-  ok('the endpoint refuses an ineligible return', /returnEligibility\(matchedOrder, myRequests\)/.test(hub));
+  ok('the endpoint refuses an ineligible return', /returnEligibility\(matchedOrder, myRequests, say\)/.test(hub));
   ok('…and the pages read the same answer rather than their own',
     /returnable: eligible\.ok/.test(hub) && /o\.returnable !== false/.test(hubjs)
       && /o\.returnable === false/.test(acct));
