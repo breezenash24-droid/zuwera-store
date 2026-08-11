@@ -257,14 +257,52 @@ async function postJSON(url, body) {
   throw err;
 }
 
+/* The token the server will be asked to believe.
+ *
+ * A member's cart came to $35 on one load and $40 on the next. The storefront
+ * decides membership by asking "is there a session object?" — a presence check
+ * that an expired session still passes — while the server calls /auth/v1/user
+ * and asks "is this token VALID?". Those are different questions, and they
+ * disagree the moment an access token expires (Supabase issues them for about
+ * an hour) while the cached session object lives on.
+ *
+ * It alternated rather than failing outright because the refresh is racing the
+ * checkout: getSession() kicks off a renewal when the token is stale, but it
+ * resolves with whatever it has. Win the race and the quote carries a fresh
+ * token and member pricing; lose it and the same cart is quoted at full price.
+ * Reloading re-ran the race, which is why the price appeared to be a coin toss.
+ *
+ * So this refuses to hand back a token the server would reject: anything
+ * expired, or close enough to expiry that it may lapse in flight, is renewed
+ * FIRST and the new one returned. A quote is worth a round trip — being quoted
+ * the wrong price is worse than waiting for it. */
+const TOKEN_SAFETY_WINDOW_S = 120;
+
 async function getCheckoutAuthPayload() {
   const sb = window.sb || window._sb || null;
   if (!sb?.auth?.getSession) return { accessToken: '' };
+
   const result = await sb.auth.getSession().catch(() => null);
-  const session = result?.data?.session || null;
-  return {
-    accessToken: session?.access_token || '',
-  };
+  let session = result?.data?.session || null;
+  if (!session?.access_token) return { accessToken: '' };
+
+  /* expires_at is epoch SECONDS. Treating a missing value as "renew" is the
+     safe reading: an unknown expiry we cannot check is exactly the case that
+     has been silently costing members their discount. */
+  const expiresAt = Number(session.expires_at) || 0;
+  const secondsLeft = expiresAt ? expiresAt - Math.floor(Date.now() / 1000) : -1;
+
+  if (secondsLeft < TOKEN_SAFETY_WINDOW_S && typeof sb.auth.refreshSession === 'function') {
+    const refreshed = await sb.auth.refreshSession().catch(() => null);
+    const next = refreshed?.data?.session || null;
+    /* Keep the old token when the refresh fails. It is probably stale, so the
+       server will price this as a guest — but that is the pre-existing
+       behaviour, and dropping the token outright would guarantee it. */
+    if (next?.access_token) session = next;
+    else console.warn('[checkout] session refresh failed — pricing may fall back to guest rates');
+  }
+
+  return { accessToken: session.access_token || '' };
 }
 
 // ===================== LIVE CATALOG REPRICE =====================
