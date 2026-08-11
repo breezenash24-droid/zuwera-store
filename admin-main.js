@@ -4596,6 +4596,15 @@
                         +   '</div>'
                         +   colourUI(key, def, colr)
                         +   tokenUI
+                        +   /* Which screens this reaches. The editor is organised by
+                               SITUATION and the map by SCREEN, so without this
+                               there is no way to answer "where are the login
+                               messages?" from in here -- and several messages
+                               appear on more than one screen, which is the thing
+                               a store owner most needs to know before editing. */
+                            '<div style="font-size:.68rem;color:var(--text-secondary);margin:8px 0 0">'
+                        +     'Appears on: ' + esc((M.surfacesFor ? M.surfacesFor(key) : []).join(' · ') || 'nowhere yet')
+                        +   '</div>'
                         +   '<div style="display:flex;gap:8px;align-items:baseline;margin:8px 0 0">'
                         +     '<span style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);flex:none">Shopper sees</span>'
                         +     '<span class="cm-preview" style="font-size:.85rem"></span>'
@@ -4760,6 +4769,17 @@
            sheet: change a message, reopen this, and see it in place on every
            screen it reaches. Clicking one jumps to its editor row, opening
            whichever group and toggle it is hiding behind. */
+        /* ── The map ──────────────────────────────────────────────────────────
+           A picture of each screen with the real wording in the place it
+           appears, because "where does this show up?" is a question about
+           layout and a list of sentences cannot answer it.
+
+           The CHROME of each mockup is hand-drawn here -- a picture of a screen
+           is inherently bespoke -- but every word inside it comes from
+           ZWMessages, so what you are looking at is the live copy in position.
+           Change a message, reopen this, and read it back where a shopper meets
+           it. A test asserts every message a surface claims actually appears in
+           that surface's drawing, so a mockup cannot quietly stop showing one. */
         function renderMessageMap() {
             const host = document.getElementById('cm-map');
             const M = window.ZWMessages;
@@ -4768,32 +4788,142 @@
             const esc = (str) => String(str == null ? '' : str)
                 .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+            /* One message, in place, clickable. The dashed outline says "this
+               text is a setting" without pretending to be part of the design. */
+            const slot = (key, extra) => {
+                if (!M.has(key)) return '';
+                const text = M.get(key, M.SAMPLE) || '(empty)';
+                const colour = M.color(key);
+                return '<button type="button" class="cm-map-line" data-key="' + esc(key) + '"'
+                    + ' title="' + esc(M.DEFAULTS[key].label || key) + ' — click to edit"'
+                    + ' style="display:block;width:100%;text-align:left;cursor:pointer;font:inherit;'
+                    +   'border:1px dashed var(--accent,#F891A5);border-radius:3px;background:transparent;'
+                    +   'padding:4px 6px;margin:3px 0;font-size:.72rem;line-height:1.45;'
+                    +   'color:' + esc(colour || 'inherit') + ';' + (extra || '') + '">'
+                    +   esc(text)
+                    + '</button>';
+            };
+            const many = (keys) => keys.map((k) => slot(k)).join('');
+
+            /* Shared bits of chrome, so the drawings look like one storefront
+               rather than six unrelated sketches. */
+            const D = {
+                shell: (inner) => '<div style="background:var(--bg-primary);border:1px solid var(--border);'
+                    + 'border-radius:6px;padding:12px;font-size:.72rem;color:var(--text-primary)">' + inner + '</div>',
+                title: (t) => '<div style="font-weight:800;text-transform:uppercase;letter-spacing:.02em;font-size:.78rem">' + t + '</div>',
+                sub: (t) => '<div style="color:var(--text-secondary);font-size:.68rem;margin-top:2px">' + t + '</div>',
+                chip: (t, gone) => '<span style="display:inline-block;border:1px solid var(--border);border-radius:2px;'
+                    + 'padding:2px 7px;margin:0 4px 4px 0;font-size:.68rem;'
+                    + (gone ? 'opacity:.4;text-decoration:line-through' : '') + '">' + t + '</span>',
+                btn: (t, off) => '<div style="background:var(--text-primary);color:var(--bg-primary);text-align:center;'
+                    + 'padding:6px;border-radius:3px;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;'
+                    + 'margin:6px 0;' + (off ? 'opacity:.35' : '') + '">' + t + '</div>',
+                field: (t) => '<div style="border:1px solid var(--border);border-radius:3px;padding:5px 7px;'
+                    + 'color:var(--text-secondary);font-size:.68rem;margin:4px 0">' + t + '</div>',
+                photo: (h) => '<div style="height:' + (h || 58) + 'px;background:var(--bg-secondary);'
+                    + 'border:1px solid var(--border);border-radius:3px"></div>',
+                rule: () => '<div style="height:1px;background:var(--border);margin:8px 0"></div>',
+                note: (t) => '<div style="font-size:.64rem;color:var(--text-secondary);margin:6px 0 2px;'
+                    + 'text-transform:uppercase;letter-spacing:.06em">' + t + '</div>',
+            };
+
+            /* One drawing per surface, keyed by the name the module gives it. */
+            const MOCKUPS = {
+                'Product page': () => D.shell(''
+                    + D.title('Zuwera Aero Pro') + D.sub('$40.00 · Yellow')
+                    + '<div style="margin:8px 0 4px">' + D.chip('S') + D.chip('M') + D.chip('L', true) + D.chip('XL') + '</div>'
+                    + D.note('Under the sizes')
+                    + many(['soldOut', 'lowStock', 'lastInBag', 'allInBag'])
+                    + slot('lowStockBadge')
+                    + D.btn('Add to Bag')
+                    + D.note('Toast, when Add to Bag cannot')
+                    + many(['maxedOut', 'soldOutItem'])
+                    + D.rule()
+                    + D.note('Tapping the struck-through size')
+                    + slot('restockPrompt')
+                    + D.field('you@example.com') + D.btn('Notify me')
+                    + many(['restockSuccess', 'restockAlready', 'restockFailed'])),
+
+                'Bag': () => D.shell(''
+                    + '<div style="display:flex;gap:8px">'
+                    +   '<div style="width:44px;flex:none">' + D.photo(54) + '</div>'
+                    +   '<div style="flex:1;min-width:0">'
+                    +     D.title('Zuwera Aero Pro') + D.sub('Yellow / M · $35.00')
+                    +     '<div style="margin-top:5px">' + D.chip('−') + D.chip('1') + D.chip('+') + '</div>'
+                    +     D.note('Tooltip on the + button')
+                    +     many(['soldOut', 'capReached'])
+                    +   '</div>'
+                    + '</div>'
+                    + D.note('Note on the line')
+                    + many(['soldOutInBag', 'lowStockShort'])
+                    + D.note('Toast')
+                    + slot('soldOutItem')
+                    + D.rule()
+                    + slot('restockInvite')
+                    + D.field('you@example.com') + D.btn('Notify me')
+                    + many(['restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed'])
+                    + D.rule()
+                    + D.note('Promo box')
+                    + D.field('WELCOME10') + D.btn('Apply')
+                    + many(['promoApplied', 'promoEmpty', 'promoInvalid', 'promoFailed'])),
+
+                'Quick-add panel': () => D.shell(''
+                    + D.title('Zuwera Aero Pro')
+                    + '<div style="margin:8px 0 4px">' + D.chip('S') + D.chip('M — ' + esc(M.get('soldOutBadge')), true) + '</div>'
+                    + slot('soldOutBadge')
+                    + slot('restockHint')
+                    + D.rule()
+                    + slot('restockPrompt')
+                    + D.field('you@example.com') + D.btn('Notify me')
+                    + many(['restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed'])),
+
+                'Collection grid': () => D.shell(''
+                    + '<div style="position:relative">' + D.photo(70)
+                    +   '<div style="position:absolute;top:6px;left:6px;right:6px">' + slot('soldOutBadge') + '</div>'
+                    + '</div>'
+                    + D.title('Zuwera Aero Pro') + D.sub('$40.00')
+                    + slot('lowStockBadge')),
+
+                'Checkout — paying': () => D.shell(''
+                    + D.note('Payment')
+                    + D.field('Card number') + D.field('MM / YY   ·   CVC')
+                    + D.note('The line under the fields — whichever applies')
+                    + many(['declineFunds', 'declineCvc', 'declineNumber', 'declineExpired',
+                            'declinePostcode', 'declineCallBank', 'declineNoReason', 'declineRetry', 'declined'])
+                    + D.btn('Pay $35.00', true)),
+
+                'Checkout — refused by the server': () => D.shell(''
+                    + D.note('Checked before the card is charged')
+                    + many(['soldOutItem', 'checkoutNotEnough', 'checkoutPriceChanged',
+                            'checkoutUnavailable', 'checkoutNoPrice', 'checkoutRateExpired', 'checkoutRateInvalid'])
+                    + D.btn('Pay $35.00', true)),
+
+                'Log in': () => D.shell(''
+                    + D.title('Log in')
+                    + D.field('you@example.com') + D.field('••••••••')
+                    + many(['authBadCredentials', 'authMissingFields', 'authNoConnection', 'authFailed'])
+                    + D.btn('Log in')
+                    + D.rule()
+                    + D.note('Sign up / reset')
+                    + many(['authEmailInUse', 'authPasswordShort', 'authNeedEmail'])),
+            };
+
             host.innerHTML = ''
                 + '<p style="font-size:.8rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6">'
-                +   'A message used on more than one screen appears more than once here — that is the point of the shared list, '
-                +   'and it is what you are changing everywhere when you edit it. Click any line to jump to its box.'
+                +   'Each screen as a shopper sees it, with your wording in place. Dashed boxes are the messages — '
+                +   'click one to jump to its editor. Where several are stacked, only one shows at a time; which one '
+                +   'depends on what went wrong.'
                 + '</p>'
-                + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:12px">'
-                + M.surfaces().map((surface) => ''
-                    + '<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;background:var(--bg-secondary)">'
-                    +   '<div style="font-size:.8rem;font-weight:700">' + esc(surface.name) + '</div>'
-                    +   '<div style="font-size:.72rem;color:var(--text-secondary);margin:2px 0 10px">' + esc(surface.where) + '</div>'
-                    +   surface.keys.map((key) => {
-                            const def = M.DEFAULTS[key] || { color: '' };
-                            const text = M.get(key, M.SAMPLE);
-                            const colour = M.color(key);
-                            return ''
-                                + '<button type="button" class="cm-map-line" data-key="' + esc(key) + '"'
-                                +   ' title="Edit this message"'
-                                +   ' style="display:block;width:100%;text-align:left;background:transparent;border:0;border-top:1px solid var(--border);'
-                                +     'padding:7px 0;cursor:pointer;font:inherit">'
-                                +   '<span style="display:block;font-size:.82rem;color:' + esc(colour || 'var(--text-primary)') + '">'
-                                +     esc(text) + '</span>'
-                                +   '<span style="display:block;font-size:.66rem;color:var(--text-secondary);margin-top:1px">'
-                                +     esc(def.label || key) + '</span>'
-                                + '</button>';
-                        }).join('')
-                    + '</div>').join('')
+                + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:14px;align-items:start">'
+                + M.surfaces().map((surface) => {
+                    const draw = MOCKUPS[surface.name];
+                    return ''
+                        + '<div style="border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--bg-secondary)">'
+                        +   '<div style="font-size:.8rem;font-weight:700">' + esc(surface.name) + '</div>'
+                        +   '<div style="font-size:.7rem;color:var(--text-secondary);margin:2px 0 10px">' + esc(surface.where) + '</div>'
+                        +   (draw ? draw() : many(surface.keys))
+                        + '</div>';
+                }).join('')
                 + '</div>';
 
             host.querySelectorAll('.cm-map-line').forEach((line) => {

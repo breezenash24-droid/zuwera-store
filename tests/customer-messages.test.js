@@ -333,6 +333,33 @@ console.log('\n  the admin map describes the code, not someone\'s memory of it')
   ok('the editor renders the map', /renderMessageMap/.test(admin));
   ok('…showing the CURRENT wording, so it doubles as a proof sheet',
     /M\.get\(key, M\.SAMPLE\)/.test(admin));
+
+  /* A list of sentences cannot answer "where does this show up" — that is a
+     question about layout. Each surface is drawn as the screen it is, with the
+     live wording in position. */
+  ok('…as a drawing of each screen, not a list',
+    /const MOCKUPS = \{/.test(admin), 'the map is back to being a list of text');
+
+  /* And the drawings have to keep showing everything they claim to. A mockup
+     that silently stops rendering a message is a map that lies, which is worse
+     than no map. */
+  const mockSrc = admin.slice(admin.indexOf('const MOCKUPS = {'), admin.indexOf('host.innerHTML'));
+  const undrawn = [];
+  M.surfaces().forEach((surface) => {
+    /* Only surfaces with a hand-drawn mockup; anything else falls back to a
+       plain list, which is allowed. */
+    if (!mockSrc.includes("'" + surface.name + "'")) return;
+    surface.keys.forEach((k) => {
+      if (!mockSrc.includes("'" + k + "'")) undrawn.push(surface.name + '/' + k);
+    });
+  });
+  ok('every message a surface claims is actually drawn on it', undrawn.length === 0,
+    undrawn.join(', '));
+
+  /* The editor is grouped by SITUATION and the map by SCREEN. Without the two
+     being cross-referenced there is no way to answer "where are the login
+     messages?" from inside the editor. */
+  ok('each row says which screens it reaches', /Appears on: /.test(admin));
   ok('…and follows a save rather than going stale',
     /setOverrides\(messages\)[\s\S]{0,80}renderMessageMap/.test(admin));
   ok('clicking a line opens whatever it is collapsed inside',
