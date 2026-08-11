@@ -1034,6 +1034,11 @@
                 loadAdminReviews();
             } else if (page === 'users') {
                 loadUsers();
+                /* The limits belong beside the roles they narrow. Someone
+                   deciding what a manager may do is already on this page; the
+                   APIs page is where you go to look at infrastructure, which is
+                   a different question and a different person's job. */
+                if (typeof abacLoad === 'function') abacLoad();
             } else if (page === 'analytics') {
                 loadAnalytics();
             } else if (page === 'finance') {
@@ -1054,10 +1059,6 @@
                 loadApiStatus();
                 loadIntegrations();
                 loadOpsAlerts();
-                /* The limits panel lives on THIS page. Its loader was called
-                   from the Loyalty page's init, so the panel rendered empty
-                   here and loaded data into an element that was not there. */
-                if (typeof abacLoad === 'function') abacLoad();
             } else if (page === 'meta') {
                 loadMetaStatus();
             } else if (page === 'audit') {

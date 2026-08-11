@@ -172,9 +172,17 @@ console.log('\n  and a store owner can write one');
      markup went on APIs and the loader ran from the Loyalty page's init, so
      the panel rendered empty where it lived and loaded into nothing where it
      did not. */
-  const apis = adm.slice(adm.indexOf("page === 'apis'"), adm.indexOf("page === 'meta'"));
-  ok('the editor loads on the page it is on', /abacLoad\(\)/.test(apis),
+  const usersInit = adm.slice(adm.indexOf("page === 'users'"), adm.indexOf("page === 'analytics'"));
+  ok('the editor loads on the page it is on', /abacLoad\(\)/.test(usersInit),
     'a panel whose loader runs elsewhere is a panel that is always empty');
+
+  /* And it is on the page where the question gets asked. Limits narrow roles;
+     somebody deciding what a manager may do is already looking at Users. The
+     APIs page is for infrastructure, which is a different question and usually
+     a different person. */
+  const upto = html.slice(0, html.indexOf('id="abacRules"'));
+  const page = (upto.match(/id="([a-zA-Z0-9_-]+)" class="page"/g) || []).pop() || '';
+  ok('…which is Users, beside the roles it narrows', /id="users"/.test(page), page);
 }
 
 
