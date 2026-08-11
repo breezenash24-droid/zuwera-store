@@ -218,6 +218,37 @@ async function abacRules(env) {
   }
 }
 
+/* Requests and approvals are ONE list, not two.
+   A pending request and a granted approval are the same record at different
+   points in its life, and splitting them means two places that can disagree
+   about whether a thing was approved — with the authorization system reading
+   one of them. `status` carries it: pending → approved | declined. */
+export const ABAC_REQUESTS_KEY = 'abac_requests';
+
+async function abacWaivers(env) {
+  try {
+    const cfg = await getSetting(env, ABAC_REQUESTS_KEY, null);
+    return Array.isArray(cfg) ? cfg : [];
+  } catch (e) {
+    /* Unreadable means no waivers, which refuses rather than permits — the
+       opposite default from the rules, and for the same reason. An
+       unreadable RULE list must not silently stop constraining; an
+       unreadable WAIVER list must not silently start permitting. */
+    console.warn('abac: waivers unreadable, none applied —', e && e.message);
+    return [];
+  }
+}
+
+async function burnWaiver(env, id, byAdminId) {
+  const at = new Date().toISOString();
+  await mutateSetting(env, ABAC_REQUESTS_KEY, (cur) => {
+    const list = Array.isArray(cur) ? cur : [];
+    return list.map((w) => (w && String(w.id) === String(id) && !w.usedAt
+      ? { ...w, usedAt: at, usedBy: String(byAdminId || '') }
+      : w));
+  });
+}
+
 /**
  * The full decision. `ctx` carries what the rules are written about: the action,
  * plus whatever the endpoint knows (amount, region, the resource being touched).
@@ -229,6 +260,7 @@ export async function decide(env, accessToken, permission, ctx = {}) {
 
   const rbacAllowed = permsHave(admin.permissions, permission);
   const rules = await abacRules(env);
+  const waivers = await abacWaivers(env);
   const verdict = can(rbacAllowed, rules, {
     action: ctx.action || permission,
     ...ctx,
@@ -240,7 +272,27 @@ export async function decide(env, accessToken, permission, ctx = {}) {
       email: admin.email,
       role: admin.admin_role || admin.role,
     },
+    /* Same reason, and it matters more here: an endpoint that could pass its
+       own waiver list could waive anything. */
+    waivers,
   });
+
+  /* Spend it. A waiver good for one use has to be marked used before the
+     action it permits, not after — a refund that fails partway would
+     otherwise leave the waiver live for a second attempt, and "approved
+     once" would quietly mean "approved until it works".
+     A write failure denies. The alternative is an unburnable waiver, which
+     is an approval that never runs out. */
+  if (verdict.allow && verdict.usedWaiver) {
+    try {
+      await burnWaiver(env, verdict.usedWaiver, admin.id);
+    } catch (e) {
+      console.warn('abac: could not spend waiver —', e && e.message);
+      return { allow: false, reason: 'Could not record the approval being used. Nothing was changed.',
+               limited: true, admin: null };
+    }
+  }
+
   return {
     allow: verdict.allow,
     reason: verdict.reason,

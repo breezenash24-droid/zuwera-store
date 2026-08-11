@@ -115,6 +115,64 @@ export function checkRule(rule, ctx) {
 }
 
 /**
+ * A granted, unused, unexpired waiver covering exactly this attempt.
+ *
+ * WHY THIS DOES NOT BREAK THE CONTRACT AT THE TOP OF THIS FILE. A waiver is
+ * consulted only after `rbacAllowed` was true and only where a LIMIT said no,
+ * so the most it can ever restore is what the role already granted. It cannot
+ * reach anything RBAC withheld — the same ordering argument that makes the
+ * rules safe makes the exemptions safe.
+ *
+ * Everything below is a way of saying "this exact thing, once". Every field
+ * has to match, and a missing one is a no-match rather than a wildcard:
+ *
+ *   ruleId      the limit that refused. A yes to one is not a yes to all of
+ *               them — a second limit refusing needs its own answer.
+ *   resourceId  the order it was about. Without this a waiver would be a
+ *               standing exemption on every future order.
+ *   amount      the number that was asked about. Approving $600 must not
+ *               cover coming back with $6,000 on the same order.
+ *   forId       the person who asked. Not the person who happens to try next.
+ *
+ * @param now  injectable so a test can be about expiry rather than about
+ *             what time it is while it runs.
+ */
+export function findWaiver(waivers, ctx, rule, now) {
+  const list = Array.isArray(waivers) ? waivers : [];
+  const t = Number.isFinite(now) ? now : Date.now();
+  const subjectId = String(attr(ctx, 'subject.id') || '').toLowerCase();
+  const subjectEmail = String(attr(ctx, 'subject.email') || '').toLowerCase();
+  const resourceId = String(attr(ctx, 'resource.orderId') || '');
+  const amount = num(attr(ctx, 'resource.amount'));
+  const ruleId = String((rule && rule.id) || '');
+
+  /* No resource means nothing to scope a waiver to, so nothing can match.
+     Fail closed here as everywhere else: the alternative reading — "applies
+     to anything" — is a standing exemption created by an omission. */
+  if (!resourceId || !ruleId) return null;
+
+  for (const w of list) {
+    if (!w || typeof w !== 'object') continue;
+    if (String(w.status || '') !== 'approved') continue;
+    if (w.usedAt) continue;                                    // once
+    if (w.expiresAt && !(Date.parse(w.expiresAt) > t)) continue;
+    if (String(w.action || '') !== String(ctx.action || '')) continue;
+    if (String(w.ruleId || '') !== ruleId) continue;
+    if (String(w.resourceId || '') !== resourceId) continue;
+
+    const forId = String(w.forId || '').toLowerCase();
+    const forEmail = String(w.forEmail || '').toLowerCase();
+    if (!((forId && forId === subjectId) || (forEmail && forEmail === subjectEmail))) continue;
+
+    const cap = num(w.amount);
+    if (cap !== null && amount !== null && amount > cap) continue;
+
+    return w;
+  }
+  return null;
+}
+
+/**
  * The whole decision.
  *
  * @param rbacAllowed  what RBAC already decided. FIRST, and load-bearing.
@@ -134,9 +192,19 @@ export function can(rbacAllowed, rules, ctx) {
      granted rather than refused. Fail closed applies to the CALL as much as to
      the rules. */
   if (!c.action) return { allow: false, reason: 'no action given to check' };
+  /* The waiver that got used, so the caller can spend it. Returned rather
+     than burned here because this function does no I/O and is the reason the
+     rules are testable — a decision routine that writes is one you cannot ask
+     a question without changing the answer. */
+  let waived = null;
   for (const rule of list) {
     const r = checkRule(rule, c);
     if (r === 'fail') {
+      /* Somebody with the power to raise this limit said yes to this one
+         case instead. Checked per RULE, so the loop carries on and any OTHER
+         limit still gets to refuse. */
+      const w = findWaiver(c.waivers, c, rule, c.now);
+      if (w) { waived = String(w.id || ''); continue; }
       return {
         allow: false,
         reason: rule && rule.label ? String(rule.label) : 'a rule denied it',
@@ -157,6 +225,9 @@ export function can(rbacAllowed, rules, ctx) {
   }
   // No rule objected. Absence of a rule is "no extra constraint", never a grant
   // — which it cannot be, because rbacAllowed was true to reach this line.
+  if (waived) {
+    return { allow: true, reason: 'a limit was waived for this one', usedWaiver: waived };
+  }
   return { allow: true, reason: list.length ? 'role grants it, no rule objects' : 'role grants it' };
 }
 

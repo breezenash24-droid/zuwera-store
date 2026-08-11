@@ -9337,9 +9337,15 @@ function escapeAttr(value) {
                     || (o.alt && String(o.alt).toLowerCase() === String(v).toLowerCase()));
                 return hit ? String(hit.label).split(' · ')[0] : String(v);
             };
-            const who = []
+            /* De-duplicated, because a role and a person can resolve to the
+               same word — a bogus role "Nash" beside the person Nash read as
+               "Nash, Nash can't…", which looks like a rendering bug and
+               distracts from the real problem, that one of them is invalid. */
+            const who = [];
+            []
                 .concat((Array.isArray(r.roles) ? r.roles : []).map((v) => nameOf(roleCat, v)))
-                .concat((Array.isArray(r.users) ? r.users : []).map((v) => nameOf(peopleCat, v)));
+                .concat((Array.isArray(r.users) ? r.users : []).map((v) => nameOf(peopleCat, v)))
+                .forEach((n) => { if (who.indexOf(n) === -1) who.push(n); });
 
             let deed;
             try { deed = kind.say(r.value); } catch (_) { deed = 'do this'; }
@@ -9488,8 +9494,15 @@ function escapeAttr(value) {
                            there is nothing to type — offering an empty box would
                            invite a value that means nothing. */
                         : '<span style="font-size:.82rem;color:var(--text-secondary)">— compared against the admin themselves</span>')
-                    +   '<button class="btn btn-secondary btn-sm" type="button" onclick="abacRemove(' + i + ')" '
-                    +     'style="margin-left:auto">Remove</button>'
+                    /* Per-rule save. The single button at the bottom meant
+                       scrolling past every other limit to commit a one-word
+                       change, and a change you have to travel to save is one
+                       that gets left unsaved. It writes the whole list either
+                       way — the list is one settings row — so this is the same
+                       write, reachable from where the edit happened. */
+                    +   '<button class="btn btn-primary btn-sm" type="button" onclick="abacSave(' + i + ')" '
+                    +     'style="margin-left:auto">Save</button>'
+                    +   '<button class="btn btn-secondary btn-sm" type="button" onclick="abacRemove(' + i + ')">Remove</button>'
                     + '</div>'
                     + '<div style="display:flex;gap:8px;align-items:flex-start;margin-top:8px">'
                     +   '<span style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap;padding-top:4px">Applies to roles</span>'
@@ -9532,6 +9545,7 @@ function escapeAttr(value) {
                     +     'oninput="abacSet(' + i + ',\'label\',this.value)">'
                     + '</div>'
                     + '<div style="font-size:.74rem;color:var(--text-secondary);margin-top:6px">' + esc(kind.help) + '</div>'
+                    + '<p id="abacRowMsg' + i + '" style="font-size:.75rem;margin:6px 0 0;min-height:.9rem"></p>'
                     /* Say what is actually true, which is not what this used to
                        say. The old wording — "leave it off or it will refuse
                        everything" — described a hazard that does not exist yet
@@ -9630,8 +9644,13 @@ function escapeAttr(value) {
 
         window.abacRemove = function (i) { _abacState.splice(i, 1); abacRender(); };
 
-        window.abacSave = async function () {
-            const msg = document.getElementById('abacMsg');
+        window.abacSave = async function (i) {
+            /* Answers next to the button that was pressed. A confirmation at
+               the bottom of the panel, for a button at the top of a rule, is
+               a confirmation nobody sees — and "did that save?" is the exact
+               doubt the per-rule button existed to remove. */
+            const row = Number.isInteger(i) ? document.getElementById('abacRowMsg' + i) : null;
+            const msg = row || document.getElementById('abacMsg');
             const say = (t, bad) => { if (msg) { msg.textContent = t; msg.style.color = bad ? 'var(--red,#dc2626)' : 'rgba(110,210,130,.95)'; } };
 
             /* Second of three. The database refuses it (migration 0008), the
