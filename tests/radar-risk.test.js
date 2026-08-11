@@ -11,9 +11,18 @@ function ok(name, cond, extra) {
   else { fail++; console.log('  \u2717 ' + name + (extra ? '  \u2014 ' + extra : '')); }
 }
 
-const W = fs.readFileSync(ROOT + 'functions/api/stripe-webhook.js', 'utf8');
+/* The Stripe payment path is two files now: the route that verifies the
+   signature, and _fulfil.js which does everything after a payment
+   succeeds (split out so PayPal can reach fulfilment without importing
+   the Stripe SDK). Read as one, because that is what it is. */
+const W = fs.readFileSync(ROOT + 'functions/api/stripe-webhook.js', 'utf8')
+  + fs.readFileSync(ROOT + 'functions/api/_fulfil.js', 'utf8');
+/* riskOf lives in _fulfil.js, so it is sliced out of THAT file rather than out
+   of the concatenation — the old end marker ("Entry point") is in the route,
+   which now comes first, so slicing across both would run backwards. */
+const F = fs.readFileSync(ROOT + 'functions/api/_fulfil.js', 'utf8');
 const riskOf = new Function(
-  W.slice(W.indexOf('function riskOf(pi)'), W.indexOf('// ─── Entry point')) + '\n;return riskOf;')();
+  F.slice(F.indexOf('function riskOf(pi)'), F.indexOf('// ─── Orchestrator')) + '\n;return riskOf;')();
 
 console.log('\n  the score is read where Stripe actually puts it');
 {
