@@ -9008,10 +9008,32 @@ function escapeAttr(value) {
             orphans.forEach((f) => console.log('  ' + (f.bytes / 1048576).toFixed(2) + ' MB  ' + f.name));
             if (!confirmed) { console.log('Run zwDeleteOrphans({confirm:true}) to delete them. This cannot be undone.'); return orphans; }
 
-            const { error } = await sb.storage.from(ZW_LEGACY_BUCKET).remove(orphans.map((f) => f.name));
-            if (error) { console.error('Delete failed: ' + error.message); return; }
-            console.log('Deleted ' + orphans.length + ' file(s), freed ' + (total / 1048576).toFixed(2) + ' MB.');
-            return orphans.map((f) => f.name);
+            /* remove() reports WHAT IT DELETED, and it is not always what was
+               asked for: storage policies can refuse individual objects without
+               failing the call. Reporting the requested count as the result
+               makes a partial delete look like a complete one — this said
+               "Deleted 30" while removing 2, which is the worst kind of wrong,
+               because it stops you looking. */
+            const wanted = orphans.map((f) => f.name);
+            const { data, error } = await sb.storage.from(ZW_LEGACY_BUCKET).remove(wanted);
+            if (error) { console.error('Delete failed: ' + error.message); throw new Error(error.message); }
+
+            const gone = new Set((data || []).map((d) => d.name || d.path || d));
+            const removed = wanted.filter((n) => gone.has(n) || gone.has(n.split('/').pop()));
+            const left = wanted.filter((n) => removed.indexOf(n) === -1);
+            const freed = orphans.filter((f) => removed.indexOf(f.name) !== -1)
+                .reduce((n, f) => n + f.bytes, 0);
+
+            console.log('Deleted ' + removed.length + ' of ' + wanted.length +
+                        ' file(s), freed ' + (freed / 1048576).toFixed(2) + ' MB.');
+            if (left.length) {
+                console.warn('NOT deleted (' + left.length + ') — storage refused these, most likely a policy ' +
+                             'that only allows removing your own uploads:');
+                left.forEach((n) => console.warn('  ' + n));
+            }
+            const out = removed.slice();
+            out.refused = left;
+            return out;
         };
 
 
@@ -9094,7 +9116,9 @@ function escapeAttr(value) {
                     ? await zwMigrateToR2({ confirm: true })
                     : await zwDeleteOrphans({ confirm: true });
                 const n = (done || []).length;
-                const bad = (done && done.failed) || [];
+                const bad = (done && done.failed) || (done && done.refused || []).map((r) => ({
+                    name: r, why: 'storage refused it — most likely a policy that only allows removing your own uploads',
+                }));
                 const esc2 = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 host.innerHTML =
                     (n ? '<p style="font-size:.85rem;color:rgba(110,210,130,.95)">'
