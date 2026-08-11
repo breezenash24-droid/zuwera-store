@@ -299,6 +299,19 @@ console.log('\n  the editor describes each message in words, and inserts the val
   ok('…and offers the palette rather than a blank box', /cm-swatch-btn/.test(admin));
   ok('…while keeping free text for a brand colour', /or any CSS colour/.test(admin));
 
+  /* The last mile no test can reach: whether the DEPLOYED /api/stock returns
+     what this store's settings row holds. That depends on the deploy, on RLS
+     and on an edge cache, none of which exist here — so the panel can ask the
+     site directly instead. */
+  ok('the panel can ask the live site what it is serving',
+    /customerMessagesCheckLive/.test(admin));
+  ok('…comparing it against the settings row, key by key',
+    /disagree/.test(admin) && /site_settings/.test(admin));
+  ok('…past the edge cache, or a stale answer reads as a disagreement',
+    /_cm=' \+ Date\.now\(\)/.test(admin));
+  ok('…and says plainly when the site answers with nothing',
+    /Shoppers are seeing the shipped wording/.test(admin));
+
   ok('the colour box says what it accepts',
     /rgb\(220,38,38\)/.test(read('admin.html')), 'no format hint for the colour field');
 }
@@ -523,6 +536,37 @@ console.log('\n  a message needs somewhere to appear');
   }
   ok('the row aligns to the top, so a taller column does not drag the rest down',
     /align-items:\s*flex-start/.test(rule('cart-item-card')));
+
+  /* Generalised from that bug rather than left as a note about it. Every
+     container a message is written into gets the same two questions asked:
+     can it grow, and does it clip? A message can be perfectly correct, tested
+     end to end, and still never be read. */
+  const HOLDERS = [
+    ['cart-item-details', 'the bag line\'s stock note and restock form'],
+    ['cart-item-right', 'the price column beside them'],
+    ['cart-restock', 'the back-in-stock form'],
+    ['cart-item-stock-note', 'the stock note itself'],
+  ];
+  for (const [name, what] of HOLDERS) {
+    const body = rule(name);
+    if (!body) continue;                       // not every one has its own rule
+    ok('.' + name + ' does not clip ' + what,
+      !/overflow:\s*hidden/.test(body),
+      'overflow:hidden here hides anything that does not fit rather than growing');
+    ok('…and is not pinned to a fixed height',
+      !/(^|[^-])\bheight:\s*\d/.test(body),
+      'a fixed height is what made the bag overlap');
+  }
+
+  /* The other half of invisible: a message painted the colour of what is
+     behind it. An admin can still do this deliberately, but nothing we SHIP
+     should — and 'inherit' is not a colour choice, it is the absence of one,
+     which is always safe. */
+  const invisible = M.keys().filter((k) => {
+    const c = (M.DEFAULTS[k].color || '').trim().toLowerCase();
+    return c === '#fff' || c === '#ffffff' || c === 'white' || c === 'transparent';
+  });
+  ok('no shipped message is painted to disappear', invisible.length === 0, invisible.join(', '));
 }
 
 console.log('\n  card declines');

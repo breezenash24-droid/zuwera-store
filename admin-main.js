@@ -5166,6 +5166,89 @@
             renderMessageMap();
         };
 
+
+        /* ── Is the SITE serving what was saved? ───────────────────────────────
+           Everything else here proves the wiring: the module, the endpoint, the
+           branch each message fires on. None of it can prove that this store's
+           deployed /api/stock returns what this store's settings row holds --
+           that depends on the deploy, on RLS, and on an edge cache, none of
+           which exist in a test.
+
+           So ask it. This fetches /api/stock the way a shopper's browser does
+           and compares what came back against what is in the database, key by
+           key. It is the one check that involves the real site, and it is the
+           last mile the suite cannot cover. */
+        window.customerMessagesCheckLive = async function () {
+            const out = document.getElementById('cm-live');
+            const M = window.ZWMessages;
+            if (!out || !M) return;
+            const say = (html, bad) => {
+                out.innerHTML = html;
+                out.style.color = bad ? 'var(--red,#dc2626)' : 'var(--text-secondary)';
+            };
+            say('Checking…');
+
+            let saved = {};
+            try {
+                const { data: rows, error } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
+                if (error) throw error;
+                let v = rows && rows[0] && rows[0].value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                saved = (v && v.customerExperience && v.customerExperience.messages) || {};
+            } catch (e) {
+                say('Could not read the saved messages: ' + (e?.message || 'unknown error'), true);
+                return;
+            }
+
+            let served = null;
+            try {
+                /* cache-busted, because the point is what the ORIGIN says now.
+                   /api/stock sits behind a 20-second edge cache, and a check
+                   that read the cache would report a stale answer as a
+                   disagreement — or worse, agree by accident. */
+                const r = await fetch('/api/stock?_cm=' + Date.now(), { cache: 'no-store' });
+                const d = await r.json();
+                if (!r.ok || d.ok === false) throw new Error(d.error || ('HTTP ' + r.status));
+                served = (d.messages && typeof d.messages === 'object') ? d.messages : {};
+            } catch (e) {
+                say('The site did not answer: ' + (e?.message || 'unknown error')
+                    + '<br>Shoppers are seeing the shipped wording, not your edits.', true);
+                return;
+            }
+
+            const textOf = (entry) => {
+                if (entry && typeof entry === 'object') return entry.text;
+                return entry;
+            };
+            const keys = Array.from(new Set([...Object.keys(saved), ...Object.keys(served)]));
+            const disagree = keys.filter((k) => {
+                const a = textOf(saved[k]);
+                const b = textOf(served[k]);
+                return String(a === undefined ? '' : a) !== String(b === undefined ? '' : b);
+            });
+
+            const esc = (str) => String(str == null ? '' : str)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+            if (!keys.length) {
+                say('Nothing customised yet — the site is serving the wording we ship, which is correct.');
+                return;
+            }
+            if (!disagree.length) {
+                say('✓ The site is serving all ' + keys.length + ' of your edits. What you see here is what a shopper reads.');
+                return;
+            }
+            say('✗ ' + disagree.length + ' of ' + keys.length + ' not reaching the site yet:<br>'
+                + disagree.map((k) => {
+                    const label = (M.DEFAULTS[k] && M.DEFAULTS[k].label) || k;
+                    return '&nbsp;&nbsp;<strong>' + esc(label) + '</strong> — saved: '
+                        + esc(textOf(saved[k]) || '(default)')
+                        + ' · serving: ' + esc(textOf(served[k]) || '(default)');
+                }).join('<br>')
+                + '<br>If you saved these in the last minute, wait 20 seconds and check again — the site caches this briefly.',
+                true);
+        };
+
         window.customerMessagesResetAll = function () {
             document.querySelectorAll('#cm-fields .cm-text, #cm-fields .cm-color')
                 .forEach((el) => { el.value = ''; });
