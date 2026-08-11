@@ -332,5 +332,30 @@ console.log('\n  a limit marked ready really is');
     /limited: !!verdict\.limited/.test(refund));
 }
 
+
+console.log('\n  forgetting the refund code is not a lockout');
+{
+  const fs5 = require('fs');
+  const R5 = require('path').resolve(__dirname, '..') + '/';
+  const rec = fs5.readFileSync(R5 + 'admin-receipts.js', 'utf8');
+  const api = fs5.readFileSync(R5 + 'functions/api/admin-refund.js', 'utf8');
+
+  ok('the modal explains where the code lives', /Forgotten the code\?/.test(rec));
+  ok('…and that a new one can be set without the old one',
+    /You are not locked out/.test(rec),
+    'the recovery IS setting a new value; nothing said so');
+  ok('…naming the variable and where to change it',
+    /REFUND_SECRET/.test(rec) && /Workers &amp; Pages/.test(rec));
+
+  /* The reason there is no reset button, held as a test because it is the kind
+     of thing a later "convenience" change removes without noticing. */
+  ok('the code is read from the environment, not the database',
+    /env\.REFUND_SECRET/.test(api) && !/site_settings[^\n]*REFUND_SECRET/.test(api),
+    'in settings it would be readable by any admin session and ride along in backups');
+  ok('…and nothing offers to reset it from the panel',
+    !/reset[^\n]{0,40}REFUND_SECRET/i.test(rec),
+    'a reset button hands the second factor to whoever got into the panel');
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

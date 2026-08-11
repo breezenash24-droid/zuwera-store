@@ -201,6 +201,32 @@
                             <div>
                               <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Refund Auth Code</label>
                               <input id="refmod-key" type="password" placeholder="Enter REFUND_SECRET" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem;color:var(--text-primary);font-size:.85rem;box-sizing:border-box;">
+                              <!-- Forgetting this is not a lockout, and nothing said so. The code is a
+                                   Cloudflare environment variable, which means whoever owns the account can
+                                   replace it at any time WITHOUT knowing the old one — there is no recovery
+                                   to perform, only a value to set.
+
+                                   It stays an env var deliberately. The whole point of this code is to be
+                                   something an admin session alone cannot give you: a stolen laptop or a
+                                   phished login gets somebody into this panel, and this is what stands
+                                   between them and moving money. A "reset it here" button would hand that
+                                   away to exactly the person it exists to stop. So the help explains where
+                                   the value lives instead of offering to change it. -->
+                              <details style="margin-top:.5rem">
+                                <summary style="cursor:pointer;font-size:.75rem;color:var(--text-secondary)">Forgotten the code?</summary>
+                                <div style="font-size:.78rem;color:var(--text-secondary);line-height:1.6;margin-top:.5rem">
+                                  <p style="margin:0 0 .5rem"><strong>You are not locked out.</strong> This code is not stored in your
+                                  store — it is a Cloudflare environment variable called <code>REFUND_SECRET</code>. You do not need
+                                  the old value to set a new one.</p>
+                                  <p style="margin:0 0 .5rem">Cloudflare dashboard → <strong>Workers &amp; Pages</strong> →
+                                  your project → <strong>Settings</strong> → <strong>Variables and Secrets</strong> →
+                                  edit <code>REFUND_SECRET</code>, save, then redeploy. The new value works immediately after
+                                  the deploy finishes.</p>
+                                  <p style="margin:0">It lives there rather than in this panel on purpose: it is meant to be
+                                  something that having admin access alone does not give you. A reset button here would hand it
+                                  to whoever got into this panel, which is the situation it exists to protect against.</p>
+                                </div>
+                              </details>
                             </div>
                             <div id="refmod-err" style="display:none;color:#ef4444;font-size:.8rem;"></div>
                             <div style="display:flex;gap:.5rem;justify-content:flex-end;">
