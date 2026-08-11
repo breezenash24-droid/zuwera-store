@@ -261,5 +261,56 @@ console.log('\n  a refusal says whether it is worth asking about');
   ok('an allow carries no such flag', can(true, [], ctx).limited === undefined);
 }
 
+
+console.log('\n  a limit marked ready really is');
+{
+  const fs4 = require('fs');
+  const R4 = require('path').resolve(__dirname, '..') + '/';
+  const adm4 = fs4.readFileSync(R4 + 'admin-main.js', 'utf8');
+  const block4 = adm4.slice(adm4.indexOf('const ABAC_LIMITS'), adm4.indexOf('let _abacState'));
+
+  /* `ready` tells an owner it is safe to switch a limit on. If it lies, the
+     first person to enable one takes that action offline for everybody — the
+     engine denies what it cannot evaluate. So the claim is checked against the
+     endpoints rather than trusted. */
+  const WIRED = { refund: 'functions/api/admin-refund.js' };
+
+  const entries = [...block4.matchAll(/\{ id: '([a-z_]+)', action: '([a-z_]+)'[\s\S]*?ready: (true|false)/g)]
+    .map((m) => ({ id: m[1], action: m[2], ready: m[3] === 'true' }));
+  ok('the limits parse', entries.length >= 10, entries.length + ' found');
+
+  const lying = entries.filter((e) => {
+    if (!e.ready) return false;
+    const file = WIRED[e.action];
+    if (!file) return true;                       // claims ready, no endpoint known
+    const src = fs4.readFileSync(R4 + file, 'utf8');
+    return !/await decide\(/.test(src);
+  });
+  ok('nothing claims to be enforced that is not', lying.length === 0,
+    lying.map((e) => e.id).join(', ') + ' — marked ready but the endpoint does not call decide()');
+
+  /* And the reverse: an endpoint that DOES pass context while its limit still
+     says "not enforced yet" tells an owner to leave off a limit that works. */
+  const silent = Object.entries(WIRED).filter(([action, file]) => {
+    const src = fs4.readFileSync(R4 + file, 'utf8');
+    return /await decide\(/.test(src) && entries.some((e) => e.action === action && !e.ready);
+  });
+  ok('…and nothing enforced is still labelled unenforced', silent.length === 0,
+    silent.map(([a]) => a).join(', '));
+
+  /* The unit trap. The panel asks for dollars; Stripe deals in cents. A limit
+     written as "$500" compared against 50000 refuses every refund over five
+     dollars — and looks exactly like the limit working. */
+  const refund = fs4.readFileSync(R4 + WIRED.refund, 'utf8');
+  ok('the refund amount is converted to the unit the panel asks for',
+    /amountCents\) \/ 100/.test(refund),
+    'passing cents against a dollar limit refuses almost everything, and looks correct');
+
+  ok('a refusal by limit is audited like any other block',
+    /blocked by limit/.test(refund));
+  ok('…and tells the panel it is worth asking about',
+    /limited: !!verdict\.limited/.test(refund));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

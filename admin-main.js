@@ -9179,7 +9179,7 @@ function escapeAttr(value) {
         const ABAC_LIMITS = [
             // ── money ────────────────────────────────────────────────────────
             { id: 'refund_max', action: 'refund', attr: 'resource.amount', op: 'lte', kind: 'number',
-              label: 'Refunds', unit: '$', value: 500, ready: false,
+              label: 'Refunds', unit: '$', value: 500, ready: true,
               help: 'Refuse refunds above this amount.' },
             { id: 'discount_max', action: 'promo_create', attr: 'resource.percent', op: 'lte', kind: 'number',
               label: 'Discount codes', unit: '%', value: 30, ready: false,
