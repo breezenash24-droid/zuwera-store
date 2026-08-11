@@ -8755,17 +8755,57 @@ function escapeAttr(value) {
                    but no egress; a referenced one is being served on every page
                    that shows it, and is the reason to migrate. */
                 let referenced = new Set();
+                let checkedAll = true;
+                /* EVERY place that can point at a file, not just the catalogue.
+                   The first version of this checked products only and reported
+                   45 files as orphans — all of them page-builder uploads, which
+                   live in site_settings and were never looked at. Acting on that
+                   would have deleted the homepage's hero media.
+
+                   A reference report that misses a source does not under-report
+                   slightly; it invites a deletion. So a source that cannot be
+                   read makes the whole answer unsafe, and says so. */
+                const sources = [];
                 try {
                     const r = await fetch('/api/catalog');
-                    const d = await r.json();
-                    const blob = JSON.stringify(d);
-                    real.forEach((f) => { if (blob.includes(f.name)) referenced.add(f.name); });
-                } catch (_) { say('(could not read the catalogue — reference counts unavailable)'); }
+                    sources.push(JSON.stringify(await r.json()));
+                } catch (_) { checkedAll = false; say('(could not read products)'); }
+                try {
+                    const { data, error } = await sb.from('site_settings').select('key,value');
+                    if (error) throw error;
+                    sources.push(JSON.stringify(data || []));
+                } catch (_) { checkedAll = false; say('(could not read settings — builder media, landing pages, themes)'); }
+
+                const blob = sources.join(' ');
+                real.forEach((f) => {
+                    /* Match on the bare filename as well as the full path: a
+                       stored URL may carry a different prefix from the one
+                       list() reports. Over-counting a reference is safe;
+                       under-counting deletes something. */
+                    const leaf = f.name.split('/').pop();
+                    if (blob.includes(f.name) || (leaf && blob.includes(leaf))) referenced.add(f.name);
+                });
 
                 const live = real.filter((f) => referenced.has(f.name));
                 const dead = real.filter((f) => !referenced.has(f.name));
                 say('  still used by a product: ' + live.length + ' (' + mb(live.reduce((n, f) => n + +f.metadata.size, 0)) + ')');
                 say('  no longer referenced:    ' + dead.length + ' (' + mb(dead.reduce((n, f) => n + +f.metadata.size, 0)) + ')');
+                if (!checkedAll) {
+                    say('');
+                    say('!! At least one source could not be read, so "no longer referenced" is NOT safe to');
+                    say('   act on — a file in use may be listed as an orphan. Do not delete on this run.');
+                }
+
+                /* Video is the expensive case and the one nothing optimises:
+                   the image CDN proxies images only, so a hero .mp4 is served
+                   from storage at full size on every load that plays it. */
+                const vids = real.filter((f) => /\.(mp4|webm|mov|m4v)$/i.test(f.name));
+                if (vids.length) {
+                    say('');
+                    say('Video: ' + vids.length + ' file(s), ' + mb(vids.reduce((n, f) => n + +f.metadata.size, 0)) +
+                        ' — served straight from storage. The image optimiser does not touch video,');
+                    say('so any of these still in use is billed at full size on every play.');
+                }
 
                 say('');
                 say('Largest files:');
