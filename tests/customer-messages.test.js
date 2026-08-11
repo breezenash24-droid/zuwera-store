@@ -242,6 +242,34 @@ console.log('\n  the editor describes each message in words, and inserts the val
     'inserting into an empty box would replace the whole message with a bare token');
   ok('each message saves on its own', /customerMessagesSaveOne/.test(admin));
   ok('…without discarding the others', /Object\.assign\(\{\}, cx\.messages\)/.test(admin));
+  /* The box used to be EMPTY with the shipped sentence shown as a placeholder.
+     That looks identical to filled-in text and is not: clicking in and editing
+     it did nothing, because there was nothing there. */
+  ok('the text box carries the real sentence, not a placeholder of it',
+    /const text = saved_ \|\| def\.text/.test(admin),
+    'an empty box with a placeholder cannot be edited in place');
+  ok('…but wording identical to the default is still stored as no override',
+    /text !== def\.text/.test(admin),
+    'settings would fill with copies of the defaults and freeze them against later changes');
+
+  /* Rare messages are behind a toggle rather than absent: a message you cannot
+     find is a message you cannot edit. */
+  ok('the panel leads with the common messages', /\(main \|\| keys\)/.test(admin));
+  ok('…and the rest are one click away, not gone', /less common message/.test(admin));
+  ok('a message added later shows by default rather than hiding',
+    /var SECONDARY/.test(read('customer-messages.js')),
+    'an opt-IN list would bury anything new behind a toggle nobody opens');
+
+  /* Checking a wording change used to mean deploying it, then opening a console
+     or putting a declined card through a real checkout. */
+  ok('the editor shows the finished sentence as it is typed', /cm-preview/.test(admin));
+  ok('…filled in by the same code the storefront uses', /M\.render\(/.test(admin),
+    'a preview with its own substitution routine is a preview that can lie');
+  ok('…and coloured the way the shopper will see it',
+    /preview\.style\.color/.test(admin));
+  ok('render() and get() share one substitution',
+    M.render('Only {count} left in stock') === M.get('lowStock', M.SAMPLE));
+
   ok('the colour box says what it accepts',
     /rgb\(220,38,38\)/.test(read('admin.html')), 'no format hint for the colour field');
 }
@@ -300,31 +328,51 @@ console.log('\n  card declines');
      of step with the codes Stripe actually uses. */
   const co = strip(read('checkout.js'));
   ok('checkout.js no longer carries its own copy', !/DECLINE_COPY/.test(co));
-  ok('…and looks the wording up by Stripe\'s code',
-    /'decline:'\s*\+\s*code|decline:.\s*\+/.test(co));
+  ok('…and maps Stripe\'s code through the shared table',
+    /declineKey\(/.test(co), 'checkout.js is grouping codes with a table of its own');
 
-  ok('the common codes all have copy',
-    ['insufficient_funds', 'incorrect_cvc', 'expired_card', 'generic_decline', 'do_not_honor']
-      .every((c) => M.has('decline:' + c)));
-  ok('…and each is coloured as a failure, which this one genuinely is',
-    M.DEFAULTS['decline:expired_card'].color === M.DEFAULTS.restockFailed.color);
+  /* Nine messages, not one per Stripe code. Twenty-odd codes collapse into far
+     fewer things a shopper can DO about it, and a box per code made the editor
+     unusable without helping anyone. */
+  const declineKeys = M.keys().filter((k) => k.indexOf('decline') === 0);
+  ok('the decline messages stay a short list', declineKeys.length <= 10,
+    declineKeys.length + ' — one box per Stripe code is what this replaced');
+
+  ok('every Stripe code lands on a real message',
+    ['insufficient_funds', 'incorrect_cvc', 'invalid_cvc', 'incorrect_number', 'invalid_number',
+     'expired_card', 'invalid_expiry_month', 'invalid_expiry_year', 'incorrect_zip',
+     'card_not_supported', 'currency_not_supported', 'call_issuer', 'lost_card', 'stolen_card',
+     'pickup_card', 'fraudulent', 'merchant_blacklist', 'do_not_honor', 'generic_decline',
+     'processing_error', 'try_again_later'].every((c) => M.has(M.declineKey(c))));
+  ok('…and so does a code nobody has seen before', M.has(M.declineKey('invented_in_2099')));
+  ok('…landing on the catch-all rather than on silence',
+    M.declineKey('invented_in_2099') === 'declined');
+
+  /* What survived the collapse is a distinct ACTION. If these ever read the
+     same, the separate copy has stopped earning its place. */
+  const distinct = ['declineFunds', 'declineCvc', 'declineExpired', 'declined'].map((k) => M.get(k));
+  ok('the advice still differs where the action differs',
+    new Set(distinct).size === 4, distinct.join(' | '));
+
+  ok('every decline is coloured as a failure, which these genuinely are',
+    declineKeys.every((k) => M.DEFAULTS[k].color === M.DEFAULTS.restockFailed.color));
 
   /* The shopper must never be refused without an explanation, so there is a
-     catch-all AND a hardcoded last resort in checkout.js for the case where
-     the module did not load at all. */
-  ok('there is copy for a code we do not recognise', M.has('decline:unknown'));
-  ok('…and checkout.js still answers if the module is missing entirely',
-    /could not be completed/.test(co), 'a missing module would refuse in silence');
+     catch-all AND a hardcoded last resort in checkout.js for the case where the
+     module did not load at all. */
+  ok('checkout.js still answers if the module is missing entirely',
+    /was declined/.test(co), 'a missing module would refuse in silence');
   ok('…and that fallback is word-for-word the shipped catch-all',
-    co.includes(M.DEFAULTS['decline:unknown'].text),
+    co.includes(M.DEFAULTS.declined.text),
     'the hardcoded fallback says something different from the editable copy');
 
-  /* Neutral copy for lost/stolen is a deliberate decision, not an oversight:
-     the person at the checkout may not be the cardholder. */
-  ok('lost and stolen share neutral wording',
-    M.get('decline:lost_card') === M.get('decline:stolen_card'));
-  ok('…which says nothing about the card being reported',
-    !/stolen|lost|report/i.test(M.get('decline:stolen_card')));
+  /* Lost, stolen, fraud and pickup all land on the neutral catch-all. Telling
+     someone their card is reported stolen is a message for the CARDHOLDER, and
+     the person at the checkout may not be them. */
+  ok('lost, stolen, fraud and pickup all read the same',
+    new Set(['lost_card', 'stolen_card', 'fraudulent', 'pickup_card'].map((c) => M.declineKey(c))).size === 1);
+  ok('…and say nothing about the card being reported',
+    !/stolen|lost|fraud|report/i.test(M.get('declined')));
 }
 
 console.log('\n  the editor stays usable as the list grows');

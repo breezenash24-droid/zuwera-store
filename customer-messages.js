@@ -84,44 +84,78 @@
     restockFailed:  { label: 'Joining the list did not work', text: 'Could not save that — try again.', color: ROLE.bad },
 
     /* ── card declines ────────────────────────────────────────────────────────
-       Read at the worst moment in the whole shop: the shopper has decided to
-       buy and been refused. Keyed by Stripe's own decline code, so the lookup
-       in checkout.js is `decline:` + whatever Stripe said and there is no
-       translation table in between to fall out of step.
+       Read at the worst moment in the shop: the shopper has decided to buy and
+       been refused.
 
-       Only codes a shopper can ACT on get specific copy. A decline they cannot
-       act on is not dressed up as advice -- inventing a reason is worse than
-       not having one, because they spend the next five minutes fixing
-       something that was never wrong. Fraud holds and lost/stolen reports
-       deliberately share neutral wording: telling someone their card is
-       reported stolen is a message for the cardholder, and the person at the
-       checkout may not be them. Worth keeping in mind before rewriting these. */
-    'decline:insufficient_funds': { label: 'Card has no funds available', text: 'That card does not have enough available. Try another card or a different payment method.', color: ROLE.bad },
-    'decline:incorrect_cvc': { label: 'Security code did not match', text: 'The security code did not match. Check the 3 digits on the back and try again.', color: ROLE.bad },
-    'decline:invalid_cvc': { label: 'Security code is not valid', text: 'That security code is not valid. Check the 3 digits on the back and try again.', color: ROLE.bad },
-    'decline:incorrect_number': { label: 'Card number is not right', text: 'That card number is not right. Check it and try again.', color: ROLE.bad },
-    'decline:invalid_number': { label: 'Card number is not valid', text: 'That card number is not valid. Check it and try again.', color: ROLE.bad },
-    'decline:expired_card': { label: 'Card has expired', text: 'That card has expired. Try another card.', color: ROLE.bad },
-    'decline:invalid_expiry_month': { label: 'Expiry month is not valid', text: 'That expiry month is not valid. Check the date on the card.', color: ROLE.bad },
-    'decline:invalid_expiry_year': { label: 'Expiry year is not valid', text: 'That expiry year is not valid. Check the date on the card.', color: ROLE.bad },
-    'decline:incorrect_zip': { label: 'Postcode did not match the bank', text: 'The postcode did not match the one your bank has. Check the billing address and try again.', color: ROLE.bad },
-    'decline:card_not_supported': { label: 'Card cannot be used here', text: 'That card cannot be used for this kind of purchase. Try another card.', color: ROLE.bad },
-    'decline:currency_not_supported': { label: 'Card cannot pay in this currency', text: 'That card cannot be charged in this currency. Try another card.', color: ROLE.bad },
-    'decline:call_issuer': { label: 'Bank wants to approve it first', text: 'Your bank needs to approve this. Call the number on the back of your card, or try another card.', color: ROLE.bad },
-    'decline:lost_card': { label: 'Card reported lost', text: 'That card was declined. Try another card.', color: ROLE.bad },
-    'decline:stolen_card': { label: 'Card reported stolen', text: 'That card was declined. Try another card.', color: ROLE.bad },
-    'decline:pickup_card': { label: 'Bank asked for the card back', text: 'That card was declined. Try another card.', color: ROLE.bad },
-    'decline:fraudulent': { label: 'Bank flagged it as fraud', text: 'That payment could not be completed. Try another card or contact your bank.', color: ROLE.bad },
-    'decline:merchant_blacklist': { label: 'Bank blocked this merchant', text: 'That payment could not be completed. Try another card or contact your bank.', color: ROLE.bad },
-    'decline:do_not_honor': { label: 'Bank declined without a reason', text: 'Your bank declined it without giving a reason. Try another card, or call the number on the back of your card.', color: ROLE.bad },
-    'decline:generic_decline': { label: 'Card declined, no reason given', text: 'That card was declined. Try another card, or call your bank.', color: ROLE.bad },
-    'decline:processing_error': { label: 'Could not reach the bank', text: 'Something went wrong reaching your bank. Wait a moment and try again.', color: ROLE.bad },
-    'decline:try_again_later': { label: 'Bank could not approve it yet', text: 'Your bank could not approve it just now. Wait a moment and try again.', color: ROLE.bad },
-    /* When Stripe sends a code we have no copy for, and when it sends nothing
-       at all. Never empty: a refused payment with no explanation is the worst
-       of the three outcomes. */
-    'decline:unknown': { label: 'Any other decline', text: 'That payment could not be completed. Please try again.', color: ROLE.bad },
+       NINE messages, not one per Stripe decline code. There are twenty-odd
+       codes and they collapse into far fewer things a shopper can actually DO
+       about it -- a lost card, a stolen card and a bank's fraud hold all mean
+       "use a different card", and writing three separate sentences for them is
+       three chances to say it differently and no extra help to anyone. The
+       mapping from code to message lives in DECLINE_MAP below.
+
+       What survives as its own message is a distinct ACTION: check the security
+       code, check the number, use a different card, call the bank, wait and
+       retry. A decline the shopper cannot act on is not dressed up as advice --
+       inventing a reason costs them five minutes fixing what was never wrong. */
+    declineFunds:    { label: 'Card had no funds', text: 'That card does not have enough available. Try another card or a different payment method.', color: ROLE.bad },
+    declineCvc:      { label: 'Security code was wrong', text: 'The security code did not match. Check the 3 digits on the back and try again.', color: ROLE.bad },
+    declineNumber:   { label: 'Card number was wrong', text: 'That card number is not right. Check it and try again.', color: ROLE.bad },
+    declineExpired:  { label: 'Card had expired', text: 'That card has expired. Try another card.', color: ROLE.bad },
+    declinePostcode: { label: 'Billing postcode did not match', text: 'The postcode did not match the one your bank has. Check the billing address and try again.', color: ROLE.bad },
+    declineCallBank: { label: 'Bank wants to approve it first', text: 'Your bank needs to approve this. Call the number on the back of your card, or try another card.', color: ROLE.bad },
+    declineNoReason: { label: 'Bank declined without saying why', text: 'Your bank declined it without giving a reason. Try another card, or call the number on the back of your card.', color: ROLE.bad },
+    declineRetry:    { label: 'Bank could not be reached', text: 'Something went wrong reaching your bank. Wait a moment and try again.', color: ROLE.bad },
+    /* The catch-all, and where lost/stolen/fraud/pickup deliberately land.
+       Telling someone their card is reported stolen is a message for the
+       cardholder, and the person at the checkout may not be them. */
+    declined:        { label: 'Declined, any other reason', text: 'That card was declined. Try another card, or call your bank.', color: ROLE.bad },
   };
+
+
+  /* Which message answers which Stripe decline code. Here, next to the
+     messages, so adding a code is one edit in one file -- and so checkout.js
+     needs no table of its own to fall out of step with.
+
+     Anything not listed falls through to `declined`, which is why a code Stripe
+     invents next year still gets a usable sentence instead of silence. */
+  var DECLINE_MAP = {
+    insufficient_funds:     'declineFunds',
+
+    incorrect_cvc:          'declineCvc',
+    invalid_cvc:            'declineCvc',
+
+    incorrect_number:       'declineNumber',
+    invalid_number:         'declineNumber',
+
+    expired_card:           'declineExpired',
+    invalid_expiry_month:   'declineExpired',
+    invalid_expiry_year:    'declineExpired',
+
+    incorrect_zip:          'declinePostcode',
+    call_issuer:            'declineCallBank',
+    do_not_honor:           'declineNoReason',
+
+    processing_error:       'declineRetry',
+    try_again_later:        'declineRetry',
+
+    /* All of these mean the same thing to the person standing at the checkout:
+       use a different card. Listed rather than left to the fallback so it is
+       visible that the grouping is deliberate. */
+    generic_decline:        'declined',
+    lost_card:              'declined',
+    stolen_card:            'declined',
+    pickup_card:            'declined',
+    fraudulent:             'declined',
+    merchant_blacklist:     'declined',
+    card_not_supported:     'declined',
+    currency_not_supported: 'declined',
+  };
+
+  /** The message key for a Stripe decline code. Never null: unknown falls back. */
+  function declineKey(code) {
+    return DECLINE_MAP[String(code || '').trim()] || 'declined';
+  }
 
   /* `label` is what the admin editor calls this message. It lives here rather
      than in admin-main.js so there is still one list: an editor with its own
@@ -143,6 +177,24 @@
   };
 
 
+
+  /* Which messages the editor keeps out of the way.
+     Anything NOT listed here is shown straight away, so a message added later
+     is visible by default -- the failure mode of the other arrangement is a new
+     message nobody knows exists, hidden behind a toggle they never open.
+
+     These are the ones a shopper meets rarely, or that only differ from a main
+     message by context (the bag's shorter "Only 2 left", say). They are still
+     fully editable; they are just not what the panel opens on. */
+  var SECONDARY = {
+    lowStockShort: 1, capReached: 1, allInBag: 1, maxedOut: 1,
+    restockHint: 1, restockInvite: 1, restockAlready: 1, restockInvalid: 1, restockFailed: 1,
+    declinePostcode: 1, declineCallBank: 1, declineNoReason: 1, declineRetry: 1,
+  };
+
+  /** Is this one of the messages the editor leads with? */
+  function isMain(key) { return !SECONDARY[key]; }
+
   /* How the editor lays these out. Here rather than in admin-main.js for the
      same reason the labels are: an editor with its own list drifts from the
      messages it claims to describe. Anything not named below still appears,
@@ -153,18 +205,27 @@
     { title: 'When stock is running low', keys: ['lowStock', 'lowStockShort', 'capReached'] },
     { title: 'When they already have it in their bag', keys: ['lastInBag', 'allInBag', 'maxedOut'] },
     { title: 'Back-in-stock signup', keys: ['restockHint', 'restockInvite', 'restockPrompt', 'restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed'] },
-    { title: 'When a card is declined', keys: Object.keys(DEFAULTS).filter(function (k) { return k.indexOf('decline:') === 0; }) },
+    { title: 'When a card is declined', keys: ['declineFunds', 'declineCvc', 'declineNumber', 'declineExpired', 'declinePostcode', 'declineCallBank', 'declineNoReason', 'declineRetry', 'declined'] },
   ];
 
   /** Grouped keys, with anything ungrouped collected at the end. */
   function groups() {
     var named = {};
+    var split = function (title, keys) {
+      var live = keys.filter(function (k) { return !!DEFAULTS[k]; });
+      return {
+        title: title,
+        keys: live,                                          // everything, in order
+        main: live.filter(isMain),
+        more: live.filter(function (k) { return !isMain(k); }),
+      };
+    };
     var out = GROUPS.map(function (g) {
       g.keys.forEach(function (k) { named[k] = 1; });
-      return { title: g.title, keys: g.keys.filter(function (k) { return !!DEFAULTS[k]; }) };
+      return split(g.title, g.keys);
     });
     var rest = Object.keys(DEFAULTS).filter(function (k) { return !named[k]; });
-    if (rest.length) out.push({ title: 'Other', keys: rest });
+    if (rest.length) out.push(split('Other', rest));
     return out;
   }
 
@@ -180,6 +241,24 @@
      gets told at save time instead of wondering why their colour did nothing.
      var(--x) is allowed because the shipped defaults use it. */
   var COLOR_OK = /^(#[0-9a-fA-F]{3,8}|rgba?\([\d\s.,%/]+\)|hsla?\([\d\s.,%/deg]+\)|var\(--[a-zA-Z0-9-]+(,\s*[^;{}()]+)?\)|[a-zA-Z]+)$/;
+
+
+  /* Stand-in values for a preview. Here rather than in the editor so what an
+     admin is shown is filled in the same way, by the same code, as what a
+     shopper is shown -- a preview built from its own substitution routine is a
+     preview that can lie, and this whole module exists because two copies of
+     one thing drifted. */
+  var SAMPLE = { count: 2, size: 'M', title: 'Zuwera Aero Pro' };
+
+  /**
+   * Fill `template` in exactly as get() would, without needing it to be saved
+   * first. This is what lets the editor show the finished sentence as it is
+   * typed, so checking a change does not mean deploying it, opening a console
+   * or putting a declined card through a live checkout.
+   */
+  function render(template, vars) {
+    return fill(template, vars || SAMPLE);
+  }
 
   /** Tokens actually written in a template, in order of appearance. */
   function tokensIn(text) {
@@ -321,11 +400,11 @@
    * spaces are tidied, so a half-supplied message reads as a short sentence
    * rather than as broken software.
    */
-  function get(key, vars) {
-    var template = field(key, 'text');
-    if (template === undefined) return '';
+  /* The one substitution routine. get() and render() both go through it, so a
+     preview cannot show something the shopper would not get. */
+  function fill(template, vars) {
     var v = vars || {};
-    return String(template)
+    return String(template == null ? '' : template)
       .replace(TOKEN, function (whole, name) {
         var value = v[name];
         if (value === undefined || value === null || value === '') return '';
@@ -337,6 +416,12 @@
       .replace(/\(\s*\)/g, '')
       .replace(/\s{2,}/g, ' ')
       .trim();
+  }
+
+  function get(key, vars) {
+    var template = field(key, 'text');
+    if (template === undefined) return '';
+    return fill(template, vars);
   }
 
   /** The colour for `key`. '' means inherit the surrounding text colour. */
@@ -367,6 +452,10 @@
     keys: function () { return Object.keys(DEFAULTS); },
     groups: groups,
     has: has,
+    isMain: isMain,
+    SAMPLE: SAMPLE,
+    render: render,
+    declineKey: declineKey,
     tokensIn: tokensIn,
     validate: validate,
     validateColor: validateColor,
