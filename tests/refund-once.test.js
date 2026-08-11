@@ -350,5 +350,41 @@ console.log('\n  no form when there is nothing to submit');
 }
 
 
+console.log('\n  a refund tells the return it happened');
+{
+  const ref = fs.readFileSync(ROOT + 'functions/api/admin-refund.js', 'utf8');
+
+  /* Three places can refund an order and only the one doing it knew. A return
+     sitting at "item received" stayed open after the money went back from
+     Receipts — the workspace showed work outstanding that was already done,
+     and the customer's account page showed a request under review after they
+     had been refunded. */
+  ok('a successful refund closes the return it settled',
+    /Close the return this refund just settled/.test(ref)
+      && /status: 'refunded', updatedAt: at/.test(ref));
+  ok('…only the ones still open',
+    /'requested', 'approved', 'label_sent', 'item_received', 'exchange_in_progress'/.test(ref));
+  ok('…and only when Stripe actually returned a refund', /&& stripeRefundId\)/.test(ref));
+
+  /* The money has already moved. Failing the request now would say the refund
+     did not happen, and somebody would do it again. */
+  ok('failing to close it never fails the refund',
+    /could not close the linked return/.test(ref));
+  ok('…and it says who did it and from where', /Refunded from the /.test(ref));
+
+  /* The email was already unconditional on every refund. Asserted so it stays
+     that way — it is the only thing the customer sees when a refund happens
+     outside the returns flow. */
+  ok('the customer is emailed on any refund, whichever panel issued it',
+    /if \(\(action === 'cancel_refund' \|\| action === 'refund'\) && order\.email\)/.test(ref));
+
+  /* A SEVENTH order-number formula, in the Worker — missed because the guard
+     test listed six files by name and this was not one of them. */
+  ok('the refund email uses the shared order number',
+    /orderNumber:\s+orderNo\(order\)/.test(ref)
+      && !/order\.order_number \|\| String\(orderId\)\.slice\(-8\)/.test(ref));
+}
+
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

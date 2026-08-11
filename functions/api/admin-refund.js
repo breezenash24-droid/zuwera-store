@@ -13,8 +13,9 @@
  */
 
 import Stripe from 'stripe';
-import { cors, json, verifyAdmin, decide, getSetting, setSetting, getCommerceBundle } from './_commerce.js';
+import { cors, json, verifyAdmin, decide, getSetting, setSetting, getCommerceBundle, mutateSetting } from './_commerce.js';
 import { permsHave } from './_rbac.js';
+import { orderNo } from './_order-no.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
@@ -337,6 +338,51 @@ export async function onRequestPost({ request, env }) {
     body:    JSON.stringify(patch),
   });
 
+  /* ── 10b. Close the return this refund just settled ─────────────────────────
+
+     Three places can refund an order, and only the one doing it knew. A return
+     sitting at "item received" stayed open after the money went back from
+     Receipts — so the workspace showed work outstanding that was already done,
+     and the customer's account page showed a request still under review after
+     they had been refunded.
+
+     Marked `refunded` rather than `completed`, which is what the returns
+     workspace sets when somebody does it from there — same status, so the two
+     routes leave the same record and nothing downstream has to know which was
+     used.
+
+     Never fatal. The money has already moved; failing the request now would
+     say the refund did not happen, and somebody would do it again. */
+  if ((action === 'refund' || action === 'cancel_refund') && stripeRefundId) {
+    try {
+      const bundle = await getCommerceBundle(env);
+      const list = Array.isArray(bundle.returnsState?.requests) ? bundle.returnsState.requests : [];
+      const OPEN = new Set(['requested', 'approved', 'label_sent', 'item_received', 'exchange_in_progress']);
+      const hits = list.filter(r => r && String(r.orderId || '') === String(orderId) && OPEN.has(String(r.status || '')));
+      if (hits.length) {
+        const at = new Date().toISOString();
+        /* Appended, not replaced — an inspection note somebody wrote by
+           hand is the reason this return was settled the way it was. */
+        const line = `Refunded from the ${action === 'cancel_refund' ? 'cancellation' : 'refund'} `
+          + `panel by ${adminEmail || adminId} on ${at}.`;
+        const noteWith = (prev) => (String(prev || '').trim() ? `${String(prev).trim()}
+${line}` : line);
+        await mutateSetting(env, 'commerce_returns', (cur) => {
+          const state = (cur && typeof cur === 'object') ? cur : {};
+          const reqs = Array.isArray(state.requests) ? state.requests : [];
+          return {
+            ...state,
+            requests: reqs.map(r => (r && hits.some(h => h.id === r.id)
+              ? { ...r, status: 'refunded', updatedAt: at, internalNotes: noteWith(r.internalNotes) }
+              : r)),
+          };
+        });
+      }
+    } catch (e) {
+      console.warn('refund: could not close the linked return —', e && e.message);
+    }
+  }
+
   // ── 11. Audit log ─────────────────────────────────────────────────────────────
   await audit(env, {
     adminId, adminEmail, orderId, action, success: true,
@@ -353,7 +399,7 @@ export async function onRequestPost({ request, env }) {
     await sendRefundEmail(env, {
       customerEmail:     order.email,
       customerName:      order.customer_name || order.email,
-      orderNumber:       order.order_number || String(orderId).slice(-8).toUpperCase(),
+      orderNumber:       orderNo(order),
       action,
       orderTotal:        order.total,
       stripeRefundAmount,
