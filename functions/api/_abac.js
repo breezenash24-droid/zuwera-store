@@ -74,6 +74,22 @@ export function checkRule(rule, ctx) {
   const roles = Array.isArray(rule.roles) ? rule.roles.map(String) : null;
   if (roles && roles.indexOf(String(attr(ctx, 'subject.role'))) === -1) return 'n/a';
 
+  /* A rule may also name PEOPLE. Roles are the blunt instrument — "managers may
+     refund up to $500" — and there is always somebody who needs a different
+     number: a new hire on a tighter leash, one person trusted with more. Doing
+     that with roles alone means inventing a role per exception, which is how
+     role lists become unreadable.
+
+     Matched on id or email, because an admin panel knows people by email and
+     the session knows them by id, and requiring the right one would be a
+     silent no-match. Same "unspecified means everyone" reading as roles. */
+  const users = Array.isArray(rule.users) ? rule.users.map((u) => String(u).toLowerCase()) : null;
+  if (users) {
+    const id = String(attr(ctx, 'subject.id') || '').toLowerCase();
+    const email = String(attr(ctx, 'subject.email') || '').toLowerCase();
+    if (users.indexOf(id) === -1 && users.indexOf(email) === -1) return 'n/a';
+  }
+
   const op = OPS[String(rule.op || '')];
   if (!op) return 'fail';                                       // unknown operator → deny
   const left = attr(ctx, rule.attr);
@@ -108,6 +124,12 @@ export function can(rbacAllowed, rules, ctx) {
         allow: false,
         reason: rule && rule.label ? String(rule.label) : 'a rule denied it',
         rule: rule && rule.id ? String(rule.id) : undefined,
+        /* The distinction the UI needs. "Your role cannot do this" and "your
+           role can, but a limit stopped this case" are different sentences and
+           lead to different actions — the second one is worth asking somebody
+           about, the first is not. Without this flag an Ask button would appear
+           on refusals nobody can grant. */
+        limited: true,
       };
     }
   }
