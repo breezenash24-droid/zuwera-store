@@ -9258,10 +9258,12 @@ function escapeAttr(value) {
               help: 'Refuse promo codes worth more than this.' },
             { id: 'order_edit_max', action: 'order_edit', attr: 'resource.total', op: 'lte', kind: 'number',
               label: 'Editing an order', unit: '$', value: 1000, ready: false, sealed: false,
+              needs: 'there is no manual order edit — every write to an order goes through refund or returns, and those are gated already',
               say: (v) => 'edit an order worth more than $' + v,
               help: 'Refuse edits to orders above this total.' },
             { id: 'reward_max', action: 'loyalty_adjust', attr: 'resource.points', op: 'lte', kind: 'number',
               label: 'Awarding loyalty points', unit: 'pts', value: 1000, ready: false, sealed: false,
+              needs: 'there is no manual points adjustment in the admin; points are only awarded automatically at checkout',
               say: (v) => 'award more than ' + v + ' points at once',
               help: 'Refuse manual points adjustments larger than this.' },
             { id: 'price_change_max', action: 'product_price', attr: 'resource.percent_change', op: 'lte', kind: 'number',
@@ -9286,10 +9288,12 @@ function escapeAttr(value) {
             // ── scope ────────────────────────────────────────────────────────
             { id: 'region_only', action: 'order_edit', attr: 'resource.ship_state', op: 'in', kind: 'list',
               label: 'Orders in certain regions only', unit: '', value: [], ready: false, sealed: false,
+              needs: 'same as above — nothing edits an order directly, so there is no write to scope by region',
               say: (v) => 'touch an order shipping anywhere except ' + ([].concat(v).join(', ') || '(nowhere set yet)'),
               help: 'Only orders shipping to these states or regions. Two-letter codes, comma separated.' },
             { id: 'own_orders', action: 'order_edit', attr: 'resource.assigned_to', op: 'eq', kind: 'subject',
               label: 'Only orders assigned to them', unit: '', value: 'subject.id', ready: false, sealed: false,
+              needs: 'orders are not assigned to anybody; there is no such field and no way to set one',
               say: () => 'touch an order assigned to somebody else',
               help: 'Refuse touching an order assigned to somebody else.' },
 
@@ -9505,12 +9509,18 @@ function escapeAttr(value) {
             const soon = !later.length ? '' :
                 '<details style="margin-top:14px;border:1px solid var(--border);border-radius:8px">'
                 + '<summary style="cursor:pointer;padding:9px 12px;font-size:.8rem;color:var(--text-secondary)">'
-                +   later.length + ' more kinds of limit are planned, but not built yet</summary>'
+                +   later.length + ' more kinds of limit wait on features that do not exist yet</summary>'
                 + '<div style="padding:0 12px 12px;font-size:.78rem;color:var(--text-secondary);line-height:1.6">'
-                +   '<p style="margin:0 0 8px">Kept out of the list above so that every limit you can add is one that '
-                +   'works. Each of these needs its part of the admin to ask for a decision first, which is code rather '
-                +   'than a setting.</p><ul style="margin:0;padding-left:18px">'
-                +   later.map((k) => '<li>' + esc(k.label) + '</li>').join('')
+                /* Reworded once every one of these was checked. "Planned but
+                   not built" describes wiring, and implies a queue. These are
+                   limits on actions the admin cannot currently perform at all,
+                   which is a different thing to be told — the limit is not
+                   waiting on anybody, the feature is. */
+                +   '<p style="margin:0 0 8px">These are kept out of the list above because there is nothing for them '
+                +   'to refuse. Each one constrains something the admin does not do yet — build the feature and the '
+                +   'limit becomes available with it.</p><ul style="margin:0;padding-left:18px">'
+                +   later.map((k) => '<li><strong>' + esc(k.label) + '</strong>'
+                        + (k.needs ? ' — ' + esc(k.needs) : '') + '</li>').join('')
                 + '</ul></div></details>';
 
             if (!_abacState.length) {
@@ -9648,9 +9658,14 @@ function escapeAttr(value) {
                        for rather than the thing happening now. */
                     + (kind.ready ? '' :
                         '<div style="font-size:.74rem;color:var(--red,#dc2626);margin-top:4px;line-height:1.55">'
-                        + '<strong>This does nothing yet.</strong> "' + esc(kind.label) + '" never asks for a decision, '
-                        + 'so this limit is not consulted and switching it on protects nothing. '
-                        + 'Delete it, or leave it and it will start working when that part is built.'
+                        + '<strong>This does nothing, and not because it is unfinished.</strong> '
+                        /* The distinction an owner needs: "nobody has wired it
+                           up" implies a queue and a date. These four are limits
+                           on actions the admin does not have — checking each
+                           one turned up no code that does the thing, so there
+                           is nothing anywhere that could ask. */
+                        + esc(kind.needs || 'nothing in the admin performs this action')
+                        + '. Until that exists there is nothing to refuse, so switching this on protects nothing.'
                         + '</div>')
                     + '</div>';
             }).join('') + soon;

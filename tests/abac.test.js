@@ -174,8 +174,29 @@ console.log('\n  and a store owner can write one');
      Both readings tell you to leave it off, so the bug was invisible. It
      matters anyway: one says "this is dangerous", the other says "this is not
      protecting you", and only the second is true today. */
-  ok('a limit that cannot be enforced says it does nothing', /This does nothing yet/.test(adm),
+  ok('a limit that cannot be enforced says it does nothing',
+    /This does nothing, and not because it is unfinished/.test(adm),
     'an unwired action never reaches the engine, so the rule is never consulted');
+
+  /* Second correction to the same sentence, from checking every remaining one
+     rather than assuming. None is waiting on wiring: `assigned_to` appears
+     nowhere but in its own rule, there is no manual points adjustment, and
+     every browser touch of `orders` is a SELECT — the order edits that exist
+     go through refund and returns, which are gated already.
+     "Planned but not built" describes a queue somebody is in. These are limits
+     on actions the admin cannot perform, which is a different thing to be
+     told: the limit is not waiting on anybody, the feature is. */
+  /* Split per entry. A lazy [\s\S]*? ran past the end of one limit into the
+     next and reported ready:true ones as unwired — the assertion failing for a
+     reason that had nothing to do with what it was asserting. */
+  const chunks = block.split(/\{ id: '/).slice(1);
+  const unwiredChunks = chunks.filter((c) => /ready: false/.test(c));
+  ok('…and each one says what is actually missing',
+    unwiredChunks.length > 0 && unwiredChunks.every((c) => /needs: '/.test(c)),
+    'unwired: ' + unwiredChunks.map((c) => c.split("'")[0]).join(', '))
+  ok('…rather than implying somebody is getting to it',
+    !/planned, but not built yet/.test(adm)
+      && /wait on features that do not exist yet/.test(adm));
   ok('…and readiness is recorded per limit', /ready: (true|false)/.test(block));
   ok('…that writes where the engine reads', /key: 'abac_rules'/.test(adm),
     'a rule saved anywhere else is a rule nothing enforces');
@@ -251,7 +272,7 @@ console.log('\n  and a store owner can write one');
      Believing a limit works when it does not is the failure that goes
      unnoticed, so that is the sentence the panel has to lead with. */
   ok('a limit that cannot bite says it does nothing, not that it refuses everything',
-    /This does nothing yet/.test(adm) && !/it will refuse every/.test(adm),
+    /This does nothing, and not because it is unfinished/.test(adm) && !/it will refuse every/.test(adm),
     'the old wording described a future hazard and hid the present one');
 
   ok('…and says so next to the switch, not only in the small print',
@@ -578,7 +599,7 @@ console.log('\n  a rule reads as a sentence');
     /ABAC_LIMITS\.filter\(\(k\) => k\.ready \|\| k\.id === kind\.id\)/.test(adm));
   ok('…keeping the row\'s own kind listed, so reopening one cannot change it',
     /k\.id === kind\.id/.test(adm));
-  ok('…and the rest are named rather than hidden', /planned, but not built yet/.test(adm));
+  ok('…and the rest are named rather than hidden', /wait on features that do not exist yet/.test(adm));
 }
 
 console.log('\n  asking, when a limit says no');
