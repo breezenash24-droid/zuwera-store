@@ -285,6 +285,39 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
        reported as a cart conflict. It stays loud in the logs either way. */
     if (priceCents <= 0) throw cartError(`Product has no checkout price: ${product.title || product.name || product.id}`, 409);
 
+    /* NEVER CHARGE MORE THAN WAS SHOWN.
+     *
+     * The bag showed $35 and this path charged $40 — the bag had applied member
+     * pricing and the server had not, because the access token did not verify.
+     * Nothing anywhere compared the two, so the shopper was billed a figure
+     * they had never been quoted, silently.
+     *
+     * The cart already sends the price it displayed on every line, so the check
+     * needs nothing from the client that it was not already sending. The rule
+     * is one-directional on purpose:
+     *
+     *   server price HIGHER than displayed  → refuse. Billing above the quote
+     *     is the harm, and it is the direction a stale price, an expired
+     *     session or a mispriced product all point in.
+     *   server price LOWER  → proceed, and charge the lower one. The shopper
+     *     benefits and there is nothing to protect them from.
+     *
+     * Not exploitable by sending a tiny displayed price: the charge is always
+     * the SERVER's figure, and understating the display only earns a refusal.
+     * A cent of tolerance absorbs float-to-cents rounding in the browser. */
+    const shownCents = toCents(raw?.price);
+    if (shownCents > 0 && priceCents > shownCents + 1) {
+      const label = product.title || product.name || 'An item';
+      console.error(
+        `PRICE MISMATCH ${product.id} (${label}): shown ${shownCents}c, would charge ${priceCents}c` +
+        `${isMember ? ' [member]' : ' [non-member]'} — refused rather than billing above the quote.`
+      );
+      throw cartError(
+        `The price of ${label} has changed. Refresh your bag to see the current price before paying.`,
+        409
+      );
+    }
+
     const itemSize = String(raw?.size || '').trim();
     const itemQty = parseQuantity(raw?.quantity);
 

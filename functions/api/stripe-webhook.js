@@ -652,7 +652,20 @@ async function decrementInventory(meta, env) {
       if (!rpcRes.ok) {
         console.warn(`decrementInventory: RPC failed for ${productId} / ${size}:`, await rpcRes.text());
       } else {
-        console.log(`Inventory decremented: ${productId} / ${size} by ${qty}`);
+        /* The RPC now reports how many rows it changed. It used to return void,
+           so "found no row and did nothing" was indistinguishable from success —
+           which is how a size sold out while still advertising one left. A miss
+           here means stock is now wrong on a live product, so it is an error
+           rather than a note. */
+        const changed = Number(await rpcRes.json().catch(() => 0)) || 0;
+        if (changed > 0) {
+          console.log(`Inventory decremented: ${productId} / ${size} by ${qty}`);
+        } else {
+          console.error(
+            `decrementInventory: NOTHING decremented for ${productId} / ${size} / ${colorName || '(no colour)'} ` +
+            `— stock is now overstated. Either no product_sizes row matches, or migration 0007 has not been applied.`
+          );
+        }
       }
     } catch (e) {
       console.warn(`decrementInventory error for ${productId} / ${size}:`, e.message);

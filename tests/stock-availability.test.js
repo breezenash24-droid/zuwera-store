@@ -26,7 +26,7 @@ const PRODUCT = {
 
 /* Runs a checkout attempt against a catalog holding exactly `sizeRows`.
    Resolves to null on success, or the refusal message. */
-async function attempt({ sizeRows, size = 'M', colorName = '', quantity = 1 }) {
+async function attempt({ sizeRows, size = 'M', colorName = '', quantity = 1, shownPrice }) {
   const { quoteCart } = await import(PRICING);
   const realFetch = globalThis.fetch;
   const reply = (p) => new Response(JSON.stringify(p), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -54,7 +54,7 @@ async function attempt({ sizeRows, size = 'M', colorName = '', quantity = 1 }) {
   };
   try {
     await quoteCart({
-      items: [{ id: 'p1', size, colorName, quantity }],
+      items: [{ id: 'p1', size, colorName, quantity, ...(shownPrice === undefined ? {} : { price: shownPrice }) }],
       address: { email: 'a@b.co', name: 'A', line1: '1 A St', city: 'Albany', state: 'NY', zip: '12207', country: 'US' },
       env: { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'k' },
       request: new Request('https://zuwera.store/api/x', { method: 'POST' }),
@@ -163,6 +163,41 @@ async function run() {
        must block, or "unknown" becomes a way to oversell. */
     const missing = await attempt({ sizeRows: [{ size: 'L', color_name: 'yellow', stock_quantity: 4 }], size: 'M', colorName: 'yellow' });
     ok('a size with no row of its own is refused', /out of stock/i.test(missing || ''), missing);
+  }
+
+  /* ── never charge more than was shown ────────────────────────────────────
+     The bag showed $35 and this path charged $40: the bag had applied member
+     pricing, the server had not because the token did not verify, and nothing
+     compared the two. The shopper was billed a figure they were never quoted.
+
+     PRODUCT is priced at $40.00 in these fixtures, so "shown 35" is exactly
+     that bug and "shown 40" is the ordinary case. */
+  console.log('\n  the shopper is never billed above the price they were shown');
+  {
+    const rows = [{ size: 'M', color_name: 'yellow', stock_quantity: 5 }];
+
+    const agreed = await attempt({ sizeRows: rows, colorName: 'yellow', shownPrice: '40.00' });
+    ok('a cart quoting the real price goes through', agreed === null, agreed);
+
+    const under = await attempt({ sizeRows: rows, colorName: 'yellow', shownPrice: '35.00' });
+    ok('a cart quoting less than we would charge is refused',
+      /price .* has changed/i.test(under || ''), under);
+
+    /* The other direction is not an error. Charging BELOW what was displayed
+       harms nobody, and refusing would turn every price cut into an outage. */
+    const over = await attempt({ sizeRows: rows, colorName: 'yellow', shownPrice: '50.00' });
+    ok('a cart quoting more than we charge still goes through, at our price', over === null, over);
+
+    /* Not exploitable: the charge is always the server's figure, so understating
+       the display buys a refusal rather than a discount. */
+    const tiny = await attempt({ sizeRows: rows, colorName: 'yellow', shownPrice: '0.01' });
+    ok('a forged low price earns a refusal, not a cheap order',
+      /price .* has changed/i.test(tiny || ''), tiny);
+
+    /* A cart line with no price at all predates this field. It must still be
+       sellable, or every bag saved before the change breaks. */
+    const legacy = await attempt({ sizeRows: rows, colorName: 'yellow' });
+    ok('a cart line carrying no price is not blocked by the check', legacy === null, legacy);
   }
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
