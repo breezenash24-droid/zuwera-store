@@ -83,6 +83,23 @@ export function checkRule(rule, ctx) {
      Matched on id or email, because an admin panel knows people by email and
      the session knows them by id, and requiring the right one would be a
      silent no-match. Same "unspecified means everyone" reading as roles. */
+  /* Super admin. Three settings rather than two, because "does this apply to
+     the owner" has three honest answers and a checkbox only offers two:
+       'apply'  — it binds them like anyone else. The default, because a limit
+                  the owner is exempt from is a limit that stops being tested,
+                  and because most stores have exactly one admin who IS the
+                  owner: exempting them would make every limit decorative.
+       'notify' — it binds them, and the refusal says they may proceed by
+                  changing the limit. They are never locked out of their own
+                  store, but they have to make the decision deliberately
+                  instead of not noticing the rule.
+       'bypass' — it never applies to them.
+     Bypass is offered because it is what people want, and refused as a default
+     because a role that silently skips every rule turns "who can do X" back
+     into a guess. */
+  const sa = String(rule.superAdmin || 'apply');
+  if (sa === 'bypass' && String(attr(ctx, 'subject.role')) === 'super_admin') return 'n/a';
+
   const users = Array.isArray(rule.users) ? rule.users.map((u) => String(u).toLowerCase()) : null;
   if (users) {
     const id = String(attr(ctx, 'subject.id') || '').toLowerCase();
@@ -130,6 +147,11 @@ export function can(rbacAllowed, rules, ctx) {
            about, the first is not. Without this flag an Ask button would appear
            on refusals nobody can grant. */
         limited: true,
+        /* Told to the caller so a super admin sees "you can change this limit"
+           rather than a flat refusal — they have the power, they just have not
+           used it yet. Anyone else gets the plain message. */
+        ownerMayOverride: String((rule && rule.superAdmin) || 'apply') === 'notify'
+          && String(attr(ctx, 'subject.role')) === 'super_admin',
       };
     }
   }

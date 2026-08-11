@@ -357,5 +357,71 @@ console.log('\n  forgetting the refund code is not a lockout');
     'a reset button hands the second factor to whoever got into the panel');
 }
 
+
+console.log('\n  the refused person is told something useful');
+{
+  const fs6 = require('fs');
+  const R6 = require('path').resolve(__dirname, '..') + '/';
+  const adm6 = fs6.readFileSync(R6 + 'admin-main.js', 'utf8');
+
+  /* The message was the rule's internal label — "Refunds limit" — which tells
+     somebody nothing about what to do next. A refusal nobody can act on gets
+     escalated to whoever can switch the limit off, which is how limits stop
+     being used at all. */
+  ok('the message shown on refusal is editable', /They will see/.test(adm6));
+  ok('…and it is the field the engine actually reports',
+    adm6.includes("',\\'label\\',this.value)"),
+    'can() returns rule.label as the reason, so anything else would not reach the person');
+  ok('…with a default that says what to do next',
+    /ask an admin to approve it/.test(adm6),
+    '"Refunds limit" states that a rule exists, not what happens now');
+}
+
+
+console.log('\n  the owner is not automatically exempt');
+{
+  const base = { action: 'refund', attr: 'resource.amount', op: 'lte', value: 100 };
+  const c = (role) => ({ action: 'refund', resource: { amount: 500 }, subject: { role: role } });
+
+  /* Three settings, because "does this bind the owner" has three honest answers
+     and a checkbox offers two. */
+  ok('by default a limit binds the super admin like anyone else',
+    can(true, [base], c('super_admin')).allow === false,
+    'most stores have one admin who IS the owner — exempting them makes every limit decorative');
+
+  ok('bypass really does exempt them',
+    can(true, [Object.assign({ superAdmin: 'bypass' }, base)], c('super_admin')).allow === true);
+  ok('…and only them', 
+    can(true, [Object.assign({ superAdmin: 'bypass' }, base)], c('manager')).allow === false);
+
+  /* The middle setting: bound, but told they can change it. Never locked out of
+     their own store, and still made to decide deliberately. */
+  const notify = can(true, [Object.assign({ superAdmin: 'notify' }, base)], c('super_admin'));
+  ok('notify still refuses', notify.allow === false);
+  ok('…while saying the owner may change the limit', notify.ownerMayOverride === true);
+  ok('…and says no such thing to anybody else',
+    !can(true, [Object.assign({ superAdmin: 'notify' }, base)], c('manager')).ownerMayOverride);
+}
+
+console.log('\n  how many items, not just how much');
+{
+  const byCount = { action: 'refund', attr: 'resource.itemCount', op: 'lte', value: 5 };
+  const c = (n) => ({ action: 'refund', resource: { itemCount: n, amount: 10 }, subject: { role: 'manager' } });
+  ok('a refund covering too many items is refused', can(true, [byCount], c(9)).allow === false);
+  ok('…and a small one is not', can(true, [byCount], c(3)).allow === true);
+
+  const fs7 = require('fs');
+  const R7 = require('path').resolve(__dirname, '..') + '/';
+  const ref = fs7.readFileSync(R7 + 'functions/api/admin-refund.js', 'utf8');
+  ok('the refund endpoint sends the item count', /itemCount: Array\.isArray\(order\.items\)/.test(ref));
+
+  /* It reads `order`, so it has to run after the order loads. Written earlier
+     it was a temporal dead zone error — every refund would have thrown, not
+     just limited ones. */
+  ok('…after the order it reads is loaded',
+    ref.indexOf('const order  = orders') < ref.indexOf('await decide(env'),
+    'referencing order before its declaration throws on every refund');
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

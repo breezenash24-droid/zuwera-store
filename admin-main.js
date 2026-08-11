@@ -9181,6 +9181,9 @@ function escapeAttr(value) {
             { id: 'refund_max', action: 'refund', attr: 'resource.amount', op: 'lte', kind: 'number',
               label: 'Refunds', unit: '$', value: 500, ready: true,
               help: 'Refuse refunds above this amount.' },
+            { id: 'refund_items_max', action: 'refund', attr: 'resource.itemCount', op: 'lte', kind: 'number',
+              label: 'Items in one refund', unit: 'items', value: 5, ready: true,
+              help: 'Refuse a refund covering more items than this, whatever it is worth. A ten-item refund is a different kind of decision from a large one.' },
             { id: 'discount_max', action: 'promo_create', attr: 'resource.percent', op: 'lte', kind: 'number',
               label: 'Discount codes', unit: '%', value: 30, ready: false,
               help: 'Refuse promo codes worth more than this.' },
@@ -9290,6 +9293,30 @@ function escapeAttr(value) {
                     +     'value="' + esc(Array.isArray(r.users) ? r.users.join(', ') : '') + '" '
                     +     'oninput="abacSet(' + i + ',\'users\',this.value)">'
                     + '</div>'
+                    /* What the refused person reads. It was the rule's internal
+                       label — "Refunds limit" — which tells somebody nothing
+                       about what to do next. A refusal they cannot act on gets
+                       escalated to whoever can turn the limit off, which is how
+                       limits stop being used. */
+                    + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px">'
+                    +   '<span style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap">Super admin</span>'
+                    +   '<select class="form-input" style="flex:1;padding:5px 8px;font-size:.78rem" '
+                    +     'onchange="abacSet(' + i + ',\'superAdmin\',this.value)">'
+                    +     [['apply', 'Bound by this, like everyone else'],
+                           ['notify', 'Bound by it, but told they can change it'],
+                           ['bypass', 'Never applies to them']]
+                          .map(function (o) {
+                            return '<option value="' + o[0] + '"'
+                              + ((r.superAdmin || 'apply') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+                          }).join('')
+                    +   '</select>'
+                    + '</div>'
+                    + '<div style="display:flex;gap:8px;align-items:center;margin-top:8px">'
+                    +   '<span style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap">They will see</span>'
+                    +   '<input type="text" class="form-input" style="flex:1;padding:5px 8px;font-size:.78rem" '
+                    +     'placeholder="' + esc(kind.label) + ' limit" value="' + esc(r.label || '') + '" '
+                    +     'oninput="abacSet(' + i + ',\'label\',this.value)">'
+                    + '</div>'
                     + '<div style="font-size:.74rem;color:var(--text-secondary);margin-top:6px">' + esc(kind.help) + '</div>'
                     /* Say when a limit cannot bite yet. Silence here would be
                        the dangerous kind: the engine refuses what it cannot
@@ -9350,8 +9377,11 @@ function escapeAttr(value) {
 
         window.abacAdd = function () {
             const k = ABAC_LIMITS[0];
+            /* A default that says what happened and what to do, not just that a
+               rule exists. Editable, because the right next step depends on how
+               the store is run — ask a manager, raise a ticket, call somebody. */
             _abacState.push({ id: k.id, action: k.action, attr: k.attr, op: k.op, value: k.value, enabled: true,
-                              label: k.label + ' limit' });
+                              label: 'Above your ' + k.label.toLowerCase() + ' limit — ask an admin to approve it.' });
             abacRender();
         };
 

@@ -51,32 +51,6 @@ export async function onRequestPost({ request, env }) {
     return json({ error: 'Your role does not have permission to issue refunds.' }, 403, h);
   }
 
-  /* The limits an owner set under Users. The role said yes; this asks whether
-     it is allowed for THIS refund — the amount is the whole point, so it has to
-     be passed. A limit with nothing to compare against denies everything, which
-     is why the panel marks a limit as unenforced until its endpoint does this.
-
-     In dollars, because that is the unit the panel asks for. Passing cents
-     against a limit written as "$500" would refuse every refund over five
-     dollars, and look like the limit working. */
-  const refundDollars = Number.isFinite(Number(amountCents)) ? Number(amountCents) / 100 : null;
-  const verdict = await decide(env, accessToken, 'refund', {
-    action: 'refund',
-    resource: { amount: refundDollars, orderId: String(orderId || '') },
-  });
-  if (!verdict.allow) {
-    await audit(env, {
-      adminId: String(admin.id || ''), adminEmail: String(admin.email || ''),
-      orderId, action, success: false, note: `blocked by limit: ${verdict.reason}`,
-    });
-    return json({
-      error: verdict.reason || 'A limit on your account stopped this refund.',
-      /* So the panel can offer to ask somebody, rather than presenting a dead
-         end. Only ever true when the ROLE allowed it. */
-      limited: !!verdict.limited,
-    }, 403, h);
-  }
-
   // ── 2. REFUND_SECRET must exist in Cloudflare env vars ──────────────────────
   const secret = env.REFUND_SECRET;
   if (!secret) {
@@ -152,6 +126,45 @@ export async function onRequestPost({ request, env }) {
   const orders = orderRes.ok ? await orderRes.json().catch(() => []) : [];
   const order  = orders?.[0];
   if (!order) return json({ error: 'Order not found.' }, 404, h);
+
+  /* The limits an owner set under Users. The role said yes; this asks whether
+     it is allowed for THIS refund.
+
+     Placed AFTER the order loads, because it needs the order: the amount, and
+     how many items the refund covers. Written earlier in the handler it read
+     `order` before its declaration — a temporal dead zone error that would have
+     thrown on every refund, not just limited ones.
+
+     Amount in DOLLARS, because that is the unit the panel asks for. Passing
+     cents against a limit written as "$500" would refuse every refund over five
+     dollars and look exactly like the limit working. */
+  const refundDollars = Number.isFinite(Number(amountCents))
+    ? Number(amountCents) / 100
+    : (Number(order.total) || null);
+  const verdict = await decide(env, accessToken, 'refund', {
+    action: 'refund',
+    resource: {
+      amount: refundDollars,
+      /* How MANY, not just how much. A ten-item refund is a different kind of
+         decision from an expensive one, and a store may want to stop one
+         without stopping the other. */
+      itemCount: Array.isArray(order.items) ? order.items.length : null,
+      orderId: String(orderId || ''),
+    },
+  });
+  if (!verdict.allow) {
+    await audit(env, {
+      adminId: String(admin.id || ''), adminEmail: String(admin.email || ''),
+      orderId, action, success: false, note: `blocked by limit: ${verdict.reason}`,
+    });
+    return json({
+      error: verdict.reason || 'A limit on your account stopped this refund.',
+      limited: !!verdict.limited,
+      /* A super admin on a "notify" limit is told they may proceed by changing
+         it — they have the power, they just have not used it. */
+      ownerMayOverride: !!verdict.ownerMayOverride,
+    }, 403, h);
+  }
 
   // ── 7. Guard against invalid state transitions ───────────────────────────────
   if (order.status === 'cancelled') {
