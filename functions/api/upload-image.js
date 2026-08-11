@@ -1,17 +1,26 @@
 /**
  * /api/upload-image — Cloudflare Pages Function
- * Uploads a builder media file (image/video) to the public `product-images`
- * bucket using the service-role key, bypassing storage RLS. Mirrors the trust
- * model of /api/save-page-builder: a valid Supabase session token is required.
+ *
+ * Builder media: the hero images and videos placed from the page builder.
+ *
+ * These went to Supabase Storage until it became clear that was the whole
+ * cached-egress bill. Storage egress there is billed and video is the worst
+ * case, because no image CDN proxies it — a hero clip was served at full size
+ * on every play. R2 egress is free, and the product uploader was already using
+ * it, so there was no reason for a second destination beyond history.
+ *
+ * The session check is unchanged: a valid Supabase token is still required,
+ * same trust model as /api/save-page-builder. Only where the bytes land moved.
  *
  * Request: multipart/form-data { accessToken, file }
  * Response: { url } (public URL) or { error }
  */
 
+import { putR2Object, publicUrlForKey } from './upload-product-image.js';
+
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
-const BUCKET = 'product-images';
-const MAX_BYTES = 30 * 1024 * 1024; // 30 MB
+const MAX_BYTES = 100 * 1024 * 1024; // 100 MB — a hero video is legitimately large
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -51,31 +60,22 @@ export async function onRequestPost({ request, env }) {
     });
     if (!userRes.ok) return json({ error: 'Invalid or expired session' }, 401);
 
-    const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_SERVICE_ROLE;
-    if (!serviceKey) return json({ error: 'Server not configured — add SUPABASE_SERVICE_ROLE_KEY env var' }, 500);
-
     const name = String(file.name || 'upload').toLowerCase();
     const ext = (name.split('.').pop() || 'bin').replace(/[^a-z0-9]/g, '') || 'bin';
-    const path = 'builder/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+    const key = 'builder/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
     const contentType = file.type || 'application/octet-stream';
     const buf = await file.arrayBuffer();
 
-    const upRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodeURIComponent(path)}`, {
-      method: 'POST',
-      headers: {
-        apikey: serviceKey,
-        Authorization: 'Bearer ' + serviceKey,
-        'Content-Type': contentType,
-        'x-upsert': 'true',
-      },
-      body: buf,
-    });
-    if (!upRes.ok) {
-      const t = await upRes.text();
-      return json({ error: t || ('Storage upload failed (' + upRes.status + ')') }, upRes.status);
+    /* Same helpers the product uploader uses, so there is one R2 path rather
+       than two that can drift. A failure here is reported rather than falling
+       back to Supabase: silently writing to the expensive store is exactly the
+       behaviour this replaced, and it would be invisible until the next bill. */
+    try {
+      await putR2Object(env, key, buf, contentType);
+      return json({ url: publicUrlForKey(env, key) });
+    } catch (e) {
+      return json({ error: 'Upload failed: ' + ((e && e.message) || String(e)) }, 502);
     }
-
-    return json({ url: `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}` });
   } catch (e) {
     return json({ error: (e && e.message) || String(e) }, 500);
   }

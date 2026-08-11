@@ -130,7 +130,7 @@ function safeSegment(value, fallback) {
     .slice(0, 80) || fallback;
 }
 
-function publicUrlForKey(env, key) {
+export function publicUrlForKey(env, key) {
   const base = String(env.R2_PUBLIC_BASE_URL || '').replace(/\/+$/, '');
   if (!base) {
     const error = new Error('R2_PUBLIC_BASE_URL is not configured.');
@@ -260,7 +260,7 @@ async function signedR2Request(env, { method, key, body, contentType }) {
   });
 }
 
-async function putR2Object(env, key, body, contentType) {
+export async function putR2Object(env, key, body, contentType) {
   if (env.PRODUCT_IMAGES_BUCKET?.put) {
     await env.PRODUCT_IMAGES_BUCKET.put(key, body, {
       httpMetadata: {
