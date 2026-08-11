@@ -56,34 +56,78 @@
      read three different ways depending on where the shopper happened to be. */
   var DEFAULTS = {
     /* ── on the shelf ─────────────────────────────────────────────────────── */
-    soldOut:        { text: 'Out of stock', color: ROLE.plain },
-    soldOutItem:    { text: '{title} ({size}) is out of stock', color: ROLE.plain },
-    soldOutInBag:   { text: 'Out of stock — remove it to check out', color: ROLE.bad },
-    lowStock:       { text: 'Only {count} left in stock', color: ROLE.plain },
-    lowStockShort:  { text: 'Only {count} left', color: ROLE.plain },
+    soldOut:        { label: 'A size is sold out', text: 'Out of stock', color: ROLE.plain },
+    soldOutItem:    { label: 'A named item is sold out', text: '{title} ({size}) is out of stock', color: ROLE.plain },
+    soldOutInBag:   { label: 'Something in the bag has sold out', text: 'Out of stock — remove it to check out', color: ROLE.bad },
+    lowStock:       { label: 'Only a few left (product page)', text: 'Only {count} left in stock', color: ROLE.plain },
+    lowStockShort:  { label: 'Only a few left (bag)', text: 'Only {count} left', color: ROLE.plain },
 
     /* ── in the shopper's own bag ─────────────────────────────────────────────
        Distinct from sold out on purpose, and the distinction is the point: the
        shelf still has stock, this shopper is simply holding all of it. Wording
        that reads as a sell-out here tells them the store is empty because of
        what is in their own bag. See stock-rules.js availability(). */
-    lastInBag:      { text: 'The only one is in your bag', color: ROLE.plain },
-    allInBag:       { text: 'All {count} are in your bag', color: ROLE.plain },
-    maxedOut:       { text: "That's all we have — {count} in your bag already", color: ROLE.plain },
-    capReached:     { text: 'Only {count} in stock for {size}', color: ROLE.plain },
+    lastInBag:      { label: 'They have the last one in their bag', text: 'The only one is in your bag', color: ROLE.plain },
+    allInBag:       { label: 'They have all of them in their bag', text: 'All {count} are in your bag', color: ROLE.plain },
+    maxedOut:       { label: 'They tried to add more than we have', text: "That's all we have — {count} in your bag already", color: ROLE.plain },
+    capReached:     { label: 'They hit the limit for a size', text: 'Only {count} in stock for {size}', color: ROLE.plain },
 
     /* ── back in stock ────────────────────────────────────────────────────────
        restockAlready is deliberately NOT red: the shopper asked twice for the
        same thing and the answer is still yes. It was painted as a failure. */
-    restockHint:    { text: "Tap a sold-out size to get notified when it's back.", color: ROLE.plain },
-    restockPrompt:  { text: "Size {size} is sold out — get notified when it's back", color: ROLE.plain },
-    restockSuccess: { text: "✓ We'll email you when {size} is back.", color: ROLE.good },
-    restockAlready: { text: "You're already on the list for this size.", color: ROLE.plain },
-    restockInvalid: { text: 'Enter a valid email.', color: ROLE.bad },
-    restockFailed:  { text: 'Could not save that — try again.', color: ROLE.bad },
+    restockHint:    { label: 'Hint that sold-out sizes are tappable', text: "Tap a sold-out size to get notified when it's back.", color: ROLE.plain },
+    restockPrompt:  { label: 'Asking for an email for a sold-out size', text: "Size {size} is sold out — get notified when it's back", color: ROLE.plain },
+    restockSuccess: { label: 'They joined the back-in-stock list', text: "✓ We'll email you when {size} is back.", color: ROLE.good },
+    restockAlready: { label: 'They were already on the list', text: "You're already on the list for this size.", color: ROLE.plain },
+    restockInvalid: { label: 'The email they typed is not usable', text: 'Enter a valid email.', color: ROLE.bad },
+    restockFailed:  { label: 'Joining the list did not work', text: 'Could not save that — try again.', color: ROLE.bad },
+
+    /* ── card declines ────────────────────────────────────────────────────────
+       Read at the worst moment in the whole shop: the shopper has decided to
+       buy and been refused. Keyed by Stripe's own decline code, so the lookup
+       in checkout.js is `decline:` + whatever Stripe said and there is no
+       translation table in between to fall out of step.
+
+       Only codes a shopper can ACT on get specific copy. A decline they cannot
+       act on is not dressed up as advice -- inventing a reason is worse than
+       not having one, because they spend the next five minutes fixing
+       something that was never wrong. Fraud holds and lost/stolen reports
+       deliberately share neutral wording: telling someone their card is
+       reported stolen is a message for the cardholder, and the person at the
+       checkout may not be them. Worth keeping in mind before rewriting these. */
+    'decline:insufficient_funds': { label: 'Card has no funds available', text: 'That card does not have enough available. Try another card or a different payment method.', color: ROLE.bad },
+    'decline:incorrect_cvc': { label: 'Security code did not match', text: 'The security code did not match. Check the 3 digits on the back and try again.', color: ROLE.bad },
+    'decline:invalid_cvc': { label: 'Security code is not valid', text: 'That security code is not valid. Check the 3 digits on the back and try again.', color: ROLE.bad },
+    'decline:incorrect_number': { label: 'Card number is not right', text: 'That card number is not right. Check it and try again.', color: ROLE.bad },
+    'decline:invalid_number': { label: 'Card number is not valid', text: 'That card number is not valid. Check it and try again.', color: ROLE.bad },
+    'decline:expired_card': { label: 'Card has expired', text: 'That card has expired. Try another card.', color: ROLE.bad },
+    'decline:invalid_expiry_month': { label: 'Expiry month is not valid', text: 'That expiry month is not valid. Check the date on the card.', color: ROLE.bad },
+    'decline:invalid_expiry_year': { label: 'Expiry year is not valid', text: 'That expiry year is not valid. Check the date on the card.', color: ROLE.bad },
+    'decline:incorrect_zip': { label: 'Postcode did not match the bank', text: 'The postcode did not match the one your bank has. Check the billing address and try again.', color: ROLE.bad },
+    'decline:card_not_supported': { label: 'Card cannot be used here', text: 'That card cannot be used for this kind of purchase. Try another card.', color: ROLE.bad },
+    'decline:currency_not_supported': { label: 'Card cannot pay in this currency', text: 'That card cannot be charged in this currency. Try another card.', color: ROLE.bad },
+    'decline:call_issuer': { label: 'Bank wants to approve it first', text: 'Your bank needs to approve this. Call the number on the back of your card, or try another card.', color: ROLE.bad },
+    'decline:lost_card': { label: 'Card reported lost', text: 'That card was declined. Try another card.', color: ROLE.bad },
+    'decline:stolen_card': { label: 'Card reported stolen', text: 'That card was declined. Try another card.', color: ROLE.bad },
+    'decline:pickup_card': { label: 'Bank asked for the card back', text: 'That card was declined. Try another card.', color: ROLE.bad },
+    'decline:fraudulent': { label: 'Bank flagged it as fraud', text: 'That payment could not be completed. Try another card or contact your bank.', color: ROLE.bad },
+    'decline:merchant_blacklist': { label: 'Bank blocked this merchant', text: 'That payment could not be completed. Try another card or contact your bank.', color: ROLE.bad },
+    'decline:do_not_honor': { label: 'Bank declined without a reason', text: 'Your bank declined it without giving a reason. Try another card, or call the number on the back of your card.', color: ROLE.bad },
+    'decline:generic_decline': { label: 'Card declined, no reason given', text: 'That card was declined. Try another card, or call your bank.', color: ROLE.bad },
+    'decline:processing_error': { label: 'Could not reach the bank', text: 'Something went wrong reaching your bank. Wait a moment and try again.', color: ROLE.bad },
+    'decline:try_again_later': { label: 'Bank could not approve it yet', text: 'Your bank could not approve it just now. Wait a moment and try again.', color: ROLE.bad },
+    /* When Stripe sends a code we have no copy for, and when it sends nothing
+       at all. Never empty: a refused payment with no explanation is the worst
+       of the three outcomes. */
+    'decline:unknown': { label: 'Any other decline', text: 'That payment could not be completed. Please try again.', color: ROLE.bad },
   };
 
-  /* What each message is allowed to interpolate. A key absent from here takes
+  /* `label` is what the admin editor calls this message. It lives here rather
+     than in admin-main.js so there is still one list: an editor with its own
+     names drifts from the messages it claims to describe, which is the fault
+     this whole module exists to remove.
+
+     What each message is allowed to interpolate. A key absent from here takes
      no placeholders at all. Kept beside the defaults so adding a message forces
      the question "what does this one know about?" to be answered once. */
   var PLACEHOLDERS = {
@@ -96,6 +140,37 @@
     restockPrompt:  ['size'],
     restockSuccess: ['size'],
   };
+
+
+  /* How the editor lays these out. Here rather than in admin-main.js for the
+     same reason the labels are: an editor with its own list drifts from the
+     messages it claims to describe. Anything not named below still appears,
+     under "Other", so a message added above shows up in admin without a second
+     edit somewhere else. */
+  var GROUPS = [
+    { title: 'When something has sold out', keys: ['soldOut', 'soldOutItem', 'soldOutInBag'] },
+    { title: 'When stock is running low', keys: ['lowStock', 'lowStockShort', 'capReached'] },
+    { title: 'When they already have it in their bag', keys: ['lastInBag', 'allInBag', 'maxedOut'] },
+    { title: 'Back-in-stock signup', keys: ['restockHint', 'restockPrompt', 'restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed'] },
+    { title: 'When a card is declined', keys: Object.keys(DEFAULTS).filter(function (k) { return k.indexOf('decline:') === 0; }) },
+  ];
+
+  /** Grouped keys, with anything ungrouped collected at the end. */
+  function groups() {
+    var named = {};
+    var out = GROUPS.map(function (g) {
+      g.keys.forEach(function (k) { named[k] = 1; });
+      return { title: g.title, keys: g.keys.filter(function (k) { return !!DEFAULTS[k]; }) };
+    });
+    var rest = Object.keys(DEFAULTS).filter(function (k) { return !named[k]; });
+    if (rest.length) out.push({ title: 'Other', keys: rest });
+    return out;
+  }
+
+  /** Is this a message we ship copy for? */
+  function has(key) {
+    return Object.prototype.hasOwnProperty.call(DEFAULTS, key);
+  }
 
   var TOKEN = /\{([a-zA-Z][a-zA-Z0-9_]*)\}/g;
 
@@ -151,6 +226,29 @@
      in, so get() and color() never have to defend themselves against a bad one. */
   var overrides = {};
 
+  /* ── surfaces that have to be repainted when the wording lands ─────────────
+     The overrides arrive over the network; the product page has already drawn
+     its stock line by then. Without this, an admin's wording only appeared on
+     whatever happened to render after the fetch resolved — which in the first
+     version of this file was nothing at all on the product page, so the editor
+     saved settings that never reached a shopper.
+
+     Subscribers are called after every setOverrides, including the first. */
+  var listeners = [];
+  function subscribe(fn) {
+    if (typeof fn !== 'function') return function () {};
+    listeners.push(fn);
+    return function () {
+      var i = listeners.indexOf(fn);
+      if (i > -1) listeners.splice(i, 1);
+    };
+  }
+  function notify() {
+    for (var i = 0; i < listeners.length; i += 1) {
+      try { listeners[i](); } catch (_) { /* one bad surface must not stop the rest */ }
+    }
+  }
+
   /**
    * Replace the stored overrides wholesale.
    *
@@ -196,6 +294,7 @@
       });
     }
     overrides = next;
+    notify();
     if (rejected.length && w.console && console.warn) {
       console.warn('customer messages ignored (falling back to the shipped copy):',
         rejected.map(function (r) { return r.key + ' — ' + r.reason; }).join('; '));
@@ -260,10 +359,13 @@
   }
 
   w.ZWMessages = {
+    subscribe: subscribe,
     DEFAULTS: DEFAULTS,
     PLACEHOLDERS: PLACEHOLDERS,
     ROLE: ROLE,
     keys: function () { return Object.keys(DEFAULTS); },
+    groups: groups,
+    has: has,
     tokensIn: tokensIn,
     validate: validate,
     validateColor: validateColor,

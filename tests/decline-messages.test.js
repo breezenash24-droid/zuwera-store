@@ -12,10 +12,28 @@ function ok(name, cond, extra) {
 }
 
 const SRC = fs.readFileSync(ROOT + 'checkout.js', 'utf8');
-const start = SRC.indexOf('const DECLINE_COPY');
+
+/* The copy moved to customer-messages.js so a store can edit it (Admin →
+   Loyalty → Customer messages), keyed by Stripe's own decline code. The
+   BEHAVIOUR asserted below did not change, so declineMessage is still exercised
+   for real — it is just handed the module it now reads from. */
+const win = {};
+new Function('window', fs.readFileSync(ROOT + 'customer-messages.js', 'utf8'))(win);
+const M = win.ZWMessages;
+
+const start = SRC.indexOf('/* The copy lives in customer-messages.js');
 const end = SRC.indexOf('if (typeof window !== ');
-const { declineMessage, DECLINE_COPY } = new Function(
-  SRC.slice(start, end) + '\n;return { declineMessage, DECLINE_COPY };')();
+if (start === -1 || end === -1) {
+  console.log('  ✗ cannot find declineMessage in checkout.js');
+  process.exit(1);
+}
+const { declineMessage } = new Function('window',
+  SRC.slice(start, end) + '\n;return { declineMessage };')(win);
+
+/** Every message we ship for a card decline. */
+const declineCopy = () => M.keys()
+  .filter((k) => k.indexOf('decline:') === 0)
+  .map((k) => M.DEFAULTS[k].text);
 
 const err = (o) => Object.assign({ message: 'Your card was declined.' }, o);
 
@@ -60,7 +78,14 @@ console.log('\n  it never leaves a failure unexplained');
   ok('an error with no message or code still yields a sentence',
     declineMessage({}).length > 10);
   ok('every mapped message is non-empty and ends in a full stop',
-    Object.values(DECLINE_COPY).every((m) => m.length > 15 && m.trim().endsWith('.')));
+    declineCopy().every((m) => m.length > 15 && m.trim().endsWith('.')));
+  /* Editable must not mean erasable: an empty override is refused and the
+     shipped sentence stands, so a store cannot accidentally turn a decline into
+     silence from the admin panel. */
+  M.setOverrides({ 'decline:expired_card': '   ' });
+  ok('a decline message cannot be blanked from settings',
+    /expired/i.test(declineMessage(err({ code: 'expired_card' }))));
+  M.setOverrides({});
   /* decline_code is the specific one; code is the general one. When both are
      present the specific must win. */
   ok('decline_code beats code when both are present',
@@ -75,8 +100,10 @@ console.log('\n  both checkout paths use it');
   /* A second copy of this table is a second thing to forget when a code is
      added, so the express path on the homepage shares it. */
   const SF = fs.readFileSync(ROOT + 'storefront.js', 'utf8');
-  ok('the express path shares the table rather than copying it',
+  ok('the express path shares the helper rather than copying it',
     /window\.zwDeclineMessage \|\|/.test(SF) && !/DECLINE_COPY/.test(SF));
+  ok('…and checkout.js no longer keeps a private table either',
+    !/DECLINE_COPY/.test(SRC), 'the copy belongs in customer-messages.js now');
   ok('…and falls back to Stripe\u2019s message where checkout.js is not loaded',
     /\(e\) => \(e && e\.message\)/.test(SF),
     'no page should get worse than it is today');

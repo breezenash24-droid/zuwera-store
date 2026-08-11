@@ -25,54 +25,41 @@ function getStripeCardTheme() {
    should not be dressed up as advice; it gets an honest "try another card".
    Inventing a reason is worse than not having one, because the shopper spends
    their next five minutes fixing something that was never wrong. */
-const DECLINE_COPY = {
-  insufficient_funds:    'That card does not have enough available. Try another card or a different payment method.',
-  incorrect_cvc:         'The security code did not match. Check the 3 digits on the back and try again.',
-  invalid_cvc:           'That security code is not valid. Check the 3 digits on the back and try again.',
-  incorrect_number:      'That card number is not right. Check it and try again.',
-  invalid_number:        'That card number is not valid. Check it and try again.',
-  expired_card:          'That card has expired. Try another card.',
-  invalid_expiry_month:  'That expiry month is not valid. Check the date on the card.',
-  invalid_expiry_year:   'That expiry year is not valid. Check the date on the card.',
-  incorrect_zip:         'The postcode did not match the one your bank has. Check the billing address and try again.',
-  card_not_supported:    'That card cannot be used for this kind of purchase. Try another card.',
-  currency_not_supported:'That card cannot be charged in this currency. Try another card.',
-  /* The shopper can act on this one, but only by contacting someone — so it
-     says who, rather than suggesting they retry and be declined again. */
-  call_issuer:           'Your bank needs to approve this. Call the number on the back of your card, or try another card.',
-  /* Fraud holds and lost/stolen reports deliberately share neutral copy. Telling
-     someone their card is reported stolen is a message for the cardholder, and
-     the person at the checkout may not be them. */
-  lost_card:             'That card was declined. Try another card.',
-  stolen_card:           'That card was declined. Try another card.',
-  pickup_card:           'That card was declined. Try another card.',
-  fraudulent:            'That payment could not be completed. Try another card or contact your bank.',
-  merchant_blacklist:    'That payment could not be completed. Try another card or contact your bank.',
-  do_not_honor:          'Your bank declined it without giving a reason. Try another card, or call the number on the back of your card.',
-  generic_decline:       'That card was declined. Try another card, or call your bank.',
-  processing_error:      'Something went wrong reaching your bank. Wait a moment and try again.',
-  try_again_later:       'Your bank could not approve it just now. Wait a moment and try again.',
-};
+/* The copy lives in customer-messages.js and is editable in Admin -> Loyalty ->
+   Customer messages, keyed by Stripe's own decline code: `decline:` + whatever
+   Stripe sent. There is no translation table in between, so nothing can fall
+   out of step with the codes Stripe actually uses.
 
-/* Prefers our copy, falls back to Stripe's message, then to something plain.
-   Never returns empty: a failed payment with no explanation is the worst of
-   the three, and it is what an unmapped code would produce. */
+   Which codes get their own wording, and why some deliberately share neutral
+   copy, is documented beside the messages themselves. */
 function declineMessage(err) {
-  if (!err) return 'That payment could not be completed. Please try again.';
-  const code = String(err.decline_code || '').trim();
-  if (code && DECLINE_COPY[code]) return DECLINE_COPY[code];
+  const M = typeof window !== 'undefined' ? window.ZWMessages : null;
+  /* Without the module there is still an answer, because a refused payment
+     with no explanation is the worst outcome available here. It is the only
+     sentence in this file, and it is the same one shipped as the fallback
+     message, so it cannot say something different from the editable copy. */
+  const generic = 'That payment could not be completed. Please try again.';
+  const say = (key) => (M && M.has(key) ? M.get(key) : '');
+
+  if (!err) return say('decline:unknown') || generic;
+
   /* Stripe puts the reason in decline_code for card_declined, and in code for
      everything else (expired_card, incorrect_cvc arrive either way). */
+  const code = String(err.decline_code || '').trim();
+  if (code) {
+    const copy = say('decline:' + code);
+    if (copy) return copy;
+  }
   const top = String(err.code || '').trim();
-  if (top && DECLINE_COPY[top]) return DECLINE_COPY[top];
-  return err.message || 'That payment could not be completed. Please try again.';
+  if (top) {
+    const copy = say('decline:' + top);
+    if (copy) return copy;
+  }
+  /* Stripe's own message before the generic one: it is written for shoppers and
+     is usually more specific than "could not be completed". */
+  return err.message || say('decline:unknown') || generic;
 }
 
-/* Shared rather than copied. storefront.js runs the same express-pay flow on
-   the homepage and had the same generic message; a second copy of this table is
-   a second thing to forget when a code is added. Pages that do not load
-   checkout.js fall back to Stripe's message, which is exactly today's
-   behaviour — no page gets worse, some get better. */
 if (typeof window !== 'undefined') window.zwDeclineMessage = declineMessage;
 
 function getStripeCardStyle() {

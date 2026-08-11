@@ -4501,19 +4501,11 @@
            exactly what the messages this replaces did to each other. */
         function customerMessagesFields() {
             const M = window.ZWMessages;
-            if (!M) return [];
-            /* Grouped for the person editing, not by key name. Anything not
-               named here still renders, under "Other", so a message added to
-               customer-messages.js appears in admin without a second edit. */
-            const GROUPS = [
-                ['When something has sold out', ['soldOut', 'soldOutItem', 'soldOutInBag']],
-                ['When stock is running low', ['lowStock', 'lowStockShort', 'capReached']],
-                ['When they already have it in their bag', ['lastInBag', 'allInBag', 'maxedOut']],
-                ['Back-in-stock signup', ['restockPrompt', 'restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed']],
-            ];
-            const seen = new Set(GROUPS.flatMap(([, keys]) => keys));
-            const rest = M.keys().filter((k) => !seen.has(k));
-            return rest.length ? GROUPS.concat([['Other', rest]]) : GROUPS;
+            /* Grouping comes from the module, not from a list typed out here.
+               A message added to customer-messages.js appears in this editor
+               with no second edit, and an editor that grouped messages by its
+               own list would drift from the ones it claims to describe. */
+            return M && M.groups ? M.groups() : [];
         }
 
         async function loadCustomerMessages() {
@@ -4533,58 +4525,219 @@
                 saved = (v && v.customerExperience && v.customerExperience.messages) || {};
             } catch (_) { saved = {}; }
 
-            const esc = (s) => String(s == null ? '' : s)
+            const esc = (str) => String(str == null ? '' : str)
                 .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-            host.innerHTML = customerMessagesFields().map(([title, keys]) => {
+            let groupIndex = 0;
+            const openFirst = () => (groupIndex++ === 0);
+
+            host.innerHTML = customerMessagesFields().map(({ title, keys }) => {
                 const rows = keys.map((key) => {
-                    const def = M.DEFAULTS[key] || { text: '', color: '' };
+                    const def = M.DEFAULTS[key] || { text: '', color: '', label: key };
                     const cur = saved[key];
                     const entry = (cur && typeof cur === 'object') ? cur : { text: cur };
                     const text = entry && entry.text !== undefined && entry.text !== null ? entry.text : '';
                     const colr = entry && entry.color !== undefined && entry.color !== null ? entry.color : '';
                     const tokens = M.PLACEHOLDERS[key] || [];
-                    const hint = tokens.length
-                        ? 'Can use ' + tokens.map((t) => '{' + t + '}').join(', ')
-                        : 'No placeholders';
+
+                    /* The tokens are BUTTONS, not something to type. Writing
+                       {tilte} by hand is refused on save, which is correct but
+                       still a round trip through an error message for a spelling
+                       the editor already knows. Clicking one drops it at the
+                       cursor, so the position is chosen and the spelling cannot
+                       be wrong.
+
+                       Folded into a <details> so a row with values to insert is
+                       no taller than one without until it is opened. */
+                    const tokenUI = tokens.length ? ''
+                        + '<details class="cm-tokens" style="margin:8px 0 0">'
+                        +   '<summary style="cursor:pointer;font-size:.75rem;color:var(--text-secondary)">Insert a value</summary>'
+                        +   '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'
+                        +     tokens.map((t) => '<button type="button" class="btn btn-secondary btn-sm cm-token" data-token="' + esc(t) + '">{' + esc(t) + '}</button>').join('')
+                        +   '</div>'
+                        +   '<p style="font-size:.72rem;color:var(--text-secondary);margin:8px 0 0">Click in the message where you want it, then pick a value.</p>'
+                        + '</details>'
+                        : '';
+
                     /* The colour input is a text box, not <input type=color>: the
                        shipped values are CSS variables and rgba(), which a colour
                        picker cannot represent and would silently rewrite to an
-                       opaque hex the first time it was focused. */
+                       opaque hex the first time it was focused. A swatch beside
+                       it keeps the value visible as a colour.
+
+                       Each row saves on its own. The list is long enough that
+                       scrolling to one button at the bottom to change a single
+                       sentence is its own small tax, and a per-row save means a
+                       mistake in one message cannot block saving the rest. */
+                    const swatch = colr || def.color || 'transparent';
                     return ''
-                        + '<div class="form-group" style="margin-bottom:14px" data-cm-key="' + esc(key) + '">'
+                        + '<div class="form-group" style="margin-bottom:18px" data-cm-key="' + esc(key) + '">'
                         +   '<label class="form-label" style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">'
-                        +     '<span>' + esc(def.text) + '</span>'
-                        +     '<span style="opacity:.55;font-weight:400;font-size:.72rem;white-space:nowrap">' + esc(hint) + '</span>'
+                        +     '<span>' + esc(def.label || key) + '</span>'
+                        +     '<span style="opacity:.55;font-weight:400;font-size:.72rem;white-space:nowrap">' + (tokens.length ? esc(tokens.map((t) => '{' + t + '}').join(' ')) : 'No values') + '</span>'
                         +   '</label>'
-                        +   '<div style="display:flex;gap:8px;flex-wrap:wrap">'
-                        +     '<input type="text" class="form-input cm-text" style="flex:3;min-width:220px" value="' + esc(text) + '" placeholder="' + esc(def.text) + '">'
-                        +     '<input type="text" class="form-input cm-color" style="flex:1;min-width:130px" value="' + esc(colr) + '" placeholder="' + esc(def.color || 'default colour') + '">'
+                        +   '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+                        +     '<input type="text" class="form-input cm-text" style="flex:3;min-width:200px" value="' + esc(text) + '" placeholder="' + esc(def.text) + '">'
+                        +     '<span class="cm-swatch" title="Colour preview" style="width:26px;height:26px;flex:none;border:1px solid var(--border);border-radius:6px;background:' + esc(swatch) + '"></span>'
+                        +     '<input type="text" class="form-input cm-color" style="flex:1;min-width:180px" value="' + esc(colr) + '" placeholder="' + esc(def.color || '#dc2626 or rgb(220,38,38)') + '">'
+                        +     '<button type="button" class="btn btn-secondary btn-sm cm-row-save" style="flex:none">Save</button>'
                         +   '</div>'
+                        +   tokenUI
+                        +   '<p class="cm-row-msg" style="font-size:.75rem;margin:6px 0 0;min-height:.9rem;color:var(--text-secondary)"></p>'
                         + '</div>';
                 }).join('');
-                return '<h4 style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:14px 0 10px">'
-                    + esc(title) + '</h4>' + rows;
+                /* Collapsible: the card-decline group alone is twenty-odd
+                   rows, and an editor that opens as one unbroken wall of text
+                   boxes is one nobody reads. First group open so the panel does
+                   not look empty. */
+                return ''
+                    + '<details class="cm-group"' + (openFirst() ? ' open' : '') + ' style="margin:0 0 10px;border:1px solid var(--border);border-radius:8px">'
+                    +   '<summary style="cursor:pointer;padding:10px 12px;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary)">'
+                    +     esc(title) + ' <span style="opacity:.5">(' + keys.length + ')</span>'
+                    +   '</summary>'
+                    +   '<div style="padding:4px 12px 12px">' + rows + '</div>'
+                    + '</details>';
             }).join('');
+
+            /* Listeners attached here rather than written as inline onclick
+               attributes: the key would have to be quoted into HTML, and the key
+               is the one thing in this row that must not be mangled. */
+            host.querySelectorAll('[data-cm-key]').forEach((row) => {
+                const key = row.getAttribute('data-cm-key');
+                const def = M.DEFAULTS[key] || { text: '', color: '' };
+                const textEl = row.querySelector('.cm-text');
+                const colorEl = row.querySelector('.cm-color');
+                const swatchEl = row.querySelector('.cm-swatch');
+                const note = row.querySelector('.cm-row-msg');
+
+                const saveBtn = row.querySelector('.cm-row-save');
+                if (saveBtn) saveBtn.addEventListener('click', () => customerMessagesSaveOne(key));
+
+                /* The swatch follows the box as it is typed, so an unusable
+                   colour shows up before Save rather than after. An invalid
+                   value leaves the swatch on its last good colour, which is what
+                   the browser does with any colour it cannot parse. */
+                if (colorEl && swatchEl) {
+                    colorEl.addEventListener('input', () => {
+                        swatchEl.style.background = colorEl.value.trim() || def.color || 'transparent';
+                    });
+                }
+                row.querySelectorAll('.cm-text, .cm-color').forEach((el) => {
+                    el.addEventListener('input', () => {
+                        if (note) { note.textContent = ''; note.style.color = 'var(--text-secondary)'; }
+                    });
+                });
+
+                row.querySelectorAll('.cm-token').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        if (!textEl) return;
+                        /* An empty box means "use the shipped default", so put
+                           that in first — otherwise inserting a value into an
+                           untouched message replaces the whole sentence with a
+                           bare {token}. */
+                        if (!textEl.value) {
+                            textEl.value = def.text || '';
+                            textEl.selectionStart = textEl.selectionEnd = textEl.value.length;
+                        }
+                        customerMessagesInsert(textEl, '{' + btn.getAttribute('data-token') + '}');
+                    });
+                });
+            });
         }
 
-        /* Reads the boxes into the shape stored in settings. Empty boxes are
-           OMITTED rather than saved as '' — an absent key means "use the
-           shipped default", so clearing a field restores it instead of blanking
-           the message for every shopper. */
+        /* Drop `token` in at the cursor, leaving the caret after it so a second
+           click carries on from where the first one landed. */
+        function customerMessagesInsert(input, token) {
+            const start = Number.isInteger(input.selectionStart) ? input.selectionStart : input.value.length;
+            const end = Number.isInteger(input.selectionEnd) ? input.selectionEnd : input.value.length;
+            input.value = input.value.slice(0, start) + token + input.value.slice(end);
+            const pos = start + token.length;
+            input.focus();
+            try { input.setSelectionRange(pos, pos); } catch (_) {}
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        /* One row's values, in the stored shape. Empty boxes are OMITTED, so
+           clearing a field restores the shipped default rather than blanking the
+           message for every shopper. */
+        function customerMessagesRow(key) {
+            const row = document.querySelector('#cm-fields [data-cm-key="' + key + '"]');
+            if (!row) return null;
+            const text = String(row.querySelector('.cm-text')?.value || '').trim();
+            const color = String(row.querySelector('.cm-color')?.value || '').trim();
+            const entry = {};
+            if (text) entry.text = text;
+            if (color) entry.color = color;
+            return { row, entry };
+        }
+
+        /* Every row, for the save-everything button. Reads through the same
+           per-row function, so the two buttons cannot disagree about what a row
+           currently says. */
         function customerMessagesCollect() {
             const out = {};
             document.querySelectorAll('#cm-fields [data-cm-key]').forEach((row) => {
                 const key = row.getAttribute('data-cm-key');
-                const text = String(row.querySelector('.cm-text')?.value || '').trim();
-                const color = String(row.querySelector('.cm-color')?.value || '').trim();
-                const entry = {};
-                if (text) entry.text = text;
-                if (color) entry.color = color;
-                if (Object.keys(entry).length) out[key] = entry;
+                const found = customerMessagesRow(key);
+                if (found && Object.keys(found.entry).length) out[key] = found.entry;
             });
             return out;
         }
+
+        /** Validate one message with the storefront's own rules. null if fine. */
+        function customerMessagesProblem(key, entry) {
+            const M = window.ZWMessages;
+            if (!M) return null;
+            if (entry.text !== undefined) {
+                const why = M.validate(key, entry.text);
+                if (why && why !== 'Empty') return why;
+            }
+            if (entry.color !== undefined) {
+                const why = M.validateColor(entry.color);
+                if (why && why !== 'Empty') return why;
+            }
+            return null;
+        }
+
+        /* Saves a SINGLE message, merging into whatever is already stored: the
+           others are read back and written unchanged, so saving two rows one
+           after the other cannot have the second discard the first. */
+        window.customerMessagesSaveOne = async function (key) {
+            const found = customerMessagesRow(key);
+            if (!found) return;
+            const { row, entry } = found;
+            const note = row.querySelector('.cm-row-msg');
+            const btn = row.querySelector('.cm-row-save');
+            const say = (text, bad) => {
+                if (!note) return;
+                note.textContent = text;
+                note.style.color = bad ? 'var(--red,#dc2626)' : 'rgba(110,210,130,.95)';
+            };
+
+            const problem = customerMessagesProblem(key, entry);
+            if (problem) { say(problem, true); return; }
+
+            if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+            try {
+                const { data: rows, error } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
+                if (error) throw error;
+                let cfg = (rows && rows[0] && rows[0].value) || {};
+                if (typeof cfg === 'string') { try { cfg = JSON.parse(cfg); } catch (_) { cfg = {}; } }
+                const cx = Object.assign({}, cfg.customerExperience);
+                const messages = Object.assign({}, cx.messages);
+                if (Object.keys(entry).length) messages[key] = entry;
+                else delete messages[key];          // cleared: back to the shipped copy
+                cx.messages = messages;
+                cfg.customerExperience = cx;
+                const { error: sErr } = await sb.from('site_settings').upsert({ key: 'commerce_config', value: cfg }, { onConflict: 'key' });
+                if (sErr) throw sErr;
+                say(Object.keys(entry).length ? 'Saved.' : 'Saved - back to the default.', false);
+            } catch (e) {
+                say(e?.message || 'Could not save that.', true);
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+            }
+        };
 
         window.customerMessagesResetAll = function () {
             document.querySelectorAll('#cm-fields .cm-text, #cm-fields .cm-color')

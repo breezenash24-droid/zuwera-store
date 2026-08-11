@@ -182,6 +182,112 @@ console.log('\n  the file is actually loaded where it is used');
   }
 }
 
+console.log('\n  the overrides actually reach the page');
+{
+  /* THE BUG. Message delivery was attached to ZWStock.load(), and load() was
+     only ever CALLED by bag.html — so on the product page and the homepage the
+     fetch never happened and the admin's wording never arrived. The editor
+     saved settings that no shopper ever saw.
+
+     I had concluded those pages fetched because they LOAD stock-rules.js.
+     Loading a module and calling it are different things, and only the second
+     one sends a request. */
+  const rules = strip(read('stock-rules.js'));
+  ok('stock-rules.js starts the fetch itself rather than waiting to be asked',
+    /setTimeout\([\s\S]{0,80}load\(\)/.test(rules),
+    'nothing calls load(), so pages that never call it get no overrides');
+  ok('…and still hands what it gets to the message module',
+    /ZWMessages[\s\S]{0,60}setOverrides/.test(rules));
+
+  /* Arriving is not enough — the product page has already drawn its stock line
+     by then, so it has to be told to paint it again. */
+  ok('customer-messages.js can tell surfaces the wording changed',
+    typeof M.subscribe === 'function');
+  let fired = 0;
+  const stop = M.subscribe(() => { fired += 1; });
+  M.setOverrides({ soldOut: 'Gone' });
+  ok('…and does so when overrides land', fired === 1);
+  stop();
+  M.setOverrides({});
+  ok('…and unsubscribing works', fired === 1);
+
+  const product = strip(read('product.html'));
+  ok('the product page repaints when the wording lands',
+    /ZWMessages[\s\S]{0,120}subscribe/.test(product), 'it renders once and never updates');
+  ok('…and subscribes late enough that the module exists',
+    /DOMContentLoaded[\s\S]{0,80}attach|attach[\s\S]{0,120}DOMContentLoaded/.test(product),
+    'customer-messages.js is deferred on this page, so a parse-time subscribe finds nothing');
+}
+
+console.log('\n  the editor describes each message in words, and inserts the values for you');
+{
+  ok('every message has an admin-facing name',
+    M.keys().every((k) => typeof M.DEFAULTS[k].label === 'string' && M.DEFAULTS[k].label.trim()),
+    'a message would show up in admin labelled with its raw default');
+  ok('…and the names live with the messages, not in the editor',
+    !/A size is sold out/.test(strip(read('admin-main.js'))),
+    'admin-main.js carries its own copy of a label');
+
+  const admin = strip(read('admin-main.js'));
+  ok('placeholders are inserted by clicking, not typed', /cm-token/.test(admin));
+  ok('…at the cursor, so the position is chosen', /setSelectionRange/.test(admin));
+  ok('…and an untouched message keeps its sentence when one is inserted',
+    /if \(!textEl\.value\)[\s\S]{0,120}def\.text/.test(admin),
+    'inserting into an empty box would replace the whole message with a bare token');
+  ok('each message saves on its own', /customerMessagesSaveOne/.test(admin));
+  ok('…without discarding the others', /Object\.assign\(\{\}, cx\.messages\)/.test(admin));
+  ok('the colour box says what it accepts',
+    /rgb\(220,38,38\)/.test(read('admin.html')), 'no format hint for the colour field');
+}
+
+console.log('\n  card declines');
+{
+  /* Keyed by Stripe's own decline code, so the lookup is `decline:` + whatever
+     Stripe sent. A translation table in between is one more thing to fall out
+     of step with the codes Stripe actually uses. */
+  const co = strip(read('checkout.js'));
+  ok('checkout.js no longer carries its own copy', !/DECLINE_COPY/.test(co));
+  ok('…and looks the wording up by Stripe\'s code',
+    /'decline:'\s*\+\s*code|decline:.\s*\+/.test(co));
+
+  ok('the common codes all have copy',
+    ['insufficient_funds', 'incorrect_cvc', 'expired_card', 'generic_decline', 'do_not_honor']
+      .every((c) => M.has('decline:' + c)));
+  ok('…and each is coloured as a failure, which this one genuinely is',
+    M.DEFAULTS['decline:expired_card'].color === M.DEFAULTS.restockFailed.color);
+
+  /* The shopper must never be refused without an explanation, so there is a
+     catch-all AND a hardcoded last resort in checkout.js for the case where
+     the module did not load at all. */
+  ok('there is copy for a code we do not recognise', M.has('decline:unknown'));
+  ok('…and checkout.js still answers if the module is missing entirely',
+    /could not be completed/.test(co), 'a missing module would refuse in silence');
+  ok('…and that fallback is word-for-word the shipped catch-all',
+    co.includes(M.DEFAULTS['decline:unknown'].text),
+    'the hardcoded fallback says something different from the editable copy');
+
+  /* Neutral copy for lost/stolen is a deliberate decision, not an oversight:
+     the person at the checkout may not be the cardholder. */
+  ok('lost and stolen share neutral wording',
+    M.get('decline:lost_card') === M.get('decline:stolen_card'));
+  ok('…which says nothing about the card being reported',
+    !/stolen|lost|report/i.test(M.get('decline:stolen_card')));
+}
+
+console.log('\n  the editor stays usable as the list grows');
+{
+  ok('the module decides the grouping', typeof M.groups === 'function');
+  const grouped = M.groups().reduce((n, g) => n + g.keys.length, 0);
+  ok('every message lands in exactly one group', grouped === M.keys().length,
+    grouped + ' grouped vs ' + M.keys().length + ' messages');
+
+  const admin = strip(read('admin-main.js'));
+  ok('the editor reads the grouping rather than keeping its own',
+    /M\.groups\(\)/.test(admin));
+  ok('…and groups collapse, since the decline list alone is twenty-odd rows',
+    /details class="cm-group"/.test(admin));
+}
+
 console.log('\n  the admin editor and the storefront cannot describe different messages');
 {
   /* The editor builds its fields from ZWMessages.keys() and validates with
@@ -189,7 +295,10 @@ console.log('\n  the admin editor and the storefront cannot describe different m
      A hand-kept copy would drift within a release — which is the whole reason
      this module exists. */
   const admin = strip(read('admin-main.js'));
-  ok('the editor reads its keys from the shared module', /ZWMessages\.keys\(\)|M\.keys\(\)/.test(admin));
+  /* Either accessor is fine; what matters is that the list of messages comes
+     from the module rather than being typed out again here. */
+  ok('the editor reads its message list from the shared module',
+    /M\.(keys|groups)\(\)|ZWMessages\.(keys|groups)\(\)/.test(admin));
   ok('…and validates with the storefront\'s own rules', /\.validate\(/.test(admin) && /\.validateColor\(/.test(admin));
   ok('…and does not hardcode the shipped wording',
     !/Only \{count\} left in stock/.test(admin), 'admin-main.js carries its own copy of a default');
