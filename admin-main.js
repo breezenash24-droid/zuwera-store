@@ -9272,7 +9272,7 @@ function escapeAttr(value) {
               say: (v) => 'export more than ' + v + ' customers at once',
               help: 'Refuse customer exports larger than this. Worth setting — an export is the whole list leaving the building.' },
             { id: 'no_delete_products', action: 'product_delete', attr: 'resource.status', op: 'nin', kind: 'list',
-              label: 'Deleting products', unit: '', value: ['Live'], ready: false,
+              label: 'Deleting products', unit: '', value: ['Live'], ready: true,
               say: (v) => 'delete a product that is ' + [].concat(v).join(' or '),
               help: 'Refuse deleting products in these states. Leave "Live" here and only drafts can be deleted.' },
 
@@ -11418,21 +11418,24 @@ function escapeAttr(value) {
 
         document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
             try {
+                /* The rows are deleted server-side now, so the "Deleting
+                   products" limit has something to refuse — the cascade used
+                   to run here as four direct calls with nothing in between to
+                   ask. Migration 0009 removes the browser's permission to
+                   delete a product at all, so this is the only route rather
+                   than merely the polite one.
+                   The image URLs are still gathered first: they are needed for
+                   storage cleanup afterwards, and the rows that name them are
+                   about to be gone. */
                 const imageUrlsToRemove = await getExistingProductImageUrls(deleteProductId);
-                {
-                    const { error } = await sb.from('product_images').delete().eq('product_id', deleteProductId);
-                    if (error) throw error;
-                }
-                {
-                    const { error } = await sb.from('color_variants').delete().eq('product_id', deleteProductId);
-                    if (error) throw error;
-                }
-                {
-                    const { error } = await sb.from('product_sizes').delete().eq('product_id', deleteProductId);
-                    if (error) throw error;
-                }
-                const { error } = await sb.from('products').delete().eq('id', deleteProductId);
-                if (error) throw error;
+                const { data: { session } } = await sb.auth.getSession();
+                const delResp = await fetch('/api/admin-product-delete', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session && session.access_token,
+                                           productId: deleteProductId }),
+                });
+                const delOut = await delResp.json().catch(() => ({}));
+                if (!delResp.ok) throw new Error(delOut.error || 'Could not delete that product.');
 
                 let removedStorageImages = 0;
                 try {
