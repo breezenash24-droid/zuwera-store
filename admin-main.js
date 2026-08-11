@@ -6790,10 +6790,32 @@
             { label: 'Role', get: u => u.role === 'admin' ? (u.admin_role || 'super_admin') : 'customer' },
             { label: 'Joined', get: u => (u.created_at || '').slice(0, 10) }
         ];
-        window.exportUsersCSV = function(kind) {
-            const all = Object.values(window._zwProfilesById || {});
-            const rows = all.filter(u => kind === 'admin' ? u.role === 'admin' : u.role !== 'admin');
-            zwExportCSV((kind === 'admin' ? 'admins' : 'customers') + '-{date}.csv', rows, USER_CSV_COLUMNS);
+        /* Through the server, so the "Export customers" limit has something to
+           refuse. It used to read the profiles already on the page and build
+           the file here — nothing was asked, so nothing could say no, which is
+           why that limit sat in the panel marked not-working and could not be
+           made to work without this. */
+        window.exportUsersCSV = async function(kind) {
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const resp = await fetch('/api/admin-export', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session && session.access_token,
+                                           kind: kind === 'admin' ? 'admins' : 'customers' }),
+                });
+                const out = await resp.json().catch(() => ({}));
+                if (!resp.ok) {
+                    /* A limit refusing is worth asking about; anything else is
+                       not, and offering the button either way would teach
+                       people to press it at errors nobody can grant. */
+                    showToast(out.error || 'Could not export that.', 'error');
+                    return;
+                }
+                zwExportCSV((kind === 'admin' ? 'admins' : 'customers') + '-{date}.csv',
+                            out.rows || [], USER_CSV_COLUMNS);
+            } catch (e) {
+                showToast(e.message || 'Could not export that.', 'error');
+            }
         };
 
         async function loadUsers() {
@@ -9246,7 +9268,7 @@ function escapeAttr(value) {
               say: (v) => 'change more than ' + v + ' things at once',
               help: 'Refuse bulk edits or deletes touching more rows than this.' },
             { id: 'export_max', action: 'customer_export', attr: 'resource.count', op: 'lte', kind: 'number',
-              label: 'Exporting customers', unit: 'rows', value: 500, ready: false,
+              label: 'Exporting customers', unit: 'rows', value: 500, ready: true,
               say: (v) => 'export more than ' + v + ' customers at once',
               help: 'Refuse customer exports larger than this. Worth setting — an export is the whole list leaving the building.' },
             { id: 'no_delete_products', action: 'product_delete', attr: 'resource.status', op: 'nin', kind: 'list',

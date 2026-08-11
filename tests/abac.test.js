@@ -360,6 +360,7 @@ console.log('\n  a limit marked ready really is');
   const WIRED = {
     refund: 'functions/api/admin-refund.js',
     role_manage: 'functions/api/set-admin-role.js',
+    customer_export: 'functions/api/admin-export.js',
   };
 
   const entries = [...block4.matchAll(/\{ id: '([a-z_]+)', action: '([a-z_]+)'[\s\S]*?ready: (true|false)/g)]
@@ -673,6 +674,37 @@ console.log('\n  asking, when a limit says no');
      one of them. */
   ok('requests and approvals are the same record',
     /ABAC_REQUESTS_KEY/.test(req) && /ABAC_REQUESTS_KEY/.test(com));
+}
+
+console.log('\n  the export goes somewhere that can refuse it');
+{
+  const adm = fs.readFileSync(ROOT + 'admin-main.js', 'utf8');
+  const exp = fs.readFileSync(ROOT + 'functions/api/admin-export.js', 'utf8');
+
+  /* It never left the browser: exportUsersCSV read the profiles already on the
+     page and built the file. Nothing was asked, so nothing could say no, which
+     is why the limit could not be made to work without an endpoint. */
+  ok('the export asks a server', /fetch\('\/api\/admin-export'/.test(adm));
+  ok('…and no longer builds the file from what the page already has',
+    !/const all = Object\.values\(window\._zwProfilesById \|\| \{\}\);/.test(adm));
+  ok('…so the limit can now bite', /label: 'Exporting customers'[\s\S]{0,80}ready: true/.test(adm));
+
+  /* Counting after reading would mean the rows were already out, at which
+     point refusing is a gesture. */
+  ok('rows are counted before the decision, not after',
+    exp.indexOf("Prefer: 'count=exact'") < exp.indexOf("decide(env, accessToken, 'customer_export'"));
+  ok('…and the decision happens before they are read',
+    exp.indexOf("decide(env, accessToken, 'customer_export'") < exp.indexOf('order=created_at.desc'));
+
+  /* "We could not work out how many" is not a smaller number. Running anyway
+     would make the limit skippable by whatever broke the count. */
+  ok('an uncountable export is refused rather than run',
+    /if \(total === null\)/.test(exp) && /so it was not run/.test(exp));
+
+  /* A control believed to be stronger than it is is worse than none. */
+  ok('the endpoint is honest about what it does not stop',
+    /can read profiles can\s*\n? \* always read profiles|always read profiles/.test(exp),
+    'this bounds the one-click path, it is not a wall around the data');
 }
 
 console.log('\n  the asking is reachable');
