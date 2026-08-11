@@ -105,6 +105,36 @@ async function run() {
       w.ZWStock.stockFor(r([{ size: '2XL', color_name: 'y', stock_quantity: 4 }]), 'p1', 'XXL', 'y') === 4);
   }
 
+  console.log('\n  what is left to ADD, not what is on the shelf');
+  {
+    const item = { productId: 'p1', size: 'M', colorName: 'Yellow' };
+    /* The reported complaint: one left, that one already in the bag, and the
+       page still offered "Only 1 left in stock". */
+    ok('the last one, already in the bag, reads as none left',
+      w.ZWStock.availableToAdd(1, item, [{ productId: 'p1', size: 'M', colorName: 'Yellow', quantity: 1 }]) === 0);
+    ok('nothing in the bag leaves the shelf figure alone',
+      w.ZWStock.availableToAdd(1, item, []) === 1);
+    ok('the bag is summed across duplicate lines',
+      w.ZWStock.availableToAdd(5, item, [
+        { productId: 'p1', size: 'M', colorName: 'Yellow', quantity: 2 },
+        { productId: 'p1', size: 'M', colorName: 'Yellow', quantity: 1 },
+      ]) === 2);
+    /* The subtraction must match the way the lookup matches, or it lands on the
+       wrong variant — which is the bug this file exists for. */
+    ok('a different colour in the bag does not subtract',
+      w.ZWStock.availableToAdd(1, item, [{ productId: 'p1', size: 'M', colorName: 'Tennesee', quantity: 1 }]) === 1);
+    ok('colour case still does not matter',
+      w.ZWStock.availableToAdd(1, item, [{ productId: 'p1', size: 'M', colorName: 'yellow', quantity: 1 }]) === 0);
+    ok('XXL in the bag subtracts from a 2XL shelf figure',
+      w.ZWStock.availableToAdd(2, { productId: 'p1', size: '2XL', colorName: 'Yellow' },
+        [{ productId: 'p1', size: 'XXL', colorName: 'Yellow', quantity: 2 }]) === 0);
+    ok('it never goes below zero',
+      w.ZWStock.availableToAdd(1, item, [{ productId: 'p1', size: 'M', colorName: 'Yellow', quantity: 9 }]) === 0);
+    /* Unknown must stay unknown: turning it into 0 would empty a shop whose
+       inventory simply is not configured. */
+    ok('unknown stock stays unknown', w.ZWStock.availableToAdd(null, item, []) === null);
+  }
+
   console.log('\n  the back-in-stock prompt obeys the admin switch');
   {
     w.__zwFlags = { feature_back_in_stock: { enabled: false } };

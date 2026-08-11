@@ -1054,13 +1054,9 @@ function applyStockLimits(cart) {
 
       /* Stock is held per size+colour, but a bag can carry the same size and
          colour on more than one line. The shelf does not care how the shopper
-         split them, so the cap is the COMBINED quantity. */
-      const combined = cart.reduce((sum, ci) => (
-        ci.productId === item.productId &&
-        ZWStock.canonSize(ci.size) === ZWStock.canonSize(item.size) &&
-        String(ci.colorName || '').trim().toLowerCase() === String(item.colorName || '').trim().toLowerCase()
-          ? sum + (ci.quantity || 0) : sum
-      ), 0);
+         split them, so the cap is the COMBINED quantity — summed by ZWStock so
+         the matching rules are the ones the lookup used. */
+      const combined = ZWStock.cartQtyFor(cart, item);
 
       const plus = card.querySelector('.cart-qty-btn:last-of-type');
       if (plus && combined >= available) {
@@ -1146,12 +1142,7 @@ window.updateCartQuantity = function(idx, delta) {
     if (cached && cached.limitToStock) {
       const available = ZWStock.stockFor(cached.rows, item.productId, item.size, item.colorName);
       if (available !== null) {
-        const combined = cart.reduce((sum, ci) => (
-          ci.productId === item.productId &&
-          ZWStock.canonSize(ci.size) === ZWStock.canonSize(item.size) &&
-          String(ci.colorName || '').trim().toLowerCase() === String(item.colorName || '').trim().toLowerCase()
-            ? sum + (ci.quantity || 0) : sum
-        ), 0);
+        const combined = ZWStock.cartQtyFor(cart, item);
         if (combined >= available) {
           showToast(available > 0
             ? `Only ${available} in stock for ${item.size}`
