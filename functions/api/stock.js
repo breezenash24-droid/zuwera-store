@@ -71,12 +71,22 @@ export async function onRequestGet({ env }) {
       return { ok: false, status: resp.status, detail: (await resp.text().catch(() => '')).slice(0, 300) };
     };
 
+    /* color_variant_id is NOT requested, and its absence is the whole bug:
+       product_sizes has no such column — it lives on product_images — so
+       PostgREST answered 400 to every request this endpoint ever made. The
+       endpoint then reported `ok: true` with an empty array, which reads as
+       "nothing is in stock" rather than "the query is invalid", so a query that
+       had never once succeeded looked like a shop with no inventory.
+
+       Nothing consumed it either: every color_variant_id reference in the
+       storefront is against image rows. It was cost with no benefit and a 400
+       attached. */
     let degraded = '';
-    let res = await query(',color_name,color_variant_id');
+    let res = await query(',color_name');
     if (!res.ok) {
-      console.error(`stock: SELECT with color_name failed (${res.status}): ${res.detail} — retrying without it`);
+      console.error(`stock: SELECT with color_name failed (${res.status || 'threw'}): ${res.detail || res.reason} — retrying without it`);
       degraded = 'no_color_name';
-      res = await query(',color_variant_id');
+      res = await query('');
     }
     if (!res.ok) {
       /* Both attempts rejected. This is a real outage of the stock read, and it

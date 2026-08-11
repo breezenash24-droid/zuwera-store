@@ -48,6 +48,13 @@ console.log('\n  stock stays fresh');
   ok('stock asks for named columns, not everything', !!sel && !sel.includes('*'), sel || 'no select found');
   ok('…and still asks for the ones every reader needs',
     ['product_id', 'size', 'stock_quantity'].every((c) => sel.split(',').includes(c)), sel);
+  /* color_variant_id is on product_images, not product_sizes. Asking for it
+     made PostgREST answer 400 to every request this endpoint ever made, and
+     the endpoint reported the rejection as an empty catalogue — so a query
+     that had never once succeeded looked like a shop with nothing in stock.
+     Nothing read it: every consumer of that column works on image rows. */
+  ok('…and does not ask product_sizes for a column it does not have',
+    !sel.split(',').includes('color_variant_id'), sel);
 }
 
 /* ── nothing secret is now public ────────────────────────────────────────── */
