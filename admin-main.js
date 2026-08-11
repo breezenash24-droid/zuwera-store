@@ -5652,7 +5652,7 @@
                 const color = pub ? '#3fb950' : '#9ca3af';
                 const when = (p.published_at || p.created_at) ? new Date(p.published_at || p.created_at).toLocaleDateString() : '';
                 return `<div style="display:flex;gap:14px;align-items:center;background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid ${color};border-radius:10px;padding:12px 16px;margin-bottom:10px;">
-                    ${p.cover_image ? `<img src="${escapeAttr(p.cover_image)}" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div title="No cover image (optional)" style="width:56px;height:56px;border-radius:6px;border:1px dashed var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.5rem;letter-spacing:.05em;text-transform:uppercase;color:var(--text-secondary);text-align:center;line-height:1.2;">no<br>image</div>'}
+                    ${p.cover_image ? `<img src="${escapeAttr(zwThumb(p.cover_image, 56))}" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div title="No cover image (optional)" style="width:56px;height:56px;border-radius:6px;border:1px dashed var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.5rem;letter-spacing:.05em;text-transform:uppercase;color:var(--text-secondary);text-align:center;line-height:1.2;">no<br>image</div>'}
                     <div style="flex:1;min-width:0;">
                         <div style="font-weight:600;font-size:.95rem;">${escapeHtml(p.title || 'Untitled')}</div>
                         <div style="font-size:.72rem;color:var(--text-secondary);">${pub ? '<span style="color:#3fb950;font-weight:700;">PUBLISHED</span>' : '<span style="font-weight:700;">DRAFT</span>'}${when ? ' · ' + when : ''}${pub ? ` · <a href="/journal.html?slug=${encodeURIComponent(p.slug)}" target="_blank" style="color:var(--accent,#F891A5);">view ↗</a>` : ''}</div>
@@ -6636,7 +6636,7 @@
                                     ${r.admin_response ? `<div style="margin-top: 8px; padding: 8px; background: var(--admin-res-bg, rgba(248,145,165,0.1)); border-left: 2px solid var(--admin-res-text, var(--accent)); border-radius: 4px;"><strong style="color: var(--admin-res-text, var(--accent)); font-size: 0.8rem;">Zuwera Team</strong><p style="margin-top: 4px; font-size: 0.8rem; color: var(--admin-res-text, var(--text-secondary)); white-space: normal;">${displayAdminResponse}</p></div>` : ''}
                                     ${Array.isArray(r.photos) && r.photos.length ? `<div style="margin-top:10px">
                                         <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:${!_photoApprovalOn ? 'var(--text-secondary)' : (r.photos_approved ? '#3fb950' : '#f0a020')};margin-bottom:6px">${r.photos.length} photo${r.photos.length > 1 ? 's' : ''}${_photoApprovalOn ? (r.photos_approved ? ' · Approved (public)' : ' · Pending — hidden from shoppers') : ''}</div>
-                                        <div style="display:flex;gap:9px;flex-wrap:wrap">${r.photos.map((u, idx) => `<div style="position:relative"><img src="${escapeAttr(u)}" title="Click to view" style="width:54px;height:54px;object-fit:cover;border-radius:5px;cursor:zoom-in;${_photoApprovalOn && !r.photos_approved ? 'outline:2px solid #f0a020;outline-offset:-1px' : ''}" onclick="adminPhotoLightbox('${escapeAttr(u)}')"><button title="Remove this photo" onclick="reviewPhotoRemove('${r.id}',${idx})" style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;border:none;background:#f85149;color:#fff;font-size:13px;line-height:1;cursor:pointer;padding:0">&times;</button></div>`).join('')}</div>
+                                        <div style="display:flex;gap:9px;flex-wrap:wrap">${r.photos.map((u, idx) => `<div style="position:relative"><img src="${escapeAttr(zwThumb(u, 54))}" title="Click to view" style="width:54px;height:54px;object-fit:cover;border-radius:5px;cursor:zoom-in;${_photoApprovalOn && !r.photos_approved ? 'outline:2px solid #f0a020;outline-offset:-1px' : ''}" onclick="adminPhotoLightbox('${escapeAttr(u)}')"><button title="Remove this photo" onclick="reviewPhotoRemove('${r.id}',${idx})" style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;border:none;background:#f85149;color:#fff;font-size:13px;line-height:1;cursor:pointer;padding:0">&times;</button></div>`).join('')}</div>
                                         ${_photoApprovalOn && !r.photos_approved ? `<button onclick="reviewApprovePhotos('${r.id}')" style="margin-top:9px;padding:6px 14px;border:none;border-radius:6px;background:#3fb950;color:#09090b;font-weight:600;font-size:.78rem;cursor:pointer">&#10003; Approve photos</button>` : ''}
                                     </div>` : ''}
                                 </td>
@@ -8386,7 +8386,28 @@
                 .replace(/>/g, '&gt;');
         }
 
-        function escapeAttr(value) {
+        
+/* Thumbnails, at thumbnail size.
+ *
+ * Every preview in this panel used to request the FULL-SIZE original from
+ * Supabase Storage — a 4MB photo to fill a 56px box, forty of them on the
+ * products list, re-pulled on every reload. With two people using the admin
+ * that was the whole cached-egress bill: not shopper traffic, us.
+ *
+ * The storefront has routed images through the optimiser for ages. The admin
+ * never did, because nobody looks at the bandwidth cost of a page only staff
+ * see. `w` is the display width; ask for 2x so it stays sharp on retina.
+ *
+ * Falls through to the raw URL if the optimiser did not load, because a
+ * heavy thumbnail beats a broken one. */
+function zwThumb(url, w) {
+    try {
+        if (typeof optimizeImage === 'function') return optimizeImage(url, (w || 100) * 2);
+    } catch (_) {}
+    return url;
+}
+
+function escapeAttr(value) {
             return escapeHtml(value).replace(/'/g, '&#39;');
         }
 
@@ -8512,7 +8533,7 @@
                 : `<span class="media-meta-label" style="opacity:.45">Assign colors in the Variants &amp; Stock tab first</span>`;
 
             return `<div class="media-preview-wrap">
-                      <img  class="image-preview media-thumb" src="${safeUrl}" style="${imgStyle}" alt="">
+                      <img  class="image-preview media-thumb" src="${escapeAttr(zwThumb(safeUrl, 160))}" style="${imgStyle}" alt="">
                       <video class="video-preview media-thumb" src="${isVid ? safeUrl : ''}" muted loop playsinline preload="metadata" style="${vidStyle}"></video>
                       <span class="media-placeholder-icon" style="${phStyle}">🖼</span>
                       ${typeBadge ? `<span class="media-type-badge">${typeBadge}</span>` : ''}
