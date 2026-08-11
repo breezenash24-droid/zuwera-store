@@ -361,6 +361,7 @@ console.log('\n  a limit marked ready really is');
     refund: 'functions/api/admin-refund.js',
     role_manage: 'functions/api/set-admin-role.js',
     customer_export: 'functions/api/admin-export.js',
+    product_delete: 'functions/api/admin-product-delete.js',
   };
 
   const entries = [...block4.matchAll(/\{ id: '([a-z_]+)', action: '([a-z_]+)'[\s\S]*?ready: (true|false)/g)]
@@ -705,6 +706,38 @@ console.log('\n  the export goes somewhere that can refuse it');
   ok('the endpoint is honest about what it does not stop',
     /can read profiles can\s*\n? \* always read profiles|always read profiles/.test(exp),
     'this bounds the one-click path, it is not a wall around the data');
+}
+
+console.log('\n  deleting a product is the only one that fully binds');
+{
+  const adm = fs.readFileSync(ROOT + 'admin-main.js', 'utf8');
+  const ep = fs.readFileSync(ROOT + 'functions/api/admin-product-delete.js', 'utf8');
+  const sql = fs.readFileSync(ROOT + 'migrations/0009_products_delete_via_endpoint_only.sql', 'utf8');
+
+  ok('the cascade moved off the browser',
+    !/from\('products'\)\.delete\(\)\.eq\('id', deleteProductId\)/.test(adm)
+      && /fetch\('\/api\/admin-product-delete'/.test(adm));
+
+  /* The limit is written about the product's state, which is a fact about the
+     row and not something a caller can be trusted to report about it. */
+  ok('the status is read from the row, not taken from the request',
+    ep.indexOf('rest/v1/products?id=eq.') < ep.indexOf("decide(env, accessToken, 'product_delete'"));
+  ok('…and a published row with no status string is not read as a draft',
+    /product\.published \? 'Live' : 'Draft'/.test(ep));
+
+  /* Parent last: a product with children missing is a mess somebody can see;
+     a product gone with children left is rows nobody will look for. */
+  ok('children go before the parent',
+    ep.indexOf("del('product_images'") < ep.indexOf("del('products'"));
+
+  /* An endpoint is only the polite route while the client keeps the
+     permission. This is the one place that could be closed properly. */
+  ok('the browser loses the permission entirely', /FOR DELETE TO authenticated/.test(sql)
+    && /USING \(false\)/.test(sql));
+  ok('…on products alone, because the editor legitimately deletes children',
+    !/ON public\.product_images/.test(sql) && !/ON public\.color_variants/.test(sql),
+    'blocking those would break removing an image while editing');
+  ok('…and it narrows rather than replaces', /AS RESTRICTIVE/.test(sql));
 }
 
 console.log('\n  the asking is reachable');
