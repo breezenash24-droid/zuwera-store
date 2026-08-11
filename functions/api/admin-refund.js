@@ -13,7 +13,7 @@
  */
 
 import Stripe from 'stripe';
-import { cors, json, verifyAdmin, getSetting, setSetting, getCommerceBundle } from './_commerce.js';
+import { cors, json, verifyAdmin, decide, getSetting, setSetting, getCommerceBundle } from './_commerce.js';
 import { permsHave } from './_rbac.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
@@ -49,6 +49,32 @@ export async function onRequestPost({ request, env }) {
       orderId, action, success: false, note: `blocked: role "${admin.admin_role}" lacks refund permission`,
     });
     return json({ error: 'Your role does not have permission to issue refunds.' }, 403, h);
+  }
+
+  /* The limits an owner set under Users. The role said yes; this asks whether
+     it is allowed for THIS refund — the amount is the whole point, so it has to
+     be passed. A limit with nothing to compare against denies everything, which
+     is why the panel marks a limit as unenforced until its endpoint does this.
+
+     In dollars, because that is the unit the panel asks for. Passing cents
+     against a limit written as "$500" would refuse every refund over five
+     dollars, and look like the limit working. */
+  const refundDollars = Number.isFinite(Number(amountCents)) ? Number(amountCents) / 100 : null;
+  const verdict = await decide(env, accessToken, 'refund', {
+    action: 'refund',
+    resource: { amount: refundDollars, orderId: String(orderId || '') },
+  });
+  if (!verdict.allow) {
+    await audit(env, {
+      adminId: String(admin.id || ''), adminEmail: String(admin.email || ''),
+      orderId, action, success: false, note: `blocked by limit: ${verdict.reason}`,
+    });
+    return json({
+      error: verdict.reason || 'A limit on your account stopped this refund.',
+      /* So the panel can offer to ask somebody, rather than presenting a dead
+         end. Only ever true when the ROLE allowed it. */
+      limited: !!verdict.limited,
+    }, 403, h);
   }
 
   // ── 2. REFUND_SECRET must exist in Cloudflare env vars ──────────────────────
