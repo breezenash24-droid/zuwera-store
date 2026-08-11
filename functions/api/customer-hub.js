@@ -8,6 +8,7 @@ import {
   verifyUser,
 } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { returnEligibility } from './_returns.js';
 
 // ─── Loops subscriber sync ─────────────────────────────────────────────────────
 // Called after save_profile — syncs the customer into Loops if they consented to marketing.
@@ -95,7 +96,16 @@ export async function onRequestGet({ request, env }) {
       ? bundle.returnsState.requests.filter((request) => request.userId === user.id)
       : [];
 
-    const enrichedOrders = (orders || []).map((order) => mergeOrderWithOps(order, bundle.orderOps, returnsRequests));
+    /* Eligibility computed HERE and sent down, rather than each page working
+       it out from the raw orders. The pages had their own versions of the
+       rule — which is to say they had none — and a rule the display and the
+       endpoint each decide separately is a rule they will eventually disagree
+       about, with the customer seeing the generous half. */
+    const enrichedOrders = (orders || []).map((order) => {
+      const merged = mergeOrderWithOps(order, bundle.orderOps, returnsRequests);
+      const eligible = returnEligibility(merged, returnsRequests);
+      return { ...merged, returnable: eligible.ok, returnBlockedReason: eligible.reason || '' };
+    });
 
     return json({
       success: true,
@@ -180,6 +190,20 @@ export async function onRequestPost({ request, env }) {
       const matchedOrder = (eligibleOrders || []).find((order) => String(order.id || '').trim() === nextRequest.orderId);
       if (!matchedOrder) {
         return json({ success: false, error: 'You can only request returns for your own orders.' }, 403, cors(env));
+      }
+
+      /* Ownership was the ONLY check here, which is how a fully refunded order
+         with a finished return request accepted a second one for the same item
+         — landing in the admin queue looking exactly like a first request.
+         Same function the pages use to decide what to offer, so what a
+         customer is shown and what they are allowed cannot drift apart. */
+      const submitBundle = await getCommerceBundle(env);
+      const myRequests = Array.isArray(submitBundle.returnsState?.requests)
+        ? submitBundle.returnsState.requests.filter((r) => r && r.userId === user.id)
+        : [];
+      const eligible = returnEligibility(matchedOrder, myRequests);
+      if (!eligible.ok) {
+        return json({ success: false, error: eligible.reason, code: eligible.code }, 409, cors(env));
       }
       nextRequest.orderLabel = nextRequest.orderLabel || `#${String(matchedOrder.id || '').slice(-8).toUpperCase()}`;
       nextRequest.customerEmail = String(matchedOrder.email || matchedOrder.customer_email || user.email || '').trim();

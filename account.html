@@ -1378,9 +1378,19 @@ async function loadOrders() {
         </div>` : '';
 
       // Return action
+      /* This offered "Start a Return" on anything without an existing request
+         — including orders already refunded or cancelled. The customer took
+         it, and a second request for an already-refunded item appeared in the
+         admin queue looking exactly like a first one.
+         `returnable` is the server's answer, from the same function that
+         refuses the submission, so the button and the outcome agree. It also
+         carries the reason, which is worth more than a hidden button: an
+         explanation stops the email that a silently missing control causes. */
       const hasReturn = returnRequests.some(r => String(r.orderId || r.order_id || '') === String(o.id || ''));
       const returnAction = hasReturn
         ? `<span class="order-track-num">Return requested</span>`
+        : o.returnable === false
+        ? `<span class="order-track-num">${escapeHtml(o.returnBlockedReason || 'This order cannot be returned.')}</span>`
         : `<button class="order-return-link" onclick="switchTab('returns')">Start a Return →</button>`;
       const footer = `<div class="order-footer">${addrHtml}<div style="padding-bottom:.05rem">${returnAction}</div></div>`;
 

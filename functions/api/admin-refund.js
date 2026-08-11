@@ -110,7 +110,7 @@ export async function onRequestPost({ request, env }) {
   }
 
   // ── 5. Validate action ───────────────────────────────────────────────────────
-  if (!['cancel', 'cancel_refund', 'refund'].includes(action)) {
+  if (!['cancel', 'cancel_refund', 'refund', 'check'].includes(action)) {
     return json({ error: 'Invalid action.' }, 400, h);
   }
   if (!orderId) return json({ error: 'orderId is required.' }, 400, h);
@@ -160,6 +160,10 @@ export async function onRequestPost({ request, env }) {
     return json({
       error: verdict.reason || 'A limit on your account stopped this refund.',
       limited: !!verdict.limited,
+      /* Which limit, so the panel can ask about THIS one. A request that does
+         not name the rule it is about cannot be turned into a waiver — the
+         engine matches on it, and a yes to one limit is not a yes to all. */
+      rule: verdict.rule || '',
       /* A super admin on a "notify" limit is told they may proceed by changing
          it — they have the power, they just have not used it. */
       ownerMayOverride: !!verdict.ownerMayOverride,
@@ -170,7 +174,9 @@ export async function onRequestPost({ request, env }) {
   if (order.status === 'cancelled') {
     return json({ error: 'Order is already cancelled.' }, 400, h);
   }
-  if (order.status === 'refunded' && action !== 'cancel') {
+  /* `check` is allowed past, because the whole point of it is to report on an
+     order in exactly this state before somebody tries. */
+  if (order.status === 'refunded' && action !== 'cancel' && action !== 'check') {
     return json({ error: 'Order has already been fully refunded.' }, 400, h);
   }
   if (action !== 'cancel' && !order.stripe_payment_intent_id) {
@@ -182,15 +188,77 @@ export async function onRequestPost({ request, env }) {
     try {
       const bundle = await getCommerceBundle(env);
       const requests = Array.isArray(bundle.returnsState?.requests) ? bundle.returnsState.requests : [];
-      const linked = requests.find(r => String(r.orderId || '') === String(orderId));
-      const REFUND_ALLOWED = new Set(['item_received', 'completed', 'refunded', 'closed']);
-      if (linked && !REFUND_ALLOWED.has(linked.status || '')) {
-        await audit(env, { adminId, adminEmail, orderId, action, success: false, note: `blocked: return status is "${linked.status}"` });
+      /* EVERY request for this order, not the first one found. An order can
+         carry more than one — the bug that started this audit produced exactly
+         that, a finished request beside a fresh one — and .find() picked
+         whichever happened to be first. Which one that was decided whether the
+         refund went through. */
+      const linked = requests.filter(r => String(r.orderId || '') === String(orderId));
+
+      /* `refunded` used to be in this set, so a return already paid out was
+         read as clearance to pay it out again. It is the opposite: the
+         strongest signal in the list that this is a second attempt. */
+      const READY_TO_REFUND = new Set(['item_received', 'completed', 'closed']);
+
+      const done = linked.find(r => String(r.status || '') === 'refunded');
+      if (done) {
+        await audit(env, { adminId, adminEmail, orderId, action, success: false, note: 'blocked: a return on this order is already refunded' });
         return json({
-          error: `Cannot issue refund — the returned item has not been received yet (return status: "${linked.status}"). Mark the return as "Item Received" before refunding.`,
+          error: 'A return on this order has already been refunded. Refunding again would pay for the same item twice — '
+               + 'check the Returns tab for this order before continuing.',
+          alreadyRefunded: true,
+        }, 409, h);
+      }
+
+      const waiting = linked.find(r => !READY_TO_REFUND.has(String(r.status || '')));
+      if (waiting) {
+        await audit(env, { adminId, adminEmail, orderId, action, success: false, note: `blocked: return status is "${waiting.status}"` });
+        return json({
+          error: `Cannot issue refund — the returned item has not been received yet (return status: "${waiting.status}"). Mark the return as "Item Received" before refunding.`,
         }, 400, h);
       }
     } catch { /* if bundle fetch fails, do not block the refund — log only */ }
+  }
+
+  /* ── 8b. What has ALREADY been refunded ──────────────────────────────────────
+
+     Nothing tracked this. A full refund sets order.status = 'refunded' and the
+     guard above catches a second one — but a PARTIAL refund deliberately
+     leaves the status alone, so $20 could be refunded on a $50 order four
+     times over and every attempt looked like the first.
+
+     Money did not actually escape, because Stripe keeps its own ledger and
+     refuses a refund past the charge. But that is a backstop nobody chose,
+     reached by pressing the button and reading whatever error came back — and
+     it is silent about the far more common version, where the second refund is
+     small enough to fit and simply should not have happened.
+
+     So it is asked, and asked of STRIPE rather than tracked here. A number this
+     side would be a second ledger to keep in step with the real one, and the
+     day they disagree is the day it matters. */
+  const stripeClient = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
+  let already = { refundedCents: 0, chargedCents: 0, count: 0, known: false };
+  if (order.stripe_payment_intent_id) {
+    try {
+      already = await refundedSoFar(stripeClient, order.stripe_payment_intent_id);
+    } catch (e) {
+      console.warn('refund: could not read Stripe history —', e && e.message);
+    }
+  }
+
+  /* A read-only look at the same answer, so the panel can warn BEFORE somebody
+     presses the button rather than after. It runs behind the identical
+     authorization and authorization-code checks above — a preflight that is
+     easier to reach than the action it describes is an information leak. */
+  if (action === 'check') {
+    return json({
+      success: true, check: true, orderId,
+      alreadyRefundedCents: already.refundedCents,
+      chargedCents: already.chargedCents,
+      refundCount: already.count,
+      known: already.known,
+      orderStatus: String(order.status || ''),
+    }, 200, h);
   }
 
   // ── 9. Issue Stripe refund ───────────────────────────────────────────────────
@@ -198,7 +266,35 @@ export async function onRequestPost({ request, env }) {
   let stripeRefundAmount = null;
 
   if (action === 'refund' || action === 'cancel_refund') {
-    const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
+    const stripe = stripeClient;
+
+    /* Refuse rather than let Stripe refuse. Same outcome for the money, but
+       this one can say what already happened and who did it, instead of
+       handing an admin a raw API error about an amount they cannot see. */
+    if (already.known) {
+      const remaining = Math.max(0, already.chargedCents - already.refundedCents);
+      const wanted = (action === 'refund' && amountCents && Number.isFinite(Number(amountCents)))
+        ? Math.round(Number(amountCents))
+        : remaining;
+      if (remaining <= 0) {
+        await audit(env, { adminId, adminEmail, orderId, action, success: false,
+          note: `blocked: already fully refunded (${already.count} refund${already.count === 1 ? '' : 's'})` });
+        return json({
+          error: `This order has already been refunded in full — $${(already.refundedCents / 100).toFixed(2)} across `
+               + `${already.count} refund${already.count === 1 ? '' : 's'}. Nothing further can be refunded.`,
+          alreadyRefundedCents: already.refundedCents, chargedCents: already.chargedCents,
+        }, 409, h);
+      }
+      if (wanted > remaining) {
+        await audit(env, { adminId, adminEmail, orderId, action, success: false,
+          note: `blocked: ${wanted}c requested, ${remaining}c remaining` });
+        return json({
+          error: `Only $${(remaining / 100).toFixed(2)} is left to refund on this order — `
+               + `$${(already.refundedCents / 100).toFixed(2)} has already gone back. Nothing was charged or refunded.`,
+          alreadyRefundedCents: already.refundedCents, chargedCents: already.chargedCents,
+        }, 409, h);
+      }
+    }
 
     const params = {
       payment_intent: order.stripe_payment_intent_id,
@@ -278,6 +374,36 @@ function toStripeReason(r) {
   if (r === 'duplicate')  return 'duplicate';
   if (r === 'fraudulent') return 'fraudulent';
   return 'requested_by_customer';
+}
+
+/* Stripe's ledger, not ours. `known` is the load-bearing field: a failed read
+   must not read as "nothing refunded yet", which is what a bare 0 would do —
+   and that reading permits exactly the refund this exists to stop. Callers
+   check `known` before trusting the numbers. */
+async function refundedSoFar(stripe, paymentIntentId) {
+  const pi = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ['latest_charge'] });
+  const charge = pi && pi.latest_charge;
+  const chargedCents = Number(
+    (charge && charge.amount_captured) || (charge && charge.amount) || pi.amount_received || pi.amount || 0
+  );
+
+  /* Read the refunds rather than trusting charge.amount_refunded alone: a
+     refund still pending shows in the list before it settles into the total,
+     and money on its way out is money already spent for this purpose. */
+  const list = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 });
+  const refunds = (list && Array.isArray(list.data) ? list.data : [])
+    .filter((r) => r && r.status !== 'failed' && r.status !== 'canceled');
+  const summed = refunds.reduce((n, r) => n + Number(r.amount || 0), 0);
+  const reported = Number((charge && charge.amount_refunded) || 0);
+
+  return {
+    /* The larger of the two. They agree in the ordinary case; when they do
+       not, the bigger number is the safer one to plan a refund against. */
+    refundedCents: Math.max(summed, reported),
+    chargedCents,
+    count: refunds.length,
+    known: true,
+  };
 }
 
 async function audit(env, entry) {

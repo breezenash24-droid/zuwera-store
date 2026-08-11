@@ -133,7 +133,15 @@
 
     const orders = Array.isArray(payload?.orders) ? payload.orders : [];
     const requests = Array.isArray(payload?.returns) ? payload.returns : [];
-    const options = orders.map((order) => {
+    /* Only orders that can actually be returned. Every order the customer had
+       ever placed was listed, refunded and cancelled ones included — which is
+       how a fully refunded order got a second return request filed against it.
+       `returnable` is decided by the server with the same function that
+       refuses the submission, so the list and the answer cannot disagree.
+       Orders from before this shipped carry no flag; those are shown, because
+       hiding an order on a missing field would silently strip a customer's
+       ability to return anything at all. The endpoint still refuses. */
+    const options = orders.filter((o) => o && o.returnable !== false).map((order) => {
       const orderId = String(order.id || '');
       const label = `#${orderId.slice(-8).toUpperCase()} - ${new Date(order.created_at || Date.now()).toLocaleDateString()}`;
       return `<option value="${escapeHtml(orderId)}">${escapeHtml(label)}</option>`;

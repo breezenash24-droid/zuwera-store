@@ -228,6 +228,7 @@
                                 </div>
                               </details>
                             </div>
+                            <div id="refmod-already" role="alert" style="display:none;border:1px solid #ef4444;border-left-width:4px;border-radius:6px;padding:.6rem .75rem;background:rgba(239,68,68,.08);color:#ef4444;font-size:.8rem;line-height:1.55;"></div>
                             <div id="refmod-err" style="display:none;color:#ef4444;font-size:.8rem;"></div>
                             <div style="display:flex;gap:.5rem;justify-content:flex-end;">
                               <button id="refmod-cancel" style="background:transparent;border:1px solid var(--border);color:var(--text-primary);padding:.5rem 1rem;border-radius:6px;font-size:.85rem;cursor:pointer;">Cancel</button>
@@ -238,6 +239,44 @@
                       document.body.appendChild(modal);
                       modal.querySelector('#refmod-cancel').onclick = () => modal.remove();
                       modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+                      /* Say it BEFORE the button, not after. The server refuses
+                         a second refund either way, but a refusal arriving on
+                         submit is a refusal the admin has already decided to
+                         act on — and the case this exists for is the one where
+                         they had no idea a refund had happened at all.
+                         The numbers come from Stripe via the same endpoint, so
+                         this warning and the refusal cannot disagree. */
+                      (async () => {
+                        const warn = modal.querySelector('#refmod-already');
+                        if (!warn) return;
+                        try {
+                          const { data: { session } } = await sb.auth.getSession();
+                          const token = session?.access_token;
+                          if (!token) return;
+                          const key = modal.querySelector('#refmod-key');
+                          const resp = await fetch('/api/admin-refund', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'check', orderId, accessToken: token,
+                                                   refundKey: (key && key.value.trim()) || '' }),
+                          });
+                          const d = await resp.json().catch(() => ({}));
+                          /* A check that cannot run says nothing. It is not
+                             evidence of no refunds — it is the absence of an
+                             answer, and the server still refuses on submit. */
+                          if (!resp.ok || !d.known || !(d.alreadyRefundedCents > 0)) return;
+                          const money = (c) => '$' + (Number(c) / 100).toFixed(2);
+                          const left = Math.max(0, Number(d.chargedCents) - Number(d.alreadyRefundedCents));
+                          warn.innerHTML = '<strong>This order has already been refunded.</strong><br>'
+                            + money(d.alreadyRefundedCents) + ' of ' + money(d.chargedCents)
+                            + ' has gone back across ' + d.refundCount + ' refund'
+                            + (d.refundCount === 1 ? '' : 's') + '. '
+                            + (left > 0
+                                ? 'At most ' + money(left) + ' can still be refunded.'
+                                : 'Nothing further can be refunded on it.');
+                          warn.style.display = '';
+                        } catch (_) { /* silence here is the absence of an answer, not an all-clear */ }
+                      })();
                       modal.querySelector('#refmod-submit').onclick = async function() {
                         const btn = this;
                         const errEl = modal.querySelector('#refmod-err');
@@ -257,6 +296,55 @@
                           if (note) body.customerNote = note;
                           const resp = await fetch('/api/admin-refund', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                           const data = await resp.json().catch(() => ({}));
+                          /* A refusal by LIMIT is the one worth acting on, and
+                             it used to arrive as a bare message like every
+                             other failure. The only response it left was to go
+                             and delete the limit, which is how limits stop
+                             being used. `limited` marks the refusals somebody
+                             can be asked about; a role that simply cannot
+                             refund is not one of them, and offering to ask
+                             would waste both people's time. */
+                          if (!resp.ok && data.limited) {
+                            errEl.innerHTML = '';
+                            errEl.append(String(data.error || 'A limit stopped this refund.'));
+                            const ask = document.createElement('button');
+                            ask.type = 'button';
+                            ask.className = 'btn btn-secondary btn-sm';
+                            ask.style.cssText = 'margin-left:8px';
+                            ask.textContent = data.ownerMayOverride ? 'Change the limit' : 'Ask an admin';
+                            /* The owner is not asking anybody — they are being
+                               told they may proceed by changing their own
+                               rule, which is a deliberate edit rather than a
+                               self-approval that reads in the log exactly like
+                               somebody else's. */
+                            ask.onclick = data.ownerMayOverride
+                              ? () => { window.location.hash = '#users'; modal.remove(); }
+                              : async () => {
+                                  ask.disabled = true; ask.textContent = 'Asking…';
+                                  try {
+                                    const r = await fetch('/api/abac-request', {
+                                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        accessToken: token, op: 'create', action: 'refund',
+                                        ruleId: data.rule || '', resourceId: String(orderId),
+                                        amount: (body.amountCents != null ? body.amountCents / 100 : null),
+                                        reason: note || '', refusedWith: String(data.error || ''),
+                                      }),
+                                    });
+                                    const out = await r.json().catch(() => ({}));
+                                    if (!r.ok) throw new Error(out.error || 'Could not send that.');
+                                    ask.textContent = 'Asked — waiting for an answer';
+                                  } catch (err) {
+                                    ask.disabled = false;
+                                    ask.textContent = 'Ask an admin';
+                                    errEl.append(' ' + err.message);
+                                  }
+                                };
+                            errEl.appendChild(ask);
+                            errEl.style.display = '';
+                            btn.disabled = false; btn.textContent = 'Refund';
+                            return;
+                          }
                           if (!resp.ok || !data.success) throw new Error(data.error || 'Refund failed.');
                           await logAdminAudit('order.stripe_refund', 'orders', orderId, { reason, amountCents: body.amountCents || null, stripeRefundId: data.stripeRefundId });
                           modal.remove();

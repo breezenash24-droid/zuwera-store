@@ -675,5 +675,71 @@ console.log('\n  asking, when a limit says no');
     /ABAC_REQUESTS_KEY/.test(req) && /ABAC_REQUESTS_KEY/.test(com));
 }
 
+console.log('\n  the asking is reachable');
+{
+  const adm = fs.readFileSync(ROOT + 'admin-main.js', 'utf8');
+  const html = fs.readFileSync(ROOT + 'admin.html', 'utf8');
+  const rec = fs.readFileSync(ROOT + 'admin-receipts.js', 'utf8');
+  const ref = fs.readFileSync(ROOT + 'functions/api/admin-refund.js', 'utf8');
+
+  /* The button, on the refusal it is about. A limit refusal used to arrive as
+     a bare message like any other failure, leaving deleting the limit as the
+     only available response. */
+  ok('a limit refusal offers to ask', /Ask an admin/.test(rec));
+  ok('…only for refusals somebody can grant', /if \(!resp\.ok && data\.limited\)/.test(rec),
+    '"your role cannot do this" is not worth asking about');
+
+  /* The owner is told to change their own rule instead. Approving your own
+     request reads in the log exactly like somebody else approving it. */
+  ok('…and the owner is sent to the limit, not to a request',
+    /data\.ownerMayOverride/.test(rec) && /Change the limit/.test(rec));
+
+  /* A request that does not name its rule cannot become a waiver — the engine
+     matches on ruleId, and a yes to one limit is not a yes to all. */
+  ok('the refusal says which limit it was', /rule: verdict\.rule/.test(ref));
+  ok('…and the request carries it', /ruleId: data\.rule/.test(rec));
+
+  ok('there is somewhere to answer them', /window\.zwAbacQueue =/.test(adm) && /id="abacQueue"/.test(html));
+  const usersInit = adm.slice(adm.indexOf("page === 'users'"), adm.indexOf("page === 'analytics'"));
+  ok('…that loads on the page it is on', /zwAbacQueue\(\)/.test(usersInit));
+
+  /* Shown to the requester too. Otherwise they ask again, or decide nothing
+     happened and go looking for someone to switch the limit off. */
+  ok('a requester can see their own ask', /Waiting for a super admin/.test(adm));
+
+  /* Approving a name and a number is not deciding anything. */
+  ok('the refusal is quoted where it is answered', /Stopped by: /.test(adm));
+
+  /* An empty panel on every visit trains people to scroll past the place
+     answers appear. */
+  ok('the queue hides itself when empty',
+    /if \(!pending\.length && !recent\.length\) \{ wrap\.style\.display = 'none'; return; \}/.test(adm));
+
+  ok('approving says what it granted, which is once',
+    /Approved — good for that one order, once\./.test(adm));
+}
+
+console.log('\n  a role that was replaced does not still claim to apply');
+{
+  const adm = fs.readFileSync(ROOT + 'admin-main.js', 'utf8');
+  const rbac = fs.readFileSync(ROOT + 'functions/api/_rbac.js', 'utf8');
+
+  /* The behaviour the badge was describing wrongly: levelMapFor RETURNS the
+     override, so a custom map replaces the preset rather than adjusting it. */
+  ok('a custom map replaces the preset rather than layering on it',
+    /if \(override && typeof override === 'object'\) return override;/.test(rbac),
+    'if this ever merges instead, the badge below has to change with it');
+
+  ok('so the badge stops naming the preset that no longer applies',
+    /'Custom access' : roleName/.test(adm));
+  ok('…while still showing the role, which decides which limits reach them',
+    /for limits only/.test(adm));
+
+  /* Super admin is the exception and runs the other way — resolvePerms
+     returns '*' before the map is read, so the role wins there. */
+  ok('…except for a super admin, where the role wins',
+    /cur !== 'super_admin'/.test(adm) && /if \(role === 'super_admin'\) return \['\*'\];/.test(rbac));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
