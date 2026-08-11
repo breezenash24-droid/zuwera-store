@@ -3461,6 +3461,15 @@ function renderSizes() {
   const sizeGrid = document.getElementById('sizeGrid');
   sizeGrid.innerHTML = '';
 
+  /* Close any open back-in-stock panel first. This re-runs when the COLOUR
+     changes, and the panel was left standing — so opening it for a sold-out M
+     in one colourway and then switching to a colour where M is in stock left
+     "Size M is sold out" sitting under a size that was available, saying it
+     regardless of what the page above had just worked out.
+     quick-add-modal.js has always reset its own panel on every render; this is
+     the same rule, arriving late. */
+  hideRestockPanel();
+
   // Per-colour stock for the SELECTED colour (falls back to colour-agnostic rows for
   // legacy products — see sizeStockForColor). renderSizes re-runs when the colour
   // changes, so availability reflects the chosen colourway.
@@ -3491,7 +3500,8 @@ function renderSizes() {
       // instead of being a dead end. .disabled keeps the struck-through look;
       // aria reflects the real affordance.
       btn.classList.add('disabled');
-      btn.setAttribute('aria-label', `${size} — sold out. Get notified when it's back.`);
+      // Same sentence a sighted shopper gets, from the same editable message.
+      btn.setAttribute('aria-label', ZWStock.msg('restockPrompt', { size }));
     }
 
     btn.addEventListener('click', () => {

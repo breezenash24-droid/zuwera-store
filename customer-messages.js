@@ -76,6 +76,7 @@
        restockAlready is deliberately NOT red: the shopper asked twice for the
        same thing and the answer is still yes. It was painted as a failure. */
     restockHint:    { label: 'Hint that sold-out sizes are tappable', text: "Tap a sold-out size to get notified when it's back.", color: ROLE.plain },
+    restockInvite:  { label: 'Heading above the back-in-stock form', text: "Email me when it's back", color: ROLE.plain },
     restockPrompt:  { label: 'Asking for an email for a sold-out size', text: "Size {size} is sold out — get notified when it's back", color: ROLE.plain },
     restockSuccess: { label: 'They joined the back-in-stock list', text: "✓ We'll email you when {size} is back.", color: ROLE.good },
     restockAlready: { label: 'They were already on the list', text: "You're already on the list for this size.", color: ROLE.plain },
@@ -151,7 +152,7 @@
     { title: 'When something has sold out', keys: ['soldOut', 'soldOutItem', 'soldOutInBag'] },
     { title: 'When stock is running low', keys: ['lowStock', 'lowStockShort', 'capReached'] },
     { title: 'When they already have it in their bag', keys: ['lastInBag', 'allInBag', 'maxedOut'] },
-    { title: 'Back-in-stock signup', keys: ['restockHint', 'restockPrompt', 'restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed'] },
+    { title: 'Back-in-stock signup', keys: ['restockHint', 'restockInvite', 'restockPrompt', 'restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed'] },
     { title: 'When a card is declined', keys: Object.keys(DEFAULTS).filter(function (k) { return k.indexOf('decline:') === 0; }) },
   ];
 

@@ -142,6 +142,12 @@ console.log('\n  the storefront asks rather than answering');
     /already on the list/,
     /We'?.?ll email you when/,
     /get notified when it/,
+    /* Two that slipped through the first pass: the bag's form heading and the
+       product page's sold-out aria-label. Both were shopper-facing copy that
+       simply did not match the sentences this list happened to name, which is
+       the weakness of a hand-written list — so it grows when one is found. */
+    /Email me when it/,
+    /sold out\. Get notified/,
   ];
   const offenders = [];
   for (const file of SURFACES) {
@@ -238,6 +244,28 @@ console.log('\n  the editor describes each message in words, and inserts the val
   ok('…without discarding the others', /Object\.assign\(\{\}, cx\.messages\)/.test(admin));
   ok('the colour box says what it accepts',
     /rgb\(220,38,38\)/.test(read('admin.html')), 'no format hint for the colour field');
+}
+
+console.log('\n  a message has to stop being shown when it stops being true');
+{
+  /* "Size M is sold out — get notified when it's back" stayed on screen
+     regardless. The panel is opened by clicking a sold-out size, and
+     renderSizes() — which re-runs whenever the COLOUR changes — never closed
+     it. Switch to a colourway where M is in stock and the page said one thing
+     above the sizes and the opposite below them.
+
+     quick-add-modal.js has always reset its own panel on every render. The
+     product page is the copy that did not, which is the same shape as every
+     other bug in this area: two implementations, one of them missing a rule. */
+  const src = strip(read('product.html'));
+  const render = src.slice(src.indexOf('function renderSizes()'));
+  const body = render.slice(0, render.indexOf('sizes.forEach'));
+  ok('re-rendering the sizes closes a stale back-in-stock panel',
+    /hideRestockPanel\(\)/.test(body),
+    'a panel opened for one colourway survives into the next');
+
+  const quick = strip(read('quick-add-modal.js'));
+  ok('…the quick-add panel still does the same', /quickAddHideRestock\(\)/.test(quick));
 }
 
 console.log('\n  a message needs somewhere to appear');

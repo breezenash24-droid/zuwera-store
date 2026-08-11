@@ -1111,11 +1111,14 @@ function mountRestockPrompt(card, item) {
   const wrap = document.createElement('div');
   wrap.className = 'cart-restock';
   wrap.innerHTML =
-    '<label class="cart-restock-label">Email me when it\'s back</label>' +
+    '<label class="cart-restock-label"></label>' +
     '<div class="cart-restock-row">' +
       '<input type="email" class="cart-restock-email" placeholder="your@email.com" autocomplete="email">' +
       '<button type="button" class="cart-restock-btn">Notify Me</button>' +
     '</div><div class="cart-restock-msg" role="status"></div>';
+
+  // Heading text from the shared messages, like everything else here.
+  ZWStock.applyMsg(wrap.querySelector('.cart-restock-label'), 'restockInvite');
 
   const input = wrap.querySelector('.cart-restock-email');
   const btn = wrap.querySelector('.cart-restock-btn');
