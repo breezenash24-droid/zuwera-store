@@ -1219,6 +1219,18 @@
                         <p id="ly-preview" style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6"></p>
                         <button class="btn btn-primary" id="ly-save-btn" onclick="loyaltySaveSettings()">Save rewards settings</button>
                     </div>
+                    <h3 style="font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:0 0 10px">Stock &amp; availability</h3>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px;max-width:680px">
+                        <p style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6">Controls whether shoppers can put more in their bag than you actually have. This is enforced on the storefront <em>and</em> at checkout, so the quantity someone can pick is the quantity that will go through.</p>
+                        <div class="form-group">
+                            <label for="sk-limit-qty" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+                                <input type="checkbox" id="sk-limit-qty" checked style="width:20px;height:20px;margin:0;accent-color:var(--accent,#F891A5);cursor:pointer">
+                                <span style="font-size:.92rem">Limit quantity to what's in stock <span style="opacity:.55">— if one is left, they can only add one. Turn this OFF to accept backorders, which means you can be paid for items you don't have.</span></span>
+                            </label>
+                        </div>
+                        <button class="btn btn-primary" id="sk-save-btn" onclick="stockRulesSaveSettings()">Save stock settings</button>
+                    </div>
+
                     <h3 style="font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:0 0 10px">Refer a friend</h3>
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px;max-width:680px">
                         <p style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6">Each signed-in shopper gets their own code to share. Their friend gets a discount; when that friend's order comes through, the referrer is paid in ${'points'} automatically. Codes are created the first time someone opens Refer a Friend, so your Coupons list only grows for people who actually share.</p>

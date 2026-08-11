@@ -255,7 +255,11 @@ export async function verifyAccessToken(accessToken, env) {
   return resp.json().catch(() => null);
 }
 
-export async function resolveCatalogItems(items, env, isMember) {
+/* limitToStock defaults TRUE on every path that forgets to pass it. The setting
+   permits overselling, so the unsafe value must be the one you have to ask for
+   — a caller that omits it gets the guard, not a store quietly taking orders it
+   cannot fill. */
+export async function resolveCatalogItems(items, env, isMember, limitToStock = true) {
   if (!Array.isArray(items) || items.length === 0) throw cartError('Missing cart items.', 400);
   if (items.length > 25) throw cartError('Cart has too many line items.', 400);
 
@@ -284,7 +288,7 @@ export async function resolveCatalogItems(items, env, isMember) {
     const itemSize = String(raw?.size || '').trim();
     const itemQty = parseQuantity(raw?.quantity);
 
-    if (itemSize) {
+    if (itemSize && limitToStock) {
       const available = await fetchSizeStockQty(env, product.id, itemSize, String(raw?.colorName || '').trim() || null);
       if (available !== null && available < itemQty) {
         const name = product.title || product.name || 'An item';
@@ -441,7 +445,20 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
   const verifiedUser = await verifyAccessToken(accessToken, env);
   const isMember = Boolean(verifiedUser?.id);
 
-  const catalogItems = await resolveCatalogItems(items, env, isMember);
+  /* Admin → Commerce may permit ordering beyond stock (backorders). Read here
+     rather than in the loop so one setting read covers the whole cart, and
+     defaulted ON so an unreadable setting cannot become permission to oversell.
+     The storefront reads the same value off /api/stock, so the quantity a
+     shopper is allowed to pick and the quantity checkout accepts come from one
+     switch — the two disagreeing is what "Only 1 left" then "out of stock" was. */
+  const limitToStock = await (async () => {
+    try {
+      const cfg = sanitizeCommerceConfig(await getSetting(env, 'commerce_config', {}));
+      return cfg?.customerExperience?.limitQtyToStock !== false;
+    } catch (_) { return true; }
+  })();
+
+  const catalogItems = await resolveCatalogItems(items, env, isMember, limitToStock);
   const subtotalCents = catalogItems.reduce((sum, item) => sum + item.amount * item.quantity, 0);
   const shipping = await resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env, deliveryMethod });
 
