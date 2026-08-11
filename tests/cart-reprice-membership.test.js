@@ -26,7 +26,7 @@ function ok(name, cond, extra) {
 
 /* Lifted from source so this tests the shipped function, not a copy of it. */
 const SRC = fs.readFileSync(ROOT + 'checkout.js', 'utf8');
-const start = SRC.indexOf('  function isLoggedIn()');
+const start = SRC.indexOf('  function readStoredSession(');
 const end = SRC.indexOf('  async function run()');
 if (start < 0 || end < 0 || end <= start) {
   console.log('  ✗ could not locate isLoggedIn in checkout.js');
@@ -108,6 +108,37 @@ console.log('\n  the member price goes to members');
     [KEY]: JSON.stringify({ access_token: 'tok', expires_at: soon(3600) }),
   }));
   ok('a live session still counts beside a dead one', two() === true);
+}
+
+/* ── the wrapper supabase-js actually uses now ──────────────────────────────
+   Newer supabase-js stores the session as "base64-<base64url of the JSON>" so
+   non-ASCII survives the round trip. Reading only the plain-JSON shape made a
+   signed-in member parse as a guest: the bag showed the regular price while
+   the server — which asks the real client, not localStorage — quoted the
+   member one. Same screen, two prices, and this time the BAG was the wrong
+   one. */
+const b64url = (obj) => 'base64-' + Buffer.from(JSON.stringify(obj), 'utf8')
+  .toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+{
+  const live = build(storage({ [KEY]: b64url({ access_token: 'tok', expires_at: soon(3600) }) }));
+  ok('a base64-wrapped valid session is a member', live() === true);
+}
+{
+  const dead = build(storage({ [KEY]: b64url({ access_token: 'tok', expires_at: soon(-60) }) }));
+  ok('…and a base64-wrapped expired one is not', dead() === false);
+}
+{
+  /* The reason the wrapper exists. A name with an accent must not corrupt the
+     decode and drop the shopper to guest pricing. */
+  const accented = build(storage({
+    [KEY]: b64url({ access_token: 'tok', expires_at: soon(3600), user: { name: 'Renée Ångström' } }),
+  }));
+  ok('…and non-ASCII in the session does not break it', accented() === true);
+}
+{
+  const garbage = build(storage({ [KEY]: 'base64-!!!not-base64!!!' }));
+  ok('a malformed base64 payload is not a member, and does not throw', garbage() === false);
 }
 
 /* The bag derives prices too, and used to answer membership itself with

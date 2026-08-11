@@ -336,14 +336,43 @@ async function getCheckoutAuthPayload() {
    * expired", so that is what this asks now. Same rule as
    * getCheckoutAuthPayload above, so the two cannot disagree about who is a
    * member. */
+  /* Returns the JSON text of a stored Supabase session, whatever wrapper it
+     arrived in. Two shapes exist in the wild and a browser may hold either
+     depending on which version last wrote it:
+        {"access_token":...}            plain JSON
+        base64-eyJhY2Nlc3NfdG9rZW4i...  base64url of that JSON
+     Returns 'null' — valid JSON meaning "no session" — rather than throwing,
+     so a shape we do not recognise is treated as signed out instead of
+     crashing the price derivation. */
+  function readStoredSession(raw) {
+    const s = String(raw || '');
+    if (!s) return 'null';
+    if (!s.startsWith('base64-')) return s;
+    let b64 = s.slice(7).replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';                    // base64url drops padding
+    try {
+      const bin = atob(b64);
+      /* The payload is UTF-8; atob yields bytes. Decoding them properly matters
+         for anything non-ASCII in the profile (a name with an accent), which
+         would otherwise corrupt the JSON and read as signed out. */
+      const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    } catch (_) { return 'null'; }
+  }
+
   function isLoggedIn() {
     try {
       for (let i = 0; i < localStorage.length; i += 1) {
         const k = localStorage.key(i);
         if (!/^sb-.*-auth-token$/.test(k || '')) continue;
 
+        /* supabase-js stores this either as plain JSON or, since it started
+           handling non-ASCII safely, as "base64-<base64url of the JSON>".
+           Parsing only the first shape means a signed-in member reads as a
+           guest — which is this bug: the bag showed the regular price while
+           the server, which asks the real client, quoted the member one. */
         let session;
-        try { session = JSON.parse(localStorage.getItem(k) || 'null'); } catch (_) { continue; }
+        try { session = JSON.parse(readStoredSession(localStorage.getItem(k))); } catch (_) { continue; }
         // Supabase has stored this both bare and wrapped over the years.
         const s = session && (session.access_token ? session : session.currentSession);
         if (!s || !s.access_token) continue;
