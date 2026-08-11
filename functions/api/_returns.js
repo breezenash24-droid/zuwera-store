@@ -42,6 +42,24 @@ const CLOSED_ORDER_STATUSES = new Set(['refunded', 'cancelled', 'canceled']);
    remembered to classify blocks a duplicate instead of permitting one. */
 const RELEASING_STATUSES = new Set(['denied']);
 
+/* How many of each item the live requests on one order already claim. Exported
+   because the endpoint needs the same number the eligibility check used, and
+   two ways of counting the same thing is how the first version of this went
+   wrong. */
+export function spokenForOn(requests, orderId) {
+  const counts = new Map();
+  (Array.isArray(requests) ? requests : [])
+    .filter((r) => r && String(r.orderId || '').trim() === String(orderId || '').trim())
+    .filter(isLiveRequest)
+    .forEach((r) => {
+      (Array.isArray(r.returnItems) ? r.returnItems : []).forEach((i) => {
+        const k = itemKey(i);
+        if (k) counts.set(k, (counts.get(k) || 0) + lineQty(i));
+      });
+    });
+  return counts;
+}
+
 /* Live requests are the ones still holding items. */
 export function isLiveRequest(request) {
   if (!request || typeof request !== 'object') return false;
@@ -61,6 +79,86 @@ export function itemKey(item) {
     part(item.size),
     part(item.color || item.colour || item.color_name),
   ].join('|');
+}
+
+/* How many of a line were bought. Absent means one — an order line with no
+   quantity is one thing, not zero and not unlimited. Anything unparseable,
+   negative, or fractional collapses to one for the same reason: this number
+   decides how many an admin is shown as owing back. */
+export function lineQty(item) {
+  const raw = item && (item.quantity ?? item.qty ?? item.count);
+  const n = Math.floor(Number(raw));
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 999) : 1;
+}
+
+/* What this order actually contains: key → how many, counted rather than
+   collected into a set. A set was the earlier version of this and it could not
+   tell "bought two, returned one" from "bought two, returned both". */
+export function purchasedCounts(order) {
+  const counts = new Map();
+  parseItems(order).forEach((i) => {
+    const k = itemKey(i);
+    if (!k) return;
+    counts.set(k, (counts.get(k) || 0) + lineQty(i));
+  });
+  return counts;
+}
+
+/**
+ * Which of the requested items are real, and how many of each may still go
+ * back.
+ *
+ * THE REASON THIS EXISTS. The only check on a submitted item was that its NAME
+ * appeared somewhere on the order:
+ *
+ *     const allNames = new Set(allItems.map(i => i.name.toLowerCase()));
+ *     returnItems = returnItems.filter(i => allNames.has(i.name.toLowerCase()));
+ *
+ * Everything else on the item came from the request body and was stored as
+ * sent. So somebody who bought one small yellow shirt could ask to return an
+ * extra-large black one, or ask for the same shirt five times, and the queue
+ * would show an admin exactly that — five items, in sizes never purchased,
+ * against a real order. The request is what a refund gets read from.
+ *
+ * The items returned here are the ORDER's objects, not the customer's, carrying
+ * only a reconciled quantity. Nothing a requester wrote survives into what an
+ * admin is shown: not the name, not the price, not the size.
+ *
+ * @param spokenFor  key → how many already claimed by live requests
+ * @returns { items, rejected }  rejected is for telling somebody why, not for
+ *          quietly dropping — see the caller.
+ */
+export function reconcileReturnItems(order, requested, spokenFor) {
+  const remaining = purchasedCounts(order);
+  (spokenFor instanceof Map ? spokenFor : new Map()).forEach((n, k) => {
+    remaining.set(k, Math.max(0, (remaining.get(k) || 0) - n));
+  });
+
+  const byKey = new Map();
+  parseItems(order).forEach((i) => { const k = itemKey(i); if (k && !byKey.has(k)) byKey.set(k, i); });
+
+  const items = [];
+  const rejected = [];
+  (Array.isArray(requested) ? requested : []).forEach((req) => {
+    const k = itemKey(req);
+    const left = k ? (remaining.get(k) || 0) : 0;
+    if (!k || !byKey.has(k)) {
+      /* Not on this order at all — a different size, a different colour, or
+         something never bought. Named back rather than silently dropped. */
+      rejected.push({ item: req, why: 'not on this order' });
+      return;
+    }
+    if (left <= 0) {
+      rejected.push({ item: req, why: 'already returned' });
+      return;
+    }
+    const want = Math.min(lineQty(req), left);
+    remaining.set(k, left - want);
+    /* The order's object, with only the quantity taken from the request. */
+    items.push({ ...byKey.get(k), quantity: want });
+  });
+
+  return { items, rejected };
 }
 
 function parseItems(order) {
@@ -123,18 +221,31 @@ export function returnEligibility(order, requests) {
   /* Item level, and this is the check the order status cannot do for us: a
      PARTIAL refund leaves the order untouched, so an item refunded on its own
      is invisible above. */
-  const spokenFor = new Set();
+  /* COUNTED, not collected. This was a Set, which could not tell "bought two,
+     returned one" from "bought two, returned both" — so returning one of a
+     pair marked the pair spent, and a legitimate second return was refused. */
+  const spokenFor = new Map();
   mine.forEach((r) => {
     (Array.isArray(r.returnItems) ? r.returnItems : []).forEach((i) => {
       const k = itemKey(i);
-      if (k) spokenFor.add(k);
+      if (k) spokenFor.set(k, (spokenFor.get(k) || 0) + lineQty(i));
     });
   });
 
+  const remaining = purchasedCounts(order);
+  spokenFor.forEach((n, k) => remaining.set(k, Math.max(0, (remaining.get(k) || 0) - n)));
+
+  const seen = new Map();
   const all = parseItems(order);
-  const availableItems = all.filter((i) => {
+  const availableItems = [];
+  all.forEach((i) => {
     const k = itemKey(i);
-    return k ? !spokenFor.has(k) : true;
+    if (!k) { availableItems.push(i); return; }
+    const left = (remaining.get(k) || 0) - (seen.get(k) || 0);
+    if (left <= 0) return;
+    const take = Math.min(lineQty(i), left);
+    seen.set(k, (seen.get(k) || 0) + take);
+    availableItems.push({ ...i, quantity: take });
   });
 
   if (all.length && !availableItems.length) {
@@ -146,11 +257,5 @@ export function returnEligibility(order, requests) {
     };
   }
 
-  /* NOT HANDLED, and said out loud rather than left to be discovered: two of
-     the same item on one order are one key, so returning one marks both as
-     spoken for. That refuses a legitimate second return — the direction that
-     costs an email rather than a double payout. Fixing it properly means
-     counting quantities through the whole returns flow, which is a bigger
-     change than this one. */
   return { ok: true, code: 'ok', reason: '', availableItems };
 }
