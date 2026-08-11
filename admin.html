@@ -567,6 +567,25 @@
                             <a href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noopener" style="color:var(--accent);">Personal Access Token</a>
                             set as <code style="background:var(--border);padding:1px 5px;border-radius:4px;">SUPABASE_ACCESS_TOKEN</code> in your Cloudflare environment variables. Everything else is read directly and always works.
                         </div>
+                        <div style="border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px">
+                            <h3 style="margin:0 0 6px;font-size:.95rem">Media &amp; storage</h3>
+                            <p style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6">
+                                Every image and video still served from Supabase, where egress is billed. New uploads already go to
+                                Cloudflare R2, whose egress is free — this is what is left behind. Video is the expensive case: the
+                                image CDN does not touch it, so a hero clip is served at full size every time it plays.
+                            </p>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                                <button class="btn btn-secondary" type="button" onclick="zwMediaPanel()">Scan storage</button>
+                                <button class="btn btn-secondary" type="button" onclick="zwMigrateToR2().then(zwMediaPanel)">Preview move to R2</button>
+                                <button class="btn btn-secondary" type="button" onclick="zwDeleteOrphans().then(zwMediaPanel)">Preview delete unused</button>
+                            </div>
+                            <p style="font-size:.78rem;color:var(--text-secondary);margin:10px 0 0;line-height:1.6">
+                                Both actions preview first and change nothing. To carry one out, run
+                                <code>zwMigrateToR2({confirm:true})</code> or <code>zwDeleteOrphans({confirm:true})</code> in the console —
+                                deliberately, because one rewrites what the homepage points at and the other cannot be undone.
+                            </p>
+                            <div id="zwMediaPanel" style="margin-top:14px"></div>
+                        </div>
                         <div id="supabaseUsage" style="font-size:.85rem;">
                             <span style="color:var(--text-secondary);">Press &ldquo;Check now&rdquo;.</span>
                         </div>
