@@ -230,5 +230,40 @@ console.log('\n  the returns workspace shows one step at a time');
     'these now fire without a button press, so "saved" alone says nothing about what moved');
 }
 
+console.log('\n  a refunded order does not offer a refund');
+{
+  const ui = fs.readFileSync(ROOT + 'admin-returns-ui.js', 'utf8');
+  const rec = fs.readFileSync(ROOT + 'admin-receipts.js', 'utf8');
+
+  /* The complaint: it walks you to the end — auth code and all — and only then
+     says no, while the finished refund for the same order sits below it. */
+
+  /* `refunded` was in the set of statuses that ALLOW a refund, so a request
+     already paid out went on offering to pay out again. Same mistake the
+     endpoint had. */
+  ok('a request already refunded stops offering to refund',
+    /new Set\(\['item_received', 'completed', 'closed'\]\)/.test(ui)
+      && !/'item_received', 'completed', 'refunded', 'closed'/.test(ui));
+
+  /* The order's own state, which the request does not carry: a return can sit
+     at "item received" while the order was refunded from Receipts an hour ago. */
+  ok('the panel reads the order status, not just the request status',
+    /select\('id,status'\)\.in\('id', ids\)/.test(ui) && /function retOrderSettled/.test(ui));
+  ok('…and it gates the refund action', /REFUND_ALLOWED_STATUSES\.has\(r\.status \|\| ''\) && !retOrderSettled\(r\)/.test(ui));
+
+  /* A failed lookup is not evidence that a refund happened. */
+  ok('an unknown order status does not block', /empty means unknown, which does not/.test(ui));
+
+  /* Disabling one button is not enough when the same function is reachable
+     from two of them and from the console. */
+  ok('the modal refuses to open on a settled order', /retOrderSettled\(req\)/.test(ui));
+  ok('…including from Other actions', /disabled title="This order has already been refunded"/.test(ui));
+  ok('…and it says which reason applies', /there is nothing left to refund/.test(ui));
+
+  /* Receipts already did this. Named so nobody "fixes" it into a button. */
+  ok('the receipts list already hid its button, and still does',
+    /This order has been refunded\./.test(rec));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
