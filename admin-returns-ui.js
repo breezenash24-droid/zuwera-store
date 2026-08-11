@@ -90,8 +90,24 @@
                         const color = RETURN_STATUS_COLORS[status] || 'var(--text-secondary)';
                         return `<span style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:${color};border:1px solid ${color};padding:2px 8px;border-radius:4px;white-space:nowrap;">${escapeHtml(status || '-')}</span>`;
                     }
+                    /* `refunded` is not hand-settable.
+                       It means money moved, and money only moves through
+                       /api/admin-refund — which also sets the order's status,
+                       closes the request and emails the customer. Setting it
+                       from this dropdown did none of that: it wrote one word
+                       and left the order saying `confirmed` forever.
+                       That path existed before today behind a Save button four
+                       fields further down. Making the dropdown save on change
+                       fixed a real complaint and, in the same stroke, made the
+                       disconnected route the easy one — so it comes out.
+                       A return already refunded still SHOWS as refunded; the
+                       option is only removed from the ones you can pick. */
                     function retStatusOptions(current) {
-                        return RETURN_STATUSES.map(([value, label]) => `<option value="${value}" ${current === value ? 'selected' : ''}>${label}</option>`).join('');
+                        return RETURN_STATUSES
+                            .filter(([value]) => value !== 'refunded' || current === 'refunded')
+                            .map(([value, label]) => `<option value="${value}"${current === value ? ' selected' : ''}`
+                                + `${value === 'refunded' ? ' disabled' : ''}>${label}</option>`)
+                            .join('');
                     }
                     function retField(id) { return document.getElementById(id)?.value ?? ''; }
                     function notifyReturns(message, type = 'info') {
@@ -716,6 +732,9 @@
                             </div>
                           </div>`;
                         document.body.appendChild(modal);
+                        modal.querySelector('#rst-all')?.addEventListener('click', () => {
+                            modal.querySelectorAll('input[id^="rst-chk-"]').forEach((c) => { c.checked = true; });
+                        });
                         modal.querySelector('#retrefmod-cancel').onclick = () => modal.remove();
                         modal.onclick = e => { if (e.target === modal) modal.remove(); };
                         modal.querySelector('#retrefmod-submit').onclick = async function() {
@@ -763,7 +782,21 @@
                                 await logAdminAudit('return.stripe_refund', 'return_requests', requestId, { reason, amountCents: body.amountCents || null, stripeRefundId: data.stripeRefundId });
                                 modal.remove();
                                 notifyReturns('Refund issued successfully.', 'success');
-                                loadReturnsPage();
+                                await loadReturnsPage();
+                                /* The item is back and paid for; the stock it
+                                   came from is still down. Nothing linked those
+                                   two, so a returned item stayed unsellable
+                                   until somebody remembered a button — the
+                                   exact inverse of the sold-out problem this
+                                   whole session started with.
+                                   Offered rather than done: a returned item is
+                                   not always fit to sell again, and only the
+                                   person holding it knows. The picker already
+                                   takes each item and a quantity, so none, one
+                                   or all of them is a choice made here. */
+                                if (typeof window.openRestockModal === 'function') {
+                                    window.openRestockModal(requestId);
+                                }
                             } catch (e) {
                                 errEl.textContent = e.message;
                                 errEl.style.display = '';
@@ -785,7 +818,7 @@
                             const qty = item.quantity || item.qty || 1;
                             const meta = [sku, size, color].filter(Boolean).join(' / ');
                             return `<div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border);">
-                              <input type="checkbox" id="rst-chk-${i}" checked style="width:16px;height:16px;flex-shrink:0;accent-color:#34d399;">
+                              <input type="checkbox" id="rst-chk-${i}" style="width:16px;height:16px;flex-shrink:0;accent-color:#34d399;">
                               <div style="flex:1;min-width:0;">
                                 <div style="font-weight:600;font-size:.85rem;">${name}</div>
                                 <div style="color:var(--text-secondary);font-size:.75rem;">${meta}</div>
@@ -799,7 +832,15 @@
                         modal.innerHTML = `
                           <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;padding:1.5rem;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);">
                             <h3 style="margin:0 0 .2rem;font-size:1rem;">Restock Returned Items</h3>
-                            <div style="color:var(--text-secondary);font-size:.78rem;margin-bottom:1rem;">Select items and quantities to add back to inventory.</div>
+                            <!-- Nothing is ticked to begin with. This used to default to
+                                 restocking everything, which was defensible while somebody
+                                 had to go and find the button — it now opens by itself after
+                                 every refund, and "this came back fit to sell" is a claim
+                                 about physical goods that only the person holding them can
+                                 make. Damaged stock quietly going back on sale is worse than
+                                 one more click. -->
+                            <div style="color:var(--text-secondary);font-size:.78rem;margin-bottom:.5rem;">Tick what came back in sellable condition, and how many. Anything left unticked stays out of stock.</div>
+                            <button type="button" id="rst-all" style="background:none;border:0;color:#34d399;font-size:.78rem;cursor:pointer;padding:0;margin-bottom:.75rem;">Select all</button>
                             <div style="max-height:280px;overflow-y:auto;">${itemRows || '<p style="color:var(--text-secondary);font-size:.83rem;">No item data available.</p>'}</div>
                             <div id="rst-err" style="display:none;color:#ef4444;font-size:.8rem;margin-top:.75rem;"></div>
                             <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
@@ -855,6 +896,19 @@
                         };
                     };
                     async function saveReturnDetails(requestId, buttonEl) {
+                        /* Second guard. The dropdown no longer offers it, but
+                           this function is reachable from a console and from
+                           the Save Details button, and "money moved" is not a
+                           claim a text field should be able to make. */
+                        if (retField(`ret-detail-status-${requestId}`) === 'refunded') {
+                            const req = _returnsData.find(r => r.id === requestId);
+                            if (!req || req.status !== 'refunded') {
+                                notifyReturns('Use "Mark refunded" to issue the refund — that is what moves the money, '
+                                    + 'updates the order and emails the customer.', 'error');
+                                loadReturnsPage();
+                                return;
+                            }
+                        }
                         const oldText = buttonEl?.textContent || '';
                         if (buttonEl) { buttonEl.disabled = true; buttonEl.textContent = 'Saving...'; }
                         try {

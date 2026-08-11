@@ -394,5 +394,42 @@ console.log('\n  a refund tells the return it happened');
 }
 
 
+console.log('\n  a refunded return says so everywhere, and the stock comes back');
+{
+  const ui = fs.readFileSync(ROOT + 'admin-returns-ui.js', 'utf8');
+  const ret = fs.readFileSync(ROOT + 'functions/api/admin-returns.js', 'utf8');
+
+  /* admin-returns.js never writes to `orders`, so setting a return to
+     `refunded` from the dropdown recorded one word and left the order saying
+     `confirmed` forever. Making that dropdown save-on-change fixed a real
+     complaint and, in the same stroke, made the disconnected route the easy
+     one. `refunded` means money moved, and money only moves through
+     admin-refund — which also updates the order, closes the request and emails
+     the customer. */
+  ok('the returns endpoint still does not touch orders',
+    !/from\('orders'\)/.test(ret) && !/orders\?id=eq/.test(ret),
+    'if this ever changes, the guard below can be reconsidered');
+  ok('refunded cannot be picked by hand',
+    /value !== 'refunded' \|\| current === 'refunded'/.test(ui));
+  ok('…with a second guard on the save itself',
+    /Use "Mark refunded" to issue the refund/.test(ui),
+    'the save is reachable from a console and from the Save Details button');
+
+  /* The item is back and paid for; the stock it came from is still down.
+     Nothing linked those, so a returned item stayed unsellable until somebody
+     remembered a button — the inverse of the sold-out problem. */
+  ok('a refund offers the restock', /window\.openRestockModal\(requestId\)/.test(ui));
+
+  /* Offered, not done: only the person holding the item knows whether it came
+     back fit to sell. */
+  ok('…with nothing ticked by default',
+    !/id="rst-chk-\$\{i\}" checked/.test(ui) && /Tick what came back in sellable condition/.test(ui),
+    'auto-opening a pre-ticked form puts damaged goods back on sale by default');
+  ok('…and a select-all for when it all is', /id="rst-all"/.test(ui));
+  ok('…keeping the per-item quantity that was already there',
+    /id="rst-qty-\$\{i\}" type="number" min="1" max="\$\{qty\}"/.test(ui));
+}
+
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
