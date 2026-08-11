@@ -53,6 +53,16 @@ const GRANDFATHERED = [
   'functions/api/product-feed.js',     // availability per variant in the merchant feed
 ];
 
+/* Files that hold a stock figure next to a colour without DECIDING anything
+   from it. Listed by name with a reason, rather than loosened out of the rule,
+   so the exemption is a claim someone can check instead of a gap in a regex. */
+const NOT_ANSWERERS = {
+  'functions/api/stock.js':        'the data SOURCE — it selects the rows the answerers read, and matches nothing itself',
+  'functions/api/_migrations.js':  'generated: the SQL of every migration bundled verbatim, including 0007',
+  'admin-main.js':                 'admin CRUD — sets per-colour stock, never reads it to decide a sale',
+  'admin-returns-ui.js':           'admin CRUD — restocks a returned line, never gates a purchase',
+};
+
 const SKIP_DIRS = ['/dist/', '/node_modules/', '/.wrangler/', '/tests/', '/.git/'];
 
 function walk(dir, out = []) {
@@ -71,19 +81,33 @@ function walk(dir, out = []) {
    it. What makes a file an ANSWERER is deciding availability by matching a
    stock row on colour, which means all three of these together. */
 /* Proximity, not mere presence. admin-main.js is half a megabyte and mentions
-   all three of these — it edits inventory — but it never matches a stock row by
-   normalised colour, and flagging it would train everyone to ignore this test.
-   So the three signals have to appear in the SAME neighbourhood: a colour
-   compared case-insensitively, close to the stock figure it selects. */
-const WINDOW = 2000;
+   both of these — it edits inventory — but it never reads a stock figure off a
+   row it picked by colour, and flagging it would train everyone to ignore this
+   test.
+
+   Measured in LINES, and only after normalising line endings. The first version
+   counted CHARACTERS, which made the answer depend on whether the checkout had
+   CRLF or LF: the same file passed on Windows and failed on Linux, because CRLF
+   made the gap wider than the window. A test whose verdict depends on git's
+   autocrlf setting is worse than no test — it fails in CI for a reason nobody
+   can reproduce locally, which is exactly what it did.
+
+   Ten lines is the working distance of one function. storefront.js reads a
+   stock figure and a colour name twenty-two lines apart, in unrelated code, and
+   is correctly NOT an answerer. */
+const WINDOW_LINES = 10;
 
 function answersTheQuestion(src) {
-  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  const re = /color_name/g;
-  let m;
-  while ((m = re.exec(code)) !== null) {
-    const near = code.slice(Math.max(0, m.index - WINDOW), m.index + WINDOW);
-    if (/stock_quantity/.test(near) && /toLowerCase\s*\(/.test(near)) return true;
+  const lines = src
+    .replace(/\r\n/g, '\n')                       // CRLF must not change the verdict
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '')
+    .split('\n');
+
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!/color_name/.test(lines[i])) continue;
+    const near = lines.slice(Math.max(0, i - WINDOW_LINES), i + WINDOW_LINES + 1).join('\n');
+    if (/stock_quantity/.test(near)) return true;
   }
   return false;
 }
@@ -96,7 +120,7 @@ const found = walk(ROOT)
   .map((f) => f.rel);
 
 {
-  const known = new Set([...CANONICAL, ...GRANDFATHERED]);
+  const known = new Set([...CANONICAL, ...GRANDFATHERED, ...Object.keys(NOT_ANSWERERS)]);
   const strangers = found.filter((f) => !known.has(f));
   ok('no file answers it that is not on the list', strangers.length === 0,
     strangers.length ? 'new implementation(s): ' + strangers.join(', ')
