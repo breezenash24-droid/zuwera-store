@@ -9215,7 +9215,7 @@ function escapeAttr(value) {
 
             // ── who may promote whom ─────────────────────────────────────────
             { id: 'no_role_grant', action: 'role_manage', attr: 'resource.role', op: 'nin', kind: 'list',
-              label: 'Granting roles', unit: '', value: ['super_admin'], ready: false,
+              label: 'Granting roles', unit: '', value: ['super_admin'], ready: true,
               help: 'Refuse granting these roles. Stops an admin promoting anyone — including themselves — past their own level.' },
         ];
 

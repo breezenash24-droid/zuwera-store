@@ -273,7 +273,10 @@ console.log('\n  a limit marked ready really is');
      first person to enable one takes that action offline for everybody — the
      engine denies what it cannot evaluate. So the claim is checked against the
      endpoints rather than trusted. */
-  const WIRED = { refund: 'functions/api/admin-refund.js' };
+  const WIRED = {
+    refund: 'functions/api/admin-refund.js',
+    role_manage: 'functions/api/set-admin-role.js',
+  };
 
   const entries = [...block4.matchAll(/\{ id: '([a-z_]+)', action: '([a-z_]+)'[\s\S]*?ready: (true|false)/g)]
     .map((m) => ({ id: m[1], action: m[2], ready: m[3] === 'true' }));
@@ -308,6 +311,23 @@ console.log('\n  a limit marked ready really is');
 
   ok('a refusal by limit is audited like any other block',
     /blocked by limit/.test(refund));
+
+  /* The limit that matters most. Without it, anyone who can manage roles can
+     grant a role above their own — including to themselves — and every other
+     limit becomes advisory, since they can simply promote past it. */
+  const roles = fs4.readFileSync(R4 + WIRED.role_manage, 'utf8');
+  ok('granting a role is checked against the limits', /await decide\(/.test(roles));
+  ok('…on the role being GRANTED, which is the thing to constrain',
+    /resource: \{ role: String\(nextRole/.test(roles),
+    'checking the granter own role would let them grant anything to anyone else');
+
+  /* Everything else in the list has no Worker endpoint to gate — those writes
+     go straight from the browser to the database. Recorded so the gap is a
+     known shape rather than an oversight. */
+  const adminWrites = (adm4.match(/sb\.from\('(products|orders|product_sizes|promotions)'\)/g) || []).length;
+  ok('the unwired limits are unwired for a reason, and it is written down',
+    adminWrites > 0,
+    'admin writes go direct to Supabase, so there is no server-side chokepoint to gate');
   ok('…and tells the panel it is worth asking about',
     /limited: !!verdict\.limited/.test(refund));
 }

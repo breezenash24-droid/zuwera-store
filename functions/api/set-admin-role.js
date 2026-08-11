@@ -13,6 +13,7 @@
 import { cors, json, verifyAdmin } from './_commerce.js';
 import { permsHave, STAFF_ROLES, PAGE_IDS } from './_rbac.js';
 
+import { decide } from './_commerce.js';
 // Validate + normalize a per-section access override into { pages, color } or null.
 function sanitizeAdminPermissions(raw) {
   if (!raw || typeof raw !== 'object') return null;
@@ -49,6 +50,21 @@ export async function onRequestPost({ request, env }) {
   if (!admin) return json({ error: 'Unauthorized.' }, 403, h);
   if (!permsHave(admin.permissions, 'role_manage')) {
     return json({ error: 'Only a Super Admin can change staff roles.' }, 403, h);
+  }
+
+  /* The limits set under Users. This one matters more than the money ones: it
+     is what stops somebody who can manage roles from granting a role above
+     their own — including to themselves. The role being granted is the thing
+     to check, so it is what gets passed. */
+  const roleVerdict = await decide(env, accessToken, 'role_manage', {
+    action: 'role_manage',
+    resource: { role: String(nextRole || ''), targetUserId: String(targetUserId || '') },
+  });
+  if (!roleVerdict.allow) {
+    return json({
+      error: roleVerdict.reason || 'A limit on your account stopped this role change.',
+      limited: !!roleVerdict.limited,
+    }, 403, h);
   }
 
   if (!targetUserId) return json({ error: 'targetUserId is required.' }, 400, h);
