@@ -892,7 +892,15 @@ function normalizeCartPricing(cart) {
   return (cart || []).map(item => {
     const regularPrice = parseFloat(item.regularPrice ?? item.basePrice ?? item.price ?? 0) || 0;
     const memberPrice  = parseFloat(item.memberPrice ?? item.member_price ?? 0) || 0;
-    const isMember     = Boolean(_bagUser);
+    /* The SAME answer the repricing uses, not a second opinion. _bagUser is set
+       from whatever the page happened to resolve, and this function overwrites
+       the stored price on every render — so when the two disagreed, the bag
+       wrote a member price back over the guest price the repricing had just
+       saved, and the shopper saw a number localStorage no longer held.
+       Falls back to _bagUser only if checkout.js has not loaded yet. */
+    const isMember = typeof window.zwHasValidSession === 'function'
+      ? window.zwHasValidSession()
+      : Boolean(_bagUser);
     const effectivePrice = (isMember && memberPrice > 0 && (!regularPrice || memberPrice < regularPrice))
       ? memberPrice
       : (regularPrice || parseFloat(item.price) || 0);
@@ -1048,6 +1056,12 @@ function applyStockLimits(cart) {
     cart.forEach((item, idx) => {
       const card = cards[idx];
       if (!card) return;
+      /* Clear any note from an earlier pass before adding one. renderCart runs
+         more than once per page — on load, and again when the session resolves
+         — and each run starts its own async stock lookup. Both then decorate
+         whichever DOM exists when they finish, so the note appeared twice.
+         Rebuilding the list does not help: the second lookup lands after it. */
+      card.querySelectorAll('.cart-item-stock-note').forEach((n) => n.remove());
       const available = ZWStock.stockFor(data.rows, item.productId, item.size, item.colorName);
       // null = this product has no inventory configured. Not a limit.
       if (available === null || !data.limitToStock) return;

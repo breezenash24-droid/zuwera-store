@@ -359,6 +359,13 @@ async function getCheckoutAuthPayload() {
     return false;
   }
 
+  /* Published because the bag derives its own prices too, and had its own
+     answer to "is this a member" (Boolean(_bagUser)). Two answers means the
+     repricing writes one number and the bag's render writes another over it —
+     which is how a guest kept seeing a member price that localStorage no longer
+     contained. One function, one answer, both callers. */
+  window.zwHasValidSession = isLoggedIn;
+
   async function run() {
     let cart;
     try { cart = JSON.parse(localStorage.getItem('cart') || '[]'); } catch (_) { return; }
