@@ -2847,6 +2847,12 @@ function isMemberSignedIn() {
   // getSession. Consulting both means the FIRST renderPrice() already knows the
   // member is signed in, so the price shows member pricing immediately instead of
   // flashing regular → member once the session resolves.
+  /* The server-verified answer wins once it exists. The two locals below are a
+     PRESENCE check — they are true for a session object that expired an hour
+     ago — and this decides which price the page advertises, so a stale one
+     promises a discount checkout will not honour. They remain as the pre-paint
+     guess, which is what they were good for. */
+  if (typeof window.zwHasValidSession === 'function') return window.zwHasValidSession();
   return !!currentUser || !!window.__zwSessionUser;
 }
 

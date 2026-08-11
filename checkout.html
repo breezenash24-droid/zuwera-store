@@ -876,7 +876,15 @@ window.zwClearPromo = function() {
     return (cart || []).map(function(item) {
       var regularPrice = parseFloat(item.regularPrice ?? item.basePrice ?? item.price ?? 0) || 0;
       var memberPrice  = parseFloat(item.memberPrice ?? item.member_price ?? 0) || 0;
-      var isMember     = Boolean(_coUser);
+      /* The server-verified answer when checkout.js has published it, and only
+         then _coUser. This function REWRITES the stored price, so its opinion
+         of membership becomes the price the shopper sees — and _coUser is a
+         page-local variable that has no idea whether the server would accept
+         the token. A guest with a stale cart was repriced to the member figure
+         here on every checkout render, undoing the correction. */
+      var isMember     = (typeof window.zwHasValidSession === 'function')
+        ? window.zwHasValidSession()
+        : Boolean(_coUser);
       var effectivePrice = (isMember && memberPrice > 0 && (!regularPrice || memberPrice < regularPrice))
         ? memberPrice
         : (regularPrice || parseFloat(item.price) || 0);
