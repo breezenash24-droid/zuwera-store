@@ -212,11 +212,25 @@ async function fetchSizeStockQty(env, productId, size, colorName) {
   const headers = catalogHeaders(env);
   if (!headers || !productId || !size) return null;
 
-  const url = `${env.SUPABASE_URL}/rest/v1/product_sizes`
-    + `?select=size,color_name,stock_quantity&product_id=eq.${encodeURIComponent(productId)}`;
-  const resp = await fetch(url, { headers, cache: 'no-store' }).catch(() => null);
-  if (!resp || !resp.ok) return null;
-  const all = await resp.json().catch(() => []);
+  /* Asked for defensively, for the same reason /api/stock does: if the database
+     rejects a SELECT naming color_name, the old code returned null and null
+     means "availability unknown", which SKIPS THE STOCK GUARD ENTIRELY. A
+     rejected query would quietly stop protecting inventory on the one path that
+     takes money. Retrying without the column costs colour precision; not
+     retrying costs oversells nobody would notice until fulfilment. */
+  const base = `${env.SUPABASE_URL}/rest/v1/product_sizes`
+    + `?product_id=eq.${encodeURIComponent(productId)}&select=size,stock_quantity`;
+  const get = async (cols) => {
+    const r = await fetch(base + cols, { headers, cache: 'no-store' }).catch(() => null);
+    if (!r) return null;
+    if (r.ok) return r.json().catch(() => []);
+    console.error(`fetchSizeStockQty: SELECT${cols} rejected (${r.status})`);
+    return undefined;                      // rejected, as distinct from unreachable
+  };
+
+  let all = await get(',color_name');
+  if (all === undefined) all = await get('');   // retry colour-blind rather than give up
+  if (all === undefined || all === null) return null;
   /* No inventory configured for this product at all — not "sold out". The page
      enables Add to Bag in exactly this case, so refusing here would block a
      sale the store never said was limited. */
