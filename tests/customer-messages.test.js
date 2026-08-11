@@ -182,6 +182,64 @@ console.log('\n  the file is actually loaded where it is used');
   }
 }
 
+console.log('\n  the overrides actually reach the page');
+{
+  /* THE BUG. Message delivery was attached to ZWStock.load(), and load() was
+     only ever CALLED by bag.html — so on the product page and the homepage the
+     fetch never happened and the admin's wording never arrived. The editor
+     saved settings that no shopper ever saw.
+
+     I had concluded those pages fetched because they LOAD stock-rules.js.
+     Loading a module and calling it are different things, and only the second
+     one sends a request. */
+  const rules = strip(read('stock-rules.js'));
+  ok('stock-rules.js starts the fetch itself rather than waiting to be asked',
+    /setTimeout\([\s\S]{0,80}load\(\)/.test(rules),
+    'nothing calls load(), so pages that never call it get no overrides');
+  ok('…and still hands what it gets to the message module',
+    /ZWMessages[\s\S]{0,60}setOverrides/.test(rules));
+
+  /* Arriving is not enough — the product page has already drawn its stock line
+     by then, so it has to be told to paint it again. */
+  ok('customer-messages.js can tell surfaces the wording changed',
+    typeof M.subscribe === 'function');
+  let fired = 0;
+  const stop = M.subscribe(() => { fired += 1; });
+  M.setOverrides({ soldOut: 'Gone' });
+  ok('…and does so when overrides land', fired === 1);
+  stop();
+  M.setOverrides({});
+  ok('…and unsubscribing works', fired === 1);
+
+  const product = strip(read('product.html'));
+  ok('the product page repaints when the wording lands',
+    /ZWMessages[\s\S]{0,120}subscribe/.test(product), 'it renders once and never updates');
+  ok('…and subscribes late enough that the module exists',
+    /DOMContentLoaded[\s\S]{0,80}attach|attach[\s\S]{0,120}DOMContentLoaded/.test(product),
+    'customer-messages.js is deferred on this page, so a parse-time subscribe finds nothing');
+}
+
+console.log('\n  the editor describes each message in words, and inserts the values for you');
+{
+  ok('every message has an admin-facing name',
+    M.keys().every((k) => typeof M.DEFAULTS[k].label === 'string' && M.DEFAULTS[k].label.trim()),
+    'a message would show up in admin labelled with its raw default');
+  ok('…and the names live with the messages, not in the editor',
+    !/A size is sold out/.test(strip(read('admin-main.js'))),
+    'admin-main.js carries its own copy of a label');
+
+  const admin = strip(read('admin-main.js'));
+  ok('placeholders are inserted by clicking, not typed', /cm-token/.test(admin));
+  ok('…at the cursor, so the position is chosen', /setSelectionRange/.test(admin));
+  ok('…and an untouched message keeps its sentence when one is inserted',
+    /if \(!textEl\.value\)[\s\S]{0,120}def\.text/.test(admin),
+    'inserting into an empty box would replace the whole message with a bare token');
+  ok('each message saves on its own', /customerMessagesSaveOne/.test(admin));
+  ok('…without discarding the others', /Object\.assign\(\{\}, cx\.messages\)/.test(admin));
+  ok('the colour box says what it accepts',
+    /rgb\(220,38,38\)/.test(read('admin.html')), 'no format hint for the colour field');
+}
+
 console.log('\n  the admin editor and the storefront cannot describe different messages');
 {
   /* The editor builds its fields from ZWMessages.keys() and validates with

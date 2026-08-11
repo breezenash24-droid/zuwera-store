@@ -369,6 +369,20 @@
      version must win wherever both load, whatever the order. */
   if (typeof w.zwHasValidSession !== 'function') w.zwHasValidSession = hasValidSession;
 
+  /* ── make the fetch actually happen ───────────────────────────────────────
+     load() was only ever CALLED by bag.html. Everywhere else this file was
+     loaded — the product page, the homepage — nothing asked, so the admin's
+     wording never arrived and the editor saved settings no shopper ever saw.
+     I had assumed the pages fetched because they load this script; loading a
+     module and calling it are not the same thing, and only the second one
+     sends a request.
+
+     One request per page, shared by every later caller through the cache in
+     load(), so the bag's own call is still a lookup rather than a second trip.
+     Deferred a tick so ZWMessages (loaded immediately before this file) is
+     definitely there to receive the result. */
+  if (typeof setTimeout === 'function') setTimeout(function () { try { load(); } catch (_) {} }, 0);
+
   w.ZWStock = {
     canonSize: canonSize,
     hasValidSession: hasValidSession,
