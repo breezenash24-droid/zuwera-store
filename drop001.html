@@ -3537,7 +3537,16 @@ function updateCountdown() {
       sizeMap[row.size] = (sizeMap[row.size] || 0) + (Number(row.stock_quantity) || 0);
     });
     var entries = Object.entries(sizeMap);
-    return entries.length ? entries : [['One Size', 1]];
+    /* Sorted by SIZE, not by whenever the row was written. The query asks for
+       `order=created_at.asc` and Object.entries preserves that, so a size
+       re-added later sorted to the end — XS, S, L, XL, 2XL, M, with M last
+       because that row was newest. Nobody notices until a size gets re-added.
+       product.html has always had a real comparator for this and this screen
+       did not use it; size-order.js is now the one both agree with. */
+    var ordered = window.ZWSizeOrder
+      ? window.ZWSizeOrder.sort(entries, function (e) { return e[0]; })
+      : entries;
+    return ordered.length ? ordered : [['One Size', 1]];
   }
 
   function collectionSetScrollLock(locked) {
@@ -3973,6 +3982,8 @@ function updateCountdown() {
 <!-- Shopper-facing wording, shared with the product page and the bag.
      stock-rules.js comes with it because that is what fetches the admin's
      overrides; without it this page would only ever show the defaults. -->
+<!-- Sizes go in size order, not in the order the rows were written. -->
+<script src="size-order.js?v=1"></script>
 <script src="customer-messages.js?v=1"></script>
 <script src="stock-rules.js?v=1"></script>
 <script src="/nav-menu.js?v=5c1c1e4d" defer></script>
