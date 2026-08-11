@@ -160,6 +160,10 @@ export async function onRequestPost({ request, env }) {
     return json({
       error: verdict.reason || 'A limit on your account stopped this refund.',
       limited: !!verdict.limited,
+      /* Which limit, so the panel can ask about THIS one. A request that does
+         not name the rule it is about cannot be turned into a waiver — the
+         engine matches on it, and a yes to one limit is not a yes to all. */
+      rule: verdict.rule || '',
       /* A super admin on a "notify" limit is told they may proceed by changing
          it — they have the power, they just have not used it. */
       ownerMayOverride: !!verdict.ownerMayOverride,

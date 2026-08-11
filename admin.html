@@ -1942,6 +1942,19 @@
                         <p id="abacMsg" style="font-size:.82rem;margin:10px 0 0;min-height:1rem;color:var(--text-secondary)"></p>
                     </div>
 
+                    <!-- Answering an ask sits next to the limits that produce them,
+                         so the person approving one can see the rule it is about
+                         and decide whether the rule is the thing to change. -->
+                    <div id="abacQueueWrap" style="border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px;display:none">
+                        <h3 style="margin:0 0 6px;font-size:.95rem">Waiting on you</h3>
+                        <p style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6">
+                            Somebody hit a limit and asked. Approving lets them through <strong>once</strong> — that one
+                            order, up to the amount they asked about, for a day. It is not a change to what they may
+                            normally do. If you find yourself approving the same thing repeatedly, raise the limit instead.
+                        </p>
+                        <div id="abacQueue"></div>
+                    </div>
+
                     <!-- Who did what. This sits beside the limits deliberately: the
                          two answer the same question from opposite ends — what an
                          admin is allowed to do, and what they actually did. -->

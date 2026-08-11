@@ -1048,6 +1048,7 @@
                     /* Beside the limits, for the same reason: what someone may
                        do and what they did are one question from two ends. */
                     if (typeof window.zwRefundLog === 'function') window.zwRefundLog();
+                    if (typeof window.zwAbacQueue === 'function') window.zwAbacQueue();
                 });
             } else if (page === 'analytics') {
                 loadAnalytics();
@@ -6841,7 +6842,27 @@
                     const color = (u.admin_permissions && u.admin_permissions.color) || '';
                     const isCustom = !!(u.admin_permissions && u.admin_permissions.pages);
                     const dot = color ? `<span title="${escapeAttr(color)}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${escapeAttr(color)};margin-right:6px;vertical-align:middle;"></span>` : '';
-                    const badge = `<span class="status-badge" style="font-size:.6rem;padding:2px 6px;">${dot}${escapeHtml(ZW_ROLE_LABELS[cur] || 'Staff')}${isCustom ? ' · custom' : ''}</span>`;
+                    /* "Manager · custom" read as "a manager, plus some tweaks".
+                       It is not: levelMapFor() in _rbac.js RETURNS the custom
+                       map, so the Manager preset is never consulted for this
+                       person. The role is not narrowed by the overrides, it is
+                       replaced by them — and the badge was naming the half
+                       that no longer applies.
+                       (Super admin is the exception, and goes the other way:
+                       resolvePerms returns '*' before the map is read, so the
+                       role wins and a custom map is ignored.)
+                       The role does keep one job, which is why it is still
+                       shown: limits are scoped by role, so it decides which of
+                       them find this person. */
+                    const roleName = escapeHtml(ZW_ROLE_LABELS[cur] || 'Staff');
+                    const label = isCustom && cur !== 'super_admin' ? 'Custom access' : roleName;
+                    const hint = isCustom && cur !== 'super_admin'
+                        ? ` title="Their own set of pages — the ${ZW_ROLE_LABELS[cur] || 'Staff'} preset does not apply. The role still decides which limits reach them."`
+                        : '';
+                    const badge = `<span class="status-badge"${hint} style="font-size:.6rem;padding:2px 6px;">${dot}${label}</span>`
+                        + (isCustom && cur !== 'super_admin'
+                            ? `<span style="font-size:.6rem;color:var(--text-secondary);margin-left:5px;">${roleName} — for limits only</span>`
+                            : '');
                     roleControl = canRole
                         ? `${badge}<button class="btn btn-secondary btn-sm" onclick="openAccessModal('${userId}')">Manage access</button>`
                         : badge;
@@ -9688,6 +9709,101 @@ function escapeAttr(value) {
             } catch (e) {
                 say(e?.message || 'Could not save that.', true);
             }
+        };
+
+        /* The asks, and the answers.
+           Shown to everybody, not only the person who can approve: a requester
+           needs to see that their ask exists and what happened to it, or they
+           ask again — or worse, conclude nothing happened and go looking for
+           somebody to turn the limit off. */
+        window.zwAbacQueue = async function () {
+            const wrap = document.getElementById('abacQueueWrap');
+            const host = document.getElementById('abacQueue');
+            if (!wrap || !host) return;
+            const esc = (t) => String(t == null ? '' : t)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+            let rows = [];
+            let mayDecide = false;
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const resp = await fetch('/api/abac-request', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session && session.access_token, op: 'list' }),
+                });
+                const out = await resp.json().catch(() => ({}));
+                if (!resp.ok) throw new Error(out.error || 'Could not load requests.');
+                rows = Array.isArray(out.requests) ? out.requests : [];
+                mayDecide = !!out.mayDecide;
+            } catch (_) { wrap.style.display = 'none'; return; }
+
+            const pending = rows.filter((r) => r && r.status === 'pending');
+            const recent = rows.filter((r) => r && r.status !== 'pending').slice(0, 5);
+            /* Hidden entirely when there is nothing. An empty panel on every
+               visit trains people to scroll past the place answers appear. */
+            if (!pending.length && !recent.length) { wrap.style.display = 'none'; return; }
+            wrap.style.display = '';
+
+            const money = (n) => (Number.isFinite(Number(n)) ? '$' + Number(n).toFixed(2) : '');
+            const when = (s) => { const d = new Date(String(s || '')); return isNaN(d.getTime()) ? '' : d.toLocaleString(); };
+            const nameOf = (r) => esc(r.byName || r.byEmail || r.byId || 'somebody');
+
+            const card = (r) => {
+                const amt = money(r.amount);
+                return '<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px">'
+                    + '<p style="margin:0 0 4px;font-size:.88rem;line-height:1.5">'
+                    +   '<strong>' + nameOf(r) + '</strong> asked to ' + esc(String(r.action || 'do something'))
+                    +   (amt ? ' ' + esc(amt) : '')
+                    +   ' on order <strong>' + esc(String(r.resourceId || '—')) + '</strong>.'
+                    + '</p>'
+                    /* What the limit actually said, verbatim. Approving without
+                       it means approving a name and a number. */
+                    + (r.refusedWith ? '<p style="margin:0 0 4px;font-size:.78rem;color:var(--text-secondary)">Stopped by: '
+                        + esc(r.refusedWith) + '</p>' : '')
+                    + (r.reason ? '<p style="margin:0 0 4px;font-size:.78rem">Their note: ' + esc(r.reason) + '</p>' : '')
+                    + '<p style="margin:0;font-size:.74rem;color:var(--text-secondary)">' + esc(when(r.at)) + '</p>'
+                    + (mayDecide
+                        ? '<div style="display:flex;gap:8px;margin-top:10px">'
+                          + '<button class="btn btn-primary btn-sm" type="button" onclick="zwAbacDecide(\'' + esc(r.id) + '\',true)">Approve once</button>'
+                          + '<button class="btn btn-secondary btn-sm" type="button" onclick="zwAbacDecide(\'' + esc(r.id) + '\',false)">Decline</button>'
+                          + '</div>'
+                        : '<p style="margin:8px 0 0;font-size:.78rem;color:var(--text-secondary)">Waiting for a super admin.</p>')
+                    + '</div>';
+            };
+
+            const done = (r) => {
+                const used = r.usedAt ? ' · used' : (r.status === 'approved' ? ' · not used yet' : '');
+                return '<li>' + nameOf(r) + ' — <strong>' + esc(r.status) + '</strong>'
+                    + esc(used) + ' <span style="color:var(--text-secondary)">' + esc(when(r.decidedAt || r.at)) + '</span></li>';
+            };
+
+            host.innerHTML = (pending.length
+                    ? pending.map(card).join('')
+                    : '<p style="font-size:.82rem;color:var(--text-secondary)">Nothing waiting.</p>')
+                + (recent.length
+                    ? '<details style="margin-top:12px"><summary style="cursor:pointer;font-size:.8rem;color:var(--text-secondary)">'
+                      + 'Recently answered</summary><ul style="margin:8px 0 0;padding-left:18px;font-size:.8rem;line-height:1.8">'
+                      + recent.map(done).join('') + '</ul></details>'
+                    : '');
+        };
+
+        window.zwAbacDecide = async function (id, approve) {
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const resp = await fetch('/api/abac-request', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session && session.access_token, op: 'decide', id, approve }),
+                });
+                const out = await resp.json().catch(() => ({}));
+                if (!resp.ok) throw new Error(out.error || 'Could not save that.');
+                if (typeof showToast === 'function') {
+                    showToast(approve ? 'Approved — good for that one order, once.' : 'Declined.',
+                        approve ? 'success' : 'info');
+                }
+            } catch (e) {
+                if (typeof showToast === 'function') showToast(e.message, 'error');
+            }
+            window.zwAbacQueue();
         };
 
         /* The refund log, on the page where the people are.
