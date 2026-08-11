@@ -670,6 +670,12 @@
 <div id="auth-modal" style="display:none" aria-hidden="true"></div>
 
 <script src="/posthog-init.js?v=653a267b"></script>
+<!-- Publishes zwHasValidSession. NOT deferred, and BEFORE the block below,
+     because that block prices the cart at parse time — checkout.js's
+     server-verified version arrives long after the decision that needs it, so
+     without this the pricing fell back to a page-local guess and the price
+     alternated. checkout.js overwrites it with the verified answer later. -->
+<script src="stock-rules.js?v=1"></script>
 <script>
 /* -- Globals expected by checkout.js / commerce-checkout.js -- */
 window.cartItems = [];
