@@ -552,7 +552,7 @@
                             <tbody>${rows}</tbody>
                           </table>
                         </div>
-                        <p style="font-size:11px;color:var(--warning);margin-top:12px;">County changes require redeploying checkout-tax.js. Verify at tax.ohio.gov.</p>`;
+                        <p style="font-size:11px;color:var(--text-secondary);margin-top:12px;">County changes apply at checkout as soon as they are saved. Verify at tax.ohio.gov.</p>`;
 
                       } else if (tab === 'il') {
                         const rows = Object.entries(IL_ZIP3).sort((a,b)=>a[0].localeCompare(b[0])).map(([zip3,r]) => {
@@ -582,7 +582,7 @@
                             <tbody>${rows}</tbody>
                           </table>
                         </div>
-                        <p style="font-size:11px;color:var(--warning);margin-top:12px;">IL ZIP3 changes require redeploying checkout-tax.js. Verify at tax.illinois.gov.</p>`;
+                        <p style="font-size:11px;color:var(--text-secondary);margin-top:12px;">ZIP3 changes apply at checkout as soon as they are saved. Verify at tax.illinois.gov.</p>`;
 
                       } else if (tab === 'flat') {
                         const rows = Object.entries(FLAT).map(([s,r]) => {
@@ -635,11 +635,24 @@
                         const val = parseFloat(inp.value);
                         if (!isNaN(val) && isFinite(val)) taxReMarkEdit(inp.dataset.section, inp.dataset.key, val / 100);
                       });
+                      /* Only what has actually been edited, merged over what was
+                         already saved.
+
+                         This used to save { ...STATE_RATES, ...edits } — the
+                         whole table, seeded from this file's own copy of it. So
+                         changing one Ohio county wrote all fifty-one state rates
+                         into site_settings as overrides, promoting this page's
+                         copy over the server's defaults for every state at once.
+                         Any drift between the two became live pricing on the
+                         first save, and nothing in the UI said so.
+
+                         Saving only the edits means the server stays the source
+                         for everything nobody has deliberately changed. */
                       const payload = {
-                        stateRates:    { ...STATE_RATES,  ...(_reEdited.stateRates    || {}) },
-                        ohCountyRates: { ...OH_COUNTY,    ...(_reEdited.ohCountyRates  || {}) },
-                        ilZip3Rates:   { ...IL_ZIP3,      ...(_reEdited.ilZip3Rates    || {}) },
-                        flatRates:     { ...FLAT,         ...(_reEdited.flatRates      || {}) },
+                        stateRates:    { ...(_reSaved.stateRates    || {}), ...(_reEdited.stateRates    || {}) },
+                        ohCountyRates: { ...(_reSaved.ohCountyRates || {}), ...(_reEdited.ohCountyRates || {}) },
+                        ilZip3Rates:   { ...(_reSaved.ilZip3Rates   || {}), ...(_reEdited.ilZip3Rates   || {}) },
+                        flatRates:     { ...(_reSaved.flatRates     || {}), ...(_reEdited.flatRates     || {}) },
                         updatedAt:     new Date().toISOString(),
                         editedKeys:    JSON.parse(JSON.stringify(_reEdited)),
                       };
@@ -651,23 +664,45 @@
                       if (_reEdited.flatRates)     Object.assign(FLAT,        _reEdited.flatRates);
                       if (_reEdited.ohCountyRates) Object.assign(OH_COUNTY,   _reEdited.ohCountyRates);
                       if (_reEdited.ilZip3Rates)   Object.assign(IL_ZIP3,     _reEdited.ilZip3Rates);
+                      _reSaved = payload;
                       _reEdited = {};
-                      taxReMsg('Saved! State changes are live. County/ZIP changes take effect after redeploying checkout-tax.js.');
+                      /* Every rate here is read server-side at payment time, so
+                         there is nothing left to redeploy — the old message told
+                         admins their county edits would not apply until someone
+                         shipped a build, which stopped being true when the
+                         browser's copy of the table was deleted. */
+                      taxReMsg('Saved. All of these apply at checkout immediately.');
                       // Reload active tab to clear diff indicators
                       const active = document.querySelector('[id^="tax-re-tab-"][style*="var(--accent)"]');
                       if (active) active.click();
                     };
 
-                    // Load saved overrides into local tables on Tax page open
+                    /* The overrides exactly as stored, so a save can add to them
+                       rather than replacing them with this file's copy of the
+                       whole table. See taxReSave for why that mattered. */
+                    let _reSaved = {};
+
+                    /* Load what the SERVER will actually charge from, on Tax page
+                       open. /api/tax-config returns `effective` — defaults, env
+                       vars and saved overrides already merged by the same code
+                       the payment path merges them with — so the numbers on this
+                       page are the numbers customers get. The constants above
+                       are only the shape of the form until this lands. */
                     async function taxReLoadSaved() {
                       try {
-                        const { data } = await window.sb?.from('site_settings').select('value').eq('key','tax_rate_overrides').maybeSingle() || {};
-                        if (!data?.value) return;
-                        const ov = typeof data.value === 'object' ? data.value : JSON.parse(data.value);
-                        if (ov.stateRates)    Object.assign(STATE_RATES, ov.stateRates);
-                        if (ov.ohCountyRates) Object.assign(OH_COUNTY,   ov.ohCountyRates);
-                        if (ov.ilZip3Rates)   Object.assign(IL_ZIP3,     ov.ilZip3Rates);
-                        if (ov.flatRates)     Object.assign(FLAT,         ov.flatRates);
+                        const r = await fetch('/api/tax-config', { cache: 'no-store' });
+                        const cfg = r.ok ? await r.json() : null;
+                        if (!cfg) return;
+
+                        const { effective: eff, ...saved } = cfg;
+                        _reSaved = saved || {};
+
+                        if (eff) {
+                          if (eff.stateRates) Object.assign(STATE_RATES, eff.stateRates);
+                          if (eff.ohCounty)   Object.assign(OH_COUNTY,   eff.ohCounty);
+                          if (eff.ilZip3)     Object.assign(IL_ZIP3,     eff.ilZip3);
+                          if (eff.flat)       Object.assign(FLAT,        eff.flat);
+                        }
                       } catch(_) {}
                     }
 

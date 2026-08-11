@@ -1,95 +1,36 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   checkout-tax.js — what the shopper is told the tax will be.
+
+   This file used to contain a rate table: fifty state rates, eighty-eight Ohio
+   counties, thirty Illinois ZIP prefixes. It computed tax itself and nothing
+   ever asked the server whether it agreed.
+
+   It didn't. A cart displayed at $93.75 was charged $94.39, because this table
+   said Hamilton County was 7.0% and the tax engine the store had configured
+   said 7.8%. The table could not have known it was wrong — it had no idea the
+   engine setting existed. Editing the number would have fixed that one ZIP and
+   left every other jurisdiction free to drift again, so the table is gone
+   rather than corrected.
+
+   Tax is now asked for, at /api/tax-quote, which calls the same resolveTax()
+   the payment path calls. One answerer. If the figure is wrong it is now wrong
+   in both places by the same amount, which is a bug that can be found.
+
+   The awkward part, handled below: the answer arrives over the network, and six
+   call sites across the storefront call taxCents() synchronously in the middle
+   of rendering a summary. So the reads stay synchronous and answer from cache,
+   asking in the background on a miss and announcing the answer with a `zw:tax`
+   event when it lands. Anything showing tax listens for that and re-renders.
+
+   Until an answer arrives the tax is not known, and isKnown() says so. Callers
+   are expected to show a pending line rather than a number, because the whole
+   point of deleting the table was to stop displaying figures nobody is going to
+   honour. "Don't know yet" is true; a confident wrong total is not.
+   ──────────────────────────────────────────────────────────────────────────── */
 (function () {
   'use strict';
 
-  // ── Flat-rate states (no county or local add-ons) ─────────────────────────
-  // KY and IN have statewide uniform rates — no ZIP lookup needed.
-  let FLAT = { KY: 0.06, IN: 0.07 };
-
-  // ── Ohio county combined rates (state 5.75% + county levy) ────────────────
-  // Source: Ohio Department of Taxation — verify at tax.ohio.gov before filing.
-  // Some ZIP3 prefixes straddle county lines; the dominant county is used.
-  let OH_COUNTY = {
-    Adams: 0.0725, Allen: 0.0675, Ashland: 0.07, Ashtabula: 0.07,
-    Athens: 0.07, Auglaize: 0.0725, Belmont: 0.0725, Brown: 0.0725,
-    Butler: 0.07, Carroll: 0.0725, Champaign: 0.0725, Clark: 0.0725,
-    Clermont: 0.07, Clinton: 0.0725, Columbiana: 0.0725, Coshocton: 0.0725,
-    Crawford: 0.0725, Cuyahoga: 0.08, Darke: 0.0725, Defiance: 0.0725,
-    Delaware: 0.07, Erie: 0.0675, Fairfield: 0.0675, Fayette: 0.0725,
-    Franklin: 0.075, Fulton: 0.0725, Gallia: 0.0725, Geauga: 0.07,
-    Greene: 0.0675, Guernsey: 0.0725, Hamilton: 0.07, Hancock: 0.0675,
-    Hardin: 0.0725, Harrison: 0.0725, Henry: 0.0725, Highland: 0.0725,
-    Hocking: 0.0725, Holmes: 0.0725, Huron: 0.0725, Jackson: 0.0725,
-    Jefferson: 0.0725, Knox: 0.0725, Lake: 0.0725, Lawrence: 0.0725,
-    Licking: 0.0725, Logan: 0.0725, Lorain: 0.065, Lucas: 0.0725,
-    Madison: 0.07, Mahoning: 0.0725, Marion: 0.0725, Medina: 0.0675,
-    Meigs: 0.0725, Mercer: 0.0725, Miami: 0.0675, Monroe: 0.0725,
-    Montgomery: 0.075, Morgan: 0.0725, Morrow: 0.0725, Muskingum: 0.0725,
-    Noble: 0.0725, Ottawa: 0.07, Paulding: 0.0725, Perry: 0.0725,
-    Pickaway: 0.0725, Pike: 0.0725, Portage: 0.0725, Preble: 0.07,
-    Putnam: 0.0725, Richland: 0.0725, Ross: 0.0725, Sandusky: 0.0725,
-    Scioto: 0.0725, Seneca: 0.0725, Shelby: 0.0725, Stark: 0.065,
-    Summit: 0.0675, Trumbull: 0.0725, Tuscarawas: 0.0725, Union: 0.07,
-    VanWert: 0.0725, Vinton: 0.0725, Warren: 0.0675, Washington: 0.0725,
-    Wayne: 0.0675, Williams: 0.0725, Wood: 0.0675, Wyandot: 0.0725,
-  };
-
-  // ZIP3 (first 3 digits of ZIP code) → Ohio county name
-  let OH_ZIP3 = {
-    '430': 'Franklin', '431': 'Franklin', '432': 'Franklin', // Columbus
-    '433': 'Marion',   '434': 'Wood',                        // Marion / NW Ohio
-    '435': 'Defiance', '436': 'Lucas',                       // NW corner / Toledo
-    '437': 'Muskingum','438': 'Coshocton',                   // East-central
-    '440': 'Lorain',   '441': 'Cuyahoga',                    // Cleveland metro
-    '442': 'Summit',   '443': 'Summit',                      // Akron
-    '444': 'Mahoning', '445': 'Mahoning',                    // Youngstown
-    '446': 'Stark',    '447': 'Stark', '448': 'Stark',       // Canton
-    '449': 'Richland',                                        // Mansfield
-    '450': 'Hamilton', '451': 'Clermont', '452': 'Hamilton', // Cincinnati area
-    '453': 'Miami',    '454': 'Montgomery',                   // Dayton metro
-    '455': 'Clark',    '456': 'Ross',                        // Springfield / Chillicothe
-    '457': 'Athens',   '458': 'Allen',   '459': 'Allen',     // SE / Lima
-  };
-
-  function ohioRate(zip5) {
-    const county = OH_ZIP3[zip5.slice(0, 3)];
-    return OH_COUNTY[county] ?? 0.0725; // 7.25% is the most common OH county rate
-  }
-
-  // ── Illinois ZIP3 combined rates ───────────────────────────────────────────
-  // Illinois has complex city/district layering — these are county-level base
-  // rates. Individual municipalities (especially Chicago suburbs) may be higher.
-  let IL_ZIP3 = {
-    '600': 0.0825, '601': 0.0725, '602': 0.0725,            // Cook suburbs / DuPage
-    '603': 0.07,   '604': 0.0825, '605': 0.0725,            // Lake IL / Cook SW
-    '606': 0.1025, '607': 0.1025,                            // Chicago city
-    '608': 0.0825, '609': 0.075,                             // Cook SE / Kankakee
-    '610': 0.0825, '611': 0.08,   '612': 0.0825,            // Rockford / Rock Island
-    '613': 0.0625,                                            // LaSalle (no local tax)
-    '614': 0.085,  '615': 0.085,                             // Peoria
-    '616': 0.0825,                                            // Bloomington / McLean
-    '617': 0.0625,                                            // Knox / Galesburg
-    '618': 0.0725, '619': 0.0725,                            // S Illinois / Quincy
-    '620': 0.0835, '621': 0.0725, '622': 0.0625,            // St. Clair / Madison / Effingham
-    '623': 0.085,  '624': 0.085,  '625': 0.09,              // Springfield / Vermilion / Champaign
-    '626': 0.085,  '627': 0.085,  '628': 0.0625, '629': 0.0725,
-  };
-
-  // ── State base rates (fallback when no county/ZIP lookup exists) ───────────
-  let STATE_RATES = {
-    AL: 0.04,  AK: 0,      AZ: 0.056,  AR: 0.065,  CA: 0.0725,
-    CO: 0.029, CT: 0.0635, DE: 0,      FL: 0.06,   GA: 0.04,
-    HI: 0.04,  ID: 0.06,   IL: 0.0625, IN: 0.07,   IA: 0.06,
-    KS: 0.065, KY: 0.06,   LA: 0.05,   ME: 0.055,  MD: 0.06,
-    MA: 0.0625,MI: 0.06,   MN: 0.06875,MS: 0.07,   MO: 0.04225,
-    MT: 0,     NE: 0.055,  NV: 0.0685, NH: 0,      NJ: 0.06625,
-    NM: 0.05125,NY: 0.04,  NC: 0.0475, ND: 0.05,   OH: 0.0575,
-    OK: 0.045, OR: 0,      PA: 0.06,   RI: 0.07,   SC: 0.06,
-    SD: 0.042, TN: 0.07,   TX: 0.0625, UT: 0.061,  VT: 0.06,
-    VA: 0.053, WA: 0.065,  WV: 0.06,   WI: 0.05,   WY: 0.04,
-    DC: 0.06,
-  };
-
-  const STATE_NAME_TO_CODE = {
+  var STATE_NAME_TO_CODE = {
     ALABAMA: 'AL', ALASKA: 'AK', ARIZONA: 'AZ', ARKANSAS: 'AR', CALIFORNIA: 'CA',
     COLORADO: 'CO', CONNECTICUT: 'CT', DELAWARE: 'DE', FLORIDA: 'FL', GEORGIA: 'GA',
     HAWAII: 'HI', IDAHO: 'ID', ILLINOIS: 'IL', INDIANA: 'IN', IOWA: 'IA',
@@ -103,51 +44,166 @@
     WYOMING: 'WY', 'DISTRICT OF COLUMBIA': 'DC',
   };
 
+  /* Names, not rates. Turning "Ohio" into "OH" is spelling, and spelling cannot
+     drift away from the server the way money can. */
   function normalizeStateCode(value) {
-    const upper = String(value || '').trim().toUpperCase().replace(/\./g, '');
+    var upper = String(value == null ? '' : value).trim().toUpperCase().replace(/\./g, '');
     if (upper.length === 2) return upper;
     return STATE_NAME_TO_CODE[upper] || '';
   }
 
-  function getRate(stateCode, zip) {
-    const s = normalizeStateCode(stateCode);
-    if (!s) return 0;
-    if (FLAT[s] !== undefined) return FLAT[s];
-    const z = String(zip || '').replace(/\D/g, '');
-    if (s === 'OH' && z.length >= 3) return ohioRate(z);
-    if (s === 'IL' && z.length >= 3) return IL_ZIP3[z.slice(0, 3)] ?? (STATE_RATES.IL || 0.0625);
-    return STATE_RATES[s] || 0;
+  /* A ZIP only counts once it is all five digits. Half-typed ones are not a
+     different jurisdiction, they are the same one not finished being entered —
+     and treating them as distinct meant "45202" asked five times and cached
+     five answers on the way in. Below five digits we ask about the state, which
+     is exactly what we knew before the ZIP started. */
+  function zip5(value) {
+    var digits = String(value == null ? '' : value).replace(/\D/g, '');
+    return digits.length >= 5 ? digits.slice(0, 5) : '';
   }
 
-  function cents(subtotalCents, stateCode, zip) {
-    const amount = Number(subtotalCents) || 0;
-    return amount > 0 ? Math.round(amount * getRate(stateCode, zip)) : 0;
+  function key(state, zip) {
+    return normalizeStateCode(state) + '|' + zip5(zip);
   }
 
-  function dollars(subtotalDollars, stateCode, zip) {
-    const amount = Number(subtotalDollars) || 0;
-    return amount > 0 ? amount * getRate(stateCode, zip) : 0;
+  /* ── The cache ────────────────────────────────────────────────────────────
+     Rates for the session, keyed by jurisdiction. Kept in sessionStorage as
+     well as memory so moving bag → checkout doesn't re-ask and re-flicker; a
+     rate is a public figure about a ZIP code, so there is nothing here worth
+     protecting. Deliberately NOT localStorage: a stale rate surviving for weeks
+     is the failure this file was written to end. */
+  var STORE_KEY = 'zw_tax_rates_v1';
+  var TTL_MS = 60 * 60 * 1000;   // an hour; rates move quarterly at most
+
+  var rates = {};
+  try {
+    var saved = JSON.parse(window.sessionStorage.getItem(STORE_KEY) || '{}');
+    if (saved && typeof saved === 'object') rates = saved;
+  } catch (_) {}
+
+  function persist() {
+    try { window.sessionStorage.setItem(STORE_KEY, JSON.stringify(rates)); } catch (_) {}
+  }
+
+  function cached(state, zip) {
+    var hit = rates[key(state, zip)];
+    if (!hit) return null;
+    if (Date.now() - (hit.at || 0) > TTL_MS) return null;
+    return hit;
+  }
+
+  /* ── Asking ───────────────────────────────────────────────────────────────
+     One request in flight per jurisdiction. Six call sites all rendering the
+     same summary must not become six identical fetches. */
+  var inFlight = {};
+
+  function ask(state, zip, amountCents) {
+    var k = key(state, zip);
+    if (inFlight[k]) return inFlight[k];
+
+    var params = [];
+    if (normalizeStateCode(state)) params.push('state=' + encodeURIComponent(normalizeStateCode(state)));
+    if (zip5(zip)) params.push('zip=' + encodeURIComponent(zip5(zip)));
+    if (amountCents > 0) params.push('amount=' + Math.round(amountCents));
+
+    inFlight[k] = fetch('/api/tax-quote?' + params.join('&'), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || data.unavailable) return null;
+        var rate = Number(data.rate);
+        if (!isFinite(rate) || rate < 0) return null;
+        rates[k] = {
+          rate: rate,
+          engine: data.engine || '',
+          /* The server's view of which state this is, which for an address-less
+             ask is the only way the page learns it — that is what labels the
+             line "Tax (OH)" before anyone has typed anything. */
+          state: data.stateCode || normalizeStateCode(state),
+          at: Date.now(),
+        };
+        persist();
+        /* Somebody is showing a pending tax line right now. Tell them. */
+        try {
+          window.dispatchEvent(new CustomEvent('zw:tax', {
+            detail: { state: rates[k].state, zip: zip5(zip), rate: rate, engine: rates[k].engine },
+          }));
+        } catch (_) {}
+        return rate;
+      })
+      .catch(function () { return null; })
+      .then(function (v) { delete inFlight[k]; return v; });
+
+    return inFlight[k];
+  }
+
+  /* Ask if we don't already know. Safe to call on every keystroke — a cache hit
+     costs nothing and a miss is deduped.
+
+     An empty state and ZIP is a legitimate question, not a no-op: the endpoint
+     answers it from the country and region Cloudflare reads off the connection.
+     That geo answer is how the bag and product pages show a tax line at all
+     before an address exists, so returning early here — as this did briefly —
+     silently left those pages with no tax and no way to get one. */
+  function ensure(state, zip, amountCents) {
+    var hit = cached(state, zip);
+    if (hit) return Promise.resolve(hit.rate);
+    return ask(state, zip, amountCents);
+  }
+
+  /* Has the server told us about this address yet? The distinction that matters
+     to a summary: 0 because Oregon has no sales tax, or 0 because we haven't
+     been told. The first is a number to show; the second is a spinner. */
+  function isKnown(state, zip) {
+    return cached(state, zip) !== null;
+  }
+
+  function rateFor(state, zip) {
+    var hit = cached(state, zip);
+    if (hit) return hit.rate;
+    /* Kick off the ask so the caller's next render has an answer, and report
+       nothing for now rather than inventing something. */
+    ensure(state, zip);
+    return 0;
+  }
+
+  /* Math.round on CENTS, matching resolveTax() exactly. Multiplying dollars as
+     floats and rounding at the end lands a penny out often enough to be worth
+     never doing: 0.1 + 0.2 is not 0.3 in either language. */
+  function cents(subtotalCents, state, zip) {
+    var amount = Number(subtotalCents) || 0;
+    if (amount <= 0) return 0;
+    return Math.round(amount * rateFor(state, zip));
+  }
+
+  /* Dollars in, dollars out — but routed through the cents path so the two can
+     never round differently from each other. */
+  function dollars(subtotalDollars, state, zip) {
+    var amount = Number(subtotalDollars) || 0;
+    if (amount <= 0) return 0;
+    return cents(Math.round(amount * 100), state, zip) / 100;
   }
 
   window.ZWCheckoutTax = {
-    normalizeStateCode,
-    rateForState: getRate,
-    taxCents:   cents,
+    normalizeStateCode: normalizeStateCode,
+    rateForState: rateFor,
+    taxCents: cents,
     taxDollars: dollars,
+    /* Newer half of the contract: ask, and know whether you have been told. */
+    ensure: ensure,
+    isKnown: isKnown,
+    engineFor: function (state, zip) { var h = cached(state, zip); return h ? h.engine : ''; },
+    /* Which state the tax is FOR — the typed one, or the one the server worked
+       out from the connection when nothing has been typed. Pages label the line
+       with this rather than with the raw input field. */
+    stateFor: function (state, zip) {
+      var h = cached(state, zip);
+      return (h && h.state) || normalizeStateCode(state);
+    },
   };
 
-  // Merge any admin-saved overrides from /api/tax-config (non-blocking)
-  (async function () {
-    try {
-      const r = await fetch('/api/tax-config', { cache: 'no-store' });
-      if (!r.ok) return;
-      const ov = await r.json();
-      if (ov && typeof ov === 'object') {
-        if (ov.stateRates)    Object.assign(STATE_RATES, ov.stateRates);
-        if (ov.ohCountyRates) Object.assign(OH_COUNTY,   ov.ohCountyRates);
-        if (ov.ilZip3Rates)   Object.assign(IL_ZIP3,     ov.ilZip3Rates);
-        if (ov.flatRates)     Object.assign(FLAT,         ov.flatRates);
-      }
-    } catch (_) {}
-  })();
+  /* A first, address-less ask on load. The endpoint falls back to the country
+     and region Cloudflare already knows from the connection, which is how the
+     bag and product pages show a plausible tax line before anyone has typed an
+     address. Costs one cached request per session. */
+  ensure('', '');
 }());

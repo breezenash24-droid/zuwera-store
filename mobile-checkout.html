@@ -465,10 +465,14 @@
     }
 
     // -- Render order summary -----------------------------------------
-    function calculateTotals(items, stateCode = '') {
+    /* The ZIP matters as much as the state — Ohio is priced by county and
+       Illinois by ZIP3 — and this took only the state, so it quoted a different
+       rate than checkout did for the same address. */
+    function calculateTotals(items, stateCode = '', zip = '') {
       const subtotalCents = Math.round(items.reduce((s, i) => s + (i.price * (i.quantity || 1) * 100), 0));
       const shippingCents = subtotalCents / 100 >= FREE_SHIP_THRESHOLD ? 0 : SHIP_RATE_CENTS;
-      const taxCents = window.ZWCheckoutTax?.taxCents(subtotalCents, stateCode) || 0;
+      window.ZWCheckoutTax?.ensure(stateCode, zip, subtotalCents);
+      const taxCents = window.ZWCheckoutTax?.taxCents(subtotalCents, stateCode, zip) || 0;
       return {
         subtotalCents,
         shippingCents,
@@ -477,7 +481,7 @@
       };
     }
 
-    function renderSummary(items, stateCode = '') {
+    function renderSummary(items, stateCode = '', zip = '') {
       const list = document.getElementById('mc-items-list');
       list.innerHTML = items.map(item => {
         const meta = [item.size, item.colorName].filter(Boolean).join(' · ');
@@ -493,11 +497,14 @@
         `;
       }).join('');
 
-      const totals = calculateTotals(items, stateCode);
+      const totals = calculateTotals(items, stateCode, zip);
 
       document.getElementById('mc-subtotal').textContent = fmt(totals.subtotalCents);
       document.getElementById('mc-shipping').textContent = totals.shippingCents === 0 ? 'Free' : fmt(totals.shippingCents);
-      document.getElementById('mc-tax').textContent = fmt(totals.taxCents);
+      /* A dash while the quote is still in flight, so the line never shows a
+         $0.00 that is about to become a real number. */
+      document.getElementById('mc-tax').textContent =
+        window.ZWCheckoutTax?.isKnown(stateCode, zip) ? fmt(totals.taxCents) : '—';
       document.getElementById('mc-total').textContent = fmt(totals.totalCents);
 
       return totals;
@@ -558,10 +565,14 @@
       showState('state-checkout');
 
       // Handle shipping address change
-      payReq.on('shippingaddresschange', ev => {
+      payReq.on('shippingaddresschange', async ev => {
         const stateCode = ev.shippingAddress?.region || '';
-        activeTotals = calculateTotals(items, stateCode);
-        renderSummary(items, stateCode);
+        const zip = ev.shippingAddress?.postalCode || '';
+        /* Wait for the quote: the amount below is what the wallet asks the
+           customer to confirm, and it is the only total they are shown. */
+        await window.ZWCheckoutTax?.ensure(stateCode, zip);
+        activeTotals = calculateTotals(items, stateCode, zip);
+        renderSummary(items, stateCode, zip);
         ev.updateWith({
           status: 'success',
           shippingOptions: [{
@@ -666,6 +677,14 @@
 
       const items = rawCart.map(expandCartItem);
       const totals = renderSummary(items);
+
+      /* The first render has no address, so its tax comes from the quote the
+         server works out from the connection — which arrives after this. Redraw
+         when it does, or the tax line keeps the dash it was drawn with. */
+      window.addEventListener('zw:tax', (e) => {
+        if (e.detail && e.detail.zip) return;   // an address-specific quote redraws itself
+        try { renderSummary(items); } catch (_) {}
+      });
 
       initCheckout(items, totals).catch(() => {
         showState('state-unsupported');
