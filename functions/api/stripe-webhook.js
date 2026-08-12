@@ -73,6 +73,33 @@ async function alreadyHandled(env, event) {
   }
 }
 
+/* Give the claim back.
+ *
+ * alreadyHandled() claims an event BEFORE fulfilment runs, which is right — two
+ * concurrent deliveries of the same event must not both create an order. But it
+ * made a failure permanent: the row stayed, so every Stripe retry hit the 409,
+ * was read as "already done", and did nothing. The handler answered 500 saying
+ * "Stripe should retry this event" while guaranteeing the retry could not work.
+ *
+ * That is how an order survives a transient fault and still never gets its
+ * confirmation email, its label or its stock decrement — for ever, with the
+ * retries that exist to fix exactly this quietly turned into no-ops.
+ *
+ * Best-effort: if releasing fails, the event stays claimed and we are no worse
+ * off than before. */
+async function releaseClaim(env, event) {
+  const key = getSupabaseServiceKey(env);
+  if (!env.SUPABASE_URL || !key || !event?.id) return;
+  try {
+    await fetch(
+      env.SUPABASE_URL + '/rest/v1/processed_events?event_id=eq.' + encodeURIComponent(event.id),
+      { method: 'DELETE', headers: { apikey: key, Authorization: 'Bearer ' + key, Prefer: 'return=minimal' } },
+    );
+  } catch (e) {
+    console.warn('Could not release the dedupe claim for ' + event.id + ': ' + e.message);
+  }
+}
+
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 export async function onRequestPost({ request, env }) {
@@ -180,6 +207,9 @@ export async function onRequestPost({ request, env }) {
       }));
     } catch (e) {
       console.error('handleSuccessfulPayment failed:', e.message);
+      /* Hand the claim back BEFORE answering 500, or the retry this response
+         asks for is deduped away and the order is never fulfilled at all. */
+      await releaseClaim(env, event);
       logWebhookEvent(env, {
         event_type:     event.type,
         payment_intent: pi.id,

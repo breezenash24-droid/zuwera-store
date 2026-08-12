@@ -59,6 +59,27 @@ console.log('\n  only a real duplicate stops the handler');
       /event_id\s+text primary key/.test(M));
   }
 
+  /* ── A claim never given back turns every retry into a no-op ──────────────
+     Claiming BEFORE fulfilment is right: two concurrent deliveries of the same
+     event must not both create an order. Keeping the claim after a FAILURE is
+     not — Stripe's retry hits the 409, reads it as "already handled", and does
+     nothing. The handler answered 500 saying "Stripe should retry this event"
+     while guaranteeing the retry could not work.
+
+     That is how an order survives a transient fault and still never gets its
+     confirmation, its label or its stock decrement. */
+  console.log('\n  a failed delivery can actually be retried');
+  {
+    const W = fs.readFileSync(ROOT + 'functions/api/stripe-webhook.js', 'utf8');
+
+    ok('the claim is released when fulfilment fails', W.includes('await releaseClaim(env, event)'));
+    ok('…before answering, so the retry it asks for can work',
+      W.indexOf('await releaseClaim(env, event)') < W.indexOf("error: 'Fulfillment failed"));
+    ok('…and releasing is best-effort, never a second failure',
+      W.includes('Could not release the dedupe claim'));
+    ok('the response still asks Stripe to retry', W.includes('Stripe should retry this event'));
+  }
+
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
   process.exit(fail ? 1 : 0);
 })();
