@@ -17,9 +17,10 @@
  */
 
 import { putR2Object, publicUrlForKey, describedKey } from './upload-product-image.js';
+import { DEFAULTS } from './_config.js';
 
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+const ANON_KEY = DEFAULTS.supabaseAnonKey;
+const SUPABASE_URL = DEFAULTS.supabaseUrl;
 const MAX_BYTES = 100 * 1024 * 1024; // 100 MB — a hero video is legitimately large
 
 function json(body, status = 200) {

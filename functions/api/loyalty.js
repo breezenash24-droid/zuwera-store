@@ -14,9 +14,10 @@
  */
 
 import { cors, json, mutateSetting } from './_commerce.js';
+import { DEFAULTS } from './_config.js';
 
-const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+const SUPABASE_URL = DEFAULTS.supabaseUrl;
+const ANON_KEY = DEFAULTS.supabaseAnonKey;
 
 const FALLBACK_TIER = { points: 100, value: 5 };
 

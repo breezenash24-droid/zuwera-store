@@ -109,12 +109,36 @@ Set these in **Cloudflare Pages → Settings → Environment variables**, not in
 Several settings are readable under more than one name, an artefact of renames
 over time. The canonical name is listed first; the alias still works.
 
+### Which project this deployment belongs to
+
+**Set these three first. The build fails without `ZW_SUPABASE_URL`, on purpose.**
+
+| Variable | Notes |
+|---|---|
+| `ZW_SUPABASE_URL` | `https://<your-project>.supabase.co` |
+| `ZW_SUPABASE_ANON_KEY` | your project's anon key |
+| `ZW_SITE_URL` | `https://<your-domain>` |
+
+Browser code cannot look these up at runtime — Supabase is injected lazily here,
+and several scripts call the REST API before it has loaded — so the build stamps
+them into every shipped file (`scripts/stamp-project-config.js`). Workers do not
+need stamping; they read `SUPABASE_URL` from the environment at request time via
+`functions/api/_config.js`.
+
+The failure is hard rather than a warning because the broken version *works*.
+A deployment left pointing at the defaults in `zw-config.js` loads products,
+renders the storefront and signs admins in — against somebody else's database.
+There is no error to notice, so the build refuses instead.
+
+`zw-config.js` holds the fallback values. Do not edit it to repoint a fork; set
+the variables above, which is the path that is tested.
+
 ### Required
 
 | Variable | Notes |
 |---|---|
-| `SUPABASE_URL` | alias: `SUPABASE_PROJECT_URL` |
-| `SUPABASE_ANON_KEY` | public by design; also hardcoded in client pages |
+| `SUPABASE_URL` | alias: `SUPABASE_PROJECT_URL`. Read by Workers at runtime |
+| `SUPABASE_ANON_KEY` | public by design — RLS is the control, not secrecy |
 | `SUPABASE_SERVICE_ROLE_KEY` | aliases: `SUPABASE_SERVICE_KEY`, `SUPABASE_SERVICE_ROLE` |
 | `STRIPE_SECRET_KEY` | `sk_test_…` until you are ready to take real money |
 | `STRIPE_PUBLISHABLE_KEY` | also `STRIPE_TEST_PUBLISHABLE_KEY` / `STRIPE_LIVE_PUBLISHABLE_KEY` |

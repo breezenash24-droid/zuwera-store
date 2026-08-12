@@ -7,7 +7,10 @@
  * Requires the `error_log` table (supabase/migrations/*_add_error_log_table.sql)
  * and env: SUPABASE_URL (optional; defaults below) + SUPABASE_SERVICE_ROLE_KEY.
  */
-const DEFAULT_SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+
+import { DEFAULTS } from './_config.js';
+
+const DEFAULT_SUPABASE_URL = DEFAULTS.supabaseUrl;
 
 const clip = (v, n) => (v == null ? null : String(v).slice(0, n));
 const int = (v) => (Number.isFinite(+v) ? (+v | 0) : null);
