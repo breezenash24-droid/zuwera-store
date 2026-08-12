@@ -145,6 +145,160 @@
                     }
 
                     // ── Rate Lookup ───────────────────────────────────────────────────
+                    /* ── What you owe for a period you can file ────────────────
+                       The KPIs are this month and last month, which no state
+                       asks for. A return covers a filing PERIOD — Ohio bills
+                       this store semi-annually — so the number that matters is
+                       "everything collected between these two dates, split by
+                       state", and the page could not produce it.
+
+                       Reads _taxOrders, the same list the rest of the page
+                       reads, so the totals here cannot disagree with the totals
+                       above. A second query would be a second answer. */
+                    function taxPeriodRange(key, now = new Date()) {
+                      const y = now.getFullYear();
+                      const m = now.getMonth();
+                      const at = (yy, mm, dd) => new Date(yy, mm, dd, 0, 0, 0, 0);
+                      /* Exclusive upper bound: the instant the next period
+                         starts. Using "the last day" drops everything ordered
+                         after midnight on it, which is a whole day of tax
+                         missing from a return and impossible to spot. */
+                      switch (key) {
+                        case 'today':       return { from: at(y, m, now.getDate()), to: at(y, m, now.getDate() + 1), label: 'Today' };
+                        case 'month':       return { from: at(y, m, 1), to: at(y, m + 1, 1), label: 'This month' };
+                        case 'lastmonth':   return { from: at(y, m - 1, 1), to: at(y, m, 1), label: 'Last month' };
+                        case 'quarter': {
+                          const q = Math.floor(m / 3) * 3;
+                          return { from: at(y, q, 1), to: at(y, q + 3, 1), label: 'Q' + (q / 3 + 1) + ' ' + y };
+                        }
+                        case 'lastquarter': {
+                          const q = Math.floor(m / 3) * 3 - 3;
+                          const from = at(y, q, 1);
+                          return { from, to: at(y, q + 3, 1), label: 'Q' + (Math.floor(from.getMonth() / 3) + 1) + ' ' + from.getFullYear() };
+                        }
+                        case 'half': {
+                          const h = m < 6 ? 0 : 6;
+                          return { from: at(y, h, 1), to: at(y, h + 6, 1), label: (h ? 'Jul–Dec ' : 'Jan–Jun ') + y };
+                        }
+                        case 'lasthalf': {
+                          const h = m < 6 ? -6 : 0;
+                          const from = at(y, h, 1);
+                          return { from, to: at(y, h + 6, 1), label: (from.getMonth() ? 'Jul–Dec ' : 'Jan–Jun ') + from.getFullYear() };
+                        }
+                        case 'year':        return { from: at(y, 0, 1), to: at(y + 1, 0, 1), label: y + ' to date' };
+                        default:            return null;   // custom — read from the inputs
+                      }
+                    }
+
+                    function taxPeriodSelected() {
+                      const key = document.getElementById('tax-period-select')?.value || 'half';
+                      const custom = document.getElementById('tax-period-custom');
+                      if (custom) custom.style.display = key === 'custom' ? 'flex' : 'none';
+                      if (key !== 'custom') return taxPeriodRange(key);
+
+                      const f = document.getElementById('tax-period-from')?.value;
+                      const t = document.getElementById('tax-period-to')?.value;
+                      if (!f || !t) return null;
+                      const from = new Date(f + 'T00:00:00');
+                      /* +1 day so the "to" date the user picked is INCLUDED —
+                         nobody means "up to but not including" when they pick
+                         an end date on a tax return. */
+                      const to = new Date(t + 'T00:00:00');
+                      to.setDate(to.getDate() + 1);
+                      return { from, to, label: f + ' to ' + t };
+                    }
+
+                    let _taxPeriodRows = [];
+
+                    window.taxPeriodRender = function() {
+                      const range = taxPeriodSelected();
+                      const labelEl = document.getElementById('tax-period-label');
+                      const totalEl = document.getElementById('tax-period-total');
+                      const subEl   = document.getElementById('tax-period-sub');
+                      const tb      = document.getElementById('tax-period-tbody');
+                      if (!tb) return;
+
+                      if (!range) {
+                        if (labelEl) labelEl.textContent = 'Pick both dates';
+                        if (totalEl) totalEl.textContent = '—';
+                        if (subEl)   subEl.textContent = '';
+                        tb.innerHTML = '<tr class="empty-row"><td colspan="5">Choose a start and end date.</td></tr>';
+                        return;
+                      }
+
+                      const inRange = _taxOrders.filter(o => {
+                        if (!o.created_at) return false;
+                        const d = new Date(o.created_at);
+                        return d >= range.from && d < range.to;
+                      });
+
+                      const byState = {};
+                      let total = 0, taxable = 0;
+                      inRange.forEach(o => {
+                        const tax = parseFloat(o.tax || 0);
+                        const sub = parseFloat(o.subtotal || 0);
+                        const s   = (o.ship_state || '').toUpperCase().trim() || '—';
+                        total += tax;
+                        if (tax > 0) taxable += sub;
+                        if (!byState[s]) byState[s] = { orders: 0, subtotal: 0, tax: 0 };
+                        byState[s].orders++;
+                        byState[s].subtotal += sub;
+                        byState[s].tax += tax;
+                      });
+
+                      _taxPeriodRows = Object.entries(byState).sort((a, b) => b[1].tax - a[1].tax);
+
+                      if (labelEl) labelEl.textContent = range.label;
+                      if (totalEl) totalEl.textContent = fmt$(total);
+                      if (subEl) {
+                        subEl.textContent = inRange.length.toLocaleString() + ' order' + (inRange.length === 1 ? '' : 's')
+                          + ' · ' + fmt$(taxable) + ' taxable sales'
+                          + ' · ' + _taxPeriodRows.filter(([, d]) => d.tax > 0).length + ' state(s) to file in';
+                      }
+
+                      if (!_taxPeriodRows.length) {
+                        tb.innerHTML = '<tr class="empty-row"><td colspan="5">No orders in this period.</td></tr>';
+                        return;
+                      }
+
+                      tb.innerHTML = _taxPeriodRows.map(([s, d]) => {
+                        /* Ohio is the one this store is registered in. Anywhere
+                           else showing collected tax is money held for a state
+                           that may not know you exist — worth flagging on the
+                           row rather than leaving it to be noticed. */
+                        const isOH = s === 'OH';
+                        const owed = d.tax > 0;
+                        const reg = isOH
+                          ? '<span style="color:#34d399;">Registered</span>'
+                          : owed
+                            ? '<span style="color:#f59e0b;">Collected — check registration</span>'
+                            : '<span style="color:var(--text-secondary);">No tax collected</span>';
+                        return `<tr class="zw-divider">
+                          <td style="padding:10px 12px;font-weight:${isOH ? '700' : '400'};">${s} <span style="font-weight:400;color:var(--text-secondary);font-size:12px;">${STATE_NAMES[s] || ''}</span></td>
+                          <td style="padding:10px 12px;text-align:right;">${d.orders.toLocaleString()}</td>
+                          <td style="padding:10px 12px;text-align:right;">${fmt$(d.subtotal)}</td>
+                          <td style="padding:10px 12px;text-align:right;font-weight:600;">${fmt$(d.tax)}</td>
+                          <td style="padding:10px 12px;font-size:12px;">${reg}</td>
+                        </tr>`;
+                      }).join('');
+                    };
+
+                    window.taxPeriodCSV = function() {
+                      const range = taxPeriodSelected();
+                      if (!range || !_taxPeriodRows.length) { alert('Nothing to export for this period.'); return; }
+                      const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+                      const lines = [['Period', 'State', 'Orders', 'Taxable sales', 'Tax collected'].map(esc).join(',')];
+                      _taxPeriodRows.forEach(([s, d]) => {
+                        lines.push([range.label, s, d.orders, d.subtotal.toFixed(2), d.tax.toFixed(2)].map(esc).join(','));
+                      });
+                      const blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+                      const a = document.createElement('a');
+                      a.href = URL.createObjectURL(blob);
+                      a.download = 'tax-' + range.label.replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.csv';
+                      a.click();
+                      URL.revokeObjectURL(a.href);
+                    };
+
                     window.taxDoLookup = function() {
                       const state = (document.getElementById('tax-lkp-state').value||'').trim().toUpperCase();
                       const zip   = (document.getElementById('tax-lkp-zip').value||'').trim();
@@ -308,6 +462,9 @@
                             }
                           }
                         });
+
+                        // The filing-period panel reads the same _taxOrders list.
+                        try { window.taxPeriodRender(); } catch (_) {}
 
                         const avgRate = totalTaxable > 0 ? totalTax / totalTaxable : 0;
 
