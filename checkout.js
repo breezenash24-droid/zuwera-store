@@ -1103,10 +1103,20 @@ _pay.btn?.addEventListener('click', async () => {
       return;
     }
 
+    /* No `shipping` here. The server sets it on the PaymentIntent when it
+       creates it, using the secret key — and Stripe then refuses to let a
+       publishable key change it: "The shipping information on this
+       PaymentIntent was last set with a secret key and therefore cannot be
+       changed with a publishable key."
+
+       That is the correct behaviour on Stripe's part and the right place for
+       the address to be set. The browser sends the address to
+       /api/create-payment-intent, which is where it becomes the shipping
+       record; repeating it here only re-sends the same values from the weaker
+       key and breaks the confirm. */
     const { error, paymentIntent } = await stripe.confirmCardPayment(piData.clientSecret, {
       payment_method: { card: cardElement, billing_details: { name, email } },
       receipt_email: email,
-      shipping: { name, address: { line1: addr1, line2: addr2, city, state, postal_code: zip, country: 'US' } },
     });
     if (error) {
       console.error('Stripe confirmCardPayment error:', error);

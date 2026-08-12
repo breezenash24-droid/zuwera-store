@@ -114,6 +114,39 @@ console.log('\n  Stripe can read where the order is going');
     /shipping:\s*\{[\s\S]{0,300}?address:\s*pi\.shipping\.address/.test(W2));
   ok('…and is skipped on intents that never had one',
     /pi\.shipping && pi\.shipping\.address/.test(W2));
+
+  /* ── And the browser must NOT set it too ────────────────────────────────
+     Once the server sets shipping with the secret key, Stripe refuses to let
+     a publishable key change it — "The shipping information on this
+     PaymentIntent was last set with a secret key and therefore cannot be
+     changed with a publishable key" — and the confirm fails. Which means the
+     customer cannot pay.
+
+     This broke live checkout the moment the server-side shipping hash was
+     added, because two files were still passing the same address again from
+     the browser. The address belongs on the intent at creation; repeating it
+     at confirm time can only ever re-send values that are already there. */
+  const browserFiles = ['checkout.js', 'product.html', 'mobile-checkout.html', 'storefront.js', 'express-wallet.js'];
+  for (const f of browserFiles) {
+    const p = ROOT + f;
+    if (!fs.existsSync(p)) continue;
+    const src = fs.readFileSync(p, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    /* Only inside a Stripe confirm call — these files legitimately talk about
+       shipping everywhere else: rates, thresholds, summary rows.
+
+       Matched from the call to the `);` that closes it. An earlier attempt
+       anchored on a newline before the paren, which never matched a real call
+       at all — so the check passed on the broken code it was written to catch.
+       A guard that cannot fail is worse than no guard, because it reads like
+       coverage. Verified by running it against the original bug. */
+    const RE = /confirm(?:Card)?Payment\s*\(([\s\S]{0,800}?)\)\s*;/g;
+    const offending = [];
+    let m;
+    while ((m = RE.exec(src))) if (/\bshipping\s*:/.test(m[1])) offending.push(m[1]);
+    ok(f + ' does not re-send shipping at confirm time', offending.length === 0,
+      offending.length ? offending[0].slice(0, 120) : '');
+  }
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
