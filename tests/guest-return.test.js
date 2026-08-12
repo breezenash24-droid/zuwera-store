@@ -161,9 +161,17 @@ const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
     ok('…and every copy is wired, not just the first',
       /querySelectorAll\('\[data-guest-lookup\]'\)/.test(page));
 
+    /* Read from the query string and acted on BEFORE getSession(). Somebody who
+       clicked the email for this order wants that order, not whatever account
+       happens to be signed in on the machine they are using. */
+    /* Scoped to init(), because getSession() is called from several functions
+       and comparing positions across the whole file compared the guard against
+       an unrelated call defined hundreds of lines earlier. */
+    const init = page.slice(page.indexOf('async function init()'));
     ok('a return link is honoured before any session check',
-      /const guestToken = new URLSearchParams\(location\.search\)\.get\('t'\)/.test(page)
-      && /if \(guestToken\) \{ await renderGuestReturn/.test(page));
+      page.includes("const guestToken = params.get('t')")
+      && init.includes('if (guestToken) { await renderGuestReturn')
+      && init.indexOf('if (guestToken)') < init.indexOf('await getSession()'));
 
     ok('it talks to the guest endpoint', /fetch\('\/api\/guest-return'/.test(page));
     /* The server's sentence is the same whether or not the lookup matched.
@@ -178,6 +186,27 @@ const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
     ok('all three resolutions are offered', /value="exchange"/.test(page) && /value="store_credit"/.test(page));
     ok('an empty selection is explained as "the whole order"',
       /return the whole order/i.test(page));
+
+    /* The confirmation email's "View order status" was hardcoded to /account.
+       A guest has no account, so it asked them to log in — and on a shared
+       computer where somebody else was signed in, it showed THAT person's
+       orders. A customer clicking a link in their own receipt landed in a
+       stranger's account. */
+    const fulfil = fs.readFileSync(ROOT + '/functions/api/_fulfil.js', 'utf8');
+    /* Plain includes rather than regexes: these assertions are about literal
+       strings in source, and escaping them has been a source of its own bugs
+       today — twice a regex matched something unintended and passed. */
+    ok('the receipt link depends on whether there is an account',
+      fulfil.includes('const statusHref = meta.user_id'));
+    ok('…an account holder still goes to their account',
+      fulfil.includes("'https://zuwera.store/account'"));
+    ok('…and a guest goes to the lookup carrying the order number',
+      fulfil.includes("returns?order=' + encodeURIComponent(meta.order_number"));
+    ok('the page fills that number in', page.includes("params.get('order')"));
+    /* Before the session check: the person may have no account AND be on a
+       machine where somebody else does. That is the exact case being fixed. */
+    ok('…and goes to the lookup without asking anyone to log in',
+      page.includes("if (params.get('order')) { renderGuestLookup"));
   }
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

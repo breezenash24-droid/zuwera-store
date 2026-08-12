@@ -1632,6 +1632,13 @@ function renderGuestLookup(root) {
     + '<p class="guest-status" role="status"></p>'
     + '</div></div>';
 
+  /* Pre-filled from ?order=, which is how the order confirmation email links
+     here for a guest. They arrive with the number already in the box and only
+     the email left to type — the email the receipt was sent to, which is the
+     one thing we can be sure they have. */
+  const preset = new URLSearchParams(location.search).get('order');
+  if (preset) document.getElementById('g-order').value = preset;
+
   document.getElementById('g-send').onclick = async function () {
     const btn = this;
     const status = root.querySelector('.guest-status');
@@ -1751,8 +1758,15 @@ async function init() {
 
   /* A return link beats everything else, including a signed-in session: someone
      who clicked the email for THIS order wants that order, not their list. */
-  const guestToken = new URLSearchParams(location.search).get('t');
+  const params = new URLSearchParams(location.search);
+  const guestToken = params.get('t');
   if (guestToken) { await renderGuestReturn(root, guestToken); return; }
+
+  /* Arriving from a guest order confirmation. Straight to the lookup with the
+     order number filled in, rather than a login wall — and before the session
+     check, because the whole point is that this person may not have an account
+     and may be on a machine where somebody else does. */
+  if (params.get('order')) { renderGuestLookup(root); return; }
 
   try {
     const session = await getSession();

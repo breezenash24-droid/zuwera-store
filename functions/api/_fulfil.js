@@ -863,10 +863,25 @@ export function buildOrderConfirmation({ appearance, content, orderId, toName, i
           ${carrierHtml}
         </table>`;
 
+  /* Where "View order status" should send this particular customer.
+
+     It was hardcoded to /account for everyone. A guest has no account, so the
+     link asked them to log in — and on a shared computer where somebody else
+     was still signed in, it showed THAT person's orders instead. The customer
+     clicks a link in their own receipt and lands in a stranger's account.
+
+     An order with a user_id belongs to an account holder, and /account is
+     right for them. Everyone else goes to the guest lookup with their order
+     number already filled in, so the only thing left to type is the email the
+     receipt was sent to. */
+  const statusHref = meta.user_id
+    ? 'https://zuwera.store/account'
+    : 'https://zuwera.store/returns?order=' + encodeURIComponent(meta.order_number || '');
+
   const footerHtml = `
-          <a href="https://zuwera.store/account" style="color:${a.text};text-decoration:underline;">View order status</a>
+          <a href="${statusHref}" style="color:${a.text};text-decoration:underline;">View order status</a>
           &nbsp;·&nbsp;
-          <a href="https://zuwera.store/returns" style="color:${a.text};text-decoration:underline;">30-day free returns</a><br>
+          <a href="https://zuwera.store/returns${meta.user_id ? '' : '?order=' + encodeURIComponent(meta.order_number || '')}" style="color:${a.text};text-decoration:underline;">30-day free returns</a><br>
           <span style="display:inline-block;margin-top:8px;">Questions? <a href="mailto:orders@zuwera.store" style="color:${a.muted};text-decoration:underline;">orders@zuwera.store</a></span><br>
           <span style="display:inline-block;margin-top:8px;">© ${new Date().getFullYear()} Zuwera. All rights reserved.</span>`;
 
