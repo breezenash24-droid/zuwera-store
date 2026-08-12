@@ -2024,6 +2024,10 @@
                     renderApiCard('📣', 'Loops (Marketing)',      s.loops,      buildLoopsRows,        'loops',       'https://app.loops.so'),
                     renderApiCard('💬', 'Twilio (SMS)',           s.twilio,     buildTwilioRows,       'twilio',      'https://console.twilio.com'),
                     renderApiCard('📊', 'PostHog (Analytics)',    s.posthog,    buildPostHogRows,      'posthog',     'https://app.posthog.com'),
+                    /* Not a vendor, but it fails like one and nothing else shows it:
+                       with no signing secret every guest return dies quietly while
+                       the returns page still says the link was emailed. */
+                    renderApiCard('↩️', 'Guest Returns (signing)', s.returnSigning, buildReturnSigningRows, 'returnsigning', '#'),
                     renderApiCard('🎨', 'Email Branding',        { ok: true }, () => buildBrandingRows(_maskedKeys), 'branding', '#'),
                     renderApiCard('⏰', 'Automated Emails (Cron)',
                         { ok: !!(_maskedKeys['REVIEW_REQUEST_TOKEN'] || _maskedKeys['ABANDONED_CART_TOKEN']),
@@ -2292,6 +2296,27 @@
                 ? apiRow('Validation', '<span style="color:var(--success);">✓ Confirmed with PostHog API</span>')
                 : apiRow('Validation', '<span style="color:var(--warning);">Format OK — could not reach PostHog to confirm</span>');
             rows += `<p class="api-note">${s.note || 'PostHog analytics is live on your storefront.'}</p>`;
+            return rows;
+        }
+
+        /* Guest returns sign the link they email out. Without a secret there is
+           nothing to sign with, so the email is never sent — and the returns
+           page still tells the customer it was, because that sentence is
+           identical for every outcome on purpose (otherwise it becomes a way to
+           test which order numbers exist). Correct for the customer, invisible
+           for the operator. This card is the visibility. */
+        function buildReturnSigningRows(s) {
+            s = s || {};
+            let rows = `<p class="api-note" style="margin-bottom:12px;">A guest with no account starts a return by getting an emailed link. That link is <strong>signed</strong> so it opens one order and nothing else. No secret, no signature, no email — and the returns page still says a link was sent, so this fails without any outward sign.</p>`;
+            rows += apiRow('Status', s.ok
+                ? '<span style="color:#22c55e;font-weight:600">● Signing</span>'
+                : '<span style="color:var(--danger,#ef4444);font-weight:600">● Returns are failing</span>');
+            if (s.note) rows += apiRow('Key in use', s.note);
+            if (!s.ok) {
+                rows += apiRow('Fix', 'Add <code>RETURN_TOKEN_SECRET</code> in Cloudflare → Settings → Environment variables, then redeploy.');
+                rows += `<p class="api-note" style="margin-top:10px;">Any long random string works — it never leaves your server and no customer ever sees it. Generate one by running <code>crypto.randomUUID()+crypto.randomUUID()</code> in this console, or use a password manager.</p>`;
+                rows += `<p class="api-note" style="margin-top:8px;"><strong>Changing it later invalidates every link already emailed.</strong> Customers holding one get "that link has expired" and can request a fresh one, so it is recoverable — but don't rotate it casually.</p>`;
+            }
             return rows;
         }
 
@@ -13661,6 +13686,7 @@ const OPS_ALERT_EVENTS = [
     /* First, because it is the worst thing on the list: the money moved and
        nothing recorded it. Everything else here is a degradation. */
     ['order-save-failed',         'An order was PAID but not saved — money taken, no record'],
+    ['returns-no-signing-secret', 'Returns are silently failing — no signing secret set'],
     ['email-fallback-brevo',      'Email fell back to Brevo (Resend down)'],
     ['email-fallback-loops',      'Email fell back to Loops (Resend + Brevo down)'],
     ['email-all-providers-down',  'Every email provider failed'],

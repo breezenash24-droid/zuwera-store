@@ -3,7 +3,8 @@
    it is reporting on, and that a bad afternoon does not turn into four hundred
    messages, which is the same as no alerting at all. */
 const fs = require('fs');
-const ROOT = require('path').resolve(__dirname, '..') + '/';
+const path = require('path');
+const ROOT = path.resolve(__dirname, '..') + '/';
 let pass = 0, fail = 0;
 function ok(name, cond, extra) {
   if (cond) { pass++; console.log('  \u2713 ' + name); }
@@ -147,11 +148,29 @@ console.log('\n  the settings have somewhere to be set');
   /* A row for an event nobody fires is a control that does nothing; an event
      with no row is a setting you cannot reach. Both directions are checked
      against the keys the Workers emit. */
+  /* Every file, not a list of three.
+   *
+   * It used to name stripe-webhook.js, _fulfil.js and shippo-rates.js, so an
+   * alert raised anywhere else was invisible to this check — which is exactly
+   * what happened when guest-return.js started reporting that returns were
+   * silently failing. The row appeared in the editor and this said the row was
+   * dead, because it was only ever looking in three places.
+   *
+   * A check whose coverage is a hand-maintained list has the same failure mode
+   * as the duplication it is guarding against: someone has to remember. */
+  const API = path.join(ROOT, 'functions', 'api');
   const emitted = new Set();
-  for (const f of ['functions/api/stripe-webhook.js', 'functions/api/_fulfil.js', 'functions/api/shippo-rates.js']) {
-    const src = fs.readFileSync(ROOT + f, 'utf8');
-    // Trailing '-' is the month suffix (…'shippo-quota-' + shippoMonthKey()).
-    for (const m of src.matchAll(/key: '([a-z-]+?)-?'/g)) emitted.add(m[1].replace(/-$/, ''));
+  for (const f of fs.readdirSync(API).filter((x) => x.endsWith('.js'))) {
+    const src = fs.readFileSync(path.join(API, f), 'utf8');
+    /* Scoped to the notifyOps call itself. A bare `key: '...'` sweep across
+       every file picks up unrelated object literals — `key: 'resend'` in a
+       settings map is not an alert. */
+    for (const call of src.matchAll(/notifyOps\(/g)) {
+      const near = src.slice(call.index, call.index + 500);
+      // Trailing '-' is the month suffix (…'shippo-quota-' + shippoMonthKey()).
+      const m = near.match(/key: '([a-z-]+?)-?'/);
+      if (m) emitted.add(m[1].replace(/-$/, ''));
+    }
   }
   // Scoped to the declaration, or every unrelated array in a 550KB file matches.
   const decl = AM.slice(AM.indexOf('const OPS_ALERT_EVENTS'), AM.indexOf('function renderOpsAlerts'));

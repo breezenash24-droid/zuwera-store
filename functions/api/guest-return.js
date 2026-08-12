@@ -30,81 +30,32 @@ import { sendTransactional } from './_email.js';
 import { returnEligibility, reconcileReturnItems, spokenForOn } from './_returns.js';
 import { orderNo, normalizeOrderNo, sameOrderNo } from './_order-no.js';
 import { messagesFrom } from './_messages.js';
-
-/* Long enough to read an email and fill a form, short enough that a forwarded
-   message is not a standing key to someone's order. */
-const TOKEN_TTL_MS = 60 * 60 * 1000;
-
-const b64uEncodeBytes = (bytes) => {
-  let s = '';
-  for (let i = 0; i < bytes.length; i += 1) s += String.fromCharCode(bytes[i]);
-  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-};
-const b64uEncode = (str) => btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-const b64uDecode = (v) => {
-  const s = String(v || '').replace(/-/g, '+').replace(/_/g, '/');
-  return atob(s.padEnd(Math.ceil(s.length / 4) * 4, '='));
-};
-
-async function hmac(message, secret) {
-  const key = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
-  );
-  return b64uEncodeBytes(new Uint8Array(
-    await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message)),
-  ));
-}
-
-function constantTimeEqual(a, b) {
-  const l = String(a || ''), r = String(b || '');
-  if (l.length !== r.length) return false;
-  let diff = 0;
-  for (let i = 0; i < l.length; i += 1) diff |= l.charCodeAt(i) ^ r.charCodeAt(i);
-  return diff === 0;
-}
-
-/* Its own secret where one is configured, falling back to the checkout rate
-   secret so the feature works on a store that has not set a new variable.
-   The `p` (purpose) field is what makes that sharing safe: a rate token and a
-   return token are signed by the same key but can never be mistaken for one
-   another, because the purpose is inside the signed body. */
-const secretFor = (env) => env.RETURN_TOKEN_SECRET || env.CHECKOUT_RATE_SECRET || '';
-
-async function mintToken(env, { orderId, email }) {
-  const secret = secretFor(env);
-  if (!secret) return '';
-  const body = b64uEncode(JSON.stringify({
-    p: 'guest-return',
-    o: String(orderId || ''),
-    e: String(email || '').trim().toLowerCase(),
-    exp: Date.now() + TOKEN_TTL_MS,
-  }));
-  return body + '.' + await hmac(body, secret);
-}
-
-async function readToken(env, token) {
-  const secret = secretFor(env);
-  if (!secret) return null;
-  const [body, sig] = String(token || '').split('.');
-  if (!body || !sig) return null;
-  if (!constantTimeEqual(await hmac(body, secret), sig)) return null;
-  let payload;
-  try { payload = JSON.parse(b64uDecode(body)); } catch (_) { return null; }
-  if (payload.p !== 'guest-return') return null;
-  if (!payload.exp || Date.now() > payload.exp) return null;
-  return payload;
-}
+import { notifyOps } from './_notify-ops.js';
+/* Minting and reading moved to _order-token.js when the order confirmation
+   email needed to mint one too. Three callers, one definition of what a valid
+   token is — a second copy is how two definitions drift and only one of them
+   gets the next fix. */
+import { mintOrderToken, readOrderToken } from './_order-token.js';
 
 /* Orders are read with the service key because there is no session to read them
    under — that is the entire point. Narrowed to the one order the token names,
-   never a list. */
-async function fetchOrder(env, orderId) {
+   never a list.
+ *
+ * A token identifies its order EITHER by row id (the returns flow, which found
+ * the row before it minted anything) or by PaymentIntent id (the confirmation
+ * email, which is composed before the row exists and never learns its id).
+ * Both land on exactly one order; which column is used is an accident of when
+ * the token was made, not a difference in what it may see. */
+async function fetchOrder(env, claim) {
   const url = (env.SUPABASE_URL || '').trim();
   const key = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
-  if (!url || !key || !orderId) return null;
+  if (!url || !key || !claim) return null;
+  const where = claim.o
+    ? 'id=eq.' + encodeURIComponent(claim.o)
+    : 'stripe_payment_intent_id=eq.' + encodeURIComponent(claim.pi || '');
+  if (!claim.o && !claim.pi) return null;
   const resp = await fetch(
-    url + '/rest/v1/orders?id=eq.' + encodeURIComponent(orderId) + '&select=*&limit=1',
+    url + '/rest/v1/orders?' + where + '&select=*&limit=1',
     { headers: { apikey: key, Authorization: 'Bearer ' + key } },
   );
   if (!resp.ok) return null;
@@ -163,9 +114,29 @@ export async function onRequestPost({ request, env }) {
       const order = await findOrderByNumber(env, body.orderNumber, body.email);
       if (!order) return same;
 
-      const token = await mintToken(env, { orderId: order.id, email: order.email });
+      const token = await mintOrderToken(env, { purpose: 'guest-return', orderId: order.id, email: order.email });
       if (!token) {
+        /* The entire returns flow is off, and the page still says "we have
+           emailed a link". That sentence is deliberately unconditional so it
+           cannot be used to probe which orders exist — which is right for the
+           CUSTOMER and useless for the operator, who then has a feature that is
+           silently dead and a customer who thinks they started a return.
+           Nobody finds out until someone complains.
+           The customer's reply is unchanged. The person who can fix it gets
+           told, on the loudest channel there is. */
         console.error('[guest-return] no signing secret configured — link not sent');
+        try {
+          await notifyOps(env, {
+            key: 'returns-no-signing-secret',
+            severity: 'critical',
+            event: 'Returns are silently failing — no signing secret configured',
+            detail: 'A customer asked to start a return on order ' + orderNo(order)
+              + ' and no email could be sent, because neither RETURN_TOKEN_SECRET nor '
+              + 'CHECKOUT_RATE_SECRET is set in Cloudflare. Every return request is '
+              + 'failing this way, and the returns page tells customers the link was '
+              + 'sent. Set RETURN_TOKEN_SECRET to any long random string to fix it.',
+          });
+        } catch (_) { /* alerting failing must not change the customer's reply */ }
         return same;
       }
 
@@ -197,10 +168,10 @@ export async function onRequestPost({ request, env }) {
 
   // ── 2. What can this order return? ────────────────────────────────────────
   if (action === 'lookup') {
-    const claim = await readToken(env, body.token);
+    const claim = await readOrderToken(env, body.token);
     if (!claim) return json({ error: 'That link has expired. Please request a new one.' }, 401, h);
 
-    const order = await fetchOrder(env, claim.o);
+    const order = await fetchOrder(env, claim);
     if (!order) return json({ error: 'We could not find that order.' }, 404, h);
 
     const bundle = await getCommerceBundle(env);
@@ -213,6 +184,13 @@ export async function onRequestPost({ request, env }) {
 
     return json({
       success: true,
+      /* The link that leads here is labelled "View order status", so it has to
+         be able to answer that — carrier and tracking included. Without them
+         the page could only offer a return form, which is not what the customer
+         clicked and is no use at all on an order still in transit.
+
+         Still only this order, and still only what its own receipt already
+         showed. No profile, no other orders, no payment details. */
       order: {
         id: order.id,
         orderNumber: orderNo(order),
@@ -220,6 +198,10 @@ export async function onRequestPost({ request, env }) {
         total: order.total,
         items: order.items,
         status: order.status,
+        shippingProvider: order.shipping_provider || '',
+        shippingService: order.shipping_service || '',
+        trackingNumber: order.tracking_number || '',
+        trackingUrl: order.tracking_url || '',
       },
       eligible: eligible.ok,
       reason: eligible.reason || '',
@@ -233,10 +215,10 @@ export async function onRequestPost({ request, env }) {
 
   // ── 3. Submit it ──────────────────────────────────────────────────────────
   if (action === 'submit') {
-    const claim = await readToken(env, body.token);
+    const claim = await readOrderToken(env, body.token);
     if (!claim) return json({ error: 'That link has expired. Please request a new one.' }, 401, h);
 
-    const order = await fetchOrder(env, claim.o);
+    const order = await fetchOrder(env, claim);
     if (!order) return json({ error: 'We could not find that order.' }, 404, h);
 
     const reason = String(body.reason || '').trim();
