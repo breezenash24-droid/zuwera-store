@@ -12,6 +12,7 @@
  */
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { shipFromValue, shipFromKeys, SHIP_FROM_FIELDS } from './_ship-from.js';
 import { cors, json, verifyAdminCan, getCommerceBundle, setSetting } from './_commerce.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
@@ -60,8 +61,12 @@ function mergeOrderFallbacks(order, returnRequest) {
   };
 }
 
+/* Keys arrive here as legacy SHIPPO_FROM_* names. shipFromValue reads the
+   FROM_* spelling first and falls back to those, so both work from one call
+   and this file did not have to learn about the rename. */
 function getReturnAddressSetting(key, env, cache, fallback = '') {
-  return String(resolveSetting(key, env, cache) || fallback || '').trim();
+  const field = String(key).replace(/^(SHIPPO_)?FROM_/, '');
+  return shipFromValue(field, env, cache, fallback);
 }
 
 function requireAddress(address, label) {
@@ -385,15 +390,7 @@ export async function onRequestPost({ request, env }) {
     const cache = await fetchSiteSettings(
       [
         'SHIPPO_API_KEY',
-        'SHIPPO_FROM_NAME',
-        'SHIPPO_FROM_STREET1',
-        'SHIPPO_FROM_STREET2',
-        'SHIPPO_FROM_CITY',
-        'SHIPPO_FROM_STATE',
-        'SHIPPO_FROM_ZIP',
-        'SHIPPO_FROM_COUNTRY',
-        'SHIPPO_FROM_EMAIL',
-        'SHIPPO_FROM_PHONE',
+        ...SHIP_FROM_FIELDS.flatMap(shipFromKeys),
         'RESEND_API_KEY',
         'BREVO_API_KEY',
         'EMAIL_FROM',

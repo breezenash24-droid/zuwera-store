@@ -6,6 +6,7 @@
  */
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { shipFrom, shipFromKeys, SHIP_FROM_FIELDS } from './_ship-from.js';
 import { veeqoGetRates, veeqoKey } from './_veeqo.js';
 import { getShippoMonthlyCount, shippoFreeLimit, shippoMonthKey } from './_shipping-usage.js';
 import { notifyOps, alertConfig } from './_notify-ops.js';
@@ -269,23 +270,15 @@ export async function onRequestPost({ request, env }) {
     const parcelSummary = await resolveParcelSummary({ items, itemCount, totalWeightLb, env });
     const parcel = customParcel || buildParcel(parcelSummary.totalItems, parcelSummary.totalWeightLb);
 
-    // Read from-address from Supabase site_settings (admin panel) first, env vars as fallback
-    const fromKeys = ['SHIPPO_FROM_NAME','SHIPPO_FROM_STREET1','SHIPPO_FROM_STREET2',
-                      'SHIPPO_FROM_CITY','SHIPPO_FROM_STATE','SHIPPO_FROM_ZIP',
-                      'SHIPPO_FROM_COUNTRY','SHIPPO_FROM_EMAIL','SHIPPO_FROM_PHONE',
-                      'VEEQO_API_KEY','SHIPPO_FREE_LIMIT','shipping_preferred_service'];
+    // Read from-address from Supabase site_settings (admin panel) first, env vars as fallback.
+    // Both spellings are fetched because either may hold the value — see _ship-from.js.
+    const fromKeys = [
+      ...SHIP_FROM_FIELDS.flatMap(shipFromKeys),
+      'VEEQO_API_KEY', 'SHIPPO_FREE_LIMIT', 'shipping_preferred_service',
+    ];
     const settingsCache = await fetchSiteSettings(fromKeys, env);
     const rs = (key, fallback = '') => resolveSetting(key, env, settingsCache) || fallback;
-    const fromAddress = {
-      name:    rs('SHIPPO_FROM_NAME', 'Zuwera'),
-      street1: rs('SHIPPO_FROM_STREET1'),
-      city:    rs('SHIPPO_FROM_CITY'),
-      state:   rs('SHIPPO_FROM_STATE'),
-      zip:     rs('SHIPPO_FROM_ZIP'),
-      country: rs('SHIPPO_FROM_COUNTRY', 'US'),
-      email:   rs('SHIPPO_FROM_EMAIL', 'orders@zuwera.store'),
-      phone:   rs('SHIPPO_FROM_PHONE'),
-    };
+    const fromAddress = shipFrom(env, settingsCache);
 
     // ── Provider selection (USPS stays primary via sortRates below) ──────
     // Under the Shippo free-tier limit: query BOTH sources and keep the cheaper

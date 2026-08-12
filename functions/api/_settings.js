@@ -26,6 +26,23 @@ const ALLOWED_KEYS = new Set([
   // locked to Cloudflare env vars — it can't be overridden/hijacked from the admin, and
   // any attempt to write it is rejected + fires a security alert. (SUPABASE_SERVICE_ROLE_KEY
   // and STRIPE_WEBHOOK_SECRET are likewise deliberately absent / env-only.)
+  /* Where the store ships from. Named FROM_* because it is the business's
+     address, not a courier's setting — the tax engines need the same address to
+     work out whether a sale is interstate, and were having to read a variable
+     named after a shipping provider to get it. See _ship-from.js.
+
+     The SHIPPO_* spellings below are still read when the new name is unset, so
+     an environment can be migrated whenever it suits rather than before the
+     next deploy. */
+  'FROM_NAME',
+  'FROM_STREET1',
+  'FROM_STREET2',
+  'FROM_CITY',
+  'FROM_STATE',
+  'FROM_ZIP',
+  'FROM_COUNTRY',
+  'FROM_EMAIL',
+  'FROM_PHONE',
   'SHIPPO_FROM_NAME',
   'SHIPPO_FROM_STREET1',
   'SHIPPO_FROM_STREET2',
