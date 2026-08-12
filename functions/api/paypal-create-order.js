@@ -29,7 +29,7 @@ export async function onRequestOptions({ env }) {
   return new Response(null, { status: 204, headers: CORS(env) });
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
   const headers = CORS(env);
 
   try {
@@ -48,6 +48,7 @@ export async function onRequestPost({ request, env }) {
     }
 
     const quote = await quoteCart({
+      waitUntil,
       items, address, shippingRate, promoCode, deliveryMethod,
       accessToken: body.accessToken || request.headers.get('Authorization')?.replace(/^Bearer\s+/i, ''),
       env, request,

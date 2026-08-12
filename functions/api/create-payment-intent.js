@@ -43,7 +43,7 @@ export async function onRequestOptions({ env }) {
   return new Response(null, { status: 204, headers: CORS(env) });
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
   const headers = CORS(env);
 
   try {
@@ -67,6 +67,7 @@ export async function onRequestPost({ request, env }) {
     /* The quote is the same call PayPal makes. Nothing about what this cart
        costs is decided in this file any more — it asks, then charges. */
     const quote = await quoteCart({
+      waitUntil,
       items, address, shippingRate, promoCode, deliveryMethod,
       accessToken: body.accessToken || request.headers.get('Authorization')?.replace(/^Bearer\s+/i, ''),
       env, request,

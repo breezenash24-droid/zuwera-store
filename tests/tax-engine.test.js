@@ -24,7 +24,11 @@ function loadTax(settings = {}, fetchStub) {
   new Function('module', 'fetchSiteSettings', 'shipFromValue', 'fetch', 'console', 'setTimeout', src)(
     mod,
     async () => settings,
-    (field, env = {}) => String(env['FROM_' + field] || env['SHIPPO_FROM_' + field] || '').trim(),
+    /* Same precedence as the real _ship-from.js: SHIP_FROM_ first, then the two
+       older spellings it still accepts. */
+    (field, env = {}) => String(
+      env['SHIP_FROM_' + field] || env['FROM_' + field] || env['SHIPPO_FROM_' + field] || '',
+    ).trim(),
     fetchStub || globalThis.fetch,
     { error() {}, warn() {}, log() {} },  // quiet: failures here are the point
     setTimeout
@@ -416,6 +420,144 @@ const OHIO = { state: 'OH', zip: '45202', country: 'US', city: 'Cincinnati', lin
       ok(name + ' names no tax provider of its own',
         !/taxjar|stripe_tax|ziptax|avalara/i.test(src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')));
     }
+  }
+
+  console.log('\n  a customer who does not owe tax');
+  {
+    /* An exemption is the one setting that makes tax vanish, so every branch
+       here fails CLOSED — unreadable, expired, revoked or wrong-state all mean
+       "charge them", because the alternative is a silent tax holiday. */
+    const CERT = [{ id: 'e1', certificate: 'OH-123', states: [], expires_at: null, revoked_at: null }];
+    const env = { SUPABASE_URL: 'https://db.test', SUPABASE_SERVICE_ROLE_KEY: 'svc' };
+    const reply = (rows) => spyFetch(() => ({ body: rows }));
+
+    let spy = reply(CERT);
+    let { resolveTax: rt } = loadTax({}, spy);
+    let out = await rt({ env, request: null, address: OHIO, taxableCents: 10000, customer: { email: 'wholesale@shop.test' } });
+    ok('a held certificate zeroes the tax', out.taxCents === 0 && out.exempt === true, JSON.stringify(out));
+    /* A zero nobody can explain is indistinguishable from a bug at filing
+       time, so the certificate is stamped on the answer. */
+    ok('…and says which certificate did it', out.exemptionCertificate === 'OH-123', out.exemptionCertificate);
+    ok('…and the provider is never even asked', spy.calls.every((c) => /tax_exemptions/.test(c.url)), spy.calls.map(c => c.url).join(' '));
+
+    ({ resolveTax: rt } = loadTax({}, reply([{ ...CERT[0], expires_at: '2020-01-01T00:00:00Z' }])));
+    out = await rt({ env, request: null, address: OHIO, taxableCents: 10000, customer: { email: 'x@y.test' } });
+    ok('an expired certificate is not an exemption', !out.exempt && out.taxCents === 700, JSON.stringify(out));
+
+    ({ resolveTax: rt } = loadTax({}, reply([{ ...CERT[0], states: ['CA'] }])));
+    out = await rt({ env, request: null, address: OHIO, taxableCents: 10000, customer: { email: 'x@y.test' } });
+    ok('a certificate for another state is not an exemption', !out.exempt, JSON.stringify(out));
+
+    ({ resolveTax: rt } = loadTax({}, spyFetch(() => { throw new Error('db down'); })));
+    out = await rt({ env, request: null, address: OHIO, taxableCents: 10000, customer: { email: 'x@y.test' } });
+    ok('an unreadable database charges tax rather than skipping it',
+      !out.exempt && out.taxCents === 700, JSON.stringify(out));
+
+    ({ resolveTax: rt } = loadTax({}, reply(CERT)));
+    out = await rt({ env, request: null, address: OHIO, taxableCents: 10000 });
+    ok('an anonymous shopper is never exempt', !out.exempt, JSON.stringify(out));
+  }
+
+  console.log('\n  shadow mode — a measurement, not a charge');
+  {
+    const cfg = { tax_engine: { engine: 'builtin', shadowEngine: 'ziptax' } };
+    const rows = [];
+    const spy = spyFetch((url) => {
+      if (/zip-tax/.test(url)) return { body: { results: [{ taxSales: 0.078 }] } };
+      return { body: {} };
+    });
+    const { resolveTax: rt } = loadTax(cfg, spy);
+
+    const jobs = [];
+    const out = await rt({
+      env: { ZIPTAX_API_KEY: 'k', SUPABASE_URL: 'https://db.test', SUPABASE_SERVICE_ROLE_KEY: 'svc' },
+      request: null, address: OHIO, taxableCents: 10000,
+      waitUntil: (p) => jobs.push(p),
+    });
+
+    /* The charge is the LIVE engine's, always. */
+    ok('the charge comes from the live engine, not the shadow',
+      out.taxCents === 700 && out.engine === 'builtin', JSON.stringify(out));
+    ok('the shadow run is deferred, not awaited by the customer', jobs.length === 1, jobs.length + ' deferred');
+
+    await Promise.all(jobs);
+    const logged = spy.calls.find((c) => /tax_shadow_log/.test(c.url));
+    ok('…and its answer is recorded', !!logged, spy.calls.map((c) => c.url).join(' '));
+    if (logged) {
+      const row = JSON.parse(logged.body);
+      ok('…with both figures and the difference between them',
+        row.live_cents === 700 && row.shadow_cents === 780 && row.delta_cents === 80, logged.body);
+      ok('…naming which engine said what',
+        row.live_engine === 'builtin' && row.shadow_engine === 'ziptax', logged.body);
+    }
+
+    /* Without a Worker context there is nowhere to defer to, and making a
+       customer wait for a comparison would cost the sale it is measuring. */
+    const { resolveTax: rt2 } = loadTax(cfg, spyFetch());
+    const out2 = await rt2({ env: {}, request: null, address: OHIO, taxableCents: 10000 });
+    ok('no waitUntil means no shadow run at all', out2.taxCents === 700);
+
+    const { resolveTax: rt3 } = loadTax({ tax_engine: { engine: 'builtin', shadowEngine: 'builtin' } }, spyFetch());
+    const jobs3 = [];
+    await rt3({ env: {}, request: null, address: OHIO, taxableCents: 10000, waitUntil: (p) => jobs3.push(p) });
+    ok('an engine is never shadowed by itself', jobs3.length === 0);
+  }
+
+  console.log('\n  the two new providers');
+  {
+    const CART = [{ sku: 'TEE', quantity: 2, amountTotal: 8000, taxCategory: 'clothing' }];
+    const env = {
+      TAXCLOUD_API_LOGIN_ID: 'id', TAXCLOUD_API_KEY: 'k',
+      AVALARA_ACCOUNT_ID: '1', AVALARA_LICENSE_KEY: 'k',
+      SHIP_FROM_STREET1: '2930 Short Vine St', SHIP_FROM_CITY: 'Cincinnati',
+      SHIP_FROM_STATE: 'OH', SHIP_FROM_ZIP: '45219',
+    };
+
+    const tcSpy = spyFetch(() => ({ body: { CartID: 'cart1', CartItemsResponse: [{ CartItemIndex: 0, TaxAmount: 6.24 }], ResponseType: 3 } }));
+    const { resolveTax: tc } = loadTax({ tax_engine: { engine: 'taxcloud', taxCodes: { taxcloud: { clothing: '20010' } } } }, tcSpy);
+    const tcOut = await tc({ env, request: null, address: OHIO, taxableCents: 8000, shippingCents: 815, lineItems: CART });
+    const tcBody = JSON.parse(tcSpy.calls[0].body);
+    ok('TaxCloud is asked, and answers in cents', tcOut.taxCents === 624, JSON.stringify(tcOut));
+    ok('…with the origin address the labels use', tcBody.origin.Zip5 === '45219', JSON.stringify(tcBody.origin));
+    ok('…and the category as a TIC', tcBody.cartItems[0].TIC === 20010, JSON.stringify(tcBody.cartItems[0]));
+    ok('…returning a cart handle for reporting the sale', tcOut.ref === 'cart1');
+
+    const avSpy = spyFetch(() => ({ body: { totalTax: 6.24, code: 'ZW-1' } }));
+    const { resolveTax: av } = loadTax({ tax_engine: { engine: 'avalara', companyCode: 'ZUWERA' } }, avSpy);
+    const avOut = await av({ env, request: null, address: OHIO, taxableCents: 8000, shippingCents: 815, lineItems: CART });
+    const avBody = JSON.parse(avSpy.calls[0].body);
+    ok('Avalara is asked, and answers in cents', avOut.taxCents === 624, JSON.stringify(avOut));
+    /* A quote must not land in the filing ledger — that is what separates
+       SalesOrder from a committed SalesInvoice. */
+    ok('…as an uncommitted SalesOrder, so a quote is not filed',
+      avBody.type === 'SalesOrder' && avBody.commit === false, avBody.type + ' commit=' + avBody.commit);
+    ok('…against the configured company', avBody.companyCode === 'ZUWERA');
+    ok('…with shipping declared as freight', avBody.lines.some((l) => l.number === 'FREIGHT'), JSON.stringify(avBody.lines));
+    ok('…and sandbox until told otherwise', /sandbox\.rest\.avatax\.com/.test(avSpy.calls[0].url), avSpy.calls[0].url);
+
+    /* Reversing a partial refund by voiding would remove the tax on the WHOLE
+       sale, so it refuses rather than reversing more than came back. */
+    const { reverseTaxSale: avRev } = loadTax({ tax_engine: { engine: 'avalara' } }, spyFetch());
+    const partial = await avRev({ env, transactionId: 't', order: { orderNumber: 'ZW-1' }, amountCents: 1000, taxCents: 78, full: false });
+    ok('Avalara refuses a partial reversal rather than voiding the whole sale',
+      partial.ok === false && /ReturnInvoice/.test(partial.error), JSON.stringify(partial));
+  }
+
+  console.log('\n  per-product categories reach the provider');
+  {
+    const pricing = fs.readFileSync(ROOT + '/functions/api/_cart-pricing.js', 'utf8');
+    ok('the catalog carries each product\'s category',
+      /taxCategory: String\(product\.tax_category/.test(pricing));
+    ok('…into the tax lines', /taxCategory: item\.taxCategory/.test(pricing));
+    ok('…and a blank one falls back to the store default',
+      /item\.taxCategory \|\| config\.defaultCategory/.test(fs.readFileSync(ROOT + '/functions/api/_tax.js', 'utf8')));
+
+    const mig = fs.readFileSync(ROOT + '/migrations/0011_tax_categories_exemptions_shadow.sql', 'utf8');
+    ok('the column exists in a migration', /add column if not exists tax_category/.test(mig));
+    /* Both new tables can zero or explain tax, so neither may be reachable
+       from a browser session. */
+    ok('exemptions are service-only', /tax exemptions are service-only[\s\S]*?using \(false\)/.test(mig));
+    ok('the shadow log is service-only', /shadow log is service-only[\s\S]*?using \(false\)/.test(mig));
   }
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

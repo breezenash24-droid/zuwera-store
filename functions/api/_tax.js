@@ -69,7 +69,7 @@ function recallRate(engine, address) {
   return hit.rate;
 }
 
-export const TAX_ENGINES = ['builtin', 'taxjar', 'ziptax', 'stripe_tax', 'external', 'none'];
+export const TAX_ENGINES = ['builtin', 'taxjar', 'taxcloud', 'avalara', 'ziptax', 'stripe_tax', 'external', 'none'];
 
 /* ── What a store sells, in nobody's vocabulary in particular ────────────────
    Every provider has its own code system for "this is clothing": Stripe writes
@@ -101,7 +101,7 @@ export const TAX_CATEGORIES = {
    A wrong tax code is a compliance error that looks like a working checkout,
    so these are filled in from Admin → Tax against the provider's own published
    list, never inferred here. */
-const DEFAULT_TAX_CODES = { stripe_tax: {}, taxjar: {} };
+const DEFAULT_TAX_CODES = { stripe_tax: {}, taxjar: {}, taxcloud: {}, avalara: {} };
 
 /** The provider's own code for one of our categories, or '' to send none. */
 export function taxCodeFor(engine, category, config = {}) {
@@ -369,7 +369,55 @@ export async function getTaxEngineConfig(env) {
        On by default: a provider that priced the order and never heard it
        completed bills you for the calculation and has nothing to file from. */
     reportSales: raw.reportSales !== false,
+
+    /* Avalara's company code — one AvaTax account can hold several. */
+    companyCode: String(raw.companyCode || ''),
+
+    /* A second engine, priced alongside the live one and charged from never.
+       Choosing between the table and a paid provider is otherwise a guess;
+       this makes it a measurement taken on real orders. Off unless named. */
+    shadowEngine: TAX_ENGINES.indexOf(raw.shadowEngine) !== -1 ? raw.shadowEngine : '',
   };
+}
+
+/* ── Customers who do not pay tax ────────────────────────────────────────────
+   A reseller holding a valid certificate must not be charged. Resolved here
+   rather than in the checkout so that every payment route gets it without
+   having to remember — the same reason the engine lives here at all.
+
+   Deliberately strict about what counts: revoked or expired is not exempt, and
+   a certificate for the wrong state is not exempt either. An exemption is the
+   one setting that makes tax vanish, so it fails closed. */
+export async function findExemption({ env, email, userId, stateCode }) {
+  const url = (env.SUPABASE_URL || '').trim();
+  const key = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
+  if (!url || !key || (!email && !userId)) return null;
+
+  const filters = [];
+  if (userId) filters.push('user_id.eq.' + encodeURIComponent(userId));
+  if (email) filters.push('email.ilike.' + encodeURIComponent(String(email).trim()));
+  if (!filters.length) return null;
+
+  try {
+    const resp = await fetch(
+      url + '/rest/v1/tax_exemptions?or=(' + filters.join(',') + ')&revoked_at=is.null&select=*',
+      { headers: { apikey: key, Authorization: 'Bearer ' + key } },
+    );
+    if (!resp.ok) return null;
+    const rows = await resp.json();
+    const now = Date.now();
+    const state = normalizeStateCode(stateCode);
+    return (Array.isArray(rows) ? rows : []).find((r) => {
+      if (r.expires_at && new Date(r.expires_at).getTime() < now) return false;
+      const states = Array.isArray(r.states) ? r.states.filter(Boolean) : [];
+      /* No states listed means the certificate covers everywhere. */
+      return !states.length || states.map(normalizeStateCode).includes(state);
+    }) || null;
+  } catch (_) {
+    /* Unreadable means NOT exempt. Failing open here would hand a tax holiday
+       to everyone the moment the database hiccuped. */
+    return null;
+  }
 }
 
 // ─── Provider adapters ─────────────────────────────────────────────────────
@@ -524,8 +572,162 @@ async function fromExternal({ env, config, address, taxableCents, shippingCents 
   throw new Error('Tax endpoint returned nothing usable');
 }
 
+/* ── TaxCloud ────────────────────────────────────────────────────────────────
+   The cheap rung between the built-in table and paying a percentage of every
+   order. Its Lookup/AuthorizedWithCapture/Returned trio maps exactly onto
+   quote/record/reverse, which is why it fits here without special cases.
+
+   Needs the origin address, so it reads the same SHIP_FROM_* the labels use. */
+function tcAddress(a) {
+  return {
+    Address1: a.line1 || a.street1 || '',
+    City: a.city || '',
+    State: normalizeStateCode(a.state) || '',
+    Zip5: String(a.zip || '').replace(/\D/g, '').slice(0, 5),
+  };
+}
+
+function tcOrigin(env) {
+  return {
+    Address1: shipFromValue('STREET1', env),
+    City: shipFromValue('CITY', env),
+    State: normalizeStateCode(shipFromValue('STATE', env)),
+    Zip5: shipFromValue('ZIP', env),
+  };
+}
+
+async function fromTaxCloud({ env, config, address, taxableCents, shippingCents, lineItems }) {
+  const loginId = env.TAXCLOUD_API_LOGIN_ID;
+  const key = env.TAXCLOUD_API_KEY;
+  if (!loginId || !key) throw new Error('TAXCLOUD_API_LOGIN_ID / TAXCLOUD_API_KEY not set');
+
+  const lines = providerLines('taxcloud', lineItems, taxableCents, config);
+  const resp = await withTimeout(fetch('https://api.taxcloud.net/1.0/TaxCloud/Lookup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      apiLoginID: loginId,
+      apiKey: key,
+      customerID: 'guest',
+      /* A quote is not an order. cartID is left for TaxCloud to assign here and
+         only pinned when the sale is actually recorded. */
+      cartID: '',
+      cartItems: lines.map((l, i) => ({
+        Index: i,
+        ItemID: l.reference,
+        /* Taxability Information Code — TaxCloud's name for a product
+           category. Blank means "let the account default decide", same rule as
+           every other provider here. */
+        ...(l.code ? { TIC: Number(l.code) || 0 } : {}),
+        Price: l.amount / 100 / (l.quantity || 1),
+        Qty: l.quantity || 1,
+      })),
+      origin: tcOrigin(env),
+      destination: tcAddress(address),
+      deliveredBySeller: false,
+    }),
+  }), TAX_API_TIMEOUT_MS, 'TaxCloud');
+  if (!resp.ok) throw new Error('TaxCloud ' + resp.status);
+  const data = await resp.json();
+  const rows = data && data.CartItemsResponse;
+  if (!Array.isArray(rows)) throw new Error('TaxCloud returned no cart response');
+  const dollars = rows.reduce((n, r) => n + (Number(r.TaxAmount) || 0), 0);
+  if (!Number.isFinite(dollars)) throw new Error('TaxCloud returned no amount');
+  return {
+    taxCents: Math.round(dollars * 100),
+    rate: taxableCents > 0 ? (dollars * 100) / taxableCents : 0,
+    note: 'taxcloud',
+    ref: String(data.CartID || ''),
+  };
+}
+
+/* ── Avalara AvaTax ──────────────────────────────────────────────────────────
+   The one an accountant eventually names. Its own model happens to match this
+   file's: a SalesOrder is a quote and changes nothing, a committed SalesInvoice
+   is the recorded sale. So quote and record are the same endpoint with two
+   different document types rather than two integrations. */
+function avaAuth(env) {
+  const id = env.AVALARA_ACCOUNT_ID;
+  const key = env.AVALARA_LICENSE_KEY;
+  if (!id || !key) throw new Error('AVALARA_ACCOUNT_ID / AVALARA_LICENSE_KEY not set');
+  return 'Basic ' + btoa(id + ':' + key);
+}
+
+function avaBase(env) {
+  /* Sandbox until told otherwise. Pointing a first integration at production
+     and discovering it there is the wrong order to find things out in. */
+  return String(env.AVALARA_ENV || '').toLowerCase() === 'production'
+    ? 'https://rest.avatax.com'
+    : 'https://sandbox.rest.avatax.com';
+}
+
+function avaAddress(a) {
+  return {
+    line1: a.line1 || a.street1 || '',
+    city: a.city || '',
+    region: normalizeStateCode(a.state) || '',
+    postalCode: a.zip || '',
+    country: a.country || 'US',
+  };
+}
+
+function avaDocument({ env, config, address, taxableCents, shippingCents, lineItems, type, code, commit }) {
+  const lines = providerLines('avalara', lineItems, taxableCents, config).map((l, i) => ({
+    number: String(i + 1),
+    quantity: l.quantity,
+    amount: l.amount / 100,
+    ...(l.code ? { taxCode: l.code } : {}),
+    description: l.reference,
+  }));
+  if (shippingCents > 0) {
+    /* Avalara's own shipping code, so freight is treated as freight in states
+       that tax it differently from goods. */
+    lines.push({ number: 'FREIGHT', quantity: 1, amount: shippingCents / 100, taxCode: 'FR020100', description: 'Shipping' });
+  }
+  return {
+    type,
+    companyCode: config.companyCode || env.AVALARA_COMPANY_CODE || 'DEFAULT',
+    date: new Date().toISOString().slice(0, 10),
+    customerCode: 'guest',
+    currencyCode: 'USD',
+    addresses: { shipFrom: avaAddress({
+      line1: shipFromValue('STREET1', env), city: shipFromValue('CITY', env),
+      state: shipFromValue('STATE', env), zip: shipFromValue('ZIP', env),
+      country: shipFromValue('COUNTRY', env) || 'US',
+    }), shipTo: avaAddress(address) },
+    lines,
+    commit: Boolean(commit),
+    ...(code ? { code } : {}),
+  };
+}
+
+async function fromAvalara({ env, config, address, taxableCents, shippingCents, lineItems }) {
+  const auth = avaAuth(env);
+  const resp = await withTimeout(fetch(avaBase(env) + '/api/v2/transactions/create', {
+    method: 'POST',
+    headers: { Authorization: auth, 'Content-Type': 'application/json' },
+    /* SalesOrder, not SalesInvoice: a quote must not appear in the filing
+       ledger. The sale is recorded separately when it completes. */
+    body: JSON.stringify(avaDocument({
+      env, config, address, taxableCents, shippingCents, lineItems,
+      type: 'SalesOrder', commit: false,
+    })),
+  }), TAX_API_TIMEOUT_MS, 'Avalara');
+  if (!resp.ok) throw new Error('Avalara ' + resp.status);
+  const data = await resp.json();
+  const total = Number(data && data.totalTax);
+  if (!Number.isFinite(total)) throw new Error('Avalara returned no totalTax');
+  return {
+    taxCents: Math.round(total * 100),
+    rate: taxableCents > 0 ? (total * 100) / taxableCents : 0,
+    note: 'avalara',
+  };
+}
+
 const ADAPTERS = {
   taxjar: fromTaxJar,
+  taxcloud: fromTaxCloud,
+  avalara: fromAvalara,
   ziptax: fromZipTax,
   stripe_tax: fromStripeTax,
   external: fromExternal,
@@ -541,8 +743,48 @@ const ADAPTERS = {
  * is the one that actually produced the number, which is not always the one
  * that was configured, and that difference is the thing worth recording.
  */
-export async function resolveTax({ env, request, address, taxableCents, shippingCents = 0, dbOverrides = null, lineItems = null }) {
-  const config = await getTaxEngineConfig(env);
+async function resolveTaxInner({
+  env, request, address, taxableCents, shippingCents = 0,
+  dbOverrides = null, lineItems = null,
+  /* Who is buying, so a held exemption certificate can be honoured. */
+  customer = null,
+  /* The Worker's waitUntil. Shadow mode uses it to price the order a second
+     time AFTER the response has gone out — a comparison the customer waits for
+     is a comparison that costs you the sale. Without it, shadow mode simply
+     does not run rather than adding latency to a checkout. */
+  waitUntil = null,
+  /* Set when resolveTax is being called BY shadow mode, so the shadow run
+     cannot start a shadow run of its own. */
+  _shadowOf = null,
+  /* Shadow mode prices with a different engine than the one configured. An
+     explicit argument rather than a flag smuggled through env, so it is
+     obvious in a stack trace which engine answered and why. */
+  forceEngine = null,
+}) {
+  const base = await getTaxEngineConfig(env);
+  const config = forceEngine ? { ...base, engine: forceEngine } : base;
+
+  /* An exemption short-circuits everything, including the provider call: there
+     is nothing to ask when the answer is zero by law, and asking would bill for
+     a calculation that cannot change the outcome. */
+  if (!_shadowOf && (customer?.email || customer?.userId)) {
+    const exemption = await findExemption({
+      env, email: customer.email, userId: customer.userId,
+      stateCode: address?.state,
+    });
+    if (exemption) {
+      return {
+        taxCents: 0, rate: 0,
+        stateCode: normalizeStateCode(address?.state),
+        engine: config.engine,
+        exempt: true,
+        /* Stamped onto the order so a zero can be explained at filing time.
+           An untraceable zero is indistinguishable from a bug. */
+        exemptionId: String(exemption.id || ''),
+        exemptionCertificate: String(exemption.certificate || ''),
+      };
+    }
+  }
   /* A caller that did not bring the admin's overrides gets them read here rather
      than quietly pricing without them. The payment path passes its own (it is
      already reading settings for other reasons); anything else — the checkout
@@ -614,6 +856,83 @@ export async function resolveTax({ env, request, address, taxableCents, shipping
     }
     return { ...builtin(), fallbackFrom: config.engine, failed: true };
   }
+}
+
+/* ── Shadow mode ─────────────────────────────────────────────────────────────
+   Price the order a second time with a different engine, charge from neither
+   but the live one, and record what the other would have said.
+
+   Choosing between the free table and a paid provider is otherwise a guess:
+   nobody knows how far the table is off until a customer or a state says so.
+   This answers it with the store's own orders, at the cost of one extra API
+   call per order and no risk at all — the shadow figure never reaches a price.
+
+   Three rules it must not break:
+     • It runs AFTER the response. A comparison the customer waits for is a
+       comparison that costs you the sale, so without a waitUntil it does not
+       run at all rather than adding latency.
+     • It can never throw into the caller. The live answer has already been
+       given; a failure here is a missing log row, nothing more.
+     • Its own failures are recorded, because "the shadow engine errored on
+       every order" is exactly the sort of finding worth having before you
+       switch to it. */
+async function logShadow(env, row) {
+  const url = (env.SUPABASE_URL || '').trim();
+  const key = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
+  if (!url || !key) return;
+  try {
+    await fetch(url + '/rest/v1/tax_shadow_log', {
+      method: 'POST',
+      headers: {
+        apikey: key, Authorization: 'Bearer ' + key,
+        'Content-Type': 'application/json', Prefer: 'return=minimal',
+      },
+      body: JSON.stringify(row),
+    });
+  } catch (_) { /* a lost comparison is not worth an error path */ }
+}
+
+export async function resolveTax(args) {
+  const live = await resolveTaxInner(args);
+  const { env, address, taxableCents, waitUntil, _shadowOf, customer } = args || {};
+
+  if (_shadowOf || typeof waitUntil !== 'function') return live;
+
+  let config;
+  try { config = await getTaxEngineConfig(env); } catch (_) { return live; }
+  const shadow = config.shadowEngine;
+  /* Comparing an engine with itself is a request that can only ever agree. */
+  if (!shadow || shadow === (live.engine || config.engine)) return live;
+
+  waitUntil((async () => {
+    let shadowCents = null, error = null;
+    try {
+      const out = await resolveTaxInner({
+        ...args,
+        /* Same cart, same address, different engine — and marked as a shadow
+           run so it cannot recurse or spend another exemption lookup. */
+        forceEngine: shadow,
+        customer: null,
+        _shadowOf: live.engine || 'live',
+      });
+      shadowCents = out.taxCents;
+    } catch (e) { error = (e && e.message) || String(e); }
+
+    await logShadow(env, {
+      order_number: (args.orderNumber || null),
+      state: normalizeStateCode(address?.state) || null,
+      zip: String(address?.zip || '').replace(/\D/g, '').slice(0, 5) || null,
+      taxable_cents: Math.round(taxableCents || 0),
+      live_engine: live.engine || null,
+      live_cents: Math.round(live.taxCents || 0),
+      shadow_engine: shadow,
+      shadow_cents: shadowCents == null ? null : Math.round(shadowCents),
+      delta_cents: shadowCents == null ? null : Math.round(shadowCents - (live.taxCents || 0)),
+      shadow_error: error,
+    });
+  })());
+
+  return live;
 }
 
 /* ── Telling the provider the sale actually happened ─────────────────────────
@@ -698,6 +1017,51 @@ export async function recordTaxSale({ env, ref, order }) {
       return { ok: true, engine, id: String(data?.order?.transaction_id || order?.orderNumber || '') };
     }
 
+    if (engine === 'taxcloud') {
+      const loginId = env.TAXCLOUD_API_LOGIN_ID, key = env.TAXCLOUD_API_KEY;
+      if (!loginId || !key) return { ok: false, engine, error: 'TaxCloud credentials not set' };
+      const now = new Date().toISOString();
+      const resp = await withTimeout(fetch('https://api.taxcloud.net/1.0/TaxCloud/AuthorizedWithCapture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiLoginID: loginId, apiKey: key, customerID: 'guest',
+          cartID: ref || String(order?.orderNumber || ''),
+          orderID: String(order?.orderNumber || ''),
+          dateAuthorized: now, dateCaptured: now,
+        }),
+      }), TAX_API_TIMEOUT_MS, 'TaxCloud record');
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok) return { ok: false, engine, error: 'TaxCloud ' + resp.status };
+      /* ResponseType 3 is OK; anything less carries messages worth surfacing. */
+      if (data && Number(data.ResponseType) < 3) {
+        return { ok: false, engine, error: JSON.stringify(data.Messages || data) };
+      }
+      return { ok: true, engine, id: String(order?.orderNumber || '') };
+    }
+
+    if (engine === 'avalara') {
+      const config2 = config;
+      const resp = await withTimeout(fetch(avaBase(env) + '/api/v2/transactions/create', {
+        method: 'POST',
+        headers: { Authorization: avaAuth(env), 'Content-Type': 'application/json' },
+        /* A committed SalesInvoice is the recorded sale — the same endpoint the
+           quote uses, with the document type that counts. */
+        body: JSON.stringify(avaDocument({
+          env, config: config2,
+          address: order?.address || {},
+          taxableCents: order?.subtotalCents || 0,
+          shippingCents: order?.shippingCents || 0,
+          lineItems: null,
+          type: 'SalesInvoice', commit: true,
+          code: String(order?.orderNumber || ''),
+        })),
+      }), TAX_API_TIMEOUT_MS, 'Avalara record');
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok) return { ok: false, engine, error: 'Avalara ' + resp.status + ' ' + ((data && data.error && data.error.message) || '') };
+      return { ok: true, engine, id: String((data && data.code) || order?.orderNumber || '') };
+    }
+
     return { ok: true, skipped: 'engine has no reporting API', engine };
   } catch (err) {
     return { ok: false, engine, error: (err && err.message) || String(err) };
@@ -768,6 +1132,48 @@ export async function reverseTaxSale({ env, transactionId, order, amountCents, t
       const data = await resp.json().catch(() => null);
       if (!resp.ok) return { ok: false, engine, error: 'TaxJar ' + resp.status };
       return { ok: true, engine, id: String(data?.refund?.transaction_id || '') };
+    }
+
+    if (engine === 'taxcloud') {
+      const loginId = env.TAXCLOUD_API_LOGIN_ID, key = env.TAXCLOUD_API_KEY;
+      if (!loginId || !key) return { ok: false, engine, error: 'TaxCloud credentials not set' };
+      const resp = await withTimeout(fetch('https://api.taxcloud.net/1.0/TaxCloud/Returned', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiLoginID: loginId, apiKey: key,
+          orderID: String(order?.orderNumber || ''),
+          /* Empty list is TaxCloud's whole-order return. This store refunds by
+             amount rather than by line, so naming specific lines would be
+             inventing detail it does not have. */
+          cartItems: [],
+          returnedDate: new Date().toISOString(),
+        }),
+      }), TAX_API_TIMEOUT_MS, 'TaxCloud reversal');
+      if (!resp.ok) return { ok: false, engine, error: 'TaxCloud ' + resp.status };
+      return { ok: true, engine, id: String(order?.orderNumber || '') };
+    }
+
+    if (engine === 'avalara') {
+      /* Voiding removes the tax on the WHOLE sale. That is right for a full
+         refund and wrong for a partial one, which needs a ReturnInvoice with
+         line detail this store does not keep per refund. Refusing is better
+         than reversing more than actually came back. */
+      if (!full) {
+        return { ok: false, engine, error: 'Avalara partial reversals need a ReturnInvoice — reverse this one in AvaTax directly' };
+      }
+      const company = config.companyCode || env.AVALARA_COMPANY_CODE || 'DEFAULT';
+      const code = encodeURIComponent(String(order?.orderNumber || ''));
+      const resp = await withTimeout(fetch(
+        avaBase(env) + '/api/v2/companies/' + encodeURIComponent(company) + '/transactions/' + code + '/void',
+        {
+          method: 'POST',
+          headers: { Authorization: avaAuth(env), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: 'DocVoided' }),
+        }
+      ), TAX_API_TIMEOUT_MS, 'Avalara reversal');
+      if (!resp.ok) return { ok: false, engine, error: 'Avalara ' + resp.status };
+      return { ok: true, engine, id: String(order?.orderNumber || '') };
     }
 
     return { ok: true, skipped: 'engine has no reporting API', engine };

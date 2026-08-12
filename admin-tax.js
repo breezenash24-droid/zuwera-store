@@ -1121,6 +1121,8 @@
                       builtin: 'Running the table below. Free, no third party involved, and accurate to the state — plus Ohio county and Illinois ZIP. Wrong wherever a city adds its own district rate or a state exempts clothing.',
                       stripe_tax: 'Uses the Stripe account this store already charges through, so there is no key to add and no extra signup. Stripe bills 0.5% of each transaction it calculates tax on. Turn it on in Stripe → Settings → Tax first, and register the states you have nexus in.',
                       taxjar: 'Add <b>TAXJAR_API_KEY</b> in Cloudflare → Pages → Settings → Environment variables, then redeploy. Knows clothing exemptions per state, which the table does not.',
+                      taxcloud: 'The cheapest paid option — historically free or near-free for US sales tax, and it files in SST member states. Add <b>TAXCLOUD_API_LOGIN_ID</b> and <b>TAXCLOUD_API_KEY</b> in Cloudflare, then redeploy. Completed sales and refunds are reported automatically. Check their current pricing before switching.',
+                      avalara: 'The one your accountant will name. Add <b>AVALARA_ACCOUNT_ID</b> and <b>AVALARA_LICENSE_KEY</b> in Cloudflare, and set <b>AVALARA_ENV</b> to <code>production</code> when you are ready — it points at the sandbox until you do. Quotes are uncommitted SalesOrders; the sale is filed as a committed SalesInvoice when it completes. Partial refunds must be reversed in AvaTax directly.',
                       ziptax: 'Add <b>ZIPTAX_API_KEY</b> in Cloudflare → Pages → Settings → Environment variables, then redeploy. A rate lookup by ZIP — better than the table, no filing or nexus tracking.',
                       external: 'Your endpoint receives <code>{ taxableCents, shippingCents, address }</code> and answers with <code>{ taxCents }</code>, or <code>{ taxAmount }</code> in dollars, or <code>{ rate }</code> — whichever is easiest. Set <b>TAX_API_KEY</b> in Cloudflare to have it sent as a bearer token. This is the route for Avalara, Sovos, or anything already running.',
                       none: '<b style="color:var(--error);">No tax will be added to any order.</b> Only correct if something outside this checkout collects it, or you genuinely have no obligation anywhere. The figures below will read zero from here on.',
@@ -1129,6 +1131,7 @@
                     let _taxEngineCfg = {
                       engine: 'builtin', fallback: true, endpoint: '',
                       defaultCategory: 'general', taxCodes: {}, reportSales: true,
+                      companyCode: '', shadowEngine: '',
                     };
 
                     /* ── What the store sells, in nobody's vocabulary ──────────
@@ -1219,6 +1222,8 @@
                             fallback: v.fallback !== false,
                             endpoint: v.endpoint || '',
                             defaultCategory: v.defaultCategory || 'general',
+                            companyCode: v.companyCode || '',
+                            shadowEngine: v.shadowEngine || '',
                             taxCodes: (v.taxCodes && typeof v.taxCodes === 'object') ? v.taxCodes : {},
                             reportSales: v.reportSales !== false,
                           };
@@ -1230,6 +1235,8 @@
                       if (sel) sel.value = _taxEngineCfg.engine;
                       if (fb)  fb.checked = _taxEngineCfg.fallback;
                       if (ep)  ep.value = _taxEngineCfg.endpoint;
+                      const sh = document.getElementById('tax-shadow-select');
+                      if (sh) sh.value = _taxEngineCfg.shadowEngine || '';
                       window.taxEngineOnChange();
                     }
 
@@ -1274,6 +1281,7 @@
                           endpoint,
                           defaultCategory: catSel ? catSel.value : (_taxEngineCfg.defaultCategory || 'general'),
                           taxCodes: codes,
+                          shadowEngine: (document.getElementById('tax-shadow-select') || {}).value || '',
                         };
                         const { error } = await sb.from('site_settings')
                           .upsert({ key: 'tax_engine', value: next }, { onConflict: 'key' });

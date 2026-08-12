@@ -360,6 +360,10 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
       amount: priceCents,
       shippingWeightLb: Number.parseFloat(product.shipping_weight_lb) || Number.parseFloat(raw?.weightLb) || 0.5,
       image: product.image_url || raw?.image || raw?.imageUrl || raw?.img || '',
+      /* What this product IS, for tax. Blank falls back to the store-wide
+         default, so an all-clothing catalogue needs no per-product setting and
+         a store that later adds a water bottle can say so on that one row. */
+      taxCategory: String(product.tax_category || '').trim(),
     });
   }
 
@@ -490,7 +494,7 @@ export async function resolveShipping({ shippingRate, address, subtotalCents, ca
    Throws cartError() for anything the shopper can fix — the caller's catch is
    expected to honour e.zwStatus so a sold-out size stays a 409 rather than
    becoming a fake server outage. */
-export async function quoteCart({ items, address = {}, shippingRate, promoCode = '', deliveryMethod = '', accessToken = '', env, request }) {
+export async function quoteCart({ items, address = {}, shippingRate, promoCode = '', deliveryMethod = '', accessToken = '', env, request, waitUntil }) {
   const verifiedUser = await verifyAccessToken(accessToken, env);
   const isMember = Boolean(verifiedUser?.id);
 
@@ -565,6 +569,13 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
     taxableCents: discountedSubtotalCents,
     shippingCents: shipping.shippingCents,
     lineItems: taxLineItems,
+    /* So a held exemption certificate is honoured. Both identifiers, because a
+       wholesale buyer usually checks out as a guest the first time. */
+    customer: { email: address?.email || '', userId: verifiedUser?.id || '' },
+    /* Shadow mode prices a second engine after the response has gone out. Absent
+       on a caller with no Worker context, in which case it simply does not run
+       rather than making a customer wait for a comparison. */
+    waitUntil,
   });
 
   const totalCents = discountedSubtotalCents + shipping.shippingCents + tax.taxCents;
