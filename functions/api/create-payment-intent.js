@@ -73,7 +73,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
       env, request,
     });
     const {
-      verifiedUser, lineItems, inventoryItems, subtotalCents,
+      attributedUser, lineItems, inventoryItems, subtotalCents,
       shipping, normalizedPromoCode, discountCents, tax, taxStateCode,
       taxRate, taxCents, totalCents,
     } = quote;
@@ -160,7 +160,11 @@ export async function onRequestPost({ request, env, waitUntil }) {
           order_number: orderNumber,
           customer_email: address.email,
           customer_name: address.name || '',
-          user_id: verifiedUser?.id || '',
+          /* The buyer, not whoever happens to be signed in on this browser.
+             See the note in quoteCart: this used to be the session, so a guest
+             checking out on someone else's computer filed their order — name,
+             address, contents — into that person's account history. */
+          user_id: attributedUser?.id || '',
           items: metaItems,
           inv: JSON.stringify(inventoryItems),
           subtotal_amount_cents: String(subtotalCents),

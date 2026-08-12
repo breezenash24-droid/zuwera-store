@@ -20,3 +20,28 @@ export function orderNo(order) {
 export function orderNoPlain(order) {
   return orderNo(order).replace(/^#/, '');
 }
+
+/**
+ * An order number reduced to what a human meant by it.
+ *
+ * orderNo() prints a leading '#', so the number on a receipt reads "#ZW-1234".
+ * A customer copying that into a returns form was then matched literally
+ * against a stored value with no '#', or the reverse — and told, in effect,
+ * that their own order number was wrong. Nobody types a hash on purpose, and
+ * nobody omits one on purpose either; both are the same order.
+ *
+ * So comparisons go through here: case, spaces, hashes, dashes and any other
+ * punctuation are all noise. "#ZW-1234", "zw 1234" and "ZW1234" are one order.
+ *
+ * Use it on BOTH sides of a comparison, never on one — normalising only the
+ * input is how this bug happens in the first place.
+ */
+export function normalizeOrderNo(value) {
+  return String(value == null ? '' : value).toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+/** True when two order numbers mean the same order, however they were typed. */
+export function sameOrderNo(a, b) {
+  const left = normalizeOrderNo(a);
+  return Boolean(left) && left === normalizeOrderNo(b);
+}
