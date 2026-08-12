@@ -118,7 +118,15 @@ async function toSlack(env, { severity, event, detail, store }) {
 async function toEmail(env, { severity, event, detail, avoid }) {
   const to = (env.OPS_ALERT_EMAIL || env.ALERT_EMAIL || '').trim();
   if (!to) return { skipped: 'no address' };
-  const from = (env.OPS_ALERT_FROM || 'alerts@zuwera.store').trim();
+  /* EMAIL_FROM before the literal, because every other sender in the codebase
+     honours it and this one did not — so a store that set EMAIL_FROM to its one
+     verified address still had ops alerts going out as alerts@, which the
+     provider rejects for an unverified sender. Silently, and the thing that
+     fails is the alerting: you find out about the outage from a customer.
+
+     OPS_ALERT_FROM still wins, for the case where alerts deliberately leave by
+     a different route than customer mail. */
+  const from = (env.OPS_ALERT_FROM || env.EMAIL_FROM || 'alerts@zuwera.store').trim();
   const skip = new Set((avoid || []).map((s) => String(s).toLowerCase()));
   const subject = `[${severity}] ${event}`;
   const text = `${event}\n\n${detail || ''}\n\n${new Date().toISOString()}`;
