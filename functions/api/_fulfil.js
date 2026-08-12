@@ -28,7 +28,7 @@ import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { sendOrderAlerts } from './_order-alerts.js';
 import { mutateSetting } from './_commerce.js';
 import { notifyOps } from './_notify-ops.js';
-import { loopsFallback } from './_email.js';
+import { loopsFallback, orderStatusUrl } from './_email.js';
 import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } from './_email-theme.js';
 import { buildUserData, sendCapiEvents } from './_capi.js';
 import { veeqoBookShipment } from './_veeqo.js';
@@ -874,14 +874,12 @@ export function buildOrderConfirmation({ appearance, content, orderId, toName, i
      right for them. Everyone else goes to the guest lookup with their order
      number already filled in, so the only thing left to type is the email the
      receipt was sent to. */
-  const statusHref = meta.user_id
-    ? 'https://zuwera.store/account'
-    : 'https://zuwera.store/returns?order=' + encodeURIComponent(meta.order_number || '');
+  const statusHref = orderStatusUrl({ userId: meta.user_id, orderNumber: meta.order_number });
 
   const footerHtml = `
           <a href="${statusHref}" style="color:${a.text};text-decoration:underline;">View order status</a>
           &nbsp;·&nbsp;
-          <a href="https://zuwera.store/returns${meta.user_id ? '' : '?order=' + encodeURIComponent(meta.order_number || '')}" style="color:${a.text};text-decoration:underline;">30-day free returns</a><br>
+          <a href="${orderStatusUrl({ userId: null, orderNumber: meta.order_number })}" style="color:${a.text};text-decoration:underline;">30-day free returns</a><br>
           <span style="display:inline-block;margin-top:8px;">Questions? <a href="mailto:orders@zuwera.store" style="color:${a.muted};text-decoration:underline;">orders@zuwera.store</a></span><br>
           <span style="display:inline-block;margin-top:8px;">© ${new Date().getFullYear()} Zuwera. All rights reserved.</span>`;
 
@@ -1074,8 +1072,16 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
     // ── Third tier: Resend AND Brevo both down — last-resort Loops fallback ──
     const loops = await loopsFallback({
       env, cache: emailKeyCache, to: toEmail, subject: fillTemplate(emailC.subject, { order: orderId }), html,
-      text: `Your Zuwera order #${orderId} is confirmed and being prepared.\n\nView your order: https://zuwera.store/confirm.html?order=${orderId}\n\nQuestions? orders@zuwera.store`,
-      dataVariables: { orderId, orderUrl: `https://zuwera.store/confirm.html?order=${orderId}` },
+      /* confirm.html is the AUTH confirmation page — password resets and email
+         verification. Pointing a customer there to "view your order" showed
+         them a sign-in flow with no order anywhere on it. Same destination as
+         the main confirmation email now, which is also the point of having one
+         helper decide this. */
+      text: `Your Zuwera order #${orderId} is confirmed and being prepared.\n\nView your order: ${orderStatusUrl({ userId: meta.user_id, orderNumber: meta.order_number })}\n\nQuestions? orders@zuwera.store`,
+      dataVariables: {
+        orderId,
+        orderUrl: orderStatusUrl({ userId: meta.user_id, orderNumber: meta.order_number }),
+      },
     });
     if (loops.ok) {
       /* Two down, one left. Warn rather than critical — the customer got their
