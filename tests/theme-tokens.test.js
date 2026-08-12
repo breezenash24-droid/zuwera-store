@@ -1257,5 +1257,23 @@ console.log('\n  the token foundation reaches every page');
     /body\.light-mode\s*\{ --fg-rgb: 10 10 10/.test(cohF));
 }
 
+/* Turnstile guards the admin login, and the site's own CSP did not allow it —
+   the browser console reported the script, the iframe and the connection as
+   violations. Report-only, so nothing broke; but a report-only policy exists to
+   be enforced one day, and one that flags your own bot protection can never be.
+   All three directives, because Turnstile needs all three: the script, the
+   iframe it opens, and the endpoint it posts the solved challenge to. */
+console.log('\n  the CSP allows our own bot protection');
+{
+  const headers = fs.readFileSync(ROOT + '/_headers', 'utf8');
+  const csp = (headers.match(/Content-Security-Policy[^\n]*/g) || []).join(' ');
+  for (const d of ['script-src', 'connect-src', 'frame-src']) {
+    const m = csp.match(new RegExp(d + ' [^;]*'));
+    ok(d + ' allows challenges.cloudflare.com',
+      !!m && m[0].includes('https://challenges.cloudflare.com'),
+      m ? m[0].slice(0, 90) : 'directive missing');
+  }
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
