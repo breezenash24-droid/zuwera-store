@@ -8,7 +8,7 @@
  * tax adapters needed the same address they reached for a courier's variable,
  * and a store not using Shippo at all still had to fill in Shippo's fields.
  *
- * The names are now FROM_*, which is what the thing actually is.
+ * The names are now SHIP_FROM_*, which is what the thing actually is.
  *
  * SHIPPO_FROM_* keeps working, and is read whenever the new name is unset.
  * That is not politeness — a rename that requires every deployment to update
@@ -23,9 +23,21 @@ export const SHIP_FROM_FIELDS = [
   'NAME', 'STREET1', 'STREET2', 'CITY', 'STATE', 'ZIP', 'COUNTRY', 'EMAIL', 'PHONE',
 ];
 
-/** Both names for one field, new first. Used by the status pages to report which is set. */
+/**
+ * Every name one field has ever had, most-preferred first.
+ *
+ * SHIP_FROM_, not FROM_: this set includes an email address, and the store
+ * already has EMAIL_FROM — the address customer emails are SENT from. A
+ * FROM_EMAIL sitting beside an EMAIL_FROM is the same six characters in a
+ * different order meaning something entirely different, and someone would
+ * eventually put the support address on a shipping label or the courier
+ * contact on an order confirmation. SHIP_FROM_ says which one it is.
+ *
+ * FROM_* is read too, briefly, because it was published as the new name before
+ * this was noticed. All three can coexist; SHIP_FROM_* is the one to use.
+ */
 export function shipFromKeys(field) {
-  return ['FROM_' + field, 'SHIPPO_FROM_' + field];
+  return ['SHIP_FROM_' + field, 'FROM_' + field, 'SHIPPO_FROM_' + field];
 }
 
 /**
@@ -36,8 +48,11 @@ export function shipFromKeys(field) {
  * environment alone, which is what they had before.
  */
 export function shipFromValue(field, env = {}, cache = {}, fallback = '') {
-  const [next, legacy] = shipFromKeys(field);
-  const found = resolveSetting(next, env, cache) || resolveSetting(legacy, env, cache);
+  let found = '';
+  for (const key of shipFromKeys(field)) {
+    found = resolveSetting(key, env, cache);
+    if (found) break;
+  }
   return String(found || fallback || '').trim();
 }
 

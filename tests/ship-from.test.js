@@ -6,7 +6,11 @@
  * store sells from, and a store not using Shippo at all still had to fill in
  * Shippo's fields.
  *
- * Renamed to FROM_*. The property these tests exist for is the boring one:
+ * Renamed to SHIP_FROM_* — not plain FROM_*, because the set includes an email
+ * address and the store already has EMAIL_FROM (who customer mail is sent FROM).
+ * FROM_EMAIL beside EMAIL_FROM is how a support address ends up on a parcel.
+ *
+ * The property these tests exist for is the boring one:
  * the old names must keep working, because an environment that has not been
  * migrated yet must not stop buying shipping labels. A rename that requires
  * every deployment to update its variables BEFORE the next deploy is a rename
@@ -27,9 +31,9 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
 
   console.log('  the new names');
   {
-    const env = { FROM_STREET1: '2930 Short Vine St', FROM_CITY: 'Cincinnati', FROM_STATE: 'OH', FROM_ZIP: '45219' };
+    const env = { SHIP_FROM_STREET1: '2930 Short Vine St', SHIP_FROM_CITY: 'Cincinnati', SHIP_FROM_STATE: 'OH', SHIP_FROM_ZIP: '45219' };
     const a = shipFrom(env);
-    ok('reads FROM_*', a.city === 'Cincinnati' && a.state === 'OH' && a.zip === '45219', JSON.stringify(a));
+    ok('reads SHIP_FROM_*', a.city === 'Cincinnati' && a.state === 'OH' && a.zip === '45219', JSON.stringify(a));
     ok('defaults the country rather than sending blank', a.country === 'US');
     ok('…and the sender name', !!a.name);
   }
@@ -51,9 +55,11 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
 
   console.log('\n  when both are set');
   {
-    const env = { FROM_STATE: 'OH', SHIPPO_FROM_STATE: 'KY' };
-    ok('the new name wins, so a migration is a one-way step',
+    const env = { SHIP_FROM_STATE: 'OH', FROM_STATE: 'KY', SHIPPO_FROM_STATE: 'IN' };
+    ok('the preferred name wins over both older ones',
       shipFromValue('STATE', env) === 'OH', shipFromValue('STATE', env));
+    ok('…and the interim name still beats the original',
+      shipFromValue('STATE', { FROM_STATE: 'KY', SHIPPO_FROM_STATE: 'IN' }) === 'KY');
   }
 
   console.log('\n  the admin panel beats the environment');
@@ -62,7 +68,7 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
        typed there has to win, or an admin corrects the address, sees it saved,
        and labels keep printing the old one. */
     const env = { SHIPPO_FROM_CITY: 'Cincinnati' };
-    const cache = { FROM_CITY: 'Covington' };
+    const cache = { SHIP_FROM_CITY: 'Covington' };
     ok('a saved setting overrides the env var', shipFromValue('CITY', env, cache) === 'Covington');
     ok('…and the legacy key does too', shipFromValue('CITY', env, { SHIPPO_FROM_CITY: 'Newport' }) === 'Newport');
   }
@@ -98,15 +104,20 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
     }
     ok('no endpoint reads the address straight off env any more', offenders.length === 0, offenders.join(', '));
 
-    ok('both spellings are offered for every field',
-      SHIP_FROM_FIELDS.every((f) => shipFromKeys(f).length === 2
-        && shipFromKeys(f)[0] === 'FROM_' + f
-        && shipFromKeys(f)[1] === 'SHIPPO_FROM_' + f));
+    ok('every field offers all three spellings, preferred first',
+      SHIP_FROM_FIELDS.every((f) => shipFromKeys(f).length === 3
+        && shipFromKeys(f)[0] === 'SHIP_FROM_' + f
+        && shipFromKeys(f)[2] === 'SHIPPO_FROM_' + f));
 
     /* Settings-backed keys must be allow-listed or the admin write is rejected. */
     const settings = fs.readFileSync(dir + '/_settings.js', 'utf8');
     ok('the new keys are writable from the admin',
-      SHIP_FROM_FIELDS.every((f) => settings.includes("'FROM_" + f + "'")));
+      SHIP_FROM_FIELDS.every((f) => settings.includes("'SHIP_FROM_" + f + "'")));
+    /* The near-miss that caused the rename: SHIP_FROM_EMAIL is the contact on a
+       label, EMAIL_FROM is who customer mail is sent from. Both must exist, and
+       they must stay distinct. */
+    ok('the label contact and the email sender are separate settings',
+      settings.includes("'SHIP_FROM_EMAIL'") && settings.includes("'EMAIL_FROM'"));
     ok('…and the old ones still are, so nothing already saved is orphaned',
       SHIP_FROM_FIELDS.every((f) => settings.includes("'SHIPPO_FROM_" + f + "'")));
   }
