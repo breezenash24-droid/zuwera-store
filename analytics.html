@@ -1069,6 +1069,41 @@
         </div>
       </div>
 
+      <!-- ── What actually sold, in apparel terms ────────────────────────────
+           Everything above is generic commerce: revenue, AOV, conversion. None
+           of it says which SIZE sold, which is the decision a clothing brand
+           actually spends money on. -->
+      <div class="chart-section">
+        <h2>Size curve</h2>
+        <p style="color:var(--text-secondary);font-size:.85rem;margin:-6px 0 14px;line-height:1.5;">Units sold by size. You buy inventory in a size run, so a size selling out while another sits costs you twice — the sales you could not make, and the stock you cannot sell. Sold in size order, not alphabetically.</p>
+        <div class="chart-container"><div class="bar-chart" id="sizeCurveChart"></div></div>
+        <div id="sizeCurveNote" style="color:var(--text-secondary);font-size:.8rem;margin-top:10px;"></div>
+      </div>
+
+      <div class="chart-section">
+        <h2>Colour performance</h2>
+        <p style="color:var(--text-secondary);font-size:.85rem;margin:-6px 0 14px;line-height:1.5;">Units sold by colourway — which to reorder, and which to stop making.</p>
+        <div class="chart-container"><div class="bar-chart" id="colourChart"></div></div>
+      </div>
+
+      <div class="chart-section">
+        <h2>Shipping: charged vs actually paid</h2>
+        <p style="color:var(--text-secondary);font-size:.85rem;margin:-6px 0 14px;line-height:1.5;">Every order records both what the customer paid for shipping and what the label really cost. The gap is margin, and nothing has ever compared the two.</p>
+        <div id="shipMarginBox"></div>
+      </div>
+
+      <div class="chart-section">
+        <h2>Is free shipping earning its keep?</h2>
+        <p style="color:var(--text-secondary);font-size:.85rem;margin:-6px 0 14px;line-height:1.5;">Orders clustered just above the threshold mean it is pulling baskets up. Nothing clustering means you are giving shipping away without the lift.</p>
+        <div id="freeShipBox"></div>
+      </div>
+
+      <div class="chart-section">
+        <h2>Returns by size</h2>
+        <p style="color:var(--text-secondary);font-size:.85rem;margin:-6px 0 14px;line-height:1.5;">A size that comes back far more than the others is a fit problem, not a customer problem — and correcting the size chart is much cheaper than absorbing the returns.</p>
+        <div id="returnsBySizeBox"></div>
+      </div>
+
       <!-- Product Status Distribution -->
       <div class="chart-section">
         <h2>Product Status Distribution</h2>
@@ -1180,6 +1215,9 @@
 
   <!-- Supabase Client -->
   <script src="/supabase.min.js?v=4b6a655b"></script>
+  <!-- So the size curve reads S, M, L, XL rather than alphabetically. The same
+       comparator the storefront sorts size pickers with. -->
+  <script src="/size-order.js"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
@@ -2832,7 +2870,209 @@
       setText('channelTotal', totalVis ? totalVis.toLocaleString() + ' visitors' : '');
     };
 
+    /* ── Apparel-specific reporting ───────────────────────────────────────────
+       Everything else on this page is generic commerce. None of it answers the
+       questions a clothing brand spends money on: which size sold, which colour
+       sold, and whether shipping is costing more than it collects. */
+
+    // Orders that represent a real sale. Refunded and cancelled ones are not.
+    const soldOrders = () => (allOrders || []).filter(
+      (o) => o && o.status !== 'cancelled' && o.status !== 'refunded');
+
+    /* Order items are stored as JSON and have been written by several code
+       paths over time, so the shape varies — hence reading each field through a
+       list of aliases rather than assuming one. */
+    const orderItems = (o) => {
+      let items = o && o.items;
+      if (typeof items === 'string') { try { items = JSON.parse(items); } catch (_) { items = []; } }
+      return Array.isArray(items) ? items : [];
+    };
+    const itemSize = (i) => String(i.size || i.s || '').trim();
+    const itemColour = (i) => String(i.color || i.colorName || i.colour || i.c || '').trim();
+    const itemQty = (i) => Number(i.quantity || i.qty || i.q || 1) || 1;
+
+    /* Sizes in size order, borrowed from the storefront's comparator so the
+       chart reads S, M, L, XL rather than L, M, S. Falls back to insertion
+       order if the module has not loaded — a wrong ORDER is cosmetic, a thrown
+       exception takes the whole page down. */
+    const bySizeOrder = (labels) => {
+      try {
+        if (window.ZWSizeOrder) return window.ZWSizeOrder.sort(labels);
+      } catch (_) {}
+      return labels;
+    };
+
+    const barRows = (entries, fmt) => {
+      const peak = Math.max(...entries.map(([, v]) => v), 1);
+      return entries.map(([label, v]) =>
+        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">'
+        + '<span style="min-width:90px;font-size:.8rem;">' + advEsc(label) + '</span>'
+        + '<div style="flex:1;background:var(--card-border);border-radius:4px;height:14px;overflow:hidden;">'
+        + '<div style="background:var(--accent);height:14px;width:' + Math.max(2, Math.round((v / peak) * 100)) + '%;"></div></div>'
+        + '<span style="min-width:70px;text-align:right;font-size:.8rem;font-variant-numeric:tabular-nums;">'
+        + (fmt ? fmt(v) : v) + '</span></div>'
+      ).join('');
+    };
+
+    const renderSizeAndColour = () => {
+      const sizes = {}, colours = {};
+      let counted = 0, untagged = 0;
+      soldOrders().forEach((o) => orderItems(o).forEach((i) => {
+        const q = itemQty(i);
+        const s = itemSize(i), c = itemColour(i);
+        if (s) { sizes[s] = (sizes[s] || 0) + q; counted += q; } else { untagged += q; }
+        if (c) colours[c] = (colours[c] || 0) + q;
+      }));
+
+      const sizeBox = document.getElementById('sizeCurveChart');
+      const note = document.getElementById('sizeCurveNote');
+      if (sizeBox) {
+        const labels = bySizeOrder(Object.keys(sizes));
+        sizeBox.innerHTML = labels.length
+          ? barRows(labels.map((l) => [l, sizes[l]]), (v) => v + ' sold')
+          : '<p style="color:var(--text-secondary);font-size:.85rem;">No sizes sold yet.</p>';
+      }
+      if (note) {
+        /* Said out loud rather than quietly folded in: a curve built from half
+           the units is a curve you should not buy stock against. */
+        note.textContent = untagged
+          ? untagged + ' unit(s) had no size recorded and are not in this chart.'
+          : (counted ? counted + ' units, all with a size recorded.' : '');
+      }
+
+      const colourBox = document.getElementById('colourChart');
+      if (colourBox) {
+        const entries = Object.entries(colours).sort((a, b) => b[1] - a[1]).slice(0, 12);
+        colourBox.innerHTML = entries.length
+          ? barRows(entries, (v) => v + ' sold')
+          : '<p style="color:var(--text-secondary);font-size:.85rem;">No colours recorded on sold items yet.</p>';
+      }
+    };
+
+    const renderShippingMargin = () => {
+      const box = document.getElementById('shipMarginBox');
+      if (!box) return;
+      /* Only orders that actually recorded a label cost. Everything before the
+         column existed is genuinely unmeasured, and counting it as zero cost
+         would invent a profit that was never made. */
+      const rows = soldOrders().filter((o) => o.actual_shipping_cost != null);
+      if (!rows.length) {
+        box.innerHTML = '<p style="color:var(--text-secondary);font-size:.85rem;">No orders yet with a recorded label cost. This fills in as orders ship from now on — earlier orders never stored what the label cost, so they are left out rather than counted as free.</p>';
+        return;
+      }
+      let charged = 0, paid = 0, freeOrders = 0, freeCost = 0;
+      rows.forEach((o) => {
+        const c = parseFloat(o.shipping || 0);
+        const a = parseFloat(o.actual_shipping_cost || 0);
+        charged += c; paid += a;
+        if (c <= 0.005) { freeOrders++; freeCost += a; }
+      });
+      const net = charged - paid;
+      const colour = net < 0 ? 'var(--danger, #ef4444)' : 'var(--accent)';
+      box.innerHTML =
+        '<p style="font-size:1.6rem;font-weight:700;color:' + colour + ';">'
+        + (net < 0 ? '−' : '') + fmtMoney2(Math.abs(net)) + '</p>'
+        + '<p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:14px;">'
+        + (net < 0 ? 'lost on shipping' : 'kept on shipping')
+        + ' across ' + rows.length + ' order(s) — charged ' + fmtMoney2(charged)
+        + ', labels cost ' + fmtMoney2(paid) + '</p>'
+        + (freeOrders
+            ? '<p style="font-size:.85rem;">' + freeOrders + ' free-shipping order(s) cost you '
+              + fmtMoney2(freeCost) + ' in labels — an average of '
+              + fmtMoney2(freeCost / freeOrders) + ' given away per order.</p>'
+            : '');
+    };
+
+    const renderFreeShipEffect = () => {
+      const box = document.getElementById('freeShipBox');
+      if (!box) return;
+      const threshold = Number((window._shippingPolicy && window._shippingPolicy.threshold) || 100);
+      const rows = soldOrders();
+      if (!rows.length) { box.innerHTML = '<p style="color:var(--text-secondary);font-size:.85rem;">No orders yet.</p>'; return; }
+      /* A band either side of the threshold. If it is pulling baskets up, the
+         band above is fuller than the band below; if the two are level, the
+         threshold is not changing anyone's mind and is pure cost. */
+      const band = Math.max(10, threshold * 0.2);
+      let below = 0, above = 0, over = 0;
+      rows.forEach((o) => {
+        const sub = parseFloat(o.subtotal || 0);
+        if (sub >= threshold) over++;
+        if (sub >= threshold - band && sub < threshold) below++;
+        else if (sub >= threshold && sub < threshold + band) above++;
+      });
+      const verdict = !below && !above
+        ? 'No orders land near the ' + fmtMoney2(threshold) + ' threshold yet — too early to tell.'
+        : above > below
+          ? 'Baskets are clustering ABOVE the threshold — it looks like it is pulling order values up.'
+          : above === below
+            ? 'Evenly split either side — no evidence it is changing behaviour yet.'
+            : 'More orders stop just SHORT of the threshold than clear it. It may be set too high, or not be visible enough at checkout.';
+      box.innerHTML =
+        '<p style="font-size:.9rem;margin-bottom:12px;">' + verdict + '</p>'
+        + barRows([
+            ['Just under', below],
+            ['Just over', above],
+            ['Total over ' + fmtMoney2(threshold), over],
+          ], (v) => v + ' order(s)');
+    };
+
+    const renderReturnsBySize = async () => {
+      const box = document.getElementById('returnsBySizeBox');
+      if (!box) return;
+      try {
+        /* Returns are a JSON list in site_settings under commerce_returns —
+           not a table. admin-returns.js is the only writer. */
+        const { data: row, error } = await sbClient.from('site_settings')
+          .select('value').eq('key', 'commerce_returns').maybeSingle();
+        if (error) throw error;
+        let blob = row && row.value;
+        if (typeof blob === 'string') { try { blob = JSON.parse(blob); } catch (_) { blob = null; } }
+        const reqs = (blob && Array.isArray(blob.requests)) ? blob.requests : [];
+        /* Denied and cancelled requests are not returns — the goods stayed
+           with the customer, and counting them would invent a fit problem. */
+        const live = reqs.filter((r) => r && r.status !== 'denied' && r.status !== 'cancelled');
+        if (!live.length) { box.innerHTML = '<p style="color:var(--text-secondary);font-size:.85rem;">No returns yet.</p>'; return; }
+
+        const returned = {};
+        live.forEach((r) => {
+          let items = r.items;
+          if (typeof items === 'string') { try { items = JSON.parse(items); } catch (_) { items = []; } }
+          (Array.isArray(items) ? items : []).forEach((i) => {
+            const s = itemSize(i);
+            if (s) returned[s] = (returned[s] || 0) + itemQty(i);
+          });
+        });
+
+        const sold = {};
+        soldOrders().forEach((o) => orderItems(o).forEach((i) => {
+          const s = itemSize(i);
+          if (s) sold[s] = (sold[s] || 0) + itemQty(i);
+        }));
+
+        const labels = bySizeOrder(Object.keys(sold).length ? Object.keys(sold) : Object.keys(returned));
+        if (!labels.length) { box.innerHTML = '<p style="color:var(--text-secondary);font-size:.85rem;">No sizes recorded on returns yet.</p>'; return; }
+        /* A RATE, not a count: the size you sell most of will always have the
+           most returns, and that tells you nothing. */
+        const rates = labels.map((s) => [s, sold[s] ? (returned[s] || 0) / sold[s] : 0]);
+        const worst = rates.slice().sort((a, b) => b[1] - a[1])[0];
+        box.innerHTML =
+          (worst && worst[1] > 0
+            ? '<p style="font-size:.9rem;margin-bottom:12px;">Highest return rate: <b>' + advEsc(worst[0])
+              + '</b> at ' + Math.round(worst[1] * 100) + '%. If it is well clear of the others, the size chart is likely wrong for that size rather than the customers being fussy.</p>'
+            : '')
+          + barRows(rates, (v) => Math.round(v * 100) + '%')
+          + '<p style="color:var(--text-secondary);font-size:.75rem;margin-top:10px;">Returned units as a share of units sold in that size. Denied and cancelled requests are excluded.</p>';
+      } catch (e) {
+        box.innerHTML = '<p style="color:var(--text-secondary);font-size:.85rem;">Could not load returns.</p>';
+        console.warn('Returns by size failed:', e);
+      }
+    };
+
     const updateAdvancedAnalytics = () => {
+      try { renderSizeAndColour(); } catch (e) { console.warn('Size/colour failed:', e); }
+      try { renderShippingMargin(); } catch (e) { console.warn('Shipping margin failed:', e); }
+      try { renderFreeShipEffect(); } catch (e) { console.warn('Free-ship effect failed:', e); }
+      renderReturnsBySize().catch((e) => console.warn('Returns by size failed:', e));
       try { renderTodayGlance(); } catch (e) { console.warn('Today glance failed:', e); }
       try { renderRetention(); } catch (e) { console.warn('Retention failed:', e); }
       try { renderMerchandising(); } catch (e) { console.warn('Merchandising failed:', e); }

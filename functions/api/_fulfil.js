@@ -690,6 +690,15 @@ export async function saveOrderToSupabase(pi, meta, tracking, env) {
       items:            JSON.stringify(itemsWithImages),
       subtotal:         (subtotalCents / 100).toFixed(2),
       shipping:         (shippingCents  / 100).toFixed(2),
+      /* What the label actually cost, against what the customer was charged
+         above. Both numbers existed already — this one only in Stripe metadata,
+         where nothing could subtract one from the other. NULL rather than 0
+         when there was no label (hand delivery) or no figure, because zero
+         would read as "shipped for free" and drag the average down with a
+         number nobody measured. */
+      actual_shipping_cost: meta.actual_shipping_cost_cents
+        ? (parseInt(meta.actual_shipping_cost_cents, 10) / 100).toFixed(2)
+        : null,
       tax:              (taxCents       / 100).toFixed(2),
       // Which engine produced that figure, so a year of collections can still be
       // attributed after the setting changes. NULL on orders older than this.
