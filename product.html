@@ -5437,7 +5437,10 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
       const accessToken = await getCheckoutAccessToken();
       const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, userId, accessToken, address:{name,email,line1:addr1,line2:addr2,city,state,zip,country:'US'} });
       if (d.error) { err.textContent=d.error; btn.disabled=false; btxt.textContent='Pay Now'; return; }
-      const { error, paymentIntent } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:{ card, billing_details:{name,email} }, receipt_email:email, shipping:{name,address:{line1:addr1,line2:addr2,city,state,postal_code:zip,country:'US'}} });
+      /* No `shipping`: the server sets it with the secret key when it creates
+         the intent, and Stripe refuses to let a publishable key overwrite it.
+         Same reason as checkout.js — see the note there. */
+      const { error, paymentIntent } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:{ card, billing_details:{name,email} }, receipt_email:email });
       if (error) { err.textContent=error.message; btn.disabled=false; btxt.textContent='Pay Now'; return; }
       closePayModal('payment-modal', { suppressReturn:true }); showConfirmed(paymentIntent.id, email);
     } catch(e) { err.textContent='Something went wrong. Please try again.'; btn.disabled=false; btxt.textContent='Pay Now'; }

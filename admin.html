@@ -2227,6 +2227,8 @@
                           <option value="builtin">Built-in table (default)</option>
                           <option value="stripe_tax">Stripe Tax — no key needed, uses this store's Stripe account</option>
                           <option value="taxjar">TaxJar — needs TAXJAR_API_KEY</option>
+                          <option value="taxcloud">TaxCloud — cheapest paid option, needs TAXCLOUD_API_LOGIN_ID + KEY</option>
+                          <option value="avalara">Avalara AvaTax — needs AVALARA_ACCOUNT_ID + LICENSE_KEY</option>
                           <option value="ziptax">Zip-Tax — needs ZIPTAX_API_KEY</option>
                           <option value="external">My own endpoint — Avalara, Sovos, an accountant's service</option>
                           <option value="none">Nothing — collect no tax here</option>
@@ -2242,6 +2244,23 @@
                       <input type="checkbox" id="tax-engine-fallback" checked style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;">
                       <span>If the service is down or slow, fall back to the built-in table rather than failing the order</span>
                     </label>
+
+                    <!-- Shadow mode: price every order twice, charge from one.
+                         Turns "should I switch engines" from a guess into a
+                         measurement taken on real orders. -->
+                    <div style="margin-top:16px;">
+                      <label for="tax-shadow-select" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:5px;">Also price each order with (comparison only, never charged)</label>
+                      <select id="tax-shadow-select" style="padding:9px 12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:13px;min-width:260px;">
+                        <option value="">Off</option>
+                        <option value="builtin">Built-in table</option>
+                        <option value="stripe_tax">Stripe Tax</option>
+                        <option value="taxjar">TaxJar</option>
+                        <option value="taxcloud">TaxCloud</option>
+                        <option value="avalara">Avalara AvaTax</option>
+                        <option value="ziptax">Zip-Tax</option>
+                      </select>
+                      <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.6;max-width:620px;">Runs a second engine after the order is placed and records what it <i>would</i> have charged. Customers are never affected and never wait for it. Use this to find out how far the free table is from a paid provider — on your own orders — before paying for one. Costs one extra API call per order with whichever engine you pick here.</p>
+                    </div>
                     <div id="tax-engine-note" style="margin-top:14px;font-size:12px;line-height:1.6;color:var(--text-secondary);"></div>
                     <!-- What the store sells, and each provider's code for it.
                          Drawn by admin-tax.js so the code rows follow whichever
