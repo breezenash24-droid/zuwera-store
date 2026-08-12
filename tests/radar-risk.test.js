@@ -149,5 +149,52 @@ console.log('\n  Stripe can read where the order is going');
   }
 }
 
+/* ── One failed insert must not cancel the whole of fulfilment ───────────────
+   saveOrderToSupabase threw, and everything that matters to the customer is
+   BELOW it: the confirmation email, the tracking write-back, the stock
+   decrement, the loyalty points. So a single rejected row silently took out
+   fulfilment for every order, and the only trace was a console.error in a
+   Worker log.
+
+   What set it off was one new column written before its migration had run —
+   PostgREST rejects the entire row for one unknown field. That mistake is easy
+   to repeat; the cost of repeating it should be a missing order row, not a
+   customer who paid and heard nothing. */
+console.log('\n  a failed order insert cannot silence everything after it');
+{
+  const F2 = fs.readFileSync(ROOT + 'functions/api/_fulfil.js', 'utf8');
+
+  ok('the insert is wrapped rather than allowed to throw',
+    /try \{\s*await saveOrderToSupabase/.test(F2));
+  ok('…and the rest of fulfilment still runs', /orderSaved = false/.test(F2));
+
+  /* Order matters: the email has to come AFTER the catch, or wrapping the
+     insert achieves nothing. */
+  const insertAt = F2.indexOf('await saveOrderToSupabase');
+  const emailAt = F2.indexOf('sendConfirmationEmail(pi, meta, tracking, env');
+  ok('the confirmation email is downstream of the insert, and now survives it',
+    insertAt > 0 && emailAt > insertAt);
+
+  /* An order taken and not recorded is the worst state this system has: the
+     money moved and nothing knows about it. That cannot be a log line. */
+  ok('a paid-but-unsaved order raises a critical alert',
+    /key: 'order-save-failed'/.test(F2) && /severity: 'critical'/.test(F2));
+  ok('…that says the customer has already been charged',
+    /customer has been billed/.test(F2));
+  ok('…and alerting failing does not compound the original failure',
+    /alerting failing must not compound/.test(F2));
+
+  /* The specific trigger, kept honest: the column this file writes must exist
+     in a migration. A field added here without one repeats the outage. */
+  const migrations = fs.readdirSync(ROOT + 'migrations')
+    .filter((f) => f.endsWith('.sql'))
+    .map((f) => fs.readFileSync(ROOT + 'migrations/' + f, 'utf8'))
+    .join('\n');
+  ok('every new order column this file writes exists in a migration',
+    /add column if not exists actual_shipping_cost/.test(migrations)
+    && /add column if not exists tax_engine|tax_engine text/.test(migrations),
+    'a column is written that no migration creates');
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
