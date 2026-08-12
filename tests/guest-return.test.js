@@ -142,6 +142,44 @@ const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
       /mutateSetting\(env, 'commerce_returns'/.test(CODE));
   }
 
+  console.log('\n  the page a guest actually uses');
+  {
+    const page = fs.readFileSync(ROOT + '/returns.html', 'utf8');
+
+    ok('the returns page offers a way in without an account',
+      /data-guest-lookup/.test(page) && /Checked out as a guest/.test(page));
+    /* The page renders this prompt TWICE — once before paint so a signed-out
+       visitor sees it immediately, and again from init(). The file's own
+       comment says to keep them in sync; if only one carries the guest option
+       it appears and then vanishes, which is worse than never showing it. */
+    ok('…in both copies of the signed-out prompt, so it does not flash and vanish',
+      (page.match(/data-guest-lookup/g) || []).length >= 2,
+      (page.match(/data-guest-lookup/g) || []).length + ' occurrence(s)');
+    /* An attribute rather than an id, precisely BECAUSE it is emitted twice —
+       a duplicate id in the shipped file fails the deployment check, and
+       binding only the first copy leaves a dead button on the other. */
+    ok('…and every copy is wired, not just the first',
+      /querySelectorAll\('\[data-guest-lookup\]'\)/.test(page));
+
+    ok('a return link is honoured before any session check',
+      /const guestToken = new URLSearchParams\(location\.search\)\.get\('t'\)/.test(page)
+      && /if \(guestToken\) \{ await renderGuestReturn/.test(page));
+
+    ok('it talks to the guest endpoint', /fetch\('\/api\/guest-return'/.test(page));
+    /* The server's sentence is the same whether or not the lookup matched.
+       Rewording it per outcome in the browser would undo that. */
+    ok('…and shows the server\'s wording rather than inventing its own',
+      /out\.message \|\| out\.error/.test(page));
+
+    ok('an ineligible order shows no form at all',
+      /if \(!data\.eligible\)/.test(page));
+    ok('the reasons are the page\'s existing list, not a second one',
+      /REASONS\.map/.test(page));
+    ok('all three resolutions are offered', /value="exchange"/.test(page) && /value="store_credit"/.test(page));
+    ok('an empty selection is explained as "the whole order"',
+      /return the whole order/i.test(page));
+  }
+
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
   process.exit(fail ? 1 : 0);
 })();

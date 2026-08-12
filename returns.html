@@ -202,6 +202,65 @@
       text-align: center;
       background: var(--subtle);
     }
+    /* ── Returning without an account ─────────────────────────────────────
+       Uses the page's own tokens rather than its own palette, so the guest
+       route does not look like a different site bolted onto the same page. */
+    .guest-alt {
+      margin-top: 2rem; padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+    .guest-alt p { font-size: .82rem; color: var(--muted); margin-bottom: .8rem; }
+    .btn-secondary {
+      display: inline-block; padding: .7rem 1.4rem;
+      border: 1px solid var(--border); background: none;
+      color: inherit; font: inherit; font-size: .78rem;
+      letter-spacing: .08em; text-transform: uppercase;
+      cursor: pointer;
+    }
+    .btn-secondary:hover { border-color: currentColor; }
+
+    .guest-form { max-width: 340px; margin: 1.5rem auto 0; text-align: left; }
+    .guest-form label {
+      display: block; font-size: .7rem; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: .35rem;
+    }
+    .guest-form input {
+      width: 100%; padding: .7rem .8rem; margin-bottom: 1rem;
+      border: 1px solid var(--border); background: transparent;
+      color: inherit; font: inherit; font-size: .9rem;
+    }
+    .guest-form .btn-primary { width: 100%; }
+    .guest-status { font-size: .8rem; color: var(--muted); margin-top: .9rem; line-height: 1.5; }
+
+    .guest-return { border: 1px solid var(--border); padding: 2rem 1.5rem; background: var(--subtle); }
+    .guest-return h2 { font-family: var(--fw); font-size: 1.4rem; letter-spacing: .05em; }
+    .guest-return h3 {
+      font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); margin: 1.8rem 0 .7rem;
+    }
+    .guest-sub { font-size: .8rem; color: var(--muted); margin-top: .3rem; }
+    .guest-hint { font-size: .78rem; color: var(--muted); margin-bottom: .8rem; }
+    .guest-optional { text-transform: none; letter-spacing: 0; opacity: .7; }
+    .guest-items { display: flex; flex-direction: column; gap: .1rem; }
+    .guest-item {
+      display: flex; align-items: center; gap: .7rem;
+      padding: .7rem .2rem; border-bottom: 1px solid var(--border);
+      font-size: .88rem; cursor: pointer;
+    }
+    .guest-item:last-child { border-bottom: none; }
+    .guest-return select, .guest-return textarea {
+      width: 100%; padding: .7rem .8rem; border: 1px solid var(--border);
+      background: transparent; color: inherit; font: inherit; font-size: .9rem;
+    }
+    .guest-return .btn-primary { margin-top: 1.8rem; width: 100%; }
+    .guest-history { margin-top: 1.5rem; border: 1px solid var(--border); padding: 1.2rem 1.4rem; }
+    .guest-history h3 {
+      font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: .6rem;
+    }
+    .guest-history p { font-size: .84rem; padding: .3rem 0; }
+    .guest-history span { color: var(--muted); font-size: .78rem; }
+
     .auth-prompt-icon { margin-bottom: 1rem; opacity: .4; }
     .auth-prompt-icon svg { width: 34px; height: 34px; display: block; margin: 0 auto; }
     .auth-prompt h2 { font-family: var(--fw); font-size: 1.4rem; letter-spacing: .05em; margin-bottom: .6rem; }
@@ -719,6 +778,13 @@ body.super-light-mode .policy-section { border-color: rgba(9,9,11,.14); }
           '<span class="auth-feature">Track your requests</span>'+
         '</div>'+
         '<a href="/?auth=signin&next=/returns.html" class="btn-primary" data-zw-login>Login</a>'+
+        /* Guest checkout is the default path here, so "log in" is a wall for
+           most buyers rather than a step. The order number is on their
+           confirmation email and their packing slip. */
+        '<div class="guest-alt">'+
+          '<p>Checked out as a guest? You do not need an account.</p>'+
+          '<button type="button" class="btn-secondary" data-guest-lookup>Look up my order</button>'+
+        '</div>'+
       '</div>';
     }catch(_){}})()
     </script>
@@ -1525,18 +1591,174 @@ function renderAuthPrompt() {
         <span class="auth-feature">Track your requests</span>
       </div>
       <a href="/?auth=signin&next=/returns.html" class="btn-primary" data-zw-login>Login</a>
+      <!-- Mirrors the pre-paint markup at the top of the page, per the note
+           there. Without it the guest option appears before paint and then
+           disappears the moment init() re-renders this — which is worse than
+           never showing it, because the visitor saw the way out. -->
+      <div class="guest-alt">
+        <p>Checked out as a guest? You do not need an account.</p>
+        <button type="button" class="btn-secondary" data-guest-lookup>Look up my order</button>
+      </div>
     </div>`;
 }
 
 // --- Init ---------------------------------------------------------------------
+/* ── Returning without an account ────────────────────────────────────────────
+   Guest checkout is the default path, so requiring a login here turns "send it
+   back" into "make an account first" for most buyers.
+
+   Two entry points. Either the visitor asks for a link (order number + email,
+   which are both on their confirmation email), or they arrive holding one. The
+   server does the deciding in both cases: it will not say whether a lookup
+   matched, and it re-checks eligibility and every returned item against the
+   order on submit. So this form can be simple without being permissive —
+   nothing it sends is trusted. */
+const guestApi = (payload) => fetch('/api/guest-return', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload),
+}).then((r) => r.json().catch(() => ({ error: 'Something went wrong.' })));
+
+function renderGuestLookup(root) {
+  root.innerHTML =
+    '<div class="auth-prompt">'
+    + '<h2>Find your order</h2>'
+    + '<p>Enter the order number and email from your confirmation. We will send a link to start your return — it goes to the email on the order.</p>'
+    + '<div class="guest-form">'
+    + '<label for="g-order">Order number</label>'
+    + '<input id="g-order" type="text" autocomplete="off" placeholder="ZW-1234">'
+    + '<label for="g-email">Email</label>'
+    + '<input id="g-email" type="email" autocomplete="email" placeholder="you@example.com">'
+    + '<button type="button" class="btn-primary" id="g-send">Email me a link</button>'
+    + '<p class="guest-status" role="status"></p>'
+    + '</div></div>';
+
+  document.getElementById('g-send').onclick = async function () {
+    const btn = this;
+    const status = root.querySelector('.guest-status');
+    const orderNumber = (document.getElementById('g-order').value || '').trim();
+    const email = (document.getElementById('g-email').value || '').trim();
+    if (!orderNumber || !email) { status.textContent = 'Please fill in both fields.'; return; }
+    btn.disabled = true; btn.textContent = 'Sending…';
+    const out = await guestApi({ action: 'start', orderNumber, email });
+    btn.disabled = false; btn.textContent = 'Email me a link';
+    /* Deliberately the server's sentence, unchanged. It is the same whether or
+       not the order matched — rewording it here per outcome would undo the
+       reason it is worded that way. */
+    status.textContent = out.message || out.error || 'Check your email.';
+  };
+}
+
+async function renderGuestReturn(root, token) {
+  root.innerHTML = '<div class="loading-pulse"><div class="pulse-line"></div><div class="pulse-line"></div></div>';
+  const data = await guestApi({ action: 'lookup', token });
+
+  if (!data || data.error) {
+    root.innerHTML = '<div class="auth-prompt"><h2>That link has expired</h2>'
+      + '<p>' + esc((data && data.error) || 'Please request a new one.') + '</p>'
+      + '<button type="button" class="btn-primary" data-guest-lookup>Look up my order</button></div>';
+    wireGuestOpen();
+    return;
+  }
+
+  const o = data.order || {};
+  let items = o.items;
+  if (typeof items === 'string') { try { items = JSON.parse(items); } catch (_) { items = []; } }
+  items = Array.isArray(items) ? items : [];
+
+  const history = (data.requests || []).length
+    ? '<div class="guest-history"><h3>Requests on this order</h3>'
+      + data.requests.map((r) =>
+          '<p>' + esc(r.resolution || 'return') + ' — ' + esc(r.status || '')
+          + ' <span>' + esc((r.createdAt || '').slice(0, 10)) + '</span></p>').join('')
+      + '</div>'
+    : '';
+
+  /* When nothing can be returned, the form is not shown at all. Offering a
+     form that will be refused on submit is worse than saying so up front. */
+  if (!data.eligible) {
+    root.innerHTML = '<div class="auth-prompt"><h2>Order ' + esc(o.orderNumber || '') + '</h2>'
+      + '<p>' + esc(data.reason || 'This order cannot be returned.') + '</p>'
+      + '</div>' + history;
+    return;
+  }
+
+  root.innerHTML =
+    '<div class="guest-return">'
+    + '<h2>Return order ' + esc(o.orderNumber || '') + '</h2>'
+    + '<p class="guest-sub">Placed ' + esc((o.createdAt || '').slice(0, 10)) + '</p>'
+    + '<h3>What are you sending back?</h3>'
+    + '<p class="guest-hint">Leave everything unticked to return the whole order.</p>'
+    + '<div class="guest-items">'
+    + items.map((it, i) =>
+        '<label class="guest-item"><input type="checkbox" data-idx="' + i + '">'
+        + '<span>' + esc(it.name || it.title || 'Item')
+        + (it.size ? ' · ' + esc(it.size) : '')
+        + (it.color || it.colorName ? ' · ' + esc(it.color || it.colorName) : '')
+        + (Number(it.quantity) > 1 ? ' · ×' + Number(it.quantity) : '')
+        + '</span></label>').join('')
+    + '</div>'
+    + '<h3>What would you like us to do?</h3>'
+    + '<select id="g-res">'
+    + '<option value="return">Refund</option>'
+    + '<option value="exchange">Exchange</option>'
+    + '<option value="store_credit">Store credit</option>'
+    + '</select>'
+    + '<h3>Why?</h3>'
+    + '<select id="g-reason">' + REASONS.map((r) => '<option>' + esc(r) + '</option>').join('') + '</select>'
+    + '<h3>Anything else? <span class="guest-optional">optional</span></h3>'
+    + '<textarea id="g-notes" rows="3" placeholder="Tell us more"></textarea>'
+    + '<button type="button" class="btn-primary" id="g-submit">Submit request</button>'
+    + '<p class="guest-status" role="status"></p>'
+    + '</div>' + history;
+
+  document.getElementById('g-submit').onclick = async function () {
+    const btn = this;
+    const status = root.querySelector('.guest-status');
+    const picked = Array.from(document.querySelectorAll('.guest-items input:checked'))
+      .map((c) => items[Number(c.dataset.idx)])
+      .filter(Boolean);
+    btn.disabled = true; btn.textContent = 'Submitting…';
+    const out = await guestApi({
+      action: 'submit', token,
+      returnItems: picked,
+      resolution: document.getElementById('g-res').value,
+      reason: document.getElementById('g-reason').value,
+      notes: (document.getElementById('g-notes').value || '').trim(),
+    });
+    if (out && out.success) {
+      root.innerHTML = '<div class="auth-prompt"><h2>Request received</h2>'
+        + '<p>We have your request for order ' + esc(out.orderNumber || '') + '. '
+        + 'You will get an email as it moves along.</p></div>';
+      return;
+    }
+    btn.disabled = false; btn.textContent = 'Submit request';
+    status.textContent = (out && out.error) || 'Could not submit that. Please try again.';
+  };
+}
+
+/* Wires EVERY copy. The signed-out prompt is rendered twice — once before
+   paint, once by init() — so binding only the first leaves a dead button
+   whenever the other one is the live copy. */
+function wireGuestOpen() {
+  document.querySelectorAll('[data-guest-lookup]').forEach((b) => {
+    b.onclick = () => renderGuestLookup(document.getElementById('page-root'));
+  });
+}
+
 async function init() {
   const root = document.getElementById('page-root');
   ensureProductImages(); // preload product thumbnails for the item picker
+
+  /* A return link beats everything else, including a signed-in session: someone
+     who clicked the email for THIS order wants that order, not their list. */
+  const guestToken = new URLSearchParams(location.search).get('t');
+  if (guestToken) { await renderGuestReturn(root, guestToken); return; }
 
   try {
     const session = await getSession();
     if (!session) {
       root.innerHTML = renderAuthPrompt();
+      wireGuestOpen();
       return;
     }
 
