@@ -32,9 +32,12 @@ if (!process.env.CF_PAGES && !process.argv.includes('--local')) {
    nothing worse than the wrong typeface on first paint, which nobody would
    trace back to here. */
 const CANON = require(path.join(__dirname, '..', 'zw-config.js'));
-const PROJECT = (process.env.ZW_SUPABASE_URL || CANON.supabaseUrl).replace(/\/$/, '');
+/* Either name, matching stamp-project-config.js and the Workers. A deployment
+   that already runs this store has SUPABASE_URL set; making it invent a second
+   variable with the same value is how the two end up disagreeing. */
+const PROJECT = (process.env.ZW_SUPABASE_URL || process.env.SUPABASE_URL || CANON.supabaseUrl).replace(/\/$/, '');
 const SUPABASE_URL = PROJECT + '/rest/v1/site_settings?key=eq.fonts&select=value';
-const ANON = process.env.ZW_SUPABASE_ANON_KEY || CANON.supabaseAnonKey;
+const ANON = process.env.ZW_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || CANON.supabaseAnonKey;
 
 function fetchFonts() {
   return new Promise((resolve) => {

@@ -58,11 +58,24 @@ function shippedFiles(dir, out = []) {
 /* What gets replaced, and with what. Keyed on the CANONICAL value rather than
    on a marker comment: the literals are already identical everywhere, and a
    marker is one more thing that can be forgotten on the next file added. */
+/* Either name. ZW_* is the one documented for a fork, but a deployment that
+   already runs this store has SUPABASE_URL and SITE_URL configured, and asking
+   for a second variable holding the identical value is a way to get them out of
+   step. The Workers accept both names for the same reason. */
+const readEnv = (...names) => {
+  for (const n of names) {
+    const v = process.env[n];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return '';
+};
+
 const RULES = [
-  { name: 'ZW_SUPABASE_URL',      from: CANON.supabaseUrl,     env: process.env.ZW_SUPABASE_URL },
-  { name: 'ZW_SUPABASE_ANON_KEY', from: CANON.supabaseAnonKey, env: process.env.ZW_SUPABASE_ANON_KEY },
-  { name: 'ZW_SITE_URL',          from: CANON.siteUrl,         env: process.env.ZW_SITE_URL },
+  { names: ['ZW_SUPABASE_URL', 'SUPABASE_URL'],           from: CANON.supabaseUrl },
+  { names: ['ZW_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY'], from: CANON.supabaseAnonKey },
+  { names: ['ZW_SITE_URL', 'SITE_URL'],                   from: CANON.siteUrl },
 ];
+RULES.forEach((r) => { r.env = readEnv(...r.names); r.name = r.names[0]; });
 
 /* The project ref on its own, so a URL assembled from pieces — or a storage
    hostname — is caught as well as the full origin. */
@@ -77,23 +90,46 @@ const check = process.argv.includes('--check');
 
 if (!onCloudflare && !explicitLocal && !check) process.exit(0);
 
-const targetUrl = process.env.ZW_SUPABASE_URL || '';
+const targetUrl = readEnv('ZW_SUPABASE_URL', 'SUPABASE_URL');
 
 if (onCloudflare && !targetUrl) {
   console.error('');
-  console.error('  BUILD STOPPED — ZW_SUPABASE_URL is not set.');
+  console.error('  BUILD STOPPED — this build does not know which project it is for.');
   console.error('');
-  console.error('  Without it this build would ship a storefront pointed at the');
-  console.error('  project baked into zw-config.js (' + refOf(CANON.supabaseUrl) + '), which is');
-  console.error('  almost certainly not yours. It would appear to work.');
+  console.error('  Without that it would ship a storefront pointed at the project baked');
+  console.error('  into zw-config.js (' + refOf(CANON.supabaseUrl) + '), which is almost');
+  console.error('  certainly not yours. It would appear to work.');
   console.error('');
-  console.error('  Set these in Cloudflare Pages → Settings → Environment variables:');
+  console.error('  Set these as BUILD variables:');
   console.error('    ZW_SUPABASE_URL       https://<your-project>.supabase.co');
   console.error('    ZW_SUPABASE_ANON_KEY  <your project\'s anon key>');
   console.error('    ZW_SITE_URL           https://<your-domain>');
+  console.error('  (SUPABASE_URL / SUPABASE_ANON_KEY / SITE_URL are accepted too.)');
+  console.error('');
+  /* The distinction that costs an hour otherwise. Cloudflare keeps runtime
+     variables and BUILD variables in two different places, and this script runs
+     in postinstall — it can only see the build ones. Variables set for the
+     Workers are invisible here, and the dashboard gives no hint of that. */
+  console.error('  Cloudflare Pages keeps these in TWO places, and only one reaches a build:');
+  console.error('    Settings → Variables and Secrets   → runtime only. NOT visible here.');
+  console.error('    Settings → Build → Build variables → what this script can read.');
+  console.error('  Set them in the BUILD section, for Production AND Preview.');
+  console.error('');
+  /* What the build can actually see, so the next log answers this rather than
+     prompting another round of guessing. Names only — never values; a build log
+     is not a place to print anything that might be a key. */
+  const seen = Object.keys(process.env)
+    .filter((k) => /^(ZW_|SUPABASE_|SITE_URL|STRIPE_|RESEND_|CF_)/.test(k))
+    .sort();
+  console.error('  Relevant variables this build CAN see: '
+    + (seen.length ? seen.join(', ') : '(none — the build section is empty)'));
   console.error('');
   process.exit(1);
 }
+
+/* Is this build pointing somewhere new, or confirming where it already points?
+   Both are valid — what is NOT valid is not saying. */
+const repointing = !!targetUrl && targetUrl.replace(/\/$/, '') !== CANON.supabaseUrl;
 
 /* --check reports what WOULD change, for a test to assert coverage without
    writing anything. */
@@ -112,13 +148,22 @@ for (const file of files) {
   }
   if (src !== before) { touched++; if (!check) fs.writeFileSync(file, src); }
 
-  /* Anything still naming the canonical project after the rewrite is a literal
-     this script does not know how to reach — a hostname spelled differently, a
-     ref pasted without the scheme. Reported rather than ignored, because a
-     single missed one sends real traffic to the wrong database. */
+  /* Anything still naming the canonical project AFTER a rewrite is a literal
+     this script could not reach — a hostname spelled differently, a ref pasted
+     without the scheme. Worth failing over, because a single missed one sends
+     real traffic to the wrong database.
+     Only when actually repointing, though. The original store sets
+     ZW_SUPABASE_URL to its own project, so nothing is rewritten and every file
+     still names it — correctly. Treating that as unreachable would fail the one
+     build that is already right, which is exactly what it did. */
   const ref = refOf(CANON.supabaseUrl);
   const post = check ? before : src;
-  if (ref && post.includes(ref)) stillReferencing.push(path.relative(ROOT, file).replace(/\\/g, '/'));
+  /* --check is a COVERAGE report, not a failure: it answers "which files would
+     a repoint have to reach", which is what the test needs to know and is the
+     same question whether or not this particular build is repointing. */
+  if ((repointing || check) && ref && post.includes(ref)) {
+    stillReferencing.push(path.relative(ROOT, file).replace(/\\/g, '/'));
+  }
 }
 
 if (check) {

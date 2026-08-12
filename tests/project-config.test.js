@@ -144,8 +144,44 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
       exitCode = e.status; stderr = (e.stderr || '') + (e.stdout || '');
     }
     ok('a Cloudflare build with no ZW_SUPABASE_URL stops', exitCode === 1, 'exit ' + exitCode);
-    ok('…saying what to set', /ZW_SUPABASE_URL/.test(stderr) && /Environment variables/.test(stderr));
+    ok('…saying what to set', /ZW_SUPABASE_URL/.test(stderr) && /Build variables/.test(stderr));
+    /* The distinction that cost a build cycle: Cloudflare keeps runtime
+       variables and BUILD variables in two places, and postinstall only sees
+       the second. The message has to say so, because the dashboard does not. */
+    ok('…and WHERE, since runtime variables are invisible to a build',
+      /Variables and Secrets/.test(stderr) && /runtime only/.test(stderr));
+    ok('…and lists what the build could actually see, so a log ends the guessing',
+      /Relevant variables this build CAN see/.test(stderr));
     ok('…and why it matters', /would appear to work/i.test(stderr));
+
+    /* ── The build that is ALREADY right must not be refused ──────────────
+       The original store sets the variables to its own project, so nothing
+       needs rewriting and every file legitimately still names it. A first
+       version treated that as "literals the stamp could not reach" and failed
+       the one build that was correct — turning a guard against shipping the
+       wrong database into a guard against shipping at all. */
+    let sameExit = 0, sameOut = '';
+    try {
+      sameOut = execFileSync(process.execPath, [path.join(ROOT, 'scripts/stamp-project-config.js')], {
+        encoding: 'utf8', cwd: ROOT,
+        env: { ...process.env, CF_PAGES: '1', ZW_SUPABASE_URL: CANON.supabaseUrl, ZW_SUPABASE_ANON_KEY: '', ZW_SITE_URL: '' },
+      });
+    } catch (e) { sameExit = e.status; sameOut = (e.stdout || '') + (e.stderr || ''); }
+    ok('naming the project it already is, is a valid answer', sameExit === 0, sameOut.slice(0, 300));
+    ok('…and rewrites nothing', /0 value\(s\) rewritten/.test(sameOut), sameOut.slice(0, 200));
+
+    /* And the runtime names count, so a deployment that already has
+       SUPABASE_URL configured does not have to invent a second variable
+       holding the identical value — two names for one fact is how they end up
+       disagreeing. */
+    let aliasExit = 0;
+    try {
+      execFileSync(process.execPath, [path.join(ROOT, 'scripts/stamp-project-config.js')], {
+        encoding: 'utf8', cwd: ROOT,
+        env: { ...process.env, CF_PAGES: '1', ZW_SUPABASE_URL: '', SUPABASE_URL: CANON.supabaseUrl },
+      });
+    } catch (e) { aliasExit = e.status; }
+    ok('SUPABASE_URL is accepted as well as ZW_SUPABASE_URL', aliasExit === 0, 'exit ' + aliasExit);
 
     /* Local builds must stay silent — a developer with no env is not deploying
        anything and should not be blocked. */
@@ -168,7 +204,7 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
     const ref = CANON.supabaseUrl.match(/https:\/\/([a-z0-9]+)\./)[1];
     ok('it no longer names a project', !src.includes(ref));
     ok('…reading the canonical config instead', /require\(path\.join\(__dirname, '\.\.', 'zw-config\.js'\)\)/.test(src));
-    ok('…with env taking precedence', /process\.env\.ZW_SUPABASE_URL \|\| CANON\.supabaseUrl/.test(src));
+    ok('…with env taking precedence', /process\.env\.ZW_SUPABASE_URL \|\| process\.env\.SUPABASE_URL \|\| CANON\.supabaseUrl/.test(src));
   }
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
