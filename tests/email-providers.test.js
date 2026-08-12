@@ -46,17 +46,46 @@ console.log('  the shared chain');
 
 console.log('\n  nothing calls a provider directly any more');
 {
-  // Files allowed to mention a provider host: the shared chain itself, and the
-  // two that check whether a key is valid rather than sending anything.
-  const ALLOWED = new Set(['_email.js', 'api-status.js', 'update-api-key.js']);
+  /* Files allowed to name a provider host, and why each one is.
+     Every entry is an exemption someone has to justify — which is the point.
+     This list used to be three names beside an assertion hardcoded to `true`,
+     so five files carrying their own chain passed the gate silently, including
+     _fulfil.js: the order confirmation, the most important email the store
+     sends, and the one that then shipped a fault the shared chain could not
+     have had. An exemption written down is a decision; `ok(..., true)` is a
+     check that cannot fail. */
+  const ALLOWED = new Map([
+    ['_email.js',            'is the shared chain'],
+    ['api-status.js',        'checks whether a key is valid; never sends'],
+    ['update-api-key.js',    'same — validates a key on save'],
+    ['admin-email-test.js',  'deliberately tries EVERY provider and reports each verbatim response; delegating would hide exactly what it exists to show'],
+    ['_notify-ops.js',       'must be able to route AROUND a named provider (avoid:[...]) — an alert saying "Resend is down" sent via Resend arrives only when it is not needed'],
+    ['_fulfil.js',           'order confirmation: carries per-tier ops alerts that sendTransactional does not express. TO MIGRATE — see note below'],
+    ['admin-refund.js',      'not yet migrated'],
+    ['generate-return-label.js', 'not yet migrated'],
+  ]);
   const offenders = files.filter((f) => {
     if (ALLOWED.has(f)) return false;
     const src = codeOnly(fs.readFileSync(path.join(API, f), 'utf8'));
     return /api\.resend\.com|api\.sendgrid\.com|api\.brevo\.com/.test(src);
   });
-  ok(files.length - offenders.length - ALLOWED.size + ' senders go through the shared chain; '
-    + offenders.length + ' still call a provider directly',
-    true, offenders.join(', ') || 'none');
+  /* A real assertion. A new file that hand-rolls a chain now fails here rather
+     than being counted in a message nobody reads. */
+  ok('no NEW file hand-rolls its own provider chain',
+    offenders.length === 0,
+    offenders.join(', ') + ' — either use sendTransactional() or add an entry to ALLOWED saying why not');
+
+  /* And the exemptions must stay honest: an entry that no longer calls a
+     provider directly is a stale excuse, and stale excuses are how the list
+     grows until it means nothing. */
+  const stale = [...ALLOWED.keys()].filter((f) => {
+    if (f === '_email.js') return false;   // the chain itself
+    if (!fs.existsSync(path.join(API, f))) return true;
+    const src = codeOnly(fs.readFileSync(path.join(API, f), 'utf8'));
+    return !/api\.resend\.com|api\.sendgrid\.com|api\.brevo\.com/.test(src);
+  });
+  ok('every exemption is still needed', stale.length === 0,
+    stale.join(', ') + ' no longer calls a provider directly — remove the exemption');
 
   // These six were migrated in this change and must not regress.
   ['notify-restock.js', 'send-abandoned-cart-emails.js', 'send-journal.js',
@@ -67,10 +96,14 @@ console.log('\n  nothing calls a provider directly any more');
       /sendTransactional/.test(src) && !/api\.resend\.com/.test(src));
   });
 
-  // Anything still direct is recorded here rather than quietly forgotten.
-  if (offenders.length) {
-    console.log('    still to migrate: ' + offenders.join(', '));
-  }
+  /* Named rather than quietly forgotten. These three send real customer mail
+     through a chain that is not the shared one, so they do not get its
+     invalid-sender guard (the one that caught "Zuwera <undefined>") and do not
+     get the SendGrid tier. Migrating them needs sendTransactional to grow
+     per-tier alerting first — otherwise the move trades a duplicated chain for
+     lost visibility, which is not an improvement. */
+  const toMigrate = ['_fulfil.js', 'admin-refund.js', 'generate-return-label.js'];
+  console.log('    still to migrate: ' + toMigrate.join(', '));
 }
 
 console.log('\n  SendGrid');
