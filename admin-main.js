@@ -13638,6 +13638,9 @@ function escapeAttr(value) {
    event nobody fires is a control that does nothing, and an event with no row
    is a setting you cannot reach. A test compares the two lists. */
 const OPS_ALERT_EVENTS = [
+    /* First, because it is the worst thing on the list: the money moved and
+       nothing recorded it. Everything else here is a degradation. */
+    ['order-save-failed',         'An order was PAID but not saved — money taken, no record'],
     ['email-fallback-brevo',      'Email fell back to Brevo (Resend down)'],
     ['email-fallback-loops',      'Email fell back to Loops (Resend + Brevo down)'],
     ['email-all-providers-down',  'Every email provider failed'],

@@ -176,7 +176,41 @@ export async function handleSuccessfulPayment(pi, meta, env, onTracking) {
     label:  labelData?.label_url || '',
   };
 
-  await saveOrderToSupabase(pi, meta, tracking, env);
+  /* Saving the order must not be able to cancel everything after it.
+
+     It could, and did. This line threw, and the confirmation email, the
+     tracking write-back, the stock decrement, the loyalty points and the CAPI
+     event are all BELOW it — so one rejected insert silently took out the whole
+     of fulfilment. The customer paid, got nothing, and the only trace was a
+     console.error in a Worker log.
+
+     What triggered it was a single new column written before its migration had
+     been run: PostgREST rejects the whole row for one unknown field. That is a
+     mistake anyone can make again, and the cost of making it should be one
+     missing order row, not a silent outage across every order.
+
+     So: the failure is caught, shouted about, and the rest of fulfilment
+     continues. A customer who has been charged gets their confirmation even
+     when our bookkeeping fell over — and somebody finds out that it did. */
+  let orderSaved = true;
+  try {
+    await saveOrderToSupabase(pi, meta, tracking, env);
+  } catch (e) {
+    orderSaved = false;
+    console.error('ORDER NOT SAVED for', pi.id, '—', e && e.message);
+    /* Loudest channel available. An order taken and not recorded is the worst
+       state this system has: the money moved and nothing knows about it. */
+    try {
+      await notifyOps(env, {
+        key: 'order-save-failed',
+        severity: 'critical',
+        event: 'Order was paid but NOT saved',
+        detail: 'Payment ' + pi.id + ' (' + (meta.order_number || 'no number') + ') was charged '
+          + 'but the order row could not be written. The customer has been billed. '
+          + 'Reason: ' + ((e && e.message) || 'unknown'),
+      });
+    } catch (_) { /* alerting failing must not compound the original failure */ }
+  }
 
   // Abandoned-cart: this shopper completed checkout, so mark their saved cart
   // recovered — no recovery email should go out. Best-effort, never blocks.
