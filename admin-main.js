@@ -1292,6 +1292,20 @@
             },
             stripe: {
                 label: 'Stripe',
+                /* The switch to live is the moment this store is most likely to
+                   break, and in the quietest way: payments start working and
+                   fulfilment silently stops. Said here because this card is
+                   where somebody will be standing when they do it. */
+                note: '<b>Going live is two changes, not one.</b> Stripe keeps test and live entirely separate — '
+                    + 'including webhooks. Swapping only the secret key leaves the webhook pointed at a test-mode '
+                    + 'endpoint whose signing secret no longer matches, so every delivery fails signature '
+                    + 'verification. Payments succeed and the customer is charged, but nothing after that runs: '
+                    + 'no confirmation email, no shipping label, no stock decrement, and no order saved. '
+                    + '<br><br>When you switch: create a <b>live-mode</b> webhook endpoint at '
+                    + '<code>https://zuwera.store/api/stripe-webhook</code> listening for '
+                    + '<code>payment_intent.succeeded</code>, then update <b>STRIPE_SECRET_KEY</b> and '
+                    + '<b>STRIPE_WEBHOOK_SECRET</b> together in Cloudflare. Place one real order afterwards and '
+                    + 'confirm the confirmation email arrives — that is the only proof the chain is intact.',
                 keys: [{ name: 'STRIPE_SECRET_KEY', label: 'Secret Key', type: 'password', locked: true, lockNote: '🔒 Locked to Cloudflare for security. Every payment reads this straight from your Cloudflare env var, so it can\'t be changed (or hijacked) from here. Rotate it in the Cloudflare dashboard → Settings → Variables &amp; Secrets.' }]
             },
             shippo: {
@@ -3294,7 +3308,13 @@
             document.getElementById('akm-save-btn').textContent = 'Save';
 
             const fieldsEl = document.getElementById('akm-fields');
-            fieldsEl.innerHTML = def.keys.map(k => {
+            /* A card-level note, above the fields: it is about the service
+               rather than about any one key, and repeating it per key would
+               read like three separate warnings. */
+            const cardNote = def.note
+                ? `<div class="api-key-warn" style="margin-bottom:14px;line-height:1.6;">${def.note}</div>`
+                : '';
+            fieldsEl.innerHTML = cardNote + def.keys.map(k => {
                 const masked = _maskedKeys[k.name] || '';
                 if (k.locked) {
                     return `

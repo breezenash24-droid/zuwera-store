@@ -215,6 +215,28 @@ console.log('\n  moving cards between the two sections');
     ok('…and names where to look for bounces', /suppressed address/.test(t));
   }
 
+  console.log('\n  the go-live warning is where somebody will be standing');
+  {
+    /* Switching to live is when this store is most likely to break, and in the
+       quietest way: payments start working and fulfilment silently stops,
+       because Stripe keeps test and live webhooks — and their signing secrets
+       — entirely separate. Swap only the key and every delivery fails
+       signature verification while the customer is still charged. */
+    const admin = fs.readFileSync(path.join(ROOT, 'admin-main.js'), 'utf8');
+    const stripeCard = admin.slice(admin.indexOf('stripe: {'), admin.indexOf('shippo: {'));
+
+    ok('the Stripe card carries a note', stripeCard.includes('note:'));
+    ok('…saying it is two changes, not one', stripeCard.includes('two changes, not one'));
+    ok('…naming both variables that must move together',
+      stripeCard.includes('STRIPE_SECRET_KEY') && stripeCard.includes('STRIPE_WEBHOOK_SECRET'));
+    /* The consequence is the point. "The webhooks differ" is forgettable;
+       "the customer is charged and nothing ships" is not. */
+    ok('…and what breaks if only one moves',
+      stripeCard.includes('no confirmation email') && stripeCard.includes('customer is charged'));
+    ok('…and how to prove it worked', stripeCard.includes('confirm the confirmation email arrives'));
+    ok('a card-level note is actually rendered', admin.includes('const cardNote = def.note'));
+  }
+
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
   process.exit(fail ? 1 : 0);
 })();
