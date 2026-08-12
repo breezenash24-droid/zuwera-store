@@ -824,7 +824,7 @@ export async function saveOrderToSupabase(pi, meta, tracking, env) {
 // Assembles the order-confirmation email on the shared shell from pre-built HTML
 // fragments (items/address/carrier). Exported so the admin email preview can
 // render it with sample data — a real order can't be placed just to preview it.
-export function buildOrderConfirmation({ appearance, content, orderId, toName, itemsHtml, subtotalCents, discountRow, shippingDisplay, taxCents, totalDollars, addressHtml, carrierHtml }) {
+export function buildOrderConfirmation({ appearance, content, orderId, toName, itemsHtml, subtotalCents, discountRow, shippingDisplay, taxCents, totalDollars, addressHtml, carrierHtml, userId, orderNumber }) {
   const a = appearance;
   const emailC = content;
   const body = `
@@ -873,13 +873,30 @@ export function buildOrderConfirmation({ appearance, content, orderId, toName, i
      An order with a user_id belongs to an account holder, and /account is
      right for them. Everyone else goes to the guest lookup with their order
      number already filled in, so the only thing left to type is the email the
-     receipt was sent to. */
-  const statusHref = orderStatusUrl({ userId: meta.user_id, orderNumber: meta.order_number });
+     receipt was sent to.
+
+     `userId` and `orderNumber` are PARAMETERS, and that is load-bearing. They
+     were written as `meta.user_id` and `meta.order_number` — but `meta` is not
+     in scope here, it is an argument of the caller two functions up. A free
+     variable throws ReferenceError rather than reading as undefined, so this
+     line took down every order confirmation ever sent: the throw happened
+     before the Resend call, Promise.allSettled swallowed it into a single
+     console.error, and the webhook still answered 200. Stripe showed a
+     successful delivery, the order saved, the label printed, the stock
+     decremented, and no email went out for any order, ever, with no alert —
+     because the alerting only fires inside the provider-failure path this
+     never reached.
+
+     Destructured parameters cannot do that. An argument the caller forgets is
+     undefined, and orderStatusUrl() handles undefined by returning the plain
+     guest-lookup URL. The wrong link is a bad link; the free variable was no
+     email at all. */
+  const statusHref = orderStatusUrl({ userId, orderNumber });
 
   const footerHtml = `
           <a href="${statusHref}" style="color:${a.text};text-decoration:underline;">View order status</a>
           &nbsp;·&nbsp;
-          <a href="${orderStatusUrl({ userId: null, orderNumber: meta.order_number })}" style="color:${a.text};text-decoration:underline;">30-day free returns</a><br>
+          <a href="${orderStatusUrl({ userId: null, orderNumber })}" style="color:${a.text};text-decoration:underline;">30-day free returns</a><br>
           <span style="display:inline-block;margin-top:8px;">Questions? <a href="mailto:orders@zuwera.store" style="color:${a.muted};text-decoration:underline;">orders@zuwera.store</a></span><br>
           <span style="display:inline-block;margin-top:8px;">© ${new Date().getFullYear()} Zuwera. All rights reserved.</span>`;
 
@@ -1019,6 +1036,10 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
     appearance: a, content: emailC, orderId, toName, itemsHtml,
     subtotalCents, discountRow, shippingDisplay, taxCents, totalDollars,
     addressHtml, carrierHtml,
+    /* Who this order belongs to, so the footer can send an account holder to
+       /account and a guest to the lookup. Passed explicitly rather than reached
+       for off `meta` — see the note in buildOrderConfirmation. */
+    userId: meta.user_id, orderNumber: meta.order_number,
   });
 
   // ── Try Resend first ────────────────────────────────────────────────

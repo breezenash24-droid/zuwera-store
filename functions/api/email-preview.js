@@ -118,12 +118,29 @@ function sampleOrderFragments(a) {
   return { itemsHtml, addressHtml, carrierHtml };
 }
 
-function renderPreview(type, appearance, content, cache, logoUrl) {
+/* Exported so a test can render every type in PREVIEWABLE_TYPES for real.
+ *
+ * That matters more than it looks. buildOrderConfirmation read a `meta` that
+ * was not in its scope, and every order confirmation threw ReferenceError
+ * before it reached the send — for every order, silently, because
+ * Promise.allSettled turned the throw into one console.error and the webhook
+ * still answered Stripe with 200.
+ *
+ * Nothing in this repo could have caught it. The code parses, so node --check
+ * passes. It reads correctly, so a regex assertion passes. A free variable in
+ * a rarely-taken branch is only ever a runtime fault, so the ONLY thing that
+ * finds it is calling the function. This export is what lets the test do that
+ * for every email the store sends, rather than only the one that broke. */
+export function renderPreview(type, appearance, content, cache, logoUrl) {
   const productUrl = SITE + '/product/sample?id=demo';
   switch (type) {
     case 'order_confirmation': {
       const f = sampleOrderFragments(appearance);
-      return buildOrderConfirmation({ appearance, content, orderId: 'AB12CD', toName: 'Alex Kim', itemsHtml: f.itemsHtml, subtotalCents: 6500, discountRow: '', shippingDisplay: 'Free', taxCents: 546, totalDollars: '70.46', addressHtml: f.addressHtml, carrierHtml: f.carrierHtml });
+      /* orderNumber with no userId previews the GUEST footer link, which is the
+         one worth eyeballing: it is the version most buyers get, and the one
+         that was pointing at /account and landing people in whichever account
+         happened to be signed in on that computer. */
+      return buildOrderConfirmation({ appearance, content, orderId: 'AB12CD', toName: 'Alex Kim', itemsHtml: f.itemsHtml, subtotalCents: 6500, discountRow: '', shippingDisplay: 'Free', taxCents: 546, totalDollars: '70.46', addressHtml: f.addressHtml, carrierHtml: f.carrierHtml, userId: null, orderNumber: 'ZW-MTP-00143' });
     }
 
     case 'return_label':

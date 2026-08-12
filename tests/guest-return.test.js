@@ -223,22 +223,39 @@ const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
       noConfirm.length === 0, noConfirm.join(', '));
 
     const fulfil = fs.readFileSync(ROOT + '/functions/api/_fulfil.js', 'utf8');
-    /* Plain includes rather than regexes: these assertions are about literal
-       strings in source, and escaping them has been a source of its own bugs
-       today — twice a regex matched something unintended and passed.
+    ok('the receipt keeps no copy of the decision', !fulfil.includes("'https://zuwera.store/account'"));
 
-       These now check DELEGATION rather than the inline strings they used to
-       pin, because the branch moved into the shared helper above. Pinning the
-       old inline form would fail for the right reason and read like a
-       regression. */
-    ok('the receipt asks the helper where to send this customer',
-      fulfil.includes('orderStatusUrl({ userId: meta.user_id'));
-    ok('…and keeps no copy of the decision', !fulfil.includes("'https://zuwera.store/account'"));
+    /* These used to pin the literal source text — `orderStatusUrl({ userId:
+       meta.user_id` and its sibling — and that is exactly how the worst bug in
+       this area kept a green suite. The text was right. The SCOPE was not:
+       `meta` is a parameter of sendConfirmationEmail, two frames above the
+       builder that read it, so every order confirmation threw ReferenceError
+       before it reached the send. An assertion that the correct characters
+       appear somewhere in a file cannot see that, and never could.
+
+       So render it instead. The question was always "where does this customer
+       actually land", and only running the builder answers it. */
+    const { buildOrderConfirmation } = await import(pathToFileURL(ROOT + '/functions/api/_fulfil.js').href);
+    const { getEmailAppearance, getEmailContent } = await import(pathToFileURL(ROOT + '/functions/api/_email-theme.js').href);
+    const receipt = (userId) => buildOrderConfirmation({
+      appearance: getEmailAppearance({ email_theme: 'dark' }),
+      content: getEmailContent({}, 'order_confirmation'),
+      orderId: 'AB12CD', toName: 'Alex', itemsHtml: '', subtotalCents: 100,
+      discountRow: '', shippingDisplay: 'Free', taxCents: 0, totalDollars: '1.00',
+      addressHtml: '', carrierHtml: '', userId, orderNumber: 'ZW-MTP-00143',
+    });
+
+    ok('a guest receipt sends them to the lookup with their order number',
+      receipt(null).includes('/returns?order=ZW-MTP-00143'));
+    ok('…and nowhere near an account that is not theirs',
+      !/href="[^"]*\/account"/.test(receipt(null)));
+    ok('an account holder receipt sends them to their account',
+      receipt('u_123').includes('/account'));
     /* The returns link is for the RETURNS flow, so it goes to the guest lookup
        for everyone — an account holder reaching it through their account is
        already handled by the status link above. */
-    ok('…and the returns link carries the order number for a guest',
-      fulfil.includes('orderStatusUrl({ userId: null, orderNumber: meta.order_number })'));
+    ok('…and the returns link carries the order number either way',
+      receipt('u_123').includes('/returns?order=ZW-MTP-00143'));
     ok('the page fills that number in', page.includes("params.get('order')"));
     /* Before the session check: the person may have no account AND be on a
        machine where somebody else does. That is the exact case being fixed. */
