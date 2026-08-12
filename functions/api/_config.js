@@ -38,9 +38,15 @@ const pick = (env, ...names) => {
   return '';
 };
 
-/** The project's REST/auth origin, without a trailing slash. */
+/** The project's REST/auth origin, without a trailing slash.
+ *
+ * SUPABASE_PROJECT_URL is here because product/[slug].js already accepted it
+ * and nothing else did — an alias SETUP.md documents but only one route
+ * honoured. A deployment configured with that name would have had exactly one
+ * working route and no clue why the rest were pointed elsewhere. */
 export function supabaseUrl(env) {
-  return (pick(env, 'SUPABASE_URL', 'ZW_SUPABASE_URL') || DEFAULTS.supabaseUrl).replace(/\/$/, '');
+  return (pick(env, 'SUPABASE_URL', 'SUPABASE_PROJECT_URL', 'ZW_SUPABASE_URL') || DEFAULTS.supabaseUrl)
+    .replace(/\/$/, '');
 }
 
 /** The public anon key. Not a secret — RLS is the control. */

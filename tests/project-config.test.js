@@ -88,6 +88,30 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
       .map((f) => path.relative(ROOT, f).replace(/\\/g, '/'));
     ok(files.length + ' Workers checked; none writes the project ref itself',
       offenders.length === 0, offenders.join(', '));
+
+    /* ── And none reads a module-level CONSTANT instead of env ─────────────
+       Sharing one literal was only half the job, and the missing half was the
+       half that mattered for a fork. Twelve Workers imported DEFAULTS and read
+       `DEFAULTS.supabaseUrl` at module scope — no `env` anywhere near it — while
+       stamp-project-config.js skipped functions/ precisely BECAUSE Workers were
+       said to resolve from env. They did not. A licensee could configure
+       everything correctly and still have those twelve talking to this project.
+
+       The resolution layer existed and nothing called it, which is the failure
+       that looks most like success in a diff: the right helper, in the right
+       file, wired to nobody. */
+    const importers = files.filter((f) => /from '\.{1,2}\/(?:api\/)?_config\.js'/.test(fs.readFileSync(f, 'utf8')));
+    ok('some Workers use the shared config at all', importers.length >= 10, String(importers.length));
+
+    const constReaders = importers
+      .filter((f) => /^\s*const\s+[A-Z_]+\s*=\s*DEFAULTS\./m.test(fs.readFileSync(f, 'utf8')))
+      .map((f) => path.relative(ROOT, f).replace(/\\/g, '/'));
+    ok('…and none freezes it into a module constant', constReaders.length === 0,
+      constReaders.join(', ') + ' — a constant cannot see env, so a licensee gets this project');
+
+    const callers = importers.filter((f) => /supabaseUrl\(env\)|supabaseAnonKey\(env\)/.test(fs.readFileSync(f, 'utf8')));
+    ok('…they resolve per request instead', callers.length === importers.length,
+      (importers.length - callers.length) + ' importer(s) never call the helper');
   }
 
   console.log('\n  the browser files are rewritten at build time');

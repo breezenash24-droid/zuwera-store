@@ -15,10 +15,8 @@
 
 import { resolvePerms, permsHave } from './_rbac.js';
 import { mintPreviewToken, PREVIEW_TTL_SECONDS } from './_preview.js';
-import { DEFAULTS } from './_config.js';
+import { supabaseUrl, supabaseAnonKey } from './_config.js';
 
-const ANON_KEY = DEFAULTS.supabaseAnonKey;
-const SUPABASE_URL = DEFAULTS.supabaseUrl;
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -52,15 +50,15 @@ export async function onRequestPost({ request, env }) {
     const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '';
     if (!serviceKey) return json({ ok: false, error: 'Server not configured — add SUPABASE_SERVICE_ROLE_KEY.' }, 500);
 
-    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + accessToken },
+    const userRes = await fetch(`${supabaseUrl(env)}/auth/v1/user`, {
+      headers: { apikey: supabaseAnonKey(env), Authorization: 'Bearer ' + accessToken },
     });
     if (!userRes.ok) return json({ ok: false, error: 'Your session expired. Sign in again.' }, 401);
     const authUser = await userRes.json().catch(() => null);
     if (!authUser || !authUser.id) return json({ ok: false, error: 'Your session expired. Sign in again.' }, 401);
 
     const profRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(authUser.id)}&select=role,admin_role,admin_permissions&limit=1`,
+      `${supabaseUrl(env)}/rest/v1/profiles?id=eq.${encodeURIComponent(authUser.id)}&select=role,admin_role,admin_permissions&limit=1`,
       { headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey } }
     );
     const rows = profRes.ok ? await profRes.json().catch(() => []) : [];

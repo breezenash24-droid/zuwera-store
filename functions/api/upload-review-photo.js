@@ -10,11 +10,9 @@
  * Response: { url } or { error }
  */
 
-import { DEFAULTS } from './_config.js';
+import { supabaseUrl, supabaseAnonKey } from './_config.js';
 
 
-const ANON_KEY = DEFAULTS.supabaseAnonKey;
-const SUPABASE_URL = DEFAULTS.supabaseUrl;
 const BUCKET = 'product-images';
 const MAX_BYTES = 6 * 1024 * 1024; // 6 MB per photo
 const ALLOWED = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
@@ -55,8 +53,8 @@ export async function onRequestPost({ request, env }) {
     if (file.size > MAX_BYTES) return json({ error: 'Image is too large (max 6 MB).' }, 413);
 
     // A valid session is required (reviews require auth anyway).
-    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + accessToken },
+    const userRes = await fetch(`${supabaseUrl(env)}/auth/v1/user`, {
+      headers: { apikey: supabaseAnonKey(env), Authorization: 'Bearer ' + accessToken },
     });
     if (!userRes.ok) return json({ error: 'Invalid or expired session' }, 401);
 
@@ -66,7 +64,7 @@ export async function onRequestPost({ request, env }) {
     const ext = ALLOWED[ct];
     const path = 'reviews/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
 
-    const upRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodeURIComponent(path)}`, {
+    const upRes = await fetch(`${supabaseUrl(env)}/storage/v1/object/${BUCKET}/${encodeURIComponent(path)}`, {
       method: 'POST',
       headers: {
         apikey: serviceKey,
@@ -81,7 +79,7 @@ export async function onRequestPost({ request, env }) {
       return json({ error: t || ('Upload failed (' + upRes.status + ')') }, upRes.status);
     }
 
-    return json({ url: `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}` });
+    return json({ url: `${supabaseUrl(env)}/storage/v1/object/public/${BUCKET}/${path}` });
   } catch (e) {
     return json({ error: (e && e.message) || String(e) }, 500);
   }
