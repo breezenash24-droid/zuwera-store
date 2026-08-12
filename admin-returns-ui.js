@@ -870,20 +870,40 @@
                                 }
                                 if (!ops.length) { errEl.textContent = 'No items selected.'; errEl.style.display = ''; btn.disabled = false; btn.textContent = '+ Restock'; return; }
                                 for (const op of ops) {
-                                    let q = sb.from('product_sizes').select('id,stock_quantity').limit(1);
                                     const { data: prods } = await sb.from('products').select('id').eq('sku', op.sku).limit(1);
                                     const productId = prods?.[0]?.id;
                                     if (!productId) { errEl.textContent = 'Product not found for SKU: ' + op.sku; errEl.style.display = ''; btn.disabled = false; btn.textContent = '+ Restock'; return; }
-                                    q = sb.from('product_sizes').select('id,stock_quantity').eq('product_id', productId);
-                                    if (op.size) q = q.eq('size', op.size);
-                                    if (op.color) q = q.eq('color_name', op.color);
-                                    const { data: sizeRows, error: fetchErr } = await q.limit(1);
-                                    if (fetchErr) throw fetchErr;
-                                    if (!sizeRows?.length) { errEl.textContent = 'Size/color row not found for ' + op.sku; errEl.style.display = ''; btn.disabled = false; btn.textContent = '+ Restock'; return; }
-                                    const row = sizeRows[0];
-                                    const newStock = (row.stock_quantity || 0) + op.qty;
-                                    const { error: updErr } = await sb.from('product_sizes').update({ stock_quantity: newStock }).eq('id', row.id);
-                                    if (updErr) throw updErr;
+
+                                    /* The RPC, not a lookup written here.
+                                       This used to do .eq('size',…).eq('color_name',…) — exact,
+                                       case- and whitespace-sensitive, with no size folding and no
+                                       fallback for colour-agnostic rows. That is precisely the
+                                       matching migration 0007 removed from the SELL side, so a
+                                       garment stored as "cyan" was unreachable from a return
+                                       saying "Cyan", and this screen refused to restock an item it
+                                       had happily sold and decremented.
+                                       restock_stock() and decrement_stock() now share
+                                       zw_find_size_row(), so the row stock leaves is the row it
+                                       comes back to, by construction rather than by both sides
+                                       being maintained in step. */
+                                    const { data: changed, error: rpcErr } = await sb.rpc('restock_stock', {
+                                        p_product_id: productId,
+                                        p_size: op.size || null,
+                                        p_qty: op.qty,
+                                        p_color_name: op.color || null,
+                                    });
+                                    if (rpcErr) throw rpcErr;
+                                    /* 0 rows changed means nothing in the catalogue describes what
+                                       came back. Reporting success there would tell the shop it
+                                       had restocked something it had not, and the garment would
+                                       sit on the shelf reading as sold out for ever. */
+                                    if (!Number(changed)) {
+                                        errEl.textContent = 'Nothing in the catalogue matches '
+                                            + op.sku + (op.size ? ' / ' + op.size : '')
+                                            + (op.color ? ' / ' + op.color : '')
+                                            + ' — check the size and colour still exist on this product.';
+                                        errEl.style.display = ''; btn.disabled = false; btn.textContent = '+ Restock'; return;
+                                    }
                                 }
                                 await logAdminAudit('return.restock', 'return_requests', requestId, { ops });
                                 modal.remove();
