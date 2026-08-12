@@ -92,39 +92,64 @@ if (!onCloudflare && !explicitLocal && !check) process.exit(0);
 
 const targetUrl = readEnv('ZW_SUPABASE_URL', 'SUPABASE_URL');
 
+/* ── Loud, not fatal ─────────────────────────────────────────────────────────
+ *
+ * This stopped the build when no project was named. The reasoning was that an
+ * unconfigured fork ships against the original store's database and every
+ * symptom looks like success, so a warning would be read as noise and ignored.
+ *
+ * That reasoning is still right, and enforcing it here was still wrong. The
+ * risk is a FORK's, in a future that has not happened; the cost landed on a
+ * live store that could not deploy — three times, for a safety property
+ * protecting nobody yet. A guard whose failure mode is "the shop cannot ship"
+ * has to be worth more than the thing it prevents, and this one was not, yet.
+ *
+ * So it warns by default and stops only when told to. Handing this repository
+ * to somebody else means setting ZW_ENFORCE_PROJECT_CONFIG=1 in their build,
+ * which is one line in the handover checklist and turns the warning back into
+ * the wall it should be for them. The person who has never seen this code is
+ * the one who needs stopping; the person who wrote it does not.
+ */
+const enforce = /^(1|true|yes)$/i.test(String(process.env.ZW_ENFORCE_PROJECT_CONFIG || '').trim());
+
 if (onCloudflare && !targetUrl) {
-  console.error('');
-  console.error('  BUILD STOPPED — this build does not know which project it is for.');
-  console.error('');
-  console.error('  Without that it would ship a storefront pointed at the project baked');
-  console.error('  into zw-config.js (' + refOf(CANON.supabaseUrl) + '), which is almost');
-  console.error('  certainly not yours. It would appear to work.');
-  console.error('');
-  console.error('  Set these as BUILD variables:');
-  console.error('    ZW_SUPABASE_URL       https://<your-project>.supabase.co');
-  console.error('    ZW_SUPABASE_ANON_KEY  <your project\'s anon key>');
-  console.error('    ZW_SITE_URL           https://<your-domain>');
-  console.error('  (SUPABASE_URL / SUPABASE_ANON_KEY / SITE_URL are accepted too.)');
-  console.error('');
-  /* The distinction that costs an hour otherwise. Cloudflare keeps runtime
-     variables and BUILD variables in two different places, and this script runs
-     in postinstall — it can only see the build ones. Variables set for the
+  const say = enforce ? console.error : console.warn;
+  say('');
+  say(enforce
+    ? '  BUILD STOPPED — this build does not know which project it is for.'
+    : '  WARNING — this build does not know which project it is for.');
+  say('');
+  say('  It will use the project baked into zw-config.js (' + refOf(CANON.supabaseUrl) + ').');
+  say('  Correct for the original store. For anyone else it means shipping a');
+  say('  storefront wired to someone else\'s database, which would appear to work.');
+  say('');
+  say('  Set as BUILD variables:');
+  say('    ZW_SUPABASE_URL       https://<your-project>.supabase.co');
+  say('    ZW_SUPABASE_ANON_KEY  <your project\'s anon key>');
+  say('    ZW_SITE_URL           https://<your-domain>');
+  say('  (SUPABASE_URL / SUPABASE_ANON_KEY / SITE_URL are accepted too.)');
+  say('');
+  /* The distinction that costs a deploy cycle otherwise. Cloudflare keeps
+     runtime variables and BUILD variables in two different places, and this
+     runs in postinstall — it can only see the build ones. Variables set for the
      Workers are invisible here, and the dashboard gives no hint of that. */
-  console.error('  Cloudflare Pages keeps these in TWO places, and only one reaches a build:');
-  console.error('    Settings → Variables and Secrets   → runtime only. NOT visible here.');
-  console.error('    Settings → Build → Build variables → what this script can read.');
-  console.error('  Set them in the BUILD section, for Production AND Preview.');
-  console.error('');
-  /* What the build can actually see, so the next log answers this rather than
-     prompting another round of guessing. Names only — never values; a build log
-     is not a place to print anything that might be a key. */
+  say('  Cloudflare Pages keeps these in TWO places, and only one reaches a build:');
+  say('    Settings → Variables and Secrets   → runtime only. NOT visible here.');
+  say('    Settings → Build → Build variables → what this script can read.');
+  say('  Set them in the BUILD section, for Production AND Preview.');
+  say('');
+  /* Names only — never values. A build log is not a place to print anything
+     that might be a key. */
   const seen = Object.keys(process.env)
     .filter((k) => /^(ZW_|SUPABASE_|SITE_URL|STRIPE_|RESEND_|CF_)/.test(k))
     .sort();
-  console.error('  Relevant variables this build CAN see: '
+  say('  Relevant variables this build CAN see: '
     + (seen.length ? seen.join(', ') : '(none — the build section is empty)'));
-  console.error('');
-  process.exit(1);
+  say('');
+  if (enforce) process.exit(1);
+  say('  Continuing with the committed defaults. Set ZW_ENFORCE_PROJECT_CONFIG=1');
+  say('  to make this a hard failure — do that before handing the repo to anyone.');
+  say('');
 }
 
 /* Is this build pointing somewhere new, or confirming where it already points?

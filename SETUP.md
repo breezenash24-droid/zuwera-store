@@ -111,7 +111,15 @@ over time. The canonical name is listed first; the alias still works.
 
 ### Which project this deployment belongs to
 
-**Set these three first. The build fails without `ZW_SUPABASE_URL`, on purpose.**
+**Set these as BUILD variables** — Cloudflare Pages → Settings → **Build** →
+Build variables. This is not the same place as *Variables and Secrets*: those
+reach the Workers at runtime and are invisible to the build, which is where
+these are read.
+
+Unset, the build warns and falls back to the values committed in `zw-config.js`.
+For a fork that means shipping against someone else's database, so set
+`ZW_ENFORCE_PROJECT_CONFIG=1` as well and the build will refuse instead of
+warning.
 
 | Variable | Notes |
 |---|---|
@@ -125,10 +133,12 @@ them into every shipped file (`scripts/stamp-project-config.js`). Workers do not
 need stamping; they read `SUPABASE_URL` from the environment at request time via
 `functions/api/_config.js`.
 
-The failure is hard rather than a warning because the broken version *works*.
-A deployment left pointing at the defaults in `zw-config.js` loads products,
-renders the storefront and signs admins in — against somebody else's database.
-There is no error to notice, so the build refuses instead.
+It is worth being deliberate here, because the broken version *works*. A
+deployment left on the committed defaults loads products, renders the storefront
+and signs admins in — against somebody else's database. Nothing errors. That is
+why `ZW_ENFORCE_PROJECT_CONFIG=1` belongs in every handover: the person who has
+never seen this code is the one who needs the build to stop, and they are also
+the one least likely to read a warning in a log.
 
 `zw-config.js` holds the fallback values. Do not edit it to repoint a fork; set
 the variables above, which is the path that is tested.

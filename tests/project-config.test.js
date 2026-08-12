@@ -132,18 +132,26 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
 
   console.log('\n  a build that would ship the wrong database fails');
   {
-    /* The whole point. Shipping unconfigured is not a warning, because the
-       result works perfectly while being wrong. */
+    /* Loud, and fatal only when asked.
+       An unconfigured fork ships against the original store's database and
+       every symptom looks like success, so this has to be impossible to miss.
+       It was originally fatal always — and the cost of that landed on the
+       ORIGINAL store, which could not deploy at all for a risk that belongs
+       entirely to a fork that does not exist yet. A guard whose failure mode is
+       "the shop cannot ship" must be worth more than what it prevents.
+       So: warn by default, and ZW_ENFORCE_PROJECT_CONFIG=1 in a licensee's
+       build turns it back into a wall for the person who has never seen this
+       code and actually needs stopping. */
     let exitCode = 0, stderr = '';
     try {
       execFileSync(process.execPath, [path.join(ROOT, 'scripts/stamp-project-config.js')], {
         encoding: 'utf8', cwd: ROOT,
-        env: { ...process.env, CF_PAGES: '1', ZW_SUPABASE_URL: '', ZW_SUPABASE_ANON_KEY: '', ZW_SITE_URL: '' },
+        env: { ...process.env, CF_PAGES: '1', ZW_ENFORCE_PROJECT_CONFIG: '1', ZW_SUPABASE_URL: '', SUPABASE_URL: '', ZW_SUPABASE_ANON_KEY: '', ZW_SITE_URL: '' },
       });
     } catch (e) {
       exitCode = e.status; stderr = (e.stderr || '') + (e.stdout || '');
     }
-    ok('a Cloudflare build with no ZW_SUPABASE_URL stops', exitCode === 1, 'exit ' + exitCode);
+    ok('an ENFORCED build with no project named stops', exitCode === 1, 'exit ' + exitCode);
     ok('…saying what to set', /ZW_SUPABASE_URL/.test(stderr) && /Build variables/.test(stderr));
     /* The distinction that cost a build cycle: Cloudflare keeps runtime
        variables and BUILD variables in two places, and postinstall only sees
@@ -153,6 +161,24 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
     ok('…and lists what the build could actually see, so a log ends the guessing',
       /Relevant variables this build CAN see/.test(stderr));
     ok('…and why it matters', /would appear to work/i.test(stderr));
+
+    /* The default. A live store must be able to deploy even when nobody has
+       set anything, or a future-facing guard becomes a present outage. */
+    /* spawnSync, because the warning goes to stderr (console.warn) and
+       execFileSync only hands back stdout — the first version of this asserted
+       against an empty string and reported the message missing. */
+    const warnRun = require('child_process').spawnSync(
+      process.execPath, [path.join(ROOT, 'scripts/stamp-project-config.js')], {
+        encoding: 'utf8', cwd: ROOT,
+        env: { ...process.env, CF_PAGES: '1', ZW_ENFORCE_PROJECT_CONFIG: '', ZW_SUPABASE_URL: '', SUPABASE_URL: '' },
+      });
+    const warnExit = warnRun.status;
+    const warnOut = (warnRun.stdout || '') + (warnRun.stderr || '');
+    ok('an unconfigured build warns rather than stopping', warnExit === 0, 'exit ' + warnExit);
+    ok('…loudly enough to act on', /WARNING/.test(warnOut) && /would appear to work/i.test(warnOut));
+    ok('…and says how to make it fatal for a licensee',
+      /ZW_ENFORCE_PROJECT_CONFIG=1/.test(warnOut));
+    ok('…before handing the repo to anyone', /before handing the repo/i.test(warnOut));
 
     /* ── The build that is ALREADY right must not be refused ──────────────
        The original store sets the variables to its own project, so nothing
