@@ -1,4 +1,4 @@
-import { DEFAULTS } from '../api/_config.js';
+import { supabaseUrl, supabaseAnonKey } from '../api/_config.js';
 // Serve product.html for /product/:slug URLs, with server-side SEO injection.
 //
 // The page updates title/meta/JSON-LD at runtime too, but social crawlers
@@ -8,8 +8,6 @@ import { DEFAULTS } from '../api/_config.js';
 // /product.html. We fetch the product (public data, anon key) and rewrite
 // the head before responding. Any failure falls back to the untouched HTML.
 
-const SUPABASE_URL = DEFAULTS.supabaseUrl;
-const SUPABASE_ANON = DEFAULTS.supabaseAnonKey;
 
 function escHtml(v) {
   return String(v == null ? '' : v)
@@ -18,7 +16,7 @@ function escHtml(v) {
 }
 
 async function fetchProductSeo(id, env) {
-  const base = ((env && (env.SUPABASE_URL || env.SUPABASE_PROJECT_URL)) || SUPABASE_URL).trim();
+  const base = supabaseUrl(env);
   const url = `${base}/rest/v1/products?id=eq.${encodeURIComponent(id)}`
     + `&select=id,title,subtitle,category,current_price,status,sku,image_url,product_images(image_url,sort_order)`
     + `&limit=1`;
@@ -26,7 +24,7 @@ async function fetchProductSeo(id, env) {
   const timer = setTimeout(() => controller.abort(), 2500);
   try {
     const resp = await fetch(url, {
-      headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` },
+      headers: { apikey: supabaseAnonKey(env), Authorization: `Bearer ${supabaseAnonKey(env)}` },
       signal: controller.signal,
     });
     if (!resp.ok) return null;

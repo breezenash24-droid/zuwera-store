@@ -14,10 +14,8 @@
  */
 
 import { cors, json, mutateSetting } from './_commerce.js';
-import { DEFAULTS } from './_config.js';
+import { supabaseUrl, supabaseAnonKey } from './_config.js';
 
-const SUPABASE_URL = DEFAULTS.supabaseUrl;
-const ANON_KEY = DEFAULTS.supabaseAnonKey;
 
 const FALLBACK_TIER = { points: 100, value: 5 };
 
@@ -129,8 +127,8 @@ export async function onRequestPost({ request, env }) {
     const accessToken = String(body.accessToken || '').trim();
     if (!accessToken) return json({ ok: false, error: 'Please sign in.' }, 401, cors(env));
 
-    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + accessToken },
+    const userRes = await fetch(`${supabaseUrl(env)}/auth/v1/user`, {
+      headers: { apikey: supabaseAnonKey(env), Authorization: 'Bearer ' + accessToken },
     });
     if (!userRes.ok) return json({ ok: false, error: 'Please sign in again.' }, 401, cors(env));
     const user = await userRes.json();

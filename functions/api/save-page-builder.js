@@ -5,10 +5,8 @@
  */
 
 import { resolvePerms, permsHave } from './_rbac.js';
-import { DEFAULTS } from './_config.js';
+import { supabaseUrl, supabaseAnonKey } from './_config.js';
 
-const ANON_KEY = DEFAULTS.supabaseAnonKey;
-const SUPABASE_URL = DEFAULTS.supabaseUrl;
 // product_page_draft / collection_page_draft are the draft halves added so the
 // Product and Collection tabs behave like the Content and Pages tabs: Save keeps
 // it private, Publish makes it live. Note the naming is the opposite way round
@@ -57,8 +55,8 @@ export async function onRequestPost({ request, env }) {
     if (!ALLOWED_KEYS.includes(key)) return cors({ error: 'Key not permitted: ' + key }, 403);
 
     // Verify session
-    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + accessToken },
+    const userRes = await fetch(`${supabaseUrl(env)}/auth/v1/user`, {
+      headers: { apikey: supabaseAnonKey(env), Authorization: 'Bearer ' + accessToken },
     });
     if (!userRes.ok) return cors({ error: 'Invalid or expired session' }, 401);
     const authUser = await userRes.json().catch(() => null);
@@ -72,7 +70,7 @@ export async function onRequestPost({ request, env }) {
     // (Previously this endpoint only checked the session was valid — any
     // logged-in customer could overwrite the homepage. RBAC closes that.)
     const profRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(authUser.id)}&select=role,admin_role,admin_permissions&limit=1`,
+      `${supabaseUrl(env)}/rest/v1/profiles?id=eq.${encodeURIComponent(authUser.id)}&select=role,admin_role,admin_permissions&limit=1`,
       { headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey } }
     );
     const profRows = profRes.ok ? await profRes.json().catch(() => []) : [];
@@ -109,7 +107,7 @@ export async function onRequestPost({ request, env }) {
       rows.push({ key: DRAFT_TO_LIVE[key], value });
     }
 
-    const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?on_conflict=key`, {
+    const saveRes = await fetch(`${supabaseUrl(env)}/rest/v1/site_settings?on_conflict=key`, {
       method: 'POST',
       headers: {
         apikey: serviceKey,

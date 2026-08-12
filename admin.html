@@ -4604,6 +4604,12 @@
 
         <ol class="int-steps" id="int-setup-steps"></ol>
 
+        <!-- "When it does not work". Populated per integration from its
+             `troubleshoot` entries, and hidden entirely when it has none.
+             Symptom first, because that is the only part the reader already
+             knows — they arrive here with a broken thing, not a diagnosis. -->
+        <div class="int-trouble" id="int-setup-trouble" style="display:none;"></div>
+
         <!-- Guide-only: cost line and a link to the provider's own setup page.
              Hidden for integrations that take an ID here. -->
         <div id="int-setup-guide" style="display:none;">

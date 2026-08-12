@@ -22,10 +22,8 @@
  */
 
 import { resolvePerms, permsHave } from './_rbac.js';
-import { DEFAULTS } from './_config.js';
+import { supabaseUrl, supabaseAnonKey } from './_config.js';
 
-const ANON_KEY = DEFAULTS.supabaseAnonKey;
-const SUPABASE_URL = DEFAULTS.supabaseUrl;
 
 // Free-tier allowances, so the panel can show "x of y" rather than a bare
 // number nobody can act on.
@@ -90,7 +88,7 @@ async function billingUsage(env) {
   const pat = env.SUPABASE_ACCESS_TOKEN || env.SUPABASE_PAT || '';
   if (!pat) return { available: false, reason: 'no_token' };
 
-  const ref = String(env.SUPABASE_PROJECT_REF || (SUPABASE_URL.split('//')[1] || '').split('.')[0]);
+  const ref = String(env.SUPABASE_PROJECT_REF || (supabaseUrl(env).split('//')[1] || '').split('.')[0]);
   const H = { Authorization: 'Bearer ' + pat, 'Content-Type': 'application/json' };
 
   // Organisation slug first — the usage routes are org-scoped.
@@ -161,15 +159,15 @@ export async function onRequestPost({ request, env }) {
     if (!key) return json({ ok: false, error: 'Server not configured — add SUPABASE_SERVICE_ROLE_KEY.' }, 500);
 
     // Admin, and specifically one allowed to see infrastructure state.
-    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + accessToken },
+    const userRes = await fetch(`${supabaseUrl(env)}/auth/v1/user`, {
+      headers: { apikey: supabaseAnonKey(env), Authorization: 'Bearer ' + accessToken },
     });
     if (!userRes.ok) return json({ ok: false, error: 'Your session expired. Sign in again.' }, 401);
     const authUser = await userRes.json().catch(() => null);
     if (!authUser || !authUser.id) return json({ ok: false, error: 'Your session expired. Sign in again.' }, 401);
 
     const rows = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(authUser.id)}&select=role,admin_role,admin_permissions&limit=1`,
+      `${supabaseUrl(env)}/rest/v1/profiles?id=eq.${encodeURIComponent(authUser.id)}&select=role,admin_role,admin_permissions&limit=1`,
       { headers: { apikey: key, Authorization: 'Bearer ' + key } }
     ).then((r) => (r.ok ? r.json() : [])).catch(() => []);
     const prof = Array.isArray(rows) ? rows[0] : null;

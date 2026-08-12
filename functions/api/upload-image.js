@@ -17,10 +17,8 @@
  */
 
 import { putR2Object, publicUrlForKey, describedKey } from './upload-product-image.js';
-import { DEFAULTS } from './_config.js';
+import { supabaseUrl, supabaseAnonKey } from './_config.js';
 
-const ANON_KEY = DEFAULTS.supabaseAnonKey;
-const SUPABASE_URL = DEFAULTS.supabaseUrl;
 const MAX_BYTES = 100 * 1024 * 1024; // 100 MB — a hero video is legitimately large
 
 function json(body, status = 200) {
@@ -56,8 +54,8 @@ export async function onRequestPost({ request, env }) {
     if (file.size > MAX_BYTES) return json({ error: 'File too large (max 30 MB). Compress it and try again.' }, 413);
 
     // Verify the session is valid (same posture as save-page-builder).
-    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + accessToken },
+    const userRes = await fetch(`${supabaseUrl(env)}/auth/v1/user`, {
+      headers: { apikey: supabaseAnonKey(env), Authorization: 'Bearer ' + accessToken },
     });
     if (!userRes.ok) return json({ error: 'Invalid or expired session' }, 401);
 

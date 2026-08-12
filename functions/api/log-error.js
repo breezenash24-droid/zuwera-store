@@ -8,9 +8,8 @@
  * and env: SUPABASE_URL (optional; defaults below) + SUPABASE_SERVICE_ROLE_KEY.
  */
 
-import { DEFAULTS } from './_config.js';
+import { supabaseUrl } from './_config.js';
 
-const DEFAULT_SUPABASE_URL = DEFAULTS.supabaseUrl;
 
 const clip = (v, n) => (v == null ? null : String(v).slice(0, n));
 const int = (v) => (Number.isFinite(+v) ? (+v | 0) : null);
@@ -19,7 +18,7 @@ export async function onRequestPost({ request, env }) {
   try {
     const body = await request.json().catch(() => ({}));
     const key = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY;
-    const url = env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
+    const url = supabaseUrl(env);
     if (!key) return new Response(null, { status: 204 }); // no store configured — swallow
 
     const row = {

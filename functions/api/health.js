@@ -6,13 +6,12 @@
  * endpoint, so no API key is embedded here. Never cached.
  */
 
-import { DEFAULTS } from './_config.js';
+import { supabaseUrl } from './_config.js';
 
-const SUPABASE_URL = DEFAULTS.supabaseUrl;
 
 export async function onRequest({ env }) {
   const out = { ok: true, backend: true, ts: new Date().toISOString() };
-  const url = env.SUPABASE_URL || SUPABASE_URL;
+  const url = supabaseUrl(env);
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 4000);

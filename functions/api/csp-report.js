@@ -8,15 +8,14 @@
  * and clear noise with:  delete from error_log where source='csp';
  */
 
-import { DEFAULTS } from './_config.js';
+import { supabaseUrl } from './_config.js';
 
-const DEFAULT_SUPABASE_URL = DEFAULTS.supabaseUrl;
 const clip = (v, n) => (v == null ? null : String(v).slice(0, n));
 
 export async function onRequestPost({ request, env }) {
   try {
     const key = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY;
-    const url = env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
+    const url = supabaseUrl(env);
     if (!key) return new Response(null, { status: 204 });
 
     const body = await request.json().catch(() => ({}));

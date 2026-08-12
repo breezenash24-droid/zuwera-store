@@ -1425,11 +1425,20 @@
             { key:'crisp',     kind:'storefront', icon:'💬', name:'Crisp Chat', cat:'Support',
               blurb:'Live chat widget with a shared inbox, so shoppers can ask before they buy.',
               free:'2 seats free', idLabel:'Website ID', idHint:'8a7f…-…',
+              conflicts:['tawk'], conflictWhy:'Two chat widgets means two bubbles stacked on each other, and a shopper messaging the one nobody is watching.',
+              troubleshoot:[
+                  { symptom:'Bubble does not appear', cause:'Wrong Website ID, or an ad blocker.', fix:'Check the ID in Crisp → Settings → Website Settings. Test in a private window with blockers off.' },
+                  { symptom:'Two bubbles', cause:'Tawk.to is on as well.', fix:'Turn one off — this card says so when it detects both.' },
+              ],
               steps:['Sign up at crisp.chat','Settings → Website Settings → Setup instructions','Copy the Website ID'] },
 
             { key:'tawk',      kind:'storefront', icon:'🗨️', name:'Tawk.to', cat:'Support',
               blurb:'Live chat with unlimited agents. The free alternative to Crisp — pick one, not both.',
               free:'Free, unlimited agents', idLabel:'Property / Widget ID', idHint:'5f1a…/1f2b…',
+              conflicts:['crisp'], conflictWhy:'Two chat widgets means two bubbles stacked on each other, and a shopper messaging the one nobody is watching.',
+              troubleshoot:[
+                  { symptom:'Widget missing', cause:'The embed needs BOTH ids, as propertyId/widgetId.', fix:'Copy them from the embed URL in Administration → Channels → Chat Widget.' },
+              ],
               steps:['Sign up at tawk.to','Administration → Channels → Chat Widget','Copy the two ids from the embed URL as propertyId/widgetId'] },
 
             { key:'trustpilot',kind:'storefront', icon:'⭐', name:'Trustpilot', cat:'Social proof',
@@ -1464,7 +1473,25 @@
               blurb:'Works out the right sales tax from the customer\'s exact address and the product type, and tracks where you have crossed a registration threshold. The built-in table is state-level only and cannot know about county or city rates, or that clothing is exempt in some states — this does.',
               free:'0.5% per transaction where it calculates tax; no monthly fee',
               docs:'https://dashboard.stripe.com/settings/tax',
-              steps:['Stripe Dashboard → Settings → Tax','Add your business address and register the states you have nexus in','Turn it on — checkout already runs through Stripe, so nothing here changes','Admin → Tax: leave the built-in rates as the fallback'] },
+              steps:['Stripe Dashboard → Settings → Tax','Add your business address and register the states you have nexus in','Turn it on — checkout already runs through Stripe, so nothing here changes','Admin → Tax: leave the built-in rates as the fallback'],
+              /* Enabling Stripe Tax in the Stripe dashboard does NOT make this
+                 store use it — Admin → Tax has to select it as the engine. Those
+                 are two different switches in two different places, and having
+                 only the first one on is the state that looks finished and
+                 charges from the built-in table anyway. */
+              detect: (sig) => {
+                  if (sig.taxEngine === undefined) return { state: 'unknown', why: 'Could not read the tax engine just now.' };
+                  if (sig.taxEngine === 'stripe_tax') {
+                      return { state: 'live', why: 'Pricing every order — this is the selected tax engine.' };
+                  }
+                  return { state: 'off', why: 'Not the selected engine. Admin → Tax is currently using “'
+                      + (sig.taxEngine || 'the built-in table') + '”, so Stripe Tax is not pricing anything.' };
+              },
+              troubleshoot: [
+                  { symptom:'Turned on in Stripe, but tax has not changed', cause:'Stripe Tax being enabled in your Stripe account is a separate thing from this store calling it.', fix:'Admin → Tax → set the engine to Stripe Tax. Until then the built-in state table prices every order.' },
+                  { symptom:'Tax is right at checkout but wrong on the bag', cause:'The bag shows an estimate before an address is known.', fix:'Expected. The charge is always what the engine returns at checkout, never the bag estimate.' },
+                  { symptom:'Nothing to file at the end of the quarter', cause:'A calculation is a quote; Stripe files from recorded transactions.', fix:'Fulfilment records each sale automatically. Check Admin → Tax for the filing totals.' },
+              ] },
 
             /* Two Apple Pay cards, and the difference between them matters, so
                each one says what it is, what it is NOT, and which one the other
@@ -1475,9 +1502,45 @@
               blurb:'THE STANDARD APPLE PAY BUTTON. The black "Buy with  Pay" button, Apple\'s own, exactly as it looks on any big store — one tap, no address form, no card typing. It appears in Safari, on iPhone and on iPad, which is where most Apple Pay actually happens. This card is not a switch: it is the one-time domain verification in Stripe that every Apple Pay button on this site depends on, including the one on card 2. Do this one first or neither works. Nothing to pay Apple — Stripe creates the Apple Merchant ID and certificate on your behalf, so the $99/year Apple Developer Program is not needed.',
               free:'No extra fee — same Stripe rate as a card. No Apple fee, no Apple developer account.',
               docs:'https://dashboard.stripe.com/settings/payments/apple_pay',
-              steps:['Stripe Dashboard → Settings → Payment methods → Apple Pay','Add every domain that shows the button — zuwera.store, and www if you use it','Stripe checks /.well-known/apple-developer-merchantid-domain-association (already live on this site)','Once verified the button appears by itself in Safari and on iOS — there is no switch to flip','Register in live mode and Stripe registers your sandboxes too, so test mode works as well'] },
+              steps:['Stripe Dashboard → Settings → Payment methods → Apple Pay','Add every domain that shows the button — zuwera.store, and www if you use it','Stripe checks /.well-known/apple-developer-merchantid-domain-association (already live on this site)','Once verified the button appears by itself in Safari and on iOS — there is no switch to flip','Register in live mode and Stripe registers your sandboxes too, so test mode works as well'],
+              /* The domain-association file is the one part of Apple Pay this
+                 site is responsible for, and the one part that can silently
+                 break — a routing change or a stray _headers rule and Stripe's
+                 fetch 404s, verification lapses, and the button stops appearing
+                 with no error anywhere. So the check is a real request for the
+                 real file rather than a stored "yes I did that".
 
+                 It cannot prove the domain is registered in Stripe — that needs
+                 credentials we deliberately do not hold — so a served file reads
+                 as "ready", not "live", and says exactly what it did and did not
+                 establish. */
+              detect: (sig) => {
+                  if (sig.applePayFile === undefined) return { state: 'unknown', why: 'Could not reach the verification file just now.' };
+                  if (!sig.applePayFile) {
+                      return { state: 'attention', why: 'The domain-verification file is not being served. '
+                          + 'Stripe cannot verify this domain, so the Apple Pay button will not appear.' };
+                  }
+                  return { state: 'ready', why: 'Verification file is live and served correctly. '
+                      + 'If the domain is registered in Stripe, the button is showing in Safari and on iOS.' };
+              },
+              troubleshoot: [
+                  { symptom:'No Apple Pay button in Safari', cause:'Domain not registered in Stripe, or registered without the www variant.', fix:'Stripe → Settings → Payment methods → Apple Pay. Add every hostname that serves the site, including www.' },
+                  { symptom:'Works on iPhone, missing on Chrome desktop', cause:'Expected — Apple Pay is Safari and iOS only.', fix:'That is what card 2 (the QR code) is for.' },
+                  { symptom:'Worked before, stopped', cause:'The verification file stopped being served, usually after a routing or headers change.', fix:'This card checks that file live. If it says the file is missing, that is the cause.' },
+                  { symptom:'Button shows but payment fails', cause:'Test-mode key with a live-registered domain, or the reverse.', fix:'Register the domain in live mode — Stripe mirrors it to your sandboxes automatically.' },
+              ] },
+
+            /* `requires` is not decoration. The QR button rides on the SAME
+               domain verification card 1 sets up, so turning this on without it
+               produces a button that appears and then fails — the worst of the
+               three possible outcomes, because it looks like it works. */
             { key:'apple_pay_qr', kind:'toggle', icon:'', name:'2. Apple Pay on Chrome & Edge — the QR code', cat:'Payments',
+              requires:['apple_pay'], pairsWith:['apple_pay'],
+              troubleshoot:[
+                  { symptom:'Button appears then errors', cause:'Card 1 is not finished — the domain is not verified.', fix:'Do card 1 first. This card shows a warning while that is outstanding.' },
+                  { symptom:'No QR, just the normal sheet', cause:'You are in Safari or on iOS.', fix:'Correct behaviour — the QR is only for browsers that have no native Apple Pay.' },
+                  { symptom:'QR will not scan', cause:'Scanning needs iOS 18 or later.', fix:'Older iPhones can still pay in Safari on the phone itself.' },
+              ],
               blurb:'THE SAME APPLE PAY BUTTON, IN BROWSERS THAT NORMALLY HIDE IT. Card 1 gets you Apple Pay in Safari and on iPhone; it stops there. On a Windows laptop in Chrome — most desktop shoppers — Apple Pay simply does not exist. Switch this on and the button appears there too: clicking it shows an Apple QR code the customer scans with their iPhone to approve on the phone where the card already lives. It changes nothing for Safari, iPhone or iPad — same button, same ordinary Apple Pay sheet, no QR. Off by default, and turning it off puts everything back exactly as it was.',
               free:'No extra fee — same Stripe rate as a card',
               docs:'https://dashboard.stripe.com/settings/payments/apple_pay',
@@ -1591,7 +1654,14 @@
                 if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = {}; } }
                 _integrations = (v && typeof v === 'object') ? v : {};
             } catch (_) { _integrations = {}; }
+            /* Draw immediately from settings, then again once the live signals
+               land. Awaiting them first would leave the panel blank while a
+               network probe runs, and every card that does not depend on a
+               signal is already correct — so the first paint is useful and the
+               second only upgrades the guides from "unknown" to what they
+               actually are. */
             renderIntegrationStore();
+            loadIntegrationSignals().then(renderIntegrationStore).catch(() => {});
         }
 
         function integrationConfigured(item) {
@@ -1607,6 +1677,150 @@
             }
             const e = _integrations[item.key];
             return !!(e && (e.id || item.optionalId) && e.enabled !== false);
+        }
+
+        /* ─── Is it actually working? ──────────────────────────────────────────
+           integrationConfigured() answers "is a value stored here", which is a
+           different question from "is this running", and for a whole class of
+           integrations it is the wrong one. It returns FALSE for every
+           kind:'guide' — by design, because a guide is configured on the
+           vendor's dashboard and there is nothing in our settings to look at.
+
+           The result was that the two most consequential integrations in the
+           store — Apple Pay and Stripe Tax — were both fully live and both
+           reported "Set up elsewhere", indistinguishable from never having been
+           touched. Apple Pay is taking payments. Stripe Tax is pricing every
+           order. Neither said so anywhere.
+
+           So a guide can now DETECT itself. Not by asking the vendor — that
+           needs credentials we deliberately do not hold — but from evidence
+           already in reach: a domain-verification file this site serves, the
+           tax engine the checkout is actually calling, a key that /api/status
+           just used successfully. Evidence, not a stored intention.
+
+           Five states, because "on/off" cannot say the useful things:
+
+             live      running, with evidence. The badge people want.
+             ready     configured, nothing has exercised it yet.
+             attention configured AND something is wrong — a conflicting pair,
+                       a missing prerequisite, test-mode keys on a live store.
+                       Worth more than green or grey, because it is the state
+                       nobody discovers on their own.
+             off       not set up.
+             unknown   we could not check. Never dressed up as either answer. */
+        const INTEGRATION_STATES = {
+            live:      { label: 'Live',      cls: 'live' },
+            ready:     { label: 'Ready',     cls: 'ready' },
+            attention: { label: 'Check it',  cls: 'attention' },
+            off:       { label: 'Not set up', cls: 'off' },
+            unknown:   { label: 'Unknown',   cls: 'unknown' },
+        };
+
+        /* Evidence gathered once per page load and handed to every detector, so
+           twenty cards do not make twenty requests. Every field is optional and
+           every detector must cope with it being absent — a signal that failed
+           to load must produce "unknown", never a confident wrong answer. */
+        let _intSignals = { loaded: false };
+
+        async function loadIntegrationSignals() {
+            const sig = { loaded: true };
+
+            /* Which engine actually prices an order. This is the difference
+               between "Stripe Tax exists in your Stripe account" and "Stripe Tax
+               is what this checkout calls", and only the second one matters. */
+            try {
+                const r = await fetch('/api/tax-config', { cache: 'no-store' });
+                if (r.ok) {
+                    const j = await r.json();
+                    sig.taxEngine = (j && j.effective && j.effective.engine) || (j && j.engine) || '';
+                }
+            } catch (_) { /* leave undefined → detectors report unknown */ }
+
+            /* Apple Pay's domain verification is a file Stripe fetches from this
+               site. We can fetch it too, which is real evidence rather than a
+               setting someone ticked: if it 404s, Apple Pay cannot verify and
+               the button will not appear no matter what the dashboard says. */
+            try {
+                const r = await fetch('/.well-known/apple-developer-merchantid-domain-association', {
+                    cache: 'no-store', method: 'GET',
+                });
+                sig.applePayFile = r.ok && (await r.text()).trim().length > 100;
+            } catch (_) {}
+
+            _intSignals = sig;
+            return sig;
+        }
+
+        /* The state of one integration, with the reason attached.
+           `why` is the point: a badge that says "Live" and nothing else is a
+           slightly prettier boolean. Saying WHY it is live is what lets someone
+           trust it — or notice that the reason is wrong. */
+        function integrationState(item) {
+            const sig = _intSignals || {};
+            const rel = integrationRelations(item);
+
+            // A conflict outranks everything: two chat widgets both "working" is
+            // still two chat widgets on the page.
+            if (rel.conflict) {
+                return { state: 'attention', why: rel.conflict, states: INTEGRATION_STATES.attention };
+            }
+
+            if (item.kind === 'guide') {
+                if (typeof item.detect !== 'function') {
+                    return { state: 'off', why: 'Set up on the provider\'s own dashboard.', states: INTEGRATION_STATES.off };
+                }
+                let out;
+                try { out = item.detect(sig, { maskedKeys: _maskedKeys, integrations: _integrations }); }
+                catch (_) { out = null; }
+                if (!out) return { state: 'unknown', why: 'Could not check this one just now.', states: INTEGRATION_STATES.unknown };
+                return { state: out.state, why: out.why, states: INTEGRATION_STATES[out.state] || INTEGRATION_STATES.unknown };
+            }
+
+            const on = integrationConfigured(item);
+            if (!on) return { state: 'off', why: '', states: INTEGRATION_STATES.off };
+            if (rel.missing) {
+                return { state: 'attention', why: rel.missing, states: INTEGRATION_STATES.attention };
+            }
+            /* Configured storefront/toggle integrations ARE live — the script is
+               injected on every page load, so there is nothing further to wait
+               for. Server keys are only "ready" until something has used them. */
+            if (item.kind === 'server') {
+                return { state: 'ready', why: 'Key saved. It will be used the next time this service is called.', states: INTEGRATION_STATES.ready };
+            }
+            return { state: 'live', why: 'Loading on the storefront now.', states: INTEGRATION_STATES.live };
+        }
+
+        /* ─── How integrations affect each other ───────────────────────────────
+           Two relationships worth naming, because both fail silently.
+
+           `requires` — this does nothing without that. Pinterest and TikTok tags
+           fire conversion events that are worthless without the purchase data
+           they hang off; a tax provider is inert unless it is the SELECTED
+           engine. Turning one on and assuming it works is the normal mistake.
+
+           `conflicts` — these must not both run. Two live-chat widgets means two
+           bubbles on top of each other, and the catalogue already warned about
+           it in prose ("pick one, not both") where nothing could enforce it. Two
+           analytics scripts double-count every pageview, which is worse than no
+           analytics because the numbers look plausible. */
+        function integrationRelations(item) {
+            const out = { conflict: '', missing: '', pairs: [] };
+            const nameOf = (k) => (ZW_INTEGRATION_CATALOG.find(x => x.key === k) || {}).name || k;
+
+            for (const k of (item.conflicts || [])) {
+                const other = ZW_INTEGRATION_CATALOG.find(x => x.key === k);
+                if (other && integrationConfigured(other) && integrationConfigured(item)) {
+                    out.conflict = 'Both this and ' + nameOf(k) + ' are on. ' + (item.conflictWhy || 'They should not run together.');
+                    break;
+                }
+            }
+            for (const k of (item.requires || [])) {
+                const other = ZW_INTEGRATION_CATALOG.find(x => x.key === k);
+                const ok = other ? integrationConfigured(other) : false;
+                if (!ok) { out.missing = 'Needs ' + nameOf(k) + ' set up first, or this does nothing.'; break; }
+            }
+            out.pairs = (item.pairsWith || []).map(nameOf);
+            return out;
         }
 
         /* The catalogue is collapsed by default; remember whether it was left
@@ -1625,6 +1839,27 @@
             else apply();
         })();
 
+        /* "When it does not work", per integration.
+           Symptom first, because that is the only part the reader already has —
+           they arrive with a broken thing, not a diagnosis. Cause second so the
+           fix makes sense rather than being a ritual, and the fix last so it is
+           the thing left on screen. Hidden entirely when an integration has
+           nothing to say, which is better than a section reading "no known
+           issues" on something nobody has debugged yet. */
+        function renderIntegrationTroubleshooting(item) {
+            const host = document.getElementById('int-setup-trouble');
+            if (!host) return;
+            const rows = (item && item.troubleshoot) || [];
+            if (!rows.length) { host.style.display = 'none'; host.innerHTML = ''; return; }
+            host.style.display = '';
+            host.innerHTML = '<h4>When it does not work</h4>' + rows.map(r => `
+                <div class="int-trouble-row">
+                  <div class="int-trouble-sym">${escapeHtml(r.symptom)}</div>
+                  <div class="int-trouble-cause">${escapeHtml(r.cause)}</div>
+                  <div class="int-trouble-fix">→ ${escapeHtml(r.fix)}</div>
+                </div>`).join('');
+        }
+
         function renderIntegrationStore(filter) {
             const grid = document.getElementById('integration-grid');
             if (!grid) return;
@@ -1633,8 +1868,15 @@
             const countEl = document.getElementById('integrationCount');
             if (countEl) {
                 const total = ZW_INTEGRATION_CATALOG.length + (_apiLayout.demoted || []).length;
-                const on = ZW_INTEGRATION_CATALOG.filter(integrationConfigured).length;
-                countEl.textContent = on ? `— ${on} of ${total} connected` : `— ${total} available`;
+                /* Counted by STATE, so a guide that is genuinely running counts
+                   as running. The old count called integrationConfigured, which
+                   returns false for every guide — so Apple Pay and Stripe Tax,
+                   both live, were both missing from "N of M connected". */
+                const states = ZW_INTEGRATION_CATALOG.map(integrationState);
+                const on = states.filter(s => s.state === 'live' || s.state === 'ready').length;
+                const needsEyes = states.filter(s => s.state === 'attention').length;
+                countEl.textContent = (on ? `— ${on} of ${total} active` : `— ${total} available`)
+                    + (needsEyes ? ` · ${needsEyes} need${needsEyes === 1 ? 's' : ''} attention` : '');
             }
             // Anything tucked away from the API grid shows up here, as a real
             // card that still opens the same key editor — moved, not disabled.
@@ -1659,16 +1901,29 @@
 
             grid.innerHTML = items.map(it => {
                 const on = integrationConfigured(it);
+                const st = integrationState(it);
+                const rel = integrationRelations(it);
+                /* The badge now carries a state rather than a boolean, and the
+                   line under it carries the REASON. A badge saying "Live" with
+                   nothing else is a prettier boolean; saying why it is live is
+                   what makes it checkable — and occasionally what reveals the
+                   reason is wrong. */
+                const label = it.kind === 'toggle' && st.state === 'off' ? 'Off' : st.states.label;
+                const why = st.why
+                    ? `<div class="integration-why ${st.states.cls}">${escapeHtml(st.why)}</div>` : '';
+                const pairs = (rel.pairs.length && st.state !== 'off')
+                    ? `<div class="integration-pairs">Works together with ${escapeHtml(rel.pairs.join(', '))}.</div>` : '';
                 return `
-                <div class="integration-card${on ? ' is-on' : ''}">
+                <div class="integration-card${on || st.state === 'live' || st.state === 'ready' ? ' is-on' : ''}">
                   <div class="integration-card-top">
                     <span class="integration-icon">${it.icon}</span>
                     <div style="min-width:0;">
                       <div class="integration-name">${escapeHtml(it.name)}</div>
                       <div class="integration-cat">${escapeHtml(it.cat)}</div>
                     </div>
-                    <span class="integration-state${on ? ' on' : ''}">${it.kind === 'guide' ? 'Set up elsewhere' : it.kind === 'toggle' ? (on ? 'On' : 'Off') : (on ? 'Connected' : 'Not set up')}</span>
+                    <span class="integration-state ${st.states.cls}">${escapeHtml(label)}</span>
                   </div>
+                  ${why}${pairs}
                   <div class="integration-blurb">${escapeHtml(it.blurb)}</div>
                   <div class="integration-foot">
                     <span class="integration-free">${escapeHtml(it.free)}</span>
@@ -1772,6 +2027,7 @@
                 if (enabledRow && enabledRow.parentElement) enabledRow.parentElement.style.display = 'none';
                 document.getElementById('int-setup-guide').style.display = '';
                 document.getElementById('int-setup-status').textContent = '';
+                renderIntegrationTroubleshooting(item);
                 document.getElementById('integration-setup-modal').classList.add('open');
                 return;
             }
@@ -1810,6 +2066,7 @@
                 rm.textContent = 'Turn off';
                 rm.style.display = cur.enabled ? '' : 'none';
                 document.getElementById('int-setup-status').textContent = '';
+                renderIntegrationTroubleshooting(item);
                 document.getElementById('integration-setup-modal').classList.add('open');
                 return;
             }
@@ -1827,6 +2084,8 @@
             document.getElementById('int-setup-enabled').checked = cur.enabled !== false;
             document.getElementById('int-setup-status').textContent = '';
             document.getElementById('int-setup-remove').style.display = cur.id || cur.enabled ? '' : 'none';
+            renderIntegrationTroubleshooting(item);
+
             document.getElementById('integration-setup-modal').classList.add('open');
         }
 
