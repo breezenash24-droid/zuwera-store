@@ -1273,6 +1273,16 @@ console.log('\n  the CSP allows our own bot protection');
       !!m && m[0].includes('https://challenges.cloudflare.com'),
       m ? m[0].slice(0, 90) : 'directive missing');
   }
+
+  /* Product photos and videos live in R2 and are served from r2.dev, which
+     media-src did not list — so every product video on the homepage logged
+     a violation. Report-only, so they still played; enforce the policy one
+     day and the videos stop. */
+  for (const d of ['media-src', 'img-src']) {
+    const m = csp.match(new RegExp(d + ' [^;]*'));
+    ok(d + ' allows the R2 bucket product media is served from',
+      !!m && m[0].includes('r2.dev'), m ? m[0].slice(0, 90) : 'directive missing');
+  }
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
