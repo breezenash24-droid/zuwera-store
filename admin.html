@@ -900,7 +900,7 @@
                     </div>
 
                     <!-- Returns JS -->
-                    <script src="admin-returns-ui.js?v=9232d095"></script>
+                    <script src="admin-returns-ui.js?v=416bc11b"></script>
                 </div>
 
                 <!-- Audit Log Page -->
@@ -2565,7 +2565,7 @@
                     <div id="tax-re-content"></div>
                   </div>
 
-                  <script src="admin-tax.js?v=3b9cc1dd"></script>
+                  <script src="admin-tax.js?v=678fd99a"></script>
                 </div>
 
                 <!-- Shipping Page -->
@@ -2834,7 +2834,7 @@
                     <p style="text-align:center;color:var(--text-secondary);padding:40px;font-size:13px;">Loading receipts...</p>
                   </div>
 
-                  <script src="admin-receipts.js?v=af6612dd"></script>
+                  <script src="admin-receipts.js?v=fa70a332"></script>
                 </div>
 
                 <!-- Settings Page -->
@@ -4553,28 +4553,28 @@
          triggers: it parses its config and exposes its API, and nothing opens
          until the Preview button asks it to. -->
     <script>window.__zwPopupNoAutoOpen = true;</script>
-    <script src="email-popup.js?v=d316db75" defer></script>
+    <script src="email-popup.js?v=41803da5" defer></script>
     <!-- Before admin-main: the Customer messages editor reads its keys,
          defaults and placeholder rules from ZWMessages, which is the same
          file the storefront reads them from. -->
     <!-- Image optimiser. Without it every thumbnail in here pulled the FULL-SIZE
      original straight from Supabase Storage — a 4MB photo for a 56px preview —
      which is where this project's cached-egress bill was going. -->
-<script src="image-utils.js?v=1"></script>
+<script src="image-utils.js?v=3fee4aec"></script>
 <!-- What an order is called. Blocking and first: the panels that print one
      run on page load, and a deferred copy would render the first list before
      the formatter existed. -->
-<script src="order-number.js?v=1"></script>
-<script src="customer-messages.js?v=1"></script>
-    <script src="admin-main.js?v=db894ca5"></script>
+<script src="order-number.js?v=d049b8ca"></script>
+<script src="customer-messages.js?v=ef24fea6"></script>
+    <script src="admin-main.js?v=7651eac5"></script>
     <!-- After admin-main: it needs `sb`, which that file creates at top level. -->
-    <script src="admin-themes.js?v=9f80018d"></script>
+    <script src="admin-themes.js?v=d46db34c"></script>
     <script src="admin-theme-presets.js?v=bd0c8c14"></script>
     <script src="admin-theme-import.js?v=f874417a"></script>
     <!-- The icon editor previews through the real registry, so it loads it too. -->
     <script src="/icon-sets.js?v=e0ed4bcb"></script>
     <script src="admin-icons.js?v=ae396420"></script>
-    <script src="commerce-admin.js?v=d967ea62"></script>
+    <script src="commerce-admin.js?v=8b7c42e7"></script>
 <!-- API Key Editor Modal -->
 <div id="api-key-modal">
     <div class="api-key-modal-box" style="position:relative;">
