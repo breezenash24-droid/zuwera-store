@@ -25,8 +25,19 @@ if (!process.env.CF_PAGES && !process.argv.includes('--local')) {
   process.exit(0);
 }
 
-const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?key=eq.fonts&select=value';
-const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+/* Which project's fonts get stamped into the CSS. Read from the canonical
+   config rather than written out again — this script fetching the ORIGINAL
+   store's fonts while the rest of the build points somewhere else is a subtle
+   version of the bug zw-config.js exists to prevent, and it would show up as
+   nothing worse than the wrong typeface on first paint, which nobody would
+   trace back to here. */
+const CANON = require(path.join(__dirname, '..', 'zw-config.js'));
+/* Either name, matching stamp-project-config.js and the Workers. A deployment
+   that already runs this store has SUPABASE_URL set; making it invent a second
+   variable with the same value is how the two end up disagreeing. */
+const PROJECT = (process.env.ZW_SUPABASE_URL || process.env.SUPABASE_URL || CANON.supabaseUrl).replace(/\/$/, '');
+const SUPABASE_URL = PROJECT + '/rest/v1/site_settings?key=eq.fonts&select=value';
+const ANON = process.env.ZW_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || CANON.supabaseAnonKey;
 
 function fetchFonts() {
   return new Promise((resolve) => {

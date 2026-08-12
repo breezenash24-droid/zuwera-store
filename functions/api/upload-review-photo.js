@@ -10,8 +10,11 @@
  * Response: { url } or { error }
  */
 
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+import { DEFAULTS } from './_config.js';
+
+
+const ANON_KEY = DEFAULTS.supabaseAnonKey;
+const SUPABASE_URL = DEFAULTS.supabaseUrl;
 const BUCKET = 'product-images';
 const MAX_BYTES = 6 * 1024 * 1024; // 6 MB per photo
 const ALLOWED = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };

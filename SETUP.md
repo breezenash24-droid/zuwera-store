@@ -109,12 +109,46 @@ Set these in **Cloudflare Pages → Settings → Environment variables**, not in
 Several settings are readable under more than one name, an artefact of renames
 over time. The canonical name is listed first; the alias still works.
 
+### Which project this deployment belongs to
+
+**Set these as BUILD variables** — Cloudflare Pages → Settings → **Build** →
+Build variables. This is not the same place as *Variables and Secrets*: those
+reach the Workers at runtime and are invisible to the build, which is where
+these are read.
+
+Unset, the build warns and falls back to the values committed in `zw-config.js`.
+For a fork that means shipping against someone else's database, so set
+`ZW_ENFORCE_PROJECT_CONFIG=1` as well and the build will refuse instead of
+warning.
+
+| Variable | Notes |
+|---|---|
+| `ZW_SUPABASE_URL` | `https://<your-project>.supabase.co` |
+| `ZW_SUPABASE_ANON_KEY` | your project's anon key |
+| `ZW_SITE_URL` | `https://<your-domain>` |
+
+Browser code cannot look these up at runtime — Supabase is injected lazily here,
+and several scripts call the REST API before it has loaded — so the build stamps
+them into every shipped file (`scripts/stamp-project-config.js`). Workers do not
+need stamping; they read `SUPABASE_URL` from the environment at request time via
+`functions/api/_config.js`.
+
+It is worth being deliberate here, because the broken version *works*. A
+deployment left on the committed defaults loads products, renders the storefront
+and signs admins in — against somebody else's database. Nothing errors. That is
+why `ZW_ENFORCE_PROJECT_CONFIG=1` belongs in every handover: the person who has
+never seen this code is the one who needs the build to stop, and they are also
+the one least likely to read a warning in a log.
+
+`zw-config.js` holds the fallback values. Do not edit it to repoint a fork; set
+the variables above, which is the path that is tested.
+
 ### Required
 
 | Variable | Notes |
 |---|---|
-| `SUPABASE_URL` | alias: `SUPABASE_PROJECT_URL` |
-| `SUPABASE_ANON_KEY` | public by design; also hardcoded in client pages |
+| `SUPABASE_URL` | alias: `SUPABASE_PROJECT_URL`. Read by Workers at runtime |
+| `SUPABASE_ANON_KEY` | public by design — RLS is the control, not secrecy |
 | `SUPABASE_SERVICE_ROLE_KEY` | aliases: `SUPABASE_SERVICE_KEY`, `SUPABASE_SERVICE_ROLE` |
 | `STRIPE_SECRET_KEY` | `sk_test_…` until you are ready to take real money |
 | `STRIPE_PUBLISHABLE_KEY` | also `STRIPE_TEST_PUBLISHABLE_KEY` / `STRIPE_LIVE_PUBLISHABLE_KEY` |

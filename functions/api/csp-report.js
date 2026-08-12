@@ -7,7 +7,10 @@
  *   select message, count(*) from error_log where source='csp' group by 1 order by 2 desc;
  * and clear noise with:  delete from error_log where source='csp';
  */
-const DEFAULT_SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+
+import { DEFAULTS } from './_config.js';
+
+const DEFAULT_SUPABASE_URL = DEFAULTS.supabaseUrl;
 const clip = (v, n) => (v == null ? null : String(v).slice(0, n));
 
 export async function onRequestPost({ request, env }) {

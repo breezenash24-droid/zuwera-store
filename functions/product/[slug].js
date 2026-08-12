@@ -1,3 +1,4 @@
+import { DEFAULTS } from '../api/_config.js';
 // Serve product.html for /product/:slug URLs, with server-side SEO injection.
 //
 // The page updates title/meta/JSON-LD at runtime too, but social crawlers
@@ -7,8 +8,8 @@
 // /product.html. We fetch the product (public data, anon key) and rewrite
 // the head before responding. Any failure falls back to the untouched HTML.
 
-const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+const SUPABASE_URL = DEFAULTS.supabaseUrl;
+const SUPABASE_ANON = DEFAULTS.supabaseAnonKey;
 
 function escHtml(v) {
   return String(v == null ? '' : v)

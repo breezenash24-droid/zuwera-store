@@ -5,7 +5,10 @@
  * which stops responding entirely). Probes GoTrue's PUBLIC /auth/v1/health
  * endpoint, so no API key is embedded here. Never cached.
  */
-const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+
+import { DEFAULTS } from './_config.js';
+
+const SUPABASE_URL = DEFAULTS.supabaseUrl;
 
 export async function onRequest({ env }) {
   const out = { ok: true, backend: true, ts: new Date().toISOString() };

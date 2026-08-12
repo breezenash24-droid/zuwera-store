@@ -5,9 +5,10 @@
  */
 
 import { resolvePerms, permsHave } from './_rbac.js';
+import { DEFAULTS } from './_config.js';
 
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+const ANON_KEY = DEFAULTS.supabaseAnonKey;
+const SUPABASE_URL = DEFAULTS.supabaseUrl;
 // product_page_draft / collection_page_draft are the draft halves added so the
 // Product and Collection tabs behave like the Content and Pages tabs: Save keeps
 // it private, Publish makes it live. Note the naming is the opposite way round
