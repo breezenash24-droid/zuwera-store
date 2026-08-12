@@ -16,6 +16,31 @@
 
 import { resolveSetting } from './_settings.js';
 
+/**
+ * Where to send a customer who wants to look at their order.
+ *
+ * Every email that offered this linked to /account, hardcoded. Most of this
+ * store's buyers check out as guests and have no account, so the link asked
+ * them to log in — and on a shared computer where somebody else was still
+ * signed in, it showed THAT person's orders. A customer clicking a link in
+ * their own receipt landed in a stranger's account.
+ *
+ * An order with a user_id belongs to an account holder and /account is right
+ * for them. Everyone else goes to the guest lookup carrying their order
+ * number, so the only thing left to type is the email the message was sent to
+ * — the one thing we can be certain they have.
+ *
+ * Shared rather than repeated, because it was repeated: the same wrong link
+ * appeared in the order confirmation and again in the delivered notice, and
+ * fixing one would have left the other.
+ */
+export function orderStatusUrl({ userId, orderNumber, siteUrl } = {}) {
+  const base = String(siteUrl || 'https://zuwera.store').replace(/\/$/, '');
+  if (userId) return base + '/account';
+  const n = String(orderNumber == null ? '' : orderNumber).trim();
+  return n ? base + '/returns?order=' + encodeURIComponent(n) : base + '/returns';
+}
+
 // Strip HTML to a readable plain-text body for the Loops template.
 function htmlToText(html) {
   return String(html || '')

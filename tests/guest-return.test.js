@@ -192,16 +192,53 @@ const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
        computer where somebody else was signed in, it showed THAT person's
        orders. A customer clicking a link in their own receipt landed in a
        stranger's account. */
+    /* Every email that offers "see your order" had the same hardcoded /account
+       link. One helper decides it now, because it was repeated — the order
+       confirmation and the delivered notice both had it, and fixing one would
+       have left the other. */
+    const { orderStatusUrl } = await import(pathToFileURL(ROOT + '/functions/api/_email.js').href);
+    ok('an account holder goes to their account',
+      orderStatusUrl({ userId: 'u1', orderNumber: '#ZW-1' }).endsWith('/account'));
+    ok('a guest goes to the lookup, carrying the order number',
+      orderStatusUrl({ userId: null, orderNumber: '#ZW-1' }).includes('/returns?order='));
+    ok('…and without one, still somewhere useful',
+      orderStatusUrl({ userId: null, orderNumber: '' }).endsWith('/returns'));
+
+    /* No email template may hardcode this again. Both the order confirmation
+       and the delivered notice did. */
+    const emailFiles = fs.readdirSync(ROOT + '/functions/api')
+      .filter((f) => f.endsWith('.js') && f !== '_email.js');
+    const hardcoded = emailFiles.filter((f) => {
+      const src = fs.readFileSync(ROOT + '/functions/api/' + f, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      return /zuwera\.store\/account/.test(src);
+    });
+    ok('no template hardcodes an account link any more', hardcoded.length === 0, hardcoded.join(', '));
+
+    /* confirm.html is the AUTH page — password resets, email verification.
+       "View your order" pointed there and showed a sign-in flow instead. */
+    const noConfirm = emailFiles.filter((f) =>
+      /confirm\.html\?order=/.test(fs.readFileSync(ROOT + '/functions/api/' + f, 'utf8')));
+    ok('…and none sends a customer to the auth page to see an order',
+      noConfirm.length === 0, noConfirm.join(', '));
+
     const fulfil = fs.readFileSync(ROOT + '/functions/api/_fulfil.js', 'utf8');
     /* Plain includes rather than regexes: these assertions are about literal
        strings in source, and escaping them has been a source of its own bugs
-       today — twice a regex matched something unintended and passed. */
-    ok('the receipt link depends on whether there is an account',
-      fulfil.includes('const statusHref = meta.user_id'));
-    ok('…an account holder still goes to their account',
-      fulfil.includes("'https://zuwera.store/account'"));
-    ok('…and a guest goes to the lookup carrying the order number',
-      fulfil.includes("returns?order=' + encodeURIComponent(meta.order_number"));
+       today — twice a regex matched something unintended and passed.
+
+       These now check DELEGATION rather than the inline strings they used to
+       pin, because the branch moved into the shared helper above. Pinning the
+       old inline form would fail for the right reason and read like a
+       regression. */
+    ok('the receipt asks the helper where to send this customer',
+      fulfil.includes('orderStatusUrl({ userId: meta.user_id'));
+    ok('…and keeps no copy of the decision', !fulfil.includes("'https://zuwera.store/account'"));
+    /* The returns link is for the RETURNS flow, so it goes to the guest lookup
+       for everyone — an account holder reaching it through their account is
+       already handled by the status link above. */
+    ok('…and the returns link carries the order number for a guest',
+      fulfil.includes('orderStatusUrl({ userId: null, orderNumber: meta.order_number })'));
     ok('the page fills that number in', page.includes("params.get('order')"));
     /* Before the session check: the person may have no account AND be on a
        machine where somebody else does. That is the exact case being fixed. */

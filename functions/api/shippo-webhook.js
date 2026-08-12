@@ -25,7 +25,7 @@
  */
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
-import { sendTransactional } from './_email.js';
+import { sendTransactional, orderStatusUrl } from './_email.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
@@ -151,11 +151,11 @@ export function shippedEmail({ orderId, customerName, carrier, trackingNumber, t
   });
 }
 
-export function deliveredEmail({ orderId, customerName, logoUrl, appearance }) {
+export function deliveredEmail({ orderId, customerName, logoUrl, appearance, statusUrl }) {
   const a = appearance;
   const body = `<p style="margin:0 0 22px;font-size:14px;line-height:1.6;color:${a.muted}">We hope you love it. If anything's off, we've got you — head to your account to start a return or exchange.</p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
-      <a href="https://zuwera.store/account.html" style="display:inline-block;padding:14px 34px;background:${a.accent};color:#0b0b0d;text-decoration:none;border-radius:3px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;font-family:${a.fontMono}">My Account</a>
+      <a href="${statusUrl || 'https://zuwera.store/returns'}" style="display:inline-block;padding:14px 34px;background:${a.accent};color:#0b0b0d;text-decoration:none;border-radius:3px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;font-family:${a.fontMono}">My Account</a>
     </td></tr></table>`;
   return renderEmailShell(a, {
     kicker:  'Delivered',
@@ -365,7 +365,11 @@ export async function onRequestPost({ request, env }) {
   // ── Delivered ──────────────────────────────────────────────────────────────
   if (status === 'DELIVERED') {
     const subject = `Your Zuwera order #${orderId} has been delivered ✅`;
-    const html    = deliveredEmail({ orderId, customerName, logoUrl, appearance });
+    /* Where this particular customer can see the order. It was hardcoded to
+       /account.html, so a guest — most buyers here — was sent to a login
+       wall, and on a shared machine to somebody else's orders. */
+    const statusUrl = orderStatusUrl({ userId: order.user_id, orderNumber: order.order_number });
+    const html    = deliveredEmail({ orderId, customerName, logoUrl, appearance, statusUrl });
 
     const [emailR, smsR] = await Promise.allSettled([
       customerEmail && resendKey
