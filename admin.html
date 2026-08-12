@@ -2338,6 +2338,44 @@
                       </table>
                     </div>
                     <p style="font-size:11px;color:var(--text-secondary);margin-top:14px;line-height:1.6;">Tax you have <b style="color:var(--text-primary);">collected from customers and are holding for the state</b> — not a cost to the business. Fully refunded and cancelled orders are excluded. Partial refunds are <b style="color:var(--text-primary);">not</b> netted off here, so a period with partial refunds reads slightly high; check Receipts for those. Figures come from what was charged at the time, so they do not move if a rate is edited later.</p>
+
+                    <!-- (2) What is still being held, after what has been remitted.
+                         Collected minus filed is the number that answers "how
+                         much of this is still mine to send on". -->
+                    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between;margin-top:20px;padding-top:18px;border-top:1px solid var(--border);">
+                      <div>
+                        <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">Still to remit</p>
+                        <p id="tax-outstanding" style="font-size:22px;font-weight:700;">—</p>
+                        <p id="tax-filed-note" style="font-size:12px;color:var(--text-secondary);margin-top:4px;">—</p>
+                      </div>
+                      <button onclick="taxMarkFiled()" id="tax-mark-filed" style="padding:9px 16px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-primary);cursor:pointer;font-size:13px;">Mark this period filed</button>
+                    </div>
+                  </div>
+
+                  <!-- (1) Collected vs expected, and (4) the orders that look wrong.
+                       Both come from asking /api/tax-quote what each address
+                       SHOULD have been charged, so this compares against the
+                       same engine the checkout uses rather than a second table. -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;">
+                    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);">Collected vs expected — selected period</p>
+                      <button onclick="taxCheckExpected()" id="tax-check-btn" style="padding:8px 15px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-primary);cursor:pointer;font-size:13px;">Check rates</button>
+                    </div>
+                    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;line-height:1.5;">Asks the live tax engine what each address should have been charged and compares it to what actually was. This is what catches silent under-collection — a missing state registration makes a provider return <b style="color:var(--text-primary);">$0.00 successfully</b>, which looks entirely normal until you file.</p>
+                    <div id="tax-expected-out" style="font-size:13px;color:var(--text-secondary);">Press <b style="color:var(--text-primary);">Check rates</b> to compare.</div>
+
+                    <div id="tax-anomaly-wrap" style="display:none;margin-top:22px;padding-top:18px;border-top:1px solid var(--border);">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">Orders charged no tax in a taxable state</p>
+                      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;line-height:1.5;">Each of these is either a legitimate exemption or a bug. Nothing else on this page would surface them.</p>
+                      <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><tbody id="tax-anomaly-tbody"></tbody></table></div>
+                    </div>
+                  </div>
+
+                  <!-- (3) How much of an order is never yours. -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;">
+                    <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">Tax as a share of order value</p>
+                    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:18px;line-height:1.5;">By month, across all orders. The share of what customers pay you that was never yours — useful when setting prices, and it moves when your mix of destination states does.</p>
+                    <div id="tax-share-chart"></div>
                   </div>
 
                   <!-- Nexus Exposure -->

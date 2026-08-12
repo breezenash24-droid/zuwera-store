@@ -116,5 +116,60 @@ console.log('\n  wiring');
   ok('…and admits partial refunds are not netted off', /Partial refunds are/.test(html));
 }
 
+console.log('\n  collected vs expected');
+{
+  /* The point of this check is catching UNDER-collection, the expensive
+     direction: a missing state registration makes a provider return $0.00
+     successfully, so nothing looks broken until the state asks. */
+  ok('it asks the live engine rather than a table on the page',
+    SRC.includes("fetch('/api/tax-quote?state="));
+  ok('…once per distinct jurisdiction, not once per order',
+    SRC.includes('new Set(orders.map') && SRC.includes('_expectedCache'));
+  ok('…and is capped so one click cannot fire hundreds of requests',
+    SRC.includes('EXPECTED_MAX_JURISDICTIONS'));
+  ok('under and over collection are told apart, not merged into "off"',
+    SRC.includes('Under-collected by') && SRC.includes('Over-collected by'));
+  /* "Under-collected" sounds smaller than it is: the money is still owed to
+     the state, it just was not taken from the customer. Say that. */
+  ok('…and under-collection says whose money it now is',
+    SRC.includes('money you owe the state but did not take from customers'));
+  ok('a rate that moved since the order is not called an error',
+    SRC.includes('not necessarily an error'));
+}
+
+console.log('\n  orders charged nothing where tax was due');
+{
+  ok('zero-tax orders in a taxable state are collected',
+    SRC.includes('tax < 0.01 && exp >= 0.01'));
+  /* A rounded-down zero is not the same as no tax charged, hence a cent of
+     tolerance rather than an exact equality test. */
+  ok('…with a cent of tolerance rather than an exact zero test',
+    !SRC.includes('tax === 0 &&'));
+  const html = fs.readFileSync(ROOT + '/admin.html', 'utf8');
+  ok('…and the panel says each row is a bug OR an exemption',
+    html.includes('legitimate exemption or a bug'));
+}
+
+console.log('\n  what is still being held');
+{
+  ok('filings are recorded per period', SRC.includes('period: range.label'));
+  ok('…and outstanding is collected minus filed',
+    SRC.includes('const outstanding = total - filed'));
+  ok('…never shown negative', SRC.includes('Math.max(0, outstanding)'));
+  ok('…and the filing is audit-logged', SRC.includes("logAdminAudit('tax.filed'"));
+}
+
+console.log('\n  tax as a share of order value');
+{
+  /* Share of GROSS — what the customer actually paid — not of subtotal. Tax
+     over subtotal is the rate, which the by-state table already shows. The
+     useful figure here is the proportion of the total that was never yours. */
+  ok('the share is of gross, not of subtotal',
+    SRC.includes("gross += parseFloat(o.subtotal || 0) + tax"));
+  ok('…bucketed by month', SRC.includes("(o.created_at || '').slice(0, 7)"));
+  ok('…and bounded to a readable window', SRC.includes('slice(-12)'));
+  ok('an empty store says so rather than dividing by zero', SRC.includes('No orders yet'));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

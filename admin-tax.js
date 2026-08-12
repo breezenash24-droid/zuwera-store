@@ -250,6 +250,23 @@
 
                       if (labelEl) labelEl.textContent = range.label;
                       if (totalEl) totalEl.textContent = fmt$(total);
+
+                      /* Collected minus what has already been remitted. The
+                         gross figure stops being the useful one the moment you
+                         have filed once. */
+                      const filed = taxFiledFor(range.label);
+                      const outstanding = total - filed;
+                      const outEl = document.getElementById('tax-outstanding');
+                      const noteEl = document.getElementById('tax-filed-note');
+                      if (outEl) {
+                        outEl.textContent = fmt$(Math.max(0, outstanding));
+                        outEl.style.color = outstanding > 0.005 ? 'var(--text-primary)' : '#34d399';
+                      }
+                      if (noteEl) {
+                        noteEl.textContent = filed > 0
+                          ? fmt$(filed) + ' already remitted for ' + range.label
+                          : 'Nothing recorded as filed for ' + range.label + ' yet.';
+                      }
                       if (subEl) {
                         subEl.textContent = inRange.length.toLocaleString() + ' order' + (inRange.length === 1 ? '' : 's')
                           + ' · ' + fmt$(taxable) + ' taxable sales'
@@ -298,6 +315,233 @@
                       a.click();
                       URL.revokeObjectURL(a.href);
                     };
+
+                    /* ── (1) Collected vs expected, and (4) the odd ones out ───
+                       Asks /api/tax-quote what each address SHOULD have been
+                       charged. Deliberately the endpoint rather than the tables
+                       loaded on this page: the endpoint runs whichever engine
+                       actually prices checkout, so this compares against the
+                       thing that charges rather than against a second opinion
+                       that could be wrong in the same direction.
+
+                       One request per DISTINCT jurisdiction, not per order —
+                       a hundred Cincinnati orders are one question. */
+                    const _expectedCache = {};
+
+                    async function expectedRate(state, zip) {
+                      const s = String(state || '').toUpperCase().trim();
+                      const z = String(zip || '').replace(/\D/g, '').slice(0, 5);
+                      const key = s + '|' + z;
+                      if (key in _expectedCache) return _expectedCache[key];
+                      try {
+                        const r = await fetch('/api/tax-quote?state=' + encodeURIComponent(s) + '&zip=' + encodeURIComponent(z));
+                        const d = r.ok ? await r.json() : null;
+                        _expectedCache[key] = (d && !d.unavailable && Number.isFinite(Number(d.rate))) ? Number(d.rate) : null;
+                      } catch (_) { _expectedCache[key] = null; }
+                      return _expectedCache[key];
+                    }
+
+                    /* A cap, because this is one network call per jurisdiction and
+                       an admin clicking a button should not fire hundreds. */
+                    const EXPECTED_MAX_JURISDICTIONS = 60;
+
+                    window.taxCheckExpected = async function() {
+                      const out = document.getElementById('tax-expected-out');
+                      const btn = document.getElementById('tax-check-btn');
+                      const range = taxPeriodSelected();
+                      if (!out) return;
+                      if (!range) { out.textContent = 'Pick a period first.'; return; }
+
+                      const orders = _taxOrders.filter(o => {
+                        if (!o.created_at) return false;
+                        const d = new Date(o.created_at);
+                        return d >= range.from && d < range.to;
+                      });
+                      if (!orders.length) { out.textContent = 'No orders in this period.'; return; }
+
+                      const jurisdictions = [...new Set(orders.map(o =>
+                        (o.ship_state || '').toUpperCase().trim() + '|' + String(o.ship_zip || '').replace(/\D/g, '').slice(0, 5)
+                      ))].filter(k => k !== '|');
+
+                      if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+                      out.innerHTML = 'Asking the tax engine about ' + jurisdictions.length + ' address' + (jurisdictions.length === 1 ? '' : 'es') + '…';
+
+                      const capped = jurisdictions.slice(0, EXPECTED_MAX_JURISDICTIONS);
+                      for (const k of capped) { const [s, z] = k.split('|'); await expectedRate(s, z); }
+
+                      let expectedTotal = 0, actualTotal = 0, checked = 0, unknown = 0;
+                      const byState = {};
+                      const anomalies = [];
+
+                      orders.forEach(o => {
+                        const s = (o.ship_state || '').toUpperCase().trim();
+                        const z = String(o.ship_zip || '').replace(/\D/g, '').slice(0, 5);
+                        const rate = _expectedCache[s + '|' + z];
+                        const sub = parseFloat(o.subtotal || 0);
+                        const tax = parseFloat(o.tax || 0);
+                        if (rate == null) { unknown++; return; }
+                        checked++;
+                        const exp = sub * rate;
+                        expectedTotal += exp;
+                        actualTotal += tax;
+                        if (!byState[s]) byState[s] = { expected: 0, actual: 0, orders: 0 };
+                        byState[s].expected += exp;
+                        byState[s].actual += tax;
+                        byState[s].orders++;
+                        /* Zero charged where the engine says tax was due. A cent
+                           of tolerance, because a rounded zero is not the same
+                           as nothing being charged. */
+                        if (tax < 0.01 && exp >= 0.01) {
+                          anomalies.push({ o, s, z, expected: exp });
+                        }
+                      });
+
+                      const diff = actualTotal - expectedTotal;
+                      const off = Math.abs(diff) >= 0.01;
+                      const under = diff < 0;
+                      const colour = !off ? '#34d399' : under ? '#ef4444' : '#f59e0b';
+                      const verdict = !off
+                        ? 'Everything matches what the engine would charge today.'
+                        : (under ? 'Under-collected by ' : 'Over-collected by ') + fmt$(Math.abs(diff))
+                          + (under ? ' — this is money you owe the state but did not take from customers.'
+                                   : ' — customers were charged more than the engine says is due.');
+
+                      const rows = Object.entries(byState).sort((a, b) => Math.abs(b[1].actual - b[1].expected) - Math.abs(a[1].actual - a[1].expected));
+                      out.innerHTML =
+                        '<p style="font-size:20px;font-weight:700;color:' + colour + ';margin-bottom:4px;">' + verdict + '</p>'
+                        + '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Collected ' + fmt$(actualTotal)
+                        + ' · expected ' + fmt$(expectedTotal) + ' · ' + checked + ' order(s) checked'
+                        + (unknown ? ' · ' + unknown + ' skipped (no address)' : '')
+                        + (jurisdictions.length > capped.length ? ' · capped at ' + EXPECTED_MAX_JURISDICTIONS + ' addresses' : '')
+                        + '</p>'
+                        + '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">'
+                        + '<thead><tr class="zw-divider-2">'
+                        + '<th style="text-align:left;padding:8px 12px;font-weight:600;color:var(--text-secondary);">State</th>'
+                        + '<th style="text-align:right;padding:8px 12px;font-weight:600;color:var(--text-secondary);">Collected</th>'
+                        + '<th style="text-align:right;padding:8px 12px;font-weight:600;color:var(--text-secondary);">Expected</th>'
+                        + '<th style="text-align:right;padding:8px 12px;font-weight:600;color:var(--text-secondary);">Difference</th>'
+                        + '</tr></thead><tbody>'
+                        + rows.map(([s, d]) => {
+                            const dd = d.actual - d.expected;
+                            const c = Math.abs(dd) < 0.01 ? 'var(--text-secondary)' : dd < 0 ? '#ef4444' : '#f59e0b';
+                            return '<tr class="zw-divider"><td style="padding:10px 12px;font-weight:600;">' + s + '</td>'
+                              + '<td style="padding:10px 12px;text-align:right;">' + fmt$(d.actual) + '</td>'
+                              + '<td style="padding:10px 12px;text-align:right;">' + fmt$(d.expected) + '</td>'
+                              + '<td style="padding:10px 12px;text-align:right;color:' + c + ';font-weight:600;">'
+                              + (Math.abs(dd) < 0.01 ? '—' : (dd < 0 ? '−' : '+') + fmt$(Math.abs(dd))) + '</td></tr>';
+                          }).join('')
+                        + '</tbody></table></div>'
+                        + '<p style="font-size:11px;color:var(--text-secondary);margin-top:12px;line-height:1.6;">Expected is what the engine would charge <b style="color:var(--text-primary);">now</b>. A rate that changed since an order was placed shows here as a difference and is not necessarily an error.</p>';
+
+                      // ── (4) the orders that look wrong ──────────────────────
+                      const wrap = document.getElementById('tax-anomaly-wrap');
+                      const tb = document.getElementById('tax-anomaly-tbody');
+                      if (wrap && tb) {
+                        if (!anomalies.length) {
+                          wrap.style.display = 'none';
+                        } else {
+                          wrap.style.display = 'block';
+                          tb.innerHTML = anomalies.slice(0, 50).map(a =>
+                            '<tr class="zw-divider">'
+                            + '<td style="padding:10px 12px;">' + (a.o.created_at || '').slice(0, 10) + '</td>'
+                            + '<td style="padding:10px 12px;">' + a.s + ' ' + a.z + '</td>'
+                            + '<td style="padding:10px 12px;text-align:right;">' + fmt$(parseFloat(a.o.subtotal || 0)) + '</td>'
+                            + '<td style="padding:10px 12px;text-align:right;color:#ef4444;font-weight:600;">no tax charged</td>'
+                            + '<td style="padding:10px 12px;text-align:right;color:var(--text-secondary);">expected ' + fmt$(a.expected) + '</td>'
+                            + '</tr>'
+                          ).join('') + (anomalies.length > 50
+                            ? '<tr><td colspan="5" style="padding:10px 12px;color:var(--text-secondary);font-size:12px;">…and ' + (anomalies.length - 50) + ' more.</td></tr>'
+                            : '');
+                        }
+                      }
+
+                      if (btn) { btn.disabled = false; btn.textContent = 'Check rates'; }
+                    };
+
+                    /* ── (2) What has already been remitted ────────────────────
+                       Collected is not the same as owed once you have filed. A
+                       filing is recorded per period+state so the panel can show
+                       what is still being held rather than the gross figure for
+                       ever. */
+                    let _taxFilings = [];
+
+                    async function taxFilingsLoad() {
+                      try {
+                        const { data } = await sb.from('site_settings').select('value').eq('key', 'tax_filings').maybeSingle();
+                        let v = data && data.value;
+                        if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                        _taxFilings = Array.isArray(v) ? v : (v && Array.isArray(v.filings) ? v.filings : []);
+                      } catch (_) { _taxFilings = []; }
+                    }
+
+                    function taxFiledFor(label) {
+                      return _taxFilings.filter(f => f && f.period === label)
+                        .reduce((n, f) => n + (parseFloat(f.amount) || 0), 0);
+                    }
+
+                    window.taxMarkFiled = async function() {
+                      const range = taxPeriodSelected();
+                      if (!range) { alert('Pick a period first.'); return; }
+                      const collected = _taxPeriodRows.reduce((n, [, d]) => n + d.tax, 0);
+                      const already = taxFiledFor(range.label);
+                      const suggested = Math.max(0, collected - already).toFixed(2);
+                      const entered = prompt('Amount remitted for ' + range.label + ':', suggested);
+                      if (entered == null) return;
+                      const amount = parseFloat(entered);
+                      if (!isFinite(amount) || amount < 0) { alert('Enter a number.'); return; }
+
+                      /* Read-modify-write on a list only ever appended to by a
+                         human clicking a button — no realistic concurrency, and
+                         a lost entry is visible (the outstanding figure stays
+                         high) rather than silent. */
+                      const next = _taxFilings.concat([{
+                        period: range.label,
+                        amount: Number(amount.toFixed(2)),
+                        filedAt: new Date().toISOString(),
+                        filedBy: (window.currentAdminEmail || ''),
+                      }]);
+                      const { error } = await sb.from('site_settings')
+                        .upsert({ key: 'tax_filings', value: next }, { onConflict: 'key' });
+                      if (error) { alert('Could not save: ' + error.message); return; }
+                      _taxFilings = next;
+                      if (typeof logAdminAudit === 'function') {
+                        void logAdminAudit('tax.filed', 'site_settings', 'tax_filings', { period: range.label, amount });
+                      }
+                      window.taxPeriodRender();
+                    };
+
+                    /* ── (3) How much of an order is never yours ───────────────
+                       Tax over gross, by month. Bars rather than a chart
+                       library: the shape is the point, and the numbers are
+                       printed beside it for anyone who wants them. */
+                    function taxShareRender() {
+                      const el = document.getElementById('tax-share-chart');
+                      if (!el) return;
+                      const byMonth = {};
+                      _taxOrders.forEach(o => {
+                        const k = (o.created_at || '').slice(0, 7);
+                        if (!k) return;
+                        if (!byMonth[k]) byMonth[k] = { tax: 0, gross: 0 };
+                        const tax = parseFloat(o.tax || 0);
+                        byMonth[k].tax += tax;
+                        byMonth[k].gross += parseFloat(o.subtotal || 0) + tax;
+                      });
+                      const months = Object.keys(byMonth).sort().slice(-12);
+                      if (!months.length) { el.innerHTML = '<p style="font-size:13px;color:var(--text-secondary);">No orders yet.</p>'; return; }
+                      const shares = months.map(m => byMonth[m].gross > 0 ? byMonth[m].tax / byMonth[m].gross : 0);
+                      const peak = Math.max(...shares, 0.0001);
+                      el.innerHTML = '<div style="display:flex;align-items:flex-end;gap:10px;height:120px;">'
+                        + months.map((m, i) => {
+                            const pct = shares[i];
+                            const h = Math.max(2, Math.round((pct / peak) * 100));
+                            return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">'
+                              + '<span style="font-size:11px;color:var(--text-secondary);font-variant-numeric:tabular-nums;">' + (pct * 100).toFixed(1) + '%</span>'
+                              + '<div title="' + m + ' — ' + fmt$(byMonth[m].tax) + ' of ' + fmt$(byMonth[m].gross) + '" style="width:100%;background:var(--accent);opacity:.85;border-radius:4px 4px 0 0;height:' + h + '%;min-height:2px;"></div>'
+                              + '<span style="font-size:10px;color:var(--text-secondary);">' + m.slice(5) + '/' + m.slice(2, 4) + '</span>'
+                              + '</div>';
+                          }).join('')
+                        + '</div>';
+                    }
 
                     window.taxDoLookup = function() {
                       const state = (document.getElementById('tax-lkp-state').value||'').trim().toUpperCase();
@@ -464,7 +708,9 @@
                         });
 
                         // The filing-period panel reads the same _taxOrders list.
+                        await taxFilingsLoad();
                         try { window.taxPeriodRender(); } catch (_) {}
+                        try { taxShareRender(); } catch (_) {}
 
                         const avgRate = totalTaxable > 0 ? totalTax / totalTaxable : 0;
 
