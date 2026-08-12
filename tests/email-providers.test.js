@@ -186,6 +186,35 @@ console.log('\n  moving cards between the two sections');
     ok('no caller relies on the default', offenders.length === 0, offenders.join(', '));
   }
 
+  console.log('\n  a way to test email without placing an order');
+  {
+    /* There was no way to find out whether email worked without placing an
+       order and waiting. When nothing arrived, every layer was a suspect and
+       the only evidence was a console.warn in a log nobody reads. */
+    const t = fs.readFileSync(path.join(ROOT, 'functions/api/admin-email-test.js'), 'utf8');
+    ok('the endpoint exists', t.length > 0);
+    ok('it is admin-only', /verifyAdmin\(env/.test(t));
+    /* verifyAdmin returns the user or null — never { ok }. Checking for that
+       rejects every admin, which is a fine way to make a diagnostic tool need
+       diagnosing. */
+    ok('…checked the way verifyAdmin actually answers',
+      /if \(!admin\)/.test(t) && !/admin\?\.ok/.test(t));
+    ok('it resolves the sender exactly as real emails do', /EMAIL_FROM/.test(t));
+    ok('…and refuses an invalid one with the address in the message',
+      /is not a valid email/.test(t));
+    /* The reason it exists: a provider's own words are actionable, "could not
+       send" is not. */
+    ok('it reports the provider response verbatim', /response: text\.slice/.test(t));
+    ok('…for every configured provider, not just the first that works',
+      /attempts\.filter\(\(a\) => a\.ok\)/.test(t));
+    ok('a provider being unreachable is a result, not an exception',
+      /catch \(e\) \{\s*return \{ provider/.test(t));
+    /* "Sent" is the most misleading word in email: every provider answers 200
+       for ACCEPTED, which is not delivered. */
+    ok('it says accepted is not delivered', /queued, not delivered/.test(t));
+    ok('…and names where to look for bounces', /suppressed address/.test(t));
+  }
+
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
   process.exit(fail ? 1 : 0);
 })();
