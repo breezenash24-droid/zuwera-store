@@ -211,6 +211,28 @@ const OHIO = { state: 'OH', zip: '45202', country: 'US', city: 'Cincinnati', lin
        the same bug. */
     ok('…and no longer carries its own copy of the table',
       !/DEFAULT_US_STATE_TAX_RATES/.test(pricing) && !/DEFAULT_US_STATE_TAX_RATES/.test(cpi));
+
+    /* EVERY route that charges, not just the two that were checked.
+       This assertion was scoped to _cart-pricing and create-payment-intent, and
+       apple-pay-authorize sat outside it carrying a second, simpler tax
+       implementation: state rates only, no county lookup, env vars only, no
+       engine. A Cincinnati order paid by Apple Pay was charged Ohio's 5.75%
+       while the same cart on a card was charged Hamilton County's 7.8%.
+
+       Scoped by directory rather than by a list, so a payment route added
+       later is covered without anyone remembering to add it here. */
+    const chargeRoutes = fs.readdirSync(ROOT + '/functions/api')
+      .filter((f) => /^(create-payment-intent|paypal-create-order|apple-pay-authorize|_cart-pricing)\.js$/.test(f));
+    ok('every payment route is checked, not a hand-picked two', chargeRoutes.length >= 4,
+      chargeRoutes.join(', '));
+    for (const f of chargeRoutes) {
+      const src = fs.readFileSync(ROOT + '/functions/api/' + f, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      ok(f + ' keeps no rate table of its own',
+        !/DEFAULT_US_STATE_TAX_RATES|OH_COUNTY_RATES|IL_ZIP3_RATES/.test(src));
+      ok('…and does not decide a rate for itself',
+        !/function getTaxRateForAddress/.test(src));
+    }
     ok('stamps the engine on the PaymentIntent', /tax_engine:/.test(cpi));
     const hook = fs.readFileSync(ROOT + '/functions/api/stripe-webhook.js', 'utf8')
       + fs.readFileSync(ROOT + '/functions/api/_fulfil.js', 'utf8');
