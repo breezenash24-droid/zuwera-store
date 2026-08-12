@@ -1981,20 +1981,49 @@
                     </div>
                     
                     <div id="users-customers" class="tab-content active">
-                        <div style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" data-ro-ok onclick="exportUsersCSV('customer')">⬇ Export customers CSV</button></div>
+                        <!-- Who actually buys. The list used to be name, email and
+                             a join date, which says nothing about a customer. -->
+                        <div id="customerStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:18px;"></div>
+
+                        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <label for="customerSort" style="font-size:12px;color:var(--text-secondary);">Sort by</label>
+                                <select id="customerSort" onchange="renderCustomerList()" style="padding:7px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:13px;">
+                                    <option value="spent">Total spent — top buyers first</option>
+                                    <option value="orders">Number of orders</option>
+                                    <option value="recent">Most recent order</option>
+                                    <option value="joined">Recently joined</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-secondary btn-sm" data-ro-ok onclick="exportUsersCSV('customer')">⬇ Export customers CSV</button>
+                        </div>
                         <table class="products-table">
                             <thead>
                                 <tr>
                                     <th>Name</th>
                                     <th>Email</th>
+                                    <th style="text-align:right;">Orders</th>
+                                    <th style="text-align:right;">Total spent</th>
+                                    <th>Last order</th>
                                     <th>Joined</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="customersTableBody">
-                                <tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">Loading...</td></tr>
+                                <tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">Loading...</td></tr>
                             </tbody>
                         </table>
+
+                        <!-- Someone can be your best customer and not appear above:
+                             guest checkout never creates a profile. -->
+                        <div id="guestBuyersWrap" style="display:none;margin-top:28px;">
+                            <h3 style="font-size:14px;margin-bottom:6px;">Buyers without an account</h3>
+                            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">They checked out as guests, so they have no profile and never appear in the list above — but they have spent money here. Worth knowing before you judge who your best customers are.</p>
+                            <table class="products-table">
+                                <thead><tr><th>Email</th><th style="text-align:right;">Orders</th><th style="text-align:right;">Total spent</th><th>Last order</th></tr></thead>
+                                <tbody id="guestBuyersBody"></tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <div id="users-admins" class="tab-content">

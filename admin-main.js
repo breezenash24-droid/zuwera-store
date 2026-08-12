@@ -6828,8 +6828,16 @@
                 
                 const customers = profiles.filter(p => p.role === 'customer');
                 const admins = profiles.filter(p => p.role === 'admin');
-                
-                renderUsersTable('customersTableBody', customers);
+
+                /* What each customer has actually spent. The list was name,
+                   email and a join date — nothing that distinguishes someone
+                   who has bought eleven times from someone who signed up and
+                   never came back, which is most of what you want this page
+                   for. */
+                await loadCustomerSpend(customers);
+
+                window._zwCustomers = customers;
+                renderCustomerList();
                 renderUsersTable('adminsTableBody', admins);
             } catch (err) {
                 console.error('Error loading users:', err);
@@ -6837,14 +6845,130 @@
             }
         }
 
-        function renderUsersTable(tbodyId, users) {
-            const tbody = document.getElementById(tbodyId);
-            if (!users || users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">No users found.</td></tr>';
-                return;
+        /* ── What each customer is worth ──────────────────────────────────────
+           One pass over orders, aggregated by user_id AND by email.
+
+           Both, because they identify different things and neither is enough
+           on its own: an order placed before someone made an account has no
+           user_id, and a guest order has no profile at all. Matching on user_id
+           alone silently undercounts your longest-standing customers, which is
+           exactly the wrong direction for a page about who your best ones are.
+
+           Cancelled and refunded orders are excluded — money that came back is
+           not money someone spent. */
+        async function loadCustomerSpend(customers) {
+            window._zwGuestBuyers = [];
+            try {
+                const { data: orders, error } = await sb.from('orders')
+                    .select('user_id,email,total,created_at,status');
+                if (error) throw error;
+
+                const byUser = {}, byEmail = {};
+                const add = (bucket, key, o) => {
+                    if (!key) return;
+                    if (!bucket[key]) bucket[key] = { orders: 0, spent: 0, last: null };
+                    const b = bucket[key];
+                    b.orders += 1;
+                    b.spent += parseFloat(o.total || 0);
+                    if (!b.last || o.created_at > b.last) b.last = o.created_at;
+                };
+
+                const counted = (orders || []).filter(o => o.status !== 'cancelled' && o.status !== 'refunded');
+                counted.forEach(o => {
+                    add(byUser, o.user_id, o);
+                    add(byEmail, String(o.email || '').trim().toLowerCase(), o);
+                });
+
+                const claimed = new Set();
+                customers.forEach(c => {
+                    const email = String(c.email || '').trim().toLowerCase();
+                    /* Prefer the email bucket: it is the superset, catching
+                       orders placed before the account existed. */
+                    const stats = byEmail[email] || byUser[c.id] || { orders: 0, spent: 0, last: null };
+                    c._orders = stats.orders;
+                    c._spent = stats.spent;
+                    c._lastOrder = stats.last;
+                    if (email) claimed.add(email);
+                });
+
+                /* Anyone who bought without ever making an account. They can be
+                   your biggest customer and appear nowhere in the list above. */
+                window._zwGuestBuyers = Object.entries(byEmail)
+                    .filter(([email]) => email && !claimed.has(email))
+                    .map(([email, s]) => ({ email, ...s }))
+                    .sort((a, b) => b.spent - a.spent);
+            } catch (err) {
+                /* Orders unreadable is not a reason to lose the customer list —
+                   it renders with the spend columns blank rather than nothing. */
+                console.error('Could not load customer spend:', err);
+                customers.forEach(c => { c._orders = null; c._spent = null; c._lastOrder = null; });
+            }
+        }
+
+        window.renderCustomerList = function() {
+            const customers = window._zwCustomers || [];
+            const how = (document.getElementById('customerSort') || {}).value || 'spent';
+            const sorted = customers.slice().sort((a, b) => {
+                if (how === 'orders') return (b._orders || 0) - (a._orders || 0);
+                if (how === 'recent') return String(b._lastOrder || '').localeCompare(String(a._lastOrder || ''));
+                if (how === 'joined') return String(b.created_at || '').localeCompare(String(a.created_at || ''));
+                return (b._spent || 0) - (a._spent || 0);
+            });
+            renderUsersTable('customersTableBody', sorted);
+
+            // ── The summary strip ────────────────────────────────────────────
+            const buyers = customers.filter(c => (c._orders || 0) > 0);
+            const repeat = buyers.filter(c => (c._orders || 0) > 1);
+            const total = buyers.reduce((n, c) => n + (c._spent || 0), 0);
+            const box = document.getElementById('customerStats');
+            if (box) {
+                const card = (label, value, hint) =>
+                    '<div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:14px 16px;">'
+                    + '<p style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">' + label + '</p>'
+                    + '<p style="font-size:20px;font-weight:700;">' + value + '</p>'
+                    + (hint ? '<p style="font-size:11px;color:var(--text-secondary);margin-top:3px;">' + hint + '</p>' : '')
+                    + '</div>';
+                box.innerHTML =
+                    card('Accounts', customers.length.toLocaleString(),
+                         buyers.length + ' have ordered')
+                    /* Signed up and never bought is the number worth watching:
+                       it is the gap between interest and a sale. */
+                  + card('Never ordered', (customers.length - buyers.length).toLocaleString(),
+                         customers.length ? Math.round((1 - buyers.length / customers.length) * 100) + '% of accounts' : '')
+                  + card('Repeat buyers', repeat.length.toLocaleString(),
+                         buyers.length ? Math.round((repeat.length / buyers.length) * 100) + '% of buyers' : 'no orders yet')
+                  + card('Average per buyer', buyers.length ? fmtMoney(total / buyers.length) : '—',
+                         buyers.length ? fmtMoney(total) + ' from accounts' : '');
             }
 
+            // ── Buyers with no account ───────────────────────────────────────
+            const guests = window._zwGuestBuyers || [];
+            const wrap = document.getElementById('guestBuyersWrap');
+            const body = document.getElementById('guestBuyersBody');
+            if (wrap && body) {
+                wrap.style.display = guests.length ? 'block' : 'none';
+                body.innerHTML = guests.slice(0, 50).map(g =>
+                    '<tr><td>' + escapeHtml(g.email) + '</td>'
+                    + '<td style="text-align:right;">' + g.orders + '</td>'
+                    + '<td style="text-align:right;font-weight:600;">' + fmtMoney(g.spent) + '</td>'
+                    + '<td>' + (g.last ? new Date(g.last).toLocaleDateString() : '—') + '</td></tr>'
+                ).join('');
+            }
+        };
+
+        function fmtMoney(n) {
+            return '$' + (Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function renderUsersTable(tbodyId, users) {
+            const tbody = document.getElementById(tbodyId);
             const isAdminsTable = tbodyId === 'adminsTableBody';
+            if (!users || users.length === 0) {
+                // Seven columns on customers, four on admins — a mismatched
+                // colspan leaves the empty row visibly short of the table.
+                tbody.innerHTML = `<tr><td colspan="${isAdminsTable ? 4 : 7}" style="text-align:center;color:var(--text-secondary);">No users found.</td></tr>`;
+                return;
+            }
             const canManage = can('user_manage');   // manager+ can add/remove staff & delete
             const canRole   = can('role_manage');    // super_admin only: change granular role
 
@@ -6909,10 +7033,27 @@
                 const editNameBtn = canManage
                     ? `<button title="Edit name" data-ro-ok onclick="editUserName('${userId}')" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:.8rem;padding:0 4px;">✎</button>`
                     : '';
+                /* Spend columns on the customers table only — the admins table
+                   has four columns and staff do not have a purchase history
+                   worth showing here. A null (rather than zero) means orders
+                   could not be read, which must not be drawn as "$0.00 spent";
+                   that is a claim about the customer rather than about us. */
+                let spendCells = '';
+                if (!isAdminsTable) {
+                    const unknown = u._orders == null;
+                    const never = !unknown && !u._orders;
+                    const dim = 'color:var(--text-secondary);';
+                    spendCells =
+                        `<td style="text-align:right;${never ? dim : ''}">${unknown ? '—' : u._orders}</td>`
+                      + `<td style="text-align:right;${never ? dim : 'font-weight:600;'}">${unknown ? '—' : fmtMoney(u._spent)}</td>`
+                      + `<td style="${dim}">${unknown ? '—' : (u._lastOrder ? new Date(u._lastOrder).toLocaleDateString() : 'never ordered')}</td>`;
+                }
+
                 return `
                     <tr>
                         <td><strong>${userName}</strong>${editNameBtn} ${isCurrentUser ? '<span class="status-badge status-live" style="margin-left:8px;font-size:0.6rem;padding:2px 6px;">You</span>' : ''}</td>
                         <td>${userEmail}</td>
+                        ${spendCells}
                         <td>${date}</td>
                         <td>${actions}</td>
                     </tr>
