@@ -20,6 +20,7 @@ import { buildEmail as buildReview } from './send-review-requests.js';
 import { buildEmail as buildAbandoned } from './send-abandoned-cart-emails.js';
 import { buildEmail as buildReturnStatus } from './send-return-status-email.js';
 import { buildReturnLabelEmail } from './generate-return-label.js';
+import { buildReturnLinkEmail } from './guest-return.js';
 import { buildRefundEmail } from './admin-refund.js';
 // Moved with the rest of fulfilment when it was split out of the Stripe route.
 import { buildOrderConfirmation } from './_fulfil.js';
@@ -33,8 +34,8 @@ const SAMPLE_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
 
 export const PREVIEWABLE_TYPES = [
   'order_confirmation', 'shipped', 'delivered', 'back_in_stock',
-  'review_request', 'abandoned_cart', 'return_status', 'return_label',
-  'refund', 'journal',
+  'review_request', 'abandoned_cart', 'return_status', 'return_link',
+  'return_label', 'refund', 'journal',
 ];
 
 export async function onRequestOptions({ env }) {
@@ -142,6 +143,12 @@ export function renderPreview(type, appearance, content, cache, logoUrl) {
          happened to be signed in on that computer. */
       return buildOrderConfirmation({ appearance, content, orderId: 'AB12CD', toName: 'Alex Kim', itemsHtml: f.itemsHtml, subtotalCents: 6500, discountRow: '', shippingDisplay: 'Free', taxCents: 546, totalDollars: '70.46', addressHtml: f.addressHtml, carrierHtml: f.carrierHtml, userId: null, orderNumber: 'ZW-MTP-00143' });
     }
+
+    case 'return_link':
+      return buildReturnLinkEmail({
+        appearance, content, orderLabel: 'AB12CD',
+        link: SITE + '/returns.html?t=sample-token',
+      });
 
     case 'return_label':
       return buildReturnLabelEmail({ toName: 'Alex Kim', orderLabel: '#AB12CD', label: { carrier: 'USPS', service: 'Ground Advantage', trackingNumber: '9400 1000 0000 0000', labelUrl: '#', trackingUrl: '#' }, storeAddress: 'Zuwera Returns\n123 Market St\nNashville, TN 37201\nUS', resolutionLabel: 'refund', appearance });

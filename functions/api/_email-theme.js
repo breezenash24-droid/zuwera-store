@@ -117,6 +117,12 @@ const CONTENT_DEFAULTS = {
   shipped:            { subject: 'Your Zuwera order has shipped', kicker: 'Shipped', heading: 'On its way', intro: '', footer: '' },
   back_in_stock:      { subject: 'Back in stock: {product} ({size})', kicker: 'Back in stock', heading: '{product}', intro: 'The size you wanted is available again — but it may not last. Grab it before it sells out.', footer: "You're receiving this because you asked to be notified when this item came back." },
   return_status:      { subject: 'An update on your return', kicker: 'Return update', heading: 'Your return', intro: '', footer: '' },
+  /* The link a guest gets after asking to start a return. It was the only
+     customer-facing email built as three bare <p> tags with no shell, no logo
+     and no theme — it looked like a password reset from 2009, which is a poor
+     first impression at the exact moment someone is already unhappy enough to
+     be sending something back. */
+  return_link:        { subject: 'Start your return — order #{order}', kicker: 'Return', heading: 'Start your return', intro: "Here's your link for order #{order}. It opens your order directly — no password, no account needed.", footer: 'If you did not ask for this, you can ignore this email. Nothing has changed.' },
   review_request:     { subject: 'How was your Zuwera order?', kicker: 'Your thoughts', heading: 'How did we do?', intro: '{name}your order has had a few days to settle in. A quick review — a line or two, and a photo if you have one — helps other athletes shop with confidence.', footer: "You're receiving this because you ordered from zuwera.store. Thanks for being part of it." },
   abandoned_cart:     { subject: 'You left something in your bag', kicker: 'Still in your bag', heading: 'You left something behind', intro: 'Your bag is still here — grab your picks before they sell out.', footer: "You're receiving this because you started a checkout at zuwera.store. If this wasn't you, ignore this email." },
   // Sent when someone signs up through the email popup. {code} is the discount

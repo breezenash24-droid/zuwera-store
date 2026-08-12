@@ -273,6 +273,88 @@ const imp = (f) => import(pathToFileURL(ROOT + '/functions/api/' + f).href);
       /invalidates every link already emailed/.test(admin));
   }
 
+  /* ── The email itself ────────────────────────────────────────────────────
+     It was three bare <p> tags: no shell, no logo, no theme, no button. Every
+     other email the store sends goes through renderEmailShell and obeys the
+     admin's fonts and colours; this one did not, so it arrived looking like a
+     password reset from 2009 — at the exact moment someone is already unhappy
+     enough to be sending something back. */
+  console.log('\n  the return email is a real email');
+  {
+    const api = fs.readFileSync(ROOT + '/functions/api/guest-return.js', 'utf8');
+    ok('it is built on the shared shell', /renderEmailShell\(a, \{/.test(api));
+    ok('…and carries the store logo', /appearance\.logo\s*=/.test(api));
+    ok('…and no longer hand-rolls paragraphs',
+      !/'<p>Start your return for order <strong>'/.test(api));
+
+    const { buildReturnLinkEmail } = await imp('guest-return.js');
+    const { getEmailAppearance, getEmailContent } = await imp('_email-theme.js');
+    const link = 'https://zuwera.store/returns.html?t=abc';
+    const html = buildReturnLinkEmail({
+      appearance: getEmailAppearance({ email_theme: 'dark' }),
+      content: getEmailContent({}, 'return_link'),
+      orderLabel: 'AB12CD', link,
+    });
+    ok('it renders', typeof html === 'string' && html.length > 600);
+    ok('…with a real button', /Start my return<\/a>/.test(html));
+    /* Twice: the button, and a visible plain URL. Some clients strip the
+       button's styling entirely, and a customer left with no visible link has
+       no way through at all. */
+    ok('…and the link appears twice, button plus a copyable URL',
+      (html.match(/returns\.html\?t=abc/g) || []).length >= 2);
+    ok('…naming the order', html.includes('AB12CD'));
+    ok('…with nothing left unfilled', !/\{\{?\s*\w+\s*\}?\}/.test(html));
+
+    /* The old copy said "one hour" as a literal string beside a constant that
+       could change without it. */
+    ok('how long the link lasts is derived from the TTL, not retyped',
+      /TTL\['guest-return'\]/.test(api) && !/works for one hour and only/.test(api));
+    ok('…and the sentence still says an hour, because that is what the TTL is',
+      /works for one hour/.test(html), 'TTL and copy disagree');
+  }
+
+  console.log('\n  and the shop owner can edit it');
+  {
+    const theme = fs.readFileSync(ROOT + '/functions/api/_email-theme.js', 'utf8');
+    ok('return_link has editable defaults', /^\s*return_link:\s*\{/m.test(theme));
+    ok('…including a subject', /return_link:[\s\S]{0,200}subject:/.test(theme));
+
+    const preview = fs.readFileSync(ROOT + '/functions/api/email-preview.js', 'utf8');
+    ok('it can be previewed before sending', /'return_link'/.test(preview));
+    ok('…through the real builder, so the preview cannot drift',
+      /buildReturnLinkEmail\(\{/.test(preview));
+
+    const adminHtml = fs.readFileSync(ROOT + '/admin.html', 'utf8');
+    ok('it is in the Emails editor dropdown',
+      /<option value="return_link">/.test(adminHtml));
+    const admin = fs.readFileSync(ROOT + '/admin-main.js', 'utf8');
+    ok('…with ready-made wordings like every other type',
+      /return_link:\s*\{[\s\S]{0,80}warm:/.test(admin));
+
+    /* The editor is driven by the type list; a type the editor offers but the
+       code has no defaults for saves copy that nothing ever reads. */
+    const { getEmailContent } = await imp('_email-theme.js');
+    const custom = getEmailContent({ email_settings: { return_link: { heading: 'Mine' } } }, 'return_link');
+    ok('an edited heading actually reaches the email', custom.heading === 'Mine');
+    ok('…and unedited fields fall back to the default', !!custom.subject);
+  }
+
+  console.log('\n  the page a guest lands on');
+  {
+    const page = fs.readFileSync(ROOT + '/returns.html', 'utf8');
+    /* "Zuwera · M · Cyan" is not how anyone remembers what they bought, and
+       picking the right item is the entire task on this page. */
+    ok('items show the photo the order already stored', /class="guest-thumb"/.test(page));
+    ok('…preferring the snapshot taken at purchase', /const imgFor = \(it\) => it\.image/.test(page));
+    ok('…and never renders a broken image when there is none',
+      /<span class="guest-thumb"><\/span>/.test(page));
+    ok('a ticked item is visibly ticked', /\.guest-item:has\(input:checked\)/.test(page));
+    ok('the status reads as a badge, not another line of text',
+      /\.guest-state\[data-state=/.test(page));
+    ok('…and the state is on the element for CSS to colour',
+      /data-state="' \+ esc\(state\)/.test(page));
+  }
+
   console.log('\n  a token is for ONE order');
   {
     const api = fs.readFileSync(ROOT + '/functions/api/guest-return.js', 'utf8');

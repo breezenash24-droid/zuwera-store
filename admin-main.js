@@ -12795,6 +12795,14 @@ function escapeAttr(value) {
                 minimal: { subject: 'How was your Zuwera order?', kicker: 'Your thoughts', heading: 'How did we do?', intro: '{name}, a quick review — even a line — helps others shop with confidence.', footer: 'Thanks for shopping with us.' },
                 playful: { subject: "Be honest — how'd we do? ⭐", kicker: 'Your thoughts', heading: 'Rate the goods', intro: "Hey {name}! Loved it? Hated it? Tell other shoppers — a line or two goes a long way.", footer: 'Thanks for keeping it real.' },
             },
+            /* Sent to someone who has already decided to send something back,
+               so none of these tones are cheerful about it. {order} is the
+               order number; the link itself is the button, not a placeholder. */
+            return_link: {
+                warm:    { subject: 'Your return link for order #{order}', kicker: 'Return', heading: "Let's sort this out", intro: "No problem at all — here's your link for order #{order}. It opens your order straight away, no account or password needed.", footer: "If you didn't ask for this, just ignore it. Nothing has changed." },
+                minimal: { subject: 'Start your return — order #{order}', kicker: 'Return', heading: 'Start your return', intro: 'Your link for order #{order} is below. It opens your order directly.', footer: 'If you did not request this, ignore this email.' },
+                playful: { subject: 'Sending it back? Here you go 📦', kicker: 'Return', heading: 'No hard feelings', intro: "It happens! Here's your link for order #{order} — one tap and you're in, no password required.", footer: "Didn't ask for this? Ignore away. Nothing has changed." },
+            },
             abandoned_cart: {
                 warm:    { subject: 'You left something behind 💛', kicker: 'Still in your bag', heading: 'Your picks are waiting', intro: "Your bag is still here whenever you're ready. We saved everything for you — but popular sizes don't wait forever.", footer: 'You started a checkout at zuwera.store.' },
                 minimal: { subject: 'You left something in your bag', kicker: 'Still in your bag', heading: 'Your bag is waiting', intro: 'Your items are still saved. They may sell out soon.', footer: 'You started a checkout at zuwera.store.' },
