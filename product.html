@@ -92,7 +92,7 @@
 <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
 <link rel="stylesheet" href="nav.css?v=da3af1da">
 <link rel="stylesheet" href="product.css?v=cebf612f">
-<link rel="stylesheet" href="cart.css?v=71dd9aac">
+<link rel="stylesheet" href="cart.css?v=e6db1b08">
 <!-- reviews.css styles only below-the-fold review content + hidden review
      modals, so load it non-render-blocking (matches index.html). reviews-vibe.css
      stays blocking — it also styles the above-the-fold .product-fit-actions. -->
@@ -102,13 +102,13 @@
 <link rel="stylesheet" href="storefront-cohesion.css?v=17f5cf7f">
 <script src="header-scroll.js?v=fe320725" defer></script>
 <script src="announcement-bar.js?v=ba8069e5" defer></script>
-<script src="email-popup.js?v=d316db75" defer></script>
+<script src="email-popup.js?v=41803da5" defer></script>
 <script src="integrations.js?v=7f9fbde2" defer></script>
 <script src="image-effects.js?v=ec67c379" defer></script>
 <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=9f2b0c2a">
 
 <script src="/stripe-client-config.js?v=6cbbcea0" defer></script>
-<script src="/checkout-tax.js?v=1a72de55" defer></script>
+<script src="/checkout-tax.js?v=138b85ab" defer></script>
 
 <style>
 /* Modal base styles (shared with index.html) */
@@ -5475,7 +5475,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 
 <div id="toast"></div>
 <script src="commerce-checkout.js?v=02c4d509"></script>
-<script src="customer-hub.js?v=03b1be0b"></script>
+<script src="customer-hub.js?v=13adfe65"></script>
 
 <script>
 /* ── Modal backdrop transparency enforcer ──────────────────────────────────
@@ -5570,11 +5570,11 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
      deferred), so the inline reroute that used to sit here is gone. This also
      keeps the old workaround for the product-page #auth-modal freeze: that modal
      is simply never opened any more. One login entry point — see zw-login.js. -->
-<script src="zw-login.js?v=5a23b163" defer></script>
+<script src="zw-login.js?v=9f5155c0" defer></script>
 <!-- Shared stock rules. The page must subtract what is already in the bag from
      what it advertises, using the same matching the bag and checkout use. -->
-<script src="customer-messages.js?v=1" defer></script>
-<script src="stock-rules.js?v=1" defer></script>
+<script src="customer-messages.js?v=ef24fea6" defer></script>
+<script src="stock-rules.js?v=cb671585" defer></script>
 <script src="/nav-menu.js?v=5c1c1e4d" defer></script>
 </body>
 </html>

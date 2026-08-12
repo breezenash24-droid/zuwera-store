@@ -115,7 +115,10 @@ console.log('\n  shipping margin');
 console.log('\n  size curve');
 {
   ok('sizes are sorted in size order, not alphabetically', /ZWSizeOrder\.sort/.test(SRC));
-  ok('…and the comparator is actually loaded on the page', /src="\/size-order\.js"/.test(SRC));
+  /* The ?v= is a content hash written by bump-cache-version.js at install
+     time, so pinning the bare path fails the moment the asset is hashed. */
+  ok('…and the comparator is actually loaded on the page',
+    /src="\/size-order\.js(\?v=[^"]*)?"/.test(SRC));
   /* A curve built from half the units is a curve you should not buy against. */
   ok('units with no size recorded are declared, not silently dropped',
     /had no size recorded and are not in this chart/.test(SRC));

@@ -331,24 +331,24 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
 <script src="header-scroll.js?v=fe320725" defer></script>
 <script src="announcement-bar.js?v=ba8069e5" defer></script>
-<script src="email-popup.js?v=d316db75" defer></script>
+<script src="email-popup.js?v=41803da5" defer></script>
 <script src="integrations.js?v=7f9fbde2" defer></script>
 <script src="image-effects.js?v=ec67c379" defer></script>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=9f2b0c2a">
 <!-- Quick-add modal module MUST load before storefront.js: the grid wiring in
      storefront.js calls window.quickAddToCart, which this module provides. -->
 <script src="pdp-gallery.js?v=1e454262" defer></script>
-<script src="quick-add-modal.js?v=48689098" defer></script>
+<script src="quick-add-modal.js?v=3e72762a" defer></script>
 <script src="image-utils.js?v=3fee4aec" defer></script>
 <script src="video-embed.js?v=0462ce95" defer></script>
 <!-- Before storefront.js, which also re-prices the stored cart and writes it
      back — so the homepage can put a wrong price into localStorage that the bag
      and checkout then display. It needs the same membership answer they use. -->
-<script src="customer-messages.js?v=1"></script>
-<script src="stock-rules.js?v=1"></script>
-<script src="storefront.js?v=5f7a02e6" defer></script>
+<script src="customer-messages.js?v=ef24fea6"></script>
+<script src="stock-rules.js?v=cb671585"></script>
+<script src="storefront.js?v=15e5f70c" defer></script>
 <script src="/stripe-client-config.js?v=6cbbcea0" defer></script>
-<script src="/checkout-tax.js?v=1a72de55" defer></script>
+<script src="/checkout-tax.js?v=138b85ab" defer></script>
 
 <!-- Stripe is loaded lazily on checkout click to avoid blocking initial render -->
 <!-- gtag.js library is loaded on browser idle by google-tag.js (deferred); this inline block only primes the dataLayer/config queue so no events are lost. -->
@@ -2677,7 +2677,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
 
 
 <script src="commerce-checkout.js?v=02c4d509" defer></script>
-<script src="customer-hub.js?v=03b1be0b" defer></script>
+<script src="customer-hub.js?v=13adfe65" defer></script>
 
 <!-- Empty-bag and cart shell wiring compatibility structure -->
 <div id="cart-modal" style="display:none;"></div>
@@ -2701,7 +2701,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
 <!-- zw-login.js claims window.openAuth/__zwOpenAuth itself (it loads after
      storefront.js, both deferred), so the inline reroute that used to sit here
      is gone. One login entry point, defined in one place — see zw-login.js. -->
-<script src="zw-login.js?v=5a23b163" defer></script>
+<script src="zw-login.js?v=9f5155c0" defer></script>
 
 <script src="/nav-menu.js?v=5c1c1e4d" defer></script>
 </body>
