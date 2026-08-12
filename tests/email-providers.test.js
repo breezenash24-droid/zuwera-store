@@ -207,8 +207,21 @@ console.log('\n  moving cards between the two sections');
       const src = fs.readFileSync(path.join(dir, f), 'utf8');
       let i = src.indexOf('sendTransactional({');
       while (i >= 0) {
-        /* The call's own argument object, to the closing brace. */
-        const chunk = src.slice(i, src.indexOf('})', i) + 2);
+        /* The call's own argument object, brace-BALANCED rather than sliced to
+           the first '})'.
+           A nested object in an earlier argument — `subject:
+           fillTemplate(content.subject, { order: label })` — closes before the
+           call does, so the lazy scan cut the chunk short and reported a caller
+           that passes fromEmail as one that does not. Same truncation this
+           repo has hit before when extracting a function body by searching for
+           its terminator instead of counting. */
+        const open = src.indexOf('{', i);
+        let depth = 0, end = open;
+        for (let k = open; k < src.length; k += 1) {
+          if (src[k] === '{') depth += 1;
+          else if (src[k] === '}') { depth -= 1; if (depth === 0) { end = k; break; } }
+        }
+        const chunk = src.slice(open, end + 1);
         if (!/fromEmail/.test(chunk)) offenders.push(f);
         i = src.indexOf('sendTransactional({', i + 1);
       }

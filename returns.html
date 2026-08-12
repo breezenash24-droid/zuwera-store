@@ -232,33 +232,88 @@
     .guest-form .btn-primary { width: 100%; }
     .guest-status { font-size: .8rem; color: var(--muted); margin-top: .9rem; line-height: 1.5; }
 
-    .guest-return { border: 1px solid var(--border); padding: 2rem 1.5rem; background: var(--subtle); }
-    .guest-return h2 { font-family: var(--fw); font-size: 1.4rem; letter-spacing: .05em; }
+    /* ── The guest return card ────────────────────────────────────────────
+       This is the only page a guest ever sees of their own order, and it was
+       one flat slab: every line the same weight, a bare checkbox per item, no
+       photo of the thing being sent back. Someone arrives here already
+       unhappy enough to be returning something, so it is worth more than that.
+
+       The structure now follows the actual sequence — WHERE IS IT, then WHAT
+       are you sending back, then WHAT should we do — with the order itself
+       given the weight it deserves at the top. */
+    .guest-return {
+      border: 1px solid var(--border); background: var(--subtle);
+      padding: 0; overflow: hidden;
+    }
     .guest-return h3 {
       font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
-      color: var(--muted); margin: 1.8rem 0 .7rem;
+      color: var(--muted); margin: 0 0 .8rem;
     }
-    .guest-sub { font-size: .8rem; color: var(--muted); margin-top: .3rem; }
-    .guest-hint { font-size: .78rem; color: var(--muted); margin-bottom: .8rem; }
-    /* Where the order actually is, above the return form — the question the
-       "View order status" link in the email is asking on the reader's behalf. */
-    .guest-status-block { padding-bottom: 1.4rem; margin-bottom: 1.6rem; border-bottom: 1px solid var(--border); }
-    .guest-state { margin-top: .9rem; font-size: .95rem; font-weight: 600; }
-    .guest-track { margin-top: .4rem; font-size: .84rem; color: var(--muted); word-break: break-all; }
+    .guest-sub { font-size: .8rem; color: var(--muted); margin-top: .35rem; }
+    .guest-hint { font-size: .78rem; color: var(--muted); margin: -.3rem 0 1rem; }
+
+    /* Where the order actually is — the question the "View order status" link
+       in the email is asking on the reader's behalf. Given its own band so it
+       reads as an answer rather than a preamble to the form. */
+    .guest-status-block {
+      padding: 1.9rem 1.6rem; border-bottom: 1px solid var(--border);
+      background: rgb(var(--fg-rgb, 255 255 255) / 3%);
+    }
+    .guest-status-block h2 {
+      font-family: var(--fw); font-size: 1.5rem; letter-spacing: .04em; line-height: 1.15;
+    }
+    .guest-state {
+      display: inline-flex; align-items: center; gap: .5rem;
+      margin-top: 1rem; font-size: .8rem; font-weight: 600;
+      letter-spacing: .06em; text-transform: uppercase;
+      padding: .45rem .85rem; border: 1px solid var(--border); border-radius: 999px;
+    }
+    .guest-state::before {
+      content: ''; width: 7px; height: 7px; border-radius: 50%;
+      background: currentColor; flex: none;
+    }
+    /* State carried in colour as well as words, so it reads at a glance. */
+    .guest-state[data-state="shipped"], .guest-state[data-state="delivered"] { color: #3fa45b; }
+    .guest-state[data-state="cancelled"], .guest-state[data-state="refunded"] { color: var(--muted); }
+    .guest-track { margin-top: .8rem; font-size: .84rem; color: var(--muted); word-break: break-all; }
     .guest-track a { color: inherit; text-decoration: underline; }
+
+    .guest-body { padding: 1.7rem 1.6rem 1.9rem; }
+    .guest-section + .guest-section { margin-top: 1.9rem; }
     .guest-optional { text-transform: none; letter-spacing: 0; opacity: .7; }
-    .guest-items { display: flex; flex-direction: column; gap: .1rem; }
+
+    /* Items: a photo, because "Zuwera · M · Cyan" is not how anyone remembers
+       what they bought, and the whole task is picking the right one. */
+    .guest-items { display: flex; flex-direction: column; }
     .guest-item {
-      display: flex; align-items: center; gap: .7rem;
-      padding: .7rem .2rem; border-bottom: 1px solid var(--border);
-      font-size: .88rem; cursor: pointer;
+      display: flex; align-items: center; gap: .9rem;
+      padding: .8rem; border: 1px solid transparent; border-radius: 3px;
+      font-size: .9rem; cursor: pointer; transition: background .15s, border-color .15s;
     }
-    .guest-item:last-child { border-bottom: none; }
+    .guest-item:hover { background: rgb(var(--fg-rgb, 255 255 255) / 4%); }
+    .guest-item input { flex: none; width: 17px; height: 17px; accent-color: currentColor; cursor: pointer; }
+    .guest-item:has(input:checked) { border-color: var(--border); background: rgb(var(--fg-rgb, 255 255 255) / 6%); }
+    .guest-thumb {
+      flex: none; width: 46px; height: 58px; object-fit: cover; border-radius: 2px;
+      background: rgb(var(--fg-rgb, 255 255 255) / 8%); display: block;
+    }
+    .guest-item-name { display: block; font-weight: 600; }
+    .guest-item-variant { display: block; font-size: .8rem; color: var(--muted); margin-top: .2rem; }
+
     .guest-return select, .guest-return textarea {
-      width: 100%; padding: .7rem .8rem; border: 1px solid var(--border);
+      width: 100%; padding: .8rem .9rem; border: 1px solid var(--border);
       background: transparent; color: inherit; font: inherit; font-size: .9rem;
+      border-radius: 3px;
     }
-    .guest-return .btn-primary { margin-top: 1.8rem; width: 100%; }
+    .guest-return select:focus-visible, .guest-return textarea:focus-visible {
+      outline: 2px solid currentColor; outline-offset: 1px;
+    }
+    .guest-return textarea { resize: vertical; }
+    /* Resolution and reason are one decision made twice, so they sit together
+       where there is room for them. */
+    .guest-choices { display: grid; gap: 1.3rem; }
+    @media (min-width: 620px) { .guest-choices { grid-template-columns: 1fr 1fr; } }
+    .guest-return .btn-primary { margin-top: 1.9rem; width: 100%; }
     .guest-history { margin-top: 1.5rem; border: 1px solid var(--border); padding: 1.2rem 1.4rem; }
     .guest-history h3 {
       font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
@@ -1699,11 +1754,13 @@ async function renderGuestReturn(root, token) {
     cancelled: 'Cancelled',
     refunded: 'Refunded',
   };
+  const state = String(o.status || '').toLowerCase();
   const statusHtml =
     '<div class="guest-status-block">'
     + '<h2>Order ' + esc(o.orderNumber || '') + '</h2>'
     + '<p class="guest-sub">Placed ' + esc((o.createdAt || '').slice(0, 10)) + '</p>'
-    + '<p class="guest-state">' + esc(STATUS_WORDS[String(o.status || '').toLowerCase()] || o.status || 'Confirmed') + '</p>'
+    + '<p class="guest-state" data-state="' + esc(state) + '">'
+      + esc(STATUS_WORDS[state] || o.status || 'Confirmed') + '</p>'
     + (o.trackingNumber
         ? '<p class="guest-track">'
           + esc([o.shippingProvider, o.shippingService].filter(Boolean).join(' ') || 'Tracking') + ': '
@@ -1724,33 +1781,59 @@ async function renderGuestReturn(root, token) {
     return;
   }
 
+  /* The photo the order already carries. saveOrderToSupabase snapshots each
+     item's colour-variant image at purchase time precisely so it survives the
+     product being edited or deleted, and nothing was showing it. Falls back to
+     the live product map, then to an empty tile — never a broken image. */
+  const prodImages = await ensureProductImages().catch(() => ({}));
+  const imgFor = (it) => it.image
+    || prodImages[String(it.sku || '').toLowerCase()]
+    || prodImages[String(it.name || it.title || '').trim().toLowerCase()]
+    || '';
+
   root.innerHTML =
     '<div class="guest-return">'
     + statusHtml
+    + '<div class="guest-body">'
+    + '<div class="guest-section">'
     + '<h3>What are you sending back?</h3>'
     + '<p class="guest-hint">Leave everything unticked to return the whole order.</p>'
     + '<div class="guest-items">'
-    + items.map((it, i) =>
-        '<label class="guest-item"><input type="checkbox" data-idx="' + i + '">'
-        + '<span>' + esc(it.name || it.title || 'Item')
-        + (it.size ? ' · ' + esc(it.size) : '')
-        + (it.color || it.colorName ? ' · ' + esc(it.color || it.colorName) : '')
-        + (Number(it.quantity) > 1 ? ' · ×' + Number(it.quantity) : '')
-        + '</span></label>').join('')
-    + '</div>'
+    + items.map((it, i) => {
+        const img = imgFor(it);
+        const variant = [it.size, it.color || it.colorName].filter(Boolean).join(' · ')
+          + (Number(it.quantity) > 1 ? ' · ×' + Number(it.quantity) : '');
+        return '<label class="guest-item"><input type="checkbox" data-idx="' + i + '">'
+          + (img
+              ? '<img class="guest-thumb" src="' + esc(img) + '" alt="" loading="lazy">'
+              : '<span class="guest-thumb"></span>')
+          + '<span>'
+          + '<span class="guest-item-name">' + esc(it.name || it.title || 'Item') + '</span>'
+          + (variant ? '<span class="guest-item-variant">' + esc(variant) + '</span>' : '')
+          + '</span></label>';
+      }).join('')
+    + '</div></div>'
+    + '<div class="guest-section guest-choices">'
+    + '<div>'
     + '<h3>What would you like us to do?</h3>'
     + '<select id="g-res">'
     + '<option value="return">Refund</option>'
     + '<option value="exchange">Exchange</option>'
     + '<option value="store_credit">Store credit</option>'
     + '</select>'
+    + '</div>'
+    + '<div>'
     + '<h3>Why?</h3>'
     + '<select id="g-reason">' + REASONS.map((r) => '<option>' + esc(r) + '</option>').join('') + '</select>'
+    + '</div>'
+    + '</div>'
+    + '<div class="guest-section">'
     + '<h3>Anything else? <span class="guest-optional">optional</span></h3>'
     + '<textarea id="g-notes" rows="3" placeholder="Tell us more"></textarea>'
+    + '</div>'
     + '<button type="button" class="btn-primary" id="g-submit">Submit request</button>'
     + '<p class="guest-status" role="status"></p>'
-    + '</div>' + history;
+    + '</div></div>' + history;
 
   document.getElementById('g-submit').onclick = async function () {
     const btn = this;

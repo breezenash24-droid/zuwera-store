@@ -28,9 +28,65 @@ import { cors, json, getCommerceBundle, mutateSetting } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { sendTransactional } from './_email.js';
 import { returnEligibility, reconcileReturnItems, spokenForOn } from './_returns.js';
-import { orderNo, normalizeOrderNo, sameOrderNo } from './_order-no.js';
+import { orderNo, orderNoPlain, normalizeOrderNo, sameOrderNo } from './_order-no.js';
 import { messagesFrom } from './_messages.js';
 import { notifyOps } from './_notify-ops.js';
+import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } from './_email-theme.js';
+import { TTL } from './_order-token.js';
+
+/* How long the link lasts, said in words, derived from the TTL rather than
+   written beside it. The email used to state "one hour" as a literal string, so
+   changing the constant would have left the email confidently lying about it —
+   and this is the sentence a customer uses to decide whether to click now or
+   later. */
+function linkLifetimeSentence() {
+  const hours = Math.round(TTL['guest-return'] / (60 * 60 * 1000));
+  const span = hours >= 48 ? Math.round(hours / 24) + ' days'
+    : hours > 1 ? hours + ' hours'
+    : 'one hour';
+  return 'This link works for ' + span + ' and only for this order.';
+}
+
+/**
+ * The "start your return" email.
+ *
+ * It was three bare <p> tags — no shell, no logo, no theme — which is how it
+ * ended up looking like a password reset from 2009. That is a poor thing to
+ * send someone at the exact moment they are already unhappy enough to be
+ * returning something.
+ *
+ * Exported so the admin preview renders the real thing rather than a copy of
+ * it, which is the arrangement every other email here uses and the reason the
+ * preview cannot drift from what actually sends.
+ */
+export function buildReturnLinkEmail({ appearance, content, orderLabel, link }) {
+  const a = appearance;
+  const body = `
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+          <tr><td align="center" style="padding:8px 0 4px;">
+            <a href="${link}" style="display:inline-block;padding:15px 38px;background:${a.accent};color:${a.light ? '#fff' : '#0b0b0d'};text-decoration:none;border-radius:3px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;font-family:${a.fontMono};">Start my return</a>
+          </td></tr>
+          <tr><td style="padding:22px 0 0;">
+            <p style="margin:0;font-size:13px;line-height:1.7;color:${a.muted};text-align:center;">${linkLifetimeSentence()}</p>
+          </td></tr>
+          <tr><td style="padding:18px 0 0;">
+            <div style="border-top:1px solid ${a.border};padding-top:18px;">
+              <p style="margin:0 0 6px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:${a.muted};font-weight:600;font-family:${a.fontMono};">If the button does not work</p>
+              <p style="margin:0;font-size:12px;line-height:1.6;color:${a.muted};word-break:break-all;">
+                <a href="${link}" style="color:${a.muted};text-decoration:underline;">${link}</a>
+              </p>
+            </div>
+          </td></tr>
+        </table>`;
+
+  return renderEmailShell(a, {
+    kicker:  fillTemplate(content.kicker, { order: orderLabel }),
+    heading: fillTemplate(content.heading, { order: orderLabel }),
+    intro:   fillTemplate(content.intro, { order: orderLabel }),
+    bodyHtml: body,
+    footerHtml: fillTemplate(content.footer || '', { order: orderLabel }),
+  });
+}
 /* Minting and reading moved to _order-token.js when the order confirmation
    email needed to mint one too. Three callers, one definition of what a valid
    token is — a second copy is how two definitions drift and only one of them
@@ -142,20 +198,26 @@ export async function onRequestPost({ request, env }) {
 
       const site = (env.SITE_URL || 'https://zuwera.store').replace(/\/$/, '');
       const link = site + '/returns.html?t=' + encodeURIComponent(token);
-      const cache = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM'], env);
+      const cache = await fetchSiteSettings(
+        ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL',
+         'fonts', 'brand', 'email_theme', 'email_settings'], env,
+      );
+
+      const appearance = getEmailAppearance(cache);
+      appearance.logo = resolveSetting('BRAND_LOGO_URL', env, cache)
+        || 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
+      const content = getEmailContent(cache, 'return_link');
+      const label = orderNoPlain(order);
 
       await sendTransactional({
         env, cache,
         to: order.email,
-        subject: 'Start your return — order ' + orderNo(order),
+        subject: fillTemplate(content.subject, { order: label }),
         fromEmail: resolveSetting('EMAIL_FROM', env, cache) || 'orders@zuwera.store',
         text: 'Start your return for order ' + orderNo(order) + ':\n\n' + link
-          + '\n\nThis link works for one hour and only for this order. '
-          + 'If you did not ask for it, you can ignore this email — nothing has changed.',
-        html: '<p>Start your return for order <strong>' + orderNo(order) + '</strong>:</p>'
-          + '<p><a href="' + link + '">Start my return</a></p>'
-          + '<p style="color:#666;font-size:13px;">This link works for one hour and only for this order. '
-          + 'If you did not ask for it, you can ignore this email — nothing has changed.</p>',
+          + '\n\n' + linkLifetimeSentence()
+          + ' If you did not ask for it, you can ignore this email — nothing has changed.',
+        html: buildReturnLinkEmail({ appearance, content, orderLabel: label, link }),
       });
     } catch (e) {
       /* Logged, not surfaced: telling the caller that sending failed would
