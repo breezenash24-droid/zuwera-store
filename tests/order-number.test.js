@@ -23,7 +23,9 @@ const WORKER = fs.readFileSync(ROOT + 'functions/api/_order-no.js', 'utf8');
 
 const w = {};
 new Function('window', BROWSER.replace('typeof window !== \'undefined\' ? window : this', 'window'))(w);
-const { orderNo } = new Function(WORKER.replace(/^export\s+/gm, '') + '\n;return { orderNo };')();
+const { orderNo, normalizeOrderNo, sameOrderNo } =
+  new Function(WORKER.replace(/^export\s+/gm, '')
+    + '\n;return { orderNo, normalizeOrderNo, sameOrderNo };')();
 
 console.log('\n  order_number is the real one');
 {
@@ -103,6 +105,49 @@ console.log('\n  and nothing keeps its own version');
     tag.test(admin) && tag.test(account));
   ok('…before the scripts that call it',
     admin.indexOf('order-number.js') < admin.indexOf('admin-main.js'));
+}
+
+/* ── However the customer typed it ──────────────────────────────────────────
+   The printed number carries a leading '#'. A customer copying it from their
+   receipt was compared literally against a value stored without one, and told
+   in effect that their own order number was wrong. Nobody types a hash on
+   purpose and nobody omits one on purpose. */
+console.log('\n  matching what a human meant');
+{
+  const CASES = [
+    ['#ZW-1234', 'ZW-1234'],
+    ['ZW-1234', '#ZW-1234'],
+    ['zw 1234', '#ZW-1234'],
+    ['  #zw-1234  ', 'ZW1234'],
+    ['ZW1234', '#ZW-1234'],
+  ];
+  for (const [typed, stored] of CASES) {
+    ok('"' + typed + '" finds "' + stored + '"', sameOrderNo(typed, stored));
+  }
+
+  /* Still has to say no to a genuinely different order — a matcher that
+     accepts everything is worse than one that is fussy. */
+  ok('a different order still does not match', !sameOrderNo('#ZW-1234', '#ZW-1235'));
+  ok('empty matches nothing, rather than everything',
+    !sameOrderNo('', '#ZW-1234') && !sameOrderNo('#ZW-1234', ''));
+
+  /* Both sides, always. Normalising only the input is how this bug happens. */
+  ok('normalising strips the hash', normalizeOrderNo('#ZW-1234') === 'ZW1234');
+
+  /* And the browser must agree with the Worker, or the two disagree about
+     which order somebody meant — the exact fault this pair exists to stop. */
+  for (const [typed, stored] of CASES) {
+    ok('browser and Worker agree on "' + typed + '"',
+      w.ZWSameOrderNo(typed, stored) === sameOrderNo(typed, stored));
+  }
+  ok('…and on the normalised form',
+    w.ZWNormalizeOrderNo('#zw 12-34') === normalizeOrderNo('#zw 12-34'));
+
+  const receipts = fs.readFileSync(ROOT + 'admin-receipts.js', 'utf8');
+  /* Receipts searched the raw payment-intent id, so searching for the number
+     printed on the page found nothing at all. */
+  ok('the receipts search matches the number the page shows',
+    /ZWNormalizeOrderNo\(zwOrderNo\(o\)\)/.test(receipts));
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

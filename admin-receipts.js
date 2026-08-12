@@ -166,10 +166,18 @@
                       _filteredReceipts = q ? _allReceipts.filter(o => {
                         const customerName = (o.customer_name || '').toLowerCase();
                         const email        = (o.email || '').toLowerCase();
+                        /* The number the page SHOWS, not the raw payment-intent
+                           id — searching for what is on screen found nothing.
+                           Normalised on both sides so "#ZW-1234", "zw 1234" and
+                           "ZW1234" all find the same order. */
+                        const shown        = (window.ZWNormalizeOrderNo ? window.ZWNormalizeOrderNo(zwOrderNo(o)) : '').toLowerCase();
+                        const qNorm        = (window.ZWNormalizeOrderNo ? window.ZWNormalizeOrderNo(q) : q).toLowerCase();
                         const orderNum     = (o.stripe_payment_intent_id || '').slice(-8).toLowerCase();
                         const amount       = fmt$(o.total || 0).toLowerCase();
                         const tracking     = (o.tracking_number || '').toLowerCase();
-                        return customerName.includes(q) || email.includes(q) || orderNum.includes(q) || amount.includes(q) || tracking.includes(q);
+                        return customerName.includes(q) || email.includes(q)
+                          || (qNorm && shown.includes(qNorm))
+                          || orderNum.includes(q) || amount.includes(q) || tracking.includes(q);
                       }) : _allReceipts;
                       renderReceipts();
                     }

@@ -45,6 +45,31 @@
     return orderNo(order).replace(/^#/, '');
   }
 
+  /* An order number reduced to what a human meant by it.
+
+     The printed number carries a leading '#', so a customer copying it from a
+     receipt was matched literally against a value stored without one — and
+     told, in effect, that their own order number was wrong. Nobody types a
+     hash on purpose and nobody omits one on purpose; both mean the same order.
+
+     Case, spaces, hashes, dashes and punctuation are all noise here. Must be
+     applied to BOTH sides of a comparison: normalising only the input is how
+     the bug happens in the first place.
+
+     Mirrors normalizeOrderNo in functions/api/_order-no.js, and the two are
+     compared by a test — the browser and the Worker disagreeing about which
+     order somebody meant is exactly the fault this file exists to prevent. */
+  function normalizeOrderNo(value) {
+    return String(value == null ? '' : value).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  }
+
+  function sameOrderNo(a, b) {
+    var left = normalizeOrderNo(a);
+    return Boolean(left) && left === normalizeOrderNo(b);
+  }
+
   w.ZWOrderNo = orderNo;
   w.ZWOrderNoPlain = orderNoPlain;
+  w.ZWNormalizeOrderNo = normalizeOrderNo;
+  w.ZWSameOrderNo = sameOrderNo;
 })(typeof window !== 'undefined' ? window : this);

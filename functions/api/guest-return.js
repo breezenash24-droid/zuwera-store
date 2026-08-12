@@ -28,7 +28,7 @@ import { cors, json, getCommerceBundle, mutateSetting } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { sendTransactional } from './_email.js';
 import { returnEligibility, reconcileReturnItems, spokenForOn } from './_returns.js';
-import { orderNo } from './_order-no.js';
+import { orderNo, normalizeOrderNo, sameOrderNo } from './_order-no.js';
 import { messagesFrom } from './_messages.js';
 
 /* Long enough to read an email and fill a form, short enough that a forwarded
@@ -118,7 +118,7 @@ async function fetchOrder(env, orderId) {
 async function findOrderByNumber(env, orderNumber, email) {
   const url = (env.SUPABASE_URL || '').trim();
   const key = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
-  const wanted = String(orderNumber || '').trim().toUpperCase().replace(/\s+/g, '');
+  const wanted = normalizeOrderNo(orderNumber);
   const mail = String(email || '').trim().toLowerCase();
   if (!url || !key || !wanted || !mail) return null;
 
@@ -130,10 +130,13 @@ async function findOrderByNumber(env, orderNumber, email) {
   const rows = await resp.json().catch(() => []);
   /* orderNo() rather than the raw column, so whatever is printed on the
      customer's receipt is what matches here — the two drifting apart is a bug
-     this codebase has already had once. */
-  return (Array.isArray(rows) ? rows : []).find(
-    (o) => String(orderNo(o) || '').toUpperCase().replace(/\s+/g, '') === wanted,
-  ) || null;
+     this codebase has already had once.
+
+     sameOrderNo, not string equality: the printed number carries a leading '#'
+     and a pasted one may or may not. Telling a customer their own order number
+     is wrong because of a character they did not type is the kind of thing that
+     turns a return into a support email. */
+  return (Array.isArray(rows) ? rows : []).find((o) => sameOrderNo(orderNo(o), wanted)) || null;
 }
 
 export async function onRequestOptions({ env }) {

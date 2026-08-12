@@ -498,6 +498,34 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
   const verifiedUser = await verifyAccessToken(accessToken, env);
   const isMember = Boolean(verifiedUser?.id);
 
+  /* ── Whose order is this? ─────────────────────────────────────────────────
+     Not "whose browser is this", which is what it used to mean.
+
+     Attribution followed the session token alone, so anyone checking out on a
+     computer where somebody else was still signed in had their order filed
+     under that account. The account holder then sees a stranger's order —
+     their name, their address, what they bought — in their history, and can
+     start a return on it. That is somebody else's private information showing
+     up in your account, which is worse than any of the alternatives below.
+
+     So attribution follows the EMAIL the buyer typed. Same address as the
+     signed-in account means the account holder is buying; a different one
+     means somebody else is, whatever the session says.
+
+     The cost, stated plainly: a signed-in customer who deliberately enters a
+     different email — sending a gift, using a work address — gets an order
+     that is not linked to their account. They can still reach it through the
+     guest returns flow with the order number and that email. That is a
+     recoverable inconvenience; showing one customer another's order is not.
+
+     Member PRICING still follows the session, because someone signed in and
+     paying is entitled to their discount regardless of the delivery email. */
+  const buyerEmail = String(address?.email || '').trim().toLowerCase();
+  const accountEmail = String(verifiedUser?.email || '').trim().toLowerCase();
+  const attributedUser = (verifiedUser?.id && buyerEmail && accountEmail && buyerEmail === accountEmail)
+    ? verifiedUser
+    : null;
+
   /* Admin → Commerce may permit ordering beyond stock (backorders). Read here
      rather than in the loop so one setting read covers the whole cart, and
      defaulted ON so an unreadable setting cannot become permission to oversell.
@@ -592,7 +620,7 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
   }));
 
   return {
-    verifiedUser, isMember, catalogItems, lineItems, inventoryItems,
+    verifiedUser, attributedUser, isMember, catalogItems, lineItems, inventoryItems,
     subtotalCents, shipping, promotion, normalizedPromoCode, discountCents,
     discountedSubtotalCents, tax,
     taxStateCode: tax.stateCode, taxRate: tax.rate, taxCents: tax.taxCents,

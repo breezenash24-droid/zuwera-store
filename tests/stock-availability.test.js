@@ -254,6 +254,32 @@ async function run() {
   }
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
+  /* ── Whose order is this? ──────────────────────────────────────────────────
+     Not "whose browser is this", which is what it used to mean. Attribution
+     followed the session token, so anyone checking out on a computer where
+     someone else was still signed in had their order filed under that account.
+     The account holder then sees a stranger's name, address and purchase in
+     their own history — and can start a return on it. */
+  console.log('\n  an order belongs to the buyer, not the browser');
+  {
+    const fs = require('fs');
+    const api = (f) => fs.readFileSync(path.resolve(__dirname, '../functions/api/' + f), 'utf8');
+    const pricing = api('_cart-pricing.js');
+    const cpi = api('create-payment-intent.js');
+
+    ok('attribution compares the typed email against the account',
+      pricing.includes('buyerEmail === accountEmail'));
+    ok('…and yields nothing when they differ', pricing.includes(': null'));
+    ok('the payment stamps the buyer, not the session',
+      cpi.includes('user_id: attributedUser?.id') && !cpi.includes('user_id: verifiedUser?.id'));
+    /* Member PRICING still follows the session: somebody signed in and paying
+       is entitled to their discount whatever address the parcel goes to.
+       Conflating the two would quietly remove a discount people already have. */
+    ok('member pricing still follows the session',
+      pricing.includes('const isMember = Boolean(verifiedUser?.id)'));
+  }
+
+  console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
   process.exit(fail ? 1 : 0);
 }
 
