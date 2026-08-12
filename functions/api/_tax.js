@@ -27,6 +27,7 @@
  */
 
 import { fetchSiteSettings } from './_settings.js';
+import { shipFromValue } from './_ship-from.js';
 
 /* How long a checkout will wait for someone else's tax API before giving up and
    using the table. Generous enough for a healthy provider, short enough that a
@@ -392,8 +393,8 @@ async function fromTaxJar({ env, config, address, taxableCents, shippingCents, l
     headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       from_country: 'US',
-      from_zip: env.SHIPPO_FROM_ZIP || '',
-      from_state: env.SHIPPO_FROM_STATE || '',
+      from_zip: shipFromValue('ZIP', env),
+      from_state: shipFromValue('STATE', env),
       to_country: address.country || 'US',
       to_zip: address.zip || '',
       to_state: normalizeStateCode(address.state),
@@ -676,8 +677,8 @@ export async function recordTaxSale({ env, ref, order }) {
           transaction_id: String(order?.orderNumber || ''),
           transaction_date: order?.createdAt || new Date().toISOString(),
           from_country: 'US',
-          from_zip: env.SHIPPO_FROM_ZIP || '',
-          from_state: env.SHIPPO_FROM_STATE || '',
+          from_zip: shipFromValue('ZIP', env),
+          from_state: shipFromValue('STATE', env),
           to_country: order?.address?.country || 'US',
           to_zip: order?.address?.zip || '',
           to_state: normalizeStateCode(order?.address?.state),
@@ -751,8 +752,8 @@ export async function reverseTaxSale({ env, transactionId, order, amountCents, t
           transaction_reference_id: orderId,
           transaction_date: new Date().toISOString(),
           from_country: 'US',
-          from_zip: env.SHIPPO_FROM_ZIP || '',
-          from_state: env.SHIPPO_FROM_STATE || '',
+          from_zip: shipFromValue('ZIP', env),
+          from_state: shipFromValue('STATE', env),
           to_country: order?.address?.country || 'US',
           to_zip: order?.address?.zip || '',
           to_state: normalizeStateCode(order?.address?.state),

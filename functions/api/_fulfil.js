@@ -34,6 +34,7 @@ import { buildUserData, sendCapiEvents } from './_capi.js';
 import { veeqoBookShipment } from './_veeqo.js';
 import { incrementShippoMonthlyCount, recordLabelFailure } from './_shipping-usage.js';
 import { recordTaxSale } from './_tax.js';
+import { shipFrom } from './_ship-from.js';
 
 const SERVICE_TOKEN_MAP = {
   'Priority Mail':         'usps_priority',
@@ -451,14 +452,7 @@ async function createShippingLabel(pi, meta, env) {
   } else {
     // Fallback: create a brand-new shipment (rate ID wasn't stored — rare)
     const fromAddress = {
-      name:    env.SHIPPO_FROM_NAME    || 'Zuwera',
-      street1: env.SHIPPO_FROM_STREET1 || '',
-      city:    env.SHIPPO_FROM_CITY    || '',
-      state:   env.SHIPPO_FROM_STATE   || '',
-      zip:     env.SHIPPO_FROM_ZIP     || '',
-      country: env.SHIPPO_FROM_COUNTRY || 'US',
-      email:   env.SHIPPO_FROM_EMAIL   || 'orders@zuwera.store',
-      phone:   env.SHIPPO_FROM_PHONE   || '',
+      ...shipFrom(env),
     };
     // Scale parcel weight/size by total item quantity
     const _labelItems   = (() => { try { return JSON.parse(meta.items || '[]'); } catch { return []; } })();

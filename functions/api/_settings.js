@@ -26,6 +26,38 @@ const ALLOWED_KEYS = new Set([
   // locked to Cloudflare env vars — it can't be overridden/hijacked from the admin, and
   // any attempt to write it is rejected + fires a security alert. (SUPABASE_SERVICE_ROLE_KEY
   // and STRIPE_WEBHOOK_SECRET are likewise deliberately absent / env-only.)
+  /* Where the store ships from. SHIP_FROM_*, because it is the business's
+     address rather than a courier's setting — the tax engines need the same
+     address to know whether a sale is interstate, and were reading a variable
+     named after a shipping provider to get it. See _ship-from.js.
+
+     SHIP_FROM_EMAIL is NOT EMAIL_FROM further down. This one is the contact
+     printed on a shipping label; that one is the address customer email is sent
+     from. They were briefly named FROM_EMAIL and EMAIL_FROM, six characters
+     apart in a different order, which is how the support address ends up on a
+     parcel.
+
+     The older FROM_* and SHIPPO_FROM_* spellings are still read when the
+     preferred name is unset, so an environment can be migrated whenever it
+     suits rather than before the next deploy. */
+  'SHIP_FROM_NAME',
+  'SHIP_FROM_STREET1',
+  'SHIP_FROM_STREET2',
+  'SHIP_FROM_CITY',
+  'SHIP_FROM_STATE',
+  'SHIP_FROM_ZIP',
+  'SHIP_FROM_COUNTRY',
+  'SHIP_FROM_EMAIL',
+  'SHIP_FROM_PHONE',
+  'FROM_NAME',
+  'FROM_STREET1',
+  'FROM_STREET2',
+  'FROM_CITY',
+  'FROM_STATE',
+  'FROM_ZIP',
+  'FROM_COUNTRY',
+  'FROM_EMAIL',
+  'FROM_PHONE',
   'SHIPPO_FROM_NAME',
   'SHIPPO_FROM_STREET1',
   'SHIPPO_FROM_STREET2',

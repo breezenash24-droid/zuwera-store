@@ -7,18 +7,11 @@
  */
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { shipFromKeys, SHIP_FROM_FIELDS } from './_ship-from.js';
 import { json, verifyAdmin } from './_commerce.js';
 
 const ADDRESS_KEYS = [
-  'SHIPPO_FROM_NAME',
-  'SHIPPO_FROM_STREET1',
-  'SHIPPO_FROM_STREET2',
-  'SHIPPO_FROM_CITY',
-  'SHIPPO_FROM_STATE',
-  'SHIPPO_FROM_ZIP',
-  'SHIPPO_FROM_COUNTRY',
-  'SHIPPO_FROM_EMAIL',
-  'SHIPPO_FROM_PHONE',
+  ...SHIP_FROM_FIELDS.flatMap(shipFromKeys),
 ];
 
 export async function onRequestOptions({ env }) {

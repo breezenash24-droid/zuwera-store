@@ -17,9 +17,14 @@ function loadTax(settings = {}, fetchStub) {
   src += '\n;module.exports={resolveTax,getTaxRateForAddress,getTaxEngineConfig,normalizeStateCode,'
       +  'TAX_ENGINES,TAX_CATEGORIES,taxCodeFor,recordTaxSale,reverseTaxSale};';
   const mod = { exports: {} };
-  new Function('module', 'fetchSiteSettings', 'fetch', 'console', 'setTimeout', src)(
+  /* Every import _tax.js has must be injected here, because the wrapper above
+     strips the import lines. A missing one is not a syntax error — the adapter
+     throws at call time and resolveTax dutifully falls back to the table, so
+     the suite reports a wrong RATE rather than a missing function. */
+  new Function('module', 'fetchSiteSettings', 'shipFromValue', 'fetch', 'console', 'setTimeout', src)(
     mod,
     async () => settings,
+    (field, env = {}) => String(env['FROM_' + field] || env['SHIPPO_FROM_' + field] || '').trim(),
     fetchStub || globalThis.fetch,
     { error() {}, warn() {}, log() {} },  // quiet: failures here are the point
     setTimeout
