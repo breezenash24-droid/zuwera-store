@@ -34,9 +34,25 @@ import { resolveSetting } from './_settings.js';
  * appeared in the order confirmation and again in the delivered notice, and
  * fixing one would have left the other.
  */
-export function orderStatusUrl({ userId, orderNumber, siteUrl } = {}) {
+export function orderStatusUrl({ userId, orderNumber, siteUrl, token } = {}) {
   const base = String(siteUrl || 'https://zuwera.store').replace(/\/$/, '');
   if (userId) return base + '/account';
+
+  /* A signed link straight to the order, when we have one.
+   *
+   * Without it the guest link carried only ?order=, which pre-filled the order
+   * number and then asked for the email — and then emailed them a link. From
+   * inside the receipt that is absurd: the message is ALREADY in the mailbox
+   * being verified, so the verification proves something the click just proved.
+   * It reads as being asked to prove you are yourself, twice.
+   *
+   * The email-me-a-link step is right for someone arriving at /returns on their
+   * own, where nothing has been proven yet. It is wrong for someone who got
+   * here by opening their own receipt, and the token is what tells the two
+   * apart. */
+  const t = String(token == null ? '' : token).trim();
+  if (t) return base + '/returns?t=' + encodeURIComponent(t);
+
   const n = String(orderNumber == null ? '' : orderNumber).trim();
   return n ? base + '/returns?order=' + encodeURIComponent(n) : base + '/returns';
 }

@@ -26,6 +26,7 @@
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { sendTransactional, orderStatusUrl } from './_email.js';
+import { mintOrderToken } from './_order-token.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
@@ -153,9 +154,15 @@ export function shippedEmail({ orderId, customerName, carrier, trackingNumber, t
 
 export function deliveredEmail({ orderId, customerName, logoUrl, appearance, statusUrl }) {
   const a = appearance;
-  const body = `<p style="margin:0 0 22px;font-size:14px;line-height:1.6;color:${a.muted}">We hope you love it. If anything's off, we've got you — head to your account to start a return or exchange.</p>
+  /* The copy said "head to your account" and the button said "My Account",
+     while the link goes wherever orderStatusUrl decided — which for most
+     buyers here is the guest lookup, because most buyers here have no account.
+     A button labelled with the wrong destination is its own small betrayal:
+     someone with no account reads "My Account" and assumes returns are shut to
+     them. Both now say what the button actually does. */
+  const body = `<p style="margin:0 0 22px;font-size:14px;line-height:1.6;color:${a.muted}">We hope you love it. If anything's off, we've got you — open your order to start a return or exchange.</p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
-      <a href="${statusUrl || 'https://zuwera.store/returns'}" style="display:inline-block;padding:14px 34px;background:${a.accent};color:#0b0b0d;text-decoration:none;border-radius:3px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;font-family:${a.fontMono}">My Account</a>
+      <a href="${statusUrl || 'https://zuwera.store/returns'}" style="display:inline-block;padding:14px 34px;background:${a.accent};color:#0b0b0d;text-decoration:none;border-radius:3px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;font-family:${a.fontMono}">View my order</a>
     </td></tr></table>`;
   return renderEmailShell(a, {
     kicker:  'Delivered',
@@ -367,8 +374,19 @@ export async function onRequestPost({ request, env }) {
     const subject = `Your Zuwera order #${orderId} has been delivered ✅`;
     /* Where this particular customer can see the order. It was hardcoded to
        /account.html, so a guest — most buyers here — was sent to a login
-       wall, and on a shared machine to somebody else's orders. */
-    const statusUrl = orderStatusUrl({ userId: order.user_id, orderNumber: order.order_number });
+       wall, and on a shared machine to somebody else's orders.
+
+       The token takes them straight there. This notice matters more than the
+       receipt for it: a delivered email is exactly when someone decides to send
+       something back, and making them re-verify an address they are reading the
+       message in is friction at the worst possible moment. The order row is in
+       hand here, so this one is minted against its id. */
+    const statusToken = await mintOrderToken(env, {
+      purpose: 'order-status', orderId: order.id, email: order.email,
+    }).catch(() => '');
+    const statusUrl = orderStatusUrl({
+      userId: order.user_id, orderNumber: order.order_number, token: statusToken,
+    });
     const html    = deliveredEmail({ orderId, customerName, logoUrl, appearance, statusUrl });
 
     const [emailR, smsR] = await Promise.allSettled([

@@ -410,6 +410,46 @@ export async function onRequestGet({ request, env }) {
   const cacheKeys = [...ALLOWED_KEYS];
   const cache     = await fetchSiteSettings(cacheKeys, env);
 
+  /* Not a service — a setting whose absence turns a customer-facing feature off
+     without any outward sign.
+   *
+   * Every guest return starts with an emailed link, and that link is signed.
+   * With no secret there is nothing to sign with, so no email is sent — and the
+   * returns page still answers "we have emailed a link to start your return",
+   * because that sentence is deliberately identical for every outcome so it
+   * cannot be used to probe which orders exist. Right for the customer, and it
+   * means the operator's only signal is a customer complaining.
+   *
+   * It belongs on this panel precisely because nothing else will ever show it.
+   * NOT optional: a store that takes orders can be asked for a return. */
+  function checkReturnSigning(e) {
+    const has = (e.RETURN_TOKEN_SECRET || '').trim() || (e.CHECKOUT_RATE_SECRET || '').trim();
+    if (!has) {
+      return {
+        ok: false, configured: false,
+        error: 'RETURN_TOKEN_SECRET not set — guest returns are silently failing. '
+          + 'Customers are told a link was emailed and none is sent. '
+          + 'Set it to any long random string in Cloudflare.',
+      };
+    }
+    /* Long enough to be worth signing with. A short secret is brute-forceable
+       offline against a single captured link, and a forged token is a link into
+       somebody else's order. */
+    if (has.length < 24) {
+      return {
+        ok: false, configured: true,
+        error: 'The returns signing secret is only ' + has.length + ' characters. '
+          + 'Use at least 32 random ones — a short secret can be brute-forced from a single link.',
+      };
+    }
+    return {
+      ok: true, configured: true,
+      note: (e.RETURN_TOKEN_SECRET || '').trim()
+        ? 'Signing with RETURN_TOKEN_SECRET.'
+        : 'Signing with CHECKOUT_RATE_SECRET. Set RETURN_TOKEN_SECRET to give returns their own key.',
+    };
+  }
+
   // Run all service checks in parallel
   const [cloudinary, resend, brevo, supabase, stripe, shippo, veeqo, cloudflare, deepl, loops, twilio, posthog] =
     await Promise.allSettled([
@@ -454,6 +494,7 @@ export async function onRequestGet({ request, env }) {
       loops:      unwrap(loops),
       twilio:     unwrap(twilio),
       posthog:    unwrap(posthog),
+      returnSigning: checkReturnSigning(env),
     },
     maskedKeys,
   });

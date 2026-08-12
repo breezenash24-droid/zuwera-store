@@ -21,6 +21,12 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
 
 const SRC = fs.readFileSync(ROOT + '/functions/api/guest-return.js', 'utf8');
 const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+/* Minting and reading moved to _order-token.js when the confirmation email and
+   the delivered notice needed to mint links too. The token's PROPERTIES are
+   still this feature's properties, so they are still asserted here — just
+   against the file that now holds them. */
+const TOKEN = fs.readFileSync(ROOT + '/functions/api/_order-token.js', 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 (async () => {
   const { pathToFileURL } = require('url');
@@ -62,8 +68,12 @@ const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
     ok('every path out of the lookup returns the same reply',
       /catch \(e\) \{[\s\S]*?console\.error\('\[guest-return\] start failed[\s\S]*?\}\s*return same;/.test(startBlock),
       'catch does not fall through to `same`');
+    /* The no-secret branch now also raises an ops alert before returning, so
+       this checks the branch still ENDS in `same` rather than that the two
+       lines are adjacent. What the customer is told must not change; who else
+       hears about it may. */
     ok('…including when there is no signing secret',
-      /link not sent'\);\s*return same;/.test(startBlock));
+      /link not sent'\);[\s\S]{0,900}?return same;/.test(startBlock));
     /* Anchored to the start of a line, so it counts RETURN STATEMENTS. Matching
        "return " anywhere caught "Start your return for order" inside the email
        copy and reported a control-flow problem that did not exist. */
@@ -81,20 +91,20 @@ const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
        be enough — the email step is the whole control. */
     ok('…and never comes back in the response body',
       !/json\(\{[^}]*token/.test(CODE), 'a token appears in a response');
-    ok('the link is short-lived', /TOKEN_TTL_MS/.test(CODE));
+    ok('the link is short-lived', /'guest-return':\s*60 \* 60 \* 1000/.test(TOKEN));
   }
 
   console.log('\n  the token is narrow');
   {
-    ok('it is signed', /hmac\(body, secret\)/.test(CODE));
-    ok('…and compared in constant time', /constantTimeEqual/.test(CODE));
-    ok('…and expiry is checked on read', /Date\.now\(\) > payload\.exp/.test(CODE));
+    ok('it is signed', /hmac\(body, secret\)/.test(TOKEN));
+    ok('…and compared in constant time', /constantTimeEqual/.test(TOKEN));
+    ok('…and expiry is checked on read', /Date\.now\(\) > claim\.exp/.test(TOKEN));
     /* It shares a signing key with the shipping-rate token when no dedicated
        secret is set, so the purpose has to be inside the signed body — without
        it, one kind of token could be presented as the other. */
     ok('it carries a purpose, so another token cannot be used as this one',
-      /p: 'guest-return'/.test(CODE) && /payload\.p !== 'guest-return'/.test(CODE));
-    ok('…and names exactly one order', /o: String\(orderId/.test(CODE));
+      /purpose: 'guest-return'/.test(CODE) && /accept\.includes\(claim\.p\)/.test(TOKEN));
+    ok('…and names exactly one order', /claim\.o = String\(orderId\)/.test(TOKEN));
 
     const bad = await post({ action: 'lookup', token: 'forged.signature' });
     ok('a forged token is refused', bad.status === 401, String(bad.status));
@@ -121,8 +131,12 @@ const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   {
     /* The token names one order. Reading that email's other orders, or the
        whole returns list, would turn a return link into an account. */
-    ok('the order is fetched by id, one row',
-      /orders\?id=eq\.' \+ encodeURIComponent\(orderId\)/.test(CODE) && /limit=1/.test(CODE));
+    /* By id when the token carries one, by PaymentIntent when it does not —
+       the confirmation email is composed before the order row has an id. Both
+       land on exactly one row, which is the property that matters. */
+    ok('the order is fetched from the claim, one row',
+      /id=eq\.' \+ encodeURIComponent\(claim\.o\)/.test(CODE)
+      && /stripe_payment_intent_id=eq\.'/.test(CODE) && /limit=1/.test(CODE));
     ok('only this order\'s return history is returned',
       /String\(r\.orderId\) === String\(order\.id\)/.test(CODE));
     ok('the response carries no other customer field',

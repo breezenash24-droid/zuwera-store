@@ -35,6 +35,7 @@ import { veeqoBookShipment } from './_veeqo.js';
 import { incrementShippoMonthlyCount, recordLabelFailure } from './_shipping-usage.js';
 import { recordTaxSale } from './_tax.js';
 import { shipFrom } from './_ship-from.js';
+import { mintOrderToken } from './_order-token.js';
 
 const SERVICE_TOKEN_MAP = {
   'Priority Mail':         'usps_priority',
@@ -824,7 +825,7 @@ export async function saveOrderToSupabase(pi, meta, tracking, env) {
 // Assembles the order-confirmation email on the shared shell from pre-built HTML
 // fragments (items/address/carrier). Exported so the admin email preview can
 // render it with sample data — a real order can't be placed just to preview it.
-export function buildOrderConfirmation({ appearance, content, orderId, toName, itemsHtml, subtotalCents, discountRow, shippingDisplay, taxCents, totalDollars, addressHtml, carrierHtml, userId, orderNumber }) {
+export function buildOrderConfirmation({ appearance, content, orderId, toName, itemsHtml, subtotalCents, discountRow, shippingDisplay, taxCents, totalDollars, addressHtml, carrierHtml, userId, orderNumber, token }) {
   const a = appearance;
   const emailC = content;
   const body = `
@@ -890,13 +891,16 @@ export function buildOrderConfirmation({ appearance, content, orderId, toName, i
      Destructured parameters cannot do that. An argument the caller forgets is
      undefined, and orderStatusUrl() handles undefined by returning the plain
      guest-lookup URL. The wrong link is a bad link; the free variable was no
-     email at all. */
-  const statusHref = orderStatusUrl({ userId, orderNumber });
+     email at all.
+
+     `token`, where present, takes a guest straight to their order instead of
+     to a form that asks for the email this message was just read in. */
+  const statusHref = orderStatusUrl({ userId, orderNumber, token });
 
   const footerHtml = `
           <a href="${statusHref}" style="color:${a.text};text-decoration:underline;">View order status</a>
           &nbsp;·&nbsp;
-          <a href="${orderStatusUrl({ userId: null, orderNumber })}" style="color:${a.text};text-decoration:underline;">30-day free returns</a><br>
+          <a href="${orderStatusUrl({ userId: null, orderNumber, token })}" style="color:${a.text};text-decoration:underline;">30-day free returns</a><br>
           <span style="display:inline-block;margin-top:8px;">Questions? <a href="mailto:orders@zuwera.store" style="color:${a.muted};text-decoration:underline;">orders@zuwera.store</a></span><br>
           <span style="display:inline-block;margin-top:8px;">© ${new Date().getFullYear()} Zuwera. All rights reserved.</span>`;
 
@@ -1032,6 +1036,17 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
         ${tracking.number ? `<p style="margin:6px 0 0;font-size:14px;color:${a.text};">Tracking: ${tracking.url ? `<a href="${tracking.url}" style="color:${a.accent};text-decoration:underline;">${tracking.number}</a>` : tracking.number}</p>` : ''}
       </td></tr>`;
 
+  /* Identified by PaymentIntent, not by order id: this email is built in
+     parallel with the row being written, and that insert uses
+     `Prefer: return=minimal`, so there is no id to name yet. Minting failure
+     (no signing secret) returns '' and the footer falls back to the ordinary
+     lookup link — the flow that existed before, not a broken URL. */
+  const statusToken = await mintOrderToken(env, {
+    purpose: 'order-status',
+    paymentIntentId: pi.id,
+    email: toEmail,
+  }).catch(() => '');
+
   const html = buildOrderConfirmation({
     appearance: a, content: emailC, orderId, toName, itemsHtml,
     subtotalCents, discountRow, shippingDisplay, taxCents, totalDollars,
@@ -1039,7 +1054,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
     /* Who this order belongs to, so the footer can send an account holder to
        /account and a guest to the lookup. Passed explicitly rather than reached
        for off `meta` — see the note in buildOrderConfirmation. */
-    userId: meta.user_id, orderNumber: meta.order_number,
+    userId: meta.user_id, orderNumber: meta.order_number, token: statusToken,
   });
 
   // ── Try Resend first ────────────────────────────────────────────────
@@ -1098,10 +1113,10 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
          them a sign-in flow with no order anywhere on it. Same destination as
          the main confirmation email now, which is also the point of having one
          helper decide this. */
-      text: `Your Zuwera order #${orderId} is confirmed and being prepared.\n\nView your order: ${orderStatusUrl({ userId: meta.user_id, orderNumber: meta.order_number })}\n\nQuestions? orders@zuwera.store`,
+      text: `Your Zuwera order #${orderId} is confirmed and being prepared.\n\nView your order: ${orderStatusUrl({ userId: meta.user_id, orderNumber: meta.order_number, token: statusToken })}\n\nQuestions? orders@zuwera.store`,
       dataVariables: {
         orderId,
-        orderUrl: orderStatusUrl({ userId: meta.user_id, orderNumber: meta.order_number }),
+        orderUrl: orderStatusUrl({ userId: meta.user_id, orderNumber: meta.order_number, token: statusToken }),
       },
     });
     if (loops.ok) {
