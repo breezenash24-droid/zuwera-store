@@ -23,6 +23,7 @@
  */
 
 import { cors, json, verifyAdmin, mutateSetting, getSetting, ABAC_REQUESTS_KEY } from './_commerce.js';
+import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { permsHave } from './_rbac.js';
 
 /* Long enough to walk over and ask, short enough that a forgotten yes is not
@@ -340,7 +341,19 @@ async function notifyRequester(env, req, { approved, completed, by, note }) {
   </div>`;
 
   const { sendTransactional } = await import('./_email.js');
-  await sendTransactional({ env, to, subject, html });
+  /* The settings cache matters as much as the address: without it,
+     resolveSetting cannot see an EMAIL_FROM saved from the admin panel and
+     falls through to the hardcoded default. This call passed neither, so the
+     sender came out as "Zuwera <undefined>" and Resend rejected the whole
+     message with a 422 nothing surfaced — an approved refund whose requester
+     was never told. sendTransactional now defaults the sender itself, so this
+     is belt and braces rather than the only thing standing between an
+     approval and silence. */
+  const cache = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM'], env);
+  await sendTransactional({
+    env, cache, to, subject, html,
+    fromEmail: resolveSetting('EMAIL_FROM', env, cache) || 'alerts@zuwera.store',
+  });
 }
 
 function escapeHtmlBasic(s) {

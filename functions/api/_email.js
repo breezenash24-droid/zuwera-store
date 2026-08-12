@@ -109,6 +109,30 @@ export async function sendTransactional({ env, cache = {}, to, toName, subject, 
   const sendgridKey = resolveSetting('SENDGRID_API_KEY', env, cache);
   const brevoKey   = resolveSetting('BREVO_API_KEY', env, cache);
 
+  /* Resolve the sender HERE rather than trusting every caller to pass one.
+     One of the nine did not, and the template composed the literal string
+     "Zuwera <undefined>" — which Resend rejected with a 422 the caller never
+     saw, so an approval email simply never arrived and nothing said why.
+
+     A caller that omits it is not doing anything unreasonable; the sender is a
+     property of the store, not of the message. So the default lives with the
+     function that needs it. */
+  const sender = String(
+    fromEmail
+    || resolveSetting('EMAIL_FROM', env, cache)
+    || (env && env.RESEND_FROM_EMAIL)
+    || 'orders@zuwera.store',
+  ).trim();
+
+  /* And refuse outright rather than send something malformed. Every provider
+     below rejects an invalid From, each in its own way and each silently as far
+     as the caller is concerned, so failing here — loudly, once — beats three
+     different provider errors nobody reads. */
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sender)) {
+    console.error('[email] refusing to send: invalid from address', JSON.stringify(sender));
+    return { ok: false, error: 'invalid from address' };
+  }
+
   // Deduplicates retries at the provider if the same message is sent twice.
   const refId = (globalThis.crypto && crypto.randomUUID)
     ? crypto.randomUUID()
@@ -119,7 +143,7 @@ export async function sendTransactional({ env, cache = {}, to, toName, subject, 
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `${fromName} <${fromEmail}>`, to: [to], subject, html,
+        from: `${fromName} <${sender}>`, to: [to], subject, html,
         ...(replyTo ? { reply_to: replyTo } : {}),
         headers: { 'X-Entity-Ref-ID': refId },
       }),
@@ -133,7 +157,7 @@ export async function sendTransactional({ env, cache = {}, to, toName, subject, 
       headers: { Authorization: `Bearer ${sendgridKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         personalizations: [{ to: [{ email: to, ...(toName ? { name: toName } : {}) }] }],
-        from: { email: fromEmail, name: fromName },
+        from: { email: sender, name: fromName },
         ...(replyTo ? { reply_to: { email: replyTo } } : {}),
         subject,
         content: [{ type: 'text/html', value: html }],
@@ -149,7 +173,7 @@ export async function sendTransactional({ env, cache = {}, to, toName, subject, 
       method: 'POST',
       headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sender: { name: fromName, email: fromEmail },
+        sender: { name: fromName, email: sender },
         to: [{ email: to, ...(toName ? { name: toName } : {}) }],
         ...(replyTo ? { replyTo: { email: replyTo } } : {}),
         subject, htmlContent: html,

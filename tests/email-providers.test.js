@@ -100,5 +100,92 @@ console.log('\n  moving cards between the two sections');
   ok('…still opening the same key editor', /key\.indexOf\('svc_'\) === 0/.test(admin));
 }
 
-console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
-process.exit(fail ? 1 : 0);
+/* ── The From address ────────────────────────────────────────────────────────
+   A real 422 from Resend, found in its logs:
+
+     "from": "Zuwera <undefined>"
+     "Invalid `from` field."
+
+   One of the nine callers of sendTransactional passed no fromEmail, so the
+   template interpolated undefined into a header. The message was rejected, the
+   caller never saw it, and an approved refund request was silently never
+   announced to the person who asked for it.
+
+   The sender is a property of the STORE, not of the message, so a caller
+   omitting it is not doing anything unreasonable. The default belongs with the
+   function that needs it. */
+(async () => {
+  const { pathToFileURL } = require('url');
+  const { sendTransactional } = await import(pathToFileURL(path.join(ROOT, 'functions/api/_email.js')).href);
+
+  const sent = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    sent.push({ url: String(url), body: JSON.parse(init.body) });
+    return { ok: true, status: 200, json: async () => ({}), text: async () => '' };
+  };
+
+  console.log('\n  the From address');
+  try {
+    const KEYED = { RESEND_API_KEY: 're_test' };
+
+    sent.length = 0;
+    await sendTransactional({ env: KEYED, to: 'a@b.test', subject: 's', html: '<p>h</p>' });
+    ok('a caller that passes no sender still produces a valid one',
+      sent.length === 1 && /^Zuwera <[^\s@]+@[^\s@]+>$/.test(sent[0].body.from), sent[0] && sent[0].body.from);
+    ok('…and it is never the literal "undefined"',
+      !/undefined/.test(sent[0].body.from), sent[0] && sent[0].body.from);
+
+    sent.length = 0;
+    await sendTransactional({
+      env: { ...KEYED, EMAIL_FROM: 'hello@zuwera.store' },
+      to: 'a@b.test', subject: 's', html: '<p>h</p>',
+    });
+    ok('EMAIL_FROM is used when the caller omits one',
+      sent[0].body.from === 'Zuwera <hello@zuwera.store>', sent[0].body.from);
+
+    sent.length = 0;
+    await sendTransactional({
+      env: { ...KEYED, EMAIL_FROM: 'hello@zuwera.store' },
+      to: 'a@b.test', subject: 's', html: '<p>h</p>', fromEmail: 'support@zuwera.store',
+    });
+    ok('…and an explicit sender still wins',
+      sent[0].body.from === 'Zuwera <support@zuwera.store>', sent[0].body.from);
+
+    /* Refusing beats sending garbage: each provider rejects a malformed From
+       differently and all of them silently, so one loud failure here is worth
+       three quiet ones downstream. */
+    sent.length = 0;
+    const bad = await sendTransactional({
+      env: KEYED, to: 'a@b.test', subject: 's', html: '<p>h</p>', fromEmail: 'not-an-email',
+    });
+    ok('a malformed sender is refused rather than sent', sent.length === 0 && bad && bad.ok === false,
+      JSON.stringify(bad));
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+
+  console.log('\n  every caller passes one');
+  {
+    const dir = path.join(ROOT, 'functions/api');
+    const offenders = [];
+    for (const f of fs.readdirSync(dir)) {
+      if (!f.endsWith('.js')) continue;
+      const src = fs.readFileSync(path.join(dir, f), 'utf8');
+      let i = src.indexOf('sendTransactional({');
+      while (i >= 0) {
+        /* The call's own argument object, to the closing brace. */
+        const chunk = src.slice(i, src.indexOf('})', i) + 2);
+        if (!/fromEmail/.test(chunk)) offenders.push(f);
+        i = src.indexOf('sendTransactional({', i + 1);
+      }
+    }
+    /* Belt as well as braces: the default above means a miss is no longer
+       fatal, but a caller that names its sender is a caller whose emails can be
+       told apart in a provider's logs. */
+    ok('no caller relies on the default', offenders.length === 0, offenders.join(', '));
+  }
+
+  console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
+  process.exit(fail ? 1 : 0);
+})();
