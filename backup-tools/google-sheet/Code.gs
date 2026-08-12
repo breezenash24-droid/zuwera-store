@@ -17,6 +17,37 @@ var SUMMARY_NAME = 'Overview';
 var HEADER_BG = '#09090b', HEADER_FG = '#ffffff';
 var DATE_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}|$)/;
 
+/* Sheets refuses any cell over 50,000 characters and fails the whole write.
+   Order items and settings blobs are JSON and go past it, so the backup died
+   on the biggest rows — the ones most worth having. Truncated with a marker,
+   because a row that says it was cut is worth incomparably more than no backup
+   at all. Well under the limit so a multi-byte character cannot creep over. */
+var CELL_LIMIT = 49000;
+
+function fitCell_(v) {
+  var s = String(v);
+  if (s.length <= CELL_LIMIT) return s;
+  return s.slice(0, CELL_LIMIT - 60) + '… [TRUNCATED ' + s.length + ' chars — see the GitHub backup for the full value]';
+}
+
+/* Row banding is decoration, and decoration must never be able to fail a
+   backup. It did: applyRowBanding throws if the range already has banding, and
+   the removal a few lines earlier had not been flushed yet, so a cosmetic call
+   took down the entire nightly run.
+
+   Flush first so the removal has actually happened, then apply — and if it
+   still objects, shrug and carry on with an unbanded sheet. The data is the
+   point; the stripes are not. */
+function bandRows_(sheet, range) {
+  try {
+    sheet.getBandings().forEach(function (b) { b.remove(); });
+    SpreadsheetApp.flush();
+    range.applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY, false, false);
+  } catch (e) {
+    console.warn('Row banding skipped on ' + sheet.getName() + ': ' + e.message);
+  }
+}
+
 var DISPLAY = {
   orders: 'Orders', returns: 'Returns', promotions: 'Coupons',
   refund_audit_log: 'Refunds', order_ops: 'Order Edits',
@@ -124,7 +155,10 @@ function writeTab_(ss, table, rows) {
         if (!isNaN(d.getTime())) { colIsDate[ci] = true; return d; }
         return v;
       }
-      if (typeof v === 'object') return JSON.stringify(v);
+      if (typeof v === 'object') return fitCell_(JSON.stringify(v));
+      /* Long plain strings hit the same wall — a note field, a pasted
+         description — so they go through the same guard. */
+      if (typeof v === 'string') return fitCell_(v);
       return v;
     }));
   });
@@ -148,7 +182,7 @@ function writeTab_(ss, table, rows) {
     else if (isCurrencyCol_(k)) sheet.getRange(2, i + 1, nRows - 1, 1).setNumberFormat('$#,##0.00');
   });
 
-  if (nRows > 2) sheet.getRange(2, 1, nRows - 1, nCols).applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY, false, false);
+  if (nRows > 2) bandRows_(sheet, sheet.getRange(2, 1, nRows - 1, nCols));
 
   sheet.autoResizeColumns(1, nCols);
   for (var c = 1; c <= nCols; c++) {
@@ -190,7 +224,7 @@ function writeSummary_(ss, payload) {
   sheet.getRange(5, 1, 1, 3).setBackground(HEADER_BG).setFontColor(HEADER_FG).setFontWeight('bold');
   sheet.setFrozenRows(5);
   var bodyRows = rows.length - 5;
-  if (bodyRows > 0) sheet.getRange(6, 1, bodyRows, 3).applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY, false, false);
+  if (bodyRows > 0) bandRows_(sheet, sheet.getRange(6, 1, bodyRows, 3));
   sheet.setColumnWidth(1, 210); sheet.setColumnWidth(2, 70); sheet.setColumnWidth(3, 560);
   sheet.setTabColor('#d4af37');
 }
