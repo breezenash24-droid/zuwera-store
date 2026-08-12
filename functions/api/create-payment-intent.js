@@ -124,6 +124,37 @@ export async function onRequestPost({ request, env }) {
         currency: 'usd',
         automatic_payment_methods: { enabled: true },
         receipt_email: address.email,
+
+        /* Where the order is going, as a field Stripe can read.
+
+           The address was already here — but only inside metadata, which is a
+           key-value store for US and opaque to Stripe. So Stripe held a payment
+           it could not tell the destination of, and three of its own features
+           quietly had nothing to work with:
+
+             • Tax threshold monitoring fell back to the card's billing address.
+               For a store whose customers are students, that is frequently a
+               parent's address in another state, so the nexus warnings were
+               watching the wrong places.
+             • A "product not received" dispute is answered with proof of where
+               it was sent. Stripe had no shipping address to submit.
+             • Radar cannot compare billing to shipping if it only has one.
+
+           The Apple Pay route has always set this. The main checkout — the one
+           nearly every order goes through — did not. Same shape as that one, so
+           an order looks the same in the dashboard whichever way it was paid. */
+        shipping: {
+          name: address.name || '',
+          ...(address.phone ? { phone: address.phone } : {}),
+          address: {
+            line1: address.line1 || '',
+            line2: address.line2 || '',
+            city: address.city || '',
+            state: normalizeStateCode(address.state),
+            postal_code: address.zip || '',
+            country: address.country || 'US',
+          },
+        },
         metadata: {
           order_number: orderNumber,
           customer_email: address.email,

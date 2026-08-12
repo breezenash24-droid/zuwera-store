@@ -73,5 +73,48 @@ console.log('\n  recording it can never cost an order');
     !/update .*orders.*set .*risk_level/i.test(M));
 }
 
+/* ── Stripe has to be able to SEE where the order went ──────────────────────
+   The destination used to live only in PaymentIntent metadata, which is a
+   key-value store for us and opaque to Stripe. So Stripe held a payment whose
+   destination it could not read, and three of its own features had nothing to
+   work with: tax threshold monitoring fell back to the card's billing address,
+   Radar could not compare billing to shipping, and a "product not received"
+   dispute had no address to answer with.
+
+   Metadata is not a substitute, and the failure is invisible — everything
+   looks correct in our own dashboard, because we can read our own metadata. */
+console.log('\n  Stripe can read where the order is going');
+{
+  const CPI = fs.readFileSync(ROOT + 'functions/api/create-payment-intent.js', 'utf8');
+  const APAY = fs.readFileSync(ROOT + 'functions/api/apple-pay-authorize.js', 'utf8');
+
+  /* Anchored to the intent params, not just "the word shipping appears" — the
+     file is full of shipping_provider, shipping_service, charged_shipping_cents
+     and the like, any of which would satisfy a loose match. */
+  const hasShippingHash = (src) => /shipping:\s*\{[\s\S]{0,400}?address:\s*\{/.test(src);
+
+  ok('the main checkout puts the address on the intent, not only in metadata',
+    hasShippingHash(CPI));
+  ok('…including the postal code, which is what tax thresholds key off',
+    /shipping:\s*\{[\s\S]{0,400}?postal_code:/.test(CPI));
+  /* Both payment routes or neither: an order should look the same in the
+     Stripe dashboard whether it was paid by card or by wallet. This is the
+     check that would have caught the two drifting apart in the first place. */
+  ok('…and the wallet route does the same, so the two agree', hasShippingHash(APAY));
+
+  const W2 = fs.readFileSync(ROOT + 'functions/api/stripe-webhook.js', 'utf8');
+  ok('the tracking number joins it once the label exists',
+    /tracking_number:\s*tracking\.number/.test(W2) && /carrier:/.test(W2));
+  /* Stripe REPLACES the shipping hash rather than merging into it, so an
+     update carrying only the carrier would wipe the address. Sending the
+     existing name and address back is what makes the update non-destructive —
+     and getting this wrong would silently undo the fix above on every order
+     that ships. */
+  ok('…without wiping the address it is being added to',
+    /shipping:\s*\{[\s\S]{0,300}?address:\s*pi\.shipping\.address/.test(W2));
+  ok('…and is skipped on intents that never had one',
+    /pi\.shipping && pi\.shipping\.address/.test(W2));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

@@ -158,6 +158,25 @@ export async function onRequestPost({ request, env }) {
           // the full label is always saved on the order row in Supabase.
           label_url:       (tracking.label && tracking.label.length <= 480) ? tracking.label : '',
         },
+        /* And onto the shipping record itself, where Stripe reads it.
+           A "product not received" dispute is answered with the address it went
+           to and the tracking number that proves it arrived; in metadata those
+           are notes to ourselves, here they are evidence Stripe can submit.
+
+           The whole hash is resent, not just the two new fields — Stripe
+           replaces `shipping` rather than merging into it, so sending only the
+           carrier would erase the address this exists to preserve. Skipped
+           entirely when the intent has no shipping, which is every order placed
+           before that was set. */
+        ...(pi.shipping && pi.shipping.address ? {
+          shipping: {
+            name:    pi.shipping.name || '',
+            ...(pi.shipping.phone ? { phone: pi.shipping.phone } : {}),
+            address: pi.shipping.address,
+            carrier: meta.shipping_service || meta.shipping_provider || '',
+            tracking_number: tracking.number,
+          },
+        } : {}),
       }));
     } catch (e) {
       console.error('handleSuccessfulPayment failed:', e.message);
