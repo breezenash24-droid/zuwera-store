@@ -214,8 +214,25 @@ console.log('\n  the signals are gathered once, and never block the panel');
   /* Drawn immediately, upgraded when the probes land. Awaiting them first would
      blank the panel while a network request runs. */
   ok('the panel paints before the probes finish',
-    /renderIntegrationStore\(\);\s*\n\s*loadIntegrationSignals\(\)\.then\(renderIntegrationStore\)/.test(SRC));
-  ok('…and a failed probe cannot break the panel', /loadIntegrationSignals\(\)\.then\(renderIntegrationStore\)\.catch\(/.test(SRC));
+    /renderIntegrationStore\(\);\s*[\s\S]{0,600}?loadIntegrationSignals\(\)/.test(SRC));
+  ok('…and a failed probe cannot break the panel', /loadIntegrationSignals\(\)[\s\S]{0,60}?\.catch\(/.test(SRC));
+
+  /* This assertion previously pinned `.then(renderIntegrationStore)` — the
+     BROKEN form. A bare function reference in .then receives the resolved value
+     as its first argument, and that argument is the search filter, so the
+     signals object arrived as a search term, stringified to "[object Object]",
+     and emptied the whole catalogue. The test asserted the exact shape of the
+     bug and passed. */
+  /* Comment-stripped, because the fix's own note quotes the broken form to
+     explain it — and a regex that reads prose reports a bug in an explanation.
+     That has happened more than once in this repo. */
+  const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+  ok('the redraw is not handed the resolved promise value as a search term',
+    !/\.then\(renderIntegrationStore\)/.test(CODE),
+    '.then(fn) passes its argument — this empties the panel');
+  ok('…and the filter ignores anything that is not a string',
+    /typeof filter === 'string' \? filter/.test(SRC),
+    'a stray Event or promise value must not be treated as a search term');
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

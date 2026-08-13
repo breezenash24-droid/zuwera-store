@@ -11,6 +11,57 @@ function parseCsv(value) {
     .filter(Boolean);
 }
 
+/* Google wants a different shape of language tag from DeepL.
+   DeepL takes uppercase ("ES", "PT-BR"); Google takes a BCP-47 tag with a
+   lowercase primary subtag ("es", "pt-BR"). Passing DeepL's form straight
+   through mostly works — Google is lenient about case — but "ZH" is not "zh-CN"
+   and the lenient path silently returns Simplified for a request that meant
+   Traditional. Explicit beats lenient where the failure is a wrong answer
+   rather than an error. */
+function toGoogleLang(target) {
+  const t = String(target || '').trim();
+  if (!t) return '';
+  const [primary, region] = t.split('-');
+  const lower = primary.toLowerCase();
+  if (lower === 'zh') return region ? 'zh-' + region.toUpperCase() : 'zh-CN';
+  return region ? lower + '-' + region.toUpperCase() : lower;
+}
+
+/* Google returns HTML-escaped text even when asked for format:'text' — an
+   apostrophe comes back as &#39;. Left alone it renders literally in a review,
+   which is a subtler kind of broken than a failed request: it looks like the
+   translation worked and the customer wrote it strangely. */
+function decodeEntities(s) {
+  return String(s == null ? '' : s)
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&');   // last, or it un-escapes the others' ampersands
+}
+
+async function translateWithGoogle(texts, target, key) {
+  const lang = toGoogleLang(target);
+  const resp = await fetch('https://translation.googleapis.com/language/translate/v2?key=' + encodeURIComponent(key), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q: texts, target: lang, format: 'text' }),
+  });
+  const raw = await resp.text();
+  let data = {};
+  try { data = raw ? JSON.parse(raw) : {}; } catch { data = {}; }
+
+  const rows = data && data.data && data.data.translations;
+  if (!resp.ok || !Array.isArray(rows)) {
+    throw new Error((data && data.error && data.error.message) || raw || `Google Translate failed (${resp.status})`);
+  }
+  /* One translation per input, in order. Google preserves order, but a short
+     reply would otherwise line reviews up against the wrong text — so pad
+     rather than silently mis-pair. */
+  return texts.map((t, i) => (rows[i] ? decodeEntities(rows[i].translatedText) : t));
+}
+
 function buildCorsHeaders(request, env = {}) {
   const origin = request?.headers?.get('Origin') || '';
   const allowedOrigins = new Set([
@@ -77,15 +128,51 @@ export async function onRequestPost(context) {
       );
     }
 
-    const API_KEY = String(
+    /* ── Which translator ────────────────────────────────────────────────
+       DeepL was the only option, and DeepL is paid past a small free tier.
+       A store that decides translation is not worth paying for had exactly two
+       choices: keep paying, or lose the feature.
+
+       Google Cloud Translation is the alternative worth having — different
+       pricing shape, different free allowance, wider language coverage, and
+       lower quality on the long-form prose DeepL is good at. Neither is
+       strictly better, which is the reason to make it a choice rather than a
+       migration.
+
+       TRANSLATE_PROVIDER picks explicitly. Left unset it resolves to whichever
+       key exists, DeepL first — so nothing changes for a store that has one,
+       and a store that removes its DeepL key falls to Google automatically
+       rather than breaking. */
+    const deeplKey = String(
       context.env.DEEPL_API_KEY || context.env.DEEPL_AUTH_KEY || context.env.DEEPL_KEY || ''
     ).trim();
-    if (!API_KEY) {
+    const googleKey = String(
+      context.env.GOOGLE_TRANSLATE_API_KEY || context.env.GOOGLE_TRANSLATE_KEY || ''
+    ).trim();
+
+    const requested = String(context.env.TRANSLATE_PROVIDER || '').trim().toLowerCase();
+    let provider = '';
+    if (requested === 'google') provider = googleKey ? 'google' : '';
+    else if (requested === 'deepl') provider = deeplKey ? 'deepl' : '';
+    else provider = deeplKey ? 'deepl' : (googleKey ? 'google' : '');
+
+    if (!provider) {
+      /* Names both routes. A message that only mentions DeepL is how somebody
+         concludes translation costs money and there is no way round it. */
+      const asked = requested ? ' (TRANSLATE_PROVIDER is set to "' + requested + '", but its key is missing)' : '';
       return new Response(
-        JSON.stringify({ error: 'DeepL key not found. Add DEEPL_API_KEY, DEEPL_AUTH_KEY, or DEEPL_KEY in Cloudflare Pages environment variables.' }),
+        JSON.stringify({ error: 'No translation key configured' + asked + '. Add DEEPL_API_KEY for DeepL, '
+          + 'or GOOGLE_TRANSLATE_API_KEY to use Google Cloud Translation instead.' }),
         { status: 500, headers: corsHeaders }
       );
     }
+
+    if (provider === 'google') {
+      const translations = await translateWithGoogle(normalizedTexts, target, googleKey);
+      return new Response(JSON.stringify({ translations, provider: 'google' }), { status: 200, headers: corsHeaders });
+    }
+
+    const API_KEY = deeplKey;
 
     const requestBody = JSON.stringify({
       text: normalizedTexts,
@@ -146,7 +233,7 @@ export async function onRequestPost(context) {
       throw new Error(lastError);
     }
 
-    return new Response(JSON.stringify({ translations }), { status: 200, headers: corsHeaders });
+    return new Response(JSON.stringify({ translations, provider: 'deepl' }), { status: 200, headers: corsHeaders });
   } catch (e) {
     console.error('Translation error:', e);
     return new Response(

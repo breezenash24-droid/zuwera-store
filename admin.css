@@ -413,6 +413,16 @@
             font-size: .72rem; font-weight: 700; letter-spacing: .04em;
             padding: 3px 10px; border-radius: 99px; text-transform: uppercase;
         }
+        /* "optional" sits BESIDE the state, never in place of it — a quieter,
+           lower-case tag, because it answers a different question from the badge
+           and should not compete with it for attention. */
+        .api-badge-wrap { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .api-optional-tag {
+            font-size: .64rem; font-weight: 600; letter-spacing: .05em;
+            padding: 2px 7px; border-radius: 99px; text-transform: lowercase;
+            background: rgba(148,163,184,.13); color: var(--text-secondary);
+            cursor: help;
+        }
         .badge-ok    { background: rgba(74,222,128,.15); color: #4ade80; }
         .badge-warn  { background: rgba(250,204,21,.15); color: #facc15; }
         .badge-error { background: rgba(239,68,68,.15);  color: #ef4444; }

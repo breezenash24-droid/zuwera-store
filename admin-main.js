@@ -1661,7 +1661,14 @@
                second only upgrades the guides from "unknown" to what they
                actually are. */
             renderIntegrationStore();
-            loadIntegrationSignals().then(renderIntegrationStore).catch(() => {});
+            /* `() => renderIntegrationStore()`, NOT `.then(renderIntegrationStore)`.
+               A bare function reference receives the resolved value as its first
+               argument, and this function's first argument is the search filter —
+               so the signals object arrived as a search term, stringified to
+               "[object Object]", matched nothing, and emptied the entire panel.
+               The classic promise-callback-arity trap, and it looked like the
+               integrations had broken rather than the search. */
+            loadIntegrationSignals().then(() => renderIntegrationStore()).catch(() => {});
         }
 
         function integrationConfigured(item) {
@@ -1891,7 +1898,17 @@
             });
             const catalogue = ZW_INTEGRATION_CATALOG.concat(tucked);
 
-            const q = String(filter ?? document.getElementById('integration-search')?.value ?? '').trim().toLowerCase();
+            /* Only a STRING counts as a filter. Anything else — an Event from an
+               inline handler, a resolved promise value from a stray .then — is
+               ignored in favour of the box's own value.
+               Belt as well as braces: the call site that passed an object is
+               fixed, but a filter argument is exactly the kind of parameter that
+               gets one by accident, and the failure mode is the whole catalogue
+               vanishing behind "No integrations match". A panel emptying itself
+               should not be one careless callback away. */
+            const raw = typeof filter === 'string' ? filter
+                : (document.getElementById('integration-search')?.value ?? '');
+            const q = String(raw).trim().toLowerCase();
             const items = catalogue.filter(it => !q
                 || it.name.toLowerCase().includes(q)
                 || it.cat.toLowerCase().includes(q)
@@ -2520,6 +2537,14 @@
             rows += usageBar(s.usedPercent || 0);
             rows += apiRow('Remaining', remaining + ' chars');
             rows += apiRow('Free plan limit', '500,000 chars/month');
+            /* The way out, said where the bill shows up. DeepL is paid past
+               500k characters a month, and until now that was the only
+               translator — so the natural conclusion on hitting the limit was
+               "translation costs money now", with no visible alternative. */
+            rows += `<p class="api-note" style="margin-top:10px;">Past the free tier, DeepL charges per character.
+                To switch to Google Cloud Translation instead, add <code>GOOGLE_TRANSLATE_API_KEY</code> and set
+                <code>TRANSLATE_PROVIDER=google</code>. Remove the DeepL key entirely and it falls to Google on its own.
+                Google is cheaper at volume and covers more languages; DeepL reads better on long prose.</p>`;
             return rows;
         }
 
@@ -2615,8 +2640,26 @@
             const notConfigured = s && s.configured === false;
             const isOptional    = s && s.optional === true;
             const statusClass   = !s ? 'status-error' : s.ok ? 'status-ok' : (notConfigured ? 'status-warn' : 'status-error');
+            /* The badge says the STATE. Optional is a separate fact.
+             *
+             * It used to print "Optional" INSTEAD of the state, so a service
+             * that was merely available and one that was configured and running
+             * looked identical — the badge answered "do I have to have this?"
+             * when the only question anyone asks a status panel is "is this on?"
+             * Veeqo, Loops and Twilio all read OPTIONAL whether or not a key was
+             * ever saved.
+             *
+             * So: Active / Not set up / Error, always. Optionality moves to its
+             * own quiet tag, and only changes the COLOUR — an unset optional
+             * service is calm blue rather than warning amber, because nothing is
+             * wrong with not using it. That was the good instinct behind the
+             * original badge; it just spent the word on it. */
             const badgeClass    = !s ? 'badge-error'  : s.ok ? 'badge-ok'  : (notConfigured && isOptional ? 'badge-info' : notConfigured ? 'badge-warn' : 'badge-error');
-            const badgeText     = !s ? 'Error'        : s.ok ? 'Active'    : (notConfigured && isOptional ? 'Optional'   : notConfigured ? 'Not set up' : 'Error');
+            const badgeText     = !s ? 'Error'        : s.ok ? 'Active'    : (notConfigured ? 'Not set up' : 'Error');
+            /* Shown only when it is both optional AND unused — on a service that
+               is running, "optional" is noise nobody needs. */
+            const optionalTag   = (notConfigured && isOptional)
+                ? '<span class="api-optional-tag" title="Your store works without this. Set it up only if you want what it does.">optional</span>' : '';
             const rows          = s ? buildRows(s) : '';
             const errorMsg      = s && !s.ok && s.error && !notConfigured
                 ? `<p class="api-note" style="color:var(--error);">${s.error}</p>` : '';
@@ -2644,7 +2687,7 @@
                     <span class="api-card-icon">${icon}</span>
                     <span class="api-card-name">${name}</span>
                   </div>
-                  <span class="api-status-badge ${badgeClass}">${badgeText}</span>
+                  <span class="api-badge-wrap">${optionalTag}<span class="api-status-badge ${badgeClass}">${badgeText}</span></span>
                 </div>
                 ${rows}
                 ${errorMsg}
