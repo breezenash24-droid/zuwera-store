@@ -2429,6 +2429,7 @@
             rows += apiRow('Mode', `<span style="color:${s.mode==='live'?'var(--success)':'var(--warning)'};">${s.mode === 'live' ? '🟢 Live' : '🟡 Test'}</span>`);
             if (s.availableBalance) rows += apiRow('Balance available', s.availableBalance);
             if (s.note) rows += `<p class="api-note">${s.note}</p>`;
+            rows += testButton('stripe', 'Test: key + webhook mode');
             return rows;
         }
 
@@ -2445,7 +2446,9 @@
               <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
                 <button class="btn btn-secondary" style="font-size:.75rem;padding:6px 12px;" onclick="testShippoWebhook('transit')">▶ Test: Shipped email</button>
                 <button class="btn btn-secondary" style="font-size:.75rem;padding:6px 12px;" onclick="testShippoWebhook('delivered')">▶ Test: Delivered email</button>
+                <button class="btn btn-secondary" style="font-size:.75rem;padding:6px 12px;" onclick="runServiceTest('shipping', this)">▶ Test: quote live rates</button>
               </div>
+              <div id="svctest-shipping" style="display:none;margin-top:10px;font-size:.8rem;padding:10px;border-radius:6px;line-height:1.6;"></div>
               <div id="shippo-test-result" style="display:none;margin-top:10px;font-size:.8rem;padding:10px;border-radius:6px;"></div>`;
             return rows;
         }
@@ -2555,6 +2558,7 @@
                the next customer opens a review — a switch that needs a redeploy
                is not available at the moment it is wanted. */
             rows += buildTranslateProviderRow();
+            rows += testButton('translate', 'Test: translate a sentence');
             return rows;
         }
 
@@ -2622,6 +2626,57 @@
                 out.style.color = 'var(--error)';
                 out.textContent = (e && e.message) || 'Could not save.';
             } finally { btn.disabled = false; }
+        }
+
+        /* ── "Run it and show me" ──────────────────────────────────────────────
+           The status badge answers "is this key valid", which is not the
+           question that costs a morning. These run the real path — the same
+           functions checkout and the storefront call — and print the verbatim
+           result, including the vendor's own words when it refuses. A 422 saying
+           "Invalid `from` field" is a fix; "could not send" is a morning gone.
+
+           Only on the four cards where a test says something the status check
+           cannot. A button that repeats the check above it is furniture. */
+        function testButton(service, label) {
+            return `<div style="margin-top:12px;">
+                <button class="btn btn-secondary" style="font-size:.75rem;padding:6px 12px;"
+                        onclick="runServiceTest('${service}', this)">▶ ${label}</button>
+                <div id="svctest-${service}" style="display:none;margin-top:10px;font-size:.8rem;padding:10px;border-radius:6px;line-height:1.6;"></div>
+              </div>`;
+        }
+
+        async function runServiceTest(service, btn) {
+            const out = document.getElementById('svctest-' + service);
+            if (!out) return;
+            const original = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Running…';
+            out.style.display = '';
+            out.style.background = 'var(--bg-primary)';
+            out.style.color = 'var(--text-secondary)';
+            out.textContent = 'Calling the real path…';
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const token = session?.access_token;
+                if (!token) throw new Error('Not authenticated — please refresh and try again');
+                const resp = await fetch('/api/admin-service-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: token, service }),
+                });
+                const r = await resp.json();
+                const good = !!r.ok;
+                out.style.background = good ? 'rgba(74,222,128,.10)' : 'rgba(245,158,11,.10)';
+                out.style.color = good ? 'var(--text-primary)' : 'var(--warning)';
+                /* Headline, then the reason. Escaped — a vendor error is
+                   untrusted text and this is being written into innerHTML. */
+                out.innerHTML = `<strong>${good ? '✓' : '⚠'} ${escapeHtml(r.headline || (good ? 'Worked' : 'Failed'))}</strong>`
+                    + (r.detail ? `<div style="margin-top:5px;">${escapeHtml(r.detail)}</div>` : '')
+                    + (r.ms ? `<div style="margin-top:5px;opacity:.6;">took ${r.ms} ms</div>` : '');
+            } catch (e) {
+                out.style.background = 'rgba(239,68,68,.10)';
+                out.style.color = 'var(--error)';
+                out.textContent = (e && e.message) || 'The test could not run.';
+            } finally { btn.disabled = false; btn.textContent = original; }
         }
 
         function buildLoopsRows(s) {
