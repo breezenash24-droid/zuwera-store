@@ -18,6 +18,8 @@ const ROOT = path.resolve(__dirname, '..');
 let pass = 0, fail = 0;
 const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { fail++; console.log('  ✗ ' + n + (e ? '  — ' + e : '')); } };
 
+const SETTINGS = fs.readFileSync(path.join(ROOT, 'functions/api/_settings.js'), 'utf8');
+const STATUS = fs.readFileSync(path.join(ROOT, 'functions/api/api-status.js'), 'utf8');
 const SRC = fs.readFileSync(path.join(ROOT, 'functions/api/translate.js'), 'utf8');
 
 (async () => {
@@ -42,7 +44,37 @@ const SRC = fs.readFileSync(path.join(ROOT, 'functions/api/translate.js'), 'utf8
       if (requested === 'deepl') return deepl ? 'deepl' : '';
       return deepl ? 'deepl' : (google ? 'google' : '');
     };
-    ok('the selection logic is in the route', /const requested = String\(context\.env\.TRANSLATE_PROVIDER/.test(SRC));
+    ok('the selection logic is in the route', /const requested = String\([\s\S]{0,80}?TRANSLATE_PROVIDER/.test(SRC));
+    /* It used to read context.env ONLY, which made choosing a provider a
+       redeploy — the Stripe Tax trap in miniature, where the admin offers a
+       switch and the thing doing the work never looks at it. Someone whose
+       DeepL allowance has just run out wants to move before the next customer
+       opens a review, not after a build. */
+    ok('…resolved from settings first, so the switch does not need a deploy',
+      /resolveSetting\('TRANSLATE_PROVIDER', context\.env, cache\)/.test(SRC));
+    ok('…and the Google key too', /resolveSetting\('GOOGLE_TRANSLATE_API_KEY', context\.env, cache\)/.test(SRC));
+    ok('both are admin-editable, or the dropdown saves into a void',
+      /'TRANSLATE_PROVIDER'/.test(SETTINGS) && /'GOOGLE_TRANSLATE_API_KEY'/.test(SETTINGS));
+
+    /* "Off" is the option this whole branch exists for: a store that decides
+       translation is not worth paying for should be able to stop without
+       deleting a key it may want back. */
+    ok('off is answered as a clean no-op, not an error',
+      /requested === 'off' \|\| requested === 'none'/.test(SRC) && /provider: 'off', disabled: true/.test(SRC));
+    ok('…returning the original text so the page still renders',
+      /translations: normalizedTexts, provider: 'off'/.test(SRC));
+
+    /* A provider name is not a credential, and masking it stops the dropdown
+       showing what is selected — maskKey collapses anything <= 8 chars to
+       bullets, so "google", "deepl" and "off" become identical. */
+    ok('the provider name comes back readable, so the admin can show it',
+      /PLAIN_KEYS[\s\S]{0,200}?'TRANSLATE_PROVIDER'/.test(STATUS));
+
+    const ADMIN = fs.readFileSync(path.join(ROOT, 'admin-main.js'), 'utf8');
+    ok('the admin offers it as a dropdown rather than instructions',
+      /function buildTranslateProviderRow/.test(ADMIN) && /saveTranslateProvider/.test(ADMIN));
+    ok('…including Off', /opt\('off', 'Off — do not translate'\)/.test(ADMIN));
+    ok('…and warns when Google is picked without its key', /Google needs <code>GOOGLE_TRANSLATE_API_KEY/.test(ADMIN));
     ok('a DeepL key alone → DeepL', pick({ DEEPL_API_KEY: 'k' }) === 'deepl');
     ok('a Google key alone → Google', pick({ GOOGLE_TRANSLATE_API_KEY: 'g' }) === 'google');
     ok('both keys, nothing requested → DeepL, so nothing changes for an existing store',
