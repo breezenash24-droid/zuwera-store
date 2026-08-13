@@ -14241,6 +14241,10 @@ const OPS_ALERT_EVENTS = [
        and a muted alert is the same silence plus the belief you are covered. */
     ['service-down',              'A service stopped responding (scheduled check)'],
     ['service-recovered',         'A service started working again'],
+    /* Two settings that contradict each other. Referrals reward loyalty points;
+       loyalty can be off. Neither setting is wrong on its own, which is why
+       nothing catches it except an order actually landing in that state. */
+    ['referral-points-unspendable', 'A referral earned points loyalty cannot pay out'],
     ['email-fallback-brevo',      'Email fell back to Brevo (Resend down)'],
     ['email-fallback-loops',      'Email fell back to Loops (Resend + Brevo down)'],
     ['email-all-providers-down',  'Every email provider failed'],

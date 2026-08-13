@@ -350,6 +350,32 @@ async function creditReferrer(pi, meta, env) {
   const points = Math.floor(Number(s.referrerPoints) > 0 ? Number(s.referrerPoints) : 0);
   if (points <= 0) return;
 
+  /* Referrals pay in loyalty points, and loyalty can be switched off
+     independently — which it currently is, while referrals are on. The points
+     are still banked, deliberately: they cost nothing to store and they become
+     real the moment loyalty is enabled, whereas dropping them loses a reward
+     somebody genuinely earned and there is no record to reconstruct it from.
+     What must NOT happen is this staying quiet. Somebody referred a friend and
+     was promised 100 points; until loyalty is on, that promise is unspendable
+     and only the shop owner can fix it. */
+  try {
+    const loyRows = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.loyalty_settings&limit=1`, { headers: H })
+      .then((r) => (r.ok ? r.json() : [])).catch(() => []);
+    let loy = loyRows && loyRows[0] && loyRows[0].value;
+    if (typeof loy === 'string') { try { loy = JSON.parse(loy); } catch (_) { loy = null; } }
+    if (!loy || loy.enabled !== true) {
+      await notifyOps(env, {
+        key: 'referral-points-unspendable',
+        severity: 'warn',
+        event: 'A referral earned points that cannot be spent',
+        detail: 'Referrals are switched ON and award ' + points + ' points, but the loyalty '
+          + 'programme is switched OFF — so there is nowhere for the referrer to see or redeem '
+          + 'them. The points are being banked and will become real if you enable loyalty. '
+          + 'Either turn loyalty on (Admin → Loyalty) or set referrerPoints to 0.',
+      });
+    }
+  } catch (_) { /* the award below matters more than the warning about it */ }
+
   // Is this code somebody's referral code?
   const owners = await fetch(`${env.SUPABASE_URL}/rest/v1/referral_codes?select=user_id&code=eq.${encodeURIComponent(code)}&limit=1`, { headers: H })
     .then((r) => (r.ok ? r.json() : [])).catch(() => []);

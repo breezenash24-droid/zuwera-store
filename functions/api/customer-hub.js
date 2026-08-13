@@ -8,7 +8,7 @@ import {
   verifyUser,
 } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
-import { returnEligibility, reconcileReturnItems, spokenForOn } from './_returns.js';
+import { returnEligibility, reconcileReturnItems, spokenForOn, returnWindowFrom } from './_returns.js';
 import { orderNo } from './_order-no.js';
 import { messagesFrom } from './_messages.js';
 
@@ -109,7 +109,7 @@ export async function onRequestGet({ request, env }) {
 
     const enrichedOrders = (orders || []).map((order) => {
       const merged = mergeOrderWithOps(order, bundle.orderOps, returnsRequests);
-      const eligible = returnEligibility(merged, returnsRequests, say);
+      const eligible = returnEligibility(merged, returnsRequests, say, returnWindowFrom(bundle.config));
       return { ...merged, returnable: eligible.ok, returnBlockedReason: eligible.reason || '' };
     });
 
@@ -208,7 +208,7 @@ export async function onRequestPost({ request, env }) {
         ? submitBundle.returnsState.requests.filter((r) => r && r.userId === user.id)
         : [];
       const say = messagesFrom(submitBundle.config);
-      const eligible = returnEligibility(matchedOrder, myRequests, say);
+      const eligible = returnEligibility(matchedOrder, myRequests, say, returnWindowFrom(submitBundle.config));
       if (!eligible.ok) {
         return json({ success: false, error: eligible.reason, code: eligible.code }, 409, cors(env));
       }

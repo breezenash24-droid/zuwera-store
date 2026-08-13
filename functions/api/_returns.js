@@ -34,7 +34,13 @@
    than repeated: _messages.js is where both copies of this text are kept in
    step by a test. */
 import { shippedMessages } from './_messages.js';
-const SHIPPED = (k) => shippedMessages(k);
+/* `vars` is forwarded, and dropping it was a latent bug rather than a style
+   point: shippedMessages is (key, vars) => string, so a one-argument wrapper
+   silently renders every placeholder as empty. It went unnoticed because no
+   refusal had variables until the window one, whose message is "open for {days}
+   days … arrived {ago} days ago" and read as "open for days after delivery, and
+   this order arrived days ago" whenever no settings were loaded. */
+const SHIPPED = (k, vars) => shippedMessages(k, vars);
 
 const CLOSED_ORDER_STATUSES = new Set(['refunded', 'cancelled', 'canceled']);
 
@@ -64,6 +70,32 @@ export function spokenForOn(requests, orderId) {
       });
     });
   return counts;
+}
+
+/**
+ * How long returns stay open, from commerce_config.
+ *
+ * DEFAULTS TO OFF, and that is a deliberate choice rather than timidity. This
+ * store has 61 orders already placed, none with a delivery date, all of them
+ * old enough that a 30-day window applied retroactively would refuse every one.
+ * Switching enforcement on for existing customers without being asked is not a
+ * bug fix, it is a policy change made on somebody's behalf.
+ *
+ * So the rule exists, the plumbing is live, and the number is the shop owner's
+ * to set. The admin says plainly that the policy already promises 30 days and
+ * that nothing holds the store to it until this is filled in.
+ */
+export function returnWindowFrom(cfg) {
+  const r = (cfg && typeof cfg === 'object' && cfg.returns) || {};
+  const days = Math.floor(Number(r.windowDays));
+  const transit = Math.floor(Number(r.transitAllowanceDays));
+  return {
+    windowDays: Number.isFinite(days) && days > 0 ? Math.min(days, 3650) : 0,
+    /* What to assume delivery took when nothing recorded it. Applied to the
+       order date so an order with no delivery record is judged from roughly
+       when it would have arrived, not from when it was paid for. */
+    transitDays: Number.isFinite(transit) && transit >= 0 ? Math.min(transit, 60) : 7,
+  };
 }
 
 /* Live requests are the ones still holding items. */
@@ -188,7 +220,7 @@ function parseItems(order) {
  * `reason` is customer-facing copy. A refusal a customer cannot understand
  * becomes an email to support, which costs more than the return did.
  */
-export function returnEligibility(order, requests, msg) {
+export function returnEligibility(order, requests, msg, opts) {
   /* The refusals are editable copy, not strings this file owns. A store's
      voice is its own, and a refusal a shopper cannot act on becomes an email
      to support — which costs more than the return would have.
@@ -212,6 +244,48 @@ export function returnEligibility(order, requests, msg) {
       reason: status === 'refunded' ? say('returnAlreadyRefunded') : say('returnCancelled'),
       availableItems: [],
     };
+  }
+
+  /* ── Is it still inside the window we promised? ─────────────────────────
+     Every confirmation email, the returns page and the policy say "30-day free
+     returns", and until now nothing enforced it — an order from three years ago
+     was returnable today.
+
+     COUNTED FROM DELIVERY, because that is the promise. Counting from payment
+     would give an order paid on the 1st and delivered on the 10th twenty days
+     while telling that customer thirty, and refusing someone inside the window
+     they were told about is worse than having no window at all.
+
+     Orders placed before 0015 have no delivered_at and never will, so the
+     fallback is created_at plus a transit allowance — the window a customer
+     would have had if delivery had taken the usual week. Generous on purpose.
+
+     AND IT FAILS OPEN. No usable date, an unparseable one, a window configured
+     to nonsense: allow the return. A wrongly refused return is a support email
+     and a customer who does not come back; a wrongly allowed one costs a single
+     item. Those are not the same mistake and should not be equally likely. */
+  const windowDays = Number(opts && opts.windowDays);
+  if (Number.isFinite(windowDays) && windowDays > 0) {
+    const delivered = Date.parse(order.delivered_at || '');
+    const placed    = Date.parse(order.created_at || '');
+    const transitAllowanceDays = Number.isFinite(Number(opts.transitDays)) ? Number(opts.transitDays) : 7;
+
+    const from = Number.isFinite(delivered) ? delivered
+      : (Number.isFinite(placed) ? placed + transitAllowanceDays * 86400000 : NaN);
+
+    if (Number.isFinite(from)) {
+      const closesAt = from + windowDays * 86400000;
+      if (Date.now() > closesAt) {
+        const daysAgo = Math.floor((Date.now() - from) / 86400000);
+        return {
+          ok: false,
+          code: 'window_closed',
+          reason: say('returnWindowClosed', { days: String(windowDays), ago: String(daysAgo) }),
+          availableItems: [],
+          windowClosedAt: new Date(closesAt).toISOString(),
+        };
+      }
+    }
   }
 
   const mine = (Array.isArray(requests) ? requests : [])

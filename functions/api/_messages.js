@@ -42,6 +42,7 @@ export const DEFAULTS = {
   returnItemsSpent:     'Every item on this order has already been returned or refunded.',
   returnItemsInvalid:   'Those items are not available to return on this order.',
   returnNoItems:        'Choose at least one item to return.',
+  returnWindowClosed:   'Returns are open for {days} days after delivery, and this order arrived {ago} days ago.',
 };
 
 /* Same substitution as the browser's: a token with no value collapses, empty
