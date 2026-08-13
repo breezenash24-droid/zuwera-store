@@ -782,13 +782,27 @@ function showToast(msg) {
       }
     }
 
-    // Apply theme
+    /* ── The page theme, and when this file gets to have an opinion ──────────
+       theme-engine.js sets these same two classes from the theme the visitor
+       is actually on. This block used to speak on every call including when it
+       had nothing to say: no cfg.theme fell into the else and force-removed
+       both classes, which is not "no opinion", it is "dark". Two writers, one
+       question, and whichever ran last won.
+
+       In the builder that was every keystroke. The preview posts the whole
+       config on each edit, applyBuilderConfig re-runs, and a homepage saved as
+       super-light re-asserted itself over the dark theme the store was
+       actually set to — so the builder rendered a light page while Appearance
+       said dark, and there was no option anywhere to say "follow the site".
+
+       Now: only an explicit choice is applied. Blank means the theme engine
+       owns the classes and this leaves them alone. */
     if (cfg.theme === 'light') {
       document.body.classList.add('light-mode');
       document.body.classList.remove('super-light-mode');
     } else if (cfg.theme === 'super-light') {
       document.body.classList.add('light-mode','super-light-mode');
-    } else {
+    } else if (cfg.theme === 'dark') {
       document.body.classList.remove('light-mode','super-light-mode');
     }
     // Re-sync the status bar. syncThemeColor() runs once at boot and reads the body

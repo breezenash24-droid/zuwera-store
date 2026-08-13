@@ -312,12 +312,25 @@ body{display:flex;flex-direction:column}
   <div class="more-wrap">
     <button class="tbtn tbtn-ghost" id="moreBtn" onclick="toggleMore(event)" aria-haspopup="true" aria-expanded="false">More ▾</button>
     <div class="more-menu" id="moreMenu" hidden>
-      <div class="more-sec">Preview theme</div>
+      <!-- NOT a preview setting, whatever it used to be called. This value is
+           written to page_builder, goes out with Publish, and storefront.js
+           applies it to the live homepage for every visitor. Calling it
+           "Preview theme" is how a store ends up pinned to a colour scheme
+           nobody remembers choosing — which is exactly what happened here:
+           saved as super-light while Appearance said dark, so the homepage and
+           the builder preview both ignored the site theme.
+
+           "Site theme" is the option that was missing. The Pages tab has had
+           it for landing pages all along; the homepage never got one, so there
+           was no way to say "just follow Appearance". -->
+      <div class="more-sec">Homepage theme <span style="opacity:.5;font-weight:400">— saved &amp; published</span></div>
       <div class="tog more-tog" id="thTog">
-        <button class="on" data-t="dark" onclick="setTheme('dark')">🌙 Dark</button>
+        <button class="on" data-t="" onclick="setTheme('')">🎨 Site theme</button>
+        <button data-t="dark" onclick="setTheme('dark')">🌙 Dark</button>
         <button data-t="light" onclick="setTheme('light')">☀️ Light</button>
         <button data-t="super-light" onclick="setTheme('super-light')">⬜ White</button>
       </div>
+      <div class="fhint" style="margin:0 .35rem .3rem">Site theme follows Appearance, so the homepage moves with the rest of the store. The other three pin this page to one scheme for ever.</div>
       <div class="more-div"></div>
       <button class="more-item" onclick="window.open('/','_blank')">🌐 View live site</button>
       <button class="more-item" onclick="copyHomepageDraftLink()">🔗 Copy homepage draft link</button>
@@ -652,7 +665,10 @@ let undoStack=[],redoStack=[],versionHistory=[],templates=[];
 // non-active layout never touches page_builder_published until Set Live/Publish.
 let layouts={list:[],activeId:null,currentId:null};
 let _lyReadFailed=false; // init couldn't read builder_layouts — merge before any overwrite
-let selId=null,pvMode='desk',pvTheme='dark',dirty=false,curTab='content';
+/* pvTheme starts as '' — follow Appearance. It used to start as 'dark', which
+   meant a load that failed or timed out still saved a hard pin to the config on
+   the next Save Draft, silently overriding the site theme. */
+let selId=null,pvMode='desk',pvTheme='',dirty=false,curTab='content';
 let _imgKey=null,_tt,_sendT,_autosaveT;
 
 // ── INIT ──────────────────────────────────────────────────────────────────
@@ -702,12 +718,16 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
       } else {
         sections=clone(DEFAULT_SECTIONS);
       }
-      if(activeData?.theme){
-        setTheme(activeData.theme);
-      } else if(th?.data?.value?.default_mode){
-        setTheme(th.data.value.default_mode);
+      /* '' means "follow Appearance" and is a real saved value, so it has to be
+         tested for presence rather than truthiness — `activeData?.theme` is
+         falsy for it and would fall through to a pin every time. A config that
+         has never carried the key at all also lands on '', which is the right
+         default: the homepage should move with the site unless somebody says
+         otherwise. */
+      if(activeData && 'theme' in activeData){
+        setTheme(activeData.theme || '');
       } else {
-        setTheme('dark');
+        setTheme('');
       }
       if(activeData?.themeSettings){
         themeSettings=activeData.themeSettings;
