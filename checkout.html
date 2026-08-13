@@ -559,6 +559,10 @@
            only one that offers Apple Pay outside Safari, by QR code. -->
       <div id="express-checkout-btn" style="display:none" aria-hidden="true"></div>
       <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
+      <!-- PayPal. Hidden until /api/paypal-config says the store both has
+           credentials and has switched it on; paypal-button.js draws it. -->
+      <div id="paypal-test-banner" class="zw-test-mode-banner" style="display:none">PayPal is in sandbox mode — these payments are not real.</div>
+      <div id="paypal-button" style="display:none;margin:0 0 1rem" aria-hidden="true"></div>
       <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0 1.4rem;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgb(var(--fg-rgb) / 28%)">— or pay with card —</div>
 
       <!-- CONTACT -->
@@ -1018,6 +1022,10 @@ window.zwClearPromo = function() {
 <script src="express-wallet.js?v=8838e496" defer></script>
 <script src="checkout.js?v=8b50765a" defer></script>
 <script src="commerce-checkout.js?v=02c4d509" defer></script>
+<!-- After both, and deliberately: deferred scripts run in order, so by the time
+     this one executes checkout.js has published ZWCheckoutForm and
+     commerce-checkout.js has wrapped postJSON to inject the promo code. -->
+<script src="paypal-button.js?v=00000000" defer></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

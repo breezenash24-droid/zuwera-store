@@ -229,6 +229,23 @@
     renderPromoSummary();
   }
 
+  /* Every endpoint that prices a cart, not just the Stripe one.
+     The wrapper below used to test `url === '/api/create-payment-intent'`, and
+     a literal like that is a decision made once about a world with one payment
+     processor in it. Adding PayPal put a second endpoint on the other side of
+     that comparison: a shopper with a promo code applied would get the discount
+     on a card and not in the PayPal window, which is the sort of difference
+     that reads as the code being invalid rather than as a bug here. */
+  const PRICED_ENDPOINTS = [
+    '/api/create-payment-intent',
+    '/api/paypal-create-order',
+    /* Capture re-quotes the cart and refuses if the total has moved, so it has
+       to be handed the same promo the order was created with — otherwise the
+       re-quote comes back higher than the approved amount and the buyer is
+       told the price changed while they were paying. */
+    '/api/paypal-capture',
+  ];
+
   function wrapGlobalPost() {
     // Wrap BOTH checkout POST helpers: bag.html's inline `post` AND checkout.js's
     // global `postJSON` (the one that actually sends /api/create-payment-intent).
@@ -239,7 +256,7 @@
       const original = window[name];
       if (typeof original !== 'function' || original.__zwPromoWrapped) return;
       const wrapped = async function (url, body) {
-        const nextBody = url === '/api/create-payment-intent'
+        const nextBody = PRICED_ENDPOINTS.includes(url)
           ? { ...(body || {}), promoCode: currentPromoCode(),
               featureFlags: (typeof window.zwActiveFlags === 'function' ? window.zwActiveFlags() : undefined),
               deliveryMethod: (typeof window.zwDeliveryMethod === 'function' ? window.zwDeliveryMethod() : undefined) }

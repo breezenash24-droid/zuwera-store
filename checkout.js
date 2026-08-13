@@ -1084,8 +1084,18 @@ document.getElementById('payment-modal')?.addEventListener('click', e => {
   if (e.target === e.currentTarget) _closeModal('payment-modal');
 });
 
-// ===================== PAY SUBMIT (CARD) =====================
-_pay.btn?.addEventListener('click', async () => {
+/* ── What is being bought, and where it is going ─────────────────────────────
+   Read once, here, by everything that starts a payment.
+
+   PayPal needs the identical facts the card path needs, and the obvious way to
+   give it them is a second copy of the block below. That is how this codebase
+   has produced most of its money bugs: two readers of one question, agreeing
+   until the day one of them is updated. A field added to the form and wired
+   into only one of two collectors is an order placed against an address the
+   shopper did not give.
+
+   So both paths call this, and a new field is one edit. */
+function collectCheckoutAddress() {
   const get   = id => (document.getElementById(id)?.value || '').trim();
   const name  = get('pay-name');
   const email = get('pay-email');
@@ -1095,33 +1105,67 @@ _pay.btn?.addEventListener('click', async () => {
   const state = (_pay.stateInput?.value || '').trim();
   const zip   = (_pay.zipInput?.value   || '').trim();
 
+  if (!name || !email) return { error: 'Please enter your name and email.' };
+  if (!addr1 || !city || !state || !zip) return { error: 'Please enter your full shipping address.' };
+
+  return { address: { name, email, line1: addr1, line2: addr2, city, state, zip, country: 'US' } };
+}
+
+/* The debounced rate fetch may not have fired or finished. Resolving it before
+   a payment is created is what keeps the shipping the server charges equal to
+   the shipping the summary showed — and PayPal needs it settled BEFORE the
+   order is created, because the buyer approves an amount at that moment and a
+   rate arriving afterwards would move it out from under them. */
+async function ensureShippingRate(zip, state) {
+  if (selectedShippingRate) return;
+  if (!(zip.length >= 5 && state.length >= 2)) return;
+  clearTimeout(ratesFetchTimeout);
+  if (ratesFetchPromise) {
+    await ratesFetchPromise;
+  } else {
+    try { await doFetchRates(zip, state); } catch (_) {}
+  }
+}
+
+/* The one payload shape both processors are quoted from. Whichever route it
+   goes to, quoteCart() re-prices every line from the catalog — this is what the
+   cart claims, not what anyone is charged. */
+function checkoutOrderPayload(address, accessToken) {
+  return {
+    items: cartItems,
+    shippingRate: selectedShippingRate,
+    promoCode: window.zwGetActivePromoCode?.() || '',
+    deliveryMethod: _deliveryMethod,
+    accessToken,
+    address,
+  };
+}
+
+window.ZWCheckoutForm = {
+  collect: collectCheckoutAddress,
+  ensureRate: ensureShippingRate,
+  payload: checkoutOrderPayload,
+  auth: () => getCheckoutAuthPayload(),
+  confirmed: (orderNumber, email, ref) => showOrderConfirmed(orderNumber, email, ref),
+};
+
+// ===================== PAY SUBMIT (CARD) =====================
+_pay.btn?.addEventListener('click', async () => {
   if (_pay.errEl) _pay.errEl.textContent = '';
-  if (!name || !email)                   { if (_pay.errEl) _pay.errEl.textContent = 'Please enter your name and email.'; return; }
-  if (!addr1 || !city || !state || !zip) { if (_pay.errEl) _pay.errEl.textContent = 'Please enter your full shipping address.'; return; }
+  const collected = collectCheckoutAddress();
+  if (collected.error) { if (_pay.errEl) _pay.errEl.textContent = collected.error; return; }
+  const { address } = collected;
+  const { name, email, state, zip } = address;
 
   _pay.btn.disabled = true;
   _pay.btnTxt.textContent = 'Processing…';
 
   try {
-    // If the debounced rate fetch hasn't fired or finished yet, resolve it now
-    // before creating the payment intent so the correct Shippo rate is used.
-    if (!selectedShippingRate && zip.length >= 5 && state.length >= 2) {
-      clearTimeout(ratesFetchTimeout);
-      if (ratesFetchPromise) {
-        await ratesFetchPromise;
-      } else {
-        try { await doFetchRates(zip, state); } catch (_) {}
-      }
-    }
+    await ensureShippingRate(zip, state);
 
     const auth = await getCheckoutAuthPayload();
-    const piData = await postJSON('/api/create-payment-intent', {
-      items: cartItems,
-      shippingRate: selectedShippingRate,
-      promoCode: window.zwGetActivePromoCode?.() || '',
-      accessToken: auth.accessToken,
-      address: { name, email, line1: addr1, line2: addr2, city, state, zip, country: 'US' },
-    });
+    const piData = await postJSON('/api/create-payment-intent',
+      checkoutOrderPayload(address, auth.accessToken));
     if (piData.error) {
       _pay.errEl.textContent = piData.error;
       _pay.btn.disabled = false;
