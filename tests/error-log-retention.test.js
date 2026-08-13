@@ -90,14 +90,32 @@ console.log('\n  retention that does not depend on anyone remembering');
   ok('…including before the migration has been applied',
     /absent until 0016 runs/.test(LOG));
 
-  ok('the backlog is cleared', /^delete from public\.error_log/m.test(SQL));
+  ok('the backlog is cleared', /delete from public\.error_log/.test(SQL));
   /* Deleting every CSP row would throw away the record of what had been
      happening. One of each keeps the history and drops the repeats. */
   ok('…keeping one example of each distinct violation',
-    /select distinct on \(message\) id/.test(SQL));
+    /max\(created_at\) as keep_at/.test(SQL) && /e\.created_at < g\.keep_at/.test(SQL));
+  /* THE detail. Grouping on the raw message removes 10,575 of 27,993 rows,
+     because the duplication is INSIDE the message — the gtm= token changes on
+     every pageview, so nearly every row is technically distinct. Stripping the
+     query first turns 27,993 rows into 76 actual problems. */
+  ok('…grouped on the message WITHOUT its query string',
+    /group by split_part\(message, '\?', 1\)/.test(SQL),
+    'grouping on the raw message barely dents it');
+  ok('…the same normalising new rows get, so history matches what follows',
+    /split_part\(message, '\?', 1\)/.test(SQL) && /blockedRaw\.split\('\?'\)\[0\]/.test(CSP));
+
+  /* The first version of this migration was cancelled by the statement timeout
+     and applied nothing. Unbounded deletes over 28,000 rows are the reason. */
+  ok('deletes are bounded, so the migration cannot be cancelled mid-way',
+    /limit 3000/.test(SQL) && /limit v_batch/.test(SQL));
+  ok('…with a loop guard rather than an open-ended one', /v_guard > 15/.test(SQL));
+  ok('the index is created BEFORE the delete that needs it',
+    SQL.indexOf('error_log_source_time_idx') < SQL.indexOf('delete from public.error_log'),
+    'index after delete is what made the first attempt a sequential scan');
 
   ok('and it is indexed for how it is read', /error_log_source_time_idx/.test(SQL));
-  ok('the prune is not callable by the public', /revoke all on function public\.prune_error_log\(\) from public, anon/.test(SQL));
+  ok('the prune is not callable by the public', /revoke all on function public\.prune_error_log\(integer\) from public, anon/.test(SQL));
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
