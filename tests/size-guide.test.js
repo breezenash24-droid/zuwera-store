@@ -60,8 +60,14 @@ console.log('\n  checkout totals');
      address — strictly stronger, because it also dashes while the quote is in
      flight rather than showing a figure the browser guessed at. */
   ok('tax shows a dash until the server has quoted it, then a real figure',
-    /const known = window\.ZWCheckoutTax\.isKnown\(state, zip\)/.test(js) &&
-    /const taxText = known \? `\$\$\{tax\.toFixed\(2\)\}` : '—'/.test(js));
+    /taxKnown = !!\(window\.ZWCheckoutTax && window\.ZWCheckoutTax\.isKnown\(state, zip\)\)/.test(js) &&
+    /const taxText\s+= taxKnown \? `\$\$\{tax\.toFixed\(2\)\}` : '—'/.test(js));
+  /* And the total inherits it. Tax having a dash while the TOTAL showed a
+     confident dollar figure was the worse half of the same bug — the total is
+     the line people actually read. */
+  ok('…and the total waits for every part of itself',
+    /const complete = taxKnown && shipKnown;/.test(js) &&
+    /const totalText = complete \? `\$\$\{\(subtotal \+ tax \+ ship\)\.toFixed\(2\)\}` : '—'/.test(js));
   ok('both recompute as the address is typed',
     /zipInput\?\.addEventListener\('input'/.test(js) && /stateInput\?\.addEventListener\('input'/.test(js));
 
