@@ -37,7 +37,20 @@
   --white:  #f4f1eb;
   --ink:    #09090b;
   --paper:  #f4f1eb;
-  --surface-light: #F0EEE9;
+  /* A panel that sits just off the page colour. It was called --surface-light
+     and it was #F0EEE9 in every theme, because it predates themes entirely —
+     back when there was one palette, "the light surface" was a fine name for a
+     constant. Once the theme editor started writing a `surface` token into it,
+     the name stopped describing a constant and started describing a bug: it is
+     the only colour in the palette that never moved, so a section set to
+     "Theme · surface" rendered a cream slab on the dark page, and inherited the
+     dark theme's cream text onto it. Cream on cream, and a bright block where a
+     panel should have been.
+
+     Named for the job now, not for one theme's answer to it, and overridden per
+     mode below like every other colour. #111113 is the same lifted near-black
+     checkout.html has always used for its own panels. */
+  --zw-theme-surface: #111113;
   --accent: #F891A5;
 
   /* ── Fonts ── */
@@ -163,6 +176,9 @@ body.light-mode {
   --white:  #09090b;
   --ink:    #F0EEE9;
   --paper:  #09090b;
+  /* Lifted off the cream page rather than recessed into it — the same
+     direction checkout.html picks for its light panels. */
+  --zw-theme-surface: #FFFFFF;
 }
 
 /* ===================== SUPER LIGHT MODE =====================
@@ -172,4 +188,7 @@ body.super-light-mode {
   --bg-rgb: 255 255 255;
   --black:  #FFFFFF;
   --ink:    #FFFFFF;
+  /* The page is already white, so a panel has to go the other way to read as
+     one at all. Light mode's #FFFFFF here would be invisible. */
+  --zw-theme-surface: #F5F5F5;
 }

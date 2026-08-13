@@ -217,7 +217,14 @@
     if (_lsBg) el.style.setProperty('background', _lsBg, 'important');
     if (s.pad_top) el.style.paddingTop = s.pad_top + 'px';
     if (s.pad_bot) el.style.paddingBottom = s.pad_bot + 'px';
-    var _lsTc = (window.zwResolveSectionBg || String)(s.text_color);
+    /* No Text Color chosen and an inverted token behind it — token:ink,
+       token:paper, token:accent — means the section is about to paint itself
+       the colour of its own text. The homepage pairs those; sharing that
+       decision rather than repeating it is why the background resolver is
+       shared too. */
+    var _lsTc = (window.zwResolveSectionBg || String)(s.text_color)
+      || (String(s.sec_bg || '').slice(0, 6) === 'token:' && window.zwSectionFgForBg
+          ? window.zwSectionFgForBg(el, String(s.sec_bg).slice(6)) : '');
     if (_lsTc) el.style.setProperty('color', _lsTc, 'important');
     if (s.heading_size) el.querySelectorAll('h1,h2,h3,[data-builder-heading]').forEach(function (h) { h.style.setProperty('font-size', s.heading_size, 'important'); });
     if (s.body_size) el.querySelectorAll('p,[data-builder-body]').forEach(function (p) { p.style.setProperty('font-size', s.body_size, 'important'); });
