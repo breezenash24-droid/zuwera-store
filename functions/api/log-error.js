@@ -43,6 +43,20 @@ export async function onRequestPost({ request, env }) {
       },
       body: JSON.stringify(row),
     }).catch(() => {});
+
+    /* Retention, run from the write path rather than a scheduler.
+       A cleanup job somebody has to remember to set up is how this table
+       reached 28,000 rows in the first place — the same reasoning as the
+       migration runner being a button in the admin rather than a terminal
+       command. One write in fifty pays for it, which on this volume is a few
+       times a day. */
+    if (Math.random() < 0.02) {
+      fetch(`${url}/rest/v1/rpc/prune_error_log`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: key, Authorization: `Bearer ${key}` },
+        body: '{}',
+      }).catch(() => {});   // absent until 0016 runs, and never worth failing a log write over
+    }
   } catch (_) {}
   return new Response(null, { status: 204 });
 }
