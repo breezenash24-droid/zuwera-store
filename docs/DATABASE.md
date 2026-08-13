@@ -90,7 +90,7 @@ Pending migrations that ship with features live in `supabase/migrations/` (e.g.
 the `error_log` table for runtime error tracking). Apply them with `supabase db
 push` (or paste into the SQL editor if you're not using the CLI yet).
 
-## Backups & restore  {#restore}
+## Backups & restore
 - **Primary:** enable Supabase **Point-in-Time Recovery** (Pro plan) — restore the
   DB to any moment in the retention window. This is the enterprise safety net.
 - **Secondary:** the deployed `backup-export` edge function (x-backup-token gated)
