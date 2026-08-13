@@ -3129,7 +3129,7 @@
                 { symptom: 'Enabled in Stripe but tax has not changed', cause: 'Two switches in two places. Enabling Stripe Tax on the Stripe account does not make this store call it — Admin → Tax selects the engine.', fix: 'Admin → Tax → set the engine to Stripe Tax. Until then the built-in state table prices every order.' },
                 { symptom: 'Selected here but calculating nothing', cause: 'Stripe Tax is pending on the account — usually a missing business address or registration.', fix: 'This card lists what Stripe says is missing. Fill it in at Stripe → Settings → Tax.' },
                 { symptom: 'Right at checkout, wrong on the bag', cause: 'The bag shows an estimate before an address is known.', fix: 'Expected. The charge is always what the engine returns at checkout.' },
-                { symptom: 'Clothing taxed in a state that exempts it', cause: 'Products have no tax_category, so Stripe applies its general default.', fix: 'Set tax_category on products. There is no editor for it yet — it is a database field today.' },
+                { symptom: 'Clothing taxed in a state that exempts it', cause: 'Products have no tax category, so the provider applies its own general default.', fix: 'Set <strong>Tax category</strong> on each product (Products → edit → beside the prices). Then fill in the provider\'s code for that category under Admin → Tax — a category with no code still sends nothing.' },
             ],
             returnSigning: [
                 { symptom: 'Customers say the return link never arrives', cause: 'With no signing secret there is nothing to sign the link with, so no email is sent — and the page still says one was.', fix: 'Set RETURN_TOKEN_SECRET to any long random string. This card goes green once it is set.' },
@@ -12541,6 +12541,11 @@ function escapeAttr(value) {
                     msrp: parseFloat(document.getElementById('msrp').value),
                     current_price: parseFloat(document.getElementById('currentPrice').value),
                     member_price: document.getElementById('memberPrice').value ? parseFloat(document.getElementById('memberPrice').value) : null,
+                    /* NULL, not '', for "store default" — the column's comment
+                       says NULL falls back to site_settings.tax_engine, and an
+                       empty string is a value that matches no category and
+                       would send no code where the default was wanted. */
+                    tax_category: document.getElementById('taxCategory').value || null,
                     model_height: document.getElementById('modelHeight').value,
                     model_size_worn: document.getElementById('modelSizeWorn').value,
                     fit_type: document.getElementById('fitType').value,
@@ -12780,6 +12785,7 @@ function escapeAttr(value) {
             document.getElementById('msrp').value = product.msrp;
             document.getElementById('currentPrice').value = product.current_price;
             document.getElementById('memberPrice').value = product.member_price || '';
+            document.getElementById('taxCategory').value = product.tax_category || '';
             document.getElementById('modelHeight').value = product.model_height || '';
             document.getElementById('modelSizeWorn').value = product.model_size_worn || '';
             document.getElementById('fitType').value = product.fit_type || '';

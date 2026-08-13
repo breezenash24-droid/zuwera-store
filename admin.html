@@ -4248,6 +4248,23 @@
                             <input type="text" id="installmentDisplay" class="form-input" disabled placeholder="Auto-calculated">
                         </div>
                     </div>
+                    <!-- What this product IS, for tax. Neutral on purpose: every
+                         provider spells "clothing" differently, and tagging the
+                         catalogue in one provider's vocabulary is what makes a
+                         provider hard to leave. Admin → Tax maps this to each
+                         engine's own code. Blank = the store-wide default. -->
+                    <div class="form-group">
+                        <label class="form-label" for="taxCategory">Tax category</label>
+                        <select id="taxCategory" class="form-input">
+                            <option value="">Store default</option>
+                            <option value="general">General goods</option>
+                            <option value="clothing">Clothing</option>
+                            <option value="footwear">Footwear</option>
+                            <option value="digital">Digital goods</option>
+                            <option value="exempt">Not taxable</option>
+                        </select>
+                        <p class="form-hint" style="margin-top:6px;">Clothing is exempt from sales tax in PA, NJ and MN, and under $110 an item in New York. A provider that is not told an item is clothing charges full rate on it. Leave on <strong>Store default</strong> and it uses whatever Admin&nbsp;→&nbsp;Tax has set for the catalogue as a whole.</p>
+                    </div>
                 </div>
 
                 <!-- Tab: Visuals & Model -->
