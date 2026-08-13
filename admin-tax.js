@@ -543,7 +543,7 @@
                         + '</div>';
                     }
 
-                    window.taxDoLookup = function() {
+                    window.taxDoLookup = async function() {
                       const state = (document.getElementById('tax-lkp-state').value||'').trim().toUpperCase();
                       const zip   = (document.getElementById('tax-lkp-zip').value||'').trim();
                       const el    = document.getElementById('tax-lkp-result');
@@ -553,6 +553,39 @@
                         el.innerHTML = `<div style="padding:14px;background:var(--bg-primary);border-radius:8px;font-size:13px;"><b>${STATE_NAMES[state]||state}</b> has no state sales tax.</div>`;
                         return;
                       }
+
+                      /* ── Ask whoever is actually pricing ────────────────────
+                         This card used to read the tables on this page and say
+                         "exactly what rate your checkout applies". That was true
+                         only while the table WAS the checkout. With Stripe Tax
+                         in charge it kept answering — same confident number, no
+                         longer connected to anything a customer pays.
+
+                         /api/tax-quote runs the same resolveTax() the payment
+                         path runs, so this is the checkout's own answer rather
+                         than a second opinion that can drift from it. */
+                      if (taxTableRole() !== 'primary') {
+                        const engine = (document.getElementById('tax-engine-select') || {}).value || '';
+                        const name = ((window.TAX_ENGINE_META || {})[engine] || {}).name || engine;
+                        el.innerHTML = `<p style="font-size:13px;color:var(--text-secondary);">Asking ${name}…</p>`;
+                        const live = await expectedRate(state, zip);
+                        if (live == null) {
+                          /* An unanswered quote is not a rate of zero, and must
+                             never be shown as one. */
+                          el.innerHTML = `<div style="padding:14px;background:var(--bg-primary);border-radius:8px;font-size:13px;line-height:1.7;">
+                            <div style="color:#f59e0b;font-weight:600;margin-bottom:4px;">${name} did not answer</div>
+                            <div style="color:var(--text-secondary);font-size:12px;">Checkout would fall back to the built-in table for this address if the fallback is on, or add no tax at all if it is off.</div>
+                          </div>`;
+                          return;
+                        }
+                        el.innerHTML = `<div style="padding:14px;background:var(--bg-primary);border-radius:8px;font-size:13px;line-height:1.8;">
+                          <div style="font-size:24px;font-weight:700;color:var(--accent);margin-bottom:4px;">${fmtPct(live)}</div>
+                          <div><b>${STATE_NAMES[state]||state}</b>${zip ? ' · ' + zip : ''}</div>
+                          <div style="color:var(--text-secondary);font-size:12px;">Quoted by ${name}, the same call checkout makes.</div>
+                        </div>`;
+                        return;
+                      }
+
                       const rate   = getConfiguredRate(state, zip);
                       const isFlat = FLAT[state] !== undefined;
                       let county   = '';
@@ -783,38 +816,61 @@
                         }
 
                         // ── Ohio county breakdown ─────────────────────────────────────
-                        const ohOrders = _taxOrders.filter(o => (o.ship_state||'').toUpperCase() === 'OH');
-                        const ohWrap = document.getElementById('tax-oh-wrap');
-                        if (ohOrders.length && ohWrap) {
-                          ohWrap.style.display = 'block';
-                          const byCounty = {};
-                          ohOrders.forEach(o => {
-                            const zip3   = String(o.ship_zip||'').replace(/\D/g,'').slice(0,3);
-                            const county = OH_ZIP3[zip3] || 'Other / Unmapped';
-                            const rate   = county !== 'Other / Unmapped' ? OH_COUNTY[county] || 0.0725 : 0.0725;
-                            if (!byCounty[county]) byCounty[county] = { zip3s: new Set(), orders:0, subtotal:0, tax:0, rate };
-                            byCounty[county].zip3s.add(zip3 || '???');
-                            byCounty[county].orders++;
-                            byCounty[county].subtotal += parseFloat(o.subtotal || 0);
-                            byCounty[county].tax      += parseFloat(o.tax || 0);
-                          });
-                          const ohTb = document.getElementById('tax-oh-tbody');
-                          ohTb.innerHTML = Object.entries(byCounty).sort((a,b)=>b[1].tax-a[1].tax).map(([county, d]) =>
-                            `<tr class="zw-divider">
+                        renderOhioCounties();
+
+                      } catch(e) { taxErr('Failed to load tax data: ' + e.message); }
+                    };
+
+                    /* ── Ohio, by county ───────────────────────────────────────
+                       Its own function because the last column changes meaning
+                       with the engine, and the engine can change after the
+                       orders have already been drawn. Redrawing is cheaper than
+                       leaving a column headed "Configured Rate" showing table
+                       rates that nothing is charging any more. */
+                    function renderOhioCounties() {
+                      const ohWrap = document.getElementById('tax-oh-wrap');
+                      if (!ohWrap) return;
+                      const ohOrders = _taxOrders.filter(o => (o.ship_state||'').toUpperCase() === 'OH');
+                      if (!ohOrders.length) { ohWrap.style.display = 'none'; return; }
+                      ohWrap.style.display = 'block';
+
+                      /* Only the table knows a "configured" rate. Under a
+                         provider the honest figure is what was actually
+                         collected on these orders — which is also the one worth
+                         eyeballing, because a county drifting away from its
+                         neighbours is how a misconfigured provider shows up. */
+                      const configured = taxTableRole() === 'primary';
+                      const th = document.getElementById('tax-oh-rate-th');
+                      if (th) th.textContent = configured ? 'Configured Rate' : 'Rate Collected';
+
+                      const byCounty = {};
+                      ohOrders.forEach(o => {
+                        const zip3   = String(o.ship_zip||'').replace(/\D/g,'').slice(0,3);
+                        const county = OH_ZIP3[zip3] || 'Other / Unmapped';
+                        const rate   = county !== 'Other / Unmapped' ? OH_COUNTY[county] || 0.0725 : 0.0725;
+                        if (!byCounty[county]) byCounty[county] = { zip3s: new Set(), orders:0, subtotal:0, tax:0, rate };
+                        byCounty[county].zip3s.add(zip3 || '???');
+                        byCounty[county].orders++;
+                        byCounty[county].subtotal += parseFloat(o.subtotal || 0);
+                        byCounty[county].tax      += parseFloat(o.tax || 0);
+                      });
+                      const ohTb = document.getElementById('tax-oh-tbody');
+                      if (!ohTb) return;
+                      ohTb.innerHTML = Object.entries(byCounty).sort((a,b)=>b[1].tax-a[1].tax).map(([county, d]) => {
+                        /* A county with no taxable revenue has no effective
+                           rate; an em dash is truer than 0.00%. */
+                        const shown = configured ? fmtPct(d.rate)
+                          : (d.subtotal > 0 ? fmtPct(d.tax / d.subtotal) : '—');
+                        return `<tr class="zw-divider">
                               <td style="padding:10px 12px;font-weight:600;">${county}</td>
                               <td style="padding:10px 12px;color:var(--text-secondary);font-size:12px;">${[...d.zip3s].join(', ')}xx</td>
                               <td style="padding:10px 12px;text-align:right;">${d.orders.toLocaleString()}</td>
                               <td style="padding:10px 12px;text-align:right;">${fmt$(d.subtotal)}</td>
                               <td style="padding:10px 12px;text-align:right;font-weight:600;">${fmt$(d.tax)}</td>
-                              <td style="padding:10px 12px;text-align:right;color:var(--text-secondary);">${fmtPct(d.rate)}</td>
-                            </tr>`
-                          ).join('');
-                        } else if (ohWrap) {
-                          ohWrap.style.display = 'none';
-                        }
-
-                      } catch(e) { taxErr('Failed to load tax data: ' + e.message); }
-                    };
+                              <td style="padding:10px 12px;text-align:right;color:var(--text-secondary);">${shown}</td>
+                            </tr>`;
+                      }).join('');
+                    }
 
                     // ── CSV Export ────────────────────────────────────────────────────
                     window.taxExportCSV = function() {
@@ -1216,7 +1272,161 @@
                       const cur = document.getElementById('tax-engine-current');
                       const meta = (window.TAX_ENGINE_META || {})[engine];
                       if (cur) cur.textContent = meta ? (meta.icon + '  ' + meta.name) : engine;
+                      taxTableRelevance();
                     };
+
+                    /* ── What the built-in table still is, once something else
+                          is pricing orders ────────────────────────────────────
+                       Three sections on this page — the rate lookup, the rate
+                       reference and the rate editor — all answer one question:
+                       what does the BUILT-IN table charge here. Put Stripe Tax
+                       in charge and that question has a different answer, and
+                       showing the table's answer beside it is not extra detail.
+                       It is a second, confidently formatted, wrong number for
+                       the same thing, under a heading that says "the figures
+                       customers are actually charged".
+
+                       Deleting them outright would be wrong too, and this is
+                       the part worth being careful about: resolveTax() falls
+                       back to this table when the provider cannot be reached,
+                       so with the fallback on these rates DO price real orders
+                       — rarely, and precisely when nobody is watching. That
+                       makes them backup rates, not dead ones, and a backup you
+                       cannot see is worse than one you can.
+
+                       So: primary while the table is the engine, demoted to a
+                       named backup while a provider is in charge, and gone when
+                       nothing can reach them at all. */
+                    function taxTableRole() {
+                      const sel = document.getElementById('tax-engine-select');
+                      const engine = sel ? sel.value : 'builtin';
+                      if (engine === 'builtin') return 'primary';
+                      /* No tax is collected at all, so there is nothing for the
+                         table to be a backup to. */
+                      if (engine === 'none') return 'unused';
+                      const fb = document.getElementById('tax-engine-fallback');
+                      return (fb && !fb.checked) ? 'unused' : 'backup';
+                    }
+
+                    /* Expanding is per-card and lasts for the visit only. It is
+                       deliberately not saved: the demoted state is the correct
+                       one, and having it stick would quietly undo the change for
+                       whoever opened it once. */
+                    const _taxTableOpen = { rateref: false, rateeditor: false };
+                    let _taxLastEngine = null;
+                    window.taxTableExpand = function(which) {
+                      _taxTableOpen[which] = !_taxTableOpen[which];
+                      taxTableRelevance();
+                    };
+
+                    function taxTableRelevance() {
+                      const role   = taxTableRole();
+                      const sel    = document.getElementById('tax-engine-select');
+                      const engine = sel ? sel.value : 'builtin';
+                      const meta   = (window.TAX_ENGINE_META || {})[engine] || {};
+                      const name   = meta.name || engine;
+
+                      /* Quotes are cached per jurisdiction to keep one button
+                         press from firing hundreds of calls. Those answers
+                         belong to the engine that gave them, so a switch has to
+                         drop them — otherwise the lookup and the collected-vs-
+                         expected panel keep reporting the old engine's rates
+                         under the new engine's name. */
+                      if (_taxLastEngine !== null && _taxLastEngine !== engine) {
+                        Object.keys(_expectedCache).forEach(function(k) { delete _expectedCache[k]; });
+                      }
+                      _taxLastEngine = engine;
+
+                      /* Cards vanishing with no explanation is its own kind of
+                         confusing, so say it here rather than leave a gap where
+                         the rate editor used to be. taxEngineOnChange() rewrites
+                         this note first, so appending is safe. */
+                      const note = document.getElementById('tax-engine-note');
+                      if (note && role === 'unused') {
+                        note.innerHTML += '<br><span style="color:var(--text-secondary);">The rate reference and rate editor are hidden: nothing can reach the built-in table' +
+                          (engine === 'none' ? '.' : ' while the fallback is off.') + '</span>';
+                      }
+
+                      /* The lookup keeps its place — the question is still a
+                         good one — but it must ask whoever is answering. */
+                      const lkpDesc = document.getElementById('tax-lookup-desc');
+                      if (lkpDesc) {
+                        lkpDesc.innerHTML = role === 'primary'
+                          ? 'Enter a state and ZIP to see exactly what rate your checkout applies.'
+                          : 'Enter a state and ZIP and <b style="color:var(--text-primary);">' + name +
+                            '</b> is asked what it would charge there — the same call checkout makes.';
+                      }
+                      /* A stale answer from the previous engine must not sit
+                         under a heading naming the new one. */
+                      const lkpOut = document.getElementById('tax-lkp-result');
+                      if (lkpOut) lkpOut.innerHTML = '';
+
+                      const cards = [
+                        { key: 'rateref', card: 'tax-rateref-card', title: 'tax-rateref-title',
+                          desc: 'tax-rateref-desc', demote: 'tax-rateref-demote',
+                          hide: ['tax-rtabs', 'tax-rate-content'],
+                          primaryTitle: 'Configured Rate Reference',
+                          primaryDesc: 'The rates your server charges from, loaded live. Verify at the relevant state tax authority before each filing period.',
+                          backupTitle: 'Backup Rates',
+                          what: 'what the table would charge if it were asked' },
+                        { key: 'rateeditor', card: 'tax-rateeditor-card', title: 'tax-rateeditor-title',
+                          desc: 'tax-rateeditor-desc', demote: 'tax-rateeditor-demote',
+                          hide: ['tax-re-actions', 'tax-re-msg', 'tax-re-tabs', 'tax-re-content'],
+                          primaryTitle: 'Rate Editor',
+                          primaryDesc: 'Edit any rate and click <b style="color:var(--text-primary);">Save Changes</b>. Every rate here — state, Ohio county and Illinois ZIP3 — applies at checkout immediately. These are the figures customers are actually charged.',
+                          backupTitle: 'Backup Rates — Editor',
+                          what: 'edit the rates the fallback would use' },
+                      ];
+
+                      cards.forEach(function(c) {
+                        const card = document.getElementById(c.card);
+                        if (!card) return;
+
+                        if (role === 'unused') {
+                          /* Nothing here can reach a customer. Hiding it whole
+                             is the only honest option — a collapsed card still
+                             implies it matters. */
+                          card.classList.add('zw-off');
+                          return;
+                        }
+                        card.classList.remove('zw-off');
+
+                        const titleEl = document.getElementById(c.title);
+                        const descEl  = document.getElementById(c.desc);
+                        const demote  = document.getElementById(c.demote);
+                        const open    = role === 'primary' || _taxTableOpen[c.key];
+
+                        if (titleEl) titleEl.textContent = role === 'primary' ? c.primaryTitle : c.backupTitle;
+                        if (descEl) {
+                          descEl.innerHTML = role === 'primary' ? c.primaryDesc
+                            : '<b style="color:var(--text-primary);">' + name + '</b> prices your orders. ' +
+                              'These rates only apply if it cannot be reached, because <b style="color:var(--text-primary);">' +
+                              'fall back to the built-in table</b> is on above — turn that off and this section goes away entirely.';
+                        }
+
+                        if (demote) {
+                          demote.style.display = role === 'primary' ? 'none' : '';
+                          if (role !== 'primary') {
+                            demote.innerHTML =
+                              '<button type="button" onclick="taxTableExpand(\'' + c.key + '\')" ' +
+                              'style="padding:6px 13px;background:none;border:1px solid var(--border);border-radius:6px;' +
+                              'color:var(--text-secondary);cursor:pointer;font-size:12px;margin-bottom:16px;">' +
+                              (open ? 'Hide' : 'Show') + ' — ' + c.what + '</button>';
+                          }
+                        }
+
+                        /* .zw-off rather than style.display: these are inline
+                           display:flex rows, and clearing style.display would
+                           silently turn them into blocks. */
+                        c.hide.forEach(function(id) {
+                          const el = document.getElementById(id);
+                          if (el) el.classList.toggle('zw-off', !open);
+                        });
+                      });
+
+                      /* The Ohio column header depends on the same answer. */
+                      try { renderOhioCounties(); } catch (_) {}
+                    }
 
                     async function taxEngineLoad() {
                       if (!window.sb) return;

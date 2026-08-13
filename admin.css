@@ -1855,3 +1855,10 @@
         }
         .te-status { font-size: .8rem; line-height: 1.5; min-height: 1.2em; margin-bottom: 12px; }
         .te-actions { display: flex; gap: 9px; justify-content: flex-end; }
+
+        /* ── Hiding something that sets its own display inline ───────────────
+           Several cards on the Tax page are laid out with inline display:flex.
+           Toggling them back on by clearing style.display would drop the flex
+           and quietly reflow the row, so hiding goes through a class that wins
+           the cascade and leaves the element's own styling untouched. */
+        .zw-off { display: none !important; }
