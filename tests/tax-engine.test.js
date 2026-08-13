@@ -207,7 +207,12 @@ const OHIO = { state: 'OH', zip: '45202', country: 'US', city: 'Cincinnati', lin
        "the payment path asks the engine layer", and the payment path is now
        shared. Checking the old file would pass or fail for reasons that have
        nothing to do with tax. */
-    const cpi = fs.readFileSync(ROOT + '/functions/api/create-payment-intent.js', 'utf8');
+    /* The metadata these fields live in was extracted to _cart-pricing.js so the
+       PayPal capture builds the SAME map — a second copy of forty fields is a
+       field added to one and not the other. Read both; the assertions are about
+       what fulfilment receives, not which file assembles it. */
+    const cpi = fs.readFileSync(ROOT + '/functions/api/create-payment-intent.js', 'utf8')
+      + fs.readFileSync(ROOT + '/functions/api/_cart-pricing.js', 'utf8');
     const pricing = fs.readFileSync(ROOT + '/functions/api/_cart-pricing.js', 'utf8');
     ok('the shared quote asks the engine layer', /await resolveTax\(/.test(pricing));
     /* Both files, because "no local copy of the table" has to hold everywhere
@@ -399,7 +404,10 @@ const OHIO = { state: 'OH', zip: '45202', country: 'US', city: 'Cincinnati', lin
     /* Lines that do not add up to what is charged would have the provider tax
        money nobody paid, which a promo makes routine rather than rare. */
     ok('…scaled to the discounted total, exactly', /remainder/.test(pricing) && /discountedSubtotalCents \/ subtotalCents/.test(pricing));
-    ok('the calculation handle is carried on the payment', /tax_ref: tax\.ref/.test(cpi));
+    /* In the shared metadata builder, so PayPal carries it too — a tax provider
+       only files a sale it can refer back to, and an order paid the other way
+       would have been unreportable. */
+    ok('the calculation handle is carried on the payment', /tax_ref: tax\.ref/.test(pricing));
     ok('a completed sale is reported from fulfilment', /reportSaleToTaxProvider/.test(fulfil));
     ok('…and the provider\'s transaction id stored for the refund to find',
       /metadata\[tax_txn\]/.test(fulfil));

@@ -271,7 +271,7 @@ async function run() {
       pricing.includes('buyerEmail === accountEmail'));
     ok('…and yields nothing when they differ', pricing.includes(': null'));
     ok('the payment stamps the buyer, not the session',
-      cpi.includes('user_id: attributedUser?.id') && !cpi.includes('user_id: verifiedUser?.id'));
+      (cpi + pricing).includes('user_id: attributedUser?.id') && !(cpi + pricing).includes('user_id: verifiedUser?.id'));
     /* Member PRICING still follows the session: somebody signed in and paying
        is entitled to their discount whatever address the parcel goes to.
        Conflating the two would quietly remove a discount people already have. */
