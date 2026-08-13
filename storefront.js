@@ -625,6 +625,32 @@ function showToast(msg) {
     '#f4f1eb': 'page', '#f0eee9': 'page', '#ffffff': 'page',
   };
 
+  /* ── Does this background follow the theme? ───────────────────────────────
+     It matters because the BACKGROUND and the TEXT were being decided from
+     different readings of the same field.
+
+     A section stored as '#ffffff' resolves, through LEGACY_BG_TOKENS, to
+     token:page — var(--black) — which on a dark theme paints DARK. But the
+     text decision below asked _zwIsLightColor('#ffffff'), got true from the
+     raw literal, and forced #09090b on everything inside. Dark ink on a dark
+     band: the product names under the cards were still there, in the same
+     colour as what was behind them.
+
+     The literal is not wrong and must not be rewritten — it is what the picker
+     handed over when someone meant "a light band", and reading it as the token
+     it stood for is the whole point of LEGACY_BG_TOKENS. What was wrong is
+     asking it a question it had already stopped being the answer to.
+
+     So: anything that tracks the theme keeps the page's own foreground, which
+     is correct by construction. Only a literal that stays light in EVERY theme
+     needs its text darkened. */
+  function sectionBgTracksTheme(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return false;
+    if (raw.slice(0, 6) === 'token:') return true;
+    return Object.prototype.hasOwnProperty.call(LEGACY_BG_TOKENS, raw.toLowerCase());
+  }
+
   function resolveSectionBackground(value) {
     const raw = String(value || '').trim();
     if (!raw) return '';
@@ -1909,11 +1935,16 @@ function showToast(msg) {
         el.style.setProperty('color', _tc, 'important');
         el.classList.add('zw-sec-tc');
         el.classList.remove('zw-on-light');
-      } else if (s.sec_bg && _zwIsLightColor(s.sec_bg)) {
-        // Light section background but no text color chosen → force dark text so it
-        // stays readable (otherwise a white section inherits the dark-theme light
-        // text and renders invisible white-on-white). The zw-on-light class also
-        // darkens child text that hardcodes its own light color (e.g. product cards).
+      } else if (s.sec_bg && !sectionBgTracksTheme(s.sec_bg) && _zwIsLightColor(s.sec_bg)) {
+        // A background that is light in EVERY theme, with no text color chosen →
+        // force dark text so it stays readable (otherwise a white section inherits
+        // the dark-theme light text and renders invisible white-on-white). The
+        // zw-on-light class also darkens child text that hardcodes its own light
+        // color (e.g. product cards).
+        // Excluded above: backgrounds that track the theme. Those already move
+        // with the page, so the page's own foreground reads on them — and
+        // forcing dark ink onto one when the theme turned it dark is what made
+        // the product names disappear.
         el.style.setProperty('color', '#09090b', 'important');
         el.classList.add('zw-on-light');
         el.classList.remove('zw-sec-tc');
