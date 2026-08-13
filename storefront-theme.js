@@ -38,7 +38,7 @@
       // previewed theme here would "stick" the live homepage to it. The live
       // homepage sets zw_homepage_theme_mode itself from the published config.
       if (!window.__ZW_BUILDER_PREVIEW__) {
-        var key = window.__zwPageBuilderActive ? 'zw_homepage_theme_mode' : 'zw_theme_mode';
+        var key = 'zw_theme_mode';   // one key for the whole storefront
         localStorage.setItem(key, resolved);
       }
     } catch(_) {}
@@ -472,9 +472,13 @@
     if (e.persisted) {
       var mode = 'dark';
       try {
-        var isHomepage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/');
-        var key = isHomepage ? 'zw_homepage_theme_mode' : 'zw_theme_mode';
-        mode = localStorage.getItem(key) || localStorage.getItem('zw_theme_mode') || 'dark';
+        /* The toggle used to write whichever key matched the page you were
+           standing on, so switching on a product page never reached the
+           homepage and vice versa. And this defaulted to 'dark' while all 19
+           other reads defaulted to 'super-light'. */
+        mode = localStorage.getItem('zw_theme_mode')
+             || localStorage.getItem('zw_homepage_theme_mode')
+             || 'super-light';
       } catch(_) {}
       applyThemeMode(mode);
     }
