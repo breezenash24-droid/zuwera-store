@@ -2633,6 +2633,41 @@
             return rows;
         }
 
+        /* "3 minutes ago", "yesterday". Relative, because the useful question is
+           how stale this is, not what o'clock it was — and an absolute timestamp
+           makes the reader do the subtraction. */
+        function sinceWords(iso) {
+            const t = Date.parse(iso || '');
+            if (!Number.isFinite(t)) return 'at an unknown time';
+            const mins = Math.max(0, Math.round((Date.now() - t) / 60000));
+            if (mins < 1)    return 'just now';
+            if (mins < 60)   return mins + (mins === 1 ? ' minute ago' : ' minutes ago');
+            const hrs = Math.round(mins / 60);
+            if (hrs < 24)    return hrs + (hrs === 1 ? ' hour ago' : ' hours ago');
+            const days = Math.round(hrs / 24);
+            if (days < 30)   return days + (days === 1 ? ' day ago' : ' days ago');
+            return 'on ' + new Date(t).toLocaleDateString();
+        }
+
+        /* The state, how long it has held, and a sparkline of recent checks.
+           The sparkline is the part that turns "it is failing" into "it has been
+           flapping all morning" — which is a different problem with a different
+           cause, and invisible from any single check. */
+        function apiHistoryLine(s) {
+            const h = s.history || {};
+            if (!h.since) return '';
+            const bars = (h.recent || []).map(v =>
+                `<span class="api-spark-bar ${v ? 'up' : 'down'}"></span>`).join('');
+            const word = s.ok ? 'Healthy' : 'Failing';
+            const flapping = (h.recent || []).length > 3
+                && (h.recent || []).some(v => v === 0) && (h.recent || []).some(v => v === 1);
+            /* Called out explicitly, because intermittent is the state people
+               misread as fixed — you check, it is green, you move on. */
+            const note = flapping ? ' <span class="api-flap">· intermittent recently</span>' : '';
+            return `<p class="api-note api-history">${bars ? `<span class="api-spark">${bars}</span>` : ''}`
+                + `${word} since ${escapeHtml(sinceWords(h.since))}${note}</p>`;
+        }
+
         function renderApiCard(icon, name, s, buildRows, serviceKey, dashboardUrl) {
             // Tucked away → it renders as a card in More Integrations instead.
             // Nothing about the service changes; only where its card lives.
@@ -2661,6 +2696,14 @@
             const optionalTag   = (notConfigured && isOptional)
                 ? '<span class="api-optional-tag" title="Your store works without this. Set it up only if you want what it does.">optional</span>' : '';
             const rows          = s ? buildRows(s) : '';
+            /* How long it has been like this, and when it last did real work.
+               "Resend is failing" is a fact; "failing since 04:12" is something
+               you can act on. And a key can validate perfectly while nothing has
+               used it for a month — that gap is worth seeing, so last-used is
+               shown separately from health rather than folded into it. */
+            const histLine = (s && s.history) ? apiHistoryLine(s) : '';
+            const usedLine = (s && s.lastUsed)
+                ? `<p class="api-note api-lastused">Last ${escapeHtml(s.lastUsed.what)} ${escapeHtml(sinceWords(s.lastUsed.at))}</p>` : '';
             const errorMsg      = s && !s.ok && s.error && !notConfigured
                 ? `<p class="api-note" style="color:var(--error);">${s.error}</p>` : '';
 
@@ -2691,6 +2734,8 @@
                 </div>
                 ${rows}
                 ${errorMsg}
+                ${histLine}
+                ${usedLine}
                 ${keyChips}
                 <div class="api-card-footer">
                   <div class="api-link"><a href="${dashboardUrl}" target="_blank" rel="noopener">Open dashboard ↗</a></div>

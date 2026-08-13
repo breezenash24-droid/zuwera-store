@@ -397,7 +397,122 @@ async function checkCloudflare(env, cache) {
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
-export async function onRequestGet({ request, env }) {
+const svcKey = (env) => (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
+
+/* ── How long has it been like this? ─────────────────────────────────────────
+   A status page that only knows about right now cannot answer the question
+   anybody actually has. "Resend is failing" is a fact; "Resend has been failing
+   since 04:12" is something you can act on, and the difference is entirely
+   whether the last check was written down.
+
+   One query for every service, grouped here rather than thirteen queries — the
+   whole point is that this must not cost more than the checks it annotates. */
+async function statusHistory(env) {
+  const url = (env.SUPABASE_URL || '').trim();
+  const key = svcKey(env);
+  if (!url || !key) return {};
+  try {
+    const r = await fetch(
+      url + '/rest/v1/api_status_log?select=service,ok,checked_at&order=checked_at.desc&limit=600',
+      { headers: { apikey: key, Authorization: 'Bearer ' + key } },
+    );
+    if (!r.ok) return {};                       // table not created yet → no history, no error
+    const rows = await r.json().catch(() => []);
+    const by = {};
+    for (const row of (Array.isArray(rows) ? rows : [])) {
+      (by[row.service] = by[row.service] || []).push(row);
+    }
+    const out = {};
+    for (const [service, list] of Object.entries(by)) {
+      // Already newest-first from the query.
+      const current = list[0];
+      if (!current) continue;
+      /* `since` walks back through the unbroken run of the SAME result. The
+         first row that disagrees ends the run, so `since` is the oldest sample
+         that still matches — i.e. when this state began, as far as we saw. */
+      let since = current.checked_at;
+      for (const row of list) {
+        if (row.ok !== current.ok) break;
+        since = row.checked_at;
+      }
+      const lastOk = (list.find((r2) => r2.ok) || {}).checked_at || null;
+      out[service] = {
+        since,
+        lastOk,
+        samples: list.length,
+        /* Enough for a sparkline, oldest-first so it reads left to right. */
+        recent: list.slice(0, 24).map((r2) => (r2.ok ? 1 : 0)).reverse(),
+      };
+    }
+    return out;
+  } catch (_) { return {}; }
+}
+
+/* ── When did this service last actually DO something? ───────────────────────
+   "The key is valid" and "this is working" are different claims, and only the
+   second one is what an operator means. The evidence already exists — every
+   send is logged, every webhook delivery is logged — it has simply never been
+   read on this page.
+
+   Deliberately separate from the health check: a key can validate perfectly
+   while nothing has used it for a month, and that gap is worth seeing. */
+async function lastUsed(env) {
+  const url = (env.SUPABASE_URL || '').trim();
+  const key = svcKey(env);
+  if (!url || !key) return {};
+  const H = { headers: { apikey: key, Authorization: 'Bearer ' + key } };
+  const out = {};
+
+  const [emails, hooks] = await Promise.allSettled([
+    fetch(url + '/rest/v1/email_log?select=provider,status,created_at&status=eq.sent&order=created_at.desc&limit=60', H),
+    fetch(url + '/rest/v1/webhook_events?select=created_at,raw_status&order=created_at.desc&limit=1', H),
+  ]);
+
+  if (emails.status === 'fulfilled' && emails.value.ok) {
+    const rows = await emails.value.json().catch(() => []);
+    /* Per PROVIDER, because the whole point of a failover chain is knowing
+       which tier is carrying the traffic. A store that thinks it is on Resend
+       and is quietly running on Brevo is a store about to be surprised. */
+    for (const row of (Array.isArray(rows) ? rows : [])) {
+      const p = String(row.provider || '').toLowerCase();
+      if (p && !out[p]) out[p] = { at: row.created_at, what: 'email sent' };
+    }
+  }
+
+  if (hooks.status === 'fulfilled' && hooks.value.ok) {
+    const rows = await hooks.value.json().catch(() => []);
+    if (Array.isArray(rows) && rows[0]) {
+      out.stripe = { at: rows[0].created_at, what: 'webhook received' };
+    }
+  }
+
+  return out;
+}
+
+/* Written after the response is built, never before it is sent — recording
+   history must not slow down the page that triggers it, and must never be the
+   reason a status check fails. */
+async function recordRun(env, services) {
+  const url = (env.SUPABASE_URL || '').trim();
+  const key = svcKey(env);
+  if (!url || !key) return;
+  const rows = Object.entries(services || {}).map(([service, s]) => ({
+    service,
+    ok: !!(s && s.ok),
+    configured: s && s.configured !== undefined ? !!s.configured : null,
+    detail: (s && s.error) ? String(s.error).slice(0, 500) : null,
+  }));
+  if (!rows.length) return;
+  try {
+    await fetch(url + '/rest/v1/rpc/record_api_status', {
+      method: 'POST',
+      headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_rows: rows }),
+    });
+  } catch (_) { /* history is a nicety; the status page is not */ }
+}
+
+export async function onRequestGet({ request, env, waitUntil }) {
   // Admin-only: this response includes masked previews of every API key and the
   // full service inventory — useful recon for an attacker, so it requires the
   // same Supabase admin bearer token as the other admin endpoints.
@@ -478,10 +593,15 @@ export async function onRequestGet({ request, env }) {
     maskedKeys[k] = v ? maskKey(v) : null;
   }
 
-  return json({
-    ok: true,
-    fetchedAt: new Date().toISOString(),
-    services: {
+  /* Both read alongside each other, and neither is allowed to fail the page:
+     history is missing until migration 0014 runs, and email_log/webhook_events
+     may be empty on a new store. A status panel that breaks because its own
+     annotations are unavailable would be a poor trade. */
+  const [historyR, usedR] = await Promise.allSettled([statusHistory(env), lastUsed(env)]);
+  const history = historyR.status === 'fulfilled' ? historyR.value : {};
+  const used    = usedR.status === 'fulfilled' ? usedR.value : {};
+
+  const built = {
       cloudinary: unwrap(cloudinary),
       resend:     unwrap(resend),
       brevo:      unwrap(brevo),
@@ -495,7 +615,27 @@ export async function onRequestGet({ request, env }) {
       twilio:     unwrap(twilio),
       posthog:    unwrap(posthog),
       returnSigning: checkReturnSigning(env),
-    },
+  };
+
+  /* Each service carries its own history and its own last-used evidence, rather
+     than the admin joining three maps by key — one place to get the pairing
+     wrong instead of three. */
+  for (const [name, s] of Object.entries(built)) {
+    if (!s || typeof s !== 'object') continue;
+    if (history[name]) s.history = history[name];
+    if (used[name]) s.lastUsed = used[name];
+  }
+
+  /* After the answer is assembled, so recording never delays it. waitUntil lets
+     the write finish after the response has gone out; without it the Worker can
+     be torn down mid-flight and the history is silently patchy. */
+  const write = recordRun(env, built);
+  if (typeof waitUntil === 'function') waitUntil(write); else await write.catch(() => {});
+
+  return json({
+    ok: true,
+    fetchedAt: new Date().toISOString(),
+    services: built,
     maskedKeys,
   });
 }
