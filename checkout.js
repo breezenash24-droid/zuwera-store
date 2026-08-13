@@ -906,31 +906,81 @@ function maybeLoadRates() {
   }, 600);
 }
 
-function updateCartSummaryShipping(amount) {
-  const dollarAmt = Number(amount) || 0;
-  const shippingText = dollarAmt > 0 ? `$${dollarAmt.toFixed(2)}` : 'Free';
-  if (_pay.shippingEl) {
-    _pay.shippingEl.textContent = shippingText;
-    _pay.shippingEl.classList.remove('dash');
+/* ── One place that decides the total ──────────────────────────────────────
+   It used to be decided in two, and each read the other's answer back out of
+   the DOM as rendered text.
+
+     refreshTaxDisplay()          wrote subtotal + tax. Shipping was not in the
+                                  expression at all.
+     updateCartSummaryShipping()  wrote subtotal + parse(taxEl) + shipping.
+
+   So whichever landed last decided the number, and when tax landed second it
+   silently dropped shipping back out of the total. Add an address and the
+   total goes up, down, then up again — while the shopper is looking at it.
+
+   Worse before either lands: a definite-looking total was already on screen
+   that was neither of those things. Tax had the right idea already — unknown
+   renders a dash and stays out of the sum, so "Oregon charges none" and "we
+   have not been told yet" cannot be confused. The TOTAL never inherited it, so
+   the one number the shopper actually reads was the one still guessing.
+
+   null, not 0: "no shipping figure yet" and "shipping is free" are different
+   answers and only one of them can be added up. */
+let _shipDollars = null;
+
+function renderSummaryTotals() {
+  const parse = el => parseFloat(el?.textContent?.replace(/[^0-9.]/g, '') || '0');
+  const subtotal = parse(document.getElementById('pm-subtotal'));
+
+  const state = (_pay.stateInput?.value || '').trim().toUpperCase().slice(0, 2);
+  const zip   = (_pay.zipInput?.value   || '').trim();
+  const taxKnown = !!(window.ZWCheckoutTax && window.ZWCheckoutTax.isKnown(state, zip));
+  const tax = taxKnown ? window.ZWCheckoutTax.taxDollars(subtotal, state, zip) : 0;
+
+  const shipKnown = _shipDollars !== null;
+  const ship = shipKnown ? _shipDollars : 0;
+
+  const taxText  = taxKnown ? `$${tax.toFixed(2)}` : '—';
+  const shipText = !shipKnown ? '—' : (ship > 0 ? `$${ship.toFixed(2)}` : 'Free');
+  /* A total is only a total once every part of it is known. Showing one that
+     is missing a component is the behaviour being fixed, not a friendlier
+     version of it. */
+  const complete = taxKnown && shipKnown;
+  const totalText = complete ? `$${(subtotal + tax + ship).toFixed(2)}` : '—';
+
+  const put = (el, text, dashed) => {
+    if (!el) return;
+    el.textContent = text;
+    el.classList.toggle('dash', !!dashed);
+  };
+
+  put(_pay.taxEl, taxText, !taxKnown);
+  put(_pay.shippingEl, shipText, !shipKnown);
+  put(_pay.totalEl, totalText, !complete);
+
+  const pmSubtotal = document.getElementById('pm-subtotal');
+  if (pmSubtotal) pmSubtotal.textContent = `$${subtotal.toFixed(2)}`;
+  put(document.getElementById('pm-tax'), taxText, !taxKnown);
+  put(document.getElementById('pm-shipping'), shipText, !shipKnown);
+  put(document.getElementById('pm-total'), totalText, !complete);
+  put(document.getElementById('pm-toggle-total'), totalText, !complete);
+
+  /* The state the tax is FOR, which before an address is typed is the one the
+     server worked out from the connection — not the empty input field. */
+  const pmTaxLbl = document.getElementById('pm-tax-label');
+  if (pmTaxLbl && window.ZWCheckoutTax) {
+    const forState = window.ZWCheckoutTax.stateFor(state, zip);
+    pmTaxLbl.textContent = taxKnown && forState ? `Tax (${forState})` : 'Tax';
   }
-  if (_pay.totalEl) {
-    const parse = el => parseFloat(el?.textContent?.replace(/[^0-9.]/g, '') || '0');
-    _pay.totalEl.textContent = `$${(parse(document.getElementById('pm-subtotal')) + parse(_pay.taxEl) + dollarAmt).toFixed(2)}`;
-    _pay.totalEl.classList.remove('dash');
-  }
-  // Keep payment modal summary in sync
-  const pmShipping = document.getElementById('pm-shipping');
-  const pmTotal    = document.getElementById('pm-total');
-  const pmToggle   = document.getElementById('pm-toggle-total');
-  if (pmShipping) pmShipping.textContent = shippingText;
-  if (pmTotal || pmToggle) {
-    const parse = el => parseFloat(el?.textContent?.replace(/[^0-9.]/g, '') || '0');
-    const tot = `$${(parse(document.getElementById('pm-subtotal')) + parse(document.getElementById('pm-tax')) + dollarAmt).toFixed(2)}`;
-    if (pmTotal)  pmTotal.textContent  = tot;
-    if (pmToggle) pmToggle.textContent = tot;
-  }
-  // Re-apply any active promo so shipping changes don't drop the discount.
+
+  /* We have just written an undiscounted total; re-apply any active promo so
+     the discount is not wiped when either component recomputes. */
   try { if (typeof window.zwPromoUpdateSummaryTotals === 'function') window.zwPromoUpdateSummaryTotals(); } catch (_) {}
+}
+
+function updateCartSummaryShipping(amount) {
+  _shipDollars = Number(amount) || 0;
+  renderSummaryTotals();
 }
 
 function refreshTaxDisplay() {
@@ -947,35 +997,11 @@ function refreshTaxDisplay() {
      table to answer from — including when the table was wrong. Unknown shows a
      dash and leaves it out of the total, exactly as an unentered state already
      did, and the zw:tax listener below re-renders the moment an answer lands. */
+  /* Asking is this function's job; drawing is renderSummaryTotals'. Splitting
+     them is the fix — the tax path used to write the total itself, from an
+     expression that had no shipping in it. */
   window.ZWCheckoutTax.ensure(state, zip, Math.round(subtotal * 100));
-  const known = window.ZWCheckoutTax.isKnown(state, zip);
-  const tax = known ? window.ZWCheckoutTax.taxDollars(subtotal, state, zip) : 0;
-  const taxText = known ? `$${tax.toFixed(2)}` : '—';
-  const total = subtotal + tax;
-
-  // Update cart sidebar elements (kept in sync even though hidden behind modal)
-  if (_pay.taxEl) _pay.taxEl.textContent = taxText;
-  if (_pay.totalEl) _pay.totalEl.textContent = `$${total.toFixed(2)}`;
-
-  // Update payment modal order summary panel
-  const pmTax        = document.getElementById('pm-tax');
-  const pmTaxLbl     = document.getElementById('pm-tax-label');
-  const pmTotal      = document.getElementById('pm-total');
-  const pmToggleTot  = document.getElementById('pm-toggle-total');
-  const pmSubtotal   = document.getElementById('pm-subtotal');
-  if (pmSubtotal)   pmSubtotal.textContent   = `$${subtotal.toFixed(2)}`;
-  if (pmTax)        pmTax.textContent        = taxText;
-  /* The state the tax is FOR, which before an address is typed is the one the
-     server worked out from the connection — not the empty input field. */
-  if (pmTaxLbl) {
-    const forState = window.ZWCheckoutTax.stateFor(state, zip);
-    pmTaxLbl.textContent = known && forState ? `Tax (${forState})` : 'Tax';
-  }
-  if (pmTotal)      pmTotal.textContent      = `$${total.toFixed(2)}`;
-  if (pmToggleTot)  pmToggleTot.textContent  = `$${total.toFixed(2)}`;
-  // We just wrote an undiscounted total; re-apply any active promo so the discount
-  // isn't wiped from the shown total when tax recomputes (e.g. on address entry).
-  try { if (typeof window.zwPromoUpdateSummaryTotals === 'function') window.zwPromoUpdateSummaryTotals(); } catch (_) {}
+  renderSummaryTotals();
 }
 
 _pay.zipInput?.addEventListener('input', () => { updateDeliveryOptions(); maybeLoadRates(); if ((_pay.zipInput?.value || '').length >= 5) refreshTaxDisplay(); });

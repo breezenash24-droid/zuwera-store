@@ -295,6 +295,12 @@
     /* "TOTAL" label — match the bag page's brand display treatment (italic condensed) */
     .pm-total-row > span:first-child { font-family: var(--font-head); font-style: italic; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 1.15rem; }
     .pm-total-row > span:last-child { font-family: var(--font-head); font-weight: 700; font-size: 1.15rem; letter-spacing: .01em; font-variant-numeric: tabular-nums; }
+    /* A figure the page is still waiting on. checkout.js already wrote a dash
+       into these and then removed a class nothing ever added, so the dash read
+       as a value rather than as a gap — most misleadingly on the Total, which
+       is the line people actually read. Dimmed, so "not yet" looks like not
+       yet. */
+    .dash { opacity: .45; }
 
     /* --------------------------------- Form fields -- */
     .pgrow { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
@@ -828,8 +834,21 @@ window.zwPromoUpdateSummaryTotals = function() {
   var total = Math.max(0, sub - discount + tax + shipping);
   var set = function(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; };
   set('pm-subtotal', '$' + sub.toFixed(2));
-  set('pm-total', '$' + total.toFixed(2));
-  set('pm-toggle-total', '$' + total.toFixed(2));
+
+  /* THE THIRD WRITER. checkout.js marks tax or shipping with .dash while it is
+     still waiting on them, and pf() reads that dash as 0 — so this function
+     would assemble a confident dollar total out of a figure that does not
+     exist yet, and write it straight over the pending one checkout.js had just
+     drawn. Same rule as there: a total needs all of its parts. */
+  var dashed = function(id) { var e = document.getElementById(id); return !!(e && e.classList.contains('dash')); };
+  var incomplete = dashed('pm-tax') || dashed('pm-shipping');
+  var totalText = incomplete ? '—' : '$' + total.toFixed(2);
+  ['pm-total', 'pm-toggle-total'].forEach(function(id) {
+    var e = document.getElementById(id);
+    if (!e) return;
+    e.textContent = totalText;
+    e.classList.toggle('dash', incomplete);
+  });
   var row = document.getElementById('zw-promo-row');
   if (row) row.style.display = discount > 0 ? '' : 'none';
 };
