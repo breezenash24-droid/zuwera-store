@@ -66,7 +66,13 @@ console.log('\n  the table Stripe has been writing to all along');
   const sent = [...writer.matchAll(/^\s{6}([a-z_]+):/gm)].map((m) => m[1]);
   const unknown = [...new Set(sent)].filter((c) => cols.includes(c) === false && ['event_type', 'payment_intent', 'customer_email', 'amount_cents', 'sig_verified', 'raw_status', 'error_message'].includes(c));
   ok('…and nothing the writer sends is unaccounted for', unknown.length === 0, unknown.join(', '));
-  ok('it is indexed for "what happened recently"', /webhook_events_created_idx/.test(SQL));
+  ok('it is indexed for "what happened recently"', /webhook_events_received_idx/.test(SQL));
+  /* The column is `received_at`, NOT `created_at` — every other log table here
+     uses created_at, which is exactly why this was written wrong first time and
+     why the read silently returned nothing against the real database. Asserted
+     against BOTH files so the schema and the query cannot drift apart again. */
+  ok('the webhook log uses received_at, the name production actually has',
+    /received_at\s+timestamptz/.test(SQL) && !/webhook_events[\s\S]{0,400}?created_at/.test(SQL));
 }
 
 console.log('\n  reading it back');
@@ -78,7 +84,10 @@ console.log('\n  reading it back');
   ok('last-used reads the send log', /email_log\?select=provider,status,created_at&status=eq\.sent/.test(API));
   ok('…per provider, so you can see which failover tier is carrying traffic',
     /if \(p && !out\[p\]\)/.test(CODE(API)));
-  ok('…and the webhook log for Stripe', /webhook_events\?select=created_at,raw_status/.test(API));
+  ok('…and the webhook log for Stripe', /webhook_events\?select=received_at,raw_status/.test(API));
+  ok('…querying the same column the migration defines',
+    /webhook_events\?select=received_at/.test(API) && /received_at\s+timestamptz/.test(SQL),
+    'a read naming a column the table does not have returns nothing, silently');
   ok('neither can fail the page', /Promise\.allSettled\(\[statusHistory\(env\), lastUsed\(env\)\]\)/.test(API));
   ok('each service carries its own history and evidence',
     /s\.history = history\[name\]/.test(CODE(API)) && /s\.lastUsed = used\[name\]/.test(CODE(API)));
