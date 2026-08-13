@@ -1479,13 +1479,40 @@
                  are two different switches in two different places, and having
                  only the first one on is the state that looks finished and
                  charges from the built-in table anyway. */
+              /* TWO questions, and the card was only answering one. "Enabled in
+                 your Stripe account" and "selected as this store's engine" are
+                 separate switches in separate places, and saying "Not set up"
+                 when the first is done reads as "you have not started" — when
+                 the likeliest truth is that somebody turned it on in Stripe and
+                 never selected it here. That is the state worth shouting about:
+                 the shop believes tax is being calculated properly and the
+                 built-in state table is quietly pricing every order. */
               detect: (sig) => {
+                  const acct = sig.services && sig.services.stripeTax;
+                  const selected = sig.taxEngine === 'stripe_tax';
+
                   if (sig.taxEngine === undefined) return { state: 'unknown', why: 'Could not read the tax engine just now.' };
-                  if (sig.taxEngine === 'stripe_tax') {
-                      return { state: 'live', why: 'Pricing every order — this is the selected tax engine.' };
+
+                  if (selected) {
+                      if (acct && acct.active === false) {
+                          return { state: 'attention', why: 'Selected as this store’s engine, but Stripe Tax is not active on the Stripe account'
+                              + (acct.missing && acct.missing.length ? ' — still missing: ' + acct.missing.join(', ') : '')
+                              + '. Nothing is being calculated.' };
+                      }
+                      return { state: 'live', why: 'Active in Stripe and pricing every order — this is the selected tax engine.' };
                   }
-                  return { state: 'off', why: 'Not the selected engine. Admin → Tax is currently using “'
-                      + (sig.taxEngine || 'the built-in table') + '”, so Stripe Tax is not pricing anything.' };
+
+                  const using = sig.taxEngine || 'the built-in table';
+                  if (acct && acct.active === true) {
+                      /* The actionable one. Enabled, paid for, and doing
+                         nothing, because the second switch was never flipped. */
+                      return { state: 'attention', why: 'Active in your Stripe account, but NOT selected here — Admin → Tax is using “'
+                          + using + '”, so Stripe Tax is calculating nothing. Switch the engine to start using it.' };
+                  }
+                  if (acct && acct.active === false) {
+                      return { state: 'off', why: 'Not enabled on the Stripe account, and not the selected engine here. Admin → Tax is using “' + using + '”.' };
+                  }
+                  return { state: 'off', why: 'Not the selected engine. Admin → Tax is using “' + using + '”, so Stripe Tax is not pricing anything.' };
               },
               troubleshoot: [
                   { symptom:'Turned on in Stripe, but tax has not changed', cause:'Stripe Tax being enabled in your Stripe account is a separate thing from this store calling it.', fix:'Admin → Tax → set the engine to Stripe Tax. Until then the built-in state table prices every order.' },
@@ -2283,6 +2310,12 @@
                 const s = data.services || {};
                 _maskedKeys = data.maskedKeys || {};
                 _keyChanges = data.keyChanges || {};
+                /* Handed to the integration detectors: the Stripe Tax card has
+                   to report whether Tax is enabled on the STRIPE ACCOUNT, which
+                   only an admin-gated check can ask. Re-rendering the catalogue
+                   afterwards upgrades it from "unknown" to the real answer. */
+                _intSignals = { ..._intSignals, services: s };
+                try { renderIntegrationStore(); } catch (_) {}
 
                 loadingEl.style.display = 'none';
                 gridEl.style.display    = '';
@@ -2422,7 +2455,14 @@
                 }).join('<br>');
                 rows += apiRow('Verified domains', domainList);
             }
-            if (s.freeTier) rows += projectQuota(s.freeTier.used, s.freeTier.limit,
+            /* Said before the number, because it changes what the number
+               means. A test key buys free labels with fake tracking, and those
+               are no longer counted — so a non-zero count on a test key is
+               history from before that fix. */
+            if (s.testMode) {
+                rows += `<p class="api-note" style="color:var(--warning);">Test mode — these labels are not real and are no longer counted against the free tier. Any count below predates that fix.</p>`;
+            }
+            if (s.freeTier && !s.testMode) rows += projectQuota(s.freeTier.used, s.freeTier.limit,
                 { whenOver: 'Labels then come from Veeqo, which is a different account and a different bill.' });
             if (s.note) rows += `<p class="api-note">${s.note}</p>`;
             return rows;
@@ -2958,6 +2998,12 @@
             ],
             cloudflare: [
                 { symptom: 'Traffic stats blank', cause: 'The GraphQL token needs Analytics:Read on the zone, which is not a default scope.', fix: 'Recreate the token with that permission. The zone ID must match the domain too.' },
+            ],
+            stripeTax: [
+                { symptom: 'Enabled in Stripe but tax has not changed', cause: 'Two switches in two places. Enabling Stripe Tax on the Stripe account does not make this store call it — Admin → Tax selects the engine.', fix: 'Admin → Tax → set the engine to Stripe Tax. Until then the built-in state table prices every order.' },
+                { symptom: 'Selected here but calculating nothing', cause: 'Stripe Tax is pending on the account — usually a missing business address or registration.', fix: 'This card lists what Stripe says is missing. Fill it in at Stripe → Settings → Tax.' },
+                { symptom: 'Right at checkout, wrong on the bag', cause: 'The bag shows an estimate before an address is known.', fix: 'Expected. The charge is always what the engine returns at checkout.' },
+                { symptom: 'Clothing taxed in a state that exempts it', cause: 'Products have no tax_category, so Stripe applies its general default.', fix: 'Set tax_category on products. There is no editor for it yet — it is a database field today.' },
             ],
             returnSigning: [
                 { symptom: 'Customers say the return link never arrives', cause: 'With no signing secret there is nothing to sign the link with, so no email is sent — and the page still says one was.', fix: 'Set RETURN_TOKEN_SECRET to any long random string. This card goes green once it is set.' },

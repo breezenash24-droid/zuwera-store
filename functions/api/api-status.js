@@ -222,10 +222,16 @@ async function checkShippo(env, cache) {
     // before checkout switches to Veeqo.
     const limit = shippoFreeLimit(env, cache);
     const used  = await getShippoMonthlyCount(env);
+    /* Which mode the key is in, because "26/30" means two very different
+       things depending on the answer. Test labels are free, carry fake tracking
+       numbers, and are no longer counted at all — so a test key showing a
+       non-zero count is history from before that fix. */
+    const testMode = String(key).startsWith('shippo_test_');
     return {
       ok: true,
       keyActive: true,
-      plan: 'Starter (pay-per-label)',
+      testMode,
+      plan: testMode ? 'Test mode (labels are not real)' : 'Starter (pay-per-label)',
       totalShipments,
       freeTier: {
         month: shippoMonthKey(),
@@ -235,6 +241,54 @@ async function checkShippo(env, cache) {
         exhausted: used >= limit,
       },
       note: `Free-tier labels this month: ${used}/${limit}. ${used >= limit ? 'Exhausted — checkout is using Veeqo.' : `${Math.max(0, limit - used)} left before switching to Veeqo.`}`,
+    };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+/**
+ * Is Stripe Tax switched on in the STRIPE ACCOUNT?
+ *
+ * A different question from "is it this store's tax engine", and the panel was
+ * answering only the second while saying "Not set up" — which reads as "you
+ * have not done anything", when the likeliest truth is that somebody enabled it
+ * in Stripe and never selected it here. That is the exact state where a shop
+ * believes tax is being calculated properly and the built-in state table is
+ * quietly pricing every order.
+ *
+ * Deliberately NOT added to /api/tax-config, which is a public endpoint. Whether
+ * a business has registered for tax collection is account information; it
+ * belongs behind the admin check like everything else here.
+ */
+async function checkStripeTax(env) {
+  const key = String(env.STRIPE_SECRET_KEY || '').trim();
+  if (!key) return { ok: false, configured: false, optional: true, error: 'STRIPE_SECRET_KEY not set' };
+  try {
+    const resp = await withTimeout(fetch('https://api.stripe.com/v1/tax/settings', {
+      headers: { Authorization: 'Bearer ' + key },
+    }));
+    const d = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      /* Stripe answers 403 when Tax has never been touched on the account. That
+         is a real answer — "not enabled" — not a failure worth alarming about. */
+      const notEnabled = resp.status === 403 || (d.error && /tax/i.test(d.error.message || ''));
+      return notEnabled
+        ? { ok: false, configured: false, optional: true, active: false, error: 'Stripe Tax is not enabled on this Stripe account' }
+        : { ok: false, error: (d.error && d.error.message) || ('HTTP ' + resp.status) };
+    }
+    /* `active` means Stripe has everything it needs to calculate. `pending`
+       means something is still missing — usually the business address or a
+       registration — and it will not price anything until that is resolved. */
+    const status = String(d.status || '').toLowerCase();
+    return {
+      ok: status === 'active',
+      configured: true,
+      optional: true,
+      active: status === 'active',
+      status,
+      /* Why it is pending, in Stripe's own words. Without this the answer is
+         "not working" and the next step is a hunt through their dashboard. */
+      missing: (d.status_details && d.status_details.pending && d.status_details.pending.missing_fields) || [],
+      headOffice: !!(d.head_office && d.head_office.address && d.head_office.address.country),
     };
   } catch (e) { return { ok: false, error: e.message }; }
 }
@@ -452,7 +506,7 @@ export function checkReturnSigning(e) {
  * signing secret), so the watcher covers exactly what the panel covers.
  */
 export async function runChecks(env, cache, extra) {
-  const [cloudinary, resend, brevo, supabase, stripe, shippo, veeqo, cloudflare, deepl, loops, twilio, posthog] =
+  const [cloudinary, resend, brevo, supabase, stripe, shippo, veeqo, cloudflare, deepl, loops, twilio, posthog, stripeTax] =
     await Promise.allSettled([
       checkCloudinary(env, cache),
       checkResend(env, cache),
@@ -466,6 +520,7 @@ export async function runChecks(env, cache, extra) {
       checkLoops(env, cache),
       checkTwilio(env, cache),
       checkPostHog(env, cache),
+      checkStripeTax(env),
     ]);
 
   const unwrap = (r) =>
@@ -484,6 +539,7 @@ export async function runChecks(env, cache, extra) {
     loops:      unwrap(loops),
     twilio:     unwrap(twilio),
     posthog:    unwrap(posthog),
+    stripeTax:  unwrap(stripeTax),
   };
   if (typeof extra === 'function') out.returnSigning = extra(env);
   return out;
