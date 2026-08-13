@@ -2282,6 +2282,10 @@
                           <span id="tax-engine-current" class="te-current">📋 Built-in table</span>
                           <button type="button" class="btn btn-secondary" onclick="openTaxEngineModal()">Change engine…</button>
                         </div>
+                        <!-- Whether the engine named above is actually returning
+                             tax. An engine that answers zero everywhere looks
+                             exactly like one that is working, so this asks it. -->
+                        <div id="tax-engine-health" style="margin-top:12px;"></div>
                       </div>
                       <div id="tax-engine-endpoint-wrap" style="display:none;flex:1;min-width:260px;">
                         <label for="tax-engine-endpoint" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:5px;">Endpoint URL</label>

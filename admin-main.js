@@ -2414,6 +2414,7 @@
                     renderApiCard('🌐', 'Cloudflare',            s.cloudflare, buildCloudflareRows,   'cloudflare',  'https://dash.cloudflare.com'),
                     renderApiCard('🗄️', 'Supabase',             s.supabase,   buildSupabaseRows,     null,          'https://supabase.com/dashboard'),
                     renderApiCard('💳', 'Stripe',                s.stripe,     buildStripeRows,       'stripe',      'https://dashboard.stripe.com'),
+                    renderApiCard('🅿️', 'PayPal',                s.paypal,     buildPayPalRows,       'paypal',      'https://www.paypal.com/businessmanage/account/aboutBusiness'),
                     renderApiCard('📦', 'Shippo',                s.shippo,     buildShippoRows,       'shippo',      'https://goshippo.com'),
                     renderApiCard('🚚', 'Veeqo (USPS rates)',    s.veeqo,      buildVeeqoRows,        'veeqo',       'https://app.veeqo.com'),
                     renderApiCard('🌍', 'DeepL (Translation)',   s.deepl,      buildDeepLRows,        'deepl',       'https://www.deepl.com/pro-account/usage'),
@@ -2630,6 +2631,74 @@
             rows += testButton('stripe', 'Test: key + webhook mode');
             return rows;
         }
+
+        /* PayPal, whose card has to answer two questions at once.
+           "The credentials work" and "shoppers can pay with it" are different
+           facts, and the one that will actually be true for most of this card's
+           life is the first without the second. A card that showed only key
+           health would sit there saying Active beside a checkout offering no
+           PayPal, which is the kind of disagreement between panel and store
+           that costs an afternoon to find. */
+        function buildPayPalRows(s) {
+            if (!s.ok && s.configured === false) {
+                return `<p class="api-note" style="color:var(--warning);">Not set up. Add <b>PAYPAL_CLIENT_ID</b> and <b>PAYPAL_CLIENT_SECRET</b> in Cloudflare Pages → Settings → Variables &amp; Secrets, then redeploy. Get them from PayPal Developer → Apps &amp; Credentials.</p>
+                  <p class="api-note">Leave <b>PAYPAL_ENV</b> unset while testing — it defaults to <code>sandbox</code>. Set it to <code>live</code> only when you want real money to move.</p>`;
+            }
+            if (!s.ok) {
+                return `<p class="api-note" style="color:var(--error);">Connection failed: ${escapeHtml(s.error || 'Unknown error')}</p>
+                  <p class="api-note">The id and secret have to be a matching pair from the <b>same</b> PayPal app and the <b>same</b> mode — a live secret with a sandbox id fails exactly like this.</p>`;
+            }
+
+            const live = s.mode === 'live';
+            let rows = apiRow('Mode', `<span style="color:${live ? 'var(--success)' : 'var(--warning)'};">${live ? '🟢 Live' : '🟡 Sandbox'}</span>`);
+            rows += apiRow('At checkout', s.offered
+                ? '<span style="color:var(--success);">Offered</span>'
+                : '<span style="color:var(--text-secondary);">Not shown</span>');
+
+            /* The combination worth interrupting for: a button on the live
+               storefront that opens a sandbox window. Every shopper who picks
+               it reaches a dead end, and the store looks broken to everyone
+               except whoever is testing. */
+            if (s.offered && !live) {
+                rows += `<div style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.82rem;">
+                  <strong style="color:var(--warning);">⚠ Sandbox PayPal is live on your checkout</strong> — shoppers see the button and cannot actually pay. Set <code>PAYPAL_ENV=live</code> in Cloudflare and redeploy, or switch it off below.
+                </div>`;
+            }
+
+            rows += `<label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:.82rem;cursor:pointer;">
+                <input type="checkbox" id="paypal-offer-toggle" ${s.offered ? 'checked' : ''} onchange="paypalToggleOffer(this)" style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;">
+                <span>Offer PayPal at checkout</span>
+              </label>
+              <p class="api-note">Having credentials is not enough on its own, on purpose: <code>PAYPAL_ENV</code> defaults to sandbox, so the first keys most stores add are sandbox keys. This is the switch that decides whether shoppers see the button.</p>`;
+            if (s.note) rows += `<p class="api-note">${escapeHtml(s.note)}</p>`;
+            return rows;
+        }
+
+        /* Read-modify-write on the commerce_config blob, like every other
+           setting stored in it. Narrow on purpose — it touches one boolean and
+           carries everything else through untouched. */
+        async function paypalToggleOffer(cb) {
+            const on = !!cb.checked;
+            cb.disabled = true;
+            try {
+                const { data: rows, error } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
+                if (error) throw error;
+                const cfg = (rows && rows[0] && rows[0].value) || {};
+                cfg.payments = (cfg.payments && typeof cfg.payments === 'object') ? cfg.payments : {};
+                cfg.payments.paypal = { ...(cfg.payments.paypal || {}), enabled: on };
+                const { error: sErr } = await sb.from('site_settings').upsert({ key: 'commerce_config', value: cfg }, { onConflict: 'key' });
+                if (sErr) throw sErr;
+                showToast(on ? 'PayPal is now offered at checkout.' : 'PayPal is no longer shown at checkout.', 'success');
+            } catch (e) {
+                /* Put the switch back. A toggle that stays where it was clicked
+                   after a failed write is a lie about what the store is doing. */
+                cb.checked = !on;
+                showToast('Could not save that: ' + (e.message || 'unknown error'), 'error');
+            } finally {
+                cb.disabled = false;
+            }
+        }
+        window.paypalToggleOffer = paypalToggleOffer;
 
         function buildShippoRows(s) {
             if (!s.ok && s.configured === false) return `<p class="api-note" style="color:var(--warning);">SHIPPO_API_KEY not set. Add it in Cloudflare Pages → Settings → Variables &amp; Secrets or use the editor below.</p>`;
@@ -3090,6 +3159,13 @@
                 { symptom: 'Payment succeeds but nothing else happens', cause: 'Test and live have SEPARATE webhook endpoints and separate signing secrets. Moving the secret key without the webhook secret leaves the signature failing on every delivery.', fix: 'Use the "Test: key + webhook mode" button above. Then Stripe → Developers → Webhooks → Recent deliveries: 400 means signature mismatch.' },
                 { symptom: 'No confirmation email on a real order', cause: 'The email is the last step of fulfilment — anything earlier throwing takes it with it.', fix: 'Recent deliveries again. 500 means the handler threw and the response body names the reason.' },
                 { symptom: 'Still in test mode by accident', cause: 'sk_test_ keys process nothing real.', fix: 'The Mode row above says which. Switching is two changes, not one — see the note on this card.' },
+            ],
+            paypal: [
+                { symptom: 'The button does not appear at checkout', cause: 'Two things have to be true and only one of them is setting the keys: credentials in Cloudflare AND "Offer PayPal at checkout" switched on above. This is deliberate — PAYPAL_ENV defaults to sandbox, so credentials alone lighting the button would hand real shoppers a window that cannot take their money.', fix: 'Check the "At checkout" row above. It says Offered or Not shown, and the switch below it is the one that decides.' },
+                { symptom: 'The PayPal window opens but payment fails', cause: 'Sandbox credentials on a real storefront. Sandbox accounts cannot pay a live merchant and vice versa.', fix: 'The Mode row says which you are in. Set PAYPAL_ENV=live in Cloudflare and redeploy — it must be spelled exactly "live", and anything else is read as sandbox on purpose.' },
+                { symptom: '"The price of your order changed while you were paying"', cause: 'Working as designed. Capture re-prices the cart and refuses if the total no longer matches what the buyer approved — a price edit, an expiring promo or a stock change between approval and capture. Refusing costs a retry; capturing would charge an amount nobody intended.', fix: 'Nothing to fix unless it is frequent. If it is, something is changing prices mid-session — check for a promo that expired or an edit made while shoppers were on the site.' },
+                { symptom: 'Paid on PayPal but no order was created', cause: 'The money moved and fulfilment threw afterwards. The buyer is told it succeeded on purpose — an order that is paid for and not recorded is the worst state available, and telling them it failed invites a second payment.', fix: 'Search the Worker log for "PayPal order captured but fulfilment failed" — it names the order number and the capture id, and the order can be created from those.' },
+                { symptom: 'Connection failed with valid-looking keys', cause: 'The id and secret must come from the same PayPal app and the same mode. A live secret with a sandbox id fails identically to a typo.', fix: 'PayPal Developer → Apps & Credentials, and check you are on the right Sandbox/Live tab when you copy them.' },
             ],
             shippo: [
                 { symptom: 'No rates at checkout', cause: 'Nine times out of ten the ship-from address, not the key. Shippo reports it inside messages[] rather than as an error status.', fix: 'Press "Test: quote live rates" above — it prints Shippo\'s own message.' },

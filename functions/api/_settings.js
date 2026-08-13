@@ -151,6 +151,22 @@ export const ENV_ONLY_KEYS = new Set([
   'TWILIO_AUTH_TOKEN',
   'TWILIO_FROM_NUMBER',
 
+  /* PayPal. The client secret takes money from customers and issues refunds
+     back out, which puts it on the same rung as Stripe's — and _paypal.js says
+     so in its own header: the admin panel gets to choose WHETHER PayPal is
+     offered, never to hold the key.
+
+     PAYPAL_ENV is here for a different reason and it is the one worth spelling
+     out. It is not a credential; it decides whether payments are real. Leaving
+     it admin-writable would mean an admin session could flip a store into live
+     mode — or, from the other direction, quietly into sandbox, where every
+     payment succeeds on screen and no money ever arrives. Nothing in a
+     dashboard would look wrong. */
+  'PAYPAL_CLIENT_ID',
+  'PAYPAL_CLIENT_SECRET',
+  'PAYPAL_SECRET',
+  'PAYPAL_ENV',
+
   /* ── Not credentials. CHANNELS. ──────────────────────────────────────────
      These were admin-editable, and the blast-radius rule above missed them
      because neither looks like a spend-capable secret. Both are worse than

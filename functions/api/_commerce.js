@@ -384,6 +384,13 @@ export function sanitizeCommerceConfig(rawConfig = {}) {
         targetCollectionIds: Array.isArray(promo.targetCollectionIds) ? promo.targetCollectionIds.map(String).filter(Boolean) : [],
       })),
     localDelivery: sanitizeLocalDelivery(config.localDelivery),
+    // Which payment methods this store offers. Must survive sanitising for the
+    // same reason maxUsage above had to: this function is the only thing
+    // between the stored blob and everything that reads it, so a key it does
+    // not list is a setting that saves, reloads as absent, and quietly reverts
+    // to off. For PayPal that reads as "the button stopped appearing" with
+    // nothing in the panel to explain it.
+    payments: config.payments || {},
     integrations: config.integrations || {},
     shippingAutomation: config.shippingAutomation || {},
     customerExperience: config.customerExperience || {},

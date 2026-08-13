@@ -18,7 +18,8 @@
 import { fetchSiteSettings, resolveSetting, maskKey, ALLOWED_KEYS } from './_settings.js';
 import { getShippoMonthlyCount, shippoFreeLimit, shippoMonthKey } from './_shipping-usage.js';
 import { veeqoKey, veeqoDiagnose } from './_veeqo.js';
-import { verifyAdmin } from './_commerce.js';
+import { getSetting, verifyAdmin } from './_commerce.js';
+import { paypalConfig, paypalToken } from './_paypal.js';
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -423,6 +424,57 @@ async function checkLoops(env, cache) {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
+/* PayPal, which has two answers rather than one.
+ *
+ * "Do the credentials work" and "is the button being offered" are separate
+ * facts here, and the card has to show both — because the state that will
+ * actually happen is credentials that work with the switch still off, and a
+ * card that reported only the first would say Active beside a checkout that
+ * offers no PayPal at all.
+ *
+ * Reads commerce_config directly rather than calling /api/paypal-config: the
+ * scheduled watcher runs these checks with no request to make, and a check that
+ * fetches one of our own endpoints would report the fetch's health as PayPal's.
+ */
+async function checkPayPal(env) {
+  const cfg = paypalConfig(env);
+  let enabled = false;
+  try {
+    const commerce = await getSetting(env, 'commerce_config', {});
+    enabled = (((commerce && commerce.payments) || {}).paypal || {}).enabled === true;
+  } catch (_) { /* reported as unknown below via ok:false only if creds fail */ }
+
+  if (!cfg.configured) {
+    return {
+      ok: false, configured: false, optional: true, offered: false, mode: cfg.mode,
+      error: 'PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET not set',
+    };
+  }
+
+  try {
+    /* A token call, because it is the cheapest thing that proves the id and
+       secret are a matching, live pair — which is exactly what a typo in either
+       breaks, and what nothing else here would catch until a buyer tried to
+       pay. */
+    await withTimeout(paypalToken(env));
+    return {
+      ok: true,
+      keyActive: true,
+      mode: cfg.mode,
+      offered: enabled,
+      /* The sentence the card leans on. Credentials being valid says nothing
+         about whether anyone can pay with them. */
+      note: enabled
+        ? (cfg.mode === 'live'
+          ? 'Offered at checkout, taking real payments.'
+          : 'Offered at checkout in SANDBOX — these payments are not real. Set PAYPAL_ENV to live when you are ready.')
+        : 'Credentials work, but PayPal is switched off — the checkout does not show it.',
+    };
+  } catch (e) {
+    return { ok: false, keyActive: false, mode: cfg.mode, offered: enabled, error: e.message };
+  }
+}
+
 async function checkTwilio(env, cache) {
   const sid   = resolveSetting('TWILIO_ACCOUNT_SID',  env, cache);
   const token = resolveSetting('TWILIO_AUTH_TOKEN',   env, cache);
@@ -567,7 +619,7 @@ export function checkReturnSigning(e) {
  * signing secret), so the watcher covers exactly what the panel covers.
  */
 export async function runChecks(env, cache, extra) {
-  const [cloudinary, resend, brevo, supabase, stripe, shippo, veeqo, cloudflare, deepl, loops, twilio, posthog, stripeTax] =
+  const [cloudinary, resend, brevo, supabase, stripe, shippo, veeqo, cloudflare, deepl, loops, twilio, posthog, stripeTax, paypal] =
     await Promise.allSettled([
       checkCloudinary(env, cache),
       checkResend(env, cache),
@@ -582,6 +634,7 @@ export async function runChecks(env, cache, extra) {
       checkTwilio(env, cache),
       checkPostHog(env, cache),
       checkStripeTax(env),
+      checkPayPal(env),
     ]);
 
   const unwrap = (r) =>
@@ -601,6 +654,7 @@ export async function runChecks(env, cache, extra) {
     twilio:     unwrap(twilio),
     posthog:    unwrap(posthog),
     stripeTax:  unwrap(stripeTax),
+    paypal:     unwrap(paypal),
   };
   if (typeof extra === 'function') out.returnSigning = extra(env);
 

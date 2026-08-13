@@ -26,7 +26,7 @@ import { normalizeStateCode } from './_tax.js';
    importing this route — and therefore without importing Stripe. See the note
    at the top of that file. This route now decides nothing about money; it
    quotes, then charges. */
-import { generateOrderNumber, quoteCart, sha256Base64Url } from './_cart-pricing.js';
+import { buildOrderMetadata, generateOrderNumber, quoteCart, sha256Base64Url } from './_cart-pricing.js';
 
 const CORS = (env) => ({
   'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
@@ -79,19 +79,6 @@ export async function onRequestPost({ request, env, waitUntil }) {
     } = quote;
 
     if (totalCents <= 0) return json({ error: 'Invalid payment amount.' }, 400, headers);
-
-    /* Stripe caps each metadata value at 500 chars, so the shared line items get
-       trimmed to fit — here, not in the quote, because the cap is Stripe's and
-       PayPal has no equivalent. If it is still over 490 (large carts, long
-       names) drop size+color, then truncate names as a last resort. The webhook
-       only requires name/sku/amount/qty. */
-    let metaItems = JSON.stringify(lineItems);
-    if (metaItems.length > 490) {
-      metaItems = JSON.stringify(lineItems.map(({ sku, name, amount, quantity }) => ({ sku, name, amount, quantity })));
-    }
-    if (metaItems.length > 490) {
-      metaItems = JSON.stringify(lineItems.map(({ sku, name, amount, quantity }) => ({ sku, name: name.slice(0, 28), amount, quantity })));
-    }
 
     const idempotencyPayload = JSON.stringify({
       email: String(address.email || '').toLowerCase().trim(),
@@ -156,50 +143,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
             country: address.country || 'US',
           },
         },
-        metadata: {
-          order_number: orderNumber,
-          customer_email: address.email,
-          customer_name: address.name || '',
-          /* The buyer, not whoever happens to be signed in on this browser.
-             See the note in quoteCart: this used to be the session, so a guest
-             checking out on someone else's computer filed their order — name,
-             address, contents — into that person's account history. */
-          user_id: attributedUser?.id || '',
-          items: metaItems,
-          inv: JSON.stringify(inventoryItems),
-          subtotal_amount_cents: String(subtotalCents),
-          discount_code: normalizedPromoCode,
-          discount_amount_cents: String(discountCents),
-          shipping_provider: shipping.provider,
-          shipping_service: shipping.servicelevel,
-          shipping_rate_object_id: shipping.rateObjectId,
-          shipping_source: shipping.source || 'shippo',
-          veeqo_remote_shipment_id: shipping.remoteShipmentId || '',
-          actual_shipping_cost_cents: String(shipping.actualShippingCents),
-          charged_shipping_cents: String(shipping.shippingCents),
-          free_shipping: String(shipping.qualifiesFree || shipping.handDelivery),
-          delivery_method: shipping.handDelivery ? 'hand_delivery' : 'ship',
-          tax_state: taxStateCode,
-          tax_rate_bps: String(Math.round(taxRate * 10000)),
-          tax_amount_cents: String(taxCents),
-          // Which engine produced that number — not always the one configured,
-          // since an external provider that failed falls back to the table. The
-          // Tax page reads this so a figure at filing time can be attributed.
-          tax_engine: tax.fallbackFrom ? `${tax.fallbackFrom}→builtin` : (tax.engine || 'builtin'),
-          /* The provider's handle on the calculation. A tax provider only files
-             sales it has been told completed, and it is told by referring back
-             to this — so it has to survive from here to the webhook. Empty for
-             engines with nothing to file. */
-          tax_ref: tax.ref || '',
-          total_amount_cents: String(totalCents),
-          feature_flags: featureFlagsMeta,
-          ship_line1: address.line1 || '',
-          ship_line2: address.line2 || '',
-          ship_city: address.city || '',
-          ship_state: address.state || '',
-          ship_zip: address.zip || '',
-          ship_country: address.country || 'US',
-        },
+        metadata: buildOrderMetadata({ orderNumber, address, quote, featureFlagsMeta }),
     };
     const paymentIntent = await stripe.paymentIntents.create(intentParams, { idempotencyKey }
     ).catch(async (e) => {
