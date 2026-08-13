@@ -1056,6 +1056,11 @@
                 if (typeof window.finLoadData === 'function') window.finLoadData();
             } else if (page === 'tax') {
                 if (typeof window.taxLoadData === 'function') window.taxLoadData();
+                /* Which engine is in charge, re-read on every visit. admin-tax.js
+                   loads before `sb` exists, so its own first attempt cannot
+                   succeed — and the engine decides what half that page even
+                   means, so a stale answer there is worse than a stale table. */
+                if (typeof window.taxEngineLoad === 'function') window.taxEngineLoad();
             } else if (page === 'shipping') {
                 if (typeof window.shipLoadData === 'function') window.shipLoadData();
                 loadShippingOptionCard();
@@ -1829,7 +1834,13 @@
                 const r = await fetch('/api/tax-config', { cache: 'no-store' });
                 if (r.ok) {
                     const j = await r.json();
-                    sig.taxEngine = (j && j.effective && j.effective.engine) || (j && j.engine) || '';
+                    /* `effective` is the rate TABLE, never the engine — reading
+                       it for one is what made this always fall through to ''.
+                       And '' is not a harmless miss: the detectors treat
+                       undefined as "could not check" and anything else as an
+                       answer, so a response that does not carry an engine has
+                       to leave this unset rather than assert "none selected". */
+                    if (j && typeof j.engine === 'string' && j.engine) sig.taxEngine = j.engine;
                 }
             } catch (_) { /* leave undefined → detectors report unknown */ }
 

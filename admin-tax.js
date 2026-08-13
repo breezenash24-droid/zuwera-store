@@ -1428,8 +1428,33 @@
                       try { renderOhioCounties(); } catch (_) {}
                     }
 
+                    /* ── Why this waits instead of giving up ───────────────────
+                       admin-tax.js is loaded from inside the Tax page's markup,
+                       which the browser reaches around a third of the way down
+                       admin.html. admin-main.js — the thing that creates `sb` —
+                       is the last script on the page. So this function ran with
+                       no Supabase client, returned, and was never called again.
+
+                       The result was not an error anywhere. _taxEngineCfg simply
+                       kept its declared default of 'builtin', so the modal said
+                       "Built-in table — in use now" and the label beside it said
+                       the same, on every page load, no matter what was actually
+                       saved. Change the engine and it took; come back and the
+                       page said Built-in again. Indistinguishable from a setting
+                       that would not save, and the store meanwhile really was
+                       pricing every order with the engine you picked.
+
+                       Bounded, because a client that has not appeared in ten
+                       seconds is not going to, and a timer that never stops is
+                       its own bug. */
+                    function whenSupabaseReady(fn, tries) {
+                      if (window.sb) { fn(); return; }
+                      if ((tries || 0) >= 100) return;
+                      setTimeout(function () { whenSupabaseReady(fn, (tries || 0) + 1); }, 100);
+                    }
+
                     async function taxEngineLoad() {
-                      if (!window.sb) return;
+                      if (!window.sb) { whenSupabaseReady(taxEngineLoad); return; }
                       try {
                         const { data } = await sb.from('site_settings').select('value')
                           .eq('key', 'tax_engine').maybeSingle();
@@ -1615,5 +1640,9 @@
                     // Auto-init calendar (no DB needed)
                     buildCalendar();
                     taxRateTab('OH', document.getElementById('tax-rtab-OH'));
+                    /* Also re-read whenever the Tax page is opened: the engine
+                       can be changed from the modal, or in another tab, and a
+                       value read once at page load goes stale silently. */
+                    window.taxEngineLoad = taxEngineLoad;
                     taxEngineLoad();
                   })();
