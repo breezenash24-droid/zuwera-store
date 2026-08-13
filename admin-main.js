@@ -1626,6 +1626,69 @@
               docs:'https://console.twilio.com',
               steps:['console.twilio.com → buy a number','Copy the Account SID and Auth Token','Add them under API keys above'] },
 
+            /* ── Shipping platforms ─────────────────────────────────────────
+               What runs today is Shippo and Veeqo, rate-shopped together in
+               /api/shippo-rates: both are asked, the results are deduped by
+               carrier+service, the cheaper wins, and Veeqo carries on alone once
+               Shippo's 30-labels-a-month free tier is spent. The label itself is
+               bought in stripe-webhook against whichever provider quoted the
+               rate the customer chose — the provider is signed into the rate
+               token so it cannot drift between quote and purchase.
+
+               These two are listed as GUIDES on purpose, for the same reason the
+               tax providers below are: neither is wired into that path, so an
+               API key pasted anywhere would do nothing at all. Saying "connect
+               it" when nothing reads the key is the failure this catalogue keeps
+               trying to avoid — a card that looks finished while checkout quotes
+               from somewhere else entirely.
+
+               Adding one for real is a known job rather than a vague one, and a
+               small one, because the seam already exists: _veeqo.js is a working
+               example of a second provider — a getRates() that returns the
+               shared rate shape, a key reader, and a branch in the label
+               purchase. A third slots in beside it. Say which and it gets built.
+
+               The detector answers the question the card is actually for: given
+               that rates already work, is there a reason to add this? */
+            { key:'easypost', kind:'guide', icon:'📦', name:'EasyPost', cat:'Shipping',
+              blurb:'A shipping API in the same shape as Shippo — many carriers behind one integration, with address verification and tracking included. The reasons to move are usually carrier coverage or negotiated rates: EasyPost lets you bring your own carrier accounts, so if you have rates negotiated directly with UPS or FedEx it quotes those instead of a reseller\'s.',
+              free:'Free to quote rates; per-label fee on their own carrier accounts, free with your own',
+              docs:'https://www.easypost.com/docs/api',
+              steps:['Sign up at easypost.com and copy the Test and Production API keys',
+                     'Add any carrier accounts you have negotiated rates with — this is most of the value',
+                     'Secret key: Cloudflare → Pages → Settings → Environment variables, never the browser',
+                     'Tell me and I will add it alongside Shippo and Veeqo in /api/shippo-rates, so all three are rate-shopped rather than one replacing the others'],
+              detect: (_sig, ctx) => {
+                  const mk = (ctx && ctx.maskedKeys) || {};
+                  /* A key that nothing reads is worse than no key: it looks
+                     done. Say so plainly if one ever gets set. */
+                  if (mk['EASYPOST_API_KEY']) {
+                      return { state: 'attention', why: 'EASYPOST_API_KEY is set, but nothing reads it — checkout still quotes from Shippo and Veeqo. It needs wiring into /api/shippo-rates before it does anything.' };
+                  }
+                  const have = ['SHIPPO_API_KEY', 'VEEQO_API_KEY'].filter(k => mk[k]).length;
+                  if (!have) return { state: 'off', why: 'Nothing is quoting shipping rates right now, so this is worth a look.' };
+                  return { state: 'off', why: have === 2
+                      ? 'Not wired in. Shippo and Veeqo already rate-shop your carriers — add this only for coverage they lack, or to use carrier accounts you negotiated yourself.'
+                      : 'Not wired in. Shippo already quotes your rates; this would be an alternative rather than an addition.' };
+              } },
+
+            { key:'shipstation', kind:'guide', icon:'🚚', name:'ShipStation', cat:'Shipping',
+              blurb:'Less a rate API than a warehouse: batch label printing, pick lists, packing slips and multi-channel order import. Worth it when packing orders is the bottleneck rather than quoting them — for one-at-a-time fulfilment it adds a screen to log into without removing one.',
+              free:'No free tier — from around $10/mo, priced by monthly order volume',
+              docs:'https://www.shipstation.com/docs/api/',
+              steps:['Sign up at shipstation.com → Settings → Account → API Settings',
+                     'Generate the API Key and API Secret (both are needed; it uses HTTP Basic auth)',
+                     'Connect your carrier accounts and your store as a selling channel',
+                     'Secret credentials: Cloudflare env vars only',
+                     'Decide first whether you want it QUOTING at checkout or only fulfilling afterwards — those are two different jobs and only the first touches the customer'],
+              detect: (_sig, ctx) => {
+                  const mk = (ctx && ctx.maskedKeys) || {};
+                  if (mk['SHIPSTATION_API_KEY'] || mk['SHIPSTATION_API_SECRET']) {
+                      return { state: 'attention', why: 'ShipStation credentials are set, but nothing reads them — no orders are being sent there and checkout still quotes from Shippo and Veeqo.' };
+                  }
+                  return { state: 'off', why: 'Not wired in. This solves packing and batch labels, which Shippo and Veeqo do not — it is not a replacement for either.' };
+              } },
+
             /* ── Sales tax providers ────────────────────────────────────────
                What runs today is the built-in table: state rates, Ohio by county
                via ZIP3, Illinois by ZIP3, flat KY/IN, plus whatever Admin → Tax
