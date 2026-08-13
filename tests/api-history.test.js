@@ -88,7 +88,26 @@ console.log('\n  reading it back');
   ok('…querying the same column the migration defines',
     /webhook_events\?select=received_at/.test(API) && /received_at\s+timestamptz/.test(SQL),
     'a read naming a column the table does not have returns nothing, silently');
-  ok('neither can fail the page', /Promise\.allSettled\(\[statusHistory\(env\), lastUsed\(env\)\]\)/.test(API));
+  /* Loosely matched on the members rather than the exact array literal — a
+     third annotation (key changes) was added and the arity is not the property
+     being asserted. What matters is that NONE of them can fail the page: they
+     are all optional colour on a panel whose job is to load. */
+  ok('none of the annotations can fail the page',
+    /Promise\.allSettled\(\[[\s\S]{0,120}?statusHistory\(env\)[\s\S]{0,120}?lastUsed\(env\)/.test(API));
+  ok('…including the key-change history', /keyChanges\(env\)/.test(API));
+  /* Key changes were recorded ONLY as an alert email until now, so the record
+     of who rotated what lived in an inbox for as long as somebody kept it —
+     while every other consequential admin action went to admin_audit_log. */
+  const UPD = fs.readFileSync(path.join(ROOT, 'functions/api/update-api-key.js'), 'utf8');
+  ok('a key change is written to the audit log, not only emailed',
+    /action: rejected \? 'api_key\.rejected' : 'api_key\.update'/.test(UPD));
+  ok('…and a REJECTED attempt is recorded too',
+    /auditKeyChange\(env, \{ keyName, masked: null[\s\S]{0,80}rejected: true \}\)/.test(UPD),
+    'somebody probing what this endpoint accepts is the more interesting row');
+  ok('…storing the masked preview, never the value',
+    /metadata: \{ masked: masked \|\| null \}/.test(UPD) && !/metadata: \{ value/.test(UPD));
+  ok('…best-effort, so a log failure cannot fail the save',
+    /catch \(_\) \{ \/\* the alert email carries the same facts/.test(UPD));
   ok('each service carries its own history and evidence',
     /s\.history = history\[name\]/.test(CODE(API)) && /s\.lastUsed = used\[name\]/.test(CODE(API)));
 }

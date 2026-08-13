@@ -1945,6 +1945,9 @@
                   <div class="integration-foot">
                     <span class="integration-free">${escapeHtml(it.free)}</span>
                     ${it.tucked ? `<button class="btn btn-secondary" onclick="moveApiCard('${it.tucked}','up')">⤒ Move back up</button>` : ''}
+                    ${(!it.tucked && (st.state === 'live' || st.state === 'ready' || st.state === 'attention'))
+                        ? `<button class="btn btn-secondary" title="${apiIsPinned(it.key) ? 'Send it back to the catalogue' : 'Show this with the APIs you actually use, instead of down here'}" onclick="pinIntegration('${it.key}', ${apiIsPinned(it.key) ? 'false' : 'true'})">${apiIsPinned(it.key) ? '⤓ Unpin' : '⤒ Pin to top'}</button>`
+                        : ''}
                     <button class="btn btn-secondary" onclick="openIntegrationSetup('${it.key}')">${it.kind === 'guide' ? 'How it works' : on ? 'Manage' : it.kind === 'toggle' ? 'Turn on' : 'Set up'}</button>
                   </div>
                 </div>`;
@@ -2173,6 +2176,10 @@
 
         // Cached masked key map populated when the page loads
         let _maskedKeys = {};
+        /* When each key was last changed, and by whom. Written by
+           update-api-key.js into admin_audit_log — until it did, that record
+           existed only in whoever's inbox got the alert email. */
+        let _keyChanges = {};
         let _currentKeyService = null;
 
         // ─── Meta (Facebook) integration status ──────────────────────────────────
@@ -2275,6 +2282,7 @@
 
                 const s = data.services || {};
                 _maskedKeys = data.maskedKeys || {};
+                _keyChanges = data.keyChanges || {};
 
                 loadingEl.style.display = 'none';
                 gridEl.style.display    = '';
@@ -2313,6 +2321,31 @@
                           optional: true },
                         () => buildCronRows(_maskedKeys), 'cron', 'https://console.cron-job.org'),
                 ];
+
+                /* Catalogue integrations you pinned. Rendered as real API cards
+                   rather than a second kind of tile, so a thing you use looks
+                   like the other things you use — and carries its own state,
+                   reason and troubleshooting exactly as it does downstairs. */
+                for (const key of (_apiLayout.pinned || [])) {
+                    const it = ZW_INTEGRATION_CATALOG.find(x => x.key === key);
+                    if (!it) continue;              // catalogue entry removed since it was pinned
+                    const st = integrationState(it);
+                    cards.push(renderApiCard(
+                        it.icon || '🧩',
+                        it.name,
+                        { ok: st.state === 'live' || st.state === 'ready',
+                          configured: st.state !== 'off',
+                          optional: true },
+                        () => `${st.why ? `<p class="api-note">${escapeHtml(st.why)}</p>` : ''}`
+                            + `<p class="api-note">${escapeHtml(it.blurb)}</p>`
+                            + `<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">`
+                            + `<button class="btn btn-secondary" style="font-size:.75rem;padding:6px 12px;" onclick="openIntegrationSetup('${it.key}')">${it.kind === 'guide' ? 'How it works' : 'Manage'}</button>`
+                            + `<button class="btn btn-secondary" style="font-size:.75rem;padding:6px 12px;" onclick="pinIntegration('${it.key}', false)">⤓ Unpin</button>`
+                            + `</div>`,
+                        null,
+                        it.docs || '#',
+                    ));
+                }
                 // Tucked-away services drop out of this grid and reappear as
                 // cards in More Integrations, where they still open the same
                 // key editor. Nothing is disabled by moving it.
@@ -3085,6 +3118,19 @@
                 if (chips.length) {
                     keyChips = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;">${chips.join('')}</div>`;
                 }
+                /* "This stopped working on Tuesday — did somebody change the
+                   key?" belongs next to the key it is about. Newest across all
+                   of this card's keys, named, because a card owning three keys
+                   makes "which one" the useful half of the answer. */
+                const changes = def.keys
+                    .map(k => (_keyChanges[k.name] ? { name: k.name, ..._keyChanges[k.name] } : null))
+                    .filter(Boolean)
+                    .sort((a, b) => new Date(b.at) - new Date(a.at));
+                if (changes.length) {
+                    const c = changes[0];
+                    keyChips += `<p class="api-note api-keychange">${c.rejected ? 'Blocked change attempt on' : 'Key changed'} `
+                        + `<code>${escapeHtml(c.name)}</code> ${escapeHtml(sinceWords(c.at))} by ${escapeHtml(c.by)}</p>`;
+                }
             }
 
             const editBtn = def
@@ -3120,22 +3166,40 @@
            Stripe does not want to scroll past DeepL to reach it. So the split is
            the admin's to set, stored per store rather than per browser — a
            licensee configures it once and their whole team sees it. */
-        let _apiLayout = { demoted: [] };
+        /* Which cards sit up top, and which are tucked into the catalogue.
+           `demoted` moves an API-key service DOWN into More Integrations.
+           `pinned` is the reverse trip for a catalogue integration: something
+           you actually use, promoted UP so it sits with the rest of the things
+           you look at. Both directions matter for the same reason — a panel
+           where the things you use are mixed in with twenty you do not is a
+           panel you scroll past. */
+        let _apiLayout = { demoted: [], pinned: [] };
         const apiIsDemoted = (svc) => Array.isArray(_apiLayout.demoted) && _apiLayout.demoted.includes(svc);
+        const apiIsPinned  = (key) => Array.isArray(_apiLayout.pinned)  && _apiLayout.pinned.includes(key);
 
         async function loadApiLayout() {
             try {
                 const { data } = await sb.from('site_settings').select('value').eq('key', 'api_layout').maybeSingle();
                 let v = data?.value;
                 if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
-                _apiLayout = (v && Array.isArray(v.demoted)) ? v : { demoted: [] };
-            } catch (_) { _apiLayout = { demoted: [] }; }
+                _apiLayout = {
+                    demoted: (v && Array.isArray(v.demoted)) ? v.demoted : [],
+                    /* Defaulted rather than assumed: a layout saved before
+                       pinning existed has no such array, and reading it as one
+                       would throw on the first .includes(). */
+                    pinned:  (v && Array.isArray(v.pinned))  ? v.pinned  : [],
+                };
+            } catch (_) { _apiLayout = { demoted: [], pinned: [] }; }
         }
 
         async function moveApiCard(service, dir) {
             const set = new Set(_apiLayout.demoted || []);
             if (dir === 'down') set.add(service); else set.delete(service);
-            _apiLayout = { demoted: [...set] };
+            /* Spread the rest rather than rebuilding the object — writing
+               `{ demoted: [...set] }` silently dropped `pinned` on every move,
+               which is the sort of thing that only shows up as "my layout keeps
+               resetting". */
+            _apiLayout = { ..._apiLayout, demoted: [...set] };
             try {
                 const { error } = await sb.from('site_settings').upsert(
                     { key: 'api_layout', value: _apiLayout }, { onConflict: 'key' });
@@ -3145,6 +3209,26 @@
                 showToast('Could not save the layout: ' + ((err && err.message) || 'error'), 'error');
             }
             // Both lists change, so both are redrawn.
+            loadApiStatus();
+            renderIntegrationStore();
+        }
+
+        /* Promote a catalogue integration into the API list, or send it back.
+           The catalogue is a shop — twenty-two things you might use. The API
+           list is the ones you do. Something you have actually configured
+           belongs where you look, not behind a scroll and a search box. */
+        async function pinIntegration(key, on) {
+            const set = new Set(_apiLayout.pinned || []);
+            if (on) set.add(key); else set.delete(key);
+            _apiLayout = { ..._apiLayout, pinned: [...set] };
+            try {
+                const { error } = await sb.from('site_settings').upsert(
+                    { key: 'api_layout', value: _apiLayout }, { onConflict: 'key' });
+                if (error) throw error;
+                showToast(on ? 'Pinned to the top.' : 'Unpinned.', 'success');
+            } catch (err) {
+                showToast('Could not save the layout: ' + ((err && err.message) || 'error'), 'error');
+            }
             loadApiStatus();
             renderIntegrationStore();
         }
