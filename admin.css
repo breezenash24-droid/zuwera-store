@@ -426,6 +426,12 @@
         .api-spark-bar.down { height: 5px;  background: rgba(239,68,68,.75); }
         .api-flap { color: #facc15; }
         .api-lastused { margin-top: 4px; opacity: .85; }
+        /* A forecast is a different kind of statement from a measurement, so it
+           does not get to look like one. Amber only when it actually predicts
+           running out — an on-track projection is reassurance, not a warning. */
+        .api-forecast { margin-top: 8px; padding-left: 9px; border-left: 2px solid var(--border); }
+        .api-forecast.warn { border-left-color: #f59e0b; color: #f59e0b; }
+        .api-forecast.over { border-left-color: #ef4444; color: #ef4444; }
 
         .api-badge-wrap { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
         .api-optional-tag {

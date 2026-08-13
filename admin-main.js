@@ -2348,6 +2348,8 @@
             if (!s.ok) return `<p class="api-note" style="color:var(--error);">Connection failed: ${s.error || 'Unknown error'}</p><p class="api-note">Check your Cloud Name, API Key, and API Secret in the editor below.</p>`;
             let rows = apiRow('Plan', s.plan || 'Free');
             if (s.credits)   rows += apiRow('Credits used', `${(s.credits.usage||0).toFixed(1)} / ${s.credits.limit || 25}`) + usageBar(s.credits.used_percent || 0);
+            if (s.credits)   rows += projectQuota(s.credits.usage, s.credits.limit || 25,
+                { whenOver: 'Image transforms then fail rather than falling back, so this one is worth watching.' });
             if (s.storage)   rows += apiRow('Storage', `${fmtBytes(s.storage.usage)} / ${fmtBytes(s.storage.limit)}`) + usageBar(s.storage.used_percent || 0);
             if (s.bandwidth) rows += apiRow('Bandwidth', `${fmtBytes(s.bandwidth.usage)} / ${fmtBytes(s.bandwidth.limit)}`) + usageBar(s.bandwidth.used_percent || 0);
             if (s.objects)   rows += apiRow('Objects (files)', `${(s.objects.usage||0).toLocaleString()} / ${(s.objects.limit||3000).toLocaleString()}`);
@@ -2385,6 +2387,8 @@
                 }).join('<br>');
                 rows += apiRow('Verified domains', domainList);
             }
+            if (s.freeTier) rows += projectQuota(s.freeTier.used, s.freeTier.limit,
+                { whenOver: 'Labels then come from Veeqo, which is a different account and a different bill.' });
             if (s.note) rows += `<p class="api-note">${s.note}</p>`;
             return rows;
         }
@@ -2537,6 +2541,8 @@
             rows += usageBar(s.usedPercent || 0);
             rows += apiRow('Remaining', remaining + ' chars');
             rows += apiRow('Free plan limit', '500,000 chars/month');
+            rows += projectQuota(s.characterCount, s.characterLimit,
+                { whenOver: 'DeepL charges per character past that.' });
             /* The way out, said where the bill shows up. DeepL is paid past
                500k characters a month, and until now that was the only
                translator — so the natural conclusion on hitting the limit was
@@ -2631,6 +2637,61 @@
                 : '<span style="color:var(--warning)">Not set — using default wordmark</span>');
             rows += `<p class="api-note">Both Resend and Brevo send the exact same email from this address. The from address must be verified in both services.</p>`;
             return rows;
+        }
+
+        /* ─── Turning a quota into a decision ──────────────────────────────────
+           Every card with a limit prints "26 / 30" and stops. That is a fact
+           about the past. What anyone actually wants is whether they are going
+           to run out, and roughly when — because that is the point where
+           something CHANGES: Shippo's free labels running out silently moves
+           label buying to Veeqo, and DeepL's free characters running out starts
+           a bill.
+
+           Straight-line from usage so far this month. Deliberately not smarter
+           than that: a 30-label allowance does not have enough signal in it for
+           a weighting scheme, and a confident-looking forecast built on eleven
+           data points would be worse than an obvious one.
+
+           Returns '' whenever a projection would be dishonest — no limit, no
+           usage, or too early in the month for the rate to mean anything. A
+           missing forecast is better than a made-up one. */
+        function projectQuota(used, limit, opts) {
+            const o = opts || {};
+            const now = o.now ? new Date(o.now) : new Date();
+            const u = Number(used), lim = Number(limit);
+            if (!Number.isFinite(u) || !Number.isFinite(lim) || lim <= 0) return '';
+
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const dayOfMonth  = now.getDate();
+            /* Two days in, one label a day is not a trend. Saying so is the
+               honest answer; extrapolating it is how a panel cries wolf on the
+               3rd of every month. */
+            if (dayOfMonth < 3) return '';
+            if (u <= 0) return '';
+
+            const perDay = u / dayOfMonth;
+            const projected = perDay * daysInMonth;
+            const remaining = lim - u;
+
+            if (u >= lim) {
+                return `<p class="api-note api-forecast over">Free allowance used up for this month.${o.whenOver ? ' ' + o.whenOver : ''}</p>`;
+            }
+            if (projected <= lim) {
+                /* Comfortably inside. Worth saying — "you will not run out" is
+                   information too, and it stops someone pre-emptively paying. */
+                const pct = Math.round((projected / lim) * 100);
+                return `<p class="api-note api-forecast">On track for about ${Math.round(projected).toLocaleString()} of ${lim.toLocaleString()} this month (${pct}%) — no change expected.</p>`;
+            }
+
+            const daysLeft = remaining / perDay;
+            const crossOn = new Date(now.getTime() + daysLeft * 86400000);
+            /* If it crosses after the month ends, the reset saves you — the
+               straight line runs past a boundary the quota does not. */
+            if (crossOn.getMonth() !== now.getMonth()) {
+                return `<p class="api-note api-forecast">On track for about ${Math.round(projected).toLocaleString()} of ${lim.toLocaleString()} — close, but the monthly reset lands first.</p>`;
+            }
+            const when = crossOn.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            return `<p class="api-note api-forecast warn">At this month's rate you cross the ${lim.toLocaleString()} limit around <strong>${when}</strong>.${o.whenOver ? ' ' + o.whenOver : ''}</p>`;
         }
 
         /* "3 minutes ago", "yesterday". Relative, because the useful question is
