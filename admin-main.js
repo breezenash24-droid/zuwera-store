@@ -2626,6 +2626,14 @@
             rows += apiRow('Abandoned cart', set(!!masked['ABANDONED_CART_TOKEN']));
             rows += apiRow('Endpoint', ep('https://zuwera.store/api/send-abandoned-cart-emails'));
             rows += apiRow('Schedule', 'Hourly');
+            rows += `<hr style="border:none;border-top:1px solid var(--border);margin:10px 0">`;
+            /* The one on this list that is not a marketing email. Everything
+               else here sends something to a customer; this one watches the
+               services and tells YOU when one of them changes. */
+            rows += apiRow('Service watcher', set(!!masked['STATUS_WATCH_TOKEN']));
+            rows += apiRow('Endpoint', ep('https://zuwera.store/api/status-watch'));
+            rows += apiRow('Schedule', 'Every 15–30 min · token <code>STATUS_WATCH_TOKEN</code>');
+            rows += `<p class="api-note" style="margin-top:8px;">Runs the same checks this page runs and raises an alert when one <strong>changes</strong> — working to failing, and again when it recovers. Steady state says nothing, so the alerts stay worth reading. Without this, nothing checks these services unless somebody opens this page.</p>`;
             rows += `<p class="api-note" style="margin-top:12px;">Test either endpoint from cron-job.org with <strong>Test run</strong>: <code>{"ok":true,"sent":0}</code> = working · <code>401 unauthorized</code> = token mismatch.</p>`;
             return rows;
         }
@@ -14103,6 +14111,11 @@ const OPS_ALERT_EVENTS = [
        nothing recorded it. Everything else here is a degradation. */
     ['order-save-failed',         'An order was PAID but not saved — money taken, no record'],
     ['returns-no-signing-secret', 'Returns are silently failing — no signing secret set'],
+    /* Raised by the scheduled watcher, and only on a CHANGE. A cron that
+       reports "still failing" every fifteen minutes gets muted inside a day,
+       and a muted alert is the same silence plus the belief you are covered. */
+    ['service-down',              'A service stopped responding (scheduled check)'],
+    ['service-recovered',         'A service started working again'],
     ['email-fallback-brevo',      'Email fell back to Brevo (Resend down)'],
     ['email-fallback-loops',      'Email fell back to Loops (Resend + Brevo down)'],
     ['email-all-providers-down',  'Every email provider failed'],
