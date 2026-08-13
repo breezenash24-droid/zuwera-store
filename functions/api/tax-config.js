@@ -17,7 +17,7 @@
  */
 
 import { fetchSiteSettings } from './_settings.js';
-import { effectiveTables } from './_tax.js';
+import { effectiveTables, getTaxEngineConfig } from './_tax.js';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -38,8 +38,25 @@ export async function onRequestGet({ env }) {
       : {};
     // Strip the internal metadata before returning to the browser
     const { updatedAt: _u, editedKeys: _e, ...ratesOnly } = overrides;
+    /* WHICH engine, not just which rates. The integrations panel already asked
+       this endpoint for `engine` and this endpoint never answered — it read
+       tax_rate_overrides and nothing else — so the answer was always '' and the
+       Stripe Tax card reported "not selected as this store's engine" while
+       Stripe Tax was pricing every order. A card whose whole job is to tell you
+       whether something is switched on, confidently saying no.
+
+       Not a secret, and not a new exposure: /api/tax-quote has always returned
+       the engine name, and the provider credentials are Cloudflare env vars.
+       The worst this discloses is which tax service the store uses. */
+    const cfg = await getTaxEngineConfig(env);
+
     return new Response(JSON.stringify({
       ...ratesOnly,
+      engine: cfg.engine,
+      /* Whether the built-in table can still price an order if the provider
+         cannot be reached — which decides how much of the Tax page is even
+         relevant. */
+      fallback: cfg.fallback !== false,
       /* What checkout will actually charge from, so the Tax page can show the
          real numbers instead of a copy that drifts. */
       effective: effectiveTables(env, overrides),
