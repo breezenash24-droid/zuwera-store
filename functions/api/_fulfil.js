@@ -561,8 +561,28 @@ async function createShippingLabel(pi, meta, env) {
     throw new Error('Shippo label failed: ' + JSON.stringify(data.messages || data));
   }
 
-  // Count this Shippo label against the monthly free tier (non-fatal).
-  await incrementShippoMonthlyCount(env);
+  /* Count it — unless it was a TEST label.
+   *
+   * This counted every successful transaction, whatever mode the key was in. So
+   * a shop testing checkout burned through its own free-tier budget with labels
+   * that were never real: Shippo's test labels cost nothing and carry fake
+   * tracking numbers, but each one pushed the counter closer to the threshold
+   * that switches LIVE rate-shopping over to Veeqo. Test traffic was making a
+   * production routing decision.
+   *
+   * Two signals, because either alone can be absent. Shippo stamps `test` on
+   * the transaction object, which is authoritative when present; the key prefix
+   * is the fallback for a response that omits it. Neither being conclusive
+   * means counting it — over-counting costs a slightly early switch to a
+   * provider that also works, while under-counting means silently blowing
+   * through a real free tier. */
+  const isTestLabel = data.test === true
+    || String(env.SHIPPO_API_KEY || '').trim().startsWith('shippo_test_');
+  if (isTestLabel) {
+    console.log('Shippo TEST label — not counted against the free tier');
+  } else {
+    await incrementShippoMonthlyCount(env);   // non-fatal
+  }
 
   return data; // { tracking_number, tracking_url_provider, label_url, ... }
 }

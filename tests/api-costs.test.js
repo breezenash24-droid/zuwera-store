@@ -100,6 +100,53 @@ console.log('\n  the charge that is easiest to miss');
   ok('…nor "no tax at all"', /!== 'none'/.test(fn));
 }
 
+console.log('\n  test labels do not spend a real budget');
+{
+  const FULFIL = fs.readFileSync(path.join(ROOT, 'functions/api/_fulfil.js'), 'utf8');
+  const STATUS = fs.readFileSync(path.join(ROOT, 'functions/api/api-status.js'), 'utf8');
+  /* The counter incremented on every successful Shippo transaction whatever
+     mode the key was in, so testing checkout pushed a LIVE routing decision:
+     crossing the threshold switches real rate-shopping to Veeqo. Test labels
+     are free and carry fake tracking — they should cost nothing, including not
+     consuming a budget meant for real ones. */
+  ok('a test label is not counted', /const isTestLabel = data\.test === true/.test(FULFIL));
+  ok('…detected from the key prefix as well as the response flag',
+    /startsWith\('shippo_test_'\)/.test(FULFIL), 'either signal alone can be absent');
+  ok('…and only a real label increments',
+    /\} else \{[\s\S]{0,80}?await incrementShippoMonthlyCount\(env\)/.test(FULFIL));
+  /* Over-counting costs a slightly early switch to a provider that also works.
+     Under-counting means silently blowing through a real free tier. */
+  ok('…so an inconclusive answer counts it', /Neither being conclusive/.test(FULFIL));
+
+  ok('the card reports which mode the key is in', /const testMode = String\(key\)\.startsWith/.test(STATUS));
+  ok('…and says test labels are not real', /Test mode \(labels are not real\)/.test(STATUS));
+  ok('the projection is hidden for a test key',
+    /s\.freeTier && !s\.testMode/.test(ADMIN),
+    'forecasting a budget that is not being consumed is noise');
+}
+
+console.log('\n  Stripe Tax answers BOTH switches');
+{
+  const STATUS = fs.readFileSync(path.join(ROOT, 'functions/api/api-status.js'), 'utf8');
+  const TAXCFG = fs.readFileSync(path.join(ROOT, 'functions/api/tax-config.js'), 'utf8');
+  ok('the Stripe account itself is checked', /api\.stripe\.com\/v1\/tax\/settings/.test(STATUS));
+  /* Whether a business has registered for tax collection is account
+     information, and /api/tax-config is a PUBLIC endpoint. */
+  ok('…behind the admin check, not on the public tax endpoint', !/tax\/settings/.test(TAXCFG));
+  ok('a 403 reads as "not enabled" rather than a failure', /resp\.status === 403/.test(STATUS));
+  ok('…and pending reasons come back in Stripe\'s own words', /missing_fields/.test(STATUS));
+
+  /* The state worth shouting about: enabled, paid for, and doing nothing,
+     because the second switch was never flipped. Calling that "Not set up" is
+     how a shop believes tax is handled while the built-in table prices
+     everything. */
+  ok('enabled-but-not-selected is flagged, not called "not set up"',
+    /Active in your Stripe account, but NOT selected here/.test(ADMIN));
+  ok('…and selected-but-inactive is flagged too',
+    /but Stripe Tax is not active on the Stripe account/.test(ADMIN));
+  ok('…while both switches on reads as live', /Active in Stripe and pricing every order/.test(ADMIN));
+}
+
 console.log('\n  it is rendered, and cannot break the page');
 {
   ok('there is somewhere to put it', /id="api-cost-summary"/.test(HTML));
