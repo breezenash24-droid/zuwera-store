@@ -27,6 +27,7 @@
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { sendTransactional, orderStatusUrl } from './_email.js';
 import { mintOrderToken } from './_order-token.js';
+import { isPaused } from './_paused.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
@@ -365,7 +366,11 @@ export async function onRequestPost({ request, env }) {
   const fromEmail  = resolveSetting('EMAIL_FROM',           env, cache) || 'orders@zuwera.store';
   const logoUrl    = resolveSetting('BRAND_LOGO_URL',       env, cache) || LOGO_FALLBACK;
   const appearance = getEmailAppearance(cache); appearance.logo = logoUrl;
-  const twilioSid  = resolveSetting('TWILIO_ACCOUNT_SID',   env, cache);
+  /* A pause reads as "no credentials", so sendSms takes the early return it
+     already has for an unconfigured account. Reusing a path that is known to be
+     correct beats adding a second one that might not be. */
+  const smsPaused  = isPaused(cache, 'twilio');
+  const twilioSid  = smsPaused ? '' : resolveSetting('TWILIO_ACCOUNT_SID',   env, cache);
   const twilioAuth = resolveSetting('TWILIO_AUTH_TOKEN',    env, cache);
   const twilioFrom = resolveSetting('TWILIO_FROM_NUMBER',   env, cache);
 

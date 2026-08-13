@@ -757,9 +757,13 @@ export async function onRequestGet({ request, env, waitUntil }) {
      history is missing until migration 0014 runs, and email_log/webhook_events
      may be empty on a new store. A status panel that breaks because its own
      annotations are unavailable would be a poor trade. */
-  const [historyR, usedR, changedR] = await Promise.allSettled([
-    statusHistory(env), lastUsed(env), keyChanges(env),
+  const [historyR, usedR, changedR, pausedR] = await Promise.allSettled([
+    statusHistory(env), lastUsed(env), keyChanges(env), fetchSiteSettings(['api_paused'], env),
   ]);
+  const pausedCache = pausedR.status === 'fulfilled' ? (pausedR.value || {}) : {};
+  let pausedMap = pausedCache.api_paused || {};
+  if (typeof pausedMap === 'string') { try { pausedMap = JSON.parse(pausedMap); } catch (_) { pausedMap = {}; } }
+  if (!pausedMap || typeof pausedMap !== 'object') pausedMap = {};
   const history = historyR.status === 'fulfilled' ? historyR.value : {};
   const used    = usedR.status === 'fulfilled' ? usedR.value : {};
   const changed = changedR.status === 'fulfilled' ? changedR.value : {};
@@ -788,5 +792,8 @@ export async function onRequestGet({ request, env, waitUntil }) {
        "which of Cloudinary's three changed" is the useful part. The admin does
        the mapping because it already knows which keys belong to which card. */
     keyChanges: changed,
+    /* Which non-critical services are paused, so a card can say so rather than
+       looking healthy while doing nothing. */
+    paused: pausedMap,
   });
 }

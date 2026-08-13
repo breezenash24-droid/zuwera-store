@@ -1207,6 +1207,15 @@
                       if (wrap) wrap.style.display = engine === 'external' ? '' : 'none';
                       const note = document.getElementById('tax-engine-note');
                       if (note) note.innerHTML = TAX_ENGINE_NOTES[engine] || '';
+                      /* The dropdown is hidden now, so this label is the only
+                         thing telling you what is actually pricing orders. It
+                         has to follow the same value the select holds, or the
+                         page shows one engine while another does the work —
+                         which is the failure this whole change exists to make
+                         impossible. */
+                      const cur = document.getElementById('tax-engine-current');
+                      const meta = (window.TAX_ENGINE_META || {})[engine];
+                      if (cur) cur.textContent = meta ? (meta.icon + '  ' + meta.name) : engine;
                     };
 
                     async function taxEngineLoad() {
@@ -1239,6 +1248,101 @@
                       if (sh) sh.value = _taxEngineCfg.shadowEngine || '';
                       window.taxEngineOnChange();
                     }
+
+                    /* ─── Which engine, chosen deliberately ─────────────────────
+                       This was a dropdown that saved on the spot. For a colour
+                       that is right; for the thing deciding what every customer
+                       is charged in tax it is not — one stray click and every
+                       order from that moment is priced by something else, with
+                       nothing afterwards to tell an accident from a decision.
+
+                       The change now goes through a modal that says what each
+                       engine actually is, and through /api/admin-control, which
+                       wants an authorization code and writes an audit row. The
+                       other settings on this page still save normally: they tune
+                       an engine, they do not swap it. */
+                    const TAX_ENGINE_META = {
+                      builtin:    { icon: '📋', name: 'Built-in table', cost: 'Free',
+                                    blurb: 'State-level rates kept in this repo. Cannot know county or city rates, or that clothing is exempt in some states.' },
+                      stripe_tax: { icon: '💳', name: 'Stripe Tax', cost: '0.5% per transaction it prices',
+                                    blurb: 'Uses the Stripe account you already charge through. No key, no signup. Enable it in Stripe → Settings → Tax first.' },
+                      taxjar:     { icon: '🧮', name: 'TaxJar', cost: 'From about $19/mo',
+                                    blurb: 'Needs TAXJAR_API_KEY. Strong reporting and filing.' },
+                      taxcloud:   { icon: '☁️', name: 'TaxCloud', cost: 'Cheapest paid option',
+                                    blurb: 'Needs TAXCLOUD_API_LOGIN_ID and KEY. Watch the transaction tiers.' },
+                      avalara:    { icon: '🌍', name: 'Avalara AvaTax', cost: 'Enterprise pricing',
+                                    blurb: 'Needs AVALARA_ACCOUNT_ID and LICENSE_KEY. The heaviest option here.' },
+                      ziptax:     { icon: '📍', name: 'Zip-Tax', cost: 'Low monthly',
+                                    blurb: 'Needs ZIPTAX_API_KEY. Rate lookup only — it files nothing for you.' },
+                      external:   { icon: '🔌', name: 'My own endpoint', cost: 'Yours',
+                                    blurb: 'Posts each cart to an https endpoint you run and uses what it returns.' },
+                      none:       { icon: '🚫', name: 'Collect no tax', cost: 'Free',
+                                    blurb: 'Every order is charged $0 tax. Only correct if something outside this checkout collects it, or you owe none anywhere.' },
+                    };
+                    window.TAX_ENGINE_META = TAX_ENGINE_META;
+
+                    window.openTaxEngineModal = function() {
+                      const cur = String((_taxEngineCfg && _taxEngineCfg.engine) || 'builtin');
+                      const host = document.getElementById('tax-engine-modal');
+                      if (!host) return;
+                      host.querySelector('[data-te-list]').innerHTML = Object.keys(TAX_ENGINE_META).map(function(k) {
+                        const m = TAX_ENGINE_META[k];
+                        const on = k === cur;
+                        return '<label class="te-option' + (on ? ' is-current' : '') + '">'
+                          + '<input type="radio" name="te-engine" value="' + k + '"' + (on ? ' checked' : '') + '>'
+                          + '<span class="te-icon">' + m.icon + '</span>'
+                          + '<span class="te-body"><span class="te-name">' + m.name
+                          + (on ? ' <em>— in use now</em>' : '') + '</span>'
+                          + '<span class="te-blurb">' + m.blurb + '</span>'
+                          + '<span class="te-cost">' + m.cost + '</span></span></label>';
+                      }).join('');
+                      const codeEl = host.querySelector('[data-te-code]');
+                      if (codeEl) codeEl.value = '';
+                      const st = host.querySelector('[data-te-status]');
+                      if (st) st.textContent = '';
+                      host.classList.add('open');
+                    };
+
+                    window.closeTaxEngineModal = function() {
+                      const host = document.getElementById('tax-engine-modal');
+                      if (host) host.classList.remove('open');
+                    };
+
+                    window.confirmTaxEngineChange = async function(btn) {
+                      const host = document.getElementById('tax-engine-modal');
+                      const st = host.querySelector('[data-te-status]');
+                      const picked = host.querySelector('input[name="te-engine"]:checked');
+                      const code = (host.querySelector('[data-te-code]') || {}).value || '';
+                      if (!picked) return;
+                      const engine = picked.value;
+                      if (!code.trim()) {
+                        st.style.color = 'var(--error)';
+                        st.textContent = 'Enter the authorization code to confirm.';
+                        return;
+                      }
+                      btn.disabled = true; btn.textContent = 'Changing…';
+                      st.style.color = 'var(--text-secondary)';
+                      st.textContent = 'Applying…';
+                      try {
+                        const { data: { session } } = await sb.auth.getSession();
+                        const resp = await fetch('/api/admin-control', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            accessToken: session && session.access_token,
+                            action: 'tax-engine', engine, code: code.trim(),
+                          }),
+                        });
+                        const out = await resp.json();
+                        if (!out.ok) throw new Error(out.error || 'Could not change the engine.');
+                        st.style.color = 'var(--success, #4ade80)';
+                        st.textContent = 'Changed. Every order from now on is priced by ' + engine + '.';
+                        setTimeout(function() { window.closeTaxEngineModal(); taxEngineLoad(); }, 900);
+                      } catch (e) {
+                        st.style.color = 'var(--error)';
+                        st.textContent = (e && e.message) || 'Could not change the engine.';
+                      } finally { btn.disabled = false; btn.textContent = 'Change engine'; }
+                    };
 
                     window.taxEngineSave = async function() {
                       const sel = document.getElementById('tax-engine-select');

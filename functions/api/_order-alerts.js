@@ -12,6 +12,7 @@
  */
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { isPaused } from './_paused.js';
 
 const TIMEOUT_MS = 4000;
 
@@ -52,7 +53,10 @@ export async function sendOrderAlerts(env, order) {
   let slack = '';
   let discord = '';
   try {
-    const cache = await fetchSiteSettings(['SLACK_WEBHOOK_URL', 'DISCORD_WEBHOOK_URL'], env);
+    const cache = await fetchSiteSettings(['SLACK_WEBHOOK_URL', 'DISCORD_WEBHOOK_URL', 'api_paused'], env);
+    /* Paused from the admin. Read here rather than at the webhook call so a
+       pause covers both channels at once and cannot half-apply. */
+    if (isPaused(cache, 'orderAlerts')) return;
     slack   = resolveSetting('SLACK_WEBHOOK_URL', env, cache);
     discord = resolveSetting('DISCORD_WEBHOOK_URL', env, cache);
   } catch (e) {

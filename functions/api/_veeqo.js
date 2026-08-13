@@ -15,10 +15,16 @@
  */
 
 import { resolveSetting } from './_settings.js';
+import { isPaused } from './_paused.js';
 
 const VEEQO_BASE = 'https://api.veeqo.com';
 
 export function veeqoKey(env, cache) {
+  /* A pause reads as "no key", which is deliberate: every caller already knows
+     how to cope with Veeqo being absent — rate-shopping falls back to Shippo,
+     the status card says not configured — so pausing reuses a path that is
+     already correct instead of adding a second one that might not be. */
+  if (isPaused(cache || {}, 'veeqo')) return '';
   return resolveSetting('VEEQO_API_KEY', env, cache || {});
 }
 
