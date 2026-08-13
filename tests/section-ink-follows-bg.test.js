@@ -1,27 +1,34 @@
-/* The product names were the same colour as the band behind them.
+/* Read the background. Do not predict it.
  *
- * A section's BACKGROUND and its TEXT were decided from two different readings
- * of one field.
+ * Three separate attempts to work out what colour a section would END UP being,
+ * from the value stored for it:
  *
- *   background:  resolveSectionBackground('#ffffff') → LEGACY_BG_TOKENS says
- *                that literal meant "the page colour", so it returns
- *                var(--black) — which on a dark theme paints DARK.
- *   text:        _zwIsLightColor('#ffffff') on the RAW literal → true → force
- *                #09090b on everything inside, plus .zw-on-light to darken any
- *                child that sets its own colour.
+ *   a token          → paired by name
+ *   a legacy literal → recognised as standing for a token
+ *   anything else    → luminance on the literal
  *
- * Dark ink on a dark band. The names under the product cards were still on the
- * page, in the colour of what was behind them.
+ * Each rule was right about the case it was written for and wrong about one it
+ * was not, and when two of them disagreed about the same field the products
+ * strip rendered dark ink on a dark band — the names were on the page in the
+ * colour of what was behind them.
  *
- * The literal is not the problem and must not be rewritten: it is what the
- * colour picker handed over when somebody meant "a light band", back before
- * naming that intention was possible, and reading it as the token it stood for
- * is the entire purpose of LEGACY_BG_TOKENS. The problem was asking it a
- * question it had already stopped being the answer to.
+ * The browser already knows the answer. Once the background is applied,
+ * getComputedStyle resolves every var(), token and literal to one rgb() string.
+ * Measuring that is not a better guess, it is the end of guessing — and it goes
+ * on working for backgrounds nobody has thought of yet.
  *
- * A background that tracks the theme keeps the page's own foreground, which is
- * right by construction. Only a literal that stays light in EVERY theme needs
- * its text darkened.
+ * Two things it has to be honest about:
+ *
+ *   TRANSPARENCY. token:tint is rgb(var(--fg-rgb) / 6%): a wash, not a colour.
+ *   What the eye sees is that wash over whatever is behind it. Reading 6% cream
+ *   as "cream" would darken text on a page that is still essentially black.
+ *
+ *   IMAGES. A photograph has no single colour, and choosing one would be
+ *   inventing an answer. Nothing is forced, and every element keeps its own
+ *   styling — what happened before any of this existed.
+ *
+ * And the fix has two halves. Only the light one existed, which quietly assumed
+ * a section could never be DARKER than the page.
  */
 const fs = require('fs');
 const path = require('path');
@@ -29,84 +36,116 @@ const ROOT = path.resolve(__dirname, '..');
 let pass = 0, fail = 0;
 const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { fail++; console.log('  ✗ ' + n + (e ? '  — ' + e : '')); } };
 
-const SF = fs.readFileSync(path.join(ROOT, 'storefront.js'), 'utf8');
+const SF  = fs.readFileSync(path.join(ROOT, 'storefront.js'), 'utf8');
+const CSS = fs.readFileSync(path.join(ROOT, 'storefront-cohesion.css'), 'utf8');
 
-/* The real predicate and the real resolver, lifted out and run together — the
-   bug was that they disagreed, so testing either alone would have missed it. */
-const slice = (from, to) => SF.slice(SF.indexOf(from), SF.indexOf(to));
-const src = slice('const SECTION_BG_TOKENS = {', 'function sectionFgForToken')
-  + slice('const LEGACY_BG_TOKENS = {', '  function resolveSectionBackground(value) {')
-  + slice('  function resolveSectionBackground(value) {', '  window.zwSectionBgTokens');
-const M = new Function(src + ';return { resolve: resolveSectionBackground, tracks: sectionBgTracksTheme };')();
+/* The real function, run against a stack of elements we control. */
+const start = SF.indexOf('const INK_DARK  =');
+const end = SF.indexOf('\n  function sectionBgTracksTheme');
+const src = SF.slice(start, end);
 
-/* The luminance check the page uses, close enough for these inputs. */
-function isLight(c) {
-  const h = String(c).replace('#', '');
-  if (!/^[0-9a-f]{6}$/i.test(h)) return false;
-  const [r, g, b] = h.match(/../g).map((x) => parseInt(x, 16));
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;
-}
-/* The decision as the page now makes it. */
-const forcesDarkInk = (bg) => !!(bg && !M.tracks(bg) && isLight(bg));
-
-console.log('\n  a section’s ink follows the background it will actually have\n');
-
-console.log('  the case from the screenshot');
-{
-  /* This is the value in the live page_builder_published row. */
-  ok('a legacy white background resolves to the page colour',
-    M.resolve('#ffffff') === 'var(--black)',
-    'so on a dark theme it paints dark, not white');
-  ok('…so it must NOT force dark ink', forcesDarkInk('#ffffff') === false,
-    'forcing #09090b onto a band the theme just painted dark is the bug');
-  ok('…and it is recognised as theme-tracking', M.tracks('#ffffff') === true);
+/* Each entry is one element, nearest first; the last is <body>. */
+function inkFor(stack) {
+  const nodes = stack.map((s, i) => ({
+    nodeType: 1,
+    _bg: s.bg || 'rgba(0, 0, 0, 0)',
+    _img: s.img || 'none',
+    get parentElement() { return nodes[i + 1] || null; },
+  }));
+  const body = { nodeType: 1, _bg: stack.body || 'rgb(9, 9, 11)', _img: 'none' };
+  const gcs = (n) => ({ backgroundColor: n._bg, backgroundImage: n._img });
+  const fn = new Function('getComputedStyle', 'document', src + ';return zwInkFor;')(
+    gcs, { body });
+  return fn(nodes[0]);
 }
 
-console.log('\n  the other legacy literals behave the same way');
+const DARK = '#09090b', LIGHT = '#f4f1eb';
+
+console.log('\n  the ink is measured, not guessed\n');
+
+console.log('  an opaque background answers for itself');
 {
-  for (const c of ['#f4f1eb', '#F0EEE9', '#FFFFFF']) {
-    ok(c + ' tracks the theme', M.tracks(c) === true, 'case must not matter');
-    ok('…and does not force dark ink', forcesDarkInk(c) === false);
-  }
-  /* The dark legacy literal was never broken — it forced nothing before and
-     forces nothing now — but it has to keep resolving to the inverted band. */
-  ok('#09090b still means the inverted band', M.resolve('#09090b') === 'var(--ink)');
-  ok('…and still forces nothing', forcesDarkInk('#09090b') === false);
+  ok('a white band takes dark ink', inkFor([{ bg: 'rgb(255, 255, 255)' }]) === DARK);
+  ok('a cream band takes dark ink', inkFor([{ bg: 'rgb(244, 241, 235)' }]) === DARK);
+  /* THE CASE FROM THE SCREENSHOT. A saturated blue band is dark enough that
+     dark ink on it is unreadable — and dark ink is exactly what the old rule
+     produced once the theme resolved that background. */
+  ok('a strong blue band takes LIGHT ink', inkFor([{ bg: 'rgb(43, 79, 216)' }]) === LIGHT,
+    'this is the band the product names disappeared into');
+  ok('a near-black band takes light ink', inkFor([{ bg: 'rgb(9, 9, 11)' }]) === LIGHT);
+  ok('the shipped pink accent takes dark ink', inkFor([{ bg: 'rgb(248, 145, 165)' }]) === DARK);
 }
 
-console.log('\n  tokens were already handled, and still are');
+console.log('\n  a wash is composited, not read as a colour');
 {
-  for (const t of ['token:page', 'token:surface', 'token:tint', 'token:ink']) {
-    ok(t + ' tracks the theme', M.tracks(t) === true);
-    ok('…and forces nothing', forcesDarkInk(t) === false);
-  }
+  /* token:tint is 6% of the foreground over the page. On a dark page that is
+     still a dark surface, and light ink is the only readable answer. */
+  ok('6% cream over a black page is still dark',
+    inkFor([{ bg: 'rgba(244, 241, 235, 0.06)' }, { bg: 'rgb(9, 9, 11)' }]) === LIGHT,
+    'treating the wash as cream would darken text on an almost-black band');
+  ok('…and 6% black over a white page is still light',
+    inkFor([{ bg: 'rgba(9, 9, 11, 0.06)' }, { bg: 'rgb(255, 255, 255)' }]) === DARK);
+  /* Halfway is genuinely halfway, and must resolve rather than throw. */
+  ok('a half-opaque white over black lands in between and still decides',
+    [DARK, LIGHT].includes(inkFor([{ bg: 'rgba(255,255,255,0.5)' }, { bg: 'rgb(0,0,0)' }])));
 }
 
-console.log('\n  a colour somebody actually picked is still honoured');
+console.log('\n  it walks up until it finds something solid');
 {
-  /* The whole point of the exclusion is that it is narrow. A light literal
-     that is nobody's palette entry was a real decision about that colour, it
-     stays that colour in every theme, and its text still has to be readable
-     on it. */
-  ok('a genuine light brand colour still forces dark ink', forcesDarkInk('#FFE8A3') === true);
-  ok('…and is not treated as theme-tracking', M.tracks('#FFE8A3') === false);
-  ok('…and resolves to itself', M.resolve('#FFE8A3') === '#FFE8A3');
-
-  ok('a genuine dark brand colour forces nothing', forcesDarkInk('#123456') === false);
-  ok('no background at all forces nothing', forcesDarkInk('') === false);
-  ok('…and resolves to nothing', M.resolve('') === '');
+  ok('a transparent section takes its answer from the band behind it',
+    inkFor([{ bg: 'rgba(0, 0, 0, 0)' }, { bg: 'rgb(255, 255, 255)' }]) === DARK);
+  ok('…through more than one transparent layer',
+    inkFor([{}, {}, { bg: 'rgb(255, 255, 255)' }]) === DARK);
+  /* Nothing opaque anywhere: the page is the floor, and it is whatever the
+     theme made it rather than a literal baked in here. */
+  ok('with nothing opaque above it, the page decides',
+    inkFor([{}, {}]) === LIGHT);
+  ok('…and a light page gives dark ink',
+    inkFor(Object.assign([{}, {}], { body: 'rgb(255,255,255)' })) === DARK);
 }
 
-console.log('\n  wired into the decision');
+console.log('\n  a photograph is not a colour');
 {
-  ok('the branch consults it', /s\.sec_bg && !sectionBgTracksTheme\(s\.sec_bg\) && _zwIsLightColor\(s\.sec_bg\)/.test(SF));
-  /* Reading it as the token it stood for is a READ-time thing. Rewriting the
-     stored literal would destroy what the builder's "Custom colour" option
-     needs to put it back. */
-  ok('nothing is rewritten on disk', !/sec_bg\s*=\s*['"]token:/.test(SF));
-  ok('the resolver and the predicate share one table',
-    (SF.match(/LEGACY_BG_TOKENS/g) || []).length >= 3,
-    'a second copy of the legacy list is a second answer');
+  ok('a background image forces nothing', inkFor([{ img: 'url("hero.jpg")' }]) === '');
+  ok('…even with a colour underneath it',
+    inkFor([{ bg: 'rgb(255,255,255)', img: 'url("hero.jpg")' }]) === '');
+  ok('…and an image on an ANCESTOR counts too',
+    inkFor([{}, { img: 'url("hero.jpg")' }]) === '',
+    'the section is transparent, so what shows through is the photo');
+  ok('none is not an image', inkFor([{ bg: 'rgb(255,255,255)', img: 'none' }]) === DARK);
+}
+
+console.log('\n  both directions exist now');
+{
+  /* Only the light half was ever written, which assumed a section could never
+     be darker than the page. */
+  ok('the light class is still there', /\.zw-on-light :is\(h1,h2/.test(CSS));
+  ok('…and the dark one exists', /\.zw-on-dark :is\(h1,h2/.test(CSS));
+  ok('they push opposite colours',
+    /\.zw-on-light[\s\S]{0,260}?color:#09090b !important/.test(CSS) &&
+    /\.zw-on-dark[\s\S]{0,320}?color:#f4f1eb !important/.test(CSS));
+  ok('…and cover the product names', /\.zw-on-dark[\s\S]{0,200}?\.pcard-name/.test(CSS));
+  ok('the two are never both on', /classList\.toggle\('zw-on-light', ink === INK_DARK\)/.test(SF) &&
+    /classList\.toggle\('zw-on-dark', ink === INK_LIGHT\)/.test(SF));
+}
+
+console.log('\n  when it applies, and when it stays out of the way');
+{
+  ok('only a section that paints its own background is touched',
+    /\} else if \(s\.sec_bg\) \{/.test(SF),
+    'a section with no background is just the page, and !important colour there overrides styling doing nothing wrong');
+  ok('a chosen Text Color still wins outright', /el\.classList\.add\('zw-sec-tc'\)/.test(SF));
+  ok('an unmeasurable background clears rather than guesses',
+    /el\.classList\.remove\('zw-on-light', 'zw-on-dark', 'zw-sec-tc'\)/.test(SF));
+}
+
+console.log('\n  a measurement is only true for the theme it was taken in');
+{
+  ok('sections that were measured are marked', /setAttribute\('data-zw-ink', '1'\)/.test(SF));
+  ok('…and re-measured when the theme changes',
+    /addEventListener\('zw-theme-applied'[\s\S]{0,200}?data-zw-ink[\s\S]{0,120}?zwInkFor\(el\)/.test(SF),
+    'otherwise light-on-light survives exactly one toggle');
+  ok('…and the mark is removed when it no longer applies', /removeAttribute\('data-zw-ink'\)/.test(SF));
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
