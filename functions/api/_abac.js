@@ -177,8 +177,8 @@ export function findWaiver(waivers, ctx, rule, now) {
  *
  * @param rbacAllowed  what RBAC already decided. FIRST, and load-bearing.
  * @param rules        the rule list (any shape; junk is ignored or denies)
- * @param ctx          { subject:{role,…}, action, resource:{…} }
- * @returns { allow, reason, rule }  reason is for the audit trail and the
+ * @param ctx          subject (role, …), action, resource (…)
+ * @returns  allow, reason, rule — reason is for the audit trail and the
  *          admin's "why?" box — a decision nobody can explain is one nobody
  *          trusts, and untrusted rules get replaced by handing out super admin.
  */

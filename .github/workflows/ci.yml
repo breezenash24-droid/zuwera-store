@@ -35,6 +35,14 @@ jobs:
       - name: Repo audit (JS/HTML syntax, broken refs, /api endpoints)
         run: npm run audit:repo
 
+      # Answers the one question `node --check` cannot: does this name exist?
+      # Two outages here were a single undeclared identifier — an unimported
+      # json() that took checkout down, and a `meta` that stopped every order
+      # confirmation for weeks. Both parse fine; an unbound name is only an
+      # error when its line runs. Enforces existence and arity only, not types.
+      - name: Typecheck (functions/, checkJs)
+        run: npm run typecheck
+
       - name: Deployment checklist (wiring + checkout/cart smoke)
         run: npm run deployment-checklist
 

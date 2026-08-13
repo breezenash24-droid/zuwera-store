@@ -163,7 +163,7 @@ export function purchasedCounts(order) {
  * admin is shown: not the name, not the price, not the size.
  *
  * @param spokenFor  key → how many already claimed by live requests
- * @returns { items, rejected }  rejected is for telling somebody why, not for
+ * @returns  items, rejected — rejected is for telling somebody why, not for
  *          quietly dropping — see the caller.
  */
 export function reconcileReturnItems(order, requested, spokenFor) {
@@ -215,7 +215,7 @@ function parseItems(order) {
  * @param order     the order row
  * @param requests  every return request for this customer (any order — they
  *                  are filtered here, so no caller has to remember to)
- * @returns { ok, code, reason, availableItems, openRequestId }
+ * @returns  ok, code, reason, availableItems, openRequestId
  *
  * `reason` is customer-facing copy. A refusal a customer cannot understand
  * becomes an email to support, which costs more than the return did.
