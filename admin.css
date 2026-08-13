@@ -416,6 +416,17 @@
         /* "optional" sits BESIDE the state, never in place of it — a quieter,
            lower-case tag, because it answers a different question from the badge
            and should not compete with it for attention. */
+        /* Recent checks, oldest on the left. Bars rather than a line: there are
+           only two values, and a line chart of a boolean is a lie about the
+           data's resolution. */
+        .api-history { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .api-spark { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+        .api-spark-bar { width: 3px; border-radius: 1px; }
+        .api-spark-bar.up   { height: 12px; background: rgba(74,222,128,.55); }
+        .api-spark-bar.down { height: 5px;  background: rgba(239,68,68,.75); }
+        .api-flap { color: #facc15; }
+        .api-lastused { margin-top: 4px; opacity: .85; }
+
         .api-badge-wrap { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
         .api-optional-tag {
             font-size: .64rem; font-weight: 600; letter-spacing: .05em;
