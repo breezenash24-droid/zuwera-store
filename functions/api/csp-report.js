@@ -23,16 +23,51 @@ export async function onRequestPost({ request, env }) {
     const directive = clip(r['violated-directive'] || r['effective-directive'], 120);
     if (!directive) return new Response(null, { status: 204 });
 
-    const blocked = clip(r['blocked-uri'], 300);
+    const blockedRaw = clip(r['blocked-uri'], 300);
     const src = clip(r['source-file'], 300);
     const line = r['line-number'];
+
+    /* ── One row per VIOLATION, not per pageview ───────────────────────────
+       27,993 of this table's 28,038 rows were CSP reports, at 700 a day, and
+       they were a handful of distinct problems repeated thousands of times.
+       The 79 real JavaScript errors were buried underneath them, which is the
+       actual cost: a log nobody can read is a log nobody reads.
+
+       Most of the duplication is cache-busting junk in the URL. Google
+       Analytics posts to /g/collect?v=2&tid=…&gtm=45je6852v9245643753za200…
+       and that gtm token changes on every pageview, so one misconfigured
+       hostname produced thousands of "distinct" messages. Stripping the query
+       collapses them to one line that says the thing worth knowing: this
+       directive is blocking this host. */
+    const blocked = blockedRaw ? blockedRaw.split('?')[0] : blockedRaw;
     const row = {
       source: 'csp',
       message: (directive + (blocked ? ' → ' + blocked : '')).slice(0, 500),
-      url: clip(r['document-uri'], 500),
-      stack: clip(src ? src + (line != null ? ':' + line : '') : null, 500),
+      /* The page is dropped for the same reason — every product page produced
+         its own copy of the same violation. The directive and the host are what
+         identify the problem; which page happened to trigger it is not. */
+      url: null,
+      stack: clip(src ? src.split('?')[0] + (line != null ? ':' + line : '') : null, 500),
       release: 'csp-report',
     };
+
+    /* Already recorded in the last 24 hours? Then this is the same problem
+       still happening, and a second row says nothing the first did not.
+       Best-effort: a failed lookup writes the row, because losing a report is
+       worse than storing a duplicate. */
+    try {
+      const since = new Date(Date.now() - 86400000).toISOString();
+      const dupe = await fetch(
+        `${url}/rest/v1/error_log?select=id&source=eq.csp`
+        + `&message=eq.${encodeURIComponent(row.message)}`
+        + `&created_at=gte.${encodeURIComponent(since)}&limit=1`,
+        { headers: { apikey: key, Authorization: `Bearer ${key}` } },
+      );
+      if (dupe.ok) {
+        const rows = await dupe.json().catch(() => []);
+        if (Array.isArray(rows) && rows.length) return new Response(null, { status: 204 });
+      }
+    } catch (_) { /* fall through and record it */ }
 
     await fetch(`${url}/rest/v1/error_log`, {
       method: 'POST',
