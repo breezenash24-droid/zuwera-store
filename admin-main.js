@@ -2207,6 +2207,8 @@
            update-api-key.js into admin_audit_log — until it did, that record
            existed only in whoever's inbox got the alert email. */
         let _keyChanges = {};
+        /* site_settings.api_paused, so a card can say it is paused. */
+        let _apiPaused = {};
         let _currentKeyService = null;
 
         // ─── Meta (Facebook) integration status ──────────────────────────────────
@@ -2310,6 +2312,7 @@
                 const s = data.services || {};
                 _maskedKeys = data.maskedKeys || {};
                 _keyChanges = data.keyChanges || {};
+                _apiPaused = data.paused || {};
                 /* Handed to the integration detectors: the Stripe Tax card has
                    to report whether Tax is enabled on the STRIPE ACCOUNT, which
                    only an admin-gated check can ask. Re-rendering the catalogue
@@ -2563,6 +2566,7 @@
                 }
             }
             if (s.note) rows += `<p class="api-note">${s.note}</p>`;
+            rows += pauseButton('veeqo');
             return rows;
         }
 
@@ -2787,6 +2791,7 @@
             rows    += s.accountStatus ? apiRow('Status',  s.accountStatus)  : '';
             rows    += s.fromNumber    ? apiRow('From #',   s.fromNumber)     : '';
             rows += `<p class="api-note">${s.note || 'SMS notifications sent for shipped/delivered events when customer opted in.'}</p>`;
+            rows += pauseButton('twilio');
             return rows;
         }
 
@@ -2845,6 +2850,7 @@
             rows += apiRow('Endpoint', ep('https://zuwera.store/api/status-watch'));
             rows += apiRow('Schedule', 'Every 15–30 min · token <code>STATUS_WATCH_TOKEN</code>');
             rows += `<p class="api-note" style="margin-top:8px;">Runs the same checks this page runs and raises an alert when one <strong>changes</strong> — working to failing, and again when it recovers. Steady state says nothing, so the alerts stay worth reading. Without this, nothing checks these services unless somebody opens this page.</p>`;
+            rows += pauseButton('orderAlerts');
             rows += `<p class="api-note" style="margin-top:12px;">Test either endpoint from cron-job.org with <strong>Test run</strong>: <code>{"ok":true,"sent":0}</code> = working · <code>401 unauthorized</code> = token mismatch.</p>`;
             return rows;
         }
@@ -3124,6 +3130,69 @@
                   </div>
                 </div>
               </div>`;
+        }
+
+        /* ─── Pausing a service ────────────────────────────────────────────────
+           Only for services where nothing a customer sees changes: SMS is an
+           extra on top of the email they still get, order alerts go to you, and
+           Veeqo is a second opinion on rates Shippo already provides. Stripe,
+           Supabase, Resend and Shippo are deliberately absent — see _paused.js.
+
+           It asks for the authorization code, and the reason is a specific
+           attack rather than caution in general: somebody with admin access
+           pauses your order alerts, and every order after that arrives in
+           silence while the store keeps working. A pause with no second factor
+           is a way to switch off the thing that would tell you about everything
+           else. */
+        const PAUSABLE_CARDS = {
+            twilio:      { label: 'SMS notifications',           effect: 'Customers stop getting shipping texts. They still get every email.' },
+            veeqo:       { label: 'Veeqo rate-shopping',         effect: 'Rates come from Shippo only. Checkout still quotes and labels still print.' },
+            orderAlerts: { label: 'Slack / Discord order alerts', effect: 'You stop getting order pings. Orders are unaffected.' },
+        };
+
+        function pauseButton(service) {
+            const meta = PAUSABLE_CARDS[service];
+            if (!meta) return '';
+            const paused = !!(_apiPaused && _apiPaused[service] === true);
+            return `<div style="margin-top:12px;">
+                ${paused ? `<p class="api-note" style="color:var(--warning);">Paused — ${escapeHtml(meta.effect)}</p>` : ''}
+                <button class="btn btn-secondary" style="font-size:.75rem;padding:6px 12px;"
+                        onclick="openPauseDialog('${service}', ${paused ? 'false' : 'true'})">
+                  ${paused ? '&#9654; Resume' : '&#9208; Pause'} ${escapeHtml(meta.label)}
+                </button>
+              </div>`;
+        }
+
+        async function openPauseDialog(service, pause) {
+            const meta = PAUSABLE_CARDS[service];
+            if (!meta) return;
+            const lines = [
+                (pause ? 'Pause ' : 'Resume ') + meta.label + '?',
+                '',
+                pause ? meta.effect : 'It starts working again immediately.',
+                '',
+                'Enter the authorization code (CONTROL_SECRET) to confirm:',
+            ];
+            const code = window.prompt(lines.join('\n'));
+            if (code === null) return;
+            if (!String(code).trim()) { showToast('Cancelled — no code entered.', 'error'); return; }
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const resp = await fetch('/api/admin-control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        accessToken: session && session.access_token,
+                        action: 'pause', service, paused: pause, code: String(code).trim(),
+                    }),
+                });
+                const out = await resp.json();
+                if (!out.ok) throw new Error(out.error || 'Could not change it.');
+                showToast(pause ? (meta.label + ' paused.') : (meta.label + ' resumed.'), 'success');
+                loadApiStatus();
+            } catch (e) {
+                showToast((e && e.message) || 'Could not change it.', 'error');
+            }
         }
 
         function renderApiCard(icon, name, s, buildRows, serviceKey, dashboardUrl) {

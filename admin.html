@@ -2261,7 +2261,14 @@
                     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
                       <div>
                         <label for="tax-engine-select" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:5px;">Calculated by</label>
-                        <select id="tax-engine-select" onchange="taxEngineOnChange()" style="padding:9px 12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:13px;min-width:260px;">
+                        <!-- Kept in the DOM because taxEngineOnChange() and the
+                             save path read it, but hidden: changing the engine
+                             now goes through the modal below, which asks for an
+                             authorization code and records who did it. A live
+                             dropdown on the setting that decides what every
+                             customer is charged was one stray click away from
+                             repricing every future order. -->
+                        <select id="tax-engine-select" onchange="taxEngineOnChange()" style="display:none;">
                           <option value="builtin">Built-in table (default)</option>
                           <option value="stripe_tax">Stripe Tax — no key needed, uses this store's Stripe account</option>
                           <option value="taxjar">TaxJar — needs TAXJAR_API_KEY</option>
@@ -2271,6 +2278,10 @@
                           <option value="external">My own endpoint — Avalara, Sovos, an accountant's service</option>
                           <option value="none">Nothing — collect no tax here</option>
                         </select>
+                        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                          <span id="tax-engine-current" class="te-current">📋 Built-in table</span>
+                          <button type="button" class="btn btn-secondary" onclick="openTaxEngineModal()">Change engine…</button>
+                        </div>
                       </div>
                       <div id="tax-engine-endpoint-wrap" style="display:none;flex:1;min-width:260px;">
                         <label for="tax-engine-endpoint" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:5px;">Endpoint URL</label>
@@ -2305,6 +2316,25 @@
                          engine is selected. -->
                     <div id="tax-category-wrap" style="margin-top:18px;"></div>
                     <div id="tax-engine-status" style="margin-top:10px;font-size:12px;"></div>
+
+                    <!-- Changing the engine reprices every future order, so it
+                         takes a deliberate act: a picker that says what each one
+                         is and costs, plus the authorization code. -->
+                    <div id="tax-engine-modal" class="te-modal">
+                      <div class="te-modal-card">
+                        <h3>What calculates your tax</h3>
+                        <p class="te-modal-sub">Every order placed after this is priced by whichever you choose. Nothing already placed changes.</p>
+                        <div data-te-list class="te-list"></div>
+                        <label class="te-code-label" for="te-code">Authorization code</label>
+                        <input id="te-code" data-te-code type="password" autocomplete="off" placeholder="CONTROL_SECRET" class="te-code">
+                        <p class="te-modal-sub">The same kind of second factor refunds use. Admin access alone does not reprice a store.</p>
+                        <p data-te-status class="te-status"></p>
+                        <div class="te-actions">
+                          <button type="button" class="btn btn-secondary" onclick="closeTaxEngineModal()">Cancel</button>
+                          <button type="button" class="btn btn-primary" onclick="confirmTaxEngineChange(this)">Change engine</button>
+                        </div>
+                      </div>
+                    </div>
                     <!-- Runs resolveTax() against a real address — the same
                          function that prices a real order. This is the gap
                          between "Stripe Tax is enabled in Stripe" and "this

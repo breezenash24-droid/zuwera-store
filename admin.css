@@ -1806,3 +1806,52 @@
         .fp-card-name { font-weight: 700; font-style: italic; font-size: .88rem; text-transform: uppercase; letter-spacing: .03em; margin-bottom: .2rem; color: #f4f1eb; }
         .fp-card-price { font-size: .65rem; letter-spacing: .06em; color: rgba(244,241,235,.5); }
         .empty-row td { text-align:center; padding:24px; color:var(--text-secondary); }
+
+        /* ─── Choosing the tax engine ─────────────────────────────────────────
+           A modal rather than a dropdown, because this decides what every future
+           customer is charged. Each option carries an icon, what it is, and what
+           it costs — the three things you need to tell them apart, and none of
+           which fitted in a <select>. */
+        .te-current {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 8px 14px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--bg-primary); font-size: 13px; font-weight: 600;
+        }
+        .te-modal {
+            display: none; position: fixed; inset: 0; z-index: 1200;
+            background: rgba(0,0,0,.55); backdrop-filter: blur(2px);
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .te-modal.open { display: flex; }
+        .te-modal-card {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 12px; padding: 22px; width: 100%; max-width: 560px;
+            max-height: 88vh; overflow-y: auto;
+        }
+        .te-modal-card h3 { font-size: 1.05rem; margin-bottom: 6px; }
+        .te-modal-sub { font-size: .78rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 14px; }
+        .te-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+        .te-option {
+            display: flex; align-items: flex-start; gap: 11px; cursor: pointer;
+            padding: 11px 12px; border: 1px solid var(--border); border-radius: 8px;
+            transition: border-color .15s, background .15s;
+        }
+        .te-option:hover { background: var(--bg-primary); }
+        .te-option:has(input:checked) { border-color: var(--accent); background: var(--bg-primary); }
+        /* The one currently pricing orders, so "what am I on now" needs no
+           second glance. */
+        .te-option.is-current { border-left: 3px solid var(--accent); }
+        .te-option input { margin-top: 3px; flex: none; accent-color: var(--accent); }
+        .te-icon { font-size: 1.25rem; line-height: 1.2; flex: none; }
+        .te-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+        .te-name { font-weight: 700; font-size: .88rem; }
+        .te-name em { font-style: normal; font-weight: 400; color: var(--accent); font-size: .78rem; }
+        .te-blurb { font-size: .78rem; color: var(--text-secondary); line-height: 1.5; }
+        .te-cost { font-size: .74rem; color: var(--text-secondary); opacity: .85; }
+        .te-code-label { display: block; font-size: .74rem; color: var(--text-secondary); margin-bottom: 5px; }
+        .te-code {
+            width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--bg-primary); color: var(--text-primary); font-size: 13px; margin-bottom: 8px;
+        }
+        .te-status { font-size: .8rem; line-height: 1.5; min-height: 1.2em; margin-bottom: 12px; }
+        .te-actions { display: flex; gap: 9px; justify-content: flex-end; }
