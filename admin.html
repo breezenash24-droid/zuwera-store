@@ -550,6 +550,11 @@
                     </div>
 
                     <div id="apis-loading" style="color:var(--text-secondary);padding:24px 0;text-align:center;">Checking all services…</div>
+                    <!-- Above the cards, because "am I paying for anything" is
+                         the question you arrive with, and every card knowing its
+                         own free tier while nothing adds them up is how a 0.5%
+                         charge on another page goes unnoticed for months. -->
+                    <div id="api-cost-summary"></div>
                     <div id="api-grid" class="api-grid" style="display:none;"></div>
 
                     <!-- Supabase free-tier usage ─────────────────────────────
