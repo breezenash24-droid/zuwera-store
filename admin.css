@@ -556,6 +556,25 @@
         /* Collapsed by default on the API cards. Twelve cards each showing four
            symptoms would bury the numbers people actually come here to read —
            this is reference material, wanted only when something is wrong. */
+        /* Running costs, above the cards. Two columns because the distinction
+           that matters is binary: this charges you as you use it, that one is
+           free until a ceiling. */
+        .api-costs {
+            border: 1px solid var(--border); border-radius: 10px;
+            padding: 18px 20px; margin-bottom: 18px; background: var(--bg-secondary);
+        }
+        .api-costs h3 { font-size: .95rem; margin-bottom: 4px; }
+        .api-costs h4 {
+            font-size: .72rem; text-transform: uppercase; letter-spacing: .08em;
+            color: var(--text-secondary); margin: 14px 0 8px;
+        }
+        .api-costs-cols { display: grid; gap: 6px 28px; }
+        @media (min-width: 760px) { .api-costs-cols { grid-template-columns: 1fr 1fr; } }
+        .api-costs ul { list-style: none; margin: 0; padding: 0; }
+        .api-costs li { font-size: .82rem; line-height: 1.55; padding: 6px 0; border-bottom: 1px solid var(--border); }
+        .api-costs li:last-child { border-bottom: none; }
+        .api-costs li span { color: var(--text-secondary); font-size: .78rem; }
+
         .api-trouble { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
         .api-trouble summary {
             cursor: pointer; font-size: .76rem; font-weight: 600; letter-spacing: .04em;

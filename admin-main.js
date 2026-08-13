@@ -2287,6 +2287,8 @@
                     failoverEl.style.display = 'none';
                 }
 
+                renderCostSummary(s);
+
                 const cards = [
                     renderApiCard('☁️', 'Cloudinary',            s.cloudinary, buildCloudinaryRows,  'cloudinary',  'https://cloudinary.com/console'),
                     renderApiCard('✉️', 'Resend',                s.resend,     buildResendRows,       'resend',      'https://resend.com/overview'),
@@ -2942,6 +2944,96 @@
                     <div class="int-trouble-fix">→ ${escapeHtml(r.fix)}</div>
                   </div>`).join('')}
               </details>`;
+        }
+
+        /* ─── What this store actually costs to run ────────────────────────────
+           Every card knows its own free tier and none of them add up. The
+           question nobody could answer from this page was the simple one: am I
+           paying for anything, and what is about to start?
+
+           NOTHING HERE IS INVENTED. Each line is either a rate that is a matter
+           of public record (Stripe's per-transaction fee) or a measured position
+           against a published free tier. Where a number cannot be known from
+           here — how many orders you took, what Shippo actually billed — it says
+           so and points at the dashboard that does know, rather than producing a
+           total that looks authoritative and is a guess.
+
+           A wrong figure on a costs page is worse than no figure. Somebody makes
+           a decision with it. */
+        const SERVICE_COSTS = [
+            { key: 'stripe', name: 'Stripe', kind: 'per-sale',
+              rate: '2.9% + 30¢ per successful card charge',
+              note: 'Only on money you have taken. Nothing fixed.' },
+            { key: 'shippo', name: 'Shippo', kind: 'tiered',
+              free: '30 labels/month',
+              usage: (s) => s.freeTier ? `${s.freeTier.used} / ${s.freeTier.limit} used` : null,
+              over: 'Labels are then bought through Veeqo instead — a separate account and a separate bill.' },
+            { key: 'resend', name: 'Resend', kind: 'tiered',
+              free: '3,000 emails/month, 100/day',
+              usage: () => 'Resend does not report usage through its API',
+              over: 'Brevo takes over automatically if configured.' },
+            { key: 'brevo', name: 'Brevo', kind: 'tiered',
+              free: '300 emails/day',
+              usage: (s) => (s.credits != null ? `${s.credits} credits left` : null),
+              over: 'Only ever used when Resend is unavailable.' },
+            { key: 'deepl', name: 'DeepL', kind: 'tiered',
+              free: '500,000 characters/month',
+              usage: (s) => (s.characterCount != null ? `${s.characterCount.toLocaleString()} / ${(s.characterLimit || 500000).toLocaleString()} used` : null),
+              over: 'Charged per character past that — or switch the dropdown on its card to Google, or to Off.' },
+            { key: 'cloudinary', name: 'Cloudinary', kind: 'tiered',
+              free: '25 credits/month',
+              usage: (s) => (s.credits ? `${(s.credits.usage || 0).toFixed(1)} / ${s.credits.limit || 25} used` : null),
+              over: 'New uploads already go to Cloudflare R2, whose egress is free — this only serves older images.' },
+            { key: 'supabase', name: 'Supabase', kind: 'tiered',
+              free: '500 MB database, 1 GB files',
+              usage: () => null,
+              over: 'Exact usage is only visible in the Supabase dashboard.' },
+            { key: 'twilio', name: 'Twilio', kind: 'per-sale',
+              rate: 'per SMS sent',
+              note: 'Only fires for customers who opted in.' },
+        ];
+
+        function renderCostSummary(services) {
+            const host = document.getElementById('api-cost-summary');
+            if (!host) return;
+
+            const paid = [], free = [], unknown = [];
+            for (const c of SERVICE_COSTS) {
+                const s = services[c.key];
+                if (!s || s.configured === false) continue;      // not set up — costs nothing
+                if (c.kind === 'per-sale') { paid.push(c); continue; }
+                const used = typeof c.usage === 'function' ? c.usage(s) : null;
+                (used ? free : unknown).push({ ...c, used });
+            }
+
+            /* Stripe Tax is a real running cost and is not a card on this page —
+               it is a setting on another one, which is exactly how a 0.5% charge
+               goes unnoticed. */
+            const taxLine = _intSignals && _intSignals.taxEngine && _intSignals.taxEngine !== 'builtin'
+                && _intSignals.taxEngine !== 'none'
+                ? `<li><strong>${escapeHtml(_intSignals.taxEngine)}</strong> — tax calculation, charged per order it prices</li>` : '';
+
+            host.innerHTML = `
+              <div class="api-costs">
+                <h3>What this costs to run</h3>
+                <p class="api-note">Rates and free tiers, measured where they can be measured. Actual invoices live on each provider's own dashboard — nothing here is a bill.</p>
+                <div class="api-costs-cols">
+                  <div>
+                    <h4>Charged as you use it</h4>
+                    <ul>
+                      ${paid.map(c => `<li><strong>${escapeHtml(c.name)}</strong> — ${escapeHtml(c.rate)}<br><span>${escapeHtml(c.note)}</span></li>`).join('')}
+                      ${taxLine}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4>Free, with a ceiling</h4>
+                    <ul>
+                      ${free.map(c => `<li><strong>${escapeHtml(c.name)}</strong> — ${escapeHtml(c.free)}<br><span>${escapeHtml(c.used)}. ${escapeHtml(c.over)}</span></li>`).join('')}
+                      ${unknown.map(c => `<li><strong>${escapeHtml(c.name)}</strong> — ${escapeHtml(c.free)}<br><span>Usage not reported here. ${escapeHtml(c.over)}</span></li>`).join('')}
+                    </ul>
+                  </div>
+                </div>
+              </div>`;
         }
 
         function renderApiCard(icon, name, s, buildRows, serviceKey, dashboardUrl) {
