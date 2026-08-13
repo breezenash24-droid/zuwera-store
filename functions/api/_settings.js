@@ -81,24 +81,11 @@ const ALLOWED_KEYS = new Set([
   'LOOPS_TRANSACTIONAL_ID',
   // PostHog (analytics)
   'POSTHOG_API_KEY',
-  // Scheduled-email cron shared secrets (set here → no Cloudflare redeploy needed)
-  'REVIEW_REQUEST_TOKEN',
-  'ABANDONED_CART_TOKEN',
-  /* Same shape, different job: this one lets an external cron run the service
-     health checks. Editable here so turning the watcher on is a paste rather
-     than a redeploy — the point of it is being told when something breaks, and
-     a setup step that needs a deploy is a setup step that waits for one. */
-  'STATUS_WATCH_TOKEN',
   /* Translation: which provider, and Google's key. Editable here so a store
      whose DeepL allowance has run out can move to Google — or switch
      translation off entirely — without waiting for a build. */
   'TRANSLATE_PROVIDER',
   'GOOGLE_TRANSLATE_API_KEY',
-  // Order-alert webhooks (admin → APIs → More Integrations). These are secrets:
-  // anyone holding the URL can post into the channel, so they live here rather
-  // than in site_settings.integrations, which is anon-readable by design.
-  'SLACK_WEBHOOK_URL',
-  'DISCORD_WEBHOOK_URL',
 ]);
 
 export { ALLOWED_KEYS };
@@ -163,6 +150,31 @@ export const ENV_ONLY_KEYS = new Set([
   'TWILIO_ACCOUNT_SID',
   'TWILIO_AUTH_TOKEN',
   'TWILIO_FROM_NUMBER',
+
+  /* ── Not credentials. CHANNELS. ──────────────────────────────────────────
+     These were admin-editable, and the blast-radius rule above missed them
+     because neither looks like a spend-capable secret. Both are worse than
+     they look.
+
+     A webhook URL is where your order alerts GO. Anyone who can change it
+     receives every future order — customer email, items, total — in their own
+     Slack or Discord, as it happens, while the store carries on working
+     normally. That is a live exfiltration feed that reads as healthy
+     operation, and it needs no key at all.
+
+     A cron token AUTHORISES SENDING. Set REVIEW_REQUEST_TOKEN or
+     ABANDONED_CART_TOKEN to a value you choose and you can fire those
+     endpoints yourself — mail to the whole customer list, from the store's own
+     verified domain, without ever holding the Resend key that sends it.
+
+     The cost of moving them is that turning one on now needs a redeploy. For
+     two webhook URLs and three tokens that are set once, that is a fair
+     trade. */
+  'SLACK_WEBHOOK_URL',
+  'DISCORD_WEBHOOK_URL',
+  'REVIEW_REQUEST_TOKEN',
+  'ABANDONED_CART_TOKEN',
+  'STATUS_WATCH_TOKEN',
 ]);
 
 /**

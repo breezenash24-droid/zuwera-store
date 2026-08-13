@@ -737,6 +737,22 @@ export async function onRequestGet({ request, env, waitUntil }) {
     maskedKeys[k] = v ? (PLAIN_KEYS.has(k) ? v : maskKey(v)) : null;
   }
 
+  /* Env-only values the panel still needs to REPORT ON, masked.
+     maskedKeys is built from ALLOWED_KEYS, so moving the cron tokens and
+     webhook URLs out of that list to stop an admin choosing them also removed
+     them from this map — and the Cron card reads it to say "Set / Not set".
+     Without this the card would report every one of them missing while they sat
+     correctly configured in Cloudflare, which is a worse lie than the problem
+     the move was fixing.
+
+     Masked exactly like everything else. The panel needs to know a value
+     EXISTS; it has never needed to see one. */
+  for (const k of ['REVIEW_REQUEST_TOKEN', 'ABANDONED_CART_TOKEN', 'STATUS_WATCH_TOKEN',
+                   'SLACK_WEBHOOK_URL', 'DISCORD_WEBHOOK_URL']) {
+    const v = (env[k] || '').trim();
+    maskedKeys[k] = v ? maskKey(v) : null;
+  }
+
   /* Both read alongside each other, and neither is allowed to fail the page:
      history is missing until migration 0014 runs, and email_log/webhook_events
      may be empty on a new store. A status panel that breaks because its own
