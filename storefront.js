@@ -550,7 +550,7 @@ function showToast(msg) {
      the section to the page colour rather than leaving it a stale literal. */
   const SECTION_BG_TOKENS = {
     page:    'var(--black)',
-    surface: 'var(--surface-light)',
+    surface: 'var(--zw-theme-surface)',
     paper:   'var(--paper)',
     ink:     'var(--ink)',
     accent:  'var(--accent)',
@@ -559,6 +559,52 @@ function showToast(msg) {
     tint:    'var(--c06)',
     'tint-strong': 'var(--c12)',
   };
+
+  /* ── The text that has to come with the background ────────────────────────
+     A section with no chosen Text Color inherits the page's foreground, which
+     is right for anything that tracks the page colour: tint, tint-strong,
+     surface and page are all a step off the page in the page's own direction,
+     so the page's text still reads on them.
+
+     ink and paper are the exception, because they are an INVERTED pair — the
+     comment below says as much, and the builder's cta and banner defaults set
+     both together for exactly this reason. Set one as a background without the
+     other and the section paints itself the same colour as its own text:
+     token:paper is cream on a dark theme, and so is the text landing on it.
+
+     The luminance check further down cannot catch this. It is handed the raw
+     'token:paper' string, which matches no colour it knows how to parse, so it
+     answers false and the auto-darkening never fires. It could not answer
+     anything else either — by the time a token becomes a colour it is a
+     var(), resolved by the browser long after this code has run. Tokens have
+     to be paired by name, which is knowable, rather than by measurement, which
+     is not.
+
+     accent is not in the map because it has no fixed answer: it is whatever
+     colour the theme's owner chose. It is measured instead — see below. */
+  const SECTION_FG_FOR_BG = { ink: 'var(--paper)', paper: 'var(--ink)' };
+
+  /* The accent is offered as a section background, and on the shipped pink it
+     is the dark theme that suffers: the page's cream text on #F891A5 is barely
+     a contrast at all, while the same pink under a light theme reads fine. So
+     it cannot inherit, and it cannot be paired by name either.
+
+     It can be measured, though. A custom property has a real colour in it by
+     the time the section is drawn, so asking the element for --accent gives
+     something _zwIsLightColor can actually judge — which is the one thing the
+     raw 'token:accent' string could never provide. Absolute black or cream on
+     purpose, not the theme's: what has to contrast here is the accent, not the
+     page. If the read fails, returning nothing leaves the old inherit-the-page
+     behaviour rather than guessing at a colour. */
+  function sectionFgForToken(el, name) {
+    if (SECTION_FG_FOR_BG[name]) return SECTION_FG_FOR_BG[name];
+    if (name !== 'accent') return '';
+    try {
+      const c = getComputedStyle(el).getPropertyValue('--accent').trim();
+      if (c) return _zwIsLightColor(c) ? '#09090b' : '#f4f1eb';
+    } catch (_) {}
+    return '';
+  }
 
   /* Sections saved before tokens existed hold an absolute colour, so they kept
      their old palette while everything around them changed — the black band on
@@ -590,6 +636,10 @@ function showToast(msg) {
   // Landing pages render through landing-sections.js, which has its own tail.
   // Shared rather than copied, so the two cannot drift into disagreeing.
   window.zwResolveSectionBg = resolveSectionBackground;
+  /* Shared for the same reason: a landing section set to token:paper with no
+     Text Color is the same invisible band as a homepage one, and a second copy
+     of the pairing is a second place for it to be wrong. */
+  window.zwSectionFgForBg = sectionFgForToken;
 
   function applyBuilderConfig(cfg) {
     if (!cfg || !cfg.sections) return;
@@ -1849,7 +1899,12 @@ function showToast(msg) {
          bug: token:ink is dark on a dark theme and LIGHT on a light one, so a
          cream literal beside it reads perfectly until someone switches theme
          and then vanishes. ink/paper are a pair and have to move together. */
-      const _tc = resolveSectionBackground(s.text_color);
+      const _tc = resolveSectionBackground(s.text_color)
+        /* No Text Color chosen, and an inverted token for a background: take
+           the colour that token is paired with rather than the page's, which
+           would be the same colour as the background. */
+        || (String(s.sec_bg || '').slice(0, 6) === 'token:'
+            ? sectionFgForToken(el, String(s.sec_bg).slice(6)) : '');
       if (_tc) {
         el.style.setProperty('color', _tc, 'important');
         el.classList.add('zw-sec-tc');

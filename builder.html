@@ -1401,10 +1401,10 @@ function renderThemeTab(container){
 let themeModes=null, themeModesLoaded=false;
 
 const THEME_BUILTINS=[
-  {id:'dark',label:'Dark',icon:'\u{1F319}',base:'dark',tokens:{fg:'244 241 235',bg:'9 9 11',ink:'#09090b',paper:'#f4f1eb',surface:'#F0EEE9',accent:'#F891A5',err:'#ef4444'}},
-  {id:'light',label:'Light',icon:'☀️',base:'light',tokens:{fg:'10 10 10',bg:'240 238 233',ink:'#F0EEE9',paper:'#09090b',surface:'#F0EEE9',accent:'#F891A5',err:'#ef4444'}},
-  {id:'super-light',label:'Super Light',icon:'⚪',base:'super-light',tokens:{fg:'10 10 10',bg:'255 255 255',ink:'#FFFFFF',paper:'#09090b',surface:'#FFFFFF',accent:'#F891A5',err:'#ef4444'}},
-  {id:'two-tone',label:'Two-tone',icon:'◐',base:'light',tokens:{fg:'10 10 10',bg:'240 238 233',ink:'#F0EEE9',paper:'#09090b',surface:'#F0EEE9',accent:'#F891A5',err:'#ef4444',navBg:'#09090b',navFg:'#f4f1eb'}}
+  {id:'dark',label:'Dark',icon:'\u{1F319}',base:'dark',tokens:{fg:'244 241 235',bg:'9 9 11',ink:'#09090b',paper:'#f4f1eb',surface:'#111113',accent:'#F891A5',err:'#ef4444'}},
+  {id:'light',label:'Light',icon:'☀️',base:'light',tokens:{fg:'10 10 10',bg:'240 238 233',ink:'#F0EEE9',paper:'#09090b',surface:'#FFFFFF',accent:'#F891A5',err:'#ef4444'}},
+  {id:'super-light',label:'Super Light',icon:'⚪',base:'super-light',tokens:{fg:'10 10 10',bg:'255 255 255',ink:'#FFFFFF',paper:'#09090b',surface:'#F5F5F5',accent:'#F891A5',err:'#ef4444'}},
+  {id:'two-tone',label:'Two-tone',icon:'◐',base:'light',tokens:{fg:'10 10 10',bg:'240 238 233',ink:'#F0EEE9',paper:'#09090b',surface:'#FFFFFF',accent:'#F891A5',err:'#ef4444',navBg:'#09090b',navFg:'#f4f1eb'}}
 ];
 
 // Two of the seven are bare RGB triplets, because the alpha ladder splices them

@@ -37,11 +37,11 @@
      choice keeps working and no other file needs to know this changed. */
   var BUILTINS = [
     { id: 'dark', label: 'Dark', icon: '🌙', base: 'dark', builtin: true,
-      tokens: { fg: '244 241 235', bg: '9 9 11', ink: '#09090b', paper: '#f4f1eb', surface: '#F0EEE9', accent: '#F891A5', err: '#ef4444' } },
+      tokens: { fg: '244 241 235', bg: '9 9 11', ink: '#09090b', paper: '#f4f1eb', surface: '#111113', accent: '#F891A5', err: '#ef4444' } },
     { id: 'light', label: 'Light', icon: '☀️', base: 'light', builtin: true,
-      tokens: { fg: '10 10 10', bg: '240 238 233', ink: '#F0EEE9', paper: '#09090b', surface: '#F0EEE9', accent: '#F891A5', err: '#ef4444' } },
+      tokens: { fg: '10 10 10', bg: '240 238 233', ink: '#F0EEE9', paper: '#09090b', surface: '#FFFFFF', accent: '#F891A5', err: '#ef4444' } },
     { id: 'super-light', label: 'Super Light', icon: '⚪', base: 'super-light', builtin: true,
-      tokens: { fg: '10 10 10', bg: '255 255 255', ink: '#FFFFFF', paper: '#09090b', surface: '#FFFFFF', accent: '#F891A5', err: '#ef4444' } },
+      tokens: { fg: '10 10 10', bg: '255 255 255', ink: '#FFFFFF', paper: '#09090b', surface: '#F5F5F5', accent: '#F891A5', err: '#ef4444' } },
     /* Two-tone: a light page under a black header. This look already existed by
        accident — .nav is hardcoded dark and only some pages bothered to override
        it in light mode, so whether you got it depended on which page you landed
@@ -50,12 +50,43 @@
        Leave navBg empty in any other theme and the header follows the page, as
        it always did. */
     { id: 'two-tone', label: 'Two-tone', icon: '◐', base: 'light', builtin: true,
-      tokens: { fg: '10 10 10', bg: '240 238 233', ink: '#F0EEE9', paper: '#09090b', surface: '#F0EEE9', accent: '#F891A5', err: '#ef4444',
+      tokens: { fg: '10 10 10', bg: '240 238 233', ink: '#F0EEE9', paper: '#09090b', surface: '#FFFFFF', accent: '#F891A5', err: '#ef4444',
                 navBg: '#09090b', navFg: '#f4f1eb' } },
   ];
 
   var config = { modes: BUILTINS.slice(), default: 'dark', pages: {} };
   var applied = null;
+
+  /* ── The surface that never moved ──────────────────────────────────────────
+     `surface` shipped as #F0EEE9 in all four built-ins, because the CSS var
+     behind it was called --surface-light and predated themes: one palette, one
+     light surface, a reasonable constant. As a THEME token it was wrong in
+     every direction at once — identical to the page in Light and Super Light,
+     so choosing it did nothing; and a cream slab on the black page in Dark,
+     carrying the dark theme's cream text onto itself. Cream on cream.
+
+     Fixing the built-ins is not enough on its own. The theme editor writes all
+     seven fields whenever a theme is saved, so any store that has ever opened
+     one has #F0EEE9 sitting in its settings row, and a stored token beats the
+     built-in — correctly, since that is what makes a customised built-in stick.
+
+     So the old default is read as "never chosen" rather than as a choice, and
+     only for a BUILT-IN theme, where we know what the default was. The same
+     reasoning storefront.js applies to legacy section colours: a literal that
+     is exactly what the picker handed over was not a decision about that
+     colour. Anything else the store set is left alone, and nothing is rewritten
+     on disk — pick #F0EEE9 deliberately in a custom theme and it stays. */
+  var LEGACY_SURFACE = '#f0eee9';
+
+  function mergeTokens(builtin, stored) {
+    var base = builtin ? builtin.tokens : BUILTINS[0].tokens;
+    var t = Object.assign({}, base, stored || {});
+    if (builtin && stored && String(stored.surface || '').toLowerCase() === LEGACY_SURFACE
+        && String(base.surface || '').toLowerCase() !== LEGACY_SURFACE) {
+      t.surface = base.surface;
+    }
+    return t;
+  }
 
   // ── Normalising ──────────────────────────────────────────────────────────
   function normalise(raw) {
@@ -73,7 +104,7 @@
         // it is unreadable, and dark is what :root already carries.
         base: m.base === 'light' || m.base === 'super-light' ? m.base : 'dark',
         builtin: !!(builtin),
-        tokens: Object.assign({}, builtin ? builtin.tokens : BUILTINS[0].tokens, m.tokens || {}),
+        tokens: mergeTokens(builtin, m.tokens),
       };
     });
     var def = modes.filter(function (m) { return m.id === raw.default; })[0];
@@ -209,7 +240,7 @@
     set('--bg-rgb', t.bg);
     set('--ink', t.ink);
     set('--paper', t.paper);
-    set('--surface-light', t.surface);
+    set('--zw-theme-surface', t.surface);
     set('--accent', t.accent);
     set('--err', t.err);
     /* Optional, and the fallback matters: every nav rule reads

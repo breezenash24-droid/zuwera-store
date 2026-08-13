@@ -237,7 +237,11 @@ console.log('\n  themes are data');
      dark theme and light on a light one, so a cream literal beside it reads
      fine until the theme changes and then vanishes. */
   ok('section text runs through the same resolver as its background',
-    /const _tc = resolveSectionBackground\(s\.text_color\);/.test(sf));
+    /const _tc = resolveSectionBackground\(s\.text_color\)/.test(sf));
+  /* And when there is no Text Color to resolve, the pair is supplied rather
+     than left to inherit — see the surface/pairing block further down. */
+  ok('…and an unpaired inverted token gets its partner instead of the page’s ink',
+    /sectionFgForToken\(el, String\(s\.sec_bg\)\.slice\(6\)\)/.test(sf));
   const ls = fs.readFileSync(R + 'landing-sections.js', 'utf8');
   ok('…and landing pages share the resolver rather than copying it',
     /window\.zwResolveSectionBg/.test(sf) &&
