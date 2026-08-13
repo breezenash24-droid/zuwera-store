@@ -624,10 +624,21 @@ export async function onRequestGet({ request, env, waitUntil }) {
 
   // Build masked key map for display in the admin UI
   // Each key shows the value from Supabase (if overridden) or env var, masked.
+  /* A few of these are settings, not credentials — a provider name, a country
+     code, a threshold. Masking them makes the admin unable to show what is
+     currently selected: maskKey turns anything eight characters or shorter into
+     "••••••••", so "google" and "deepl" and "off" are indistinguishable and a
+     dropdown cannot pre-select the saved value. Returned verbatim, because
+     there is nothing in them to protect. */
+  const PLAIN_KEYS = new Set([
+    'TRANSLATE_PROVIDER', 'SHIP_FROM_STATE', 'SHIP_FROM_COUNTRY',
+    'FROM_STATE', 'FROM_COUNTRY', 'SHIPPO_FROM_STATE', 'SHIPPO_FROM_COUNTRY',
+    'SHIPPO_FREE_LIMIT',
+  ]);
   const maskedKeys = {};
   for (const k of cacheKeys) {
     const v = cache[k] || (env[k] || '').trim().replace(/,$/, '');
-    maskedKeys[k] = v ? maskKey(v) : null;
+    maskedKeys[k] = v ? (PLAIN_KEYS.has(k) ? v : maskKey(v)) : null;
   }
 
   /* Both read alongside each other, and neither is allowed to fail the page:

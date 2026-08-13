@@ -2548,10 +2548,80 @@
                translator — so the natural conclusion on hitting the limit was
                "translation costs money now", with no visible alternative. */
             rows += `<p class="api-note" style="margin-top:10px;">Past the free tier, DeepL charges per character.
-                To switch to Google Cloud Translation instead, add <code>GOOGLE_TRANSLATE_API_KEY</code> and set
-                <code>TRANSLATE_PROVIDER=google</code>. Remove the DeepL key entirely and it falls to Google on its own.
                 Google is cheaper at volume and covers more languages; DeepL reads better on long prose.</p>`;
+            /* A dropdown, not an instruction to go and set an environment
+               variable. The whole point of the alternative is that somebody
+               reaching their DeepL limit can move in the thirty seconds before
+               the next customer opens a review — a switch that needs a redeploy
+               is not available at the moment it is wanted. */
+            rows += buildTranslateProviderRow();
             return rows;
+        }
+
+        /* ── Which translator, chosen here ────────────────────────────────────
+           DeepL was the only option and DeepL is paid past 500k characters a
+           month, so the natural conclusion on hitting that limit was
+           "translation costs money now" with no visible way out. Google Cloud
+           Translation has a comparable free allowance, is cheaper at volume and
+           covers more languages; DeepL reads better on long prose. Neither is
+           strictly better, which is why this is a choice and not a migration.
+
+           "Off" is deliberately one of the options. A store that decides
+           translation is not worth paying for should be able to stop it without
+           deleting a key it may want back next month. */
+        function buildTranslateProviderRow() {
+            const cur = String(_maskedKeys['TRANSLATE_PROVIDER'] || '').toLowerCase();
+            /* TRANSLATE_PROVIDER is a plain word, not a credential, so it is
+               stored unmasked and can be shown and re-selected. Anything
+               unrecognised reads as Automatic, which is also the unset case. */
+            const sel = ['deepl', 'google', 'off'].includes(cur) ? cur : '';
+            const opt = (v, label) => `<option value="${v}"${sel === v ? ' selected' : ''}>${label}</option>`;
+            const hasGoogle = !!_maskedKeys['GOOGLE_TRANSLATE_API_KEY'];
+            return `
+              <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+                <label for="tr-provider" style="display:block;font-size:.74rem;color:var(--text-secondary);margin-bottom:5px;">Translate with</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                  <select id="tr-provider" class="form-input" style="max-width:230px;padding:6px 9px;font-size:.8rem;">
+                    ${opt('', 'Automatic — whichever key exists')}
+                    ${opt('deepl', 'DeepL')}
+                    ${opt('google', 'Google Cloud Translation')}
+                    ${opt('off', 'Off — do not translate')}
+                  </select>
+                  <button class="btn btn-secondary" style="font-size:.75rem;padding:6px 12px;" onclick="saveTranslateProvider(this)">Save</button>
+                </div>
+                ${hasGoogle ? '' : `<p class="api-note" style="margin-top:8px;">Google needs <code>GOOGLE_TRANSLATE_API_KEY</code> — add it with the edit button below before picking Google, or the endpoint falls back to DeepL.</p>`}
+                <p id="tr-provider-status" style="margin-top:7px;font-size:.76rem;"></p>
+              </div>`;
+        }
+
+        async function saveTranslateProvider(btn) {
+            const sel = document.getElementById('tr-provider');
+            const out = document.getElementById('tr-provider-status');
+            if (!sel || !out) return;
+            const value = sel.value;
+            btn.disabled = true;
+            out.style.color = 'var(--text-secondary)';
+            out.textContent = 'Saving…';
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const token = session?.access_token;
+                if (!token) throw new Error('Not authenticated — please refresh and try again');
+                const resp = await fetch('/api/update-api-key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: token, keyName: 'TRANSLATE_PROVIDER', keyValue: value }),
+                });
+                const result = await resp.json();
+                if (!result.ok) throw new Error(result.error || 'Could not save');
+                out.style.color = 'var(--success)';
+                out.textContent = value === 'off'
+                    ? '✓ Translation is off. Reviews show in the language they were written in.'
+                    : `✓ Saved — takes effect immediately, no redeploy.`;
+                setTimeout(() => loadApiStatus(), 1200);
+            } catch (e) {
+                out.style.color = 'var(--error)';
+                out.textContent = (e && e.message) || 'Could not save.';
+            } finally { btn.disabled = false; }
         }
 
         function buildLoopsRows(s) {

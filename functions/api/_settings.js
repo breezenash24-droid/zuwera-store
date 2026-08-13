@@ -89,6 +89,11 @@ const ALLOWED_KEYS = new Set([
      than a redeploy — the point of it is being told when something breaks, and
      a setup step that needs a deploy is a setup step that waits for one. */
   'STATUS_WATCH_TOKEN',
+  /* Translation: which provider, and Google's key. Editable here so a store
+     whose DeepL allowance has run out can move to Google — or switch
+     translation off entirely — without waiting for a build. */
+  'TRANSLATE_PROVIDER',
+  'GOOGLE_TRANSLATE_API_KEY',
   // Order-alert webhooks (admin → APIs → More Integrations). These are secrets:
   // anyone holding the URL can post into the channel, so they live here rather
   // than in site_settings.integrations, which is anon-readable by design.

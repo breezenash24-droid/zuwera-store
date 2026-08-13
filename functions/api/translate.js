@@ -4,6 +4,8 @@
  * Set DEEPL_API_KEY as an environment variable in your Cloudflare Pages project settings.
  */
 
+import { fetchSiteSettings, resolveSetting } from './_settings.js';
+
 function parseCsv(value) {
   return String(value || '')
     .split(',')
@@ -143,14 +145,42 @@ export async function onRequestPost(context) {
        key exists, DeepL first — so nothing changes for a store that has one,
        and a store that removes its DeepL key falls to Google automatically
        rather than breaking. */
+    /* Settings first, env as the fallback — the same order every other key in
+       this codebase resolves in.
+       This read `context.env` alone, which made the choice of provider a
+       redeploy. That is the Stripe Tax trap in miniature: the admin offers a
+       switch, the switch saves, and the thing doing the work never looks at it.
+       Someone whose DeepL allowance has run out wants to move to Google in the
+       thirty seconds before the next customer hits a review, not after a
+       build. */
+    const cache = await fetchSiteSettings(
+      ['DEEPL_API_KEY', 'GOOGLE_TRANSLATE_API_KEY', 'TRANSLATE_PROVIDER'], context.env,
+    ).catch(() => ({}));
+
     const deeplKey = String(
-      context.env.DEEPL_API_KEY || context.env.DEEPL_AUTH_KEY || context.env.DEEPL_KEY || ''
+      resolveSetting('DEEPL_API_KEY', context.env, cache)
+      || context.env.DEEPL_AUTH_KEY || context.env.DEEPL_KEY || ''
     ).trim();
     const googleKey = String(
-      context.env.GOOGLE_TRANSLATE_API_KEY || context.env.GOOGLE_TRANSLATE_KEY || ''
+      resolveSetting('GOOGLE_TRANSLATE_API_KEY', context.env, cache)
+      || context.env.GOOGLE_TRANSLATE_KEY || ''
     ).trim();
 
-    const requested = String(context.env.TRANSLATE_PROVIDER || '').trim().toLowerCase();
+    const requested = String(
+      resolveSetting('TRANSLATE_PROVIDER', context.env, cache) || ''
+    ).trim().toLowerCase();
+
+    /* 'off' is a real answer, and the one this whole branch exists for: a store
+       that has decided translation is not worth paying for should be able to
+       stop it without deleting keys it may want back. Answered as a clean
+       "translation is off" rather than an error, so the storefront can hide the
+       control instead of showing a broken one. */
+    if (requested === 'off' || requested === 'none') {
+      return new Response(
+        JSON.stringify({ translations: normalizedTexts, provider: 'off', disabled: true }),
+        { status: 200, headers: corsHeaders },
+      );
+    }
     let provider = '';
     if (requested === 'google') provider = googleKey ? 'google' : '';
     else if (requested === 'deepl') provider = deeplKey ? 'deepl' : '';
