@@ -2296,6 +2296,17 @@
                          engine is selected. -->
                     <div id="tax-category-wrap" style="margin-top:18px;"></div>
                     <div id="tax-engine-status" style="margin-top:10px;font-size:12px;"></div>
+                    <!-- Runs resolveTax() against a real address — the same
+                         function that prices a real order. This is the gap
+                         between "Stripe Tax is enabled in Stripe" and "this
+                         store calls it", which nothing else on this page can
+                         tell you apart. Cincinnati on purpose: state rate 5.75%
+                         vs a real 7.8%, so the built-in table and a proper
+                         engine give visibly different answers. -->
+                    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+                      <button class="btn btn-secondary" style="font-size:.78rem;padding:7px 14px;" onclick="runServiceTest('tax', this)">▶ Test: price a real order</button>
+                      <div id="svctest-tax" style="display:none;margin-top:10px;font-size:.8rem;padding:10px;border-radius:6px;line-height:1.6;"></div>
+                    </div>
                   </div>
 
                   <!-- KPI cards -->
