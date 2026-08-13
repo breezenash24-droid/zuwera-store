@@ -1482,6 +1482,120 @@
                       const sh = document.getElementById('tax-shadow-select');
                       if (sh) sh.value = _taxEngineCfg.shadowEngine || '';
                       window.taxEngineOnChange();
+                      taxEngineHealth();
+                    }
+
+                    /* ─── Is the engine actually collecting anything? ───────────
+                       Every other control on this page reports what is
+                       CONFIGURED. None of them could tell you what comes back.
+
+                       That gap had a live cost. This store runs on Stripe Tax,
+                       and Stripe Tax only charges tax in jurisdictions you have
+                       registered in its dashboard — with none registered it
+                       answers 200 OK, tax_amount_exclusive 0, for every address
+                       on earth. Not an error, so the fallback never fires, the
+                       log stays clean, and the admin page goes on saying
+                       "💳 Stripe Tax" in confident green while the store
+                       collects nothing anywhere. The first sign would have been
+                       a filing.
+
+                       A zero is a legitimate answer — Oregon has no sales tax,
+                       clothing is exempt in Pennsylvania — so no single zero
+                       means anything. Zero in all three of these does: they are
+                       states that tax general goods AND clothing, so whatever
+                       the store's default category is, something should come
+                       back. Asking through /api/tax-quote rather than the
+                       provider directly is the point: that is the same
+                       resolveTax() the charge runs through, so this measures the
+                       path customers are on, not a parallel one. */
+                    const TAX_HEALTH_PROBES = [
+                      { state: 'CA', zip: '90210', city: 'Beverly Hills' },
+                      { state: 'TX', zip: '78701', city: 'Austin' },
+                      { state: 'OH', zip: '45202', city: 'Cincinnati' },
+                    ];
+                    const TAX_HEALTH_AMOUNT = 10000;   // $100.00 taxable
+                    const TAX_HEALTH_SHIPPING = 800;   // $8.00 postage
+
+                    async function taxEngineHealth() {
+                      const box = document.getElementById('tax-engine-health');
+                      if (!box) return;
+                      const engine = (document.getElementById('tax-engine-select') || {}).value || 'builtin';
+                      /* 'none' collecting nothing is the setting working. */
+                      if (engine === 'none') { box.innerHTML = ''; return; }
+
+                      const meta = (window.TAX_ENGINE_META || {})[engine] || {};
+                      const name = meta.name || engine;
+                      box.innerHTML = '<span style="font-size:12px;color:var(--text-secondary);">Checking what ' +
+                        escH(name) + ' returns…</span>';
+
+                      const results = await Promise.all(TAX_HEALTH_PROBES.map(async (p) => {
+                        try {
+                          const r = await fetch('/api/tax-quote?state=' + p.state + '&zip=' + p.zip +
+                            '&city=' + encodeURIComponent(p.city) +
+                            '&amount=' + TAX_HEALTH_AMOUNT + '&shipping=' + TAX_HEALTH_SHIPPING,
+                            { cache: 'no-store' });
+                          if (!r.ok) return { p, error: 'HTTP ' + r.status };
+                          const j = await r.json();
+                          if (j && j.unavailable) return { p, error: 'unavailable' };
+                          return { p, cents: Number(j && j.taxCents) || 0, fallbackFrom: j && j.fallbackFrom };
+                        } catch (e) {
+                          return { p, error: (e && e.message) || 'failed' };
+                        }
+                      }));
+
+                      const answered  = results.filter((r) => !r.error);
+                      const collecting = answered.filter((r) => r.cents > 0);
+                      const fellBack  = answered.filter((r) => r.fallbackFrom);
+
+                      /* Could not ask. Say so plainly rather than show a green
+                         tick nobody earned. */
+                      if (!answered.length) {
+                        box.innerHTML = healthBanner('#6b7280', '·',
+                          'Could not check what ' + escH(name) + ' returns',
+                          'The tax quote endpoint did not answer. This is a check on this page only — it does not mean checkout is affected.');
+                        return;
+                      }
+
+                      if (!collecting.length) {
+                        const where = answered.map((r) => r.p.state).join(', ');
+                        box.innerHTML = healthBanner('#ef4444', '!',
+                          escH(name) + ' is returning no tax anywhere',
+                          'A $100 order to ' + where + ' comes back at $0.00 tax. Those states tax what this store sells, so this is not an exemption — nothing is being collected on any order.' +
+                          (engine === 'stripe_tax'
+                            ? '<br><br><b>Almost always this:</b> Stripe Tax charges tax only where you have added a <b>registration</b>. With none added it answers zero for every address and reports no error, which is why nothing here went red until now. Fix it in <b>Stripe → Tax → Registrations</b>: add your home state first (you have physical nexus there), then any state the nexus table below shows you have crossed. Come back and reload this page to confirm.'
+                            : '<br><br>Check that the provider account is active and that your collecting jurisdictions are registered with it.'));
+                        return;
+                      }
+
+                      const parts = collecting.map((r) => r.p.state + ' $' + (r.cents / 100).toFixed(2));
+                      const silent = answered.filter((r) => !r.cents).map((r) => r.p.state);
+                      box.innerHTML = healthBanner('#34d399', '✓',
+                        escH(name) + ' is returning tax',
+                        'On a $100 order: ' + parts.join(', ') + '.' +
+                        (silent.length ? ' Nothing in ' + silent.join(', ') + ' — expected if you are not registered there, or if what you sell is exempt.' : '') +
+                        (fellBack.length ? '<br><br><b style="color:#f59e0b;">Answered by the backup table,</b> not by ' + escH(name) + ' — the provider could not be reached just now.' : ''));
+                    }
+                    window.taxEngineHealth = taxEngineHealth;
+
+                    /* The engine names come from a fixed table in this file, so
+                       nothing here is attacker-controlled today. Escaping anyway
+                       because a banner built by string concatenation is exactly
+                       where that stops being true — 'external' already carries a
+                       user-entered endpoint, and the next engine added might
+                       carry a user-entered name. */
+                    function escH(v) {
+                      return String(v == null ? '' : v)
+                        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                    }
+
+                    function healthBanner(colour, mark, title, body) {
+                      return '<div style="display:flex;gap:10px;padding:12px 14px;border:1px solid ' + colour +
+                        '55;background:' + colour + '14;border-radius:8px;max-width:640px;">' +
+                        '<span style="color:' + colour + ';font-weight:700;line-height:1.5;">' + mark + '</span>' +
+                        '<div style="font-size:12px;line-height:1.6;">' +
+                        '<div style="color:' + colour + ';font-weight:600;margin-bottom:2px;">' + title + '</div>' +
+                        '<div style="color:var(--text-secondary);">' + body + '</div></div></div>';
                     }
 
                     /* ─── Which engine, chosen deliberately ─────────────────────
