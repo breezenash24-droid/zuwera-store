@@ -116,7 +116,11 @@ const TOKEN = fs.readFileSync(ROOT + '/functions/api/_order-token.js', 'utf8')
   {
     /* A second door into the same room. If the guest path checked eligibility
        differently, it would become the way round the rules. */
-    ok('eligibility is the shared function', /returnEligibility\(order, mine, say\)/.test(CODE));
+    /* Matched loosely on the arguments that matter — the shared function, this
+       order, this order's requests. Pinning the exact arity broke the moment the
+       return window was passed as a fourth argument, which is a change to the
+       rule and not to the property being asserted. */
+    ok('eligibility is the shared function', /returnEligibility\(order, mine, say[,)]/.test(CODE));
     ok('items are reconciled by the shared function',
       /reconcileReturnItems\(order, submitted, spokenForOn\(mine, order\.id\)\)/.test(CODE));
     /* Falling back to the whole order when every line was rejected is the

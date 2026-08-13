@@ -81,14 +81,41 @@ async function markOrderStatus(orderId, fulfillmentStatus, env) {
   const key = sbKey(env);
   if (!env.SUPABASE_URL || !key || !orderId) return;
   try {
-    await fetch(`${env.SUPABASE_URL}/rest/v1/orders?id=eq.${orderId}`, {
+    const patch = { fulfillment_status: fulfillmentStatus };
+    /* Keep the moment, not just the state.
+       This already knew a parcel had arrived and recorded only that it had —
+       so "30-day free returns", which every confirmation email promises, had no
+       date to count from. Payment date is the wrong one: an order paid on the
+       1st and delivered on the 10th would give that customer twenty days while
+       telling them thirty.
+       It cannot be backfilled, which is why it is written here rather than
+       computed later — Shippo's tracking history does not last forever and the
+       webhook has already fired for every existing order. */
+    if (fulfillmentStatus === 'delivered') patch.delivered_at = new Date().toISOString();
+
+    const resp = await fetch(`${env.SUPABASE_URL}/rest/v1/orders?id=eq.${orderId}`, {
       method:  'PATCH',
       headers: {
         apikey: key, Authorization: `Bearer ${key}`,
         'Content-Type': 'application/json', Prefer: 'return=minimal',
       },
-      body: JSON.stringify({ fulfillment_status: fulfillmentStatus }),
+      body: JSON.stringify(patch),
     });
+    /* PostgREST rejects the WHOLE row for one unknown column, so before
+       migration 0015 is applied this would silently stop recording the
+       fulfilment status too — a new field quietly breaking an old one, which
+       has happened here before. Retry without the new column rather than lose
+       what already worked. */
+    if (!resp.ok && patch.delivered_at) {
+      await fetch(`${env.SUPABASE_URL}/rest/v1/orders?id=eq.${orderId}`, {
+        method:  'PATCH',
+        headers: {
+          apikey: key, Authorization: `Bearer ${key}`,
+          'Content-Type': 'application/json', Prefer: 'return=minimal',
+        },
+        body: JSON.stringify({ fulfillment_status: fulfillmentStatus }),
+      });
+    }
   } catch (_) { /* non-fatal */ }
 }
 

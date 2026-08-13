@@ -99,6 +99,7 @@
     returnItemsSpent: { label: 'Return refused — every item is already returned', text: 'Every item on this order has already been returned or refunded.', color: ROLE.bad },
     returnItemsInvalid: { label: 'Return refused — those items are not on the order', text: 'Those items are not available to return on this order.', color: ROLE.bad },
     returnNoItems: { label: 'Return refused — nothing was selected', text: 'Choose at least one item to return.', color: ROLE.bad },
+    returnWindowClosed: { label: 'Return refused — past the window', text: 'Returns are open for {days} days after delivery, and this order arrived {ago} days ago.', color: ROLE.bad },
     /* ── signing in ───────────────────────────────────────────────────────────
        The auth service returns its own messages, and the two below are the ones
        a shopper actually meets: a wrong password and an address that already
@@ -290,7 +291,7 @@
          endpoint another way, and every one of them is a refusal, which is the
          copy most worth being able to say in your own words. */
       keys: ['returnAlreadyRefunded', 'returnCancelled', 'returnAlreadyOpen',
-             'returnItemsSpent', 'returnItemsInvalid', 'returnNoItems'],
+             'returnItemsSpent', 'returnItemsInvalid', 'returnNoItems', 'returnWindowClosed'],
     },
     {
       name: 'Product page',
@@ -409,7 +410,7 @@
     { title: 'Signing in', keys: ['authBadCredentials', 'authEmailInUse', 'authMissingFields', 'authNeedEmail', 'authPasswordShort', 'authNoConnection', 'authFailed'] },
     { title: 'Refused at checkout', keys: ['checkoutNotEnough', 'checkoutUnavailable', 'checkoutPriceChanged', 'checkoutNoPrice', 'checkoutRateExpired', 'checkoutRateInvalid'] },
     { title: 'Promo codes', keys: ['promoApplied', 'promoEmpty', 'promoInvalid', 'promoFailed'] },
-    { title: 'Starting a return', keys: ['returnAlreadyRefunded', 'returnCancelled', 'returnAlreadyOpen', 'returnItemsSpent', 'returnItemsInvalid', 'returnNoItems'] },
+    { title: 'Starting a return', keys: ['returnAlreadyRefunded', 'returnCancelled', 'returnAlreadyOpen', 'returnItemsSpent', 'returnItemsInvalid', 'returnNoItems', 'returnWindowClosed'] },
     { title: 'When a card is declined', keys: ['declineFunds', 'declineCvc', 'declineNumber', 'declineExpired', 'declinePostcode', 'declineCallBank', 'declineNoReason', 'declineRetry', 'declined'] },
   ];
 

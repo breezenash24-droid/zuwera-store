@@ -100,7 +100,7 @@ console.log('\n  and it is wired to the things that decide');
   const hubjs = fs.readFileSync(ROOT + 'customer-hub.js', 'utf8');
 
   /* Ownership was the only check. That is how the second request got in. */
-  ok('the endpoint refuses an ineligible return', /returnEligibility\(matchedOrder, myRequests, say\)/.test(hub));
+  ok('the endpoint refuses an ineligible return', /returnEligibility\(matchedOrder, myRequests, say[,)]/.test(hub));
   ok('…and the pages read the same answer rather than their own',
     /returnable: eligible\.ok/.test(hub) && /o\.returnable !== false/.test(hubjs)
       && /o\.returnable === false/.test(acct));

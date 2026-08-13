@@ -27,7 +27,7 @@
 import { cors, json, getCommerceBundle, mutateSetting } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { sendTransactional } from './_email.js';
-import { returnEligibility, reconcileReturnItems, spokenForOn } from './_returns.js';
+import { returnEligibility, reconcileReturnItems, spokenForOn, returnWindowFrom } from './_returns.js';
 import { orderNo, orderNoPlain, normalizeOrderNo, sameOrderNo } from './_order-no.js';
 import { messagesFrom } from './_messages.js';
 import { notifyOps } from './_notify-ops.js';
@@ -242,7 +242,7 @@ export async function onRequestPost({ request, env }) {
        to read what else that email has bought. */
     const mine = all.filter((r) => r && String(r.orderId) === String(order.id));
     const say = messagesFrom(bundle.config);
-    const eligible = returnEligibility(order, mine, say);
+    const eligible = returnEligibility(order, mine, say, returnWindowFrom(bundle.config));
 
     return json({
       success: true,
@@ -294,7 +294,7 @@ export async function onRequestPost({ request, env }) {
     /* The same eligibility check the account page uses. Guests get neither a
        looser rule nor a stricter one — a second door into the same room, not a
        different room. */
-    const eligible = returnEligibility(order, mine, say);
+    const eligible = returnEligibility(order, mine, say, returnWindowFrom(bundle.config));
     if (!eligible.ok) return json({ error: eligible.reason, code: eligible.code }, 409, h);
 
     const allItems = (() => {
