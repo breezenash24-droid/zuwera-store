@@ -319,7 +319,38 @@
     } catch (_) { return 'null'; }
   }
 
+  /* ── The bag and the checkout were answering this differently ─────────────
+     Both pages price a cart, and both ask "is this shopper a member". But
+     checkout.js asks the SERVER — /api/me, cached in sessionStorage — while
+     this file only ever read localStorage and decided for itself. checkout.js
+     wins wherever both load, and it is not loaded on bag.html.
+
+     So a token that is present and unexpired but which the server does not
+     accept — revoked, from another project, a membership lapsed server-side —
+     read as a MEMBER on the bag and a GUEST at the till. $35 in the bag, $40 at
+     checkout, with nothing on either page admitting the other existed. That is
+     the reported bug, and it is the usual shape: one question, two answerers,
+     and the cheaper answerer sitting on the page the shopper sees first.
+
+     Same key and same precedence checkout.js uses, so whichever page verifies
+     first, both then agree. sessionStorage rather than localStorage because a
+     verdict must not outlive signing out in another tab. */
+  var MEMBER_CACHE_KEY = 'zw_member_verified';
+
+  function verifiedMember() {
+    try {
+      var v = sessionStorage.getItem(MEMBER_CACHE_KEY);
+      if (v === '1') return true;
+      if (v === '0') return false;
+    } catch (_) {}
+    return null;
+  }
+
   function hasValidSession() {
+    /* The server's answer wins whenever we have it — the same first line
+       checkout.js's isLoggedIn() has. */
+    var v = verifiedMember();
+    if (v !== null) return v;
     try {
       for (var i = 0; i < localStorage.length; i += 1) {
         var k = localStorage.key(i);
@@ -368,6 +399,14 @@
   /* Only if nothing better is already there — checkout.js's server-verified
      version must win wherever both load, whatever the order. */
   if (typeof w.zwHasValidSession !== 'function') w.zwHasValidSession = hasValidSession;
+
+  /* Deliberately NOT asking /api/me here. checkout.js loads on both the bag and
+     the checkout — lower down the document, so this file wins the first paint
+     and checkout.js wins every render after — and it already verifies with the
+     server and re-renders the cart when the answer contradicts the guess. A
+     second call from here would be a duplicate request on every page load to
+     re-learn something already on its way. Reading its cached verdict above is
+     the whole fix. */
 
   /* ── make the fetch actually happen ───────────────────────────────────────
      load() was only ever CALLED by bag.html. Everywhere else this file was
