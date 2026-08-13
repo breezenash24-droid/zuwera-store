@@ -560,7 +560,7 @@ async function lastUsed(env) {
 
   const [emails, hooks] = await Promise.allSettled([
     fetch(url + '/rest/v1/email_log?select=provider,status,created_at&status=eq.sent&order=created_at.desc&limit=60', H),
-    fetch(url + '/rest/v1/webhook_events?select=created_at,raw_status&order=created_at.desc&limit=1', H),
+    fetch(url + '/rest/v1/webhook_events?select=received_at,raw_status&order=received_at.desc&limit=1', H),
   ]);
 
   if (emails.status === 'fulfilled' && emails.value.ok) {

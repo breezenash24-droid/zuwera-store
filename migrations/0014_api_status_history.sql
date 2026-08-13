@@ -11,16 +11,18 @@
 -- since 04:12" instead of "Resend is failing", which is the first version
 -- anybody can act on.
 --
--- ALSO CREATES webhook_events, WHICH NOTHING EVER CREATED. stripe-webhook.js
--- has been writing a row per delivery since it was written — event type,
--- payment intent, signature verified, handler errors — through a helper that
--- swallows its own failures because a logging problem must never fail a paid
--- order. No .sql file in this repository has ever created that table. So every
--- one of those writes has been 404ing into the catch, and the log built
--- specifically to answer "is Stripe reaching us and is the signature passing"
--- has been empty the entire time. That question came up repeatedly while
--- chasing the missing confirmation emails, and this is why it could not be
--- answered from the data.
+-- ALSO DEFINES webhook_events, which no .sql file in this repository creates.
+--
+-- It DOES exist in production and has been collecting rows — checked directly,
+-- 65 of them. It was created outside the repo at some point, which is exactly
+-- the drift migration 0001 was written to stop: a table the code depends on,
+-- present on one database and defined nowhere, so a second deployment gets a
+-- store whose webhook log silently 404s into logWebhookEvent's catch. That
+-- helper swallows its own failures on purpose — a logging problem must never
+-- fail a paid order — so nothing would ever say the log was missing.
+--
+-- `create table if not exists` therefore does nothing here and everything on a
+-- fresh project. The columns match what logWebhookEvent() actually sends.
 -- ============================================================================
 
 -- ── What each check saw, when ───────────────────────────────────────────────
@@ -51,25 +53,30 @@ create index if not exists api_status_log_time_idx
 -- Columns match what logWebhookEvent() actually sends, so existing writes start
 -- landing the moment this runs. Everything is nullable: this is a diagnostic
 -- log, and a partial row is worth more than a rejected one.
+-- Shape taken from the live database rather than invented: `id uuid` and
+-- `received_at` (NOT created_at, which is the name every other log table here
+-- uses and the one this was first written against). A fresh project must get
+-- the same columns production has, or code that reads one works on exactly one
+-- of the two databases.
 create table if not exists public.webhook_events (
-  id             bigserial primary key,
+  id             uuid primary key default gen_random_uuid(),
+  received_at    timestamptz not null default now(),
   event_type     text,
   payment_intent text,
   customer_email text,
   amount_cents   integer,
   sig_verified   boolean,
-  raw_status     text,          -- received | handler_error | payment_failed
   error_message  text,
-  created_at     timestamptz not null default now()
+  raw_status     text           -- received | handler_error | payment_failed
 );
 
 comment on table public.webhook_events is
   'One row per Stripe webhook delivery. Answers "is Stripe reaching us and is '
   'the signature passing" without opening the Stripe dashboard. Written by '
-  'logWebhookEvent() in stripe-webhook.js, which swallows failures — so if this '
-  'table is missing, the writes disappear silently. It was, and they did.';
+  'logWebhookEvent() in stripe-webhook.js, which swallows its failures — so on '
+  'a database where this table is absent the writes vanish with no error.';
 
-create index if not exists webhook_events_created_idx on public.webhook_events (created_at desc);
+create index if not exists webhook_events_received_idx on public.webhook_events (received_at desc);
 create index if not exists webhook_events_pi_idx      on public.webhook_events (payment_intent);
 
 -- ── Recording a run ─────────────────────────────────────────────────────────
@@ -123,4 +130,4 @@ revoke all on function public.record_api_status(jsonb) from public, anon;
 --   select record_api_status('[{"service":"resend","ok":true}]'::jsonb);
 --   select service, ok, checked_at from api_status_log order by checked_at desc limit 5;
 --   -- and, once an order comes through, the log that was never landing:
---   select event_type, raw_status, created_at from webhook_events order by created_at desc limit 5;
+--   select event_type, raw_status, received_at from webhook_events order by received_at desc limit 5;
