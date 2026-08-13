@@ -2559,11 +2559,46 @@
         function buildBrevoRows(s) {
             if (!s.ok && !s.configured) return `<p class="api-note" style="color:var(--warning);">Not configured — use the edit button below to add your Brevo key.</p>`;
             if (!s.ok) return `<p class="api-note" style="color:var(--error);">Key error: ${s.error}</p>`;
+            const dailyLimit = (s.freePlan && s.freePlan.dailyLimit) || 300;
             let rows = apiRow('Plan', s.plan || 'Free');
-            rows += apiRow('Daily limit', '300 emails');
+            rows += apiRow('Daily limit', dailyLimit.toLocaleString() + ' emails');
             if (s.credits !== null) rows += apiRow('Credits remaining', s.credits.toLocaleString());
             if (s.accountEmail) rows += apiRow('Account', s.accountEmail);
+            rows += brevoCover(s.peakDay, dailyLimit);
             return rows;
+        }
+
+        /* ─── The only quota question a backup can answer ──────────────────────
+           The other cards forecast running out. Brevo cannot be asked that: it
+           sends nothing while Resend is healthy, so its usage is zero on almost
+           every day, and extrapolating a rate from zero is noise with a
+           percentage sign on it.
+
+           What matters about a failover is whether it could carry the traffic
+           if it were ever called on — and finding that out during the outage is
+           finding out too late. So this compares Brevo's daily allowance
+           against the busiest day this store has actually had. */
+        function brevoCover(peak, dailyLimit) {
+            if (!peak || !Number.isFinite(Number(peak.peak)) || peak.peak <= 0) return '';
+            const n = Number(peak.peak);
+            const when = new Date(peak.peakDate + 'T12:00:00').toLocaleDateString(undefined,
+                { month: 'short', day: 'numeric' });
+            /* A capped scan read only the newest rows, so the true peak can only
+               be higher than this. Say "at least" rather than present a floor as
+               the answer. */
+            const about = peak.capped ? 'at least ' : '';
+
+            if (n > dailyLimit) {
+                const short = n - dailyLimit;
+                return `<p class="api-note api-forecast warn">Your busiest day in the last 30 sent ${about}${n.toLocaleString()} emails (${when}). `
+                     + `Brevo's ${dailyLimit.toLocaleString()}/day would <strong>not</strong> have covered it — about `
+                     + `${short.toLocaleString()} would have gone unsent. Worth a paid tier before it is needed.</p>`;
+            }
+            /* Comfort is information too, and the same tone the other forecasts
+               use when nothing needs doing. */
+            const headroom = Math.round(((dailyLimit - n) / dailyLimit) * 100);
+            return `<p class="api-note api-forecast">Your busiest day in the last 30 sent ${about}${n.toLocaleString()} emails (${when}). `
+                 + `Brevo's ${dailyLimit.toLocaleString()}/day covers that with ${headroom}% to spare.</p>`;
         }
 
         function buildSupabaseRows(s) {
