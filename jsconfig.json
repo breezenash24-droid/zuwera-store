@@ -1,0 +1,47 @@
+{
+  "//": [
+    "Type-checking for plain JavaScript. There is no TypeScript migration here and",
+    "there must not be one: nothing is renamed, nothing is compiled, and the files",
+    "Cloudflare Pages serves stay exactly the .js they are today. tsc runs with",
+    "--noEmit purely as a linter that understands scope.",
+    "",
+    "WHY: buildOrderConfirmation referenced an undeclared `meta` and threw on every",
+    "order for weeks — no confirmation email was ever sent. create-payment-intent",
+    "called json() five times and never imported it, so every return path threw",
+    "including the catch block, and checkout was down. Both are one identifier that",
+    "does not exist. `node --check` parses fine in both cases, because an unbound",
+    "name is only an error when its line RUNS.",
+    "",
+    "Scoped to functions/ on purpose. That is the money path, it is all modules",
+    "with real imports, and it is small enough to keep at zero errors. The",
+    "storefront and admin files are browser globals talking to each other through",
+    "window, which this would drown in noise for very little.",
+    "",
+    "strict is OFF deliberately. The goal is 'this name does not exist', not a type",
+    "system. Turning on strictNullChecks here would produce thousands of findings",
+    "about optional fields and bury the one that matters."
+  ],
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    /* Cloudflare Workers: fetch, Request, Response, crypto, btoa, console all
+       come from the WebWorker lib rather than DOM. */
+    "lib": ["ES2022", "WebWorker"],
+
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["functions/**/*.js"],
+  "exclude": ["node_modules", "dist", "tests", "scripts"]
+}

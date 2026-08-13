@@ -252,7 +252,7 @@ async function burnWaiver(env, id, byAdminId) {
 /**
  * The full decision. `ctx` carries what the rules are written about: the action,
  * plus whatever the endpoint knows (amount, region, the resource being touched).
- * @returns { allow, reason, admin }
+ * @returns  allow, reason, admin
  */
 export async function decide(env, accessToken, permission, ctx = {}) {
   const admin = await verifyAdmin(env, accessToken);

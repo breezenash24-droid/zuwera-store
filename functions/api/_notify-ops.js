@@ -179,7 +179,7 @@ async function toSms(env, { event }) {
  * Fire an ops alert. Never throws, never rejects.
  *
  * @param env    Worker env (holds the channel credentials)
- * @param opts   {severity:'warn'|'critical', event, detail, key?, avoid?, store?}
+ * @param opts   severity ('warn' | 'critical'), event, detail, key?, avoid?, store?
  *               key   — dedupe identity; defaults to the event text
  *               avoid — providers that must NOT carry the alert (they failed)
  */

@@ -83,7 +83,7 @@ function estDaysFromDate(deliveryDate) {
  * `source: 'veeqo'` and `remoteShipmentId` (needed to book the label later).
  *
  * @param from  Shippo-style from address { name, street1, street2, city, state, zip, country, phone }
- * @param to    { name, line1, line2, city, state, zip, country, phone }
+ * @param to    name, line1, line2, city, state, zip, country, phone
  * @param parcel Shippo-style parcel { weight, mass_unit, length, width, height, distance_unit }
  */
 // Shared rates-request body. The docs mark customer_reference optional, but the

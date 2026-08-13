@@ -43,6 +43,7 @@ missing table and says exactly which file to run.
 - **`supabase-master-schema.sql` is for new projects only.** It drops every
   table. It now refuses to run if `orders` or `products` contain rows, so a
   paste into the wrong SQL editor fails instead of destroying a live store.
+  It is also **incomplete** — see [standing up a new database](#standing-up-a-new-database).
 
 ### Why not the Supabase CLI
 
@@ -51,6 +52,66 @@ The CLI is a good tool and this keeps its file layout, so moving to
 path because it needs Docker for a local shadow database and a terminal command
 at deploy time — and a step someone has to remember is the step that got skipped
 here already.
+
+## Standing up a new database
+
+**A new Supabase project cannot currently be created from this repository.**
+That is the blocker for licensing, for a second store, and for restoring into a
+fresh project.
+
+Why: `migrations/0001` ends by inserting a row marking version `0000` as applied,
+meaning *"the schema is whatever it is today"*. On **this** database that is
+honest — the root `.sql` files below were applied by hand in an order nobody
+recorded, and marking them applied stops the runner replaying scripts that drop
+tables. On an **empty** project it is a lie: it claims a baseline that does not
+exist, and then `0002`–`0017` run against nothing.
+
+`supabase-master-schema.sql` does not close the gap either. It creates 11 tables;
+nine more (`abandoned_carts`, `admin_audit_log`, `bundles`, `email_log`,
+`journal_posts`, `loyalty_ledger`, `newsletter_subscribers`, `product_questions`,
+`referral_codes`) exist only in root scripts that nothing lists.
+
+### The fix: install, don't migrate
+
+A new project gets a **snapshot**, not a replay:
+
+```bash
+pg_dump --schema-only --no-owner --no-privileges \
+  "postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres" \
+  > schema.sql
+node scripts/build-install-sql.js schema.sql     # writes supabase/install.sql
+```
+
+Then, on the new project: paste **`supabase/install.sql`** into the SQL editor and
+run it. That is the only thing you run. Do **not** also run `migrations/0001` —
+`schema_migrations` and `apply_migration()` are already in the snapshot, and
+running both is the ordering trap this design exists to remove.
+
+The connection string is in Supabase → Project Settings → Database. The generator
+never touches a database; it reads a dump and writes a file.
+
+**Why a snapshot rather than replaying the migrations.** The chain only ever ran
+on top of a schema that already existed. Replaying it against an empty database
+is a sequence nobody has executed and nothing tests — it is where ordering bugs
+live, a migration assuming something a later one changed, working only because
+production was not empty at the time. `install.sql` is the finished state and
+records every migration through HEAD as applied, so the runner has nothing
+pending.
+
+### Keeping it honest
+
+`install.sql` is **generated**. Regenerate it whenever a migration lands and
+commit the result. `tests/install-covers-migrations.test.js` fails if a migration
+exists that `install.sql` does not record — because the rot here is silent: a
+stale install file still runs, still creates a database, and the store still
+starts. What is missing is whatever the un-regenerated migration added, so a
+licensee gets a database that looks fine and behaves differently. That is worse
+than one that fails to install, and it is exactly what happened to the root
+scripts below.
+
+That coverage check cannot tell whether the SQL itself is current — only a diff
+against production can. Before licensing anything, add that: dump production,
+stand up a fresh database from `install.sql`, and diff the two.
 
 ## Applied baseline (root `.sql` files)
 These are the historical, already-applied scripts. Keep them for reference; do
@@ -90,7 +151,7 @@ Pending migrations that ship with features live in `supabase/migrations/` (e.g.
 the `error_log` table for runtime error tracking). Apply them with `supabase db
 push` (or paste into the SQL editor if you're not using the CLI yet).
 
-## Backups & restore  {#restore}
+## Backups & restore
 - **Primary:** enable Supabase **Point-in-Time Recovery** (Pro plan) — restore the
   DB to any moment in the retention window. This is the enterprise safety net.
 - **Secondary:** the deployed `backup-export` edge function (x-backup-token gated)
