@@ -2358,12 +2358,18 @@
                 /* Catalogue integrations you pinned. Rendered as real API cards
                    rather than a second kind of tile, so a thing you use looks
                    like the other things you use — and carries its own state,
-                   reason and troubleshooting exactly as it does downstairs. */
+                   reason and troubleshooting exactly as it does downstairs.
+
+                   Collected separately and put at the FRONT. "Pin to top" that
+                   appends to the end is not pinning to the top — it is just
+                   moving something from one place you have to scroll to, to
+                   another. */
+                const pinnedCards = [];
                 for (const key of (_apiLayout.pinned || [])) {
                     const it = ZW_INTEGRATION_CATALOG.find(x => x.key === key);
                     if (!it) continue;              // catalogue entry removed since it was pinned
                     const st = integrationState(it);
-                    cards.push(renderApiCard(
+                    pinnedCards.push(renderApiCard(
                         it.icon || '🧩',
                         it.name,
                         { ok: st.state === 'live' || st.state === 'ready',
@@ -2382,7 +2388,12 @@
                 // Tucked-away services drop out of this grid and reappear as
                 // cards in More Integrations, where they still open the same
                 // key editor. Nothing is disabled by moving it.
-                gridEl.innerHTML = cards.filter(Boolean).join('');
+                /* Pinned first, in the order they were pinned — so the list
+                   reads as "the ones I chose", then everything else. */
+                gridEl.innerHTML = [...pinnedCards, ...cards].filter(Boolean).join('');
+                /* Drawn with the grid, so the buttons appear the moment a card
+                   is moved and disappear the moment the layout is default. */
+                renderApiLayoutControls();
             } catch (e) {
                 loadingEl.style.display = 'block';
                 loadingEl.textContent = '⚠️ Could not load API status: ' + e.message;
@@ -3257,6 +3268,80 @@
             // Both lists change, so both are redrawn.
             loadApiStatus();
             renderIntegrationStore();
+        }
+
+        /* ─── Putting the layout back ──────────────────────────────────────────
+           Tucking away and pinning are easy to do by accident — two adjacent
+           buttons on every card — and until now there was no way back except
+           remembering what you had and undoing it one card at a time.
+
+           So: one button that restores the shipped order, and one that undoes
+           THAT. The undo is the important half. A reset with no way back is a
+           second way to lose the layout rather than a way to recover it, and
+           somebody who clicks it to see what it does has then destroyed exactly
+           the thing they were being protected from losing.
+
+           The snapshot is kept in localStorage rather than a variable, because
+           the reset triggers a reload of both lists and a variable would be the
+           first thing gone if the page were refreshed. It is per-browser and
+           that is fine — it exists to cover the ten seconds after a misclick,
+           not to be a version history. */
+        const APILAYOUT_UNDO_KEY = 'zw_api_layout_undo';
+
+        function apiLayoutHasUndo() {
+            try { return !!localStorage.getItem(APILAYOUT_UNDO_KEY); } catch (_) { return false; }
+        }
+
+        async function saveApiLayout(next, message) {
+            _apiLayout = next;
+            try {
+                const { error } = await sb.from('site_settings').upsert(
+                    { key: 'api_layout', value: _apiLayout }, { onConflict: 'key' });
+                if (error) throw error;
+                showToast(message, 'success');
+            } catch (err) {
+                showToast('Could not save the layout: ' + ((err && err.message) || 'error'), 'error');
+            }
+            loadApiStatus();
+            renderIntegrationStore();
+        }
+
+        async function resetApiLayout() {
+            const current = { demoted: [..._apiLayout.demoted || []], pinned: [..._apiLayout.pinned || []] };
+            if (!current.demoted.length && !current.pinned.length) {
+                showToast('Already showing the default order.', 'success');
+                return;
+            }
+            /* Snapshot BEFORE the write, so a failed save still leaves an undo
+               pointing at what is actually stored. */
+            try { localStorage.setItem(APILAYOUT_UNDO_KEY, JSON.stringify(current)); } catch (_) {}
+            await saveApiLayout({ demoted: [], pinned: [] },
+                'Back to the default order. Use “Undo” to put it back.');
+        }
+
+        async function undoApiLayout() {
+            let prev = null;
+            try { prev = JSON.parse(localStorage.getItem(APILAYOUT_UNDO_KEY) || 'null'); } catch (_) {}
+            if (!prev) { showToast('Nothing to undo.', 'error'); return; }
+            try { localStorage.removeItem(APILAYOUT_UNDO_KEY); } catch (_) {}
+            await saveApiLayout({
+                demoted: Array.isArray(prev.demoted) ? prev.demoted : [],
+                pinned:  Array.isArray(prev.pinned)  ? prev.pinned  : [],
+            }, 'Your layout is back.');
+        }
+
+        /* Shown only when there is something to do — a reset button on a default
+           layout, or an undo with nothing behind it, are both just noise. */
+        function renderApiLayoutControls() {
+            const host = document.getElementById('api-layout-controls');
+            if (!host) return;
+            const customised = (_apiLayout.demoted || []).length || (_apiLayout.pinned || []).length;
+            const canUndo = apiLayoutHasUndo();
+            host.innerHTML = (customised
+                ? `<button class="btn btn-secondary btn-sm" title="Put every card back where it shipped. Nothing is deleted and no key is touched." onclick="resetApiLayout()">↺ Back to default order</button>` : '')
+                + (canUndo
+                    ? `<button class="btn btn-secondary btn-sm" title="Restore the layout you had before the reset" onclick="undoApiLayout()">⤺ Undo reset</button>` : '');
+            host.style.display = host.innerHTML ? '' : 'none';
         }
 
         /* Promote a catalogue integration into the API list, or send it back.

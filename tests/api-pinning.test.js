@@ -78,7 +78,7 @@ console.log('\n  only something you actually use can be pinned');
 console.log('\n  a pinned integration renders as a real API card');
 {
   ok('pinned entries are pushed into the same grid', /for \(const key of \(_apiLayout\.pinned \|\| \[\]\)\)/.test(ADMIN));
-  ok('…through renderApiCard, not a second kind of tile', /cards\.push\(renderApiCard\(/.test(ADMIN));
+  ok('…through renderApiCard, not a second kind of tile', /pinnedCards\.push\(renderApiCard\(/.test(ADMIN));
   /* A catalogue entry can be deleted while still pinned. Rendering `undefined`
      would take the whole grid down. */
   ok('a pin naming a removed entry is skipped, not rendered',
@@ -87,6 +87,53 @@ console.log('\n  a pinned integration renders as a real API card');
   ok('…and can be unpinned from up there too', /pinIntegration\('\$\{it\.key\}', false\)/.test(ADMIN));
   ok('its health reflects the integration state, not a guess',
     /ok: st\.state === 'live' \|\| st\.state === 'ready'/.test(ADMIN));
+}
+
+console.log('\n  pinned means TOP, not "somewhere else"');
+{
+  /* Appending to the end is not pinning to the top — it is moving something
+     from one place you have to scroll to, to another. */
+  ok('pinned cards are collected separately', /const pinnedCards = \[\];/.test(ADMIN));
+  ok('…and rendered before everything else',
+    /\[\.\.\.pinnedCards, \.\.\.cards\]/.test(ADMIN),
+    'order of the spread is the whole feature');
+  ok('…in the order they were pinned', /for \(const key of \(_apiLayout\.pinned \|\| \[\]\)\)/.test(ADMIN));
+}
+
+console.log('\n  the layout can be put back');
+{
+  ok('there is a reset', /async function resetApiLayout\(\)/.test(ADMIN));
+  ok('…and an undo for the reset', /async function undoApiLayout\(\)/.test(ADMIN));
+  /* THE IMPORTANT HALF. A reset with no way back is a second way to lose the
+     layout rather than a way to recover it — somebody clicking it to see what
+     it does has then destroyed the thing they were being protected from
+     losing. */
+  ok('the snapshot is taken BEFORE the write',
+    ADMIN.indexOf("localStorage.setItem(APILAYOUT_UNDO_KEY") < ADMIN.indexOf("await saveApiLayout({ demoted: [], pinned: [] }"),
+    'a failed save must still leave an undo pointing at what is stored');
+  /* A variable would be gone on the first refresh, and the reset reloads both
+     lists — so the undo has to outlive a page load to be worth anything. */
+  ok('…and survives a reload', /localStorage\.setItem\(APILAYOUT_UNDO_KEY/.test(ADMIN));
+  ok('undo clears itself, so it cannot be replayed onto a newer layout',
+    /localStorage\.removeItem\(APILAYOUT_UNDO_KEY\)/.test(ADMIN));
+  ok('…and says so when there is nothing to undo', /Nothing to undo\./.test(ADMIN));
+  ok('resetting an already-default layout does nothing rather than clearing the undo',
+    /Already showing the default order/.test(ADMIN));
+
+  ok('both writes go through one save path', /async function saveApiLayout\(next, message\)/.test(ADMIN));
+  ok('…which reports a failure rather than losing it silently',
+    /Could not save the layout/.test(ADMIN));
+
+  /* Buttons that do nothing are noise, and a reset button on an untouched
+     layout invites exactly the misclick it exists to protect against. */
+  ok('the controls render only when there is something to do',
+    /const customised = \(_apiLayout\.demoted \|\| \[\]\)\.length \|\| \(_apiLayout\.pinned \|\| \[\]\)\.length/.test(ADMIN));
+  ok('…and the undo only when a reset happened', /const canUndo = apiLayoutHasUndo\(\)/.test(ADMIN));
+  ok('they are drawn with the grid', /renderApiLayoutControls\(\);/.test(ADMIN));
+  ok('…and have somewhere to live at the top of the section',
+    /id="api-layout-controls"/.test(fs.readFileSync(path.join(ROOT, 'admin.html'), 'utf8')));
+  ok('the reset says nothing is deleted, because that is the fear',
+    /Nothing is deleted and no key is touched/.test(ADMIN));
 }
 
 console.log('\n  both lists redraw, because both changed');

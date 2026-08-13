@@ -541,6 +541,10 @@
                             <div id="apis-last-updated"></div>
                         </div>
                         <button class="btn btn-secondary" id="apis-refresh-btn" onclick="loadApiStatus()">↻ Refresh</button>
+                        <!-- Only rendered when there is something to undo. A
+                             reset button on an untouched layout, or an undo with
+                             nothing behind it, are both noise. -->
+                        <span id="api-layout-controls" style="display:none;gap:8px;"></span>
                     </div>
 
                     <!-- Email failover status bar -->
