@@ -4439,6 +4439,21 @@ body.super-light-mode img[src*="wordmark-nav"]{ filter:none !important; }
   color:#09090b !important;
 }
 
+/* ── The same thing the other way up ──────────────────────────────────────
+   Only the light half of this existed, which quietly assumed a section could
+   never be darker than the page. A dark band — a theme token, an accent, a
+   colour somebody picked — left every child that hardcodes a DARK colour
+   sitting on top of it, and the product names under the cards vanished exactly
+   as thoroughly as they would have the other way round.
+
+   storefront.js measures the rendered background and adds one class or the
+   other, so these two are never both on. */
+.zw-on-dark :is(h1,h2,h3,h4,p,li,.pcard-name,.pcard-cat,.pcard-price,
+  .sec-head,.sec-head *,.about-label,.about-body,.about-body *,.stat-n,.stat-l,
+  .zw-eyebrow,.eyebrow,[class*="-label"],[class*="-title"]):not(button):not(a.btn):not(.btn){
+  color:#f4f1eb !important;
+}
+
 /* ── Explicit section Text Color ──────────────────────────────────────────
    storefront.js adds .zw-sec-tc to a section that has a CHOSEN Text Color (and
    sets that color on the section itself). Cascade it onto child text that

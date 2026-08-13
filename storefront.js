@@ -644,6 +644,75 @@ function showToast(msg) {
      So: anything that tracks the theme keeps the page's own foreground, which
      is correct by construction. Only a literal that stays light in EVERY theme
      needs its text darkened. */
+  /* ── Read the background instead of predicting it ─────────────────────────
+     Everything before this tried to work out what colour a section would END UP
+     being from the value stored for it — a token, a legacy literal standing for
+     a token, or a colour somebody picked. Each rule was right about the case it
+     was written for and wrong about one it was not, and when two of them
+     disagreed about the same field the products strip rendered dark ink on a
+     dark band.
+
+     The browser already knows. Once the background is applied, getComputedStyle
+     resolves every var(), token and literal down to one rgb() string.
+     Measuring that is not a better guess; it is the end of guessing, and it
+     keeps working for backgrounds nobody has thought of yet.
+
+     Two things it must handle honestly:
+
+       TRANSPARENCY. token:tint is rgb(var(--fg-rgb) / 6%) — a wash, not a
+       colour. What the eye sees is that wash composited over whatever is
+       behind it, so this walks up until it finds something opaque and blends
+       back down. Treating 6% cream as "cream" would darken text on a page that
+       is still essentially black.
+
+       IMAGES. A photographic background has no single colour, and picking one
+       would be inventing an answer. Returning '' leaves each element its own
+       styling, which is what happened before any of this existed. */
+  const INK_DARK  = '#09090b';
+  const INK_LIGHT = '#f4f1eb';
+
+  function _zwParseRgb(str) {
+    const m = String(str || '').match(/rgba?\(([^)]+)\)/i);
+    if (!m) return null;
+    const p = m[1].split(/[,\s/]+/).filter(Boolean).map(parseFloat);
+    if (p.length < 3 || p.slice(0, 3).some(isNaN)) return null;
+    return { r: p[0], g: p[1], b: p[2], a: p.length > 3 && !isNaN(p[3]) ? p[3] : 1 };
+  }
+
+  function zwInkFor(el) {
+    if (!el || typeof getComputedStyle !== 'function') return '';
+    const layers = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      const cs = getComputedStyle(node);
+      /* A photo behind the text: no single colour to measure, so say so. */
+      if (cs.backgroundImage && cs.backgroundImage !== 'none') return '';
+      const c = _zwParseRgb(cs.backgroundColor);
+      if (c && c.a > 0) {
+        layers.push(c);
+        if (c.a >= 0.999) break;      // opaque — nothing below it shows through
+      }
+      node = node.parentElement;
+    }
+    /* Ran out of ancestors without hitting anything opaque: the page itself is
+       the floor, and it is whatever the theme says rather than a literal. */
+    let base = layers.length && layers[layers.length - 1].a >= 0.999
+      ? layers.pop()
+      : (_zwParseRgb(getComputedStyle(document.body).backgroundColor) || { r: 9, g: 9, b: 11, a: 1 });
+
+    for (let i = layers.length - 1; i >= 0; i--) {
+      const t = layers[i];
+      base = {
+        r: t.r * t.a + base.r * (1 - t.a),
+        g: t.g * t.a + base.g * (1 - t.a),
+        b: t.b * t.a + base.b * (1 - t.a),
+        a: 1,
+      };
+    }
+    const lum = (0.299 * base.r + 0.587 * base.g + 0.114 * base.b) / 255;
+    return lum > 0.6 ? INK_DARK : INK_LIGHT;
+  }
+
   function sectionBgTracksTheme(value) {
     const raw = String(value || '').trim();
     if (!raw) return false;
@@ -658,6 +727,19 @@ function showToast(msg) {
     const legacy = LEGACY_BG_TOKENS[raw.toLowerCase()];
     return legacy ? SECTION_BG_TOKENS[legacy] : raw;
   }
+  /* A measurement is only true for the theme it was taken in. Switch theme and
+     every token-backed section is a different colour, so the ink has to be
+     read again — otherwise light-on-light survives exactly one toggle. */
+  window.addEventListener('zw-theme-applied', function () {
+    document.querySelectorAll('[data-zw-ink]').forEach(function (el) {
+      const ink = zwInkFor(el);
+      if (!ink) return;
+      el.style.setProperty('color', ink, 'important');
+      el.classList.toggle('zw-on-light', ink === INK_DARK);
+      el.classList.toggle('zw-on-dark', ink === INK_LIGHT);
+    });
+  });
+
   window.zwSectionBgTokens = SECTION_BG_TOKENS;   // the builder lists these
   // Landing pages render through landing-sections.js, which has its own tail.
   // Shared rather than copied, so the two cannot drift into disagreeing.
@@ -1935,23 +2017,35 @@ function showToast(msg) {
         el.style.setProperty('color', _tc, 'important');
         el.classList.add('zw-sec-tc');
         el.classList.remove('zw-on-light');
-      } else if (s.sec_bg && !sectionBgTracksTheme(s.sec_bg) && _zwIsLightColor(s.sec_bg)) {
-        // A background that is light in EVERY theme, with no text color chosen →
-        // force dark text so it stays readable (otherwise a white section inherits
-        // the dark-theme light text and renders invisible white-on-white). The
-        // zw-on-light class also darkens child text that hardcodes its own light
-        // color (e.g. product cards).
-        // Excluded above: backgrounds that track the theme. Those already move
-        // with the page, so the page's own foreground reads on them — and
-        // forcing dark ink onto one when the theme turned it dark is what made
-        // the product names disappear.
-        el.style.setProperty('color', '#09090b', 'important');
-        el.classList.add('zw-on-light');
-        el.classList.remove('zw-sec-tc');
+      } else if (s.sec_bg) {
+        /* The section paints its own background, so whatever colour the page
+           would have given the text is no longer the relevant one. Measured
+           after the background above has been applied, so what is read is what
+           will render — including a token that moves with the theme.
+
+           Only when sec_bg is set: a section with no background of its own is
+           just the page, and forcing !important colour onto it would override
+           per-element styling that is doing nothing wrong. */
+        const ink = zwInkFor(el);
+        if (ink) {
+          el.style.setProperty('color', ink, 'important');
+          /* The classes carry it down to children that hardcode their own
+             colour — the product names among them. Both directions: a dark
+             band needs light ink pushed down exactly as much as a light one
+             needs dark, and only the light half existed. */
+          el.classList.toggle('zw-on-light', ink === INK_DARK);
+          el.classList.toggle('zw-on-dark', ink === INK_LIGHT);
+          el.classList.remove('zw-sec-tc');
+          el.setAttribute('data-zw-ink', '1');
+        } else {
+          el.style.removeProperty('color');
+          el.classList.remove('zw-on-light', 'zw-on-dark', 'zw-sec-tc');
+          el.removeAttribute('data-zw-ink');
+        }
       } else {
         el.style.removeProperty('color');
-        el.classList.remove('zw-on-light');
-        el.classList.remove('zw-sec-tc');
+        el.classList.remove('zw-on-light', 'zw-on-dark', 'zw-sec-tc');
+        el.removeAttribute('data-zw-ink');
       }
       // Universal heading-size override (opt-in). Only applied when set — when
       // blank, each section's own responsive heading size (re-rendered into the
