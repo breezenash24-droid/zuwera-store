@@ -13,7 +13,7 @@
     document.documentElement.style.backgroundColor = navBg;
   }
   try {
-    var _m = localStorage.getItem('zw_homepage_theme_mode') || localStorage.getItem('zw_theme_mode');
+    var _m = localStorage.getItem('zw_theme_mode') || localStorage.getItem('zw_homepage_theme_mode');
     if (_m === 'light') {
       document.body.classList.add('light-mode');
     } else if (_m === 'super-light') {
@@ -2358,7 +2358,13 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
         window.__zwApplyBuilderConfig(val);
         window.__zwPageBuilderActive = true;
         const themeMode = val.theme === 'light' ? 'light' : val.theme === 'super-light' ? 'super-light' : 'dark';
-        try { localStorage.setItem('zw_homepage_theme_mode', themeMode); } catch(e) {}
+        /* One key. This wrote a HOMEPAGE-ONLY theme that the rest of the
+           site never read, so the builder's choice and the site theme could
+           disagree — a white landing page in front of a dark store, with no
+           switch anywhere that moved both. Per-section colour (sec_bg /
+           text_color) is the right tool for a section that should look
+           different; a whole second page-level theme was not. */
+        try { localStorage.setItem('zw_theme_mode', themeMode); } catch(e) {}
       }
     }
     // No builder layout is active (default homepage, or the layout was reverted):
@@ -2391,7 +2397,7 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
         // driven, which is exactly why an admin-set light theme flashed dark on
         // every refresh. Cache both keys so every page (home + the rest) is covered.
         try {
-          localStorage.setItem('zw_homepage_theme_mode', mode);
+          localStorage.setItem('zw_theme_mode', mode);
           localStorage.setItem('zw_theme_mode', mode);
         } catch(e) {}
     }
