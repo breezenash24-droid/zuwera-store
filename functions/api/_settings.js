@@ -84,6 +84,11 @@ const ALLOWED_KEYS = new Set([
   // Scheduled-email cron shared secrets (set here → no Cloudflare redeploy needed)
   'REVIEW_REQUEST_TOKEN',
   'ABANDONED_CART_TOKEN',
+  /* Same shape, different job: this one lets an external cron run the service
+     health checks. Editable here so turning the watcher on is a paste rather
+     than a redeploy — the point of it is being told when something breaks, and
+     a setup step that needs a deploy is a setup step that waits for one. */
+  'STATUS_WATCH_TOKEN',
   // Order-alert webhooks (admin → APIs → More Integrations). These are secrets:
   // anyone holding the URL can post into the channel, so they live here rather
   // than in site_settings.integrations, which is anon-readable by design.

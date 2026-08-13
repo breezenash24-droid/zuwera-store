@@ -399,6 +399,101 @@ async function checkCloudflare(env, cache) {
 
 const svcKey = (env) => (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
 
+/* Not a service — a setting whose absence turns a customer-facing feature off
+   without any outward sign.
+ *
+ * Every guest return starts with an emailed link, and that link is signed.
+ * With no secret there is nothing to sign with, so no email is sent — and the
+ * returns page still answers "we have emailed a link to start your return",
+ * because that sentence is deliberately identical for every outcome so it
+ * cannot be used to probe which orders exist. Right for the customer, and it
+ * means the operator's only signal is a customer complaining.
+ *
+ * It belongs on this panel precisely because nothing else will ever show it.
+ * NOT optional: a store that takes orders can be asked for a return. */
+export function checkReturnSigning(e) {
+  const has = (e.RETURN_TOKEN_SECRET || '').trim() || (e.CHECKOUT_RATE_SECRET || '').trim();
+  if (!has) {
+    return {
+      ok: false, configured: false,
+      error: 'RETURN_TOKEN_SECRET not set — guest returns are silently failing. '
+        + 'Customers are told a link was emailed and none is sent. '
+        + 'Set it to any long random string in Cloudflare.',
+    };
+  }
+  /* Long enough to be worth signing with. A short secret is brute-forceable
+     offline against a single captured link, and a forged token is a link into
+     somebody else's order. */
+  if (has.length < 24) {
+    return {
+      ok: false, configured: true,
+      error: 'The returns signing secret is only ' + has.length + ' characters. '
+        + 'Use at least 32 random ones — a short secret can be brute-forced from a single link.',
+    };
+  }
+  return {
+    ok: true, configured: true,
+    note: (e.RETURN_TOKEN_SECRET || '').trim()
+      ? 'Signing with RETURN_TOKEN_SECRET.'
+      : 'Signing with CHECKOUT_RATE_SECRET. Set RETURN_TOKEN_SECRET to give returns their own key.',
+  };
+}
+
+/**
+ * Run every service check and return the results keyed by service.
+ *
+ * EXPORTED so the scheduled watcher runs THESE checks rather than its own.
+ * A watcher with a second copy of "is Resend healthy" is a watcher that
+ * eventually disagrees with the panel, and the disagreement surfaces as an
+ * alert nobody can reproduce by opening the page — the worst kind, because the
+ * obvious next step (look at the dashboard) actively misleads.
+ *
+ * `extra` lets a caller fold in checks that are not vendor calls (the returns
+ * signing secret), so the watcher covers exactly what the panel covers.
+ */
+export async function runChecks(env, cache, extra) {
+  const [cloudinary, resend, brevo, supabase, stripe, shippo, veeqo, cloudflare, deepl, loops, twilio, posthog] =
+    await Promise.allSettled([
+      checkCloudinary(env, cache),
+      checkResend(env, cache),
+      checkBrevo(env, cache),
+      checkSupabase(env),          // always uses env for bootstrap keys
+      checkStripe(env, cache),
+      checkShippo(env, cache),
+      checkVeeqo(env, cache),
+      checkCloudflare(env, cache),
+      checkDeepL(env, cache),
+      checkLoops(env, cache),
+      checkTwilio(env, cache),
+      checkPostHog(env, cache),
+    ]);
+
+  const unwrap = (r) =>
+    r.status === 'fulfilled' ? r.value : { ok: false, error: r.reason?.message || 'Unknown error' };
+
+  const out = {
+    cloudinary: unwrap(cloudinary),
+    resend:     unwrap(resend),
+    brevo:      unwrap(brevo),
+    supabase:   unwrap(supabase),
+    stripe:     unwrap(stripe),
+    shippo:     unwrap(shippo),
+    veeqo:      unwrap(veeqo),
+    cloudflare: unwrap(cloudflare),
+    deepl:      unwrap(deepl),
+    loops:      unwrap(loops),
+    twilio:     unwrap(twilio),
+    posthog:    unwrap(posthog),
+  };
+  if (typeof extra === 'function') out.returnSigning = extra(env);
+  return out;
+}
+
+/* Also exported: the watcher needs to write its own run, or a check that
+   happened at 4am leaves no trace and the next morning's panel says the service
+   has been healthy all night. */
+export { recordRun, svcKey };
+
 /* ── How long has it been like this? ─────────────────────────────────────────
    A status page that only knows about right now cannot answer the question
    anybody actually has. "Resend is failing" is a fact; "Resend has been failing
@@ -525,65 +620,7 @@ export async function onRequestGet({ request, env, waitUntil }) {
   const cacheKeys = [...ALLOWED_KEYS];
   const cache     = await fetchSiteSettings(cacheKeys, env);
 
-  /* Not a service — a setting whose absence turns a customer-facing feature off
-     without any outward sign.
-   *
-   * Every guest return starts with an emailed link, and that link is signed.
-   * With no secret there is nothing to sign with, so no email is sent — and the
-   * returns page still answers "we have emailed a link to start your return",
-   * because that sentence is deliberately identical for every outcome so it
-   * cannot be used to probe which orders exist. Right for the customer, and it
-   * means the operator's only signal is a customer complaining.
-   *
-   * It belongs on this panel precisely because nothing else will ever show it.
-   * NOT optional: a store that takes orders can be asked for a return. */
-  function checkReturnSigning(e) {
-    const has = (e.RETURN_TOKEN_SECRET || '').trim() || (e.CHECKOUT_RATE_SECRET || '').trim();
-    if (!has) {
-      return {
-        ok: false, configured: false,
-        error: 'RETURN_TOKEN_SECRET not set — guest returns are silently failing. '
-          + 'Customers are told a link was emailed and none is sent. '
-          + 'Set it to any long random string in Cloudflare.',
-      };
-    }
-    /* Long enough to be worth signing with. A short secret is brute-forceable
-       offline against a single captured link, and a forged token is a link into
-       somebody else's order. */
-    if (has.length < 24) {
-      return {
-        ok: false, configured: true,
-        error: 'The returns signing secret is only ' + has.length + ' characters. '
-          + 'Use at least 32 random ones — a short secret can be brute-forced from a single link.',
-      };
-    }
-    return {
-      ok: true, configured: true,
-      note: (e.RETURN_TOKEN_SECRET || '').trim()
-        ? 'Signing with RETURN_TOKEN_SECRET.'
-        : 'Signing with CHECKOUT_RATE_SECRET. Set RETURN_TOKEN_SECRET to give returns their own key.',
-    };
-  }
-
-  // Run all service checks in parallel
-  const [cloudinary, resend, brevo, supabase, stripe, shippo, veeqo, cloudflare, deepl, loops, twilio, posthog] =
-    await Promise.allSettled([
-      checkCloudinary(env, cache),
-      checkResend(env, cache),
-      checkBrevo(env, cache),
-      checkSupabase(env),          // always uses env for bootstrap keys
-      checkStripe(env, cache),
-      checkShippo(env, cache),
-      checkVeeqo(env, cache),
-      checkCloudflare(env, cache),
-      checkDeepL(env, cache),
-      checkLoops(env, cache),
-      checkTwilio(env, cache),
-      checkPostHog(env, cache),
-    ]);
-
-  const unwrap = (r) =>
-    r.status === 'fulfilled' ? r.value : { ok: false, error: r.reason?.message || 'Unknown error' };
+  const built = await runChecks(env, cache, checkReturnSigning);
 
   // Build masked key map for display in the admin UI
   // Each key shows the value from Supabase (if overridden) or env var, masked.
@@ -600,22 +637,6 @@ export async function onRequestGet({ request, env, waitUntil }) {
   const [historyR, usedR] = await Promise.allSettled([statusHistory(env), lastUsed(env)]);
   const history = historyR.status === 'fulfilled' ? historyR.value : {};
   const used    = usedR.status === 'fulfilled' ? usedR.value : {};
-
-  const built = {
-      cloudinary: unwrap(cloudinary),
-      resend:     unwrap(resend),
-      brevo:      unwrap(brevo),
-      supabase:   unwrap(supabase),
-      stripe:     unwrap(stripe),
-      shippo:     unwrap(shippo),
-      veeqo:      unwrap(veeqo),
-      cloudflare: unwrap(cloudflare),
-      deepl:      unwrap(deepl),
-      loops:      unwrap(loops),
-      twilio:     unwrap(twilio),
-      posthog:    unwrap(posthog),
-      returnSigning: checkReturnSigning(env),
-  };
 
   /* Each service carries its own history and its own last-used evidence, rather
      than the admin joining three maps by key — one place to get the pairing
