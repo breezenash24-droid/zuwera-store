@@ -19,8 +19,32 @@
        custom theme id reaches the engine instead of being coerced to 'light'
        by the line below. Falls through to the original path when the engine
        is absent, so a page that has not loaded it still themes correctly. */
-    if (window.ZWTheme && window.ZWTheme.get(mode)) {
-      window.ZWTheme.apply(mode, !window.__ZW_BUILDER_PREVIEW__);
+    if (window.ZWTheme) {
+      if (window.ZWTheme.apply(mode, !window.__ZW_BUILDER_PREVIEW__)) return;
+
+      /* ── The theme asked for does not exist ────────────────────────────────
+         This is not hypothetical and it is not rare: an import once replaced
+         the whole theme list, and a store that hit that has no theme called
+         'dark' any more even though the switcher still offers one. Deleting a
+         theme somebody has already chosen does the same thing.
+
+         What used to happen next is the worst possible answer. The engine had
+         already resolved the request to its DEFAULT theme and painted that
+         theme's tokens inline on <body> — and then this function fell through
+         and set the body class from the string instead. Inline styles outrank a
+         class, so the page ended up wearing one theme's colours under another
+         theme's structural rules: a black page whose text colour was computed
+         from a white theme's foreground, cream panels beside white ones, nav
+         icons the same colour as the bar they sit on. Every page slightly
+         differently, depending on which token each element happened to read.
+
+         "Half the page did not get the theme" is a much harder thing to
+         diagnose than "that theme is gone", so: the engine has already applied
+         a real, coherent theme. Leave it alone.
+
+         The stored choice is deliberately NOT cleared. Restoring the built-ins
+         should bring somebody's Dark back exactly as they left it, and
+         overwriting the request here would quietly lose that. */
       return;
     }
     var resolved = mode === 'dark' ? 'dark' : mode === 'super-light' ? 'super-light' : 'light';
@@ -275,6 +299,12 @@
 
   window.__zwApplyAdminTheme = applyThemeMode;
   window.__zwSyncThemeColor = function() {
+    /* Reading the mode back off the body classes is lossy once themes are
+       data: every custom theme collapses to one of three names, and feeding
+       that name back in asks for a theme that may not exist. Ask the engine
+       which theme is actually applied instead — it is the only thing that
+       knows. The class read stays as the fallback for pages without it. */
+    if (window.ZWTheme) { applyThemeMode(window.ZWTheme.current()); return; }
     var m = document.body && document.body.classList.contains('super-light-mode') ? 'super-light'
           : document.body && document.body.classList.contains('light-mode') ? 'light' : 'dark';
     applyThemeMode(m);

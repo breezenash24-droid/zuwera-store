@@ -209,8 +209,15 @@ console.log('\n  themes are data');
     'setting them on :root loses to body.light-mode and a custom theme gets the built-in colours');
 
   const st = fs.readFileSync(R + 'storefront-theme.js', 'utf8');
+  /* This used to read `window.ZWTheme && window.ZWTheme.get(mode)` — delegating
+     only when the id existed, and duplicating the decision when it did not.
+     That gap is the half-and-half page: see theme-missing.test.js. The engine's
+     PRESENCE is the guard now, not whether it recognises the request. */
   ok('the old applier delegates instead of duplicating',
-    /window\.ZWTheme && window\.ZWTheme\.get\(mode\)/.test(st));
+    /if \(window\.ZWTheme\) \{[\s\S]{0,80}?ZWTheme\.apply\(mode/.test(st));
+  ok('…including when the engine cannot honour the request',
+    !/window\.ZWTheme && window\.ZWTheme\.get\(mode\)/.test(st),
+    'a theme that was deleted or overwritten must not fall through to the string path');
 
   const sf = fs.readFileSync(R + 'storefront.js', 'utf8');
   ok('section backgrounds can name a theme token', /token:/.test(sf) && /resolveSectionBackground/.test(sf));
