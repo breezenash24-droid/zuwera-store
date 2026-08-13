@@ -150,6 +150,67 @@ async function checkBrevo(env, cache) {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
+/* ── Whether the backup could actually carry the load ────────────────────────
+   Every other quota on this page answers "am I going to run out". Brevo cannot
+   be asked that, because Brevo sends nothing while Resend is healthy — its
+   usage is zero on almost every day, and a straight-line forecast from zero is
+   noise dressed up as information.
+
+   The question a failover provider has to answer is different, and nobody was
+   asking it: if Resend goes down on a bad day, is 300 emails a day enough?
+   A backup that cannot carry the traffic is not a backup, and the way you find
+   that out should not be during the outage.
+
+   So: the busiest day of real sending in the last 30, from email_log — the
+   record of what this store actually sends, not an estimate. Capped, because
+   this runs inside a status check that must stay cheap, and a cap that is hit
+   is reported as "at least" rather than quietly under-counting.
+
+   Returns null whenever the answer would be invented — no service key, no
+   table, no sends yet. Same refusal as projectQuota: a missing number beats a
+   made-up one. */
+const PEAK_SCAN_LIMIT = 5000;
+
+export async function emailPeakDay(env) {
+  const url = (env.SUPABASE_URL || '').trim();
+  const key = svcKey(env);
+  if (!url || !key) return null;
+
+  const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  try {
+    const resp = await withTimeout(fetch(
+      url + '/rest/v1/email_log?select=created_at&status=eq.sent'
+          + '&created_at=gte.' + encodeURIComponent(since)
+          + '&order=created_at.desc&limit=' + PEAK_SCAN_LIMIT,
+      { headers: { apikey: key, Authorization: 'Bearer ' + key } }
+    ));
+    if (!resp.ok) return null;
+    const rows = await resp.json().catch(() => null);
+    if (!Array.isArray(rows) || !rows.length) return null;
+
+    /* Grouped here rather than in SQL: PostgREST cannot group without an RPC,
+       and adding a migration for a display line is a poor trade. */
+    const byDay = {};
+    for (const r of rows) {
+      const d = String(r.created_at || '').slice(0, 10);
+      if (d) byDay[d] = (byDay[d] || 0) + 1;
+    }
+    const days = Object.keys(byDay);
+    if (!days.length) return null;
+    const peakDate = days.reduce((a, b) => (byDay[b] > byDay[a] ? b : a));
+
+    return {
+      peak: byDay[peakDate],
+      peakDate,
+      daysWithSends: days.length,
+      /* Hitting the cap means the real peak may be higher — the oldest rows in
+         the window were never read. Say so rather than report a floor as a
+         fact. */
+      capped: rows.length >= PEAK_SCAN_LIMIT,
+    };
+  } catch (_) { return null; }
+}
+
 async function checkSupabase(env) {
   // Supabase URL/key always come from env (they bootstrap everything else)
   const url = (env.SUPABASE_URL || '').trim();
@@ -542,6 +603,14 @@ export async function runChecks(env, cache, extra) {
     stripeTax:  unwrap(stripeTax),
   };
   if (typeof extra === 'function') out.returnSigning = extra(env);
+
+  /* Attached to brevo rather than returned beside it, so the one card that
+     needs it gets it and nothing else has to know this exists. Only asked for
+     when Brevo is actually configured — an unconfigured failover has no
+     capacity question to answer, and this is a database round trip. */
+  if (out.brevo && out.brevo.configured) {
+    out.brevo.peakDay = await emailPeakDay(env);
+  }
   return out;
 }
 
@@ -673,7 +742,11 @@ async function lastUsed(env) {
   if (hooks.status === 'fulfilled' && hooks.value.ok) {
     const rows = await hooks.value.json().catch(() => []);
     if (Array.isArray(rows) && rows[0]) {
-      out.stripe = { at: rows[0].created_at, what: 'webhook received' };
+      /* received_at, not created_at — webhook_events has no created_at, so
+         this was handing sinceWords() undefined and the card said Stripe was
+         last used "at an unknown time" while the row it had just read carried
+         the timestamp. */
+      out.stripe = { at: rows[0].received_at, what: 'webhook received' };
     }
   }
 
