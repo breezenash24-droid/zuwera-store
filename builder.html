@@ -2297,20 +2297,51 @@ const SEC_BG_TOKENS=[
   ['token:accent','Theme · accent'],
   ['__custom','Custom colour — the same in every theme'],
 ];
-const secBgF=(v='')=>{
+/* ── Text Colour, on the same terms as Background ─────────────────────────
+   These two used to be built by different helpers, and the difference was the
+   whole of a live bug. Background got the control below — Default, a theme
+   colour, or a custom one. Text Color got a bare hex swatch: no "Default", no
+   tokens, and an <input type="color"> that can never be empty, so it always
+   LOOKED like a colour was set even when the text field beside it was blank.
+
+   The result on this store: the products strip was saved as #ffffff with
+   #000000 text. Both are literals frozen against whatever theme was active
+   when they were picked. Switch to dark and storefront.js dutifully forces
+   black onto the section with !important, it cascades down to the product
+   names, and the words go black on a dark page — with no way in this editor to
+   turn the text colour back off.
+
+   storefront.js has resolved token: values in text_color all along
+   (resolveSectionBackground(s.text_color) — see the note there about ink and
+   paper being a pair). Only the editor could not say it. */
+const SEC_TEXT_TOKENS=[
+  ['','Default — let the background decide'],
+  ['token:paper','Theme · page text (readable on the page colour)'],
+  ['token:ink','Theme · inverted text (for a light band)'],
+  ['token:accent','Theme · accent'],
+  ['__custom','Custom colour — the same in every theme'],
+];
+/* One control, two fields. Written generically the first time it was needed
+   twice, because two handlers doing the same job to two keys is the shape this
+   repo keeps finding drifted apart months later. */
+const tokenColorF=(key,label,v,opts,hint,fallbackHex)=>{
   const isTok=String(v).slice(0,6)==='token:';
   const sel=isTok?v:(v?'__custom':'');
   const hex=isTok?'':v;
-  return `<div class="field"><label>Background</label>
-    <select data-secbg-mode onchange="zwSecBgMode(this)">${SEC_BG_TOKENS.map(([val,txt])=>`<option value="${val}"${sel===val?' selected':''}>${txt}</option>`).join('')}</select>
-    <div data-secbg-custom style="display:${sel==='__custom'?'flex':'none'};gap:.35rem;align-items:center;margin-top:.35rem">
-      <input type="color" ${sel==='__custom'?`data-f="sec_bg"`:''} value="${hex||'#09090b'}" oninput="this.nextElementSibling.value=this.value">
-      <input type="text" data-f="sec_bg" value="${he(hex)}" placeholder="#hex" style="flex:1" oninput="const x=this.value.trim();if(/^#[0-9a-f]{6}$/i.test(x))this.previousElementSibling.value=x">
+  return `<div class="field" data-tc-key="${key}"><label>${label}</label>
+    <select data-tc-mode onchange="zwTokenColorMode(this)">${opts.map(([val,txt])=>`<option value="${val}"${sel===val?' selected':''}>${txt}</option>`).join('')}</select>
+    <div data-tc-custom style="display:${sel==='__custom'?'flex':'none'};gap:.35rem;align-items:center;margin-top:.35rem">
+      <input type="color" ${sel==='__custom'?`data-f="${key}"`:''} value="${hex||fallbackHex}" oninput="this.nextElementSibling.value=this.value">
+      <input type="text" ${sel==='__custom'?`data-f="${key}"`:''} value="${he(hex)}" placeholder="#hex" style="flex:1" oninput="const x=this.value.trim();if(/^#[0-9a-f]{6}$/i.test(x))this.previousElementSibling.value=x">
     </div>
-    <input type="hidden" data-secbg-token ${isTok?`data-f="sec_bg"`:''} value="${he(isTok?v:'')}">
+    <input type="hidden" data-tc-token ${!isTok&&sel==='__custom'?'':`data-f="${key}"`} value="${he(isTok?v:'')}">
   </div>
-  <div class="fhint" style="margin-top:-.3rem">A theme colour changes with the theme. A custom colour never does — right for a brand band, wrong for a strip that just wants to sit off the page.</div>`;
+  <div class="fhint" style="margin-top:-.3rem">${hint}</div>`;
 };
+const secBgF=(v='')=>tokenColorF('sec_bg','Background',v,SEC_BG_TOKENS,
+  'A theme colour changes with the theme. A custom colour never does — right for a brand band, wrong for a strip that just wants to sit off the page.','#09090b');
+const secTextF=(v='')=>tokenColorF('text_color','Text Color',v,SEC_TEXT_TOKENS,
+  'Default is almost always right: the section works out readable text from whatever background it ends up with, in every theme. A custom colour is fixed forever — pick one on a light theme and it stays that colour when the page goes dark.','#f4f1eb');
 /* Swap which input owns data-f, so the form always reads exactly one value. */
 /* ── Make this page follow the theme ──────────────────────────────────────
    A section holding a fixed colour keeps it while everything around it moves,
@@ -2364,21 +2395,29 @@ window.zwFollowTheme=function(){
   toast(n+(n===1?' section now follows':' sections now follow')+' the theme');
 };
 
-window.zwSecBgMode=function(sel){
+window.zwTokenColorMode=function(sel){
   const wrap=sel.closest('.field');
-  const custom=wrap.querySelector('[data-secbg-custom]');
-  const token=wrap.querySelector('[data-secbg-token]');
+  /* Which setting this control owns. Read from the wrapper rather than baked
+     into the function, so Background and Text Color share one implementation
+     and cannot drift apart. */
+  const key=wrap.dataset.tcKey||'sec_bg';
+  const custom=wrap.querySelector('[data-tc-custom]');
+  const token=wrap.querySelector('[data-tc-token]');
   const swatch=custom.querySelector('input[type="color"]');
   const text=custom.querySelector('input[type="text"]');
   const v=sel.value;
+  /* Exactly one input carries data-f at any moment. syncForm collects every
+     [data-f] and last-one-wins, so leaving two of them claiming the same key is
+     how a cleared text box loses to a colour swatch that can never be empty —
+     which is precisely why Text Color could not be switched off. */
   if(v==='__custom'){
     custom.style.display='flex';
     token.removeAttribute('data-f'); token.value='';
-    swatch.setAttribute('data-f','sec_bg'); text.setAttribute('data-f','sec_bg');
+    swatch.setAttribute('data-f',key); text.setAttribute('data-f',key);
   }else{
     custom.style.display='none';
     swatch.removeAttribute('data-f'); text.removeAttribute('data-f');
-    token.setAttribute('data-f','sec_bg'); token.value=v;   // '' for Default
+    token.setAttribute('data-f',key); token.value=v;   // '' for Default
   }
   /* No sync call here on purpose. openEditor binds a change listener to every
      input in the form, and an inline onchange attribute is registered first —
@@ -2682,7 +2721,7 @@ function buildForm(s){
   // ── Universal Section Style controls (appended to every section editor)
   h+=grp('Section style',
 `${secBgF(g.sec_bg||(s.type==='color_block'?'':g.bg_color)||'')}
-${colorF('text_color','Text Color',g.text_color||'')}
+${secTextF(g.text_color||'')}
 <div class="fhint" style="margin-top:-.3rem">Leave blank to inherit the page text color</div>
 <div class="field"><label>Heading Size</label><input type="text" data-f="heading_size" value="${he(g.heading_size||'')}" placeholder="blank = default · e.g. 2.5rem, 48px, clamp(2rem,5vw,3rem)"></div>
 <div class="field"><label>Body Text Size</label><input type="text" data-f="body_size" value="${he(g.body_size||'')}" placeholder="blank = default · e.g. 1.1rem, 18px"></div>
