@@ -28,6 +28,48 @@ function json(body, status = 200) {
  * Cloudflare; otherwise it falls back to the env RESEND_API_KEY / BREVO_API_KEY.
  * Best-effort + never throws — it must never block or fail the key operation itself.
  */
+/**
+ * Record a key change in admin_audit_log.
+ *
+ * NEVER the value, and not even a reversible hint of it. The masked preview is
+ * first-four-last-four, which is already on screen for anyone who can see this
+ * page — safe to store, and it is what makes an entry identifiable ("that is
+ * the key I pasted") without being usable.
+ *
+ * REJECTED ATTEMPTS ARE RECORDED TOO. An admin trying to overwrite a key that
+ * is locked to Cloudflare is the more interesting row of the two: it is either
+ * somebody confused about where a secret lives, or somebody probing what this
+ * endpoint will accept. Only logging successes would keep the second one out of
+ * the record entirely.
+ *
+ * Best-effort. A key that saved and an audit row that did not is worse than
+ * either, but failing the save because the log is unavailable is worse still —
+ * the alert email has already gone out and carries the same facts.
+ */
+async function auditKeyChange(env, { keyName, masked, by, userId, ua, rejected }) {
+  const url = (env.SUPABASE_URL || env.SUPABASE_PROJECT_URL || '').trim();
+  const sk  = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
+  if (!url || !sk) return;
+  try {
+    await fetch(`${url}/rest/v1/admin_audit_log`, {
+      method: 'POST',
+      headers: {
+        apikey: sk, Authorization: `Bearer ${sk}`,
+        'Content-Type': 'application/json', Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        action: rejected ? 'api_key.rejected' : 'api_key.update',
+        resource_type: 'api_key',
+        resource_id: keyName,
+        admin_user_id: userId || null,
+        admin_email: by || null,
+        user_agent: String(ua || '').slice(0, 300),
+        metadata: { masked: masked || null },
+      }),
+    });
+  } catch (_) { /* the alert email carries the same facts */ }
+}
+
 async function sendKeyChangeAlert(env, info) {
   try {
     const resendKey = (env.SECURITY_ALERT_RESEND_KEY || env.RESEND_API_KEY || '').trim();
@@ -105,13 +147,18 @@ export async function onRequestPost({ request, env }) {
 
     const adminUser = await validateAdmin(accessToken, env);
     const _by   = (adminUser && adminUser.email) || 'admin';
+    const _byId = (adminUser && adminUser.id) || null;
     const _ip   = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
+    const _ua   = request.headers.get('user-agent') || '';
     const _when = new Date().toISOString();
 
     if (!keyName || !ALLOWED_KEYS.has(keyName)) {
       // A validated admin tried to write a key that isn't editable here (e.g. a locked
       // crown-jewel like STRIPE_SECRET_KEY) — alert, then reject.
       if (keyName) await sendKeyChangeAlert(env, { keyName, masked: '(rejected — key is locked to Cloudflare)', by: _by, ip: _ip, when: _when, attempted: true });
+      /* The more interesting of the two rows: either somebody confused about
+         where a secret lives, or somebody probing what this endpoint accepts. */
+      if (keyName) await auditKeyChange(env, { keyName, masked: null, by: _by, userId: _byId, ua: _ua, rejected: true });
       return json({ ok: false, error: `"${keyName}" is not editable here — it's locked to Cloudflare env vars` }, 400);
     }
     if (!keyValue || String(keyValue).includes('•')) {
@@ -143,6 +190,18 @@ export async function onRequestPost({ request, env }) {
 
     console.log(`[update-api-key] Admin updated ${keyName}`);
     await sendKeyChangeAlert(env, { keyName, masked: maskKey(keyValue.trim()), by: _by, ip: _ip, when: _when });
+    /* And WRITE IT DOWN, not only email it.
+       Until now a key change produced an alert and nothing else — so the record
+       of who rotated what, and when, existed solely in whoever's inbox received
+       that mail, for as long as they kept it. Every other consequential admin
+       action goes into admin_audit_log; API keys, which are the most
+       consequential thing on the page, were the one exception.
+       It also makes the answer available where the question gets asked: "this
+       stopped working on Tuesday — did somebody change the key?" is a query
+       against a table, not a search of an inbox. */
+    await auditKeyChange(env, {
+      keyName, masked: maskKey(keyValue.trim()), by: _by, userId: _byId, ua: _ua, rejected: false,
+    });
     return json({ ok: true, keyName, message: `${keyName} saved successfully` });
   } catch (e) {
     return json({ ok: false, error: e.message || 'Unknown error' }, 500);

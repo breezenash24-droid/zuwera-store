@@ -2173,6 +2173,10 @@
 
         // Cached masked key map populated when the page loads
         let _maskedKeys = {};
+        /* When each key was last changed, and by whom. Written by
+           update-api-key.js into admin_audit_log — until it did, that record
+           existed only in whoever's inbox got the alert email. */
+        let _keyChanges = {};
         let _currentKeyService = null;
 
         // ─── Meta (Facebook) integration status ──────────────────────────────────
@@ -2275,6 +2279,7 @@
 
                 const s = data.services || {};
                 _maskedKeys = data.maskedKeys || {};
+                _keyChanges = data.keyChanges || {};
 
                 loadingEl.style.display = 'none';
                 gridEl.style.display    = '';
@@ -3084,6 +3089,19 @@
                     .map(k => `<span class="api-key-chip" title="${k.name}">${_maskedKeys[k.name]}</span>`);
                 if (chips.length) {
                     keyChips = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;">${chips.join('')}</div>`;
+                }
+                /* "This stopped working on Tuesday — did somebody change the
+                   key?" belongs next to the key it is about. Newest across all
+                   of this card's keys, named, because a card owning three keys
+                   makes "which one" the useful half of the answer. */
+                const changes = def.keys
+                    .map(k => (_keyChanges[k.name] ? { name: k.name, ..._keyChanges[k.name] } : null))
+                    .filter(Boolean)
+                    .sort((a, b) => new Date(b.at) - new Date(a.at));
+                if (changes.length) {
+                    const c = changes[0];
+                    keyChips += `<p class="api-note api-keychange">${c.rejected ? 'Blocked change attempt on' : 'Key changed'} `
+                        + `<code>${escapeHtml(c.name)}</code> ${escapeHtml(sinceWords(c.at))} by ${escapeHtml(c.by)}</p>`;
                 }
             }
 

@@ -551,6 +551,46 @@ async function statusHistory(env) {
 
    Deliberately separate from the health check: a key can validate perfectly
    while nothing has used it for a month, and that gap is worth seeing. */
+/**
+ * When each key was last changed, and by whom.
+ *
+ * "This stopped working on Tuesday — did somebody change the key?" was
+ * previously answerable only by searching an inbox for the alert email, if
+ * anyone still had it. Every other consequential admin action is in
+ * admin_audit_log; API keys, the most consequential thing on this page, were
+ * the one exception until update-api-key.js started writing here.
+ *
+ * Keyed by the KEY NAME (RESEND_API_KEY), which the admin maps onto its card —
+ * one card can own several keys, and Cloudinary owning three is exactly the
+ * case where "which one changed" is the useful part.
+ */
+async function keyChanges(env) {
+  const url = (env.SUPABASE_URL || '').trim();
+  const key = svcKey(env);
+  if (!url || !key) return {};
+  try {
+    const r = await fetch(
+      url + '/rest/v1/admin_audit_log'
+      + '?select=resource_id,admin_email,created_at,action'
+      + '&resource_type=eq.api_key&order=created_at.desc&limit=200',
+      { headers: { apikey: key, Authorization: 'Bearer ' + key } },
+    );
+    if (!r.ok) return {};                 // nothing recorded yet is not an error
+    const rows = await r.json().catch(() => []);
+    const out = {};
+    /* Newest first, so the first row seen for a key is its latest change. */
+    for (const row of (Array.isArray(rows) ? rows : [])) {
+      if (!row || !row.resource_id || out[row.resource_id]) continue;
+      out[row.resource_id] = {
+        at: row.created_at,
+        by: row.admin_email || 'an admin',
+        rejected: row.action === 'api_key.rejected',
+      };
+    }
+    return out;
+  } catch (_) { return {}; }
+}
+
 async function lastUsed(env) {
   const url = (env.SUPABASE_URL || '').trim();
   const key = svcKey(env);
@@ -645,9 +685,12 @@ export async function onRequestGet({ request, env, waitUntil }) {
      history is missing until migration 0014 runs, and email_log/webhook_events
      may be empty on a new store. A status panel that breaks because its own
      annotations are unavailable would be a poor trade. */
-  const [historyR, usedR] = await Promise.allSettled([statusHistory(env), lastUsed(env)]);
+  const [historyR, usedR, changedR] = await Promise.allSettled([
+    statusHistory(env), lastUsed(env), keyChanges(env),
+  ]);
   const history = historyR.status === 'fulfilled' ? historyR.value : {};
   const used    = usedR.status === 'fulfilled' ? usedR.value : {};
+  const changed = changedR.status === 'fulfilled' ? changedR.value : {};
 
   /* Each service carries its own history and its own last-used evidence, rather
      than the admin joining three maps by key — one place to get the pairing
@@ -669,5 +712,9 @@ export async function onRequestGet({ request, env, waitUntil }) {
     fetchedAt: new Date().toISOString(),
     services: built,
     maskedKeys,
+    /* Keyed by KEY NAME, not by service — one card can own several keys, and
+       "which of Cloudinary's three changed" is the useful part. The admin does
+       the mapping because it already knows which keys belong to which card. */
+    keyChanges: changed,
   });
 }

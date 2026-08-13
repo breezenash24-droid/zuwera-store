@@ -426,6 +426,12 @@
         .api-spark-bar.down { height: 5px;  background: rgba(239,68,68,.75); }
         .api-flap { color: #facc15; }
         .api-lastused { margin-top: 4px; opacity: .85; }
+        /* Sits under the masked key chips, because it is about those keys.
+           A blocked attempt is amber — it is either somebody confused about
+           where a secret lives, or somebody probing what the endpoint accepts,
+           and both are worth a second look. */
+        .api-keychange { margin-top: 7px; opacity: .85; font-size: .76rem; }
+        .api-keychange code { font-size: .72rem; opacity: .9; }
         /* A forecast is a different kind of statement from a measurement, so it
            does not get to look like one. Amber only when it actually predicts
            running out — an on-track projection is reassurance, not a warning. */
