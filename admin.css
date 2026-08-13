@@ -553,6 +553,20 @@
         .integration-why.unknown   { border-left-color: #94a3b8; }
         .integration-pairs { font-size: .74rem; color: var(--text-secondary); margin: -4px 0 8px; opacity: .85; }
         /* Troubleshooting, in the setup dialog */
+        /* Collapsed by default on the API cards. Twelve cards each showing four
+           symptoms would bury the numbers people actually come here to read —
+           this is reference material, wanted only when something is wrong. */
+        .api-trouble { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+        .api-trouble summary {
+            cursor: pointer; font-size: .76rem; font-weight: 600; letter-spacing: .04em;
+            color: var(--text-secondary); list-style: none; user-select: none;
+        }
+        .api-trouble summary::-webkit-details-marker { display: none; }
+        .api-trouble summary::before { content: '▸ '; }
+        .api-trouble[open] summary::before { content: '▾ '; }
+        .api-trouble summary:hover { color: var(--text-primary); }
+        .api-trouble > .int-trouble-row { margin-top: 11px; }
+
         .int-trouble { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px; }
         .int-trouble h4 { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-secondary); margin-bottom: 10px; }
         .int-trouble-row { margin-bottom: 12px; font-size: .82rem; line-height: 1.6; }

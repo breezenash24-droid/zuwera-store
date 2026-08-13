@@ -2862,6 +2862,88 @@
                 + `${word} since ${escapeHtml(sinceWords(h.since))}${note}</p>`;
         }
 
+        /* ─── "When it does not work", per service ─────────────────────────────
+           Symptom first, because that is the only part the reader already has:
+           they arrive with a broken thing, not a diagnosis. Cause second so the
+           fix reads as a reason rather than a ritual. Fix last, because it is
+           the part they act on.
+
+           Most of these are failures this store has actually had. Generic advice
+           ("check your API key") is what a vendor's docs already say and is not
+           worth the space; what earns a line is the thing that is specific to
+           how this store is wired — that Resend accepting a message is not the
+           same as delivering it, that Shippo's real error hides in messages[],
+           that a Stripe key and its webhook secret have separate modes. */
+        const API_TROUBLESHOOTING = {
+            resend: [
+                { symptom: 'Nothing arrives, but the log says sent', cause: 'Accepted is not delivered. Resend returns success when it has QUEUED a message; a bounce or a suppression-list drop happens after that and only shows in their dashboard.', fix: 'Check Resend → Logs for the actual delivery state. An address that hard-bounced once stays suppressed until you remove it there.' },
+                { symptom: '422 on send', cause: 'Almost always the From address — an unverified domain, or a missing EMAIL_FROM leaving it literally "undefined".', fix: 'Set EMAIL_FROM to an address on a domain verified in Resend. The Emails test button reports the verbatim error.' },
+                { symptom: 'Order emails stopped but test emails work', cause: 'The test path and the order path are different code. Fulfilment builds a themed email; a throw in that builder never reaches Resend at all.', fix: 'Check the Worker log for "Email failed:" — that line means the message was never attempted, not that Resend refused it.' },
+                { symptom: 'Hit the daily limit', cause: 'Free plan is 100/day, 3,000/month.', fix: 'Brevo takes over automatically if BREVO_API_KEY is set. The card above shows whether that failover is armed.' },
+            ],
+            brevo: [
+                { symptom: 'Never seems to be used', cause: 'It is failover only — it sends nothing while Resend is healthy.', fix: 'Working as intended. You will see it on the "email fell back to Brevo" alert, not in normal traffic.' },
+                { symptom: 'Credits not going down', cause: 'Same reason.', fix: 'Nothing to fix. Its purpose is to be idle.' },
+            ],
+            stripe: [
+                { symptom: 'Payment succeeds but nothing else happens', cause: 'Test and live have SEPARATE webhook endpoints and separate signing secrets. Moving the secret key without the webhook secret leaves the signature failing on every delivery.', fix: 'Use the "Test: key + webhook mode" button above. Then Stripe → Developers → Webhooks → Recent deliveries: 400 means signature mismatch.' },
+                { symptom: 'No confirmation email on a real order', cause: 'The email is the last step of fulfilment — anything earlier throwing takes it with it.', fix: 'Recent deliveries again. 500 means the handler threw and the response body names the reason.' },
+                { symptom: 'Still in test mode by accident', cause: 'sk_test_ keys process nothing real.', fix: 'The Mode row above says which. Switching is two changes, not one — see the note on this card.' },
+            ],
+            shippo: [
+                { symptom: 'No rates at checkout', cause: 'Nine times out of ten the ship-from address, not the key. Shippo reports it inside messages[] rather than as an error status.', fix: 'Press "Test: quote live rates" above — it prints Shippo\'s own message.' },
+                { symptom: 'Rates work, labels fail', cause: 'A declined card on the Shippo account, or a rate that expired before purchase.', fix: 'Check billing at goshippo.com. Label failures also surface on the dashboard as an alert.' },
+                { symptom: 'Free labels ran out', cause: '30/month on the free tier.', fix: 'Veeqo takes over automatically if VEEQO_API_KEY is set. The forecast above says when you will cross.' },
+            ],
+            veeqo: [
+                { symptom: 'Never returns rates', cause: 'Veeqo needs Amazon Shipping V2 enabled on the account — it is not on by default.', fix: 'Enable it in Veeqo, then re-check. Until then Shippo carries everything.' },
+                { symptom: 'Not sure it is being used', cause: 'It only quotes once Shippo\'s free tier is spent, or when it is cheaper.', fix: 'The Shippo card shows how many free labels are left before it takes over.' },
+            ],
+            supabase: [
+                { symptom: 'Orders are not saving', cause: 'Usually the service-role key. Server code falls back to the anon key, so RLS silently blocks the write instead of erroring.', fix: 'Check SUPABASE_SERVICE_ROLE_KEY is set and correct. A clean log with missing rows is this, almost every time.' },
+                { symptom: 'A feature is configured but does nothing', cause: 'A migration that was never applied. PostgREST rejects the whole row for one unknown column.', fix: 'Admin → APIs → Database migrations. It compares the repository against production and lists anything pending.' },
+                { symptom: 'Storage filling up', cause: 'error_log grows without limit — it is currently the largest table.', fix: 'Prune it. 500 MB is the free tier and logs will reach it long before orders do.' },
+            ],
+            cloudinary: [
+                { symptom: 'HTTP 401', cause: 'CLOUDINARY_CLOUD_NAME belongs to a different account than the key and secret.', fix: 'All three must come from the same Cloudinary account. The cloud name is the one people mix up.' },
+                { symptom: 'Images load slowly or not at all', cause: 'New uploads go to R2; Cloudinary only serves what was uploaded before that.', fix: 'Both work. If an old image breaks, re-upload it and it moves to R2.' },
+            ],
+            deepl: [
+                { symptom: 'Translations stopped', cause: 'The 500,000-character monthly free tier ran out.', fix: 'The forecast above says when. Switch the dropdown to Google, or to Off if translation is not worth paying for.' },
+                { symptom: 'Wrong language variant', cause: 'DeepL and Google want different language tags — "ZH" is not "zh-CN".', fix: 'Handled in the route. Press "Test: translate a sentence" to see the real output.' },
+            ],
+            loops: [
+                { symptom: 'Not sending', cause: 'It is the third failover tier — behind Resend and Brevo — and needs LOOPS_TRANSACTIONAL_ID as well as the key.', fix: 'Both must be set. With only the key it stays skipped.' },
+            ],
+            twilio: [
+                { symptom: 'No SMS going out', cause: 'Customers must opt in, and all three variables must be set.', fix: 'TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER. Missing any one skips silently.' },
+            ],
+            posthog: [
+                { symptom: 'No events showing', cause: 'The browser key and the API key are different things. The storefront needs the phc_ project key in its init script.', fix: 'POSTHOG_API_KEY here is for reading stats back. Check posthog-init.js for the front-end one.' },
+            ],
+            cloudflare: [
+                { symptom: 'Traffic stats blank', cause: 'The GraphQL token needs Analytics:Read on the zone, which is not a default scope.', fix: 'Recreate the token with that permission. The zone ID must match the domain too.' },
+            ],
+            returnSigning: [
+                { symptom: 'Customers say the return link never arrives', cause: 'With no signing secret there is nothing to sign the link with, so no email is sent — and the page still says one was.', fix: 'Set RETURN_TOKEN_SECRET to any long random string. This card goes green once it is set.' },
+            ],
+        };
+
+        function renderApiTroubleshooting(serviceKey) {
+            const rows = API_TROUBLESHOOTING[serviceKey];
+            if (!rows || !rows.length) return '';
+            return `
+              <details class="api-trouble">
+                <summary>When it does not work</summary>
+                ${rows.map(r => `
+                  <div class="int-trouble-row">
+                    <div class="int-trouble-sym">${escapeHtml(r.symptom)}</div>
+                    <div class="int-trouble-cause">${escapeHtml(r.cause)}</div>
+                    <div class="int-trouble-fix">→ ${escapeHtml(r.fix)}</div>
+                  </div>`).join('')}
+              </details>`;
+        }
+
         function renderApiCard(icon, name, s, buildRows, serviceKey, dashboardUrl) {
             // Tucked away → it renders as a card in More Integrations instead.
             // Nothing about the service changes; only where its card lives.
@@ -2931,6 +3013,7 @@
                 ${histLine}
                 ${usedLine}
                 ${keyChips}
+                ${renderApiTroubleshooting(serviceKey)}
                 <div class="api-card-footer">
                   <div class="api-link"><a href="${dashboardUrl}" target="_blank" rel="noopener">Open dashboard ↗</a></div>
                   ${serviceKey ? `<button class="api-edit-btn" title="Move this into More Integrations — it keeps working, it just stops taking up room up here" onclick="moveApiCard('${serviceKey}','down')">⤓ Tuck away</button>` : ''}
