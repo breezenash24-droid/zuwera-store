@@ -126,7 +126,31 @@ function getOrRenameSheet_(ss, raw, disp, insertFirst) {
   var f = sheet.getFilter(); if (f) f.remove();
   sheet.getBandings().forEach(function (b) { b.remove(); });
   sheet.clear();
+  /* Flush before anyone tries to create a filter or banding on this sheet
+     again. Apps Script queues these operations, so the removals above have not
+     actually happened yet when writeTab_ reaches createFilter() — Sheets still
+     believes a filter is there and throws "You can't create a filter in a sheet
+     that already has a filter", which fails the whole nightly backup.
+
+     Exactly the bug bandRows_ was fixed for, in the other decoration on the
+     same sheet. Fixing one and not the other left the run just as dead, one
+     line further down. */
+  SpreadsheetApp.flush();
   return sheet;
+}
+
+/* Filter buttons, on the same terms as the stripes: worth having, never worth
+   losing a backup over. Sheets can still refuse — a leftover filter on a
+   protected range, a sheet someone has open — and a backup that dies over
+   dropdown arrows is a backup nobody has. */
+function addFilter_(sheet, range) {
+  try {
+    var existing = sheet.getFilter();
+    if (existing) { existing.remove(); SpreadsheetApp.flush(); }
+    range.createFilter();
+  } catch (e) {
+    console.warn('Filter buttons skipped on ' + sheet.getName() + ': ' + e.message);
+  }
 }
 
 function collectKeys_(rows) {
@@ -192,7 +216,7 @@ function writeTab_(ss, table, rows) {
   }
 
   // Filter buttons on the header so any column can be searched/sorted/filtered.
-  sheet.getRange(1, 1, nRows, nCols).createFilter();
+  addFilter_(sheet, sheet.getRange(1, 1, nRows, nCols));
 }
 
 function writeSummary_(ss, payload) {
