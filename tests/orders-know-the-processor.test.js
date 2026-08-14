@@ -64,25 +64,22 @@ console.log('\n  fulfilment writes it');
 
 console.log('\n  the refund goes where the money went');
 {
-  /* This started as a refusal — "paid through PayPal, issue it there" — which
-     was the right thing to have in place before the first PayPal order and the
-     wrong thing to leave. It now refunds through PayPal for real; see
-     tests/paypal-refund.test.js. What matters here is only that the two paths
-     are separated at all. */
-  ok('a PayPal order takes the PayPal path', /isPayPal && \(action === 'refund'/.test(REFUND),
-    'otherwise Stripe is handed a capture id it has never seen');
-  ok('…and the Stripe path is no longer unconditional', /!isPayPal && \(action === 'refund'/.test(REFUND));
+  /* This started as a refusal — "paid through PayPal, issue it there" — then
+     became a real PayPal refund, then stopped being a branch at all. The route
+     now looks the processor up in _processors.js and calls one interface, so a
+     third processor is a file and a registry line rather than another arm on
+     every `if`. What matters here is only that the id is no longer assumed to
+     be a Stripe one; the behaviour lives in tests/paypal-refund.test.js. */
+  ok('the route asks which processor took it', /processorFor\(order\)/.test(REFUND));
+  ok('…and no longer names one in the flow', !/isPayPal/.test(REFUND),
+    'a name in the branch is what has to be edited for every processor added');
+  ok('…refunding through the interface', /proc\.refund\(/.test(REFUND));
+  ok('…and asking it what has already gone back', /proc\.refundedSoFar\(/.test(REFUND));
 
-  /* The guard has to sit ABOVE the Stripe calls or it guards nothing.
-     Comments stripped first: the guard's own comment NAMES stripe.refunds.create
-     while explaining what it prevents, and an unstripped search finds that
-     mention several lines above the guard and reports the guard as too late.
-     Second time tonight that prose describing code was read as code. */
+  /* Ordering still matters: the guards have to run before anything moves. */
   const code = REFUND.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
-  const guardAt = code.indexOf("!isPayPal && (action === 'refund'");
-  const callAt = code.indexOf('stripe.refunds.create');
-  ok('…and the Stripe call sits inside that guard',
-    guardAt > 0 && callAt > 0 && guardAt < callAt,
+  ok('…with the guards above the call',
+    code.indexOf('if (already.known)') < code.indexOf('proc.refund('),
     'a check after the call is not a check');
 
   ok('the response says which processor handled it', /check: true, orderId, processor/.test(REFUND));

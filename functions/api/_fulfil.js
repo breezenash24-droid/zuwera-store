@@ -314,18 +314,32 @@ async function reportSaleToTaxProvider(pi, meta, env) {
     return result;
   }
 
-  if (result.id && env.STRIPE_SECRET_KEY && pi.id) {
-    try {
-      await fetch('https://api.stripe.com/v1/payment_intents/' + pi.id, {
-        method: 'POST',
-        headers: {
-          Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({ 'metadata[tax_txn]': result.id }),
-      });
-    } catch (e) {
-      console.error('[tax] filed ' + result.id + ' but could not store it on the intent:', e.message);
+  /* Where this reference is kept decides whether a refund can ever reverse the
+     filing. It used to be written as metadata onto the Stripe PaymentIntent,
+     which works for exactly as long as Stripe is the only processor: a PayPal
+     order has no intent, that call fails, the id is lost, and the refund later
+     reverses nothing. The store then pays tax on a sale that came back —
+     silently, because this whole block is best-effort by design and a failure
+     here must not fail an order that has already taken money.
+
+     The order row is the processor-agnostic home (0019), and it is where the
+     refund route is already looking for everything else about the order. */
+  if (result.id) {
+    const key = getSupabaseServiceKey(env);
+    if (env.SUPABASE_URL && key && pi.id) {
+      try {
+        await fetch(env.SUPABASE_URL + '/rest/v1/orders?stripe_payment_intent_id=eq.'
+          + encodeURIComponent(pi.id), {
+          method: 'PATCH',
+          headers: {
+            apikey: key, Authorization: 'Bearer ' + key,
+            'Content-Type': 'application/json', Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({ tax_txn: result.id }),
+        });
+      } catch (e) {
+        console.error('[tax] filed ' + result.id + ' but could not store it on the order:', e.message);
+      }
     }
   }
   return result;

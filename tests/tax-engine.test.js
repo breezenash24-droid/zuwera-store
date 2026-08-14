@@ -409,9 +409,20 @@ const OHIO = { state: 'OH', zip: '45202', country: 'US', city: 'Cincinnati', lin
        would have been unreportable. */
     ok('the calculation handle is carried on the payment', /tax_ref: tax\.ref/.test(pricing));
     ok('a completed sale is reported from fulfilment', /reportSaleToTaxProvider/.test(fulfil));
+    /* On the ORDER, not on a Stripe PaymentIntent (migration 0019). It used to
+       be written as intent metadata, which works for exactly as long as Stripe
+       is the only processor — a PayPal order has no intent, so that call failed,
+       the reference was never stored, and the refund reversed nothing. Silently,
+       because this whole step is best-effort by design. */
     ok('…and the provider\'s transaction id stored for the refund to find',
-      /metadata\[tax_txn\]/.test(fulfil));
+      /tax_txn: result\.id/.test(fulfil));
+    ok('…somewhere every processor can write to', /rest\/v1\/orders\?stripe_payment_intent_id=eq\./.test(fulfil)
+      && !/metadata\[tax_txn\]/.test(fulfil),
+      'intent metadata is unreachable for anything that is not Stripe');
     ok('a refund reverses it', /reverseTaxSale\(/.test(refund));
+    ok('…reading it from the order, with a legacy fallback for older ones',
+      /order\.tax_txn/.test(refund) && /legacyTaxTransactionId/.test(refund),
+      'orders placed before 0019 still have it only on the intent');
 
     /* The Tax page writes the whole engine config back on every save. It used
        to write only { engine, fallback, endpoint }, so saving the engine picker

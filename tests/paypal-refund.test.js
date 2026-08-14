@@ -222,18 +222,28 @@ function net(routes) {
   {
     const code = REFUND.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 
-    ok('PayPal orders take the PayPal path', /isPayPal && \(action === 'refund'/.test(code));
-    ok('…and Stripe orders no longer take it unconditionally', /!isPayPal && \(action === 'refund'/.test(code),
-      'the Stripe block used to run for every order regardless of who took the money');
+    /* The route used to branch on the processor name in three separate places.
+       It now looks one up in _processors.js and calls the interface, so a third
+       processor is a file and a registry line rather than another arm on every
+       `if` — the shape where one arm quietly gets missed. */
+    const PROCS = fs.readFileSync(path.join(ROOT, 'functions/api/_processors.js'), 'utf8');
 
-    /* Asking Stripe about a PayPal id is not merely useless: the lookup throws,
-       the catch leaves `already` zeroed, and zero reads as "nothing refunded
-       yet" — permitting the second refund. */
-    ok('Stripe is not asked about a PayPal payment', /stripe_payment_intent_id && !isPayPal/.test(code),
-      'the failed lookup would leave a zero that reads as "nothing refunded yet"');
+    ok('the route asks which processor rather than branching on a name',
+      /processorFor\(order\)/.test(code) && !/isPayPal/.test(code));
+    ok('…and calls the interface to refund', /proc\.refund\(/.test(code));
+    ok('…and to ask what has already gone back', /proc\.refundedSoFar\(/.test(code));
 
-    ok('the stored id is unprefixed before PayPal sees it', /replace\(\/\^paypal_\/, ''\)/.test(code),
+    /* An unrecognised processor must not fall through to Stripe: sending a
+       capture id to the wrong API is the failure this whole seam prevents. */
+    ok('an unknown processor is refused rather than defaulted',
+      /unknown processor: /.test(code) && /PROCESSORS\[name\] \|\| null/.test(PROCS));
+
+    ok('the stored id is unprefixed before PayPal sees it',
+      /replace\(\/\^paypal_\/, ''\)/.test(PROCS),
       'the prefix exists so the id is never mistaken for a Stripe one; PayPal wants it bare');
+    ok('…and Stripe uses the column as-is', /reference: \(order\) => String\(\(order && order\.stripe_payment_intent_id\)/.test(PROCS));
+
+    ok('failures are written to the audit log', /note: proc\.id \+ ': ' \+ out\.error/.test(code));
 
     ok('check reports which processor it asked', /check: true, orderId, processor/.test(code));
     ok('an already-refunded order is blocked before PayPal is called',
@@ -245,7 +255,6 @@ function net(routes) {
     ok('…and refused rather than guessed at when it disagrees',
       /blocked: refunded outside this panel, amount unknown/.test(code));
     ok('…with an instruction rather than a shrug', /issue the remainder there/.test(code));
-    ok('failures are written to the audit log', /note: 'paypal: ' \+ out\.error/.test(code));
     ok('cancel still needs no processor at all', /action !== 'cancel'/.test(code),
       'cancelling an unpaid order moves no money');
   }
