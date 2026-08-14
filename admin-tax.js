@@ -1297,6 +1297,25 @@
                        So: primary while the table is the engine, demoted to a
                        named backup while a provider is in charge, and gone when
                        nothing can reach them at all. */
+                    /* Declared here, above everything that uses it, because it
+                       now has two callers in different parts of this file — the
+                       health banner and the engine intro paragraph. It was
+                       defined beside the banner, which read fine until the
+                       second caller appeared several hundred lines earlier and
+                       got a ReferenceError at the moment it ran.
+
+                       The engine names come from a fixed table in this file, so
+                       nothing here is attacker-controlled today. Escaping anyway
+                       because a string built by concatenation is exactly where
+                       that stops being true — 'external' already carries a
+                       user-entered endpoint, and the next engine added might
+                       carry a user-entered name. */
+                    function escH(v) {
+                      return String(v == null ? '' : v)
+                        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                    }
+
                     function taxTableRole() {
                       const sel = document.getElementById('tax-engine-select');
                       const engine = sel ? sel.value : 'builtin';
@@ -1345,6 +1364,24 @@
                       if (note && role === 'unused') {
                         note.innerHTML += '<br><span style="color:var(--text-secondary);">The rate reference and rate editor are hidden: nothing can reach the built-in table' +
                           (engine === 'none' ? '.' : ' while the fallback is off.') + '</span>';
+                      }
+
+                      /* The paragraph at the top of the card. It described the
+                         built-in table permanently, which stopped being true the
+                         moment anything else took over — and it sat directly
+                         above a label naming the real engine, and above the
+                         banner reporting on that engine's behaviour. Three
+                         statements about the same thing, one of them wrong. */
+                      const intro = document.getElementById('tax-engine-intro');
+                      if (intro) {
+                        intro.innerHTML = role === 'primary'
+                          ? 'The built-in table is what runs unless you change this. It knows state rates, Ohio by county and Illinois by ZIP — it does not know city district rates, or that clothing is exempt in PA, NJ and MN and exempt under $110 in NY. If you already pay for a tax service, put it in charge here and the table steps aside.'
+                          : '<b style="color:var(--text-primary);">' + escH(name) + '</b> prices every order. It is asked for a figure at checkout and again when the payment is taken, so what is displayed and what is charged come from the same answer.'
+                            + (engine === 'none'
+                              ? ' Nothing is collected and no rate is applied.'
+                              : role === 'backup'
+                                ? ' The built-in table below is kept as a backup and is used only when ' + escH(name) + ' cannot be reached.'
+                                : ' The built-in table below cannot be reached at all — the fallback is off, so an outage fails the order rather than guessing.');
                       }
 
                       /* The lookup keeps its place — the question is still a
@@ -1508,10 +1545,24 @@
                        provider directly is the point: that is the same
                        resolveTax() the charge runs through, so this measures the
                        path customers are on, not a parallel one. */
+                    /* Where the store is. NOT the same fact as "we have county
+                       data for Ohio", which is what the other 'OH' literals in
+                       this file mean — those belong to the rate table and would
+                       stay put if the business moved. This one is nexus: the one
+                       state tax is owed in from the first sale, with no
+                       threshold to cross.
+
+                       Server-side the authority is shipFromValue('STATE', env).
+                       Naming it here rather than reading it is a knowing
+                       shortcut — a second copy of a fact — and it is written
+                       down so the next person can see the debt rather than
+                       discover it. */
+                    const HOME_STATE = 'OH';
+
                     const TAX_HEALTH_PROBES = [
                       { state: 'CA', zip: '90210', city: 'Beverly Hills' },
                       { state: 'TX', zip: '78701', city: 'Austin' },
-                      { state: 'OH', zip: '45202', city: 'Cincinnati' },
+                      { state: HOME_STATE, zip: '45202', city: 'Cincinnati' },
                     ];
                     const TAX_HEALTH_AMOUNT = 10000;   // $100.00 taxable
                     const TAX_HEALTH_SHIPPING = 800;   // $8.00 postage
@@ -1556,6 +1607,31 @@
                         return;
                       }
 
+                      /* ── The home state is not like the others ──────────────
+                         A zero from California means "not registered there",
+                         which is a normal and correct way to be. A zero from the
+                         home state cannot mean that: physical nexus owes tax
+                         from the first sale, with no threshold to cross and no
+                         registration decision to make.
+
+                         So the all-three-zero rule is not enough on its own. A
+                         store that registers California and forgets its own
+                         state collects on a minority of its orders and shows
+                         green, which is a worse place to be than collecting
+                         nothing — it looks solved. */
+                      const home = answered.filter((r) => r.p.state === HOME_STATE)[0];
+                      if (home && !home.cents && collecting.length) {
+                        box.innerHTML = healthBanner('#ef4444', '!',
+                          'No tax is being collected in ' + HOME_STATE + ', where this store is',
+                          'A $100 order to ' + HOME_STATE + ' comes back at $0.00 — but ' +
+                          collecting.map((r) => r.p.state).join(' and ') + ' collects, so the engine itself is working.' +
+                          '<br><br>' + HOME_STATE + ' is where you have <b>physical nexus</b>: tax is owed there from the first sale, with no threshold to cross. ' +
+                          (engine === 'stripe_tax'
+                            ? 'Add it in <b>Stripe → Tax → Registrations</b> — this is the one registration that is never optional.'
+                            : 'Register it with ' + escH(name) + ' — this is the one registration that is never optional.'));
+                        return;
+                      }
+
                       if (!collecting.length) {
                         const where = answered.map((r) => r.p.state).join(', ');
                         box.innerHTML = healthBanner('#ef4444', '!',
@@ -1576,18 +1652,6 @@
                         (fellBack.length ? '<br><br><b style="color:#f59e0b;">Answered by the backup table,</b> not by ' + escH(name) + ' — the provider could not be reached just now.' : ''));
                     }
                     window.taxEngineHealth = taxEngineHealth;
-
-                    /* The engine names come from a fixed table in this file, so
-                       nothing here is attacker-controlled today. Escaping anyway
-                       because a banner built by string concatenation is exactly
-                       where that stops being true — 'external' already carries a
-                       user-entered endpoint, and the next engine added might
-                       carry a user-entered name. */
-                    function escH(v) {
-                      return String(v == null ? '' : v)
-                        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-                        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-                    }
 
                     function healthBanner(colour, mark, title, body) {
                       return '<div style="display:flex;gap:10px;padding:12px 14px;border:1px solid ' + colour +

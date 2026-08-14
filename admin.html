@@ -2291,8 +2291,16 @@
                        came from in the first place. -->
                   <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;">
                     <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">Tax engine</p>
-                    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;max-width:70ch;">
-                      The built-in table below is what runs unless you change this. It knows state rates, Ohio by county and Illinois by ZIP — it does not know city district rates, or that clothing is exempt in PA, NJ and MN and exempt under $110 in NY. If you already pay for a tax service, put it in charge here and the table steps aside.
+                    <!-- Rewritten by taxTableRelevance() to describe whatever is
+                         actually in charge. It used to say "the built-in table
+                         below is what runs unless you change this" permanently —
+                         sitting directly above a label reading Stripe Tax, and
+                         above a banner about Stripe Tax's behaviour. The same
+                         class of thing the card relevance work exists to kill: a
+                         sentence that stopped being true when the engine changed
+                         and had no way of finding out. -->
+                    <p id="tax-engine-intro" style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;max-width:70ch;">
+                      The built-in table is what runs unless you change this. It knows state rates, Ohio by county and Illinois by ZIP — it does not know city district rates, or that clothing is exempt in PA, NJ and MN and exempt under $110 in NY. If you already pay for a tax service, put it in charge here and the table steps aside.
                     </p>
                     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
                       <div>
