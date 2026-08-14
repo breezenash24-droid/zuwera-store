@@ -27,6 +27,7 @@ import { normalizeStateCode } from './_tax.js';
    at the top of that file. This route now decides nothing about money; it
    quotes, then charges. */
 import { buildOrderMetadata, generateOrderNumber, quoteCart, sha256Base64Url } from './_cart-pricing.js';
+import { attributionToMeta, sanitizeMatchKeys } from './_attribution.js';
 
 const CORS = (env) => ({
   'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
@@ -59,6 +60,14 @@ export async function onRequestPost({ request, env, waitUntil }) {
       const ff = body.featureFlags;
       if (ff && typeof ff === 'object' && Object.keys(ff).length) featureFlagsMeta = JSON.stringify(ff).slice(0, 480);
     } catch (_) {}
+
+    /* Where this order came from, sent by attribution.js through the same
+       wrapper that adds the promo code. Sanitised and capped here rather than
+       trusted: none of it prices anything, but an over-long value would be
+       rejected by Stripe and take the whole PaymentIntent — and therefore the
+       sale — with it. See _attribution.js. */
+    const attributionMeta = attributionToMeta(body.attribution);
+    const matchKeys = sanitizeMatchKeys(body.attribution);
 
     if (!items?.length || !address?.email) {
       return json({ error: 'Missing required fields: items and address.email' }, 400, headers);
@@ -143,7 +152,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
             country: address.country || 'US',
           },
         },
-        metadata: buildOrderMetadata({ orderNumber, address, quote, featureFlagsMeta }),
+        metadata: buildOrderMetadata({ orderNumber, address, quote, featureFlagsMeta, attributionMeta, matchKeys }),
     };
     const paymentIntent = await stripe.paymentIntents.create(intentParams, { idempotencyKey }
     ).catch(async (e) => {

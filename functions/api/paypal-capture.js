@@ -47,6 +47,7 @@ import {
   buildOrderMetadata, cartError, quoteCart, sha256Base64Url,
 } from './_cart-pricing.js';
 import { paypalConfig, paypalFetch } from './_paypal.js';
+import { attributionToMeta, sanitizeMatchKeys } from './_attribution.js';
 import { handleSuccessfulPayment, getSupabaseServiceKey } from './_fulfil.js';
 
 const CORS = (env) => ({
@@ -223,7 +224,15 @@ export async function onRequestPost({ request, env, waitUntil }) {
     /* Money has moved. From here nothing may throw its way out — an order that
        is paid for and not recorded is the worst state available, so fulfilment
        failures are logged loudly and the buyer is still told they succeeded. */
-    const meta = buildOrderMetadata({ orderNumber, address, quote, featureFlagsMeta: '' });
+    /* Same attribution the card path carries. The PayPal window is a redirect,
+       so without this an order paid through PayPal would come back as
+       unattributed — which would read in reports as "PayPal buyers arrive
+       organically" rather than as a gap in the capture. */
+    const meta = buildOrderMetadata({
+      orderNumber, address, quote, featureFlagsMeta: '',
+      attributionMeta: attributionToMeta(body.attribution),
+      matchKeys: sanitizeMatchKeys(body.attribution),
+    });
     meta.payment_provider = 'paypal';
     meta.paypal_capture_id = captureId;
 

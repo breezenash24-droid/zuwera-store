@@ -157,10 +157,27 @@ const PRICING = fs.readFileSync(path.join(ROOT, 'functions/api/_cart-pricing.js'
 
   console.log('\n  it hands fulfilment exactly what the card route does');
   {
+    /* Both routes call the ONE builder, and hand it the same things. Written as
+       a set of argument names rather than a literal argument list: the literal
+       version pinned the formatting, so adding a parameter (attribution, in
+       0020's case) failed these two assertions while the property they exist to
+       protect — the two routes agreeing — was never at risk. A test that breaks
+       on formatting gets loosened in a hurry by whoever is mid-change, which is
+       how it stops testing anything. */
+    const argsOf = (src) => {
+      const at = src.indexOf('buildOrderMetadata({');
+      if (at === -1) return null;
+      const slice = src.slice(at, src.indexOf('})', at));
+      return new Set((slice.match(/\b(orderNumber|address|quote|featureFlagsMeta|attributionMeta|matchKeys)\b/g) || []));
+    };
+    const cpiArgs = argsOf(CPI), capArgs = argsOf(CAP);
     ok('create-payment-intent no longer builds the map inline',
-      /metadata: buildOrderMetadata\(\{ orderNumber, address, quote, featureFlagsMeta \}\)/.test(CPI));
+      cpiArgs && cpiArgs.has('orderNumber') && cpiArgs.has('address') && cpiArgs.has('quote'));
     ok('…and the capture builds it the same way',
-      /buildOrderMetadata\(\{ orderNumber, address, quote/.test(CAP));
+      capArgs && [...cpiArgs].every((a) => capArgs.has(a)),
+      'the card route passes ' + [...(cpiArgs || [])].join(', ') +
+      '; the capture passes ' + [...(capArgs || [])].join(', ') +
+      ' — anything the card route sends and this one does not is a field PayPal orders silently lack');
     ok('there is one builder', (PRICING.match(/export function buildOrderMetadata/g) || []).length === 1);
 
     /* Run it. Every field fulfilment reads has to be present and a string. */

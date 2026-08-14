@@ -61,7 +61,8 @@
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/header-scroll.js?v=fe320725" defer></script>
   <script src="/flags.js?v=5dc05f38" defer></script>
-  <script src="/meta-pixel.js?v=bc559c9f" defer></script>
+  <script src="/attribution.js?v=7ecae669" defer></script>
+  <script src="/meta-pixel.js?v=4919f284" defer></script>
   <script src="/google-tag.js?v=fdfca537" defer></script>
   <script src="/stripe-client-config.js?v=6cbbcea0" defer></script>
   <script src="/checkout-tax.js?v=138b85ab" defer></script>
@@ -685,8 +686,8 @@
      server-verified version arrives long after the decision that needs it, so
      without this the pricing fell back to a page-local guess and the price
      alternated. checkout.js overwrites it with the verified answer later. -->
-<script src="customer-messages.js?v=ef24fea6"></script>
-<script src="stock-rules.js?v=cb671585"></script>
+<script src="customer-messages.js?v=2c5164d0"></script>
+<script src="stock-rules.js?v=a5a6be8f"></script>
 <script>
 /* -- Globals expected by checkout.js / commerce-checkout.js -- */
 window.cartItems = [];
@@ -1020,12 +1021,12 @@ window.zwClearPromo = function() {
 
 <script src="image-utils.js?v=3fee4aec"></script>
 <script src="express-wallet.js?v=8838e496" defer></script>
-<script src="checkout.js?v=8b50765a" defer></script>
-<script src="commerce-checkout.js?v=02c4d509" defer></script>
+<script src="checkout.js?v=467a5667" defer></script>
+<script src="commerce-checkout.js?v=b42a55a1" defer></script>
 <!-- After both, and deliberately: deferred scripts run in order, so by the time
      this one executes checkout.js has published ZWCheckoutForm and
      commerce-checkout.js has wrapped postJSON to inject the promo code. -->
-<script src="paypal-button.js?v=00000000" defer></script>
+<script src="paypal-button.js?v=a17142dc" defer></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -1148,10 +1149,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<script src="/theme-engine.js?v=014e9575" defer></script>
+<script src="/theme-engine.js?v=aad6a167" defer></script>
 <script src="/motion.js?v=5b9cc123" defer></script>
 <script src="/icon-sets.js?v=e0ed4bcb" defer></script>
-<script src="storefront-theme.js?v=a161c94e" defer></script>
+<script src="storefront-theme.js?v=91e56ca9" defer></script>
 <script src="lang.js?v=f4b70f65" defer></script>
 <!-- Search magnifier + slide-down bag panel (mini-cart with account links) for the
      checkout header. Injects a search button before #co-bag-pill and makes the bag
