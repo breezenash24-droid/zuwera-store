@@ -215,3 +215,71 @@ export async function refundPayPalCapture(env, { captureId, amountCents, note, r
     status: String(res.data.status || ''),
   };
 }
+
+/**
+ * How much of a PayPal capture has already been refunded.
+ *
+ * Pulled out as a pure function because the alternative is asserting that the
+ * code exists. It was written inline first, and a test that regex-matched the
+ * source passed just as happily with the credibility check deleted and with the
+ * outside-this-panel branch replaced by `if (false)`. Both mutations moved real
+ * money and neither turned anything red. This is money; it has to be run.
+ *
+ * ── WHY IT TAKES TWO SOURCES ────────────────────────────────────────────────
+ *
+ * PayPal has no "list the refunds on this capture" call. Its status says
+ * COMPLETED, PARTIALLY_REFUNDED or REFUNDED — so a full refund is knowable
+ * exactly and a partial one is knowable only as "some, amount unspecified".
+ *
+ * The panel records every refund it issues, with its amount. Trusting that
+ * alone would be the second ledger the refund route warns about — "the day they
+ * disagree is the day it matters". So neither is trusted alone: they are
+ * reconciled, and a disagreement is reported rather than resolved.
+ *
+ *   REFUNDED                      → fully refunded. From the processor, exact.
+ *   COMPLETED + no local rows     → nothing refunded. Both agree, exact.
+ *   PARTIALLY_REFUNDED + rows     → our sum. Both agree some went back.
+ *   PARTIALLY_REFUNDED + no rows  → refunded in PayPal's dashboard. Amount
+ *                                   unknowable here; say so and refuse.
+ *
+ * The ledger is never believed over the processor. It is our record of an
+ * intent; PayPal's is the record of the money. A ledger claiming more than was
+ * captured, or claiming anything while PayPal still says COMPLETED, is the side
+ * that is wrong.
+ *
+ * @param captureState  what paypalCaptureState returned
+ * @param ledgerCents   sum of refunds this panel recorded for this order
+ * @param ledgerCount   how many of them
+ */
+export function reconcilePayPalRefunds(captureState, ledgerCents, ledgerCount) {
+  const st = captureState || {};
+  const charged = Math.max(0, Math.round(Number(st.chargedCents) || 0));
+  const cents = Math.max(0, Math.round(Number(ledgerCents) || 0));
+  const count = Math.max(0, Math.round(Number(ledgerCount) || 0));
+
+  if (st.fullyRefunded) {
+    return { refundedCents: charged, chargedCents: charged, count: Math.max(1, count), known: true };
+  }
+
+  const credible = cents > 0 && cents <= charged && st.status !== 'COMPLETED';
+  if (credible) {
+    return { refundedCents: cents, chargedCents: charged, count, known: true };
+  }
+
+  return {
+    refundedCents: 0,
+    chargedCents: charged,
+    count: 0,
+    /* Only when BOTH agree nothing has gone back is "nothing refunded" a fact
+       rather than an assumption. Anything else is unknown, and unknown must not
+       be spelled zero — a zero reads as "nothing refunded yet" and permits the
+       double refund this exists to stop. */
+    known: st.status === 'COMPLETED' && count === 0,
+    partiallyRefunded: !!st.partiallyRefunded,
+    /* PayPal says some went back and this panel did not do it. Refusing is the
+       only honest move: a full refund would send back money that has partly
+       gone already, and PayPal's own ceiling catches the total but not a
+       partial that happens to fit under it. */
+    refundedOutsideThisPanel: !!st.partiallyRefunded && count === 0,
+  };
+}

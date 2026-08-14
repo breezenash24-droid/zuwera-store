@@ -113,11 +113,19 @@ console.log('\n  and it is wired to the things that decide');
   // ── the admin side, where the money actually moves ─────────────────────────
   /* A full refund sets status and the old guard caught it. A PARTIAL one
      deliberately does not, so nothing counted what had already gone back. */
-  ok('what was already refunded is read before refunding again', /refundedSoFar\(/.test(ref));
+  ok('what was already refunded is read before refunding again',
+    /proc\.refundedSoFar\(/.test(ref),
+    'the route asks the processor rather than assuming');
+
+  /* The Stripe implementation moved to _processors.js when a second processor
+     arrived — same reasoning, one interface, so a third does not add another
+     arm to every `if`. The property being pinned is unchanged: the number comes
+     from the processor, not from a ledger kept on this side. */
+  const PROCS = fs.readFileSync(ROOT + 'functions/api/_processors.js', 'utf8');
   ok('…from Stripe, not from a second ledger here',
-    /stripe\.refunds\.list\(/.test(ref) && /paymentIntents\.retrieve/.test(ref));
+    /stripe\.refunds\.list\(/.test(PROCS) && /paymentIntents\.retrieve/.test(PROCS));
   ok('…and a failed read is not mistaken for "nothing refunded yet"',
-    /known: true/.test(ref) && /if \(already\.known\)/.test(ref),
+    /known: false/.test(PROCS) && /if \(already\.known\)/.test(ref),
     'a bare 0 would read as no refunds and permit the one this exists to stop');
   ok('refunding past what is left is refused', /is left to refund on this order/.test(ref));
   /* Comments stripped for the ordering check. This file's comments discuss the
@@ -127,7 +135,9 @@ console.log('\n  and it is wired to the things that decide');
      ordering wrong. A test that fails on a comment teaches people to edit the
      test. */
   const refCode = ref.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
-  ok('…before Stripe is called', refCode.indexOf('if (already.known)') < refCode.indexOf('stripe.refunds.create'));
+  ok('…before the processor is asked to move anything',
+    refCode.indexOf('if (already.known)') < refCode.indexOf('proc.refund('),
+    'a check after the call is not a check');
 
   /* `refunded` used to be in the allowed set, so a return already paid out
      read as clearance to pay it out again. */

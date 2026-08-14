@@ -12,16 +12,17 @@
  * Every attempt (success and failure) is appended to the refund audit log.
  */
 
-import Stripe from 'stripe';
+/* No Stripe import. This route used to construct a client and call three of its
+   APIs directly; all of that moved into _processors.js when a second processor
+   arrived, so the file that decides WHETHER to refund no longer knows HOW. */
 import { cors, json, verifyAdmin, decide, getSetting, setSetting, getCommerceBundle, mutateSetting } from './_commerce.js';
 import { permsHave } from './_rbac.js';
 import { orderNo } from './_order-no.js';
 import { reverseTaxSale } from './_tax.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
-/* Refunding through whoever took the money. The capture-state read is separate
-   from the refund itself because it answers a different question — how much has
-   already gone back — and it answers it less completely than Stripe can. */
-import { paypalCaptureState, refundPayPalCapture } from './_paypal.js';
+/* One place that knows how each processor differs. This route no longer names
+   any of them: it looks one up and calls the interface. */
+import { processorFor } from './_processors.js';
 import { sha256Base64Url } from './_cart-pricing.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
@@ -186,8 +187,12 @@ export async function onRequestPost({ request, env }) {
   if (order.status === 'refunded' && action !== 'cancel' && action !== 'check') {
     return json({ error: 'Order has already been fully refunded.' }, 400, h);
   }
+  /* The column is named after Stripe and holds every processor's reference —
+     see 0018. The message must not be, or a PayPal order with no capture id
+     would be reported as a missing Stripe payment, sending whoever reads it to
+     the wrong dashboard. */
   if (action !== 'cancel' && !order.stripe_payment_intent_id) {
-    return json({ error: 'No Stripe payment on record for this order — cannot issue refund.' }, 400, h);
+    return json({ error: 'No payment reference on record for this order — cannot issue refund.' }, 400, h);
   }
 
   /* ── Refund it where it was taken ──────────────────────────────────────────
@@ -203,12 +208,6 @@ export async function onRequestPost({ request, env }) {
      `cancel` is allowed past either way: cancelling an unpaid order moves no
      money and touches no processor. */
   const processor = String(order.processor || 'stripe').toLowerCase();
-  const isPayPal = processor === 'paypal';
-  /* The id is stored prefixed so it is never mistaken for a Stripe one; PayPal
-     wants the bare capture id back. */
-  const payPalCaptureId = isPayPal
-    ? String(order.stripe_payment_intent_id || '').replace(/^paypal_/, '')
-    : '';
 
 
   // ── 8. Block refund if associated return item not yet received ───────────────
@@ -264,30 +263,39 @@ export async function onRequestPost({ request, env }) {
      So it is asked, and asked of STRIPE rather than tracked here. A number this
      side would be a second ledger to keep in step with the real one, and the
      day they disagree is the day it matters. */
-  const stripeClient = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
+  /* Which processor, asked once. Everything below goes through the interface
+     in _processors.js rather than branching on a name: adding a third one
+     should be a file and a registry line, not another arm on every `if`. */
+  const proc = processorFor(order);
+  if (!proc && action !== 'cancel') {
+    await audit(env, { adminId, adminEmail, orderId, action, success: false, note: 'unknown processor: ' + processor });
+    return json({
+      error: 'This order was taken by "' + processor + '", which this build does not know how to refund. '
+           + 'Issue it in that processor directly against ' + (order.stripe_payment_intent_id || 'the payment reference') + '.',
+      processor,
+    }, 400, h);
+  }
+  const reference = proc ? proc.reference(order) : '';
+
+  /* What this panel has already sent back on this order. Some processors can
+     answer completely from their own API and some cannot, so the ledger is
+     read for all of them and each decides what to do with it. */
+  let ledgerCents = 0, ledgerCount = 0;
+  try {
+    const log = await getSetting(env, AUDIT_LOG_KEY, []);
+    (Array.isArray(log) ? log : [])
+      .filter((e) => e && e.success === true
+        && String(e.orderId || '') === String(orderId)
+        && (e.action === 'refund' || e.action === 'cancel_refund')
+        && Number(e.stripeRefundAmount) > 0)
+      .forEach((e) => { ledgerCents += Math.round(Number(e.stripeRefundAmount)); ledgerCount++; });
+  } catch (e) {
+    console.warn('refund: could not read the refund ledger —', e && e.message);
+  }
+
   let already = { refundedCents: 0, chargedCents: 0, count: 0, known: false };
-  /* Asking Stripe about a PayPal capture id is not just useless, it is a
-     confident wrong answer: the lookup throws, the catch leaves `already` at
-     its zeroed default, and a zero here reads as "nothing refunded yet" —
-     which is precisely the state that permits a second refund. */
-  if (order.stripe_payment_intent_id && !isPayPal) {
-    try {
-      already = await refundedSoFar(stripeClient, order.stripe_payment_intent_id);
-    } catch (e) {
-      console.warn('refund: could not read Stripe history —', e && e.message);
-    }
-  } else if (isPayPal) {
-    /* What PayPal will tell us. Full refunds are knowable exactly; a partial
-       one is knowable only as "some, amount unspecified", so it stays
-       known:false rather than becoming a number nobody can stand behind. */
-    const st = await paypalCaptureState(env, payPalCaptureId);
-    already = {
-      refundedCents: st.fullyRefunded ? st.chargedCents : 0,
-      chargedCents: st.chargedCents,
-      count: st.fullyRefunded ? 1 : 0,
-      known: !!st.fullyRefunded,
-      partiallyRefunded: !!st.partiallyRefunded,
-    };
+  if (proc && reference) {
+    already = await proc.refundedSoFar({ env, order, reference, ledgerCents, ledgerCount });
   }
 
   /* A read-only look at the same answer, so the panel can warn BEFORE somebody
@@ -310,59 +318,50 @@ export async function onRequestPost({ request, env }) {
   }
 
   // ── 9. Issue the refund, through whoever took the money ──────────────────────
+  /* Named after Stripe and no longer about it: these hold whichever processor's
+     refund id and amount. Deliberately NOT renamed — they are the field names
+     in refund_audit_log, and the ledger reconciliation above sums
+     `stripeRefundAmount` out of it. Renaming here without a migration over the
+     existing log would make every historical refund invisible to that sum,
+     which is the one number a double refund depends on. */
   let stripeRefundId     = null;
   let stripeRefundAmount = null;
 
-  if (isPayPal && (action === 'refund' || action === 'cancel_refund')) {
-    if (already.known && already.refundedCents > 0) {
-      await audit(env, { adminId, adminEmail, orderId, action, success: false, note: 'blocked: PayPal reports fully refunded' });
+  if (action === 'refund' || action === 'cancel_refund') {
+    /* Somebody refunded this in the processor's own dashboard and this panel
+       has no record of how much. Refusing is the only honest move: a full
+       refund would send back money that has partly gone already, and the
+       processor's own ceiling catches the total but not a partial that happens
+       to fit under it. Reported by any processor that can tell. */
+    if (already.refundedOutsideThisPanel) {
+      await audit(env, { adminId, adminEmail, orderId, action, success: false, note: 'blocked: refunded outside this panel, amount unknown' });
       return json({
-        error: 'PayPal reports this payment has already been refunded in full. Nothing further can be refunded.',
-        processor, alreadyRefundedCents: already.refundedCents, chargedCents: already.chargedCents,
+        error: proc.label + ' reports part of this payment has already been refunded, but it was not done here — '
+             + 'so this panel cannot tell how much is left. Check it in ' + proc.label + ' and issue the remainder there.',
+        processor, chargedCents: already.chargedCents, partiallyRefunded: true,
       }, 409, h);
     }
 
-    const wantedCents = (action === 'refund' && amountCents && Number.isFinite(Number(amountCents)))
-      ? Math.round(Number(amountCents)) : 0;   // 0 → refund the lot, PayPal's own convention
+    /* Refuse rather than let the processor refuse. Same outcome for the money,
+       but this can say what already happened and who did it, instead of handing
+       an admin a raw API error about an amount they cannot see.
 
-    const out = await refundPayPalCapture(env, {
-      captureId: payPalCaptureId,
-      amountCents: wantedCents,
-      note: String(reason || '').slice(0, 255),
-      /* Derived from the order and the amount, so a double-click is the SAME
-         request to PayPal rather than a second refund. This matters more than
-         at capture: a refund issued twice is money leaving twice, and the
-         obvious trigger is an admin clicking again because the first click
-         looked like it did nothing. */
-      requestId: 'zwr_' + (await sha256Base64Url(String(orderId) + ':' + wantedCents)).slice(0, 40),
-    });
+       Only when the figure is KNOWN. An unknown one must not be treated as
+       zero — a zero reads as "nothing refunded yet" and permits exactly the
+       second refund these guards exist to stop. */
+    const remaining = Math.max(0, already.chargedCents - already.refundedCents);
+    const wanted = (action === 'refund' && amountCents && Number.isFinite(Number(amountCents)))
+      ? Math.round(Number(amountCents))
+      : remaining;
 
-    if (!out.ok) {
-      await audit(env, { adminId, adminEmail, orderId, action, success: false, note: 'paypal: ' + out.error });
-      return json({ error: out.error, processor }, out.alreadyRefunded ? 409 : 400, h);
-    }
-    stripeRefundId     = out.id;
-    stripeRefundAmount = out.amountCents || wantedCents || already.chargedCents;
-  }
-
-  if (!isPayPal && (action === 'refund' || action === 'cancel_refund')) {
-    const stripe = stripeClient;
-
-    /* Refuse rather than let Stripe refuse. Same outcome for the money, but
-       this one can say what already happened and who did it, instead of
-       handing an admin a raw API error about an amount they cannot see. */
     if (already.known) {
-      const remaining = Math.max(0, already.chargedCents - already.refundedCents);
-      const wanted = (action === 'refund' && amountCents && Number.isFinite(Number(amountCents)))
-        ? Math.round(Number(amountCents))
-        : remaining;
       if (remaining <= 0) {
         await audit(env, { adminId, adminEmail, orderId, action, success: false,
           note: `blocked: already fully refunded (${already.count} refund${already.count === 1 ? '' : 's'})` });
         return json({
           error: `This order has already been refunded in full — $${(already.refundedCents / 100).toFixed(2)} across `
                + `${already.count} refund${already.count === 1 ? '' : 's'}. Nothing further can be refunded.`,
-          alreadyRefundedCents: already.refundedCents, chargedCents: already.chargedCents,
+          processor, alreadyRefundedCents: already.refundedCents, chargedCents: already.chargedCents,
         }, 409, h);
       }
       if (wanted > remaining) {
@@ -371,35 +370,36 @@ export async function onRequestPost({ request, env }) {
         return json({
           error: `Only $${(remaining / 100).toFixed(2)} is left to refund on this order — `
                + `$${(already.refundedCents / 100).toFixed(2)} has already gone back. Nothing was charged or refunded.`,
-          alreadyRefundedCents: already.refundedCents, chargedCents: already.chargedCents,
+          processor, alreadyRefundedCents: already.refundedCents, chargedCents: already.chargedCents,
         }, 409, h);
       }
     }
 
-    const params = {
-      payment_intent: order.stripe_payment_intent_id,
-      reason:         toStripeReason(reason),
-      metadata: {
-        order_id:    String(orderId),
-        admin_id:    adminId,
-        admin_email: adminEmail,
-        action,
-        reason:      String(reason || ''),
-      },
-    };
+    /* 0 means "everything" to every processor here, and letting each one apply
+       its own idea of the full amount avoids a cent of disagreement on the one
+       refund that has to be exact. */
+    const wantedCents = (action === 'refund' && amountCents && Number.isFinite(Number(amountCents)))
+      ? Math.round(Number(amountCents)) : 0;
 
-    if (action === 'refund' && amountCents && Number.isFinite(Number(amountCents))) {
-      params.amount = Math.round(Number(amountCents));
-    }
+    const out = await proc.refund({
+      env, order, reference,
+      amountCents: wantedCents,
+      reason, adminId, adminEmail, action,
+      /* Derived from the order and the amount, so a double-click is the SAME
+         request rather than a second refund. This matters more than at capture:
+         a refund issued twice is money leaving twice, and the obvious trigger
+         is an admin clicking again because the first click looked like it did
+         nothing. Processors that support an idempotency key use it; the others
+         ignore it. */
+      idempotencyKey: 'zwr_' + (await sha256Base64Url(String(orderId) + ':' + wantedCents)).slice(0, 40),
+    });
 
-    try {
-      const ref      = await stripe.refunds.create(params);
-      stripeRefundId     = ref.id;
-      stripeRefundAmount = ref.amount;
-    } catch (err) {
-      await audit(env, { adminId, adminEmail, orderId, action, success: false, note: `stripe: ${err.message}` });
-      return json({ error: `Stripe error: ${err.message}` }, 400, h);
+    if (!out.ok) {
+      await audit(env, { adminId, adminEmail, orderId, action, success: false, note: proc.id + ': ' + out.error });
+      return json({ error: out.error, processor }, out.alreadyRefunded ? 409 : 400, h);
     }
+    stripeRefundId     = out.id;
+    stripeRefundAmount = out.amountCents || wantedCents || already.chargedCents;
 
     /* Tell the tax provider the sale came back, so the tax on it stops being
        something this store owes the state. Refunding the customer without
@@ -421,10 +421,20 @@ export async function onRequestPost({ request, env }) {
         ? orderTax
         : (orderGross > 0 ? Math.round(orderTax * (refunded / orderGross)) : 0);
 
-      const pi = await stripe.paymentIntents.retrieve(order.stripe_payment_intent_id);
+      /* The filing reference now lives on the order (0019). It used to be
+         written as metadata onto the Stripe PaymentIntent, which works for
+         exactly as long as Stripe is the only processor — a PayPal order has no
+         intent, so the reference was never stored and the refund reversed
+         nothing, silently.
+
+         Orders placed before 0019 still have it only on the intent, so each
+         processor supplies its own legacy lookup and Stripe's is the only one
+         that finds anything. Nothing needs backfilling. */
+      const taxTxn = String(order.tax_txn || '')
+        || (proc.legacyTaxTransactionId ? await proc.legacyTaxTransactionId({ env, reference }) : '');
       const result = await reverseTaxSale({
         env,
-        transactionId: pi?.metadata?.tax_txn || '',
+        transactionId: taxTxn,
         order: {
           orderNumber: orderNo(order),
           address: {
@@ -542,41 +552,11 @@ ${line}` : line);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function toStripeReason(r) {
-  if (r === 'duplicate')  return 'duplicate';
-  if (r === 'fraudulent') return 'fraudulent';
-  return 'requested_by_customer';
-}
 
 /* Stripe's ledger, not ours. `known` is the load-bearing field: a failed read
    must not read as "nothing refunded yet", which is what a bare 0 would do —
    and that reading permits exactly the refund this exists to stop. Callers
    check `known` before trusting the numbers. */
-async function refundedSoFar(stripe, paymentIntentId) {
-  const pi = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ['latest_charge'] });
-  const charge = pi && pi.latest_charge;
-  const chargedCents = Number(
-    (charge && charge.amount_captured) || (charge && charge.amount) || pi.amount_received || pi.amount || 0
-  );
-
-  /* Read the refunds rather than trusting charge.amount_refunded alone: a
-     refund still pending shows in the list before it settles into the total,
-     and money on its way out is money already spent for this purpose. */
-  const list = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 });
-  const refunds = (list && Array.isArray(list.data) ? list.data : [])
-    .filter((r) => r && r.status !== 'failed' && r.status !== 'canceled');
-  const summed = refunds.reduce((n, r) => n + Number(r.amount || 0), 0);
-  const reported = Number((charge && charge.amount_refunded) || 0);
-
-  return {
-    /* The larger of the two. They agree in the ordinary case; when they do
-       not, the bigger number is the safer one to plan a refund against. */
-    refundedCents: Math.max(summed, reported),
-    chargedCents,
-    count: refunds.length,
-    known: true,
-  };
-}
 
 async function audit(env, entry) {
   try {
