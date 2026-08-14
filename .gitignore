@@ -37,3 +37,9 @@ Thumbs.db
 # on it. Cloudflare regenerates it during the build, and header-scroll.js
 # no-ops when /version.json is absent, so it never needs to be in git.
 version.json
+
+# Intermediate schema dump from scripts/dump-schema.js. It is the input to
+# scripts/build-install-sql.js, and supabase/install.sql is the artifact worth
+# committing — keeping both would give two copies of the schema that can
+# disagree, which is the whole problem install.sql exists to solve.
+schema.sql

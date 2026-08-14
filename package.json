@@ -21,6 +21,7 @@
     "terser": "^5.49.1"
   },
   "devDependencies": {
+    "pg": "^8.23.0",
     "typescript": "^5.9.3"
   }
 }
