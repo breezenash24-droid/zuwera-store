@@ -62,8 +62,16 @@ if (!url) {
   process.exit(1);
 }
 
-const q = (client, sql, params) => client.query(sql, params).then((r) => r.rows);
+/* No bind parameters anywhere in this file, on purpose. node-postgres sends
+   parameterised queries over the extended protocol, which Supabase's TRANSACTION
+   pooler (port 6543) does not support — the failure is an opaque "prepared
+   statement does not exist" partway through. Session mode is the right choice
+   and the instructions say so, but there is no reason to make this file break on
+   the wrong one when every value it interpolates comes from pg_catalog and is
+   quoted below. */
+const q = (client, sql) => client.query(sql).then((r) => r.rows);
 const ident = (s) => '"' + String(s).replace(/"/g, '""') + '"';
+const lit = (s) => "'" + String(s).replace(/'/g, "''") + "'";
 
 (async () => {
   const client = new Client({
@@ -162,9 +170,9 @@ const ident = (s) => '"' + String(s).replace(/"/g, '""') + '"';
              a.attidentity
       from pg_attribute a
       left join pg_attrdef d on d.adrelid = a.attrelid and d.adnum = a.attnum
-      where a.attrelid = ('public.' || quote_ident($1))::regclass
+      where a.attrelid = ('public.' || quote_ident(${lit(t.relname)}))::regclass
         and a.attnum > 0 and not a.attisdropped
-      order by a.attnum`, [t.relname]);
+      order by a.attnum`);
 
     const lines = cols.map((c) => {
       let s = '  ' + ident(c.attname) + ' ' + c.coltype;
