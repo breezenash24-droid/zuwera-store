@@ -1,0 +1,97 @@
+# Keep supabase/install.sql level with migrations/.
+#
+# install.sql is a snapshot of the production schema plus rows recording every
+# migration as applied. It goes stale the moment a migration lands and nobody
+# regenerates it — and the rot is silent: a stale install file still runs, still
+# creates a database, and the store still starts. What is missing is whatever
+# that migration added, so a new store comes up looking fine and behaving
+# differently.
+#
+# tests/install-covers-migrations.test.js catches the omission. This removes the
+# step instead, which is better: the whole migration system exists because "a
+# step someone has to remember is the step that got skipped" (see the header of
+# migrations/0001).
+#
+# ── THE ORDER THAT MATTERS ───────────────────────────────────────────────────
+#
+# This dumps PRODUCTION. If it ran the moment a migration file was pushed —
+# before it had been applied — it would write an install file containing the OLD
+# schema alongside a row swearing the new migration was in it. A new store would
+# then be missing the change while believing it had it, which is worse than
+# being obviously out of date.
+#
+# scripts/dump-schema.js refuses to dump a database that is behind the
+# repository, so this job FAILS in that case rather than committing a lie. A red
+# run here means one thing: apply the migration first, in
+# Admin -> APIs -> Database migrations.
+
+name: Regenerate install.sql
+
+on:
+  push:
+    paths:
+      - 'migrations/**'
+  workflow_dispatch:
+
+# The job commits back to the branch, so it needs write access. Nothing else
+# here does, which is why this is its own workflow rather than a step in ci.yml.
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    name: Snapshot the schema
+    runs-on: ubuntu-latest
+    # Forks and PRs from forks cannot read secrets; skipping is correct rather
+    # than failing on something they were never able to do.
+    if: github.event_name == 'workflow_dispatch' || github.repository_owner != ''
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Announced rather than silent: a workflow that quietly does nothing is
+      # indistinguishable from one that ran and found nothing to do.
+      - name: Check the database credential is present
+        id: creds
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::SUPABASE_DB_URL is not set — install.sql was not regenerated."
+            echo "Add it under Settings -> Secrets and variables -> Actions to enable this."
+          else
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dump the production schema
+        if: steps.creds.outputs.have == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: node scripts/dump-schema.js
+
+      - name: Rebuild install.sql
+        if: steps.creds.outputs.have == 'true'
+        run: node scripts/build-install-sql.js schema.sql
+
+      - name: Commit it if it changed
+        if: steps.creds.outputs.have == 'true'
+        run: |
+          if git diff --quiet -- supabase/install.sql; then
+            echo "install.sql already matches production — nothing to do."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/install.sql
+          # [skip ci] because this commit touches only install.sql, which no test
+          # depends on beyond the coverage check that just passed by construction.
+          git commit -m "Regenerate install.sql for the applied migrations [skip ci]"
+          git push
