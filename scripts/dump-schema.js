@@ -116,6 +116,42 @@ const lit = (s) => "'" + String(s).replace(/'/g, "''") + "'";
     process.exit(1);
   }
 
+  /* ── Is production actually up to date? ────────────────────────────────────
+     This dump becomes install.sql, and install.sql ends by recording every file
+     in migrations/ as applied. If production has not yet run the newest one,
+     that pairing is a lie in the most dangerous direction available: the schema
+     would be the OLD one, with a row swearing the new migration is in it. A new
+     store would come up missing the change and believing it had it, and nothing
+     downstream could tell.
+
+     So the schema is only dumped from a database that is level with the
+     repository. Checked here rather than in the workflow, so the manual path
+     gets the same guarantee. */
+  let appliedVersions = new Set();
+  try {
+    const rows = await q(client, 'select version from public.schema_migrations');
+    appliedVersions = new Set(rows.map((r) => String(r.version)));
+  } catch (e) {
+    console.error('\n  Could not read schema_migrations: ' + e.message);
+    console.error('  Has migrations/0001 been run on this project?\n');
+    process.exit(1);
+  }
+
+  const repoVersions = fs.readdirSync(path.resolve(__dirname, '..', 'migrations'))
+    .filter((f) => /^\d{4}_.*\.sql$/.test(f))
+    .map((f) => f.slice(0, 4))
+    .sort();
+  const pending = repoVersions.filter((v) => !appliedVersions.has(v));
+
+  if (pending.length) {
+    console.error('\n  Production is behind the repository — not dumping.\n');
+    console.error('  Pending: ' + pending.join(', ') + '\n');
+    console.error('  Apply them first: Admin -> APIs -> Database migrations -> Check -> Apply pending.');
+    console.error('  Dumping now would write an install file with the OLD schema and rows');
+    console.error('  claiming those migrations are in it.\n');
+    process.exit(1);
+  }
+
   const out = [];
   const census = {};
   const say = (s) => out.push(s);

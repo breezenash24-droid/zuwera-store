@@ -240,6 +240,24 @@
     set('--bg-rgb', t.bg);
     set('--ink', t.ink);
     set('--paper', t.paper);
+    /* --black and --white are ALIASES of --ink and --paper. base.css defines
+       them as literally the same values in every block: :root has
+       --black/--ink both #09090b, light-mode has both #F0EEE9, and so on.
+       They are the older spelling, and 88 rules still use them — 35 in
+       product.css, 35 in drop001.html, 17 in product.html.
+
+       Setting only --ink and --paper here left the aliases behind. For the
+       three built-in themes nobody noticed, because the body class supplies
+       both pairs with matching values. Put a CUSTOM theme on and the pairs come
+       apart: these inline properties beat the class rules, so --ink moves to
+       the theme's colour while --white keeps whatever the built-in for that
+       base said. The product page then draws its labels in one palette on a
+       background from another, and washes out.
+
+       Two names for one colour is the same fault as two answerers for one
+       question — it only stays hidden while nothing moves. */
+    set('--black', t.ink);
+    set('--white', t.paper);
     set('--zw-theme-surface', t.surface);
     set('--accent', t.accent);
     set('--err', t.err);
