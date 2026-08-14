@@ -113,3 +113,105 @@ export async function paypalFetch(env, path, { method = 'GET', body, requestId }
 export function centsToAmount(cents) {
   return (Math.round(Number(cents) || 0) / 100).toFixed(2);
 }
+
+/* ── Refunds ────────────────────────────────────────────────────────────────
+ *
+ * The Stripe path answers two questions before it moves anything: how much has
+ * already gone back, and is this request within what remains. It refuses
+ * locally rather than letting the processor refuse, because a local refusal can
+ * say what already happened and who did it, while a raw API error hands an
+ * admin a number they cannot see.
+ *
+ * PayPal has to answer the same two questions, and it answers them differently.
+ * There is no "list the refunds on this capture" call. What there is:
+ *
+ *   GET /v2/payments/captures/{id}  →  status: COMPLETED | PARTIALLY_REFUNDED |
+ *                                      REFUNDED, plus the captured amount.
+ *
+ * So a full refund is knowable exactly (status REFUNDED) and a partial one is
+ * knowable only as "some, amount unspecified". That is an honest gap and it is
+ * reported as one: known:false rather than a confident zero. A confident zero
+ * would be the worst possible answer — it reads as "nothing refunded yet" and
+ * permits precisely the double refund this exists to prevent.
+ *
+ * Where the amount cannot be established, PayPal's own ceiling is the backstop:
+ * it refuses to refund past the captured total, and that refusal is surfaced
+ * rather than swallowed.
+ */
+
+/** What PayPal knows about a capture. Never throws; unknown is a valid answer. */
+export async function paypalCaptureState(env, captureId) {
+  if (!captureId) return { known: false, fullyRefunded: false, chargedCents: 0 };
+  try {
+    const res = await paypalFetch(env, '/v2/payments/captures/' + encodeURIComponent(captureId));
+    if (!res.ok || !res.data) return { known: false, fullyRefunded: false, chargedCents: 0 };
+    const status = String(res.data.status || '').toUpperCase();
+    const value = res.data.amount && res.data.amount.value;
+    const chargedCents = Math.round(Number(value) * 100) || 0;
+    return {
+      /* Only the fully-refunded case is a number we can stand behind. A
+         PARTIALLY_REFUNDED capture is real information — it stops a blind full
+         refund — but not an amount, so the caller must not treat it as one. */
+      known: status === 'REFUNDED' || status === 'COMPLETED',
+      fullyRefunded: status === 'REFUNDED',
+      partiallyRefunded: status === 'PARTIALLY_REFUNDED',
+      status,
+      chargedCents,
+    };
+  } catch (e) {
+    console.warn('paypalCaptureState failed for', captureId, e && e.message);
+    return { known: false, fullyRefunded: false, chargedCents: 0 };
+  }
+}
+
+/**
+ * Send money back. Omitting the amount refunds the lot, which is PayPal's own
+ * convention and avoids a rounding disagreement on a full refund.
+ *
+ * Idempotent on the caller's key: PayPal returns the ORIGINAL refund for a
+ * repeated PayPal-Request-Id rather than issuing a second one. That matters
+ * more here than at capture — a double refund is money leaving twice, and the
+ * obvious trigger is an admin clicking again because the first click looked
+ * like it did nothing.
+ */
+export async function refundPayPalCapture(env, { captureId, amountCents, note, requestId }) {
+  const cfg = paypalConfig(env);
+  if (!cfg.configured) return { ok: false, error: 'PayPal is not configured.' };
+  if (!captureId) return { ok: false, error: 'No PayPal capture id on this order.' };
+
+  const body = {};
+  if (Number.isFinite(Number(amountCents)) && Number(amountCents) > 0) {
+    body.amount = { value: centsToAmount(amountCents), currency_code: 'USD' };
+  }
+  if (note) body.note_to_payer = String(note).slice(0, 255);
+
+  const res = await paypalFetch(env, '/v2/payments/captures/' + encodeURIComponent(captureId) + '/refund', {
+    method: 'POST',
+    requestId: requestId || undefined,
+    body,
+  });
+
+  if (!res.ok || !res.data || !res.data.id) {
+    /* PayPal's issue codes are the useful part and its prose is written for an
+       integrator. Translate the two an admin will actually hit; pass anything
+       else through so nothing is hidden. */
+    const issue = (res.data && res.data.details && res.data.details[0] && res.data.details[0].issue) || '';
+    const detail = (res.data && res.data.details && res.data.details[0] && res.data.details[0].description)
+      || (res.data && res.data.message) || ('HTTP ' + res.status);
+    if (issue === 'CAPTURE_FULLY_REFUNDED') {
+      return { ok: false, alreadyRefunded: true, error: 'PayPal reports this capture has already been fully refunded.' };
+    }
+    if (issue === 'REFUND_AMOUNT_EXCEEDED') {
+      return { ok: false, error: 'That is more than is left to refund on this PayPal payment.' };
+    }
+    return { ok: false, error: 'PayPal refused the refund: ' + detail, issue };
+  }
+
+  const refunded = res.data.amount && res.data.amount.value;
+  return {
+    ok: true,
+    id: String(res.data.id),
+    amountCents: Math.round(Number(refunded) * 100) || 0,
+    status: String(res.data.status || ''),
+  };
+}
