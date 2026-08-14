@@ -156,6 +156,68 @@ function net(routes) {
 
   globalThis.fetch = realFetch;
 
+  console.log('\n  reconciling what PayPal knows with what this panel recorded');
+  {
+    /* RUN, not read. This was written inline in the request handler first, and
+       the regex assertions on that source passed with the credibility check
+       deleted AND with the outside-this-panel branch replaced by `if (false)` —
+       two mutations that both move real money, neither of which turned anything
+       red. It is a pure function now for exactly that reason. */
+    const R = PP.reconcilePayPalRefunds;
+    const capture = (status, cents) => ({
+      status,
+      chargedCents: cents,
+      fullyRefunded: status === 'REFUNDED',
+      partiallyRefunded: status === 'PARTIALLY_REFUNDED',
+      known: status !== 'PARTIALLY_REFUNDED',
+    });
+
+    const clean = R(capture('COMPLETED', 7000), 0, 0);
+    ok('nothing refunded, and both sources agree', clean.known === true && clean.refundedCents === 0,
+      'only when BOTH say nothing has gone back is "nothing" a fact rather than an assumption');
+
+    const full = R(capture('REFUNDED', 7000), 0, 0);
+    ok('a fully refunded capture is exact from the processor',
+      full.known === true && full.refundedCents === 7000,
+      'even with no local record — PayPal holds the money and it says so');
+
+    const partial = R(capture('PARTIALLY_REFUNDED', 7000), 2500, 1);
+    ok('a partial refund we issued is known exactly', partial.known === true && partial.refundedCents === 2500,
+      'PayPal confirms some went back; our ledger says how much');
+    ok('…leaving the right amount refundable', partial.chargedCents - partial.refundedCents === 4500);
+
+    /* THE CASE THIS EXISTS FOR. */
+    const elsewhere = R(capture('PARTIALLY_REFUNDED', 7000), 0, 0);
+    ok('a refund issued in PayPal’s dashboard is detected',
+      elsewhere.refundedOutsideThisPanel === true,
+      'PayPal says partly refunded and this panel has no record of it');
+    ok('…and is NOT reported as zero refunded', elsewhere.known === false,
+      'a zero here reads as "nothing refunded yet" and permits a second refund on top');
+
+    /* The ledger is our record of an intent; PayPal's is the record of the
+       money. Where they conflict, the ledger is the side that is wrong. */
+    const lying = R(capture('COMPLETED', 7000), 5000, 1);
+    ok('a ledger claiming a refund PayPal has not seen is discarded',
+      lying.refundedCents === 0,
+      'the processor holds the money — a refund it has not heard of is not a refund');
+    const toobig = R(capture('PARTIALLY_REFUNDED', 7000), 9000, 2);
+    ok('…as is one claiming more than was ever captured', toobig.refundedCents === 0);
+    /* Neither is passed off as known, and the COMPLETED case is the one worth
+       being deliberate about. It is tempting to say "PayPal is authoritative,
+       so nothing has been refunded" — but the two sources DISAGREE, and a
+       refund's status can lag its money. If the ledger is the accurate side,
+       calling this knowably-zero permits a second refund on top of a first.
+       Unknown is the answer that cannot cost anything. */
+    ok('…and neither is passed off as known', lying.known === false && toobig.known === false,
+      'a disagreement is not a fact, whichever side looks more authoritative');
+
+    /* Junk in must not become a confident number out. */
+    ok('a missing capture state is unknown, not zero-refunded',
+      R(null, 0, 0).known === false);
+    ok('negative or absurd ledger values are floored',
+      R(capture('PARTIALLY_REFUNDED', 7000), -500, -2).refundedCents === 0);
+  }
+
   console.log('\n  the route sends it to the right processor');
   {
     const code = REFUND.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
@@ -174,7 +236,15 @@ function net(routes) {
       'the prefix exists so the id is never mistaken for a Stripe one; PayPal wants it bare');
 
     ok('check reports which processor it asked', /check: true, orderId, processor/.test(code));
-    ok('a full PayPal refund is blocked before it is attempted', /blocked: PayPal reports fully refunded/.test(code));
+    ok('an already-refunded order is blocked before PayPal is called',
+      /blocked: already fully refunded/.test(code));
+
+    ok('the local refund ledger is consulted', /AUDIT_LOG_KEY/.test(code) && /ledgerCents/.test(code));
+    ok('…only for successful refunds on this order',
+      /e\.success === true/.test(code) && /String\(e\.orderId \|\| ''\) === String\(orderId\)/.test(code));
+    ok('…and refused rather than guessed at when it disagrees',
+      /blocked: refunded outside this panel, amount unknown/.test(code));
+    ok('…with an instruction rather than a shrug', /issue the remainder there/.test(code));
     ok('failures are written to the audit log', /note: 'paypal: ' \+ out\.error/.test(code));
     ok('cancel still needs no processor at all', /action !== 'cancel'/.test(code),
       'cancelling an unpaid order moves no money');

@@ -21,7 +21,7 @@ import { fetchSiteSettings, resolveSetting } from './_settings.js';
 /* Refunding through whoever took the money. The capture-state read is separate
    from the refund itself because it answers a different question — how much has
    already gone back — and it answers it less completely than Stripe can. */
-import { paypalCaptureState, refundPayPalCapture } from './_paypal.js';
+import { paypalCaptureState, refundPayPalCapture, reconcilePayPalRefunds } from './_paypal.js';
 import { sha256Base64Url } from './_cart-pricing.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
@@ -277,17 +277,50 @@ export async function onRequestPost({ request, env }) {
       console.warn('refund: could not read Stripe history —', e && e.message);
     }
   } else if (isPayPal) {
-    /* What PayPal will tell us. Full refunds are knowable exactly; a partial
-       one is knowable only as "some, amount unspecified", so it stays
-       known:false rather than becoming a number nobody can stand behind. */
+    /* ── How much has already gone back, when the processor will not say ─────
+       PayPal has no "list the refunds on this capture" call. GET on the capture
+       gives a STATUS — COMPLETED, PARTIALLY_REFUNDED, REFUNDED — so a full
+       refund is knowable exactly and a partial one is knowable only as "some,
+       amount unspecified".
+
+       The note above says a number kept on this side would be a second ledger
+       to keep in step with the real one, and the day they disagree is the day
+       it matters. That is right, and it is an argument against TRUSTING a local
+       ledger — not against having one. Every refund this panel issues is
+       already recorded in refund_audit_log with its amount, and the answer is
+       to RECONCILE the two rather than pick one:
+
+         PayPal REFUNDED            → fully refunded. Exact, from the processor.
+         COMPLETED + no local rows  → nothing refunded. Exact, and the two agree.
+         PARTIALLY_REFUNDED + rows  → our sum, and the two agree that some went
+                                      back. Exact enough to subtract from.
+         PARTIALLY_REFUNDED + none  → somebody refunded in PayPal's own
+                                      dashboard. The disagreement is the finding:
+                                      report it and refuse to guess.
+
+       So the day they disagree, this says so, which is the whole of what the
+       original warning was asking for. */
     const st = await paypalCaptureState(env, payPalCaptureId);
-    already = {
-      refundedCents: st.fullyRefunded ? st.chargedCents : 0,
-      chargedCents: st.chargedCents,
-      count: st.fullyRefunded ? 1 : 0,
-      known: !!st.fullyRefunded,
-      partiallyRefunded: !!st.partiallyRefunded,
-    };
+
+    let ledgerCents = 0, ledgerCount = 0;
+    try {
+      const log = await getSetting(env, AUDIT_LOG_KEY, []);
+      (Array.isArray(log) ? log : [])
+        .filter((e) => e && e.success === true
+          && String(e.orderId || '') === String(orderId)
+          && (e.action === 'refund' || e.action === 'cancel_refund')
+          && Number(e.stripeRefundAmount) > 0)
+        .forEach((e) => { ledgerCents += Math.round(Number(e.stripeRefundAmount)); ledgerCount++; });
+    } catch (e) {
+      console.warn('refund: could not read the refund ledger —', e && e.message);
+    }
+
+    /* The decision itself lives in _paypal.js as a pure function, so it can be
+       RUN rather than read. Written inline first, and a test that regex-matched
+       this source passed with the credibility check deleted and with the
+       outside-this-panel branch replaced by `if (false)` — two mutations that
+       both move real money. */
+    already = reconcilePayPalRefunds(st, ledgerCents, ledgerCount);
   }
 
   /* A read-only look at the same answer, so the panel can warn BEFORE somebody
@@ -314,12 +347,40 @@ export async function onRequestPost({ request, env }) {
   let stripeRefundAmount = null;
 
   if (isPayPal && (action === 'refund' || action === 'cancel_refund')) {
-    if (already.known && already.refundedCents > 0) {
-      await audit(env, { adminId, adminEmail, orderId, action, success: false, note: 'blocked: PayPal reports fully refunded' });
+    /* Somebody refunded this in PayPal's own dashboard and this panel has no
+       record of how much. Refusing is the only honest move: a full refund would
+       send back money that has partly gone already, and PayPal's ceiling would
+       catch the total but not a partial that happens to fit under it. */
+    if (already.refundedOutsideThisPanel) {
+      await audit(env, { adminId, adminEmail, orderId, action, success: false, note: 'blocked: refunded outside this panel, amount unknown' });
       return json({
-        error: 'PayPal reports this payment has already been refunded in full. Nothing further can be refunded.',
-        processor, alreadyRefundedCents: already.refundedCents, chargedCents: already.chargedCents,
+        error: 'PayPal reports part of this payment has already been refunded, but it was not done here — '
+             + 'so this panel cannot tell how much is left. Check the capture in PayPal and issue the remainder there.',
+        processor, chargedCents: already.chargedCents, partiallyRefunded: true,
       }, 409, h);
+    }
+
+    if (already.known && already.refundedCents > 0) {
+      const remaining = Math.max(0, already.chargedCents - already.refundedCents);
+      const wanted = (action === 'refund' && amountCents && Number.isFinite(Number(amountCents)))
+        ? Math.round(Number(amountCents)) : remaining;
+
+      if (remaining <= 0) {
+        await audit(env, { adminId, adminEmail, orderId, action, success: false, note: 'blocked: already fully refunded' });
+        return json({
+          error: `This order has already been refunded in full — $${(already.refundedCents / 100).toFixed(2)} across `
+               + `${already.count} refund${already.count === 1 ? '' : 's'}. Nothing further can be refunded.`,
+          processor, alreadyRefundedCents: already.refundedCents, chargedCents: already.chargedCents,
+        }, 409, h);
+      }
+      if (wanted > remaining) {
+        await audit(env, { adminId, adminEmail, orderId, action, success: false, note: `blocked: ${wanted}c requested, ${remaining}c remaining` });
+        return json({
+          error: `Only $${(remaining / 100).toFixed(2)} is left to refund on this order — `
+               + `$${(already.refundedCents / 100).toFixed(2)} has already gone back. Nothing was refunded.`,
+          processor, alreadyRefundedCents: already.refundedCents, chargedCents: already.chargedCents,
+        }, 409, h);
+      }
     }
 
     const wantedCents = (action === 'refund' && amountCents && Number.isFinite(Number(amountCents)))

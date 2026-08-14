@@ -86,8 +86,8 @@ console.log('\n  the refund goes where the money went');
     'a check after the call is not a check');
 
   ok('the response says which processor handled it', /check: true, orderId, processor/.test(REFUND));
-  ok('a full PayPal refund is refused before it is attempted',
-    /blocked: PayPal reports fully refunded/.test(REFUND));
+  ok('an already-refunded order is refused before PayPal is called',
+    /blocked: already fully refunded/.test(REFUND));
 
   /* Cancel is deliberately still processor-agnostic: cancelling an unpaid
      order moves no money and touches nobody's API. */
