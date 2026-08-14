@@ -2,7 +2,12 @@
 //
 // Complements the Receipts page (which shows per-order receipt cards): this is a
 // scannable, filterable table of every order with status + fulfillment at a
-// glance, an expandable detail row, summary KPIs, and CSV export. Read-only.
+// glance, an expandable detail row, summary KPIs, and CSV export.
+//
+// Read-only apart from ONE control: the per-order returns deadline. It lives
+// here rather than on the Returns page because a shopper outside the window
+// cannot create a return request at all — so on the Returns page there would be
+// nothing to attach it to, which is exactly the case it exists for.
 //
 // Loaded by admin.html inside <div id="orders" class="page">. Reads the global
 // `sb` Supabase client and the shared helpers (escapeHtml, escapeAttr, fmt$,
@@ -15,6 +20,8 @@
   let _all = [];        // every order
   let _filtered = [];   // after search/status/fulfillment filters
   const _expanded = new Set(); // order ids whose detail row is open
+  let _orderOps = {};   // commerce_order_ops, keyed by order id — holds the returns override
+  let _returnsCfg = {}; // commerce_config.returns — the store-wide policy, for wording only
 
   // ── helpers ────────────────────────────────────────────────────────────────
   function ordErr(msg) {
@@ -80,12 +87,98 @@
       if (error) throw error;
       _all = data || [];
       _ordLoaded = true;
+      await loadReturnsState();
       populateStatusFilter();
       attachListeners();
       applyFilters();
     } catch (err) {
       if (container) container.innerHTML = '';
       ordErr('Could not load orders: ' + (err && err.message ? err.message : 'unknown error'));
+    }
+  };
+
+  /* The per-order returns override and the store policy it overrides. Both live
+     in site_settings blobs rather than on the orders table — that is where all
+     per-order admin state already lives (commerce_order_ops also carries the
+     timeline), and it means this needed no migration.
+
+     Non-fatal on purpose: a settings read that fails must not stop the orders
+     table loading. The control then shows as unavailable rather than showing a
+     deadline it cannot vouch for. */
+  async function loadReturnsState() {
+    try {
+      const { data, error } = await sb
+        .from('site_settings')
+        .select('key,value')
+        .in('key', ['commerce_order_ops', 'commerce_config']);
+      if (error) throw error;
+      for (const row of data || []) {
+        if (row.key === 'commerce_order_ops') _orderOps = (row.value && typeof row.value === 'object') ? row.value : {};
+        if (row.key === 'commerce_config') _returnsCfg = ((row.value || {}).returns) || {};
+      }
+    } catch (_) { _orderOps = {}; _returnsCfg = {}; }
+  }
+
+  /* What to say about when returns close.
+   *
+   * DELIBERATELY DOES NOT RECOMPUTE THE DATE for orders without an override.
+   * returnClosesAt() in functions/api/_returns.js is the one answer to that, and
+   * every dated bug in this area has come from two pieces of code working the
+   * same date out separately — the rule counted from payment while the emails
+   * promised 30 days from delivery. Copying the arithmetic into the browser to
+   * put a prettier line on this panel would be re-opening that exact seam.
+   *
+   * So: an override is SHOWN, because it is stored rather than derived. Anything
+   * else is described as the policy, in the policy's own words. */
+  function returnsLine(orderId) {
+    const entry = _orderOps[String(orderId)] || {};
+    const until = String(entry.returnsOpenUntil || '');
+    if (until) {
+      const who = entry.returnsWindowSetBy ? ' — set by ' + escapeHtml(entry.returnsWindowSetBy) : '';
+      const note = entry.returnsWindowNote ? '<div style="color:var(--text-secondary);margin-top:2px;">' + escapeHtml(entry.returnsWindowNote) + '</div>' : '';
+      const past = Date.parse(until) < Date.now();
+      return `<div><span style="color:${past ? 'var(--text-secondary)' : 'var(--accent)'};">Returns open until ${escapeHtml(until.slice(0, 10))}${past ? ' (passed)' : ''}</span>${who}</div>${note}`;
+    }
+    const days = Math.floor(Number(_returnsCfg.windowDays));
+    return Number.isFinite(days) && days > 0
+      ? `<div style="color:var(--text-secondary);">Store policy — ${days} days from delivery</div>`
+      : `<div style="color:var(--text-secondary);">No time limit set. Returns stay open indefinitely.</div>`;
+  }
+
+  /* Set or clear one order's deadline. An empty box clears it — the same field
+     both ways, so there is no separate "remove" state to get out of step. */
+  window.ordersSetReturnWindow = async function (orderId, btn) {
+    const input = document.getElementById('ord-retwin-' + orderId);
+    const noteEl = document.getElementById('ord-retnote-' + orderId);
+    if (!input) return;
+    const value = String(input.value || '').trim();
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Missing admin session token.');
+      const resp = await fetch('/api/admin-returns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          action: 'set_return_window',
+          orderId: String(orderId),
+          openUntil: value,
+          note: noteEl ? String(noteEl.value || '').trim() : '',
+        }),
+      });
+      const payload = await resp.json().catch(() => ({}));
+      if (!resp.ok || !payload.success) throw new Error(payload.error || 'Could not save.');
+
+      /* Re-read rather than patching the local copy: the server decides the
+         exact stored instant (a bare date becomes the END of that day), and
+         showing a different one here would be a second answer again. */
+      await loadReturnsState();
+      applyFilters();
+      ordErr('');
+    } catch (err) {
+      ordErr('Could not set the returns deadline: ' + (err && err.message ? err.message : 'unknown error'));
+      if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
     }
   };
 
@@ -247,6 +340,24 @@
             <div><span style="color:var(--text-secondary);">Order #:</span> ${escapeHtml(orderNumOf(o))}</div>
             <div><span style="color:var(--text-secondary);">Payment:</span> ${escapeHtml(String(o.stripe_payment_intent_id || '—'))}</div>
             ${ff.length ? `<div><span style="color:var(--text-secondary);">Variants:</span> ${ff.map(escapeHtml).join(', ')}</div>` : ''}
+          </div>
+          <p class="zw-eyebrow" style="margin-top:16px;">Returns</p>
+          <div style="font-size:12px;line-height:1.7;">${returnsLine(o.id)}</div>
+          <div style="margin-top:8px;">
+            <label class="form-label" style="font-size:11px;">Open returns on this order until</label>
+            <input type="date" id="ord-retwin-${escapeAttr(String(o.id))}" class="form-input"
+                   value="${escapeAttr(String((_orderOps[String(o.id)] || {}).returnsOpenUntil || '').slice(0, 10))}"
+                   style="font-size:12px;padding:6px 8px;">
+            <input type="text" id="ord-retnote-${escapeAttr(String(o.id))}" class="form-input"
+                   placeholder="Why (optional) — shown on the order timeline"
+                   value="${escapeAttr(String((_orderOps[String(o.id)] || {}).returnsWindowNote || ''))}"
+                   style="font-size:12px;padding:6px 8px;margin-top:6px;">
+            <button class="btn btn-secondary btn-sm" style="margin-top:8px;"
+                    onclick="ordersSetReturnWindow('${escapeAttr(String(o.id))}', this)">Save</button>
+            <div style="font-size:11px;color:var(--text-secondary);margin-top:6px;line-height:1.5;">
+              Overrides the store policy for this order only. Clear the date to go back to it.
+              A date in the past closes returns early.
+            </div>
           </div>
           <div style="margin-top:14px;">
             <button class="btn btn-secondary btn-sm" data-ro-ok onclick="navigateTo('receipts')">Open in Receipts →</button>

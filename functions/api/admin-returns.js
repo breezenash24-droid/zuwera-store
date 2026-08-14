@@ -4,6 +4,7 @@ import {
   getOrdersForAdmin,
   getProfilesForAdmin,
   json,
+  mutateSetting,
   setSetting,
   upsertTimelineEntry,
   verifyAdmin,
@@ -133,11 +134,90 @@ export async function onRequestGet({ request, env }) {
   }
 }
 
+/**
+ * Give ONE order its own returns deadline, or take it away again.
+ *
+ * The store-wide window is a policy; this is the exception to it. Support has to
+ * be able to say yes to "it arrived damaged and I was away for a month" without
+ * turning enforcement off for everybody — and a rule with no exception is a rule
+ * that gets turned off the first time it is inconvenient, which is how the store
+ * ends up back where it started with no window at all.
+ *
+ * A DATE, not a number of days: see overrideFrom() in _returns.js. Because it
+ * replaces the computed deadline rather than extending it, the same field also
+ * SHORTENS a window, which is what a final-sale item needs and would otherwise
+ * have been a second mechanism.
+ *
+ * mutateSetting rather than setSetting — this is a read-modify-write on a shared
+ * blob, and the plain write loses whatever another admin saved in between. The
+ * update_return path above still uses setSetting; that is pre-existing and out
+ * of scope here, but it is the same hazard.
+ */
+async function setReturnWindow({ body, env, admin }) {
+  const orderId = String(body.orderId || '').trim();
+  if (!orderId) return json({ success: false, error: 'Missing order id.' }, 400, cors(env));
+
+  const raw = String(body.openUntil || '').trim();
+  const clearing = raw === '';
+  let iso = '';
+
+  if (!clearing) {
+    /* A bare YYYY-MM-DD is what a date input sends, and parsing that as UTC
+       midnight would end the window at 8pm the previous evening for a shopper in
+       Ohio. Read it as the END of that day, so a deadline of the 14th means all
+       of the 14th — which is what both the admin and the customer will assume. */
+    const ms = Date.parse(/^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T23:59:59.999Z` : raw);
+    if (!Number.isFinite(ms)) {
+      return json({ success: false, error: 'That is not a date we can read.' }, 400, cors(env));
+    }
+    /* Ten years is not a window, it is switching the rule off for one order
+       while making it look like a date. Refuse rather than silently clamp: the
+       admin should know the number they typed was not the number stored. */
+    if (ms > Date.now() + 3650 * 86400000) {
+      return json({ success: false, error: 'That date is more than ten years away.' }, 400, cors(env));
+    }
+    iso = new Date(ms).toISOString();
+  }
+
+  const actor = admin.profile?.email || admin.email || 'admin';
+  const note = cleanString(body.note, '');
+
+  await mutateSetting(env, 'commerce_order_ops', (currentValue) => {
+    const ops = currentValue && typeof currentValue === 'object' ? { ...currentValue } : {};
+    const entry = ops[orderId] && typeof ops[orderId] === 'object' ? { ...ops[orderId] } : {};
+
+    if (clearing) delete entry.returnsOpenUntil;
+    else entry.returnsOpenUntil = iso;
+    entry.returnsWindowSetBy = clearing ? '' : actor;
+    entry.returnsWindowSetAt = clearing ? '' : new Date().toISOString();
+    entry.returnsWindowNote  = clearing ? '' : note;
+
+    /* Onto the same timeline the rest of this file writes to, because "why is
+       this order still returnable" is a question asked months later by somebody
+       who was not the one who decided. */
+    entry.timeline = upsertTimelineEntry(entry.timeline, {
+      actor,
+      type: 'return_window',
+      message: clearing
+        ? 'Return window reset to the store policy'
+        : `Returns open until ${iso.slice(0, 10)}${note ? ` — ${note}` : ''}`,
+    });
+
+    ops[orderId] = entry;
+    return ops;
+  });
+
+  return json({ success: true, orderId, openUntil: iso }, 200, cors(env));
+}
+
 export async function onRequestPost({ request, env }) {
   try {
     const admin = await requireAdmin(request, env, 'return_process');
     const body = await request.json().catch(() => ({}));
     const action = String(body.action || '').trim();
+    if (action === 'set_return_window') {
+      return await setReturnWindow({ body, env, admin });
+    }
     if (action !== 'update_return') {
       return json({ success: false, error: 'Unsupported action.' }, 400, cors(env));
     }

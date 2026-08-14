@@ -43,6 +43,10 @@ export const DEFAULTS = {
   returnItemsInvalid:   'Those items are not available to return on this order.',
   returnNoItems:        'Choose at least one item to return.',
   returnWindowClosed:   'Returns are open for {days} days after delivery, and this order arrived {ago} days ago.',
+  /* When an admin gave THIS order its own deadline. Quoting the store rule
+     instead would tell somebody who was granted an extension a sentence they
+     can disprove, and make the exception read as a mistake. */
+  returnWindowExtendedClosed: 'Returns on this order were open until {date}, which has now passed.',
 };
 
 /* Same substitution as the browser's: a token with no value collapses, empty
