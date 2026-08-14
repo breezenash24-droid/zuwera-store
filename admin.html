@@ -806,6 +806,42 @@
                         <button class="btn btn-secondary" id="refreshReturnsBtn" onclick="loadReturnsPage()">Refresh</button>
                     </div>
 
+                    <!-- ── Return Window ──────────────────────────────────────
+                         The rule, the refusal message, the plumbing and the
+                         tests all shipped. The NUMBER never had anywhere to be
+                         typed, and returnWindowFrom() defaults it to 0 = no
+                         limit — so the whole thing was live and inert, and an
+                         order from three years ago was returnable today while
+                         every confirmation email promised 30 days. -->
+                    <div id="ret-window-card" class="form-section" style="margin-bottom:1.5rem;padding:1rem 1.2rem;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+                            <div>
+                                <div style="font-weight:600;font-size:.9rem;">⏳ Return Window</div>
+                                <div id="ret-window-summary" style="font-size:.78rem;color:var(--text-secondary);margin-top:2px;">Loading…</div>
+                            </div>
+                            <button class="btn btn-primary btn-sm" onclick="saveReturnWindow()">Save</button>
+                        </div>
+                        <div style="display:flex;gap:1.2rem;flex-wrap:wrap;margin-top:.9rem;">
+                            <div>
+                                <label for="ret-window-days" style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px;">Days to return</label>
+                                <input id="ret-window-days" type="number" min="0" max="3650" step="1" placeholder="30" style="width:110px;background:var(--surface);border:1px solid var(--border);color:var(--text-primary);padding:.5rem .7rem;font-size:.85rem;border-radius:5px;outline:none;">
+                            </div>
+                            <div>
+                                <label for="ret-window-transit" style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px;">Assume delivery took</label>
+                                <input id="ret-window-transit" type="number" min="0" max="60" step="1" placeholder="7" style="width:110px;background:var(--surface);border:1px solid var(--border);color:var(--text-primary);padding:.5rem .7rem;font-size:.85rem;border-radius:5px;outline:none;">
+                            </div>
+                        </div>
+                        <p style="font-size:.78rem;color:var(--text-secondary);line-height:1.65;margin:.9rem 0 0;max-width:640px;">
+                            Counted <strong>from delivery</strong>, because that is what the policy promises. Counting from payment would give someone who waited a week for their parcel twenty days while the email said thirty.
+                            <br><br>
+                            <strong>0 means no limit</strong> — which is what this store has been doing. Orders placed before delivery tracking existed have no delivery date and never will, so those are judged from the order date plus the allowance above.
+                            <br><br>
+                            An order whose date cannot be established at all is <strong>allowed</strong>, deliberately: a wrongly refused return is a support email and a customer who does not come back, and a wrongly allowed one costs a single item.
+                            The refusal wording is editable under <b>Settings → Customer Messages → Starting a return</b>.
+                        </p>
+                        <div id="ret-window-msg" style="font-size:.78rem;margin-top:.7rem;"></div>
+                    </div>
+
                     <!-- Return Address Setup Card -->
                     <div id="ret-addr-card" class="form-section" style="margin-bottom:1.5rem;padding:0;">
                         <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.2rem;cursor:pointer;" onclick="toggleReturnAddressCard()">

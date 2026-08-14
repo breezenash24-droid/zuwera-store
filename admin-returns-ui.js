@@ -1088,3 +1088,85 @@
                             if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = oldText || 'Send Label'; }
                         }
                     };
+
+                    /* ── Return window ──────────────────────────────────────
+                       The rule has been live and inert. returnEligibility()
+                       enforces a window, the refusal message is editable, both
+                       callers pass returnWindowFrom(config), and 157 lines of
+                       tests cover the date cases — but returnWindowFrom()
+                       defaults windowDays to 0 (no limit) and there was nowhere
+                       to type a number. So every confirmation email promised
+                       30-day returns while an order from three years ago was
+                       still returnable.
+
+                       Stored at commerce_config.returns, which is what
+                       returnWindowFrom() reads. Read-modify-write on the blob
+                       like the rest of the admin: this touches two integers and
+                       carries everything else through untouched. */
+                    window.loadReturnWindowCard = async function () {
+                        const sum = document.getElementById('ret-window-summary');
+                        const days = document.getElementById('ret-window-days');
+                        const transit = document.getElementById('ret-window-transit');
+                        if (!sum || !days) return;
+                        try {
+                            const { data: rows } = await sb.from('site_settings')
+                                .select('value').eq('key', 'commerce_config').limit(1);
+                            const cfg = (rows && rows[0] && rows[0].value) || {};
+                            const r = (cfg.returns && typeof cfg.returns === 'object') ? cfg.returns : {};
+                            const d = Math.floor(Number(r.windowDays));
+                            const t = Math.floor(Number(r.transitAllowanceDays));
+                            days.value = Number.isFinite(d) && d > 0 ? d : '';
+                            transit.value = Number.isFinite(t) && t >= 0 ? t : '';
+                            /* The summary says what the store DOES, not what is
+                               configured — "no limit" is the honest description
+                               of a blank field, and it is the state that has
+                               been quietly true all along. */
+                            sum.innerHTML = (Number.isFinite(d) && d > 0)
+                                ? 'Returns close <b>' + d + ' days</b> after delivery.'
+                                : '<span style="color:var(--warning);">No limit — every order is returnable for ever.</span>';
+                        } catch (e) {
+                            sum.textContent = 'Could not load the return window.';
+                            console.warn('loadReturnWindowCard:', e && e.message);
+                        }
+                    };
+
+                    window.saveReturnWindow = async function () {
+                        const msg = document.getElementById('ret-window-msg');
+                        const daysEl = document.getElementById('ret-window-days');
+                        const transitEl = document.getElementById('ret-window-transit');
+                        const say = (text, colour) => { if (msg) { msg.style.color = colour; msg.textContent = text; } };
+
+                        const rawDays = String(daysEl.value || '').trim();
+                        const rawTransit = String(transitEl.value || '').trim();
+                        const d = rawDays === '' ? 0 : Math.floor(Number(rawDays));
+                        const t = rawTransit === '' ? 7 : Math.floor(Number(rawTransit));
+
+                        /* Refuse nonsense here rather than let returnWindowFrom
+                           silently clamp it — a shop owner who types 400 and is
+                           quietly given 3650 has been lied to about their own
+                           policy. */
+                        if (!Number.isFinite(d) || d < 0 || d > 3650) { say('Days to return must be between 0 and 3650.', 'var(--error)'); return; }
+                        if (!Number.isFinite(t) || t < 0 || t > 60) { say('Delivery allowance must be between 0 and 60 days.', 'var(--error)'); return; }
+
+                        say('Saving…', 'var(--text-secondary)');
+                        try {
+                            const { data: rows, error } = await sb.from('site_settings')
+                                .select('value').eq('key', 'commerce_config').limit(1);
+                            if (error) throw error;
+                            const cfg = (rows && rows[0] && rows[0].value) || {};
+                            cfg.returns = Object.assign({}, cfg.returns, {
+                                windowDays: d,
+                                transitAllowanceDays: t,
+                            });
+                            const { error: sErr } = await sb.from('site_settings')
+                                .upsert({ key: 'commerce_config', value: cfg }, { onConflict: 'key' });
+                            if (sErr) throw sErr;
+                            say(d > 0
+                                ? '✓ Saved. Returns now close ' + d + ' days after delivery.'
+                                : '✓ Saved. No time limit on returns.', 'var(--success)');
+                            loadReturnWindowCard();
+                            setTimeout(() => say('', ''), 4000);
+                        } catch (e) {
+                            say('✗ ' + (e.message || 'Could not save'), 'var(--error)');
+                        }
+                    };
