@@ -1071,6 +1071,7 @@
             } else if (page === 'returns') {
                 if (typeof loadReturnsPage === 'function') loadReturnsPage();
                 if (typeof loadReturnAddressCard === 'function') loadReturnAddressCard();
+                if (typeof loadReturnWindowCard === 'function') loadReturnWindowCard();
             } else if (page === 'apis') {
                 loadApiStatus();
                 loadIntegrations();
