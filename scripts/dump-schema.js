@@ -51,7 +51,28 @@ const path = require('path');
 const { Client } = require('pg');
 
 const OUT = path.resolve(__dirname, '..', 'schema.sql');
-const url = process.env.SUPABASE_DB_URL || process.argv[2];
+let url = process.env.SUPABASE_DB_URL || process.argv[2];
+
+/* Let the password be supplied separately, and prefer it when it is.
+   A Postgres URL is a URL: a password containing @ / : ? # % or a space has to
+   be percent-encoded inside one, and the failure when it is not is not
+   "wrong password" — it is a parse error naming a host you have never heard of,
+   because everything after the stray @ was read as the hostname. Supabase
+   generates passwords with symbols in them, so this is the common case, not the
+   exotic one. */
+if (url && process.env.SUPABASE_DB_PASSWORD) {
+  const pw = encodeURIComponent(process.env.SUPABASE_DB_PASSWORD);
+  url = url.replace(/^(postgres(?:ql)?:\/\/[^:/@]+):[^@]*@/, '$1:' + pw + '@');
+}
+/* The placeholder left in as-is. Better to say so than to try connecting with
+   the literal string "[YOUR-PASSWORD]" and report an authentication failure. */
+if (url && /\[YOUR-PASSWORD\]|\[your-password\]/i.test(url)) {
+  console.error('\n  The connection string still contains [YOUR-PASSWORD].\n');
+  console.error('  Replace that whole placeholder, brackets included, with your database password —');
+  console.error('  or leave it there and set the password separately instead:\n');
+  console.error('    $env:SUPABASE_DB_PASSWORD="your password"\n');
+  process.exit(1);
+}
 
 if (!url) {
   console.error('\n  Set SUPABASE_DB_URL first.\n');
