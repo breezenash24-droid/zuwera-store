@@ -18,6 +18,11 @@ import { permsHave } from './_rbac.js';
 import { orderNo } from './_order-no.js';
 import { reverseTaxSale } from './_tax.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
+/* Refunding through whoever took the money. The capture-state read is separate
+   from the refund itself because it answers a different question — how much has
+   already gone back — and it answers it less completely than Stripe can. */
+import { paypalCaptureState, refundPayPalCapture } from './_paypal.js';
+import { sha256Base64Url } from './_cart-pricing.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
 const RATE_LIMIT_KEY = 'refund_rate_limit';
@@ -186,33 +191,25 @@ export async function onRequestPost({ request, env }) {
   }
 
   /* ── Refund it where it was taken ──────────────────────────────────────────
-     Everything below this line calls Stripe, on order.stripe_payment_intent_id.
-     That column now also holds PayPal capture ids: saveOrderToSupabase dedupes
-     on it, so reusing it kept idempotency working across both processors with
-     no second code path. The cost is that the id no longer says who took the
-     money — 0018 added `processor` for that.
+     order.stripe_payment_intent_id holds PayPal capture ids too:
+     saveOrderToSupabase dedupes on that column, so reusing it kept idempotency
+     working across both processors with no second code path. The cost is that
+     the id no longer says who took the money — 0018 added `processor`.
 
-     Without this guard a PayPal order would reach stripe.refunds.create() with
-     an id Stripe has never seen, and fail with Stripe's own wording about a
-     resource not existing. That lands at the worst possible moment: a customer
-     is owed money and the button appears broken for no legible reason.
+     Everything in the Stripe block below would otherwise be handed a capture id
+     Stripe has never seen, failing in Stripe's own words about a missing
+     resource, at the moment a customer is owed money.
 
-     Refusing with a sentence that says where to go is not the finished feature
-     — refunding PayPal from this panel still has to be built — but it is the
-     difference between a clear instruction and a mystery. `check` is allowed
-     past because reporting on the order is exactly what it is for, and `cancel`
-     because cancelling an unpaid order moves no money. */
+     `cancel` is allowed past either way: cancelling an unpaid order moves no
+     money and touches no processor. */
   const processor = String(order.processor || 'stripe').toLowerCase();
-  if (processor !== 'stripe' && action !== 'cancel' && action !== 'check') {
-    return json({
-      error: 'This order was paid through ' + (processor === 'paypal' ? 'PayPal' : processor)
-        + ', so it cannot be refunded from here yet. Issue it in the '
-        + (processor === 'paypal' ? 'PayPal dashboard' : processor + ' dashboard')
-        + ' against capture ' + order.stripe_payment_intent_id
-        + ', then mark this order refunded.',
-      processor,
-    }, 400, h);
-  }
+  const isPayPal = processor === 'paypal';
+  /* The id is stored prefixed so it is never mistaken for a Stripe one; PayPal
+     wants the bare capture id back. */
+  const payPalCaptureId = isPayPal
+    ? String(order.stripe_payment_intent_id || '').replace(/^paypal_/, '')
+    : '';
+
 
   // ── 8. Block refund if associated return item not yet received ───────────────
   if (action === 'refund' || action === 'cancel_refund') {
@@ -269,12 +266,28 @@ export async function onRequestPost({ request, env }) {
      day they disagree is the day it matters. */
   const stripeClient = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
   let already = { refundedCents: 0, chargedCents: 0, count: 0, known: false };
-  if (order.stripe_payment_intent_id) {
+  /* Asking Stripe about a PayPal capture id is not just useless, it is a
+     confident wrong answer: the lookup throws, the catch leaves `already` at
+     its zeroed default, and a zero here reads as "nothing refunded yet" —
+     which is precisely the state that permits a second refund. */
+  if (order.stripe_payment_intent_id && !isPayPal) {
     try {
       already = await refundedSoFar(stripeClient, order.stripe_payment_intent_id);
     } catch (e) {
       console.warn('refund: could not read Stripe history —', e && e.message);
     }
+  } else if (isPayPal) {
+    /* What PayPal will tell us. Full refunds are knowable exactly; a partial
+       one is knowable only as "some, amount unspecified", so it stays
+       known:false rather than becoming a number nobody can stand behind. */
+    const st = await paypalCaptureState(env, payPalCaptureId);
+    already = {
+      refundedCents: st.fullyRefunded ? st.chargedCents : 0,
+      chargedCents: st.chargedCents,
+      count: st.fullyRefunded ? 1 : 0,
+      known: !!st.fullyRefunded,
+      partiallyRefunded: !!st.partiallyRefunded,
+    };
   }
 
   /* A read-only look at the same answer, so the panel can warn BEFORE somebody
@@ -283,20 +296,56 @@ export async function onRequestPost({ request, env }) {
      easier to reach than the action it describes is an information leak. */
   if (action === 'check') {
     return json({
-      success: true, check: true, orderId,
+      success: true, check: true, orderId, processor,
       alreadyRefundedCents: already.refundedCents,
       chargedCents: already.chargedCents,
       refundCount: already.count,
       known: already.known,
+      /* PayPal can say a capture is partly refunded without saying by how much.
+         Surfaced so the panel can warn rather than present an unqualified
+         "nothing refunded yet". */
+      ...(already.partiallyRefunded ? { partiallyRefunded: true } : {}),
       orderStatus: String(order.status || ''),
     }, 200, h);
   }
 
-  // ── 9. Issue Stripe refund ───────────────────────────────────────────────────
+  // ── 9. Issue the refund, through whoever took the money ──────────────────────
   let stripeRefundId     = null;
   let stripeRefundAmount = null;
 
-  if (action === 'refund' || action === 'cancel_refund') {
+  if (isPayPal && (action === 'refund' || action === 'cancel_refund')) {
+    if (already.known && already.refundedCents > 0) {
+      await audit(env, { adminId, adminEmail, orderId, action, success: false, note: 'blocked: PayPal reports fully refunded' });
+      return json({
+        error: 'PayPal reports this payment has already been refunded in full. Nothing further can be refunded.',
+        processor, alreadyRefundedCents: already.refundedCents, chargedCents: already.chargedCents,
+      }, 409, h);
+    }
+
+    const wantedCents = (action === 'refund' && amountCents && Number.isFinite(Number(amountCents)))
+      ? Math.round(Number(amountCents)) : 0;   // 0 → refund the lot, PayPal's own convention
+
+    const out = await refundPayPalCapture(env, {
+      captureId: payPalCaptureId,
+      amountCents: wantedCents,
+      note: String(reason || '').slice(0, 255),
+      /* Derived from the order and the amount, so a double-click is the SAME
+         request to PayPal rather than a second refund. This matters more than
+         at capture: a refund issued twice is money leaving twice, and the
+         obvious trigger is an admin clicking again because the first click
+         looked like it did nothing. */
+      requestId: 'zwr_' + (await sha256Base64Url(String(orderId) + ':' + wantedCents)).slice(0, 40),
+    });
+
+    if (!out.ok) {
+      await audit(env, { adminId, adminEmail, orderId, action, success: false, note: 'paypal: ' + out.error });
+      return json({ error: out.error, processor }, out.alreadyRefunded ? 409 : 400, h);
+    }
+    stripeRefundId     = out.id;
+    stripeRefundAmount = out.amountCents || wantedCents || already.chargedCents;
+  }
+
+  if (!isPayPal && (action === 'refund' || action === 'cancel_refund')) {
     const stripe = stripeClient;
 
     /* Refuse rather than let Stripe refuse. Same outcome for the money, but

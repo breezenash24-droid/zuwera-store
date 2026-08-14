@@ -64,9 +64,14 @@ console.log('\n  fulfilment writes it');
 
 console.log('\n  the refund goes where the money went');
 {
-  ok('a non-Stripe order is refused before Stripe is called',
-    /processor !== 'stripe' && action !== 'cancel' && action !== 'check'/.test(REFUND),
+  /* This started as a refusal — "paid through PayPal, issue it there" — which
+     was the right thing to have in place before the first PayPal order and the
+     wrong thing to leave. It now refunds through PayPal for real; see
+     tests/paypal-refund.test.js. What matters here is only that the two paths
+     are separated at all. */
+  ok('a PayPal order takes the PayPal path', /isPayPal && \(action === 'refund'/.test(REFUND),
     'otherwise Stripe is handed a capture id it has never seen');
+  ok('…and the Stripe path is no longer unconditional', /!isPayPal && \(action === 'refund'/.test(REFUND));
 
   /* The guard has to sit ABOVE the Stripe calls or it guards nothing.
      Comments stripped first: the guard's own comment NAMES stripe.refunds.create
@@ -74,22 +79,19 @@ console.log('\n  the refund goes where the money went');
      mention several lines above the guard and reports the guard as too late.
      Second time tonight that prose describing code was read as code. */
   const code = REFUND.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
-  const guardAt = code.indexOf("processor !== 'stripe'");
+  const guardAt = code.indexOf("!isPayPal && (action === 'refund'");
   const callAt = code.indexOf('stripe.refunds.create');
-  ok('…and the guard is above them',
+  ok('…and the Stripe call sits inside that guard',
     guardAt > 0 && callAt > 0 && guardAt < callAt,
     'a check after the call is not a check');
 
-  ok('the message says which processor', /paid through/.test(REFUND));
-  ok('…where to issue it', /PayPal dashboard/.test(REFUND));
-  ok('…and quotes the capture id to search for', /against capture/.test(REFUND),
-    'sending someone to a dashboard without the reference is half an instruction');
+  ok('the response says which processor handled it', /check: true, orderId, processor/.test(REFUND));
+  ok('a full PayPal refund is refused before it is attempted',
+    /blocked: PayPal reports fully refunded/.test(REFUND));
 
-  /* Two actions are deliberately still allowed. */
-  ok('check is still allowed through', /action !== 'check'/.test(REFUND),
-    'reporting on the order is exactly what check is for');
-  ok('cancel is still allowed through', /action !== 'cancel'/.test(REFUND),
-    'cancelling an unpaid order moves no money');
+  /* Cancel is deliberately still processor-agnostic: cancelling an unpaid
+     order moves no money and touches nobody's API. */
+  ok('cancel needs no processor at all', /action !== 'cancel'/.test(REFUND));
 }
 
 console.log('\n  the case that made this necessary');
