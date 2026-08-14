@@ -185,6 +185,35 @@ export async function onRequestPost({ request, env }) {
     return json({ error: 'No Stripe payment on record for this order — cannot issue refund.' }, 400, h);
   }
 
+  /* ── Refund it where it was taken ──────────────────────────────────────────
+     Everything below this line calls Stripe, on order.stripe_payment_intent_id.
+     That column now also holds PayPal capture ids: saveOrderToSupabase dedupes
+     on it, so reusing it kept idempotency working across both processors with
+     no second code path. The cost is that the id no longer says who took the
+     money — 0018 added `processor` for that.
+
+     Without this guard a PayPal order would reach stripe.refunds.create() with
+     an id Stripe has never seen, and fail with Stripe's own wording about a
+     resource not existing. That lands at the worst possible moment: a customer
+     is owed money and the button appears broken for no legible reason.
+
+     Refusing with a sentence that says where to go is not the finished feature
+     — refunding PayPal from this panel still has to be built — but it is the
+     difference between a clear instruction and a mystery. `check` is allowed
+     past because reporting on the order is exactly what it is for, and `cancel`
+     because cancelling an unpaid order moves no money. */
+  const processor = String(order.processor || 'stripe').toLowerCase();
+  if (processor !== 'stripe' && action !== 'cancel' && action !== 'check') {
+    return json({
+      error: 'This order was paid through ' + (processor === 'paypal' ? 'PayPal' : processor)
+        + ', so it cannot be refunded from here yet. Issue it in the '
+        + (processor === 'paypal' ? 'PayPal dashboard' : processor + ' dashboard')
+        + ' against capture ' + order.stripe_payment_intent_id
+        + ', then mark this order refunded.',
+      processor,
+    }, 400, h);
+  }
+
   // ── 8. Block refund if associated return item not yet received ───────────────
   if (action === 'refund' || action === 'cancel_refund') {
     try {

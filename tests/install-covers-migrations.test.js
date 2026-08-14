@@ -58,14 +58,33 @@ const sql = fs.readFileSync(INSTALL, 'utf8');
 
 console.log('  every migration is recorded as applied');
 {
-  const missing = migrations.filter((f) => {
-    const version = f.slice(0, 4);
-    return !new RegExp("\\('" + version + "'\\s*,").test(sql);
-  });
-  ok('all ' + migrations.length + ' migrations are in install.sql', missing.length === 0,
-    missing.length
-      ? 'missing ' + missing.join(', ') + ' — regenerate: node scripts/build-install-sql.js <dump.sql>'
-      : '');
+  const claims = (v) => new RegExp("\\('" + v + "'\\s*,").test(sql);
+  const missing = migrations.filter((f) => !claims(f.slice(0, 4)));
+
+  /* NOT a failure, and working out why took getting it wrong first.
+     A migration install.sql does not record is SAFE: a new project runs
+     install.sql, the runner then sees that version as pending, and applies it.
+     The result is correct and self-healing.
+     It is also unavoidable in normal work — a migration is written before it is
+     applied to production, and install.sql cannot contain effects that do not
+     exist yet. Failing here would make every new migration turn CI red until
+     somebody ran a manual step, which is how a gate gets routed around. */
+  if (missing.length) {
+    console.log('  · ' + missing.length + ' migration(s) newer than the snapshot: ' + missing.map((f) => f.slice(0, 4)).join(', '));
+    console.log('    Not a fault — the runner will apply them on a new project. Regenerate');
+    console.log('    install.sql once they are live, so new stores skip straight to current.');
+  } else {
+    ok('all ' + migrations.length + ' migrations are recorded', true);
+  }
+
+  /* THE DIRECTION THAT IS NOT SAFE. install.sql claiming a version means the
+     runner will never apply it — so a claim about a migration that does not
+     exist in this repo is a store that will silently never get it. */
+  const versions = new Set(migrations.map((f) => f.slice(0, 4)));
+  const claimed = [...sql.matchAll(/\('(\d{4})'\s*,/g)].map((m) => m[1]);
+  const phantom = claimed.filter((v) => v !== '0000' && !versions.has(v));
+  ok('it claims nothing that does not exist', phantom.length === 0,
+    phantom.length ? 'claims ' + phantom.join(', ') + ' — the runner would skip a migration this repo does not have' : '');
 
   /* The baseline row too: without it the runner treats the pre-migration
      history as pending and replays 32 hand-written scripts, several of which

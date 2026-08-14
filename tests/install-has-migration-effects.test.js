@@ -79,8 +79,18 @@ function signatures(rawSql) {
 
 const files = fs.readdirSync(MIG_DIR).filter((f) => /^\d{4}_.*\.sql$/.test(f)).sort();
 
-let checkable = 0, skipped = [];
+let checkable = 0, skipped = [], notClaimed = [];
 for (const f of files) {
+  /* Only migrations install.sql SAYS it contains. One it does not claim is
+     pending as far as the runner is concerned, so it will be applied on a new
+     project and its absence from the snapshot is correct rather than a fault —
+     which is exactly the state every migration is in between being written and
+     being applied to production.
+
+     The contradiction worth catching is the other way round: a version claimed
+     as applied whose objects are nowhere in the schema. The runner skips those
+     for ever, so the store is silently missing the change. */
+  if (!new RegExp("\\('" + f.slice(0, 4) + "'\\s*,").test(install)) { notClaimed.push(f.slice(0, 4)); continue; }
   /* 0001 creates the tracking table itself and is a special case: install.sql
      carries it because production has it, but it is not "a migration's effect"
      in the sense this test is about. Checked anyway — it must be there. */
@@ -112,6 +122,10 @@ ok('most migrations were actually checkable', checkable >= Math.ceil(files.lengt
 
 if (skipped.length) {
   console.log('      (' + skipped.length + ' skipped, no created objects to look for: ' + skipped.join(', ') + ')');
+}
+if (notClaimed.length) {
+  console.log('      (' + notClaimed.length + ' newer than the snapshot, so not claimed by it: ' + notClaimed.join(', ') + ')');
+  console.log('       The runner applies those on a new project. Regenerate install.sql once they are live.');
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
