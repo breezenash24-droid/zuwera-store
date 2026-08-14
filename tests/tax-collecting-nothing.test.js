@@ -35,7 +35,11 @@ const HTML  = fs.readFileSync(path.join(ROOT, 'admin.html'), 'utf8');
 /* The real source, lifted and run. Asserting that a comparison EXISTS is how a
    check that has been disabled goes on passing, which this session has already
    been caught by once. */
-const START = TAXJS.indexOf('const TAX_HEALTH_PROBES');
+/* From escH — the shared escaper, declared above everything that uses it. The
+   probe list also references HOME_STATE, which sits between them. Slicing below
+   either leaves an undefined name and the harness throws at call time rather
+   than failing a check, which is a far worse way to find out. */
+const START = TAXJS.indexOf('function escH(');
 const END   = TAXJS.indexOf('const TAX_ENGINE_META');
 if (START < 0 || END < START) {
   console.log('  ✗ could not find the health check in admin-tax.js');
@@ -70,7 +74,7 @@ function build(engine, answers) {
 
   const api = new Function('document', 'window', 'fetch', `
     ${SRC}
-    return { taxEngineHealth, escH, PROBES: TAX_HEALTH_PROBES, AMOUNT: TAX_HEALTH_AMOUNT };
+    return { taxEngineHealth, escH, PROBES: TAX_HEALTH_PROBES, AMOUNT: TAX_HEALTH_AMOUNT, HOME: HOME_STATE };
   `)(document, window, fetch);
 
   return { box, api, asked, run: () => api.taxEngineHealth() };
@@ -114,14 +118,51 @@ console.log('\n  a working engine');
 
 console.log('\n  a zero that is legitimate');
 {
-  /* Registered in California only. Two zeroes and one charge is a store with
-     one registration, which is a normal and correct way to be. */
-  const h = build('stripe_tax', { CA: { taxCents: 1025 }, TX: ZERO, OH: ZERO });
+  /* Registered in California and at home. A zero from Texas is a store that has
+     not crossed Texas's threshold, which is normal and correct. */
+  const h = build('stripe_tax', { CA: { taxCents: 1025 }, TX: ZERO, OH: { taxCents: 780 } });
   await h.run();
-  ok('one state collecting is enough to be quiet', !/returning no tax anywhere/.test(h.box.innerHTML),
-    'shouting at every zero would make the check worthless — most stores are registered in one state');
-  ok('…and the silent ones are still named', /TX/.test(h.box.innerHTML) && /OH/.test(h.box.innerHTML));
+  ok('an out-of-state zero is not an alarm', !/returning no tax anywhere/.test(h.box.innerHTML),
+    'shouting at every zero would make the check worthless — most stores are registered in few states');
+  ok('…and the silent one is still named', /TX/.test(h.box.innerHTML));
   ok('…as expected rather than as a fault', /expected if you are not registered/.test(h.box.innerHTML));
+}
+
+console.log('\n  the home state is not like the others');
+{
+  /* THE GAP THIS CLOSES. California collects, so the engine plainly works and
+     the all-three-zero rule stays quiet — while the state the store is
+     physically in collects nothing. That is worse than collecting nowhere,
+     because it looks solved. */
+  const h = build('stripe_tax', { CA: { taxCents: 1025 }, TX: { taxCents: 825 }, OH: ZERO });
+  await h.run();
+  ok('a home-state zero is an alarm even when other states collect',
+    /No tax is being collected in OH/.test(h.box.innerHTML),
+    'physical nexus owes tax from the first sale — there is no threshold to be under');
+  ok('…in red', /ef4444/.test(h.box.innerHTML));
+  ok('…and it says the engine is working, so the fault is narrower',
+    /the engine itself is working/.test(h.box.innerHTML),
+    'otherwise this reads as the same problem as collecting nothing anywhere');
+  ok('…naming physical nexus as the reason', /physical nexus/.test(h.box.innerHTML));
+  ok('…and pointing at registrations', /Registrations/.test(h.box.innerHTML));
+
+  /* It must not fire when the home state is fine. */
+  const good = build('stripe_tax', { CA: ZERO, TX: ZERO, OH: { taxCents: 780 } });
+  await good.run();
+  ok('and stays quiet when the home state collects',
+    !/No tax is being collected in/.test(good.box.innerHTML));
+}
+
+console.log('\n  the home state is a separate fact from the rate table');
+{
+  const h = build('stripe_tax', {});
+  ok('it is named once, not repeated', /const HOME_STATE = /.test(TAXJS));
+  ok('…and the probe list uses it', h.api.PROBES.some((p) => p.state === h.api.HOME));
+  /* The other 'OH' literals in this file belong to the Ohio county rate table.
+     Those describe data the table happens to have, not where the business is,
+     and collapsing the two would move the county lookup if the store relocated. */
+  ok('the home state is probed at all', h.api.HOME && h.api.PROBES.map((p) => p.state).includes(h.api.HOME),
+    'the one state that can never legitimately return zero must be among the probes');
 }
 
 console.log('\n  not knowing is not the same as zero');

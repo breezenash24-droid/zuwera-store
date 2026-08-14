@@ -53,12 +53,15 @@ function el(id) {
 const IDS = ['tax-engine-select', 'tax-engine-fallback', 'tax-engine-note', 'tax-lookup-desc',
   'tax-lkp-result', 'tax-rateref-card', 'tax-rateref-title', 'tax-rateref-desc',
   'tax-rateref-demote', 'tax-rtabs', 'tax-rate-content', 'tax-rateeditor-card',
-  'tax-rateeditor-title', 'tax-rateeditor-desc', 'tax-rateeditor-demote', 'tax-re-actions',
+  'tax-rateeditor-title', 'tax-rateeditor-desc', 'tax-rateeditor-demote', 'tax-re-actions', 'tax-engine-intro',
   'tax-re-msg', 'tax-re-tabs', 'tax-re-content', 'tax-oh-rate-th'];
 
 /* The real source of both functions, lifted out and run. A copy retyped here
    would pass forever while the page did something else. */
-const SRC = TAXJS.slice(TAXJS.indexOf('function taxTableRole()'),
+/* From escH, which both this block and the health banner now use. It is
+   declared once above them; slicing below it leaves an undefined name and the
+   harness throws at call time instead of failing a check. */
+const SRC = TAXJS.slice(TAXJS.indexOf('function escH('),
                        TAXJS.indexOf('async function taxEngineLoad'));
 
 function build() {
@@ -158,6 +161,16 @@ console.log('\n  what an admin sees with Stripe Tax pricing');
     /taxTableExpand/.test(h.nodes['tax-rateeditor-demote'].innerHTML));
 
   ok('the lookup says it will ask Stripe Tax', /Stripe Tax/.test(h.nodes['tax-lookup-desc'].innerHTML));
+
+  /* The paragraph at the top of the card. It described the built-in table
+     permanently — sitting directly above a label naming the real engine, and
+     above the banner reporting on that engine's behaviour. Three statements
+     about the same thing, one of them wrong, and the wrong one first. */
+  ok('the intro no longer claims the table is what runs',
+    !/built-in table is what runs unless/.test(h.nodes['tax-engine-intro'].innerHTML),
+    'this sat directly above a label saying Stripe Tax');
+  ok('…it names what actually prices orders', /Stripe Tax<\/b> prices every order/.test(h.nodes['tax-engine-intro'].innerHTML));
+  ok('…and says the table is only a backup', /kept as a backup/.test(h.nodes['tax-engine-intro'].innerHTML));
   /* A rate quoted by the previous engine must not sit under the new one's
      name. */
   ok('…and any answer from the old engine is cleared', h.nodes['tax-lkp-result'].innerHTML === '');
@@ -256,7 +269,7 @@ console.log('\n  wired up in the page');
 {
   for (const id of ['tax-lookup-desc', 'tax-rateref-card', 'tax-rateref-title', 'tax-rateref-desc',
                     'tax-rateref-demote', 'tax-rtabs', 'tax-rateeditor-card', 'tax-rateeditor-title',
-                    'tax-rateeditor-desc', 'tax-rateeditor-demote', 'tax-re-actions', 'tax-re-tabs',
+                    'tax-rateeditor-desc', 'tax-rateeditor-demote', 'tax-re-actions', 'tax-engine-intro', 'tax-re-tabs',
                     'tax-oh-rate-th']) {
     ok(id + ' exists in admin.html', new RegExp('id="' + id + '"').test(HTML));
   }
