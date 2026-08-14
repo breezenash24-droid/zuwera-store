@@ -423,7 +423,7 @@ async function getPromotionForCode(env, code) {
  * keeping it for both means the webhook and the capture path parse identically
  * and neither has to know which one built the map.
  */
-export function buildOrderMetadata({ orderNumber, address = {}, quote, featureFlagsMeta = '' }) {
+export function buildOrderMetadata({ orderNumber, address = {}, quote, featureFlagsMeta = '', attributionMeta = '', matchKeys = null }) {
   const {
     attributedUser, lineItems, inventoryItems, subtotalCents, shipping,
     normalizedPromoCode, discountCents, tax, taxStateCode, taxRate, taxCents, totalCents,
@@ -480,6 +480,24 @@ export function buildOrderMetadata({ orderNumber, address = {}, quote, featureFl
     tax_ref: tax.ref || '',
     total_amount_cents: String(totalCents),
     feature_flags: featureFlagsMeta,
+    /* Which ad, email or post produced this order — compact form, see
+       _attribution.js. Carried through payment metadata rather than posted
+       separately because this is the one channel guaranteed to reach the
+       webhook: the browser may be closed the instant the card is approved, and
+       an order saved without attribution can never have it added.
+
+       Empty string when the visitor declined the cookie banner, arrived with no
+       campaign parameters, or the value would not fit Stripe's cap. All three
+       are recorded the same way — as nothing — because all three mean the same
+       thing downstream. */
+    attribution: attributionMeta,
+    /* Meta's browser match keys, kept OUT of `attribution` and out of the
+       orders table. They identify the browser to Meta and are useful to exactly
+       one consumer: the server-side Purchase in _fulfil.js, which was sending
+       hashed email alone because nothing ever collected these. They travel here
+       because that is where the webhook can reach them, and they stop there. */
+    fbp: (matchKeys && matchKeys.fbp) || '',
+    fbc: (matchKeys && matchKeys.fbc) || '',
     ship_line1: address.line1 || '',
     ship_line2: address.line2 || '',
     ship_city: address.city || '',

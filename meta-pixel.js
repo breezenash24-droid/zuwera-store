@@ -64,7 +64,18 @@
       var m = document.cookie.match('(?:^|; )' + name + '=([^;]*)');
       return m ? decodeURIComponent(m[1]) : '';
     }
+    /* attribution.js owns the click ids, so it answers this — one definition of
+       "what is this browser's fbc" instead of two. When the browser event and
+       the server-side Purchase disagree on the value, Meta does not complain;
+       it returns 200 and matches worse, which is the kind of divergence nothing
+       reports until someone compares two dashboards.
+
+       The local derivation stays as a fallback so this file still works on a
+       page that does not load attribution.js. */
     function fbcValue() {
+      if (window.zwAttribution && typeof window.zwAttribution.fbc === 'function') {
+        return window.zwAttribution.fbc();
+      }
       var fbc = readCookie('_fbc');
       if (fbc) return fbc;
       try {

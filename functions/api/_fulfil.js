@@ -31,6 +31,7 @@ import { notifyOps } from './_notify-ops.js';
 import { loopsFallback, orderStatusUrl } from './_email.js';
 import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } from './_email-theme.js';
 import { buildUserData, sendCapiEvents } from './_capi.js';
+import { attributionFromMeta } from './_attribution.js';
 import { veeqoBookShipment } from './_veeqo.js';
 import { incrementShippoMonthlyCount, recordLabelFailure } from './_shipping-usage.js';
 import { recordTaxSale } from './_tax.js';
@@ -469,6 +470,17 @@ async function sendPurchaseEvent(pi, meta, env) {
     ? subtotalCents / 100
     : (pi.amount || 0) / 100;
 
+  /* fbp / fbc — Meta's own browser identifiers, and by a wide margin the
+     strongest match keys it has. buildUserData() has always accepted them
+     (_capi.js) and this call has always omitted them, so the server-side
+     Purchase built specifically to land when the pixel was blocked was matching
+     on hashed email and address alone. Nothing reported that: Meta answers 200
+     either way and simply attributes less.
+
+     They arrive in metadata because the browser is the only thing that can read
+     them and the webhook is the only thing that runs at this point. Absent —
+     consent declined, or an order placed before this shipped — they are simply
+     left out, which is what buildUserData does with an empty value. */
   const user_data = await buildUserData({
     email:   meta.customer_email,
     firstName, lastName,
@@ -476,6 +488,8 @@ async function sendPurchaseEvent(pi, meta, env) {
     state:   meta.ship_state,
     zip:     meta.ship_zip,
     country: meta.ship_country || 'US',
+    fbp:     meta.fbp || '',
+    fbc:     meta.fbc || '',
   });
 
   const custom_data = {
@@ -888,6 +902,27 @@ export async function saveOrderToSupabase(pi, meta, tracking, env) {
       });
     }
   } catch (_) { /* column not present — non-fatal, order already saved */ }
+
+  /* Best-effort: which ad, email or post produced this order (migration 0020).
+     Stamped AFTER the insert and non-fatal for the same reason the two stamps
+     above are — PostgREST rejects the WHOLE row over one unknown column, so
+     putting `attribution` in the insert would mean every order failing to save
+     between this deploy and 0020 being applied. A payment has already
+     succeeded; no reporting field is worth losing the order over.
+
+     Expanded from the compact metadata form to full key names on the way in, so
+     the column can be queried as `attribution->'last'->>'utm_source'` rather
+     than through a decoder ring. See _attribution.js. */
+  try {
+    const attribution = attributionFromMeta(meta.attribution);
+    if (attribution && env.SUPABASE_URL && serviceKey) {
+      await fetch(env.SUPABASE_URL + '/rest/v1/orders?stripe_payment_intent_id=eq.' + encodeURIComponent(pi.id), {
+        method: 'PATCH',
+        headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ attribution }),
+      });
+    }
+  } catch (_) { /* column not present / parse issue — non-fatal, order already saved */ }
 
   return true;
 }

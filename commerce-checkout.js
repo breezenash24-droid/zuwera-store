@@ -259,7 +259,16 @@
         const nextBody = PRICED_ENDPOINTS.includes(url)
           ? { ...(body || {}), promoCode: currentPromoCode(),
               featureFlags: (typeof window.zwActiveFlags === 'function' ? window.zwActiveFlags() : undefined),
-              deliveryMethod: (typeof window.zwDeliveryMethod === 'function' ? window.zwDeliveryMethod() : undefined) }
+              deliveryMethod: (typeof window.zwDeliveryMethod === 'function' ? window.zwDeliveryMethod() : undefined),
+              /* Where this order came from. Injected here rather than at each
+                 call site because there are four of them — card, wallet, PayPal
+                 create, PayPal capture — and the one that gets forgotten is the
+                 one whose orders quietly look organic. That is exactly how
+                 promoCode was broken before this wrapper covered postJSON.
+
+                 Returns null when consent was declined; the server treats a
+                 null the same as an absent field. */
+              attribution: (window.zwAttribution ? window.zwAttribution.forOrder() : undefined) }
           : body;
         return original.call(this, url, nextBody);
       };

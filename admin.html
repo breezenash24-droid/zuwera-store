@@ -43,7 +43,7 @@
     <!-- Render-blocking on purpose (matches the storefront): cached woff2 means
          no font swap on every admin visit after the first. -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-    <link rel="stylesheet" href="admin.css?v=fea7a468">
+    <link rel="stylesheet" href="admin.css?v=cbb0ac93">
 <script src="error-reporter.js?v=6622e7d7" defer></script>
 </head>
 <body>
@@ -945,7 +945,7 @@
                     </div>
 
                     <!-- Returns JS -->
-                    <script src="admin-returns-ui.js?v=416bc11b"></script>
+                    <script src="admin-returns-ui.js?v=46f89a6e"></script>
                 </div>
 
                 <!-- Audit Log Page -->
@@ -2680,7 +2680,7 @@
                     <div id="tax-re-content"></div>
                   </div>
 
-                  <script src="admin-tax.js?v=678fd99a"></script>
+                  <script src="admin-tax.js?v=d45cc0bf"></script>
                 </div>
 
                 <!-- Shipping Page -->
@@ -2949,7 +2949,7 @@
                     <p style="text-align:center;color:var(--text-secondary);padding:40px;font-size:13px;">Loading receipts...</p>
                   </div>
 
-                  <script src="admin-receipts.js?v=fa70a332"></script>
+                  <script src="admin-receipts.js?v=2296dc3a"></script>
                 </div>
 
                 <!-- Settings Page -->
@@ -4697,11 +4697,11 @@
 <!-- What an order is called. Blocking and first: the panels that print one
      run on page load, and a deferred copy would render the first list before
      the formatter existed. -->
-<script src="order-number.js?v=d049b8ca"></script>
-<script src="customer-messages.js?v=ef24fea6"></script>
-    <script src="admin-main.js?v=7651eac5"></script>
+<script src="order-number.js?v=ed961452"></script>
+<script src="customer-messages.js?v=2c5164d0"></script>
+    <script src="admin-main.js?v=ee93eeae"></script>
     <!-- After admin-main: it needs `sb`, which that file creates at top level. -->
-    <script src="admin-themes.js?v=d46db34c"></script>
+    <script src="admin-themes.js?v=4524e586"></script>
     <script src="admin-theme-presets.js?v=bd0c8c14"></script>
     <script src="admin-theme-import.js?v=f874417a"></script>
     <!-- The icon editor previews through the real registry, so it loads it too. -->

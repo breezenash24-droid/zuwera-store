@@ -96,17 +96,18 @@ html.zw-authed #account-btn{display:inline-flex!important}
        refresh the heading font is ready on first paint and never swaps from a
        fallback. The preconnect + preload above keep the cold-cache cost small. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-  <link rel="stylesheet" href="base.css?v=49ea383f">
+  <link rel="stylesheet" href="base.css?v=bb88d7da">
   <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
   <link rel="stylesheet" href="nav.css?v=da3af1da">
   <link rel="stylesheet" href="cart.css?v=e6db1b08">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=17f5cf7f">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=cddf04e7">
 <script src="preview-mode.js?v=8e7152ff" defer></script>
 <script src="header-scroll.js?v=fe320725" defer></script>
   <link rel="stylesheet" href="quick-add-modal.css?v=d096a535">
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=5dc05f38" defer></script>
-  <script src="/meta-pixel.js?v=bc559c9f" defer></script>
+  <script src="/attribution.js?v=7ecae669" defer></script>
+  <script src="/meta-pixel.js?v=4919f284" defer></script>
   <script src="/google-tag.js?v=fdfca537" defer></script>
   <script src="/supabase.min.js?v=4b6a655b" defer></script>
   <script src="/supabase-client.js?v=0bf64814" defer></script>
@@ -750,8 +751,8 @@ body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-co
      "how many are there?" the same way the payment path does — the bag used to
      answer it from a stockQty snapshot taken when the item was added and never
      refreshed, which is why a bag could hold 3 of something with 1 in stock. -->
-<script src="customer-messages.js?v=ef24fea6"></script>
-<script src="stock-rules.js?v=cb671585"></script>
+<script src="customer-messages.js?v=2c5164d0"></script>
+<script src="stock-rules.js?v=a5a6be8f"></script>
 <script>
 /* ===================== CORE SETUP ===================== */
 // window.sb set by supabase-client.js (deferred) before DOMContentLoaded fires
@@ -1478,7 +1479,7 @@ window.__zwOpenAuth = function(tab) {
 
 <script src="image-utils.js?v=3fee4aec"></script>
 <script src="pdp-gallery.js?v=1e454262" defer></script>
-<script src="quick-add-modal.js?v=3e72762a" defer></script>
+<script src="quick-add-modal.js?v=26a085c4" defer></script>
 <script src="auth.js?v=0358208d" defer></script>
 <script>
 /* ── Saved items visibility + member pricing: flip as soon as auth state is known ── */
@@ -1619,13 +1620,13 @@ window.__zwOpenAuth = function(tab) {
   });
 })();
 </script>
-<script src="checkout.js?v=8b50765a"></script>
-<script src="commerce-checkout.js?v=02c4d509"></script>
+<script src="checkout.js?v=467a5667"></script>
+<script src="commerce-checkout.js?v=b42a55a1"></script>
 <script src="modal-lock.js?v=fb1f304f"></script>
-<script src="/theme-engine.js?v=014e9575" defer></script>
+<script src="/theme-engine.js?v=aad6a167" defer></script>
 <script src="/motion.js?v=5b9cc123" defer></script>
 <script src="/icon-sets.js?v=e0ed4bcb" defer></script>
-<script src="storefront-theme.js?v=a161c94e" defer></script>
+<script src="storefront-theme.js?v=91e56ca9" defer></script>
 <script src="lang.js?v=f4b70f65" defer></script>
 <!-- zw-login.js claims window.openAuthModal/__zwOpenAuth itself (it loads after
      auth.js, both deferred), so the inline reroute that used to sit here is gone.
