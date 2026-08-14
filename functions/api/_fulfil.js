@@ -765,6 +765,18 @@ export async function saveOrderToSupabase(pi, meta, tracking, env) {
     },
     body: JSON.stringify({
       stripe_payment_intent_id: pi.id,
+      /* Who took the money. The column above holds the reference and no longer
+         implies the processor — a PayPal capture id goes in it too, so that
+         saveOrderToSupabase keeps deduping on one column instead of growing a
+         second code path. This says which one, because a refund has to be
+         issued through the processor that took it, and reading the id's prefix
+         would be trusting a convention nothing enforces.
+
+         Defaults to stripe rather than throwing on an unknown value: the
+         metadata is ours, an absent field means the Stripe path (which does not
+         set it), and refusing to save an order over a missing label would be
+         losing the order to protect a report. */
+      processor:        meta.payment_provider || 'stripe',
       user_id:          meta.user_id       || null,
       email:            meta.customer_email,
       customer_name:    meta.customer_name,
