@@ -116,9 +116,19 @@ async function currentPriceCents(env, productId, colorVariantId) {
 async function writeAudit(env, row) {
   const h = H(env);
   if (!h) return;
-  await fetch(env.SUPABASE_URL + '/rest/v1/price_audit', {
+  /* A rejected write was previously indistinguishable from a successful one:
+     only a thrown error was caught, and PostgREST refusing a row (a CHECK
+     constraint, a column added by a migration nobody ran) is a 4xx response
+     rather than a throw. The register would quietly stop recording while every
+     price change went on succeeding. It still must not fail the change — the
+     price moved, and pretending otherwise helps nobody — but it says so. */
+  const r = await fetch(env.SUPABASE_URL + '/rest/v1/price_audit', {
     method: 'POST', headers: { ...h, Prefer: 'return=minimal' }, body: JSON.stringify(row),
-  }).catch((e) => console.warn('price_audit write failed:', e && e.message));
+  }).catch((e) => { console.warn('price_audit write failed:', e && e.message); return null; });
+  if (r && !r.ok) {
+    const detail = await r.text().catch(() => '');
+    console.warn(`price_audit rejected (${r.status}): ${detail.slice(0, 300)}`);
+  }
 }
 
 /* ── GET: the board ─────────────────────────────────────────────────────── */
@@ -140,29 +150,43 @@ export async function onRequestGet({ request, env }) {
        authenticated, so the admin gate is the right side of the line.
        Asked as two shoppers rather than one, because "member" is not a
        modifier on a price — it can select a different ROW entirely. */
-    const quoteFor = String(url.searchParams.get('quote') || '').trim();
-    if (quoteFor) {
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(quoteFor)) {
+    /* Comma-separated, because the product list beside the form shows what each
+       product is CHARGED today and that is one question per product. Asking one
+       at a time would be a round trip per row; resolving them in the panel
+       instead would be a second implementation of the money rules, which is the
+       fault this whole system was built to remove. */
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const quoteRaw = String(url.searchParams.get('quote') || '').trim();
+    if (quoteRaw) {
+      const quoteIds = [...new Set(quoteRaw.split(',').map((s) => s.trim()).filter((s) => UUID.test(s)))].slice(0, 200);
+      if (!quoteIds.length) {
         return json({ ok: false, error: 'Bad product id.' }, 400, cors(env));
       }
+      const quoteFor = quoteIds[0];
+      const inList = `in.(${quoteIds.join(',')})`;
       const [prodRows, varRows] = await Promise.all([
-        fetch(`${base}products?select=id,current_price,member_price,msrp&id=eq.${quoteFor}&limit=1`,
+        fetch(`${base}products?select=id,current_price,member_price,msrp&id=${inList}`,
               { headers: h, cache: 'no-store' }).then((r) => r.ok ? r.json() : []).catch(() => []),
-        fetch(`${base}color_variants?select=id,color_name,current_price,member_price,msrp&product_id=eq.${quoteFor}`,
+        fetch(`${base}color_variants?select=id,product_id,color_name,current_price,member_price,msrp&product_id=${inList}`,
               { headers: h, cache: 'no-store' }).then((r) => r.ok ? r.json() : []).catch(() => []),
       ]);
-      const product = (prodRows || [])[0];
+      const allProducts = Array.isArray(prodRows) ? prodRows : [];
+      const product = allProducts.find((p) => String(p.id) === String(quoteFor)) || allProducts[0];
       if (!product) return json({ ok: false, error: 'No such product.' }, 404, cors(env));
 
-      const ctx = await fetchPricingContext(env, [quoteFor]);
+      const ctx = await fetchPricingContext(env, quoteIds);
       const now = Date.now();
-      const both = (variant) => {
-        const g = resolvePrice({ product, variant, rows: ctx.rows, lists: ctx.lists, shopper: shopperFor({ isMember: false }), now });
-        const m = resolvePrice({ product, variant, rows: ctx.rows, lists: ctx.lists, shopper: shopperFor({ isMember: true }), now });
+      const both = (prod, variant) => {
+        const g = resolvePrice({ product: prod, variant, rows: ctx.rows, lists: ctx.lists, shopper: shopperFor({ isMember: false }), now });
+        const m = resolvePrice({ product: prod, variant, rows: ctx.rows, lists: ctx.lists, shopper: shopperFor({ isMember: true }), now });
         return {
           priceCents: g.priceCents,
           compareAtCents: g.compareAtCents,
           source: g.source,
+          /* The row actually in effect, so the panel can offer to end THAT one
+             rather than making somebody match dates by eye against a register. */
+          priceId: g.priceId || '',
+          priceListCode: g.priceListCode || '',
           memberPriceCents: m.priceCents,
           /* Only true when a member actually pays LESS. Equal figures mean
              there is no member price here, and saying "members pay $50" beside
@@ -172,12 +196,27 @@ export async function onRequestGet({ request, env }) {
         };
       };
 
+      const variants = Array.isArray(varRows) ? varRows : [];
+      const quoteOf = (prod) => ({
+        productId: prod.id,
+        base: both(prod, null),
+        colours: variants
+          .filter((v) => String(v.product_id) === String(prod.id))
+          .map((v) => ({ id: v.id, colorName: v.color_name || '', ...both(prod, v) })),
+      });
+
+      const byProduct = allProducts.map(quoteOf);
+      const first = byProduct.find((p) => String(p.productId) === String(quoteFor)) || byProduct[0];
+
       return json({
-        ok: true, quote: true, productId: quoteFor,
-        base: both(null),
-        colours: (Array.isArray(varRows) ? varRows : []).map((v) => ({
-          id: v.id, colorName: v.color_name || '', ...both(v),
-        })),
+        ok: true, quote: true,
+        /* `products` for the list beside the form; the single-product shape is
+           kept alongside it so the selected-product panel does not have to
+           unwrap an array it did not ask for. */
+        products: byProduct,
+        productId: first.productId,
+        base: first.base,
+        colours: first.colours,
       }, 200, cors(env));
     }
 
@@ -330,6 +369,81 @@ export async function onRequestPost({ request, env }) {
       });
 
       return json({ ok: true, status: patch.status, selfApproved }, 200, cors(env));
+    }
+
+    /* ── end: stop an approved price from pricing anything, from now ──────────
+       Without this the only verb was "propose", so raising a price meant adding
+       a SECOND open-ended row beside the first and hoping the resolver preferred
+       it. Both rows stayed live forever and the tie-break decided — which is how
+       a $30 row went on pricing a product somebody had already moved to $32.
+
+       Ended rather than deleted: a price that charged real customers real money
+       is a record, and the register is the thing an accountant reads. ends_at is
+       set to now, so the row keeps its history and stops applying in the same
+       stroke. */
+    if (action === 'end') {
+      const priceId = String(body.priceId || '').trim();
+      if (!priceId) return json({ ok: false, error: 'Missing price id.' }, 400, cors(env));
+
+      const rows = await fetch(`${base}prices?select=*&id=eq.${priceId}&limit=1`, { headers: h, cache: 'no-store' })
+        .then((r) => r.ok ? r.json() : []).catch(() => []);
+      const price = (rows || [])[0];
+      if (!price) return json({ ok: false, error: 'That price no longer exists.' }, 404, cors(env));
+      if (price.status !== 'approved') {
+        return json({ ok: false, error: `Only an approved price can be ended — that one is ${price.status}. Reject it instead.` }, 409, cors(env));
+      }
+      const already = price.ends_at && Date.parse(price.ends_at) <= Date.now();
+      if (already) return json({ ok: false, error: 'That price has already ended.' }, 409, cors(env));
+
+      /* What it was charging, read BEFORE the change, so the register records a
+         movement rather than a number with no counterpart. */
+      const before = await currentPriceCents(env, price.product_id, price.color_variant_id);
+      const endsAt = new Date().toISOString();
+
+      /* A row whose window has not opened yet cannot be given an end date of
+         now: prices_window_ordered demands ends_at > starts_at, so the PATCH
+         would be refused and the button would fail on exactly the rows it is
+         most useful for — a scheduled change somebody wants to call off.
+         Nothing was ever charged under it, so there is no live window to close;
+         it is marked superseded instead, which priceIsLive already declines to
+         honour because it only ever considers 'approved'. */
+      const notYetStarted = price.starts_at && Date.parse(price.starts_at) > Date.now();
+      const patch = notYetStarted
+        ? { status: 'superseded' }
+        : { ends_at: endsAt };
+
+      const upd = await fetch(`${base}prices?id=eq.${priceId}`, {
+        method: 'PATCH', headers: { ...h, Prefer: 'return=minimal' },
+        body: JSON.stringify(patch),
+      });
+      if (!upd.ok) {
+        const detail = await upd.text().catch(() => '');
+        return json({ ok: false, error: 'Could not end that price. ' + detail.slice(0, 200) }, 502, cors(env));
+      }
+
+      /* Resolved again afterwards so "what it reverts to" is the resolver's
+         answer and not a guess about which row is next in line. */
+      const after = await currentPriceCents(env, price.product_id, price.color_variant_id);
+
+      await writeAudit(env, {
+        /* 'superseded', not 'ended': price_audit.action carries a CHECK
+           constraint and 'ended' is not one of its values. Writing it would have
+           been rejected by the database and swallowed by writeAudit, so the
+           price would stop and the register would never mention it — a silent
+           hole in the one record this system exists to keep. 'superseded' is in
+           the constraint and means what happened. */
+        actor_id: actorId, actor_email: actor, action: 'superseded',
+        price_id: priceId, product_id: price.product_id,
+        product_title: before.title, color_name: before.colorName,
+        from_amount: before.cents / 100,
+        to_amount: after.cents / 100,
+        from_member_amount: before.memberCents ? before.memberCents / 100 : null,
+        to_member_amount: after.memberCents ? after.memberCents / 100 : null,
+        starts_at: price.starts_at, ends_at: endsAt,
+        note: String(body.note || '').slice(0, 500),
+      });
+
+      return json({ ok: true, endsAt, revertsToCents: after.cents }, 200, cors(env));
     }
 
     return json({ ok: false, error: 'Unsupported action.' }, 400, cors(env));

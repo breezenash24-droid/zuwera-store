@@ -12,11 +12,18 @@
  *
  * ── WHAT IT RETURNS AND WHAT IT WITHHOLDS ───────────────────────────────────
  *
- * Per colourway: the price, the compare-at, and whether it came from a list or
- * from the catalogue. NOT the list's name, NOT the window, NOT the other lists
- * the shopper is not on. A wholesale tier is commercially sensitive, and
- * "members pay $198" is a thing a competitor can read straight out of a
- * response body if it is sent to everybody.
+ * Per colourway: the price, the price before any member discount, the
+ * compare-at, what a member pays, and whether it came from a list or from the
+ * catalogue. NOT the list's name, NOT the window, NOT the other lists the
+ * shopper is not on. A wholesale tier is commercially sensitive, and the code of
+ * the list somebody is on is not the storefront's to publish.
+ *
+ * The member figure IS sent, to everybody, and that is deliberate: the product
+ * page has always printed "Members pay $35.00" from the public products table,
+ * so it is a price the store advertises rather than one it keeps. What changed
+ * is only where the page reads it — it used to patch that line in from the
+ * catalogue, which is how a member being charged $30 by a price list came to be
+ * shown "Members pay $35.00" next to it.
  *
  * Membership is taken from the token, verified — never from a query parameter.
  * Otherwise anybody could ask for member pricing, be shown it, and then be
@@ -87,11 +94,37 @@ export async function onRequestGet({ request, env }) {
     const shopper = shopperFor({ isMember });
     const now = Date.now();
 
+    /* Resolved TWICE: once as this shopper, once as a member.
+       The member figure is what the page's "Members pay $X" line says, and it
+       has to be the server's answer for the same reason the charged figure is.
+       It used to be patched in from the catalogue by product.html, which meant a
+       member already being charged $30 by a price list was shown "Members pay
+       $35.00" beside it — the page advertising a WORSE price than the one it was
+       about to charge. Membership can also select a different ROW entirely, so
+       it cannot be derived from the guest answer by arithmetic.
+
+       This publishes one figure the store already advertises from the public
+       products table, and nothing else: no list names, no windows, no tier a
+       shopper is not being offered. */
     const priceOf = (product, variant) => {
       const r = resolvePrice({ product, variant, rows: ctx.rows, lists: ctx.lists, shopper, now });
+      const m = isMember ? r : resolvePrice({
+        product, variant, rows: ctx.rows, lists: ctx.lists,
+        shopper: shopperFor({ isMember: true }), now,
+      });
       return {
         priceCents: r.priceCents,
+        /* The price before any member discount — what gets struck through when
+           a member is signed in. Sent rather than inferred from compare-at,
+           which is a different figure with a different meaning. */
+        regularCents: r.regularCents,
         compareAtCents: r.compareAtCents,
+        /* What a member pays, and whether that is what THIS shopper is getting.
+           Zero when a member pays no less than anyone else — an absent discount
+           is never spelled as a number, so the page cannot round it into one. */
+        memberPriceCents: m.priceCents < r.priceCents ? m.priceCents
+          : (r.usingMember ? r.priceCents : 0),
+        usingMember: Boolean(r.usingMember),
         /* 'list' rather than the list's CODE. Which tier a shopper is on is
            theirs to know; which tier exists is not the storefront's to publish. */
         source: r.source === 'price_list' ? 'list' : r.source,

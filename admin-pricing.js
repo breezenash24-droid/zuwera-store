@@ -22,8 +22,15 @@
   let _you = '';
   let _products = [];   // id, title + colourways, for the propose form
   let _pick = null;     // the chosen product
-  let _live = null;     // /api/prices for _pick — what a shopper is charged TODAY
+  let _live = null;     // the quote for _pick — what a shopper is charged TODAY
   let _query = '';      // product search text
+  /* productId -> the same quote, for every product in the list. The figure
+     beside each row used to be products.current_price, which is the CATALOGUE
+     price — so a product moved to $32 by a price list went on reading $40 in the
+     one place a merchant looks to check what things cost. Resolved by the server
+     in one request rather than worked out here, because a second implementation
+     of the pricing rules in the panel is the exact fault this system removes. */
+  let _charged = {};
 
   const $ = (id) => document.getElementById(id);
   const money = (cents) => '$' + (Number(cents || 0) / 100).toFixed(2);
@@ -76,9 +83,20 @@
         .select('id,title,sku,status,current_price,color_variants(id,color_name,current_price)')
         .order('title', { ascending: true });
       _products = prods || [];
+      /* Re-point at the row in the NEW list. Proposing or ending reloads
+         everything, and without this _pick went on referring to an object from
+         the previous fetch — so the form kept showing the colourways and status
+         it had before the change it just made. */
+      if (_pick) _pick = _products.find((p) => String(p.id) === String(_pick.id)) || _pick;
 
       _loaded = true;
       render();
+      /* After the first paint, not before it. The list is useful the moment it
+         is on screen; the charged figures sharpen it a moment later, and making
+         the whole page wait on them would trade a correct number for a slower
+         one. Failures are silent by design — the row falls back to the catalogue
+         price, which is what it showed before. */
+      loadCharged();
     } catch (err) {
       if (body) {
         /* Before 0022 is applied the tables do not exist. Say that plainly
@@ -92,6 +110,23 @@
       }
     }
   };
+
+  /* One request for the whole list. Chunked because the ids go in a URL and a
+     catalogue of any size would eventually exceed what a URL may hold — a limit
+     that arrives silently, as a request that stops working at some product
+     count nobody chose. */
+  async function loadCharged() {
+    const ids = _products.map((p) => String(p.id)).filter(Boolean);
+    if (!ids.length) return;
+    for (let i = 0; i < ids.length; i += 60) {
+      const chunk = ids.slice(i, i + 60);
+      try {
+        const data = await api('GET', null, '?quote=' + encodeURIComponent(chunk.join(',')));
+        (data.products || []).forEach((p) => { _charged[String(p.productId)] = p; });
+      } catch (_) { /* the catalogue price stands */ }
+    }
+    if (_loaded) render();
+  }
 
   function listName(id) {
     const l = _lists.find((x) => String(x.id) === String(id));
@@ -255,7 +290,7 @@
                 ${escapeHtml(p.sku || '—')}${colours ? ' · ' + colours + ' colour' + (colours === 1 ? '' : 's') : ''}${statusWarning(p)}
               </span>
             </span>
-            <span style="font-variant-numeric:tabular-nums;color:var(--text-secondary);white-space:nowrap;">${dollars(p.current_price)}</span>
+            ${chargedCell(p)}
           </button>`;
         }).join('')
         : `<div style="padding:.85rem;color:var(--text-secondary);font-size:.82rem;">
@@ -265,6 +300,50 @@
       <div style="font-size:.75rem;color:var(--text-secondary);margin-top:.35rem;">
         ${matches.length} of ${_products.length} product${_products.length === 1 ? '' : 's'}
       </div>`;
+  }
+
+  /* WHAT THIS PRODUCT COSTS TODAY, in the list.
+     Every colourway is asked, not just the product, because a colour can carry
+     its own price and its own price-list row — so one figure is only honest when
+     they all agree. When they do not, the lowest is shown as "from", which is
+     what the storefront says too.
+
+     Falls back to the catalogue price while the quotes are in flight, and stays
+     there if they never arrive: the old number, which is at worst the number
+     this screen showed yesterday. */
+  function chargedCell(p) {
+    const q = _charged[String(p.id)];
+    const wrap = (main, sub) => `
+      <span style="text-align:right;white-space:nowrap;">
+        <span style="display:block;font-variant-numeric:tabular-nums;">${main}</span>
+        ${sub ? `<span style="display:block;font-size:.7rem;color:var(--text-secondary);">${sub}</span>` : ''}
+      </span>`;
+
+    if (!q || !q.base) {
+      return wrap(`<span style="color:var(--text-secondary);">${dollars(p.current_price)}</span>`, '');
+    }
+
+    const cents = [q.base.priceCents].concat((q.colours || []).map((c) => c.priceCents))
+      .filter((n) => Number(n) > 0);
+    if (!cents.length) return wrap(`<span style="color:var(--text-secondary);">${dollars(p.current_price)}</span>`, '');
+
+    const low = Math.min.apply(null, cents);
+    const varies = Math.max.apply(null, cents) !== low;
+    const main = (varies ? '<span style="color:var(--text-secondary);font-size:.72rem;">from </span>' : '') + money(low);
+
+    /* The catalogue price is only worth showing when something has moved away
+       from it — that is the whole signal. Shown struck rather than labelled,
+       because it is the figure this row used to display. */
+    const cat = Math.round((Number(p.current_price) || 0) * 100);
+    const moved = cat > 0 && !varies && cat !== low;
+    const anyMember = (q.base.memberDiffers || (q.colours || []).some((c) => c.memberDiffers));
+
+    const sub = [
+      moved ? `<s>${money(cat)}</s>` : '',
+      anyMember ? 'member price set' : '',
+    ].filter(Boolean).join(' · ');
+
+    return wrap(main, sub);
   }
 
   /* Pricing something nobody can buy is a real mistake and a silent one. */
@@ -285,7 +364,12 @@
     const cid = $('pricing-colour') ? $('pricing-colour').value : '';
     const hit = cid ? (_live.colours || []).find((c) => String(c.id) === String(cid)) : _live.base;
     if (!hit) return '';
-    const why = { list: 'from a price list', variant: "this colourway's own price", product: "the product's price" }[hit.source] || hit.source;
+    /* 'price_list' is what the resolver calls it and what this line printed
+       until now — a column name in front of a merchant, mid-sentence. */
+    const why = {
+      price_list: 'from a price list', list: 'from a price list',
+      variant: "this colourway's own price", product: "the product's price",
+    }[hit.source] || hit.source;
 
     const num = (id) => { const el = $(id); const n = el ? Number(el.value) : NaN; return Number.isFinite(n) && n > 0 ? n : null; };
     const typed = num('pricing-amount');
@@ -313,6 +397,26 @@
          </div>`
       : '';
 
+    /* ── Ending the row that is in effect ───────────────────────────────────
+       The only verb this screen had was "propose", so changing a price meant
+       adding a second row beside the live one and hoping the resolver preferred
+       it. It often did not: two rows with no dates are both live forever, and
+       which one wins is not something you can see from here. That is how $30
+       went on being charged for a product somebody had already moved to $32.
+
+       Offered only when a price LIST is what is in effect. A catalogue price is
+       not a row and has nothing to end — it is changed on the product. */
+    const endable = hit.priceId && (hit.source === 'price_list' || hit.source === 'list');
+    const endRow = endable
+      ? `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;margin-top:.55rem;padding-top:.55rem;border-top:1px solid var(--border);">
+           <span style="color:var(--text-secondary);font-size:.78rem;">
+             Set by ${escapeHtml(listNameByCode(hit.priceListCode) || 'a price list')}.
+           </span>
+           <button class="btn btn-secondary btn-sm" style="padding:.2rem .55rem;font-size:.72rem;"
+                   onclick="pricingEnd('${escapeAttr(hit.priceId)}',this)">End this price</button>
+         </div>`
+      : '';
+
     return `
       <div style="padding:.6rem .85rem;border:1px solid var(--border);border-radius:8px;background:var(--bg-primary);font-size:.85rem;">
         <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:.5rem;">
@@ -321,7 +425,14 @@
           <span style="color:var(--text-secondary);font-size:.78rem;">· ${escapeHtml(why)}</span>
         </div>
         ${memberLine}
+        ${endRow}
       </div>`;
+  }
+
+  function listNameByCode(code) {
+    if (!code) return '';
+    const l = _lists.find((x) => String(x.code) === String(code));
+    return l ? (l.name || l.code) : String(code);
   }
 
   function proposeForm() {
@@ -397,16 +508,22 @@
 
   window.pricingPick = async function (id) {
     _pick = _products.find((p) => String(p.id) === String(id)) || null;
-    _live = null;
+    /* The list already has this product's quote, so show it at once instead of
+       "Checking the current price…" on every click. Refreshed underneath
+       regardless: the list's copy was fetched when the page loaded, and someone
+       else may have changed a price since. */
+    _live = _charged[String(id)] || null;
     render();
-    /* Admin-gated ?quote, not the public /api/prices. That endpoint never says
-       what a member pays — publishing one tier's price to anybody who asks is
-       precisely what it withholds — and this panel needs both figures. Sending
-       the admin token to /api/prices instead would have priced the WHOLE
-       response as a member, which is the wrong number for the main line. */
+    /* Admin-gated ?quote rather than the public /api/prices, because this panel
+       needs the price as a GUEST and as a member at the same time. /api/prices
+       answers as whoever is asking — sending the admin token to it would price
+       the whole response as a member, which is the wrong number for the main
+       line. */
     try {
-      _live = await api('GET', null, '?quote=' + encodeURIComponent(id));
-    } catch (_) { _live = null; }
+      const fresh = await api('GET', null, '?quote=' + encodeURIComponent(id));
+      _live = fresh;
+      _charged[String(id)] = { productId: id, base: fresh.base, colours: fresh.colours };
+    } catch (_) { /* the list's copy stands */ }
     render();
   };
 
@@ -526,6 +643,25 @@
     } catch (err) {
       note(err.message || 'Could not propose that change.', 'error');
       if (btn) { btn.disabled = false; btn.textContent = 'Propose'; }
+    }
+  };
+
+  /* Stop the price that is in effect. The row is kept and given an end date
+     rather than deleted — it charged real customers real money, and the register
+     is the thing somebody reads a year later. */
+  window.pricingEnd = async function (priceId, btn) {
+    if (!window.confirm('End this price now?\n\nIt stops applying immediately and the price falls back to whatever is next in effect — usually the catalogue price. The change stays in the register.')) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'Ending…'; }
+    try {
+      const res = await api('POST', { action: 'end', priceId });
+      _loaded = false;
+      await window.pricingLoadData();
+      /* The figure it fell BACK to, from the server's own resolution — the one
+         question anybody has after ending a price. */
+      note('Ended. Now charging ' + money(res.revertsToCents) + '.');
+    } catch (err) {
+      note(err.message || 'Could not end that price.', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'End this price'; }
     }
   };
 

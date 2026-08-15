@@ -114,6 +114,16 @@ export function pickPrice({ rows, lists, productId, colorVariantId, shopper, now
     if (spec) return spec;
     const start = (ms(b.starts_at) || 0) - (ms(a.starts_at) || 0);
     if (start) return start;
+    /* NEWEST ROW WINS, and "newest" means when it was WRITTEN.
+       This used to compare ids, and the ids are uuids — which sort by their
+       random first bytes, not by age. Two open-ended rows on one list (the
+       shape you get by leaving both dates blank, which the panel tells you to
+       do) therefore resolved by coin flip: raise a price from $30 to $32 and
+       roughly half the time the $30 row still won, forever, with nothing on
+       screen to explain it. created_at is the field that actually means
+       "later", so it decides. */
+    const made = (ms(b.created_at) || 0) - (ms(a.created_at) || 0);
+    if (made) return made;
     /* Last resort so the answer is stable rather than however the rows arrived. */
     return String(b.id || '').localeCompare(String(a.id || ''));
   });
@@ -239,9 +249,23 @@ export async function fetchPricingContext(env, productIds) {
     return Array.isArray(j) ? j : null;
   };
 
+  /* created_at is read because the tie-break needs it, and member_price because
+     stage two of resolvePrice reads it. Leaving member_price out of this list is
+     what made every member price on every price list dead on arrival: the column
+     existed, the panel wrote to it, the resolver asked for a row that did not
+     contain it, and `undefined` became "no member price" in silence.
+
+     member_price arrives with migration 0023, and PostgREST rejects the WHOLE
+     query for one unknown column — so asking for it before 0023 is applied would
+     turn "members are not discounted" into "no price list works at all". Hence
+     the retry: ask for it, and if the column is not there yet, ask again without
+     it and carry on with everything else intact. */
+  const COLS = 'id,price_list_id,product_id,color_variant_id,amount,compare_at,starts_at,ends_at,status,created_at';
+  const where = `&status=eq.approved&product_id=in.(${ids.join(',')})`;
+
   const [rows, lists] = await Promise.all([
-    get('prices?select=id,price_list_id,product_id,color_variant_id,amount,compare_at,starts_at,ends_at,status'
-        + `&status=eq.approved&product_id=in.(${ids.join(',')})`),
+    get(`prices?select=${COLS},member_price${where}`)
+      .then((r) => r || get(`prices?select=${COLS}${where}`)),
     get('price_lists?select=id,code,name,channel,region,customer_group,priority,active&active=eq.true'),
   ]);
 
