@@ -128,9 +128,17 @@ console.log('\n  the rule itself still matches the server');
   const serverRule = /Boolean\(isMember\) && memberCents > 0 && \(!regularCents \|\| memberCents < regularCents\)/;
   ok('the server picks the member price the same way', serverRule.test(VP),
     'the rule lives in _variant-price.js since colourways gained their own prices');
-  ok('…and the cart path uses that shared rule rather than its own',
-    /resolveVariantPrice\(product, colorVariant, isMember\)/.test(SRV),
+  /* The cart calls resolvePrice (migration 0022's price lists), which falls
+     back to resolveVariantPrice when no list applies. Two links, both asserted,
+     because the property being protected is that _cart-pricing.js has no price
+     derivation OF ITS OWN — not that any particular function is named there. */
+  ok('…and the cart path uses the shared resolver rather than its own',
+    /resolvePrice\(\{/.test(SRV),
     'a second derivation left in _cart-pricing.js is one some path will reach');
+  ok('…which still ends at that rule when no price list applies',
+    /resolveVariantPrice\(product, variant, isMember\)/
+      .test(fs.readFileSync(path.join(ROOT, 'functions/api/_price-resolution.js'), 'utf8')),
+    'without the fallback an empty pricing system prices the catalogue at zero');
   ok('the bag does too', rule.test(BAG));
   ok('and the checkout', rule.test(CHTM));
 

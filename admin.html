@@ -218,6 +218,7 @@
             { id:'finance',    icon:'💰', label:'Finance',     title:'Finance',             group:'overview',      mobile:'Finance', kw:'revenue profit payouts sales money earnings refunds' },
             /* Catalogue */
             { id:'products',   icon:'👟', label:'Products',    title:'Product Inventory',   group:'catalogue',     mobile:'Products', kw:'inventory stock sku catalog items drop jackets variants colors' },
+            { id:'pricing',    icon:'🏦', label:'Pricing',     title:'Pricing',             group:'catalogue', searchLabel:'Pricing / Price lists / Scheduled prices / Approvals', kw:'price pricing price list scheduled sale effective date approval approve propose audit history who changed markdown wholesale members tier channel region' },
             { id:'sizecharts', icon:'📏', label:'Size Charts', title:'Size Charts',         group:'catalogue', kw:'size guide measurements fit chart sizing' },
             { id:'reviews',    icon:'⭐', label:'Reviews',     title:'Customer Reviews',    group:'catalogue', kw:'ratings testimonials stars moderate feedback' },
             { id:'questions',  icon:'❓', label:'Q&A',         title:'Product Q&A',         group:'catalogue', kw:'questions answers product qa moderate ask reply' },
@@ -1000,6 +1001,26 @@
                     <div style="text-align:center;margin-top:16px;">
                         <button id="auditLoadMoreBtn" class="btn btn-secondary" style="display:none;">Load more</button>
                     </div>
+                </div>
+
+                <!-- Pricing Page — rendered by admin-pricing.js -->
+                <div id="pricing" class="page">
+                    <div class="products-header">
+                        <div>
+                            <h2>Pricing</h2>
+                            <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;max-width:720px;line-height:1.65;">
+                                What things cost, who they cost it for, and when. A change proposed here does
+                                <strong>nothing</strong> until it is approved — and every movement is recorded with the
+                                old figure, the new one, and who signed it off.
+                                <br><br>
+                                Prices set on a product or a colourway still work exactly as before. This screen only
+                                overrides them, so a store that never opens it prices its catalogue the same way it
+                                always has.
+                            </p>
+                        </div>
+                    </div>
+                    <div id="pricing-body"></div>
+                    <script src="admin-pricing.js?v=c7f4140d"></script>
                 </div>
 
                 <!-- Feature Flags Page -->
@@ -4699,7 +4720,7 @@
      the formatter existed. -->
 <script src="order-number.js?v=ed961452"></script>
 <script src="customer-messages.js?v=2c5164d0"></script>
-    <script src="admin-main.js?v=4c0345e4"></script>
+    <script src="admin-main.js?v=e78028a2"></script>
     <!-- After admin-main: it needs `sb`, which that file creates at top level. -->
     <script src="admin-themes.js?v=4524e586"></script>
     <script src="admin-theme-presets.js?v=bd0c8c14"></script>

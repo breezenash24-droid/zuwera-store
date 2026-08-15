@@ -31,7 +31,7 @@ export const ROLE_LABELS = {
 export const PAGE_IDS = [
   'dashboard', 'analytics', 'finance', 'products', 'legacy', 'sizecharts',
   'reviews', 'questions', 'bundles', 'loyalty', 'journal', 'subscribers', 'emails', 'popup', 'commerce', 'meta', 'orders', 'receipts', 'shipping', 'returns', 'users',
-  'website', 'settings', 'tax', 'apis', 'audit', 'flags'
+  'website', 'settings', 'tax', 'apis', 'audit', 'flags', 'pricing'
 ];
 
 // The action capability a page grants when set to 'edit'. Pages without an entry
@@ -57,7 +57,12 @@ export const PAGE_WRITE_PERM = {
   website: 'builder_edit', settings: 'builder_edit',
   tax: 'tax_write',
   apis: 'apikey_manage',
-  users: 'user_manage'
+  users: 'user_manage',
+  /* Deciding what the company charges is a different job from editing what a
+     product SAYS. They shared a permission only because price was a column on
+     the product form; a content editor fixing a typo in a description should
+     not also be able to take 40% off it. */
+  pricing: 'pricing_write'
 };
 
 // Preset access maps (page -> level) for each role. super_admin is special (all).
@@ -91,10 +96,10 @@ export const ROLE_PRESET_LEVELS = {
   manager: {
     dashboard: V, analytics: V, finance: E, products: E, legacy: E, sizecharts: E,
     reviews: E, questions: E, bundles: E, loyalty: E, journal: E, subscribers: E, emails: E, popup: E, commerce: E, meta: E, orders: V, receipts: E, shipping: E, returns: E,
-    users: E, website: E, settings: E, tax: E, audit: V, flags: E
+    users: E, website: E, settings: E, tax: E, audit: V, flags: E, pricing: E
   },
   finance: {
-    dashboard: V, analytics: V, finance: E, orders: V, receipts: V, tax: E, audit: V
+    dashboard: V, analytics: V, finance: E, orders: V, receipts: V, tax: E, audit: V, pricing: E
   },
   fulfillment: {
     dashboard: V, products: V, orders: V, receipts: E, shipping: E, returns: E

@@ -143,7 +143,16 @@ const CASES = [
   {
     const code = CART.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
     ok('the cart resolves the colour before pricing', /await fetchColorVariant\(env, product\.id, raw\?\.colorName\)/.test(code));
-    ok('…and uses the shared rule rather than its own', /resolveVariantPrice\(product, colorVariant, isMember\)/.test(code));
+    /* The cart now calls resolvePrice, which consults the price lists (0022)
+       and falls back to resolveVariantPrice when none applies. Asserted as
+       "goes through the shared resolver" plus "that resolver still falls back
+       to this rule", rather than pinning the old call shape — the property is
+       that the cart has no price derivation OF ITS OWN, and that is unchanged. */
+    ok('…and uses the shared resolver rather than its own', /resolvePrice\(\{/.test(code));
+    const RES = fs.readFileSync(path.join(ROOT, 'functions/api/_price-resolution.js'), 'utf8');
+    ok('…which falls back to this rule when no price list applies',
+      /resolveVariantPrice\(product, variant, isMember\)/.test(RES),
+      'without the fallback an empty pricing system prices the catalogue at zero');
     ok('…with the old product-only expression gone',
       !/toCents\(product\.member_price\)/.test(code),
       'a second price derivation left behind is one that will be reached by some path');
@@ -151,7 +160,7 @@ const CASES = [
     /* Order matters: pricing has to happen before the never-bill-above-shown
        guard, or the guard compares the wrong number. */
     ok('the colour price is settled before the shown-price guard',
-      code.indexOf('resolveVariantPrice(product, colorVariant') < code.indexOf('const shownCents'),
+      code.indexOf('resolvePrice({') < code.indexOf('const shownCents'),
       'a check on a figure computed afterwards is not a check');
 
     /* The lookup failing must not become a silent overcharge. */

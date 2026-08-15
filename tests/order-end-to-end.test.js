@@ -66,6 +66,12 @@ function net(overrides) {
        customer is tax-exempt, and the email builder re-reads the catalogue for
        item images. Neither is obvious from the call site. */
     { m: 'GET', u: '/rest/v1/tax_exemptions', body: () => [] },
+    /* The pricing system (migration 0022). Empty on both: no price list rows
+       means the catalogue price stands, which is the state every store is in
+       until somebody opens that screen — and the state this whole test's
+       expected totals are written against. */
+    { m: 'GET', u: '/rest/v1/prices', body: () => [] },
+    { m: 'GET', u: '/rest/v1/price_lists', body: () => [] },
     { m: 'GET', u: '/rest/v1/products?select=title,sku,image_url', body: () => [] },
     // ── the order ──
     { m: 'GET', u: '/rest/v1/orders?stripe_payment_intent_id=', body: () => [] },
