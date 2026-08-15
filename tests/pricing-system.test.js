@@ -37,6 +37,7 @@ const BUNDLE = fs.readFileSync(path.join(ROOT, 'functions/api/_migrations.js'), 
 const ADMIN  = fs.readFileSync(path.join(ROOT, 'functions/api/admin-prices.js'), 'utf8');
 const PUBLIC = fs.readFileSync(path.join(ROOT, 'functions/api/prices.js'), 'utf8');
 const RBAC   = fs.readFileSync(path.join(ROOT, 'functions/api/_rbac.js'), 'utf8');
+const MIG23  = fs.readFileSync(path.join(ROOT, 'migrations/0023_a_price_row_carries_the_member_price.sql'), 'utf8');
 const CART   = fs.readFileSync(path.join(ROOT, 'functions/api/_cart-pricing.js'), 'utf8');
 
 const DAY = 86400000;
@@ -256,6 +257,47 @@ const row = (o) => ({
     ok('…and the catalogue msrp when the row has none', without.compareAtCents === 26000);
   }
 
+  console.log('\n  a price row can say what a member pays');
+  {
+    /* 0022 rows had `amount` and `compare_at` only, so this screen could
+       express two of the three figures the product form has — and the missing
+       one is the one nearly every product here uses. */
+    const rows = [row({ id: 'm1', list: 'L-default', amount: 50 })];
+    rows[0].member_price = 45;
+    ok('a member pays the row\'s member price', price(rows, member).priceCents === 4500);
+    ok('…and a guest does not', price(rows, guest).priceCents === 5000);
+    ok('…with both figures reported', price(rows, member).regularCents === 5000
+      && price(rows, member).memberCents === 4500 && price(rows, member).usingMember === true);
+
+    const noMember = [row({ id: 'm2', list: 'L-default', amount: 50 })];
+    ok('a row with no member figure charges members the amount',
+      price(noMember, member).priceCents === 5000,
+      'rows written before 0023 must behave exactly as they did');
+
+    /* Same rule as products and colourways: never charge more for being a
+       member. It is what a transposed pair of numbers produces. */
+    const inverted = [row({ id: 'm3', list: 'L-default', amount: 50 })];
+    inverted[0].member_price = 60;
+    ok('a member price above the amount is ignored', price(inverted, member).priceCents === 5000);
+    ok('…and the route refuses to store one', /member price must be below the price/i.test(ADMIN));
+
+    /* THE ambiguity this design had to avoid: two stages that never compete. */
+    const both = [
+      row({ id: 'd', list: 'L-default', amount: 50 }),
+      row({ id: 'x', list: 'L-members', amount: 40 }),
+    ];
+    both[0].member_price = 45;
+    ok('a Members LIST still wins over a member figure on a default row',
+      price(both, member).priceCents === 4000,
+      'the row is chosen first and only its figures are read — membership never picks the row');
+
+    ok('0023 adds the column', /add column if not exists member_price/.test(
+      fs.readFileSync(path.join(ROOT, 'migrations/0023_a_price_row_carries_the_member_price.sql'), 'utf8')));
+    ok('…and the register gains both member figures',
+      /from_member_amount/.test(MIG23) && /to_member_amount/.test(MIG23));
+    ok('the bundle picked 0023 up', /0023/.test(BUNDLE));
+  }
+
   console.log('\n  the register records the change, not just the event');
   {
     ok('0022 stores what it was before', /from_amount/.test(MIG) && /to_amount/.test(MIG),
@@ -391,6 +433,43 @@ const row = (o) => ({
       /page === 'pricing'/.test(MAIN) && /window\.pricingLoadData\(\)/.test(MAIN),
       'a page that renders nothing looks exactly like a page with nothing in it');
     ok('propose and decide are both wired', /pricingPropose/.test(UI) && /pricingDecide/.test(UI));
+
+    /* THE CRASH THAT SHIPPED. Replacing the product <select> with the search
+       picker deleted #pricing-product, but pricingPropose still read
+       $('pricing-product').value — so every Propose threw "Cannot read
+       properties of null (reading 'value')" before sending anything. Nothing
+       caught it because no test read a field the form no longer had. */
+    /* Comments stripped first. The note explaining this very bug quotes
+       $('pricing-product'), and reading prose as code has now broken four
+       separate checks in this codebase. #pricing-body lives in admin.html, so
+       both files count as places an id can be rendered. */
+    const uiCode = UI.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    const ids = [...uiCode.matchAll(/\$\('([a-z-]+)'\)/g)].map((m) => m[1]);
+    const rendered = new Set([
+      ...[...uiCode.matchAll(/id="([a-z-]+)"/g)].map((m) => m[1]),
+      ...[...HTML.matchAll(/id="([a-z-]+)"/g)].map((m) => m[1]),
+    ]);
+    const orphans = [...new Set(ids)].filter((id) => id.startsWith('pricing-') && !rendered.has(id));
+    ok('every field the panel reads is a field it renders', orphans.length === 0,
+      'reads with no matching id: ' + orphans.join(', '));
+    ok('…and the product comes from the selection, not a deleted field',
+      /productId: _pick\.id/.test(uiCode) && !/\$\('pricing-product'\)/.test(uiCode));
+
+    /* All three figures the product form has. */
+    ok('member price can be set here', /id="pricing-member"/.test(UI) && /memberPrice:/.test(UI),
+      'the screen could express two of the three figures a product carries');
+    ok('…and it is shown in the before/after', /Members pay/.test(UI));
+
+    /* Two panes, catalogue persistent on the left. */
+    ok('the catalogue stays visible beside the form', /zw-price-panes/.test(UI));
+    ok('…and that layout class exists in the stylesheet',
+      /\.zw-price-panes/.test(fs.readFileSync(path.join(ROOT, 'admin.css'), 'utf8')));
+    ok('…with the selected product marked', /aria-current=/.test(UI));
+
+    /* Browser-drawn controls follow the panel theme. */
+    const CSS = fs.readFileSync(path.join(ROOT, 'admin.css'), 'utf8');
+    ok('native controls follow the theme', /color-scheme: dark/.test(CSS) && /color-scheme: light/.test(CSS),
+      'the calendar button inside <input type="date"> is drawn by the browser — no colour we set reaches it');
 
     /* A <select> of every product is unusable past about twenty of them. */
     ok('products are searchable, not a raw select',

@@ -76,7 +76,7 @@ const when = (v) => {
    happened, which is what admin_audit_log already does for products. */
 async function currentPriceCents(env, productId, colorVariantId) {
   const h = H(env);
-  if (!h) return { cents: 0, title: '', colorName: '' };
+  if (!h) return { cents: 0, memberCents: 0, title: '', colorName: '' };
   const base = env.SUPABASE_URL + '/rest/v1/';
   const [products, variants] = await Promise.all([
     fetch(`${base}products?select=id,title,current_price,member_price,msrp&id=eq.${productId}&limit=1`,
@@ -88,7 +88,7 @@ async function currentPriceCents(env, productId, colorVariantId) {
   ]);
   const product = (products || [])[0] || null;
   const variant = (variants || [])[0] || null;
-  if (!product) return { cents: 0, title: '', colorName: '' };
+  if (!product) return { cents: 0, memberCents: 0, title: '', colorName: '' };
 
   const ctx = await fetchPricingContext(env, [productId]);
   const r = resolvePrice({
@@ -97,7 +97,20 @@ async function currentPriceCents(env, productId, colorVariantId) {
        whatever the admin happens to qualify for. */
     shopper: shopperFor({ isMember: false }), now: Date.now(),
   });
-  return { cents: r.priceCents, title: product.title || '', colorName: variant ? (variant.color_name || '') : '' };
+  /* memberCents is what a MEMBER pays today, resolved separately rather than
+     read off the same call: the line above deliberately prices as a guest, and
+     the register needs both before-figures because "the price moved" and "the
+     member price moved" are different statements. */
+  const m = resolvePrice({
+    product, variant, rows: ctx.rows, lists: ctx.lists,
+    shopper: shopperFor({ isMember: true }), now: Date.now(),
+  });
+  return {
+    cents: r.priceCents,
+    memberCents: m.priceCents === r.priceCents ? 0 : m.priceCents,
+    title: product.title || '',
+    colorName: variant ? (variant.color_name || '') : '',
+  };
 }
 
 async function writeAudit(env, row) {
@@ -174,13 +187,22 @@ export async function onRequestPost({ request, env }) {
         return json({ ok: false, error: 'The end date must be after the start date.' }, 400, cors(env));
       }
 
+      /* Refused rather than stored-and-ignored. The resolver already declines
+         to honour a member price at or above the regular one, but storing it
+         would leave an approved row that reads as a member discount and is not
+         one — the register would show a movement nobody ever received. */
+      const memberPrice = money(body.memberPrice);
+      if (memberPrice !== null && memberPrice >= amount) {
+        return json({ ok: false, error: 'The member price must be below the price.' }, 400, cors(env));
+      }
+
       const before = await currentPriceCents(env, productId, colorVariantId);
 
       const insert = await fetch(base + 'prices', {
         method: 'POST', headers: { ...h, Prefer: 'return=representation' },
         body: JSON.stringify({
           price_list_id: listId, product_id: productId, color_variant_id: colorVariantId,
-          amount, compare_at: money(body.compareAt),
+          amount, member_price: memberPrice, compare_at: money(body.compareAt),
           starts_at: startsAt, ends_at: endsAt,
           status: 'proposed', note: String(body.note || '').slice(0, 500),
           created_by: actorId,
@@ -197,6 +219,8 @@ export async function onRequestPost({ request, env }) {
         price_id: saved.id || null, product_id: productId,
         product_title: before.title, color_name: before.colorName,
         from_amount: before.cents / 100, to_amount: amount,
+        from_member_amount: before.memberCents ? before.memberCents / 100 : null,
+        to_member_amount: memberPrice,
         to_compare_at: money(body.compareAt),
         starts_at: startsAt, ends_at: endsAt,
         note: String(body.note || '').slice(0, 500),
