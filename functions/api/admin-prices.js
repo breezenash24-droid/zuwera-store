@@ -131,6 +131,56 @@ export async function onRequestGet({ request, env }) {
     const url = new URL(request.url);
     const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '100', 10) || 100, 1), 500);
 
+    /* ?quote=<product id> — what this product and each of its colourways cost
+       TODAY, for a guest AND for a member.
+       It lives here rather than on /api/prices because that endpoint is public
+       and deliberately never says what a member pays: publishing one tier's
+       price to anybody who asks is exactly what it withholds. The panel needs
+       both figures to show "charged today", and the panel is already
+       authenticated, so the admin gate is the right side of the line.
+       Asked as two shoppers rather than one, because "member" is not a
+       modifier on a price — it can select a different ROW entirely. */
+    const quoteFor = String(url.searchParams.get('quote') || '').trim();
+    if (quoteFor) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(quoteFor)) {
+        return json({ ok: false, error: 'Bad product id.' }, 400, cors(env));
+      }
+      const [prodRows, varRows] = await Promise.all([
+        fetch(`${base}products?select=id,current_price,member_price,msrp&id=eq.${quoteFor}&limit=1`,
+              { headers: h, cache: 'no-store' }).then((r) => r.ok ? r.json() : []).catch(() => []),
+        fetch(`${base}color_variants?select=id,color_name,current_price,member_price,msrp&product_id=eq.${quoteFor}`,
+              { headers: h, cache: 'no-store' }).then((r) => r.ok ? r.json() : []).catch(() => []),
+      ]);
+      const product = (prodRows || [])[0];
+      if (!product) return json({ ok: false, error: 'No such product.' }, 404, cors(env));
+
+      const ctx = await fetchPricingContext(env, [quoteFor]);
+      const now = Date.now();
+      const both = (variant) => {
+        const g = resolvePrice({ product, variant, rows: ctx.rows, lists: ctx.lists, shopper: shopperFor({ isMember: false }), now });
+        const m = resolvePrice({ product, variant, rows: ctx.rows, lists: ctx.lists, shopper: shopperFor({ isMember: true }), now });
+        return {
+          priceCents: g.priceCents,
+          compareAtCents: g.compareAtCents,
+          source: g.source,
+          memberPriceCents: m.priceCents,
+          /* Only true when a member actually pays LESS. Equal figures mean
+             there is no member price here, and saying "members pay $50" beside
+             "charged $50" reads as a discount that does not exist. */
+          memberDiffers: m.priceCents !== g.priceCents,
+          memberSource: m.source,
+        };
+      };
+
+      return json({
+        ok: true, quote: true, productId: quoteFor,
+        base: both(null),
+        colours: (Array.isArray(varRows) ? varRows : []).map((v) => ({
+          id: v.id, colorName: v.color_name || '', ...both(v),
+        })),
+      }, 200, cors(env));
+    }
+
     const [lists, prices, audit] = await Promise.all([
       fetch(`${base}price_lists?select=*&order=priority.desc`, { headers: h, cache: 'no-store' })
         .then((r) => r.ok ? r.json() : []).catch(() => []),
