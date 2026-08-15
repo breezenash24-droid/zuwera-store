@@ -2928,7 +2928,16 @@ function resolvedPrices(product) {
         source: server.source,
       };
     }
-    return window.ZWVariantPrice.resolve(product, priceVariant(), isMemberSignedIn());
+    /* THE FALLBACK, used when /api/prices could not be reached. It applies the
+       catalogue rule here in the browser, so the store's member-pricing switch
+       has to reach it too — otherwise a failed request is all it takes for a
+       switched-off member price to reappear on the page. memberCents is cleared
+       as well as the flag, because that field is what draws "Members pay $X"
+       for a shopper who is not signed in. */
+    const on = typeof window.ZWVariantPrice.memberPricingOn !== 'function'
+      || window.ZWVariantPrice.memberPricingOn();
+    const cat = window.ZWVariantPrice.resolve(product, priceVariant(), isMemberSignedIn() && on);
+    return on ? cat : Object.assign({}, cat, { memberCents: 0, usingMember: false });
   }
   const regularCents = Math.round((parseFloat(product?.current_price ?? product?.price ?? 0) || 0) * 100);
   const memberCents  = Math.round((parseFloat(product?.member_price ?? 0) || 0) * 100);
@@ -2990,6 +2999,74 @@ function syncProductSaveButton() {
   if (typeof refreshHeartButtons === 'function') refreshHeartButtons();
 }
 
+/* ── How the member badge reads (Builder → Product → Price) ────────────────
+   Position, shape and wording. The three figures either side of it — what you
+   pay, what it was, how much less — are not arranged here, because their right
+   answer does not vary by store; a badge saying "member price" does.
+
+   Read the same way the price itself is: from cache immediately, corrected by
+   the server, and the price waits for BOTH before it prints. A badge that
+   arrives a moment after the number and changes shape is the same flash in
+   miniature, and this page has had enough of those. */
+const PRICE_LOOK_DEFAULT = { member_position: 'inline', member_style: 'pill', member_label: '' };
+const PRICE_LOOK_ALLOWED = {
+  member_position: ['inline', 'below', 'hidden'],
+  member_style: ['pill', 'plain', 'solid'],
+};
+let PRICE_LOOK = { ...PRICE_LOOK_DEFAULT };
+let PRICE_LOOK_READY = false;
+
+/* Clamped against the same lists the server enforces. The server already
+   validates, so this is for the CACHE — a value stored before an option was
+   renamed must not reach a class name that no stylesheet answers to. */
+function normalisePriceLook(raw) {
+  const out = { ...PRICE_LOOK_DEFAULT };
+  if (raw && typeof raw === 'object') {
+    for (const key of Object.keys(PRICE_LOOK_ALLOWED)) {
+      if (PRICE_LOOK_ALLOWED[key].includes(raw[key])) out[key] = raw[key];
+    }
+    if (typeof raw.member_label === 'string') {
+      /* Built rather than written as a literal. Typing this class by hand put
+         RAW control bytes into the page — the Edit tool wrote the characters,
+         not the escapes — which turns the file binary and is one keystroke
+         from becoming a RANGE that strips every printable character. */
+      out.member_label = raw.member_label
+        .replace(new RegExp('[\\u0000-\\u001f\\u007f<>]', 'g'), '')
+        .trim().slice(0, 24);
+    }
+  }
+  return out;
+}
+
+(function loadPriceLook() {
+  try {
+    const cached = JSON.parse(localStorage.getItem('zw_pdp_price_v1') || 'null');
+    if (cached) PRICE_LOOK = normalisePriceLook(cached);
+  } catch (_) {}
+
+  /* Settles once, however it goes. A layout read that fails must leave the
+     shipped arrangement standing, not hold the price behind a placeholder. */
+  let done = false;
+  const settle = () => {
+    if (done) return;
+    done = true;
+    PRICE_LOOK_READY = true;
+    try { if (typeof currentProduct !== 'undefined' && currentProduct) renderPrice(); } catch (_) {}
+  };
+  setTimeout(settle, 4000);
+
+  fetch('/api/product-page-config')
+    .then((r) => (r.ok ? r.json() : null))
+    .then((cfg) => {
+      if (cfg && cfg.price) {
+        PRICE_LOOK = normalisePriceLook(cfg.price);
+        try { localStorage.setItem('zw_pdp_price_v1', JSON.stringify(PRICE_LOOK)); } catch (_) {}
+      }
+    })
+    .catch(() => {})
+    .then(settle);
+})();
+
 function renderPrice() {
   const p = resolvedPrices(currentProduct);
   /* The SELECTED COLOUR's compare-at, not the product's. A colourway with its
@@ -3039,8 +3116,12 @@ function renderPrice() {
      been. The wait is one round trip, fired in parallel with the product fetch,
      and it settles to the fallback if the network fails. */
   const VP = window.ZWVariantPrice;
-  const settled = !VP || typeof VP.known !== 'function'
+  const pricesKnown = !VP || typeof VP.known !== 'function'
     || VP.known(currentProduct && currentProduct.id);
+  /* BOTH, before anything is printed. The figure and the shape of the badge
+     beside it arrive from two different requests, and painting on the first to
+     land means the price appears and then the badge changes under it. */
+  const settled = pricesKnown && PRICE_LOOK_READY;
   if (!settled) {
     /* Fire the request from here too. ask() ignores an id it has already sent,
        so this costs nothing on the normal path — and it means the placeholder
@@ -3060,9 +3141,20 @@ function renderPrice() {
      the fact — and when the member price is the only price shown, a trailing
      "Member price" looks like it is describing something else. Beside the
      number it is what it actually is: the name of the figure above it. */
+  /* The badge, arranged by Builder -> Product -> Price. Escaped on the way in:
+     the wording is merchant-typed free text on a public page, and sanitising it
+     where it is stored is the belt, not the braces. */
+  const escLabel = (v) => String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const look = PRICE_LOOK;
+  const badge = p.usingMember && look.member_position !== 'hidden'
+    ? `<span class="zw-price-member-tag zw-mtag-${look.member_style}">`
+      + escLabel(look.member_label || 'Member price') + '</span>'
+    : '';
+
   el('priceDisplay').innerHTML = effective > 0
     ? `<span class="zw-price-now">$${effective.toFixed(2)}</span>`
-      + (p.usingMember ? '<span class="zw-price-member-tag">Member price</span>' : '')
+      + (look.member_position === 'inline' ? badge : '')
     : 'Price TBA';
 
   /* Struck-through figure and the saving sit together on one line, because
@@ -3083,9 +3175,10 @@ function renderPrice() {
   const member = (p.memberCents || 0) / 100;
   const regular = (p.regularCents || 0) / 100;
   if (p.usingMember) {
-    /* Already said, beside the price. Repeating it here was the trailing line
-       that made the member price look like an afterthought. */
-    el('memberPrice').innerHTML = '';
+    /* Only when the badge was asked to live on its own line. Beside the price
+       it has already been printed above, and saying it twice is the trailing
+       line that made the member price look like an afterthought. */
+    el('memberPrice').innerHTML = look.member_position === 'below' ? badge : '';
   } else if (member > 0 && member < regular) {
     el('memberPrice').innerHTML = `<span class="zw-price-member">Members pay $${member.toFixed(2)}</span>`;
   } else {

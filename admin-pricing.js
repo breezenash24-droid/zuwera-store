@@ -485,6 +485,14 @@
         <div id="pricing-member-note" style="font-size:.75rem;color:var(--text-secondary);margin-top:.35rem;line-height:1.5;display:none;">
           Members pay this only while this row is the one in effect. It never competes with the Members price list.
         </div>
+        <!-- Said where the figure is TYPED, not after it is saved. A field that
+             accepts a number and quietly does nothing with it is how somebody
+             spends an afternoon wondering why a discount never appeared. -->
+        ${_live && _live.memberPricing === false ? `
+        <div style="font-size:.75rem;color:#fbbf24;margin-top:.35rem;line-height:1.5;">
+          Member pricing is switched off for this store, so a member price here will be saved but not charged.
+          Turn it on under Marketing → Loyalty.
+        </div>` : ''}
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.6rem;">
           <div><label class="form-label">Starts</label>

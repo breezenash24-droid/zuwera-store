@@ -216,6 +216,16 @@
     return _known[String(productId || '')] === true;
   }
 
+  /* Does this store charge members differently at all?
+     The server decides it; this is only what the server last said, so that the
+     CATALOGUE fallback — the rule this file applies when /api/prices cannot be
+     reached — does not go on offering a member price the store has switched
+     off. Defaults to on, and stays on until told otherwise, because every store
+     predates the switch and guessing "off" would withdraw a discount that is
+     currently being honoured at the till. */
+  var _memberPricing = true;
+  function memberPricingOn() { return _memberPricing !== false; }
+
   /* Settle a set of ids and tell whoever drew a price to redraw.
      Called on success, on failure and on timeout — a page waiting for an
      answer that never comes must fall back, not wait forever. */
@@ -256,6 +266,7 @@
       .then(function (j) {
         clearTimeout(timer);
         if (!j || !j.ok || !Array.isArray(j.products)) { settle(ids, false); return _cache; }
+        if (typeof j.memberPricing === 'boolean') _memberPricing = j.memberPricing;
         var changed = false;
         j.products.forEach(function (p) {
           var key = String(p.productId);
@@ -315,6 +326,7 @@
     lowest: lowestPriceCents,
     ask: ask,
     resolvedFor: resolvedFor,
-    known: known
+    known: known,
+    memberPricingOn: memberPricingOn
   };
 })();

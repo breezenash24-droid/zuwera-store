@@ -1507,9 +1507,6 @@ body.light-mode .low-stock-badge {
 .zw-price-member-tag {
   display: inline-block;
   margin-left: .6em;
-  padding: .18em .5em;
-  border: 1px solid currentColor;
-  border-radius: 999px;
   color: var(--zw-price-member);
   font-family: var(--fm, inherit);
   font-size: .58rem;
@@ -1518,6 +1515,37 @@ body.light-mode .low-stock-badge {
   text-transform: uppercase;
   vertical-align: middle;
   white-space: nowrap;
+}
+
+/* On its own line the left margin is what made it look indented from nothing,
+   and the line needs room above it rather than beside it. */
+#memberPrice .zw-price-member-tag { margin-left: 0; margin-top: .15em; }
+
+/* ── The three shapes (Builder → Product → Price) ──────────────────────────
+   Shape only. Colour stays with Appearance → Prices, so a store picks its
+   palette once and the arrangement does not quietly reintroduce a second
+   place to set the same thing. */
+.zw-price-member-tag.zw-mtag-pill {
+  padding: .18em .5em;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+}
+
+.zw-price-member-tag.zw-mtag-plain {
+  padding: 0;
+  border: 0;
+  letter-spacing: .08em;
+}
+
+/* colour-mix keeps the fill derived from the one token rather than hard-coding
+   a second colour that would stop following the theme. Older engines that do
+   not support it fall back to the declaration above, which is the plain
+   treatment — legible either way rather than invisible. */
+.zw-price-member-tag.zw-mtag-solid {
+  padding: .2em .55em;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--zw-price-member) 16%, transparent);
 }
 
 /* ── While the price is still unknown ──────────────────────────────────────

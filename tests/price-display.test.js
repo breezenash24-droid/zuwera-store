@@ -33,16 +33,20 @@ const PKG   = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'
    `known` is whether the server has answered for this product yet — the page
    prints no figure at all until it has. Default true, because almost every case
    below is about what a settled price LOOKS like. */
-function render(prices, member, known) {
+function render(prices, member, known, look) {
   const els = {};
   const doc = { getElementById: (id) => (els[id] = els[id] || { id, innerHTML: '' }) };
   const src = PROD.slice(PROD.indexOf('function renderPrice() {'));
   const body = src.slice(0, src.indexOf('\n}') + 2);
   const asked = [];
   const win = { ZWVariantPrice: { known: () => known !== false, ask: (id) => asked.push(id) } };
+  /* Builder → Product → Price. Defaults are what the page does with nobody
+     having opened that tab, so most cases below pass nothing. */
+  const LOOK = Object.assign({ member_position: 'inline', member_style: 'pill', member_label: '' }, look || {});
   new Function('resolvedPrices', 'currentProduct', 'document', 'syncProductSaveButton', 'isMemberSignedIn', 'window',
+    'PRICE_LOOK', 'PRICE_LOOK_READY',
     body + '\nrenderPrice();')(
-    () => prices, { id: 'p-1' }, doc, () => {}, () => !!member, win);
+    () => prices, { id: 'p-1' }, doc, () => {}, () => !!member, win, LOOK, known !== false);
   return {
     now: (els.priceDisplay || {}).innerHTML || '',
     was: (els.msrpDisplay || {}).innerHTML || '',
@@ -96,6 +100,52 @@ console.log('\n  a member price is a discount too, and reads the same way');
     'got: ' + r.now);
   ok('…rather than trailing underneath it', r.member === '',
     'saying it twice is what made it look like an afterthought');
+}
+
+console.log('\n  the member badge is arranged in the builder');
+{
+  const MEMBER = { priceCents: 2200, regularCents: 4000, memberCents: 2200, msrpCents: 4000, usingMember: true, source: 'list' };
+
+  const inline = render(MEMBER, true, true, { member_position: 'inline' });
+  ok('beside the price by default', /zw-price-member-tag/.test(inline.now) && inline.member === '',
+    'the default is what the page already did, so upgrading redesigns nobody');
+
+  const below = render(MEMBER, true, true, { member_position: 'below' });
+  ok('…or on its own line', /zw-price-member-tag/.test(below.member),
+    'a long price and a badge on one line is what makes it look cramped');
+  ok('…and then NOT beside it as well', !/zw-price-member-tag/.test(below.now),
+    'printed in both places is the duplicate that made it read as an afterthought');
+
+  const hidden = render(MEMBER, true, true, { member_position: 'hidden' });
+  ok('…or not at all', !/zw-price-member-tag/.test(hidden.now) && hidden.member === '');
+  ok('…without hiding the price itself', /\$22\.00/.test(hidden.now),
+    'hiding the badge must never hide the figure it labels');
+  ok('…or the saving', /45% off/.test(hidden.was));
+
+  ok('the shape is a class, not a hard-coded look',
+    /zw-mtag-pill/.test(render(MEMBER, true, true, { member_style: 'pill' }).now)
+    && /zw-mtag-plain/.test(render(MEMBER, true, true, { member_style: 'plain' }).now)
+    && /zw-mtag-solid/.test(render(MEMBER, true, true, { member_style: 'solid' }).now));
+  ok('…and every one of them is styled',
+    ['pill', 'plain', 'solid'].every((s) => new RegExp('\\.zw-mtag-' + s + '\\s*\\{').test(CSS)),
+    'a class no stylesheet answers to is a badge with no shape at all');
+
+  const worded = render(MEMBER, true, true, { member_label: 'Crew price' });
+  ok('the wording is the merchant\'s', /Crew price/.test(worded.now));
+  ok('…and empty falls back to ours', /Member price/.test(render(MEMBER, true, true, { member_label: '' }).now),
+    'a cleared box means "I did not choose one", not "show an empty badge"');
+
+  /* Merchant-typed free text on a public page. Sanitised where it is stored AND
+     escaped where it is inserted; this checks the second, which is the one that
+     actually protects the page. */
+  const nasty = render(MEMBER, true, true, { member_label: 'a"b&c' });
+  ok('it is escaped on the way in', /a&quot;b&amp;c/.test(nasty.now), 'got: ' + nasty.now);
+
+  /* The badge names a price somebody is GETTING. A shopper who is not signed in
+     is being made an offer, which is a different sentence in a different place. */
+  const guest = render({ priceCents: 4000, regularCents: 4000, memberCents: 2200, msrpCents: 0, usingMember: false, source: 'product' }, false, true, { member_position: 'below' });
+  ok('a guest still gets the offer, not the badge',
+    /Members pay \$22\.00/.test(guest.member) && !/zw-price-member-tag/.test(guest.member));
 }
 
 console.log('\n  no price is printed before the server has answered');

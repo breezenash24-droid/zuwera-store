@@ -30,7 +30,7 @@
  * being able to take 40% off it.
  */
 
-import { cors, json, verifyAdmin } from './_commerce.js';
+import { cors, json, verifyAdmin, getSetting, sanitizeCommerceConfig } from './_commerce.js';
 import { permsHave } from './_rbac.js';
 import { resolveVariantPrice } from './_variant-price.js';
 import { fetchPricingContext, resolvePrice, shopperFor } from './_price-resolution.js';
@@ -176,9 +176,21 @@ export async function onRequestGet({ request, env }) {
 
       const ctx = await fetchPricingContext(env, quoteIds);
       const now = Date.now();
+      /* The same switch the storefront and the till read. With member pricing
+         off, this panel must not print "Members pay $25" beside a product where
+         nobody is charged $25 — the screen a merchant checks prices on is the
+         last place a stale tier should survive. */
+      let memberPricingOn = true;
+      try {
+        const cfg = sanitizeCommerceConfig(await getSetting(env, 'commerce_config', {}));
+        memberPricingOn = cfg?.memberPricing?.enabled !== false;
+      } catch (_) { memberPricingOn = true; }
+
       const both = (prod, variant) => {
         const g = resolvePrice({ product: prod, variant, rows: ctx.rows, lists: ctx.lists, shopper: shopperFor({ isMember: false }), now });
-        const m = resolvePrice({ product: prod, variant, rows: ctx.rows, lists: ctx.lists, shopper: shopperFor({ isMember: true }), now });
+        const m = memberPricingOn
+          ? resolvePrice({ product: prod, variant, rows: ctx.rows, lists: ctx.lists, shopper: shopperFor({ isMember: true }), now })
+          : g;
         return {
           priceCents: g.priceCents,
           compareAtCents: g.compareAtCents,
@@ -217,6 +229,9 @@ export async function onRequestGet({ request, env }) {
         productId: first.productId,
         base: first.base,
         colours: first.colours,
+        /* So the panel can say the member field is currently doing nothing,
+           rather than accepting a figure and appearing to apply it. */
+        memberPricing: memberPricingOn,
       }, 200, cors(env));
     }
 

@@ -1301,6 +1301,18 @@
                         <p id="ly-preview" style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6"></p>
                         <button class="btn btn-primary" id="ly-save-btn" onclick="loyaltySaveSettings()">Save rewards settings</button>
                     </div>
+                    <h3 style="font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:0 0 10px">Member pricing</h3>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px;max-width:680px">
+                        <p style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6">Whether signed-in customers pay a different price from everyone else. Turn it off and every shopper pays the same, whatever member prices are saved on your products — nothing is deleted, so turning it back on restores them exactly as they were. This is enforced on the storefront <em>and</em> at checkout, so the price on the page is the price on the card.</p>
+                        <div class="form-group">
+                            <label for="mp-enabled" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+                                <input type="checkbox" id="mp-enabled" checked style="width:20px;height:20px;margin:0;accent-color:var(--accent,#F891A5);cursor:pointer">
+                                <span style="font-size:.92rem">Charge members a different price <span style="opacity:.55">— when this is off, member prices are ignored everywhere and no "Members pay" line is shown.</span></span>
+                            </label>
+                        </div>
+                        <button class="btn btn-primary" id="mp-save-btn" onclick="memberPricingSaveSettings()">Save member pricing</button>
+                    </div>
+
                     <h3 style="font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:0 0 10px">Stock &amp; availability</h3>
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px;max-width:680px">
                         <p style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6">Controls whether shoppers can put more in their bag than you actually have. This is enforced on the storefront <em>and</em> at checkout, so the quantity someone can pick is the quantity that will go through.</p>

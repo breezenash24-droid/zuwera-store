@@ -394,6 +394,11 @@ export function sanitizeCommerceConfig(rawConfig = {}) {
     integrations: config.integrations || {},
     shippingAutomation: config.shippingAutomation || {},
     customerExperience: config.customerExperience || {},
+    /* Sanitised explicitly rather than passed through, for the reason spelled
+       out above `payments`: a key this function does not list is a setting that
+       saves, reloads as absent, and quietly reverts. For member pricing that
+       would read as "I turned it off and it came back on by itself". */
+    memberPricing: sanitizeMemberPricing(config.memberPricing),
     returnsPolicy: config.returnsPolicy || {},
     loyalty: config.loyalty || {},
     subscriptions: config.subscriptions || {},
@@ -405,6 +410,27 @@ export function sanitizeCommerceConfig(rawConfig = {}) {
 // Campus hand-delivery config: a ZIP allow-list that unlocks a free in-person
 // delivery option at checkout. ZIPs are normalized to 5 digits; anything else
 // is dropped so a bad value can never widen eligibility.
+/**
+ * Does this store charge members a different price at all?
+ *
+ * ABSENT MEANS ON, and that direction is the whole safety of the switch. Every
+ * store predates this setting, and several of them have member prices sitting
+ * on products right now; reading a missing key as "off" would silently withdraw
+ * a discount those shoppers are being shown. An unreadable settings row means
+ * the same thing, for the same reason.
+ *
+ * The one rule that matters beyond that: the DISPLAY and the TILL must read
+ * this from the same place. A switch that only reaches the storefront hides the
+ * member price and still charges it; a switch that only reaches checkout shows
+ * $25 and takes $40, which the never-bill-above-the-quote guard turns into a
+ * refused sale. So membership itself is what this gates — one flag, consulted
+ * where `isMember` is decided, in both paths.
+ */
+export function sanitizeMemberPricing(rawMemberPricing = {}) {
+  const mp = rawMemberPricing && typeof rawMemberPricing === 'object' ? rawMemberPricing : {};
+  return { enabled: mp.enabled !== false };
+}
+
 export function sanitizeLocalDelivery(rawLocalDelivery = {}) {
   const ld = rawLocalDelivery && typeof rawLocalDelivery === 'object' ? rawLocalDelivery : {};
   const zips = Array.isArray(ld.zips)
