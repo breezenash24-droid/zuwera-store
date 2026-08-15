@@ -2099,7 +2099,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
      add light-mode to <body> from the cached mode BEFORE first paint so the nav,
      hero, sections etc. render in light mode instead of flashing dark until
      deferred storefront.js applies the class. Mirrors what drop001/account do. -->
-<script>(function(){try{var m=localStorage.getItem('zw_theme_mode')||localStorage.getItem('zw_homepage_theme_mode')||'super-light';if(m==='light')document.body.classList.add('light-mode');else if(m==='super-light')document.body.classList.add('light-mode','super-light-mode');}catch(_){}})()</script>
+<script>(function(){try{var b=document.body.classList,base=document.documentElement.getAttribute('data-zw-base');if(!base){var m=localStorage.getItem('zw_theme_mode')||localStorage.getItem('zw_homepage_theme_mode')||'';if(m==='dark'||m==='light'||m==='super-light')base=m;}if(!base)return;b.toggle('light-mode',base!=='dark');b.toggle('super-light-mode',base==='super-light');}catch(_){}})()</script>
 <!-- Bag-panel class before the nav (below) so cohesion.css hides the header
      login/account buttons pre-paint instead of flashing on mobile. -->
 <script>try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on')}catch(_){}</script>

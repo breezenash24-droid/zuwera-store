@@ -772,7 +772,7 @@ body.super-light-mode .policy-section { border-color: rgba(9,9,11,.14); }
 <script src="consent.js?v=2e7601ab" defer></script>
 </head>
 <body>
-<script>(function(){try{var m=localStorage.getItem('zw_theme_mode')||'super-light';if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+<script>(function(){try{var b=document.body.classList,base=document.documentElement.getAttribute('data-zw-base');if(!base){var m=localStorage.getItem('zw_theme_mode')||localStorage.getItem('zw_homepage_theme_mode')||'';if(m==='dark'||m==='light'||m==='super-light')base=m;}if(!base)return;b.toggle('light-mode',base!=='dark');b.toggle('super-light-mode',base==='super-light');}catch(_){}})()</script>
 
 <!-- NAV -->
 <nav class="zw-nav">

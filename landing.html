@@ -281,7 +281,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
-<script>(function(){try{var m=window.__zwLM()||'super-light';if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+<script>(function(){try{var b=document.body.classList,base=document.documentElement.getAttribute('data-zw-base');if(!base){var m=(window.__zwLM&&window.__zwLM())||'';if(m==='dark'||m==='light'||m==='super-light')base=m;}if(!base)return;b.toggle('light-mode',base!=='dark');b.toggle('super-light-mode',base==='super-light');var g=base==='dark'?'#09090b':(base==='super-light'?'#FFFFFF':'#F0EEE9');document.documentElement.style.backgroundColor=g;var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content',g);}catch(_){}})()</script>
 <!-- Bag-panel class before the nav so cohesion.css hides the header login/account
      link pre-paint instead of flashing on mobile (was only added later by features.js). -->
 <script>try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on')}catch(_){}</script>

@@ -1135,7 +1135,7 @@ body.super-light-mode { background: #FFFFFF !important; }
      instead of flashing the default dark until storefront-theme.js applies it ~later.
      The <head> script already set the page background; this adds the body classes the
      nav/bar CSS keys off. Mirrors index / drop001 / bag. -->
-<script>try{var _m=localStorage.getItem('zw_theme_mode')||'super-light';if(_m==='light')document.body.classList.add('light-mode');else if(_m==='super-light')document.body.classList.add('light-mode','super-light-mode');}catch(_){}</script>
+<script>(function(){try{var b=document.body.classList,base=document.documentElement.getAttribute('data-zw-base');if(!base){var m=localStorage.getItem('zw_theme_mode')||'';if(m==='dark'||m==='light'||m==='super-light')base=m;}if(!base)return;b.toggle('light-mode',base!=='dark');b.toggle('super-light-mode',base==='super-light');}catch(_){}})()</script>
 <!-- Bag-panel class BEFORE the nav (not after it, where the auth/search script sits):
      when the bag panel is on it hides the header login/account buttons, and setting
      the class here — the instant <body> is parsed, before the <nav> below — means the
