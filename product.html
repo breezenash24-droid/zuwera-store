@@ -69,6 +69,7 @@
 <script src="/flags.js?v=5dc05f38" defer></script>
 <script src="fit-finder.js?v=f5cdcd6f" defer></script>
 <script src="/storefront-features.js?v=a00109b1" defer></script>
+<script src="/variant-price.js?v=dfb47f6d"></script>
 <script src="/attribution.js?v=7ecae669" defer></script>
 <script src="/meta-pixel.js?v=4919f284" defer></script>
 <script src="/google-tag.js?v=fdfca537" defer></script>
@@ -2835,12 +2836,48 @@ async function updateHatFitMeasurementInfo() {
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 // RENDER PRICE
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
+/* ── Prices follow the SELECTED COLOUR ──────────────────────────────────────
+   A colourway may carry its own price (migration 0021), so "what does this
+   product cost" is not answerable until a colour is chosen. All three getters
+   below take the product for their signature's sake and read the selected
+   colour from module state, because every call site passes currentProduct — and
+   a getter that silently ignored the colour would put the product price in the
+   bag while the server charged the colour's, which is the never-bill-above-the
+   -quote refusal landing on a shopper who did nothing wrong.
+
+   The rule itself lives in variant-price.js, shared with the Worker that
+   decides the charge and held to it by tests/variant-pricing.test.js. Nothing
+   here re-derives it; when that file is missing these fall back to the product,
+   which is what the page did before colours could be priced. */
+function priceVariant() {
+  return (typeof selectedColor !== 'undefined' && selectedColor) ? selectedColor : null;
+}
+
+function resolvedPrices(product) {
+  if (window.ZWVariantPrice) {
+    return window.ZWVariantPrice.resolve(product, priceVariant(), isMemberSignedIn());
+  }
+  const regularCents = Math.round((parseFloat(product?.current_price ?? product?.price ?? 0) || 0) * 100);
+  const memberCents  = Math.round((parseFloat(product?.member_price ?? 0) || 0) * 100);
+  const useMember = isMemberSignedIn() && memberCents > 0 && (!regularCents || memberCents < regularCents);
+  return {
+    regularCents, memberCents,
+    msrpCents: Math.round((parseFloat(product?.msrp ?? 0) || 0) * 100),
+    priceCents: useMember ? memberCents : regularCents,
+    usingMember: useMember, source: 'product',
+  };
+}
+
 function getRegularProductPrice(product) {
-  return parseFloat(product?.current_price ?? product?.price ?? 0) || 0;
+  return resolvedPrices(product).regularCents / 100;
 }
 
 function getMemberProductPrice(product) {
-  return parseFloat(product?.member_price ?? 0) || 0;
+  return resolvedPrices(product).memberCents / 100;
+}
+
+function getMsrpProductPrice(product) {
+  return resolvedPrices(product).msrpCents / 100;
 }
 
 function isMemberSignedIn() {
@@ -2859,12 +2896,7 @@ function isMemberSignedIn() {
 }
 
 function getEffectiveProductPrice(product) {
-  const regular = getRegularProductPrice(product);
-  const member = getMemberProductPrice(product);
-  if (isMemberSignedIn() && member > 0 && (!regular || member < regular)) {
-    return member;
-  }
-  return regular;
+  return resolvedPrices(product).priceCents / 100;
 }
 
 function syncProductSaveButton() {
@@ -2879,11 +2911,16 @@ function syncProductSaveButton() {
 }
 
 function renderPrice() {
-  const current = getRegularProductPrice(currentProduct);
-  const msrp = parseFloat(currentProduct.msrp) || 0;
-  const member = getMemberProductPrice(currentProduct);
-  const effective = getEffectiveProductPrice(currentProduct);
-  const usingMemberPrice = isMemberSignedIn() && member > 0 && (!current || member < current);
+  const p = resolvedPrices(currentProduct);
+  const current   = p.regularCents / 100;
+  /* The SELECTED COLOUR's compare-at, not the product's. A colourway with its
+     own price inherits no msrp, so reading currentProduct.msrp here would strike
+     through a figure this colour never cost and advertise a discount nobody is
+     offering. */
+  const msrp      = p.msrpCents / 100;
+  const member    = p.memberCents / 100;
+  const effective = p.priceCents / 100;
+  const usingMemberPrice = p.usingMember;
 
   document.getElementById('priceDisplay').innerHTML = effective > 0
     ? `$${effective.toFixed(2)}`
@@ -3416,6 +3453,13 @@ function renderColors() {
         currentProduct.images = getImagesForColor(color.id);
         renderGallery();
       }
+      /* A colourway may cost something different (migration 0021), so the price
+         is part of what a swatch changes — not only the pictures. Without this
+         the page would keep showing the previous colour's price while the
+         server charges this one's, and the never-bill-above-the-quote guard
+         would refuse the sale at the till. */
+      renderPrice();
+      syncProductSaveButton();
     });
 
     container.appendChild(swatch);
