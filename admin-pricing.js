@@ -145,8 +145,11 @@
       <p id="pricing-note" style="font-size:.82rem;margin:0 0 1rem;"></p>
 
       ${pending.length ? `
-      <div style="border:1px solid rgba(251,191,36,.35);border-radius:8px;padding:1rem;margin-bottom:1.5rem;">
+      <div id="pricing-pending" style="border:1px solid rgba(251,191,36,.35);border-radius:8px;padding:1rem;margin-bottom:1.5rem;">
         <div class="zw-eyebrow" style="margin-bottom:.6rem;">Awaiting approval — ${pending.length}</div>
+        <div style="font-size:.8rem;color:var(--text-secondary);margin-bottom:.75rem;line-height:1.6;">
+          These change nothing for shoppers until approved. Approving your own proposal is allowed and is recorded as self-approved.
+        </div>
         ${pending.map(pendingRow).join('')}
       </div>` : ''}
 
@@ -511,6 +514,15 @@
       _loaded = false;
       await window.pricingLoadData();
       note('Proposed. It changes nothing until it is approved.');
+
+      /* Take them to it. The pending block renders at the TOP of the page and
+         the form is near the bottom, so proposing from the form left the one
+         thing that needs acting on off-screen — which reads as nothing having
+         happened. */
+      const pendingEl = $('pricing-pending');
+      if (pendingEl && pendingEl.scrollIntoView) {
+        pendingEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     } catch (err) {
       note(err.message || 'Could not propose that change.', 'error');
       if (btn) { btn.disabled = false; btn.textContent = 'Propose'; }
