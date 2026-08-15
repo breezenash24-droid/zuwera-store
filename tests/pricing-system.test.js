@@ -392,6 +392,32 @@ const row = (o) => ({
       'a page that renders nothing looks exactly like a page with nothing in it');
     ok('propose and decide are both wired', /pricingPropose/.test(UI) && /pricingDecide/.test(UI));
 
+    /* A <select> of every product is unusable past about twenty of them. */
+    ok('products are searchable, not a raw select',
+      /pricing-search/.test(UI) && /type="search"/.test(UI) && !/id="pricing-product" class="form-input">\$\{opts\}/.test(UI));
+    ok('…by SKU as well as name',
+      /String\(p\.title \|\| ''\) \+ ' ' \+ String\(p\.sku \|\| ''\)/.test(UI));
+    ok('…and typing does not lose the caret',
+      /setSelectionRange\(at, at\)/.test(UI),
+      're-rendering an input on every keystroke drops focus, so the second character goes nowhere');
+
+    /* The screen exists to CHANGE a price, so the current one has to be on it. */
+    ok('the price charged today is shown before you change it',
+      /Charged today/.test(UI) && /\/api\/prices\?productId=/.test(UI),
+      'typing a new price with no idea of the old one is the core failure of this form');
+    ok('…asked WITHOUT an admin token, so it is the shopper\'s price',
+      /fetch\('\/api\/prices\?productId=' \+ encodeURIComponent\(id\), \{ cache: 'no-store' \}\)/.test(UI),
+      'sending the admin session would show member pricing and mislead the person setting it');
+    ok('pricing something no customer can see is flagged',
+      /function statusWarning/.test(UI));
+
+    /* The tables were written against a class that does not exist. */
+    ok('tables use a class admin.css actually defines',
+      !/class="data-table"/.test(UI) && /class="products-table"/.test(UI),
+      'data-table is not in admin.css — the columns render unstyled and unaligned');
+    ok('…and that class is real',
+      /\.products-table th/.test(fs.readFileSync(path.join(ROOT, 'admin.css'), 'utf8')));
+
     /* The browser must not write to the pricing tables — that is what keeps the
        register unskippable. */
     ok('the panel goes through the API, never the tables',
