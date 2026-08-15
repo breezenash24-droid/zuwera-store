@@ -8,11 +8,21 @@
  * then asked the server, then redrew. Correct in the end and wrong for as long
  * as the network took, on every single load.
  *
- * The fix is the one the theme already uses: keep the last answer and paint
- * from it synchronously, then let the fetch correct it. Which means the thing
- * to test is not "does ask() work" but "what does the SECOND load paint before
- * any network happens" — so every case here runs the module twice against one
- * localStorage, and reads what the first frame would show.
+ * THE FIRST ATTEMPT was the one the theme uses: keep the last answer and paint
+ * from it synchronously, then let the fetch correct it. It made the flash
+ * shorter and did not remove it — a cached figure is last week's answer, and on
+ * a store whose prices are being edited it is exactly the number nobody wants
+ * to see again. "It still loads the old price first when you reload. I don't
+ * want that at all."
+ *
+ * So the rule is now the one checkout-tax.js follows for the tax total: a figure
+ * the browser has not been TOLD is never rendered as though it had been.
+ * known() separates "I have a figure" from "the server has answered", the page
+ * shows a placeholder until the second is true, and the request goes out in
+ * parallel with the product fetch rather than after it.
+ *
+ * The cache survives as the FALLBACK — what to draw when the network fails —
+ * which is why the reload cases below still check it is there and still correct.
  */
 const fs = require('fs');
 const path = require('path');
@@ -37,9 +47,19 @@ function browser(opts) {
   let calls = 0;
   const o = opts || {};
 
-  function load(payload, signedIn) {
+  function load(payload, signedIn, search) {
     calls = 0;
     const listeners = [];
+    const docListeners = [];
+    /* The module now asks for the price itself, off the URL, at
+       DOMContentLoaded — so it needs a document and a location. Default
+       readyState is 'complete' and the default URL carries no id, which makes
+       the auto-ask a no-op unless a test asks for one. */
+    const doc = {
+      readyState: 'complete',
+      addEventListener: (n, f) => docListeners.push({ n, f }),
+    };
+    const loc = { search: search || '' };
     const win = {
       localStorage: {
         getItem: (k) => (k in store ? store[k] : null),
@@ -52,12 +72,25 @@ function browser(opts) {
     const fetchImpl = async () => {
       calls++;
       if (o.fail) throw new Error('offline');
+      /* A request that never answers — a captive-portal wifi, a dead tunnel.
+         Not the same as a failure: nothing rejects, so the catch never runs. */
+      if (o.hang) return new Promise(() => {});
       return { ok: true, json: async () => payload };
     };
+    /* Fires the module's own timeout at once instead of waiting out its four
+       seconds. The point is that the timeout EXISTS and settles, not how long
+       it is. */
+    const timers = o.hang
+      ? { set: (fn) => { fn(); return 0; }, clear: () => {} }
+      : { set: setTimeout, clear: clearTimeout };
     const CustomEventShim = function (type, init) { this.type = type; this.detail = init && init.detail; };
-    new Function('window', 'localStorage', 'fetch', 'CustomEvent', SRC)(
-      win, win.localStorage, fetchImpl, CustomEventShim);
-    return { api: win.ZWVariantPrice, win, listeners, fired: () => listeners.filter((l) => l.n === 'zw:prices').length, callCount: () => calls };
+    new Function('window', 'localStorage', 'fetch', 'CustomEvent', 'document', 'location', 'URLSearchParams', 'setTimeout', 'clearTimeout', SRC)(
+      win, win.localStorage, fetchImpl, CustomEventShim, doc, loc, URLSearchParams, timers.set, timers.clear);
+    return {
+      api: win.ZWVariantPrice, win, listeners, docListeners,
+      fired: () => listeners.filter((l) => l.n === 'zw:prices').length,
+      callCount: () => calls,
+    };
   }
 
   return { load, store };
@@ -101,9 +134,16 @@ function browser(opts) {
     await first.api.ask('p-1');
 
     const same = b.load(PRICED, false);
+    let sameSeen = 0;
+    /* Counted through a REGISTERED LISTENER. This read `same.fired()`, which is
+       the harness counting how many listeners exist — nothing in the module
+       registers one, so it was zero no matter what the module did, and the
+       assertion passed while testing nothing at all. */
+    same.win.addEventListener('zw:prices', () => { sameSeen++; });
     await same.api.ask('p-1');
-    ok('an unchanged answer fires no redraw', same.fired() === 0,
-      'redrawing every load for an identical figure is the flash again with an extra step');
+    ok('an unchanged answer redraws exactly once', sameSeen === 1,
+      'once to replace the placeholder with the confirmed figure — and not again, '
+      + 'because redrawing a settled price for an identical figure is the flash with an extra step');
 
     const moved = b.load({ ok: true, products: [{ productId: 'p-1', base: { priceCents: 1999, compareAtCents: 4000, source: 'list' }, colours: [] }] }, false);
     let seen = 0;
@@ -211,6 +251,93 @@ function browser(opts) {
     ok('it is trimmed to a bound', Object.keys(stored.byId).length <= 60,
       'unbounded, localStorage eventually throws QuotaExceeded and caching silently stops');
     ok('…keeping the most recent', !!stored.byId['p-79']);
+  }
+
+  console.log('\n  a cached figure is not an ANSWER');
+  {
+    /* "It still loads the old price first when you reload."
+       Removing the cache would not have fixed that — with nothing cached the
+       page drew the CATALOGUE price instead, which on a discounted product is
+       just as wrong. The mistake was drawing a price before knowing one, so the
+       module now distinguishes "I have a figure" from "the server has told me",
+       and the page prints nothing until the second is true. */
+    const b = browser();
+    const first = b.load(PRICED, false);
+    await first.api.ask('p-1');
+
+    const later = b.load(PRICED, false);
+    ok('the cached figure is still there on the next load', !!later.api.resolvedFor('p-1'));
+    ok('…but it does not count as known', later.api.known('p-1') === false,
+      'this is the whole fix: a stale number and a confirmed one must not look alike');
+    await later.api.ask('p-1');
+    ok('…until the server answers', later.api.known('p-1') === true);
+  }
+
+  console.log('\n  …and the page is told even when the answer has not moved');
+  {
+    /* The redraw that replaces the placeholder with a real price is almost
+       always the case where the answer MATCHES the cache. Firing zw:prices only
+       on a change left that page showing a placeholder forever. */
+    const b = browser();
+    const first = b.load(PRICED, false);
+    await first.api.ask('p-1');
+
+    const later = b.load(PRICED, false);
+    let redraws = 0;
+    later.win.addEventListener('zw:prices', () => { redraws++; });
+    await later.api.ask('p-1');
+    ok('an unchanged answer still fires zw:prices', redraws > 0,
+      'the first answer of a page load usually matches the cache, and that is exactly the redraw that matters');
+  }
+
+  console.log('\n  …and a failure settles rather than hanging');
+  {
+    const b = browser({ fail: true });
+    const l = b.load(PRICED, false);
+    let redraws = 0;
+    l.win.addEventListener('zw:prices', () => { redraws++; });
+    await l.api.ask('p-1');
+    ok('a failed request still marks the price known', l.api.known('p-1') === true,
+      'a placeholder waiting on a request that will never answer is worse than the flash it replaced');
+    ok('…and tells the page to draw its fallback', redraws > 0);
+    ok('…without inventing a figure', l.api.resolvedFor('p-1') === null);
+  }
+
+  console.log('\n  …and a request that never answers settles too');
+  {
+    /* Not the same as a failure. Nothing rejects, so the catch never runs — a
+       captive-portal wifi, a tunnel that dropped. Without a timeout the
+       placeholder would still be on screen when the shopper gave up. */
+    const b = browser({ hang: true });
+    const l = b.load(PRICED, false);
+    let redraws = 0;
+    l.win.addEventListener('zw:prices', () => { redraws++; });
+    l.api.ask('p-1');
+    ok('the page stops waiting', l.api.known('p-1') === true,
+      'a placeholder with no timeout is permanent on any network that hangs rather than fails');
+    ok('…and is told to draw its fallback', redraws > 0);
+  }
+
+  console.log('\n  the request goes out in parallel with the product');
+  {
+    /* It used to be fired only after the product had been fetched, so two round
+       trips ran back to back and the placeholder was on screen for both. */
+    const id = '185c7f10-d692-40f2-8a4c-a4825b1d5a2d';
+    const withId = { ok: true, products: [{ productId: id, base: { priceCents: 2500, source: 'list' }, colours: [] }] };
+    const b = browser();
+    const l = b.load(withId, false, '?id=' + id + '&sku=ZW-MTP-002');
+    await new Promise((r) => setTimeout(r, 0));
+    ok('the id in the URL is enough to ask', l.callCount() === 1,
+      'the product id is in the URL, so the price can be asked for at the same time as the product');
+
+    const noId = browser().load(PRICED, false, '?sku=ZW-MTP-002');
+    await new Promise((r) => setTimeout(r, 0));
+    ok('…and a URL without one asks for nothing', noId.callCount() === 0);
+
+    const junk = browser().load(PRICED, false, '?id=not-a-uuid');
+    await new Promise((r) => setTimeout(r, 0));
+    ok('…nor does a URL with a made-up one', junk.callCount() === 0,
+      'an unvalidated id from the query string is a request shaped by whoever sent the link');
   }
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

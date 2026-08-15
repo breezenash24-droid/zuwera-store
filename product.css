@@ -1498,3 +1498,48 @@ body.light-mode .low-stock-badge {
   color: var(--zw-price-member);
   font-variant-numeric: tabular-nums;
 }
+
+/* The member label sits BESIDE the price it names rather than on a line below
+   it. Under the struck figure it read as a footnote, and when the member price
+   is the only price on screen a trailing "Member price" looks like it is
+   describing something further down. Quiet by default — it is a label, and the
+   saving is still the only thing that earns a colour. */
+.zw-price-member-tag {
+  display: inline-block;
+  margin-left: .6em;
+  padding: .18em .5em;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: var(--zw-price-member);
+  font-family: var(--fm, inherit);
+  font-size: .58rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* ── While the price is still unknown ──────────────────────────────────────
+   Not a spinner and not a zero: a block the size of the figure that is about
+   to replace it, so the page does not reflow when the answer lands. An
+   unknown price is never spelled as a number — the same rule the tax total
+   follows in checkout. */
+.zw-price-pending {
+  display: inline-block;
+  width: 5.5ch;
+  height: 1em;
+  vertical-align: baseline;
+  border-radius: 3px;
+  background: rgba(var(--fg-rgb, 244 241 235) / 0.10);
+  animation: zwPricePending 1.1s ease-in-out infinite;
+}
+
+@keyframes zwPricePending {
+  0%, 100% { opacity: .45; }
+  50%      { opacity: .85; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zw-price-pending { animation: none; }
+}

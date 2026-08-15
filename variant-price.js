@@ -117,6 +117,11 @@
      exceeding the figure it just displayed. */
   var _cache = {};      // productId -> { base, colours: [] }
   var _asked = {};      // productId -> true, so a redraw does not re-ask
+  /* productId -> the server has ANSWERED this page load (or the attempt has
+     definitively finished). Not the same as having a cached figure: the cache
+     is last week's answer, and a page that cannot tell those apart is a page
+     that prints a stale price with total confidence. See known() below. */
+  var _known = {};
 
   var STORE_KEY = 'zw_prices_v1';
   /* HOW OLD IS TOO OLD TO PAINT.
@@ -197,11 +202,50 @@
     return entry.base || null;
   }
 
+  /* HAS THE SERVER ANSWERED FOR THIS PRODUCT, THIS PAGE LOAD?
+     The page uses this to decide whether it may print a number at all. A
+     cached figure is not an answer — it is the answer to the last time
+     somebody asked, and on a store whose prices are being edited it is exactly
+     the number nobody wants to see again.
+
+     Same shape as checkout-tax.js's isKnown(): a figure the browser has not
+     been told is never rendered as though it had been. `false` here does not
+     mean "no price", it means "not yet", and the caller shows a placeholder
+     rather than guessing. */
+  function known(productId) {
+    return _known[String(productId || '')] === true;
+  }
+
+  /* Settle a set of ids and tell whoever drew a price to redraw.
+     Called on success, on failure and on timeout — a page waiting for an
+     answer that never comes must fall back, not wait forever. */
+  function settle(ids, changed) {
+    var flipped = false;
+    ids.forEach(function (id) {
+      if (!_known[id]) { _known[id] = true; flipped = true; }
+    });
+    /* Fired when the answer moved OR when it has just become known. Firing only
+       on `changed` was right while the page painted from cache and wrong the
+       moment it started waiting: the first answer of a page load frequently
+       MATCHES the cache, and the redraw that replaces the placeholder with a
+       real price is exactly that case. */
+    if (!changed && !flipped) return;
+    try {
+      window.dispatchEvent(new CustomEvent('zw:prices', { detail: { productIds: ids } }));
+    } catch (_) {}
+  }
+
   function ask(productIds) {
     var ids = (Array.isArray(productIds) ? productIds : [productIds])
       .map(String).filter(function (id) { return id && !_asked[id]; });
     if (!ids.length) return Promise.resolve(_cache);
     ids.forEach(function (id) { _asked[id] = true; });
+
+    /* A hung request must not leave a placeholder on screen indefinitely. At
+       this point the page gives up waiting and draws what it has — the cached
+       figure, or the catalogue price. That is the old behaviour, reached only
+       when the network has failed to answer. */
+    var timer = setTimeout(function () { settle(ids, false); }, 4000);
 
     var t = token();
     return fetch('/api/prices?productIds=' + encodeURIComponent(ids.join(',')), {
@@ -210,7 +254,8 @@
     })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
-        if (!j || !j.ok || !Array.isArray(j.products)) return _cache;
+        clearTimeout(timer);
+        if (!j || !j.ok || !Array.isArray(j.products)) { settle(ids, false); return _cache; }
         var changed = false;
         j.products.forEach(function (p) {
           var key = String(p.productId);
@@ -219,21 +264,48 @@
           _cache[key] = next;
         });
         saveCache();
-        /* Only when the answer actually MOVED. Firing regardless makes every
-           page load redraw its prices for nothing, which is the flash again
-           with an extra step. */
-        if (changed) {
-          try {
-            window.dispatchEvent(new CustomEvent('zw:prices', { detail: { productIds: ids } }));
-          } catch (_) {}
-        }
+        settle(ids, changed);
         return _cache;
       })
       .catch(function () {
         /* Leave the catalogue answer standing. A pricing read that fails must
            not blank a price or invent one. */
+        clearTimeout(timer);
+        settle(ids, false);
         return _cache;
       });
+  }
+
+  /* ── Ask as early as it is SAFE to ask ────────────────────────────────────
+     The request used to be fired only once the product had been fetched from
+     the database, so two round trips ran back to back and the placeholder — or,
+     before it, the wrong price — was on screen for the length of both. The
+     product id is in the URL, so the price can be asked for at the same time as
+     the product rather than after it.
+
+     On DOMContentLoaded rather than right now, and that timing is load-bearing:
+     the access token is read through ZWStock, which is a deferred script far
+     below this one. Asking before it exists would send the request with no
+     Authorization header, the server would answer as a GUEST, and a signed-in
+     member would be quoted the wrong price and then corrected — a worse flash
+     than the one being removed, and a harder one to notice. Deferred scripts
+     have all run by DOMContentLoaded. */
+  function askFromUrl() {
+    try {
+      var id = new URLSearchParams(location.search).get('id') || '';
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) ask(id);
+    } catch (_) {}
+  }
+  /* typeof, not a bare reference. The pricing RULE at the top of this file is
+     run directly by the parity test against its Worker twin, in an environment
+     with no document and no location — and a ReferenceError here would take
+     that whole comparison down over a line that has nothing to do with it. */
+  if (typeof document !== 'undefined' && typeof location !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', askFromUrl, { once: true });
+    } else {
+      askFromUrl();
+    }
   }
 
   window.ZWVariantPrice = {
@@ -242,6 +314,7 @@
     resolve: resolveVariantPrice,
     lowest: lowestPriceCents,
     ask: ask,
-    resolvedFor: resolvedFor
+    resolvedFor: resolvedFor,
+    known: known
   };
 })();
