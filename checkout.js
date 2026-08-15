@@ -461,25 +461,62 @@ async function getCheckoutAuthPayload() {
     if (!ids.length && !skus.length) return;
 
     const H = { apikey: SB_ANON, Authorization: 'Bearer ' + SB_ANON };
-    const sel = 'select=id,sku,current_price,member_price';   // products has no bare `price` column
+    const sel = 'select=id,sku,current_price,member_price,msrp';   // products has no bare `price` column
     const fetches = [];
     if (ids.length)  fetches.push(fetch(`${SB_URL}/rest/v1/products?${sel}&id=in.(${ids.join(',')})`, { headers: H }).then((r) => r.ok ? r.json() : []).catch(() => []));
     if (skus.length) fetches.push(fetch(`${SB_URL}/rest/v1/products?${sel}&sku=in.(${skus.join(',')})`, { headers: H }).then((r) => r.ok ? r.json() : []).catch(() => []));
-    const rows = (await Promise.all(fetches)).flat();
+
+    /* COLOURWAYS PRICE THEMSELVES (migration 0021), and this function decides
+       what the bag SHOWS. Re-pricing every line from the product alone would
+       rewrite a $250 limited colour down to the product's $220 — and then the
+       server, which does price by colour, would refuse the sale for exceeding
+       the displayed figure. The shopper sees a price, presses pay, and is told
+       the price changed, on an order where nothing changed.
+
+       An empty list is the correct fallback in every failure: no colour rows
+       means every line prices from its product, which is the behaviour that
+       preceded this feature. */
+    const colorFetch = ids.length
+      ? fetch(`${SB_URL}/rest/v1/color_variants?select=product_id,color_name,current_price,member_price,msrp&product_id=in.(${ids.join(',')})`,
+              { headers: H }).then((r) => r.ok ? r.json() : []).catch(() => [])
+      : Promise.resolve([]);
+
+    const [rows, colorRows] = await Promise.all([
+      Promise.all(fetches).then((a) => a.flat()),
+      colorFetch,
+    ]);
     if (!rows.length) return;
 
     const byId  = new Map(rows.map((p) => [String(p.id), p]));
     const bySku = new Map(rows.filter((p) => p.sku).map((p) => [String(p.sku), p]));
     const member = isLoggedIn();
 
+    /* Keyed product+colour, folded the same way colour is compared everywhere
+       else — a swatch writes "Bright Crimson" and a stale bag entry may hold
+       "bright crimson". */
+    const canon = (s) => String(s || '').trim().toLowerCase();
+    const byColor = new Map((Array.isArray(colorRows) ? colorRows : [])
+      .map((c) => [String(c.product_id) + '|' + canon(c.color_name), c]));
+
     let changed = false;
     for (const item of cart) {
       const p = byId.get(String(item.productId || '')) || bySku.get(String(item.sku || ''));
       if (!p) continue;   // product deleted — server rejects it at payment; leave display as-is
-      const regular = parseFloat(p.current_price);
-      const memberPrice = parseFloat(p.member_price);
+      const variant = byColor.get(String(p.id) + '|' + canon(item.colorName)) || null;
+
+      /* The one rule, shared with the Worker that decides the charge. Absent —
+         a page that forgot the script — falls back to the product, which is
+         what this did before colours could be priced. */
+      const priced = window.ZWVariantPrice
+        ? window.ZWVariantPrice.resolve(p, variant, member)
+        : null;
+      const regular     = priced ? priced.regularCents / 100 : parseFloat(p.current_price);
+      const memberPrice = priced ? priced.memberCents / 100  : parseFloat(p.member_price);
       if (!(regular > 0)) continue;
-      const next = (member && memberPrice > 0 && memberPrice < regular) ? memberPrice : regular;
+      const next = priced
+        ? priced.priceCents / 100
+        : ((member && memberPrice > 0 && memberPrice < regular) ? memberPrice : regular);
+
       if (parseFloat(item.regularPrice) !== regular) { item.regularPrice = regular; changed = true; }
       if (memberPrice > 0 && parseFloat(item.memberPrice) !== memberPrice) { item.memberPrice = memberPrice; changed = true; }
       if (parseFloat(item.price) !== next) { item.price = String(next); changed = true; }

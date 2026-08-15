@@ -32,6 +32,7 @@ import { fetchSiteSettings } from './_settings.js';
 import { normalizeStateCode, resolveTax } from './_tax.js';
 
 import { messagesFrom, shippedMessages } from './_messages.js';
+import { resolveVariantPrice } from './_variant-price.js';
 /* A rejection the shopper caused and can fix, tagged with the status it should
    actually carry.
 
@@ -209,6 +210,49 @@ function canonSize(value) {
  * at all, or the lookup failed) — the caller reads null as "no guard", matching
  * the page, which lets a product with no inventory configured be bought. Rows
  * that exist but do not match return 0, which blocks. */
+/**
+ * The colour row a cart line is for, or null.
+ *
+ * Only needed because a colourway may carry its own price (migration 0021).
+ * Returning null means "price this from the product", which is both the correct
+ * answer when the colour sets no price of its own and the correct FALLBACK when
+ * this lookup cannot be made:
+ *
+ *   • Before 0021 is applied the columns do not exist and the SELECT is
+ *     rejected. Falling back to the product price is exactly the behaviour that
+ *     preceded this feature, and no colour can carry a price yet anyway.
+ *   • If the lookup fails while a colour IS priced, the product price is used.
+ *     Higher than shown → the never-bill-above-the-quote guard downstream
+ *     refuses the sale loudly. Lower than shown → the shopper is charged less.
+ *     Neither silently overcharges, which is the only outcome that matters.
+ */
+async function fetchColorVariant(env, productId, colorName) {
+  const headers = catalogHeaders(env);
+  const wanted = String(colorName || '').trim();
+  if (!headers || !productId || !wanted) return null;
+
+  const url = `${env.SUPABASE_URL}/rest/v1/color_variants`
+    + `?product_id=eq.${encodeURIComponent(productId)}`
+    + `&select=color_name,current_price,member_price,msrp`;
+  const r = await fetch(url, { headers, cache: 'no-store' }).catch(() => null);
+  if (!r) return null;
+  if (!r.ok) {
+    /* 400 here is the ordinary state until 0021 is applied, so it is a warning
+       rather than an error — but it is logged, because after 0021 it would mean
+       colour prices silently not applying. */
+    console.warn(`fetchColorVariant: SELECT rejected (${r.status}) — pricing from the product`);
+    return null;
+  }
+  const rows = await r.json().catch(() => []);
+  if (!Array.isArray(rows)) return null;
+
+  /* Matched case- and space-insensitively, the same way the cart's colour is
+     compared everywhere else. "Bright Crimson" from a swatch and "bright
+     crimson" from a stale bag entry are the same colourway. */
+  const canon = (s) => String(s || '').trim().toLowerCase();
+  return rows.find((row) => canon(row.color_name) === canon(wanted)) || null;
+}
+
 async function fetchSizeStockQty(env, productId, size, colorName) {
   const headers = catalogHeaders(env);
   if (!headers || !productId || !size) return null;
@@ -290,11 +334,18 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
        the cart that has gone stale against the catalog. */
     if (!product) throw cartError(say('checkoutUnavailable', { title: raw?.title || raw?.name || productId || sku || 'unknown item' }), 409);
 
-    const regularCents = toCents(product.current_price ?? product.price);
-    const memberCents = toCents(product.member_price);
-    const priceCents = isMember && memberCents > 0 && (!regularCents || memberCents < regularCents)
-      ? memberCents
-      : regularCents;
+    /* What THIS COLOURWAY costs. Price used to be a product-level fact, so
+       every colour of a product cost the same and none could be discounted on
+       its own. A colour that sets its own price owns the whole set — regular,
+       member and compare-at — because falling back field by field would let a
+       $250 limited colour inherit the product's $35 member price. See
+       _variant-price.js.
+
+       Fetched by name rather than trusting anything the browser sent: the
+       colour is the only part of a cart line that selects a PRICE, so it is now
+       as load-bearing as the product id. */
+    const colorVariant = await fetchColorVariant(env, product.id, raw?.colorName);
+    const { priceCents } = resolveVariantPrice(product, colorVariant, isMember);
     /* A merchant data problem rather than a shopper one, but the shopper is the
        one standing at the till and the item genuinely cannot be sold, so it is
        reported as a cart conflict. It stays loud in the logs either way. */

@@ -9652,6 +9652,9 @@
                 <input type="text" class="form-input color-name-input color-name-${id}" placeholder="Color name" style="flex: 1;">
                 <input type="text" class="form-input color-hex-input color-hex-${id}" placeholder="#000000" maxlength="7" style="flex: 1;">
                 <input type="text" class="form-input color-rgb-input color-rgb-${id}" placeholder="0,0,0" style="flex: 1;">
+                <input type="number" step="0.01" min="0" class="form-input color-price-input color-price-${id}" placeholder="Price" title="Leave blank to use the product price. Setting it makes this colourway's own member price and MSRP apply too — including when they are blank." style="width:92px;">
+                <input type="number" step="0.01" min="0" class="form-input color-member-input color-member-${id}" placeholder="Member" title="Member price for this colourway. Only used when this row has its own price." style="width:92px;">
+                <input type="number" step="0.01" min="0" class="form-input color-msrp-input color-msrp-${id}" placeholder="MSRP" title="Compare-at price for this colourway. Only used when this row has its own price." style="width:92px;">
                 <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">Delete</button>
             `;
             container.appendChild(item);
@@ -9690,10 +9693,31 @@
                 // is invalid CSS and paints as transparent.
                 if (/^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(hexColor)) hexColor = '#' + hexColor;
 
+                /* A colourway may cost something different (migration 0021).
+                   BLANK means inherit from the product, and blank has to stay
+                   NULL rather than becoming 0 — a zero is a real number that
+                   makes the colour unsellable, and it would look identical in
+                   this box to having typed nothing.
+
+                   Setting the price makes THIS ROW's member price and MSRP
+                   apply, including when they are blank; the inputs say so on
+                   hover. Falling back field by field would let a $250 limited
+                   colour inherit the product's $35 member price and sell the
+                   dearer colour to members for less. */
+                const money = (sel) => {
+                    const raw = item.querySelector(sel)?.value;
+                    if (raw === undefined || String(raw).trim() === '') return null;
+                    const n = Number(raw);
+                    return Number.isFinite(n) && n > 0 ? n : null;
+                };
+
                 return {
                     color_name: colorName,
                     hex_color: hexColor,
-                    rgb_color: rgbColor
+                    rgb_color: rgbColor,
+                    current_price: money('.color-price-input'),
+                    member_price: money('.color-member-input'),
+                    msrp: money('.color-msrp-input')
                 };
             }).filter((entry) => entry.color_name || entry.hex_color || entry.rgb_color);
         }
@@ -12716,7 +12740,15 @@ function escapeAttr(value) {
                 }
                 const validColors = colorEntries
                     .map((c, i) => (c.color_name && c.hex_color)
-                        ? { product_id: productId, color_name: c.color_name, hex_color: c.hex_color, rgb_color: c.rgb_color, sort_order: i }
+                        ? {
+                            product_id: productId, color_name: c.color_name, hex_color: c.hex_color,
+                            rgb_color: c.rgb_color, sort_order: i,
+                            /* null, never 0 — blank means "inherit from the product",
+                               and a zero here would make the colourway unsellable. */
+                            current_price: c.current_price ?? null,
+                            member_price: c.member_price ?? null,
+                            msrp: c.msrp ?? null,
+                          }
                         : null)
                     .filter(Boolean);
                 let colorNameToId = {};
@@ -12956,6 +12988,18 @@ function escapeAttr(value) {
                         items[idx].querySelector('.color-name-input').value = color.color_name;
                         items[idx].querySelector('.color-hex-input').value = color.hex_color;
                         items[idx].querySelector('.color-rgb-input').value = color.rgb_color;
+                        /* Blank, not "0", when the colourway inherits. Writing a
+                           zero back into the box would turn "inherits from the
+                           product" into "costs nothing" on the next save — the
+                           edit-then-save round trip is where a null quietly
+                           becomes a number. */
+                        const put = (sel, v) => {
+                            const el = items[idx].querySelector(sel);
+                            if (el) el.value = (v === null || v === undefined || v === '') ? '' : String(v);
+                        };
+                        put('.color-price-input',  color.current_price);
+                        put('.color-member-input', color.member_price);
+                        put('.color-msrp-input',   color.msrp);
                         items[idx].querySelector('.color-swatch').style.backgroundColor = color.hex_color;
                     }
                 });

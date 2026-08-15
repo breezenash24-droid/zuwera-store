@@ -85,7 +85,7 @@ export function spokenForOn(requests, orderId) {
  * to set. The admin says plainly that the policy already promises 30 days and
  * that nothing holds the store to it until this is filled in.
  */
-export function returnWindowFrom(cfg) {
+export function returnWindowFrom(cfg, orderOps, orderId) {
   const r = (cfg && typeof cfg === 'object' && cfg.returns) || {};
   const days = Math.floor(Number(r.windowDays));
   const transit = Math.floor(Number(r.transitAllowanceDays));
@@ -95,7 +95,86 @@ export function returnWindowFrom(cfg) {
        order date so an order with no delivery record is judged from roughly
        when it would have arrived, not from when it was paid for. */
     transitDays: Number.isFinite(transit) && transit >= 0 ? Math.min(transit, 60) : 7,
+    /* This ORDER's own deadline, if an admin set one. See overrideFrom. */
+    openUntil: overrideFrom(orderOps, orderId),
   };
+}
+
+/**
+ * The date an admin set for one order, in ms, or null.
+ *
+ * WHY A DATE AND NOT A NUMBER OF DAYS. "Give them another 14 days" has to be
+ * counted from something, and every date bug in this file has come from two
+ * pieces of code disagreeing about which something. A date is what the admin
+ * actually means, it is what the customer can be told, and it does not change
+ * meaning later when the store-wide window is edited.
+ *
+ * It REPLACES the computed deadline rather than extending it, so the same field
+ * shortens a window as well as lengthening one — a final-sale item is a real
+ * case and it needs no second mechanism.
+ *
+ * Stored in commerce_order_ops, keyed by order id, beside the timeline that is
+ * already kept there. No migration: this is per-order admin state and that is
+ * where per-order admin state lives.
+ */
+export function overrideFrom(orderOps, orderId) {
+  const id = String(orderId || '').trim();
+  if (!id || !orderOps || typeof orderOps !== 'object') return null;
+  const entry = orderOps[id];
+  const raw = entry && typeof entry === 'object' ? entry.returnsOpenUntil : null;
+  if (!raw) return null;
+  const ms = Date.parse(raw);
+  /* Unparseable is treated as absent, not as expired. Everything in this window
+     check fails open on purpose; a typo in an override must not become a
+     refusal nobody can explain. */
+  return Number.isFinite(ms) ? ms : null;
+}
+
+/**
+ * When this order's return window shuts — the ONE answer, so the date an admin
+ * is shown is the date the rule enforces.
+ *
+ * It was computed inline inside returnEligibility, which meant the admin panel
+ * could only have told a customer a deadline by working it out a second time.
+ * Two implementations of a date is how the delivered-from-vs-placed-from
+ * confusion happened in the first place.
+ *
+ * Returns an object with three fields:
+ *   closesAt  ms, or null for "no deadline applies"
+ *   from      the date it was counted from, or null for an override
+ *   source    'override' | 'delivered' | 'placed' | 'none' — why that date, which
+ *             is what makes a refusal explainable
+ */
+export function returnClosesAt(order, opts) {
+  const o = opts || {};
+  /* `== null` deliberately, and checked BEFORE Number(). `Number(null)` is 0 and
+     `Number.isFinite(0)` is true, so testing the coerced value alone read "no
+     override" as "an override dated 1st January 1970" — which closes the window
+     on every order that has none. Absent has to stay absent rather than become
+     a number, the same rule as known:false never being spelled as a zero in the
+     refund ledger. */
+  const openUntil = o.openUntil == null ? null : Number(o.openUntil);
+  /* The override wins outright, including over an order with no usable dates at
+     all. An admin who typed a deadline has answered the question. */
+  if (openUntil !== null && Number.isFinite(openUntil)) {
+    return { closesAt: openUntil, from: null, source: 'override' };
+  }
+
+  const windowDays = Number(o.windowDays);
+  if (!Number.isFinite(windowDays) || windowDays <= 0) return { closesAt: null, from: null, source: 'none' };
+
+  const delivered = Date.parse((order && order.delivered_at) || '');
+  const placed    = Date.parse((order && order.created_at) || '');
+  const transitDays = Number.isFinite(Number(o.transitDays)) ? Number(o.transitDays) : 7;
+
+  if (Number.isFinite(delivered)) {
+    return { closesAt: delivered + windowDays * 86400000, from: delivered, source: 'delivered' };
+  }
+  if (Number.isFinite(placed)) {
+    const from = placed + transitDays * 86400000;
+    return { closesAt: from + windowDays * 86400000, from, source: 'placed' };
+  }
+  return { closesAt: null, from: null, source: 'none' };
 }
 
 /* Live requests are the ones still holding items. */
@@ -264,28 +343,31 @@ export function returnEligibility(order, requests, msg, opts) {
      to nonsense: allow the return. A wrongly refused return is a support email
      and a customer who does not come back; a wrongly allowed one costs a single
      item. Those are not the same mistake and should not be equally likely. */
-  const windowDays = Number(opts && opts.windowDays);
-  if (Number.isFinite(windowDays) && windowDays > 0) {
-    const delivered = Date.parse(order.delivered_at || '');
-    const placed    = Date.parse(order.created_at || '');
-    const transitAllowanceDays = Number.isFinite(Number(opts.transitDays)) ? Number(opts.transitDays) : 7;
-
-    const from = Number.isFinite(delivered) ? delivered
-      : (Number.isFinite(placed) ? placed + transitAllowanceDays * 86400000 : NaN);
-
-    if (Number.isFinite(from)) {
-      const closesAt = from + windowDays * 86400000;
-      if (Date.now() > closesAt) {
-        const daysAgo = Math.floor((Date.now() - from) / 86400000);
-        return {
-          ok: false,
-          code: 'window_closed',
-          reason: say('returnWindowClosed', { days: String(windowDays), ago: String(daysAgo) }),
-          availableItems: [],
-          windowClosedAt: new Date(closesAt).toISOString(),
-        };
-      }
-    }
+  /* AN ADMIN MAY OVERRIDE IT, per order. Support needs to be able to say yes to
+     "it arrived damaged and I was travelling" without switching the rule off
+     for everybody, and a rule with no exception is a rule that gets switched
+     off the first time it is inconvenient. The override is a DATE and it
+     replaces this calculation outright — see returnClosesAt. */
+  const { closesAt, from, source } = returnClosesAt(order, opts);
+  if (Number.isFinite(closesAt) && Date.now() > closesAt) {
+    /* An extended deadline that has itself run out is explained by its DATE.
+       Saying "returns are open for 30 days after delivery" to somebody who was
+       given until the 14th is a sentence they can disprove, and it makes the
+       exception look like a mistake. */
+    const reason = source === 'override'
+      ? say('returnWindowExtendedClosed', { date: new Date(closesAt).toISOString().slice(0, 10) })
+      : say('returnWindowClosed', {
+          days: String(Number(opts.windowDays)),
+          ago: String(Math.floor((Date.now() - from) / 86400000)),
+        });
+    return {
+      ok: false,
+      code: 'window_closed',
+      reason,
+      availableItems: [],
+      windowClosedAt: new Date(closesAt).toISOString(),
+      windowSource: source,
+    };
   }
 
   const mine = (Array.isArray(requests) ? requests : [])

@@ -111,10 +111,26 @@ console.log('\n  and it does not ask the server twice');
 
 console.log('\n  the rule itself still matches the server');
 {
-  /* Three copies of one expression — bag, checkout, server. They agree today;
-     this is what notices when one of them stops. */
+  /* Copies of one expression — bag, checkout, server. They agree today; this is
+     what notices when one of them stops.
+
+     The SERVER's copy moved out of _cart-pricing.js when colourways gained
+     their own prices (migration 0021): "which price applies" now depends on the
+     colour as well as on membership, so the rule lives in _variant-price.js and
+     is shared with the browser through variant-price.js. This assertion follows
+     it there rather than being loosened — the property is unchanged, only its
+     address. tests/variant-pricing.test.js runs the two implementations against
+     one table and fails on any disagreement, which is the stronger check;
+     leaving a stale regex here pointing at a file that no longer contains the
+     rule would have passed forever once someone deleted the line it matched. */
   const rule = /isMember && member(Price|Cents) > 0 && \(!regular(Price|Cents) \|\| member(Price|Cents) < regular(Price|Cents)\)/;
-  ok('the server picks the member price the same way', rule.test(SRV));
+  const VP = fs.readFileSync(path.join(ROOT, 'functions/api/_variant-price.js'), 'utf8');
+  const serverRule = /Boolean\(isMember\) && memberCents > 0 && \(!regularCents \|\| memberCents < regularCents\)/;
+  ok('the server picks the member price the same way', serverRule.test(VP),
+    'the rule lives in _variant-price.js since colourways gained their own prices');
+  ok('…and the cart path uses that shared rule rather than its own',
+    /resolveVariantPrice\(product, colorVariant, isMember\)/.test(SRV),
+    'a second derivation left in _cart-pricing.js is one some path will reach');
   ok('the bag does too', rule.test(BAG));
   ok('and the checkout', rule.test(CHTM));
 
