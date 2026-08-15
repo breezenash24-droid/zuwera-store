@@ -37,20 +37,49 @@ const BL = fs.readFileSync(path.join(ROOT, 'builder.html'), 'utf8');
 /* The real block, lifted and run against a body whose classes we can inspect.
    The whole point is which classes survive, so asserting on the source text
    would miss the case that matters — the one where nothing should happen. */
-const START = SF.indexOf("if (cfg.theme === 'light') {");
+const START = SF.indexOf('    _pageTheme = (cfg.theme');
 const END   = SF.indexOf('// Re-sync the status bar');
 if (START < 0 || END < START) { console.log('  ✗ could not find the theme block in storefront.js'); process.exit(1); }
 const SRC = SF.slice(START, END);
 
+/* The block no longer touches classes itself — it hands an id to
+   ZWTheme.apply(), which is the same call theme-engine.js makes for itself, so
+   the tokens travel with the classes. The stand-in below therefore does what
+   the real engine does: sets BOTH from the theme's base. That is the property
+   under test, and a stand-in that only moved classes would let the bug back. */
 function applyTheme(theme, startingClasses) {
   const set = new Set(startingClasses || []);
-  const document = { body: { classList: {
-    add: (...c) => c.forEach((x) => set.add(x)),
-    remove: (...c) => c.forEach((x) => set.delete(x)),
-    contains: (c) => set.has(c),
-  } } };
-  new Function('document', 'cfg', SRC)(document, theme === undefined ? {} : { theme });
-  return set;
+  const tokens = {};
+  const engine = {
+    _current: null,
+    current: () => engine._current,
+    apply: (id) => {
+      engine._current = id;
+      if (id === 'dark') { set.delete('light-mode'); set.delete('super-light-mode'); }
+      else if (id === 'light') { set.add('light-mode'); set.delete('super-light-mode'); }
+      else if (id === 'super-light') { set.add('light-mode'); set.add('super-light-mode'); }
+      tokens['--fg-rgb'] = id === 'dark' ? '244 241 235' : '10 10 10';
+      return true;
+    },
+  };
+  /* The lifted block ASSIGNS to _pageTheme and then calls applyPageTheme(), so
+     both have to be declared in the same scope as the code under test. Passing
+     them as parameters would not do: assigning to a parameter rebinds a local
+     and the helper would never see it. Declaring them in the generated body is
+     the honest way to run the real lines unmodified — the alternative was
+     rewriting SRC with regexes, which tests the rewrite rather than the code. */
+  const run = new Function('cfg', 'engine', `
+    let _pageTheme = null;
+    function applyPageTheme() {
+      if (!_pageTheme) return;
+      if (engine.current() === _pageTheme) return;
+      engine.apply(_pageTheme, false);
+    }
+${SRC}
+    return _pageTheme;
+  `);
+  run(theme === undefined ? {} : { theme }, engine);
+  return Object.assign(set, { tokens });
 }
 
 const LIGHT = ['light-mode'], SUPER = ['light-mode', 'super-light-mode'];
