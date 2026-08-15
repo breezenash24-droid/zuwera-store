@@ -536,6 +536,13 @@ const row = (o) => ({
     ok('a missing table is explained rather than shown as an empty screen',
       /apply migration 0022/i.test(UI));
     ok('approving asks first', /confirm\(/.test(UI));
+    /* The pending block renders at the TOP and the form is near the bottom, so
+       proposing left the one thing needing action off-screen — which reads as
+       nothing having happened. */
+    ok('proposing takes you to the thing you now have to approve',
+      /id="pricing-pending"/.test(UI) && /scrollIntoView/.test(UI));
+    ok('…and the block says self-approval is allowed, before you wonder',
+      /Approving your own proposal is allowed/.test(UI));
     ok('…and self-approval is reported back to the person who did it',
       /Recorded as self-approved/.test(UI),
       'the register records it; the person should not have to read the register to find out');
