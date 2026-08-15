@@ -131,6 +131,113 @@ async function writeAudit(env, row) {
   }
 }
 
+/* ── What things actually sold for ──────────────────────────────────────────
+ *
+ * A persisted order line is `{ sku, name, size, color, amount, quantity }`, and
+ * `amount` is in CENTS. It carries no product id — sku is the only identity —
+ * so the join back to the catalogue is by sku, and a line whose product has
+ * since been deleted still counts under its own name rather than vanishing.
+ *
+ * Exported so the arithmetic can be run over a table of orders in a test rather
+ * than only through the network.
+ */
+export function summariseSold(orders, products) {
+  const bySku = new Map((products || []).filter((p) => p && p.sku).map((p) => [String(p.sku), p]));
+
+  /* One bucket shape, three groupings. An average is only meaningful over the
+     units sold, not over the lines, so every bucket counts quantity — two
+     shirts on one line is two sales at that price, not one. */
+  const mk = () => ({ units: 0, revenueCents: 0, lowCents: 0, highCents: 0, orders: new Set(), prices: [] });
+  const add = (map, key, label, extra, line, orderId) => {
+    if (!key) return;
+    let b = map.get(key);
+    if (!b) { b = mk(); b.label = label; Object.assign(b, extra || {}); map.set(key, b); }
+    const cents = Math.max(0, Math.round(Number(line.amount) || 0));
+    const qty = Math.max(1, parseInt(line.quantity, 10) || 1);
+    b.units += qty;
+    b.revenueCents += cents * qty;
+    b.lowCents = b.lowCents === 0 ? cents : Math.min(b.lowCents, cents);
+    b.highCents = Math.max(b.highCents, cents);
+    b.orders.add(orderId);
+    /* Once per UNIT, not once per line. Two shirts on one line are two sales at
+       that price, and a median taken over lines would call $32.50 the middle of
+       "two at $30 and one at $35". Capped so a wholesale-sized quantity cannot
+       turn one line into an unbounded array. */
+    for (let n = 0; n < Math.min(qty, 500); n++) b.prices.push(cents);
+  };
+
+  const byProduct = new Map(), byColour = new Map(), byCategory = new Map();
+  const sales = [];
+  let counted = 0, skipped = 0;
+
+  for (const order of (orders || [])) {
+    const status = String(order && order.status || '').toLowerCase();
+    if (status === 'refunded' || status === 'cancelled') { skipped++; continue; }
+    let items = order && order.items;
+    if (typeof items === 'string') { try { items = JSON.parse(items); } catch (_) { items = null; } }
+    if (!Array.isArray(items) || !items.length) continue;
+    counted++;
+
+    for (const line of items) {
+      if (!line) continue;
+      const sku = String(line.sku || '').trim();
+      const product = bySku.get(sku);
+      const name = String(line.name || (product && product.title) || sku || 'Unknown');
+      const colour = String(line.color || '').trim();
+      /* "Uncategorised" rather than dropping the line: a product with no
+         category still sold, and a total that silently omits it is worse than
+         a bucket that admits what it is. */
+      const category = String((product && product.category) || '').trim() || 'Uncategorised';
+      const cents = Math.max(0, Math.round(Number(line.amount) || 0));
+      const qty = Math.max(1, parseInt(line.quantity, 10) || 1);
+
+      add(byProduct, sku || name, name, { sku, category, listedCents: Math.round((Number(product && product.current_price) || 0) * 100) }, line, order.id);
+      add(byColour, (sku || name) + ' | ' + (colour || '—'), name, { sku, colour: colour || '—' }, line, order.id);
+      add(byCategory, category, category, {}, line, order.id);
+
+      sales.push({
+        orderNumber: String(order.order_number || ''),
+        at: order.created_at || '',
+        sku, name, colour: colour || '', size: String(line.size || ''),
+        soldCents: cents, quantity: qty, lineCents: cents * qty,
+        category,
+      });
+    }
+  }
+
+  /* The median as well as the mean, because they answer different questions and
+     one discount weekend pulls the mean somewhere the median will not go. */
+  const median = (list) => {
+    if (!list.length) return 0;
+    const s = list.slice().sort((x, y) => x - y);
+    const mid = s.length >> 1;
+    return s.length % 2 ? s[mid] : Math.round((s[mid - 1] + s[mid]) / 2);
+  };
+
+  const finish = (map) => [...map.values()]
+    .map((b) => ({
+      label: b.label, sku: b.sku, colour: b.colour, category: b.category,
+      units: b.units,
+      orders: b.orders.size,
+      revenueCents: b.revenueCents,
+      avgCents: b.units ? Math.round(b.revenueCents / b.units) : 0,
+      medianCents: median(b.prices),
+      lowCents: b.lowCents, highCents: b.highCents,
+      listedCents: b.listedCents || 0,
+    }))
+    .sort((x, y) => y.revenueCents - x.revenueCents);
+
+  return {
+    products: finish(byProduct),
+    colours: finish(byColour),
+    categories: finish(byCategory),
+    /* Newest first, capped — the drill-down is for reading, not exporting. */
+    sales: sales.sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 500),
+    ordersCounted: counted,
+    ordersExcluded: skipped,
+  };
+}
+
 /* ── GET: the board ─────────────────────────────────────────────────────── */
 export async function onRequestGet({ request, env }) {
   try {
@@ -233,6 +340,33 @@ export async function onRequestGet({ request, env }) {
            rather than accepting a figure and appearing to apply it. */
         memberPricing: memberPricingOn,
       }, 200, cors(env));
+    }
+
+    /* ?sold=<days> — what things ACTUALLY sold for.
+       Every other figure on this screen is what the store INTENDS to charge.
+       This is the only one that is a fact: it reads the line items off paid
+       orders, where the amount was frozen at the moment the card went through.
+
+       Aggregated on the server rather than in the panel for the same reason the
+       quote is: an average is a number somebody will act on, and two
+       implementations of it will disagree the first time a refund is involved.
+
+       Refunded and cancelled orders are EXCLUDED. A refunded sale is not a sale,
+       and leaving it in makes the average of what customers paid include money
+       that was given back. */
+    const soldRaw = url.searchParams.get('sold');
+    if (soldRaw !== null) {
+      const days = Math.min(Math.max(parseInt(soldRaw, 10) || 365, 1), 3650);
+      const since = new Date(Date.now() - days * 86400000).toISOString();
+
+      const [orders, products] = await Promise.all([
+        fetch(`${base}orders?select=id,order_number,created_at,status,items&created_at=gte.${since}&order=created_at.desc&limit=2000`,
+              { headers: h, cache: 'no-store' }).then((r) => r.ok ? r.json() : []).catch(() => []),
+        fetch(`${base}products?select=id,sku,title,category,gender,current_price`,
+              { headers: h, cache: 'no-store' }).then((r) => r.ok ? r.json() : []).catch(() => []),
+      ]);
+
+      return json({ ok: true, sold: true, days, ...summariseSold(orders, products) }, 200, cors(env));
     }
 
     const [lists, prices, audit] = await Promise.all([

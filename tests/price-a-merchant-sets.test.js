@@ -147,23 +147,80 @@ const LISTS = [{ id: 'L-default', code: 'default', name: 'Default', priority: 0,
       'uuids sort by their random first bytes, so id-ordering picked the $30 row here');
   }
 
-  console.log('\n  …and the rules that outrank recency still do');
+  console.log('\n  …and repricing the PRODUCT reaches a colour priced earlier');
   {
-    const wide   = { id: 'r-wide', price_list_id: 'L-default', product_id: 'p-1', color_variant_id: null,
-      amount: 32, status: 'approved', created_at: '2026-08-14T00:00:00Z' };
+    /* THE RULE CHANGED HERE, deliberately. Specificity used to outrank recency,
+       so a colour price set once beat every later change to the product for
+       good: set crimson to $25 in August, move the whole product to $32 in
+       September, and crimson stayed $25 with nothing on screen to say why.
+       Asked for in the merchant's own words — "the most recent change to the
+       product price per configuration". */
     const colour = { id: 'r-colour', price_list_id: 'L-default', product_id: 'p-1', color_variant_id: 'v-1',
       amount: 25, status: 'approved', created_at: '2026-08-01T00:00:00Z' };
-    const hit = R.pickPrice({ rows: [wide, colour], lists: LISTS, productId: 'p-1', colorVariantId: 'v-1', shopper: R.shopperFor({}), now: NOW });
-    ok('a colour-specific row still beats a newer product-wide one', Number(hit.amount) === 25,
-      'recency is the LAST tie-break, not the first');
+    const wide   = { id: 'r-wide', price_list_id: 'L-default', product_id: 'p-1', color_variant_id: null,
+      amount: 32, status: 'approved', created_at: '2026-08-14T00:00:00Z' };
 
-    const scheduled = { id: 'r-sched', price_list_id: 'L-default', product_id: 'p-1', color_variant_id: null,
-      amount: 20, status: 'approved', starts_at: '2026-08-20T00:00:00Z', created_at: '2026-08-01T00:00:00Z' };
+    const hit = R.pickPrice({ rows: [wide, colour], lists: LISTS, productId: 'p-1', colorVariantId: 'v-1', shopper: R.shopperFor({}), now: NOW });
+    ok('the later product-wide change wins', Number(hit.amount) === 32, 'got ' + (hit && hit.amount));
+
+    /* And the other direction, which is how a colour is kept apart: set it
+       AFTER. Without this the rule would just be "product beats colour". */
+    const laterColour = { ...colour, id: 'r-colour-2', amount: 28, created_at: '2026-08-15T00:00:00Z' };
+    const back = R.pickPrice({ rows: [wide, laterColour], lists: LISTS, productId: 'p-1', colorVariantId: 'v-1', shopper: R.shopperFor({}), now: NOW });
+    ok('…and re-setting the colour afterwards takes it back', Number(back.amount) === 28);
+
+    /* The other colours are untouched by a colour row that does not name them. */
+    const other = R.pickPrice({ rows: [wide, laterColour], lists: LISTS, productId: 'p-1', colorVariantId: 'v-2', shopper: R.shopperFor({}), now: NOW });
+    ok('…while every other colour stays on the product price', Number(other.amount) === 32);
+
+    /* Nothing was deleted. End the newer row and the colour's own price is live
+       again — the promise that makes this reversible rather than destructive. */
+    const ended = { ...wide, ends_at: '2026-08-20T00:00:00Z' };
+    const after = R.pickPrice({ rows: [ended, colour], lists: LISTS, productId: 'p-1', colorVariantId: 'v-1', shopper: R.shopperFor({}), now: Date.parse('2026-09-01T12:00:00Z') });
+    ok('…and ending it brings the colour price back', Number(after.amount) === 25,
+      'superseded, not destroyed');
+  }
+
+  console.log('\n  …and a scheduled change still opens on its date, not before');
+  {
     const standing  = { id: 'r-stand', price_list_id: 'L-default', product_id: 'p-1', color_variant_id: null,
       amount: 32, status: 'approved', created_at: '2026-08-14T00:00:00Z' };
-    const s = R.pickPrice({ rows: [scheduled, standing], lists: LISTS, productId: 'p-1', shopper: R.shopperFor({}), now: NOW });
-    ok('…and a later START still beats a later write', Number(s.amount) === 20,
-      'a scheduled change supersedes the standing price the moment its window opens');
+    const scheduled = { id: 'r-sched', price_list_id: 'L-default', product_id: 'p-1', color_variant_id: null,
+      amount: 20, status: 'approved', starts_at: '2026-08-20T00:00:00Z', created_at: '2026-08-01T00:00:00Z' };
+
+    const before = R.pickPrice({ rows: [scheduled, standing], lists: LISTS, productId: 'p-1', shopper: R.shopperFor({}), now: Date.parse('2026-08-18T00:00:00Z') });
+    ok('before its date the standing price holds', Number(before.amount) === 32);
+
+    const after = R.pickPrice({ rows: [scheduled, standing], lists: LISTS, productId: 'p-1', shopper: R.shopperFor({}), now: NOW });
+    ok('…and from its date it supersedes', Number(after.amount) === 20,
+      'a row WRITTEN earlier but STARTING later must still win from its start — which is why '
+      + 'the comparison is on when a row took effect, not on when it was typed');
+  }
+
+  console.log('\n  …and "start now" means when it was written');
+  {
+    /* The substitution the whole ordering rests on. A blank start date read as
+       zero would rank "in effect since forever" below every dated row, so a
+       price scheduled a year ago would beat one set this morning. */
+    const old = { id: 'r-old', price_list_id: 'L-default', product_id: 'p-1', color_variant_id: null,
+      amount: 19, status: 'approved', starts_at: '2025-01-01T00:00:00Z', created_at: '2025-01-01T00:00:00Z' };
+    const fresh = { id: 'r-new', price_list_id: 'L-default', product_id: 'p-1', color_variant_id: null,
+      amount: 32, status: 'approved', created_at: '2026-08-14T00:00:00Z' };
+    const hit = R.pickPrice({ rows: [old, fresh], lists: LISTS, productId: 'p-1', shopper: R.shopperFor({}), now: NOW });
+    ok('an undated row set today beats a dated one from last year', Number(hit.amount) === 32,
+      'got ' + (hit && hit.amount));
+  }
+
+  console.log('\n  …and specificity still settles a same-instant tie');
+  {
+    const at = '2026-08-14T00:00:00Z';
+    const wide   = { id: 'r-w', price_list_id: 'L-default', product_id: 'p-1', color_variant_id: null,
+      amount: 32, status: 'approved', created_at: at };
+    const colour = { id: 'r-c', price_list_id: 'L-default', product_id: 'p-1', color_variant_id: 'v-1',
+      amount: 25, status: 'approved', created_at: at };
+    const hit = R.pickPrice({ rows: [wide, colour], lists: LISTS, productId: 'p-1', colorVariantId: 'v-1', shopper: R.shopperFor({}), now: NOW });
+    ok('the colour wins when both took effect at the same moment', Number(hit.amount) === 25,
+      'a bulk edit writes several rows in one second, and naming a colour is the more specific instruction');
   }
 
   /* ── 4. What /api/prices sends the page ──────────────────────────────────── */

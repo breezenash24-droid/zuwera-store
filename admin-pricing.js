@@ -128,6 +128,143 @@
     if (_loaded) render();
   }
 
+  /* ── What things actually sold for ────────────────────────────────────────
+     Every other figure on this screen is what the store INTENDS to charge.
+     This block is the only one that is a fact — the amount frozen on the line
+     when the card went through. Loaded on demand rather than with the page,
+     because it reads orders and most visits here are to set a price, not to
+     study one. */
+  let _sold = null, _soldDays = 90, _soldTab = 'products', _soldBusy = false;
+
+  window.pricingLoadSold = async function (days) {
+    if (_soldBusy) return;
+    _soldBusy = true;
+    if (typeof days === 'number') _soldDays = days;
+    const host = $('pricing-sold');
+    if (host) host.innerHTML = '<p style="color:var(--text-secondary);font-size:.82rem;margin:0;">Reading orders…</p>';
+    try {
+      _sold = await api('GET', null, '?sold=' + _soldDays);
+    } catch (err) {
+      _sold = null;
+      if (host) host.innerHTML = '<p style="color:var(--error,#ef4444);font-size:.82rem;margin:0;">'
+        + escapeHtml(err.message || 'Could not read orders.') + '</p>';
+      _soldBusy = false;
+      return;
+    }
+    _soldBusy = false;
+    paintSold();
+  };
+
+  window.pricingSoldTab = function (tab) { _soldTab = tab; paintSold(); };
+
+  function paintSold() {
+    const host = $('pricing-sold');
+    if (!host) return;
+    if (!_sold) { host.innerHTML = ''; return; }
+
+    const rows = (_sold[_soldTab] || []);
+
+    if (!rows.length) {
+      host.innerHTML = soldControls()
+        + `<p style="color:var(--text-secondary);font-size:.82rem;margin:.6rem 0 0;">
+             Nothing sold in the last ${_soldDays} days.${_sold.ordersExcluded
+               ? ' ' + _sold.ordersExcluded + ' refunded or cancelled order' + (_sold.ordersExcluded === 1 ? '' : 's') + ' excluded.'
+               : ''}
+           </p>`;
+      return;
+    }
+
+    /* AGAINST is the column this screen exists for: the gap between what the
+       product is listed at now and what it has actually been going out at. */
+    const body = rows.map((r) => {
+      const gap = r.listedCents ? r.avgCents - r.listedCents : 0;
+      /* Only BELOW is tinted. Selling above today's list price is not an error —
+         it means the price came down after those sales — so colouring it green
+         would read as a win when it is just history. Below is the actionable
+         one: listed at $32, going out at $30. */
+      const gapCell = r.listedCents
+        ? `<span style="color:${gap < 0 ? '#f59e0b' : 'var(--text-secondary)'};">${
+            gap === 0 ? 'on list' : (gap < 0 ? '−' : '+') + money(Math.abs(gap))}</span>`
+        : '<span style="color:var(--text-secondary);">—</span>';
+      return `<tr>
+        <td>${escapeHtml(r.label)}${r.colour ? ' <span style="color:var(--text-secondary);">' + escapeHtml(r.colour) + '</span>' : ''}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums;">${r.units}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">${money(r.avgCents)}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums;">${money(r.medianCents)}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text-secondary);">${
+          r.lowCents === r.highCents ? '—' : money(r.lowCents) + '–' + money(r.highCents)}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums;">${gapCell}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums;">${money(r.revenueCents)}</td>
+      </tr>`;
+    }).join('');
+
+    host.innerHTML = soldControls()
+      + `<div style="overflow-x:auto;margin-top:.6rem;">
+        <table class="products-table" style="width:100%;font-size:.82rem;">
+          <thead><tr>
+            <th>${_soldTab === 'categories' ? 'Category' : (_soldTab === 'colours' ? 'Product · colour' : 'Product')}</th>
+            <th style="text-align:right;">Units</th>
+            <th style="text-align:right;">Average</th>
+            <th style="text-align:right;">Median</th>
+            <th style="text-align:right;">Range</th>
+            <th style="text-align:right;">vs list</th>
+            <th style="text-align:right;">Revenue</th>
+          </tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>
+      <div style="font-size:.75rem;color:var(--text-secondary);margin-top:.5rem;line-height:1.6;">
+        Averaged over units sold, not over orders. Refunded and cancelled orders are excluded${
+          _sold.ordersExcluded ? ' (' + _sold.ordersExcluded + ' here)' : ''}.
+        “vs list” compares the average against the product's price today, so a minus sign means it
+        has been going out below what it is listed at.
+      </div>`
+      + soldDetail();
+  }
+
+  function soldControls() {
+    const range = (d, label) => `<button type="button" onclick="pricingLoadSold(${d})"
+        aria-current="${_soldDays === d ? 'true' : 'false'}"
+        style="padding:.25rem .6rem;border:1px solid var(--border);background:${_soldDays === d ? 'var(--bg-primary)' : 'transparent'};
+               color:inherit;font:inherit;font-size:.76rem;border-radius:6px;cursor:pointer;
+               ${_soldDays === d ? 'font-weight:600;' : 'opacity:.7;'}">${label}</button>`;
+    const tab = (id, label) => `<button type="button" onclick="pricingSoldTab('${id}')"
+        aria-current="${_soldTab === id ? 'true' : 'false'}"
+        style="padding:.3rem .7rem;border:1px solid var(--border);background:${_soldTab === id ? 'var(--bg-primary)' : 'transparent'};
+               color:inherit;font:inherit;font-size:.8rem;border-radius:6px;cursor:pointer;
+               ${_soldTab === id ? 'font-weight:600;' : 'opacity:.7;'}">${label}</button>`;
+    return `<div style="display:flex;flex-wrap:wrap;gap:.9rem;align-items:center;justify-content:space-between;">
+        <div style="display:flex;gap:.35rem;">${tab('products', 'By product')}${tab('colours', 'By colourway')}${tab('categories', 'By category')}</div>
+        <div style="display:flex;gap:.35rem;">${range(30, '30d')}${range(90, '90d')}${range(365, '1y')}${range(3650, 'All')}</div>
+      </div>`;
+  }
+
+  /* Every individual sale, because an average with nothing behind it is a
+     number you cannot check. */
+  function soldDetail() {
+    const sales = (_sold && _sold.sales) || [];
+    if (!sales.length) return '';
+    return `<details style="margin-top:.8rem;">
+      <summary style="cursor:pointer;font-size:.82rem;color:var(--text-secondary);">
+        Every sale (${sales.length}${sales.length === 500 ? ', most recent' : ''})
+      </summary>
+      <div style="overflow-x:auto;margin-top:.5rem;">
+        <table class="products-table" style="width:100%;font-size:.8rem;">
+          <thead><tr><th>When</th><th>Order</th><th>Item</th><th style="text-align:right;">Sold at</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Line</th></tr></thead>
+          <tbody>${sales.map((s) => `<tr>
+            <td style="white-space:nowrap;color:var(--text-secondary);">${escapeHtml(String(s.at).replace('T', ' ').slice(0, 16))}</td>
+            <td style="white-space:nowrap;">${escapeHtml(s.orderNumber || '—')}</td>
+            <td>${escapeHtml(s.name)}${s.colour ? ' <span style="color:var(--text-secondary);">' + escapeHtml(s.colour) + '</span>' : ''}${
+              s.size ? ' <span style="color:var(--text-secondary);">· ' + escapeHtml(s.size) + '</span>' : ''}</td>
+            <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">${money(s.soldCents)}</td>
+            <td style="text-align:right;font-variant-numeric:tabular-nums;">${s.quantity}</td>
+            <td style="text-align:right;font-variant-numeric:tabular-nums;">${money(s.lineCents)}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </details>`;
+  }
+
   function listName(id) {
     const l = _lists.find((x) => String(x.id) === String(id));
     return l ? (l.name || l.code) : '—';
@@ -204,6 +341,15 @@
         </div>
       </div>
 
+      <div class="zw-eyebrow" style="margin:1.75rem 0 .6rem;">What things sold for</div>
+      <p style="font-size:.82rem;color:var(--text-secondary);margin:0 0 .7rem;line-height:1.6;">
+        Everything else on this screen is what you intend to charge. This is what customers
+        actually paid, taken from the amount frozen on each order line.
+      </p>
+      <div id="pricing-sold">
+        <button class="btn btn-secondary btn-sm" onclick="pricingLoadSold()">Show sold prices</button>
+      </div>
+
       <div class="zw-eyebrow" style="margin:1.75rem 0 .6rem;">Price lists</div>
       ${listsTable()}
 
@@ -221,6 +367,10 @@
     /* The member caveat starts hidden in the markup, so its visibility has to
        be settled once after every render — not only when a field is touched. */
     if (_pick) window.pricingRefreshCurrent();
+    /* Re-paint the sold block if it was already open. render() rewrites the
+       whole panel, so without this, picking a product after loading it threw the
+       figures away and put the button back. */
+    if (_sold) paintSold();
 
     const search = $('pricing-search');
     if (search) {
