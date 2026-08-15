@@ -1475,6 +1475,21 @@ body.light-mode .low-stock-badge {
   --zw-price-member: rgba(var(--fg-rgb, 244 241 235) / 0.75);
 }
 
+/* THE SAVING IS THE ONE PRICE COLOUR THAT CANNOT FOLLOW THE GROUND, because it
+   is a hue rather than a shade of the text — so it needs a value per mode like
+   every other colour here. #22c55e is 8.7:1 on the dark ground and 2.0:1 on the
+   light one: on a light store the only coloured thing on the page was also the
+   least readable thing on it, which a contrast check caught after this file had
+   shipped three times.
+
+   Declared on body rather than :root so the mode class and the token sit on the
+   same element — the same reason base.css puts the alpha ladder there. A theme
+   that sets its own priceOff still wins: the engine writes it inline. */
+body.light-mode,
+body.super-light-mode {
+  --zw-price-off: #137a36;
+}
+
 .zw-price-now {
   color: var(--zw-price-now);
   font-variant-numeric: tabular-nums;
