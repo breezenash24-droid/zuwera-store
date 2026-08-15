@@ -199,6 +199,106 @@ incident — by the time they hurt, they have been wrong for weeks.
 
 ---
 
+## 13. Testing a price change before it reaches customers
+
+Prices are the one area where "try it and see" costs real money, because
+**approving a price row is live immediately** — there is no staging copy of the
+catalogue. Work outwards from the checks that cannot touch a customer.
+
+### The safe order
+
+**Applying the migrations is not the risky step.** 0021 and 0022 are additive and
+inert: every column is nullable, no row is seeded with a price, and the resolver
+falls back to the catalogue whenever nothing applies. Applying them changes no
+price. The risky step is *approving a row*, which happens later and on purpose.
+
+### 1. Before you deploy anything — check the arithmetic
+
+```
+node scripts/price-check.js --product 220 --colour 176.97
+node scripts/price-check.js --product 220 --member 198 --colour 250 --as member
+node scripts/price-check.js --product 220 --list sale:176.97:5@2026-09-20..2026-09-27 --on 2026-09-25
+```
+
+This runs the **real resolver** — the same module the checkout imports — against a
+scenario you type. It answers "what would we charge", names which rule won, and
+shows why a row did not apply (`outside its window`, `not this shopper`,
+`proposed`). Use it to sanity-check any change you are about to approve.
+
+`npm test` covers the same rules exhaustively; this is for a specific case you
+are about to make real.
+
+### 2. Apply the migrations, then prove nothing moved
+
+Admin → APIs → Database migrations → Check → Apply pending. Then in the Supabase
+SQL editor:
+
+```sql
+select count(*) filter (where current_price is not null) as priced_colours,
+       count(*) as colourways from color_variants;     -- priced_colours = 0
+select count(*) from prices;                            -- 0
+select code, active, priority from price_lists;         -- default (on), members (OFF)
+```
+
+If any of those is non-zero, stop — something wrote prices you did not intend.
+
+### 3. Test the workflow without changing a price
+
+On the Pricing page, propose a change **with a start date in the future**. Then:
+
+- The storefront must be unchanged (it is not approved).
+- Approve it. The storefront must **still** be unchanged (its window has not opened).
+- The Register shows the movement, the old figure, and `self-approved` if you were
+  also the proposer.
+
+This exercises propose → approve → register end to end and cannot alter a price.
+
+### 4. Test the real path on a product no customer can reach
+
+Set a product's status to **draft** and use that as the subject. Then:
+
+- Price a colourway on the product form, or approve a list row starting now.
+- Product page: click between swatches — the price and the struck-through
+  compare-at must change with the colour.
+- Add to bag → the bag must show the **same** figure.
+- Open checkout → the summary must show the same figure again.
+
+The bag is where this breaks: `refreshCartCatalogPrices` re-prices from the
+catalogue on load, and if it ignored colour a dearer colourway would display low
+and then be **refused at checkout** by the never-bill-above-shown guard.
+
+### 5. The charge itself — test mode only
+
+Switch `STRIPE_SECRET_KEY` and the publishable key to their `sk_test_` /
+`pk_test_` pair in Cloudflare, redeploy, and confirm the checkout shows
+**"Test mode active"**. Pay with `4242 4242 4242 4242`, any future expiry, any CVC.
+
+Then confirm all four (see *Before you call it fixed*): payment in Stripe, order
+row, confirmation email, stock decremented — and additionally that
+`orders.total` equals the figure the summary showed.
+
+**Switch the keys back afterwards.** A store left on test keys takes no money and
+looks completely healthy; `/api/webhook-check` reports `stripe_mode` if you are
+unsure which you are on.
+
+### What you cannot test without a real charge
+
+A live capture, a live PayPal capture, and a real Stripe Tax calculation. Test
+mode exercises every code path but Stripe's own live rails.
+
+### If a shopper reports a price they did not expect
+
+```sql
+select at, actor_email, action, product_title, color_name,
+       from_amount, to_amount, starts_at, ends_at, self_approved
+  from price_audit order by at desc limit 50;
+```
+
+That is the whole point of the register — it answers who, when, and from what,
+which `admin_audit_log` cannot do for prices.
+
+---
+
 ## Rolling back
 
 Cloudflare Pages → Deployments → the last known-good build → **Rollback**. This is
