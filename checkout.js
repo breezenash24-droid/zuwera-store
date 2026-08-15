@@ -477,7 +477,13 @@ async function getCheckoutAuthPayload() {
        means every line prices from its product, which is the behaviour that
        preceded this feature. */
     const colorFetch = ids.length
-      ? fetch(`${SB_URL}/rest/v1/color_variants?select=product_id,color_name,current_price,member_price,msrp&product_id=in.(${ids.join(',')})`,
+      /* `id` IS LOAD-BEARING, and leaving it out is why checkout showed the
+         product-wide price for a colour that had its own. resolvedFor() matches
+         the server's per-colour answer by variant id; without the column,
+         `variant.id` was undefined on every row, the lookup fell through to the
+         product-wide figure, and a $30 colourway displayed as $32 while the
+         till — which finds the colour by NAME — charged $30. */
+      ? fetch(`${SB_URL}/rest/v1/color_variants?select=id,product_id,color_name,current_price,member_price,msrp&product_id=in.(${ids.join(',')})`,
               { headers: H }).then((r) => r.ok ? r.json() : []).catch(() => [])
       : Promise.resolve([]);
 
@@ -523,10 +529,17 @@ async function getCheckoutAuthPayload() {
       /* The one catalogue rule, shared with the Worker. Absent — a page that
          forgot the script — falls back to the product, which is what this did
          before colours could be priced. */
+      /* Every figure from the server, including the member one.
+         regularCents used to be filled from compare-at, which is a DIFFERENT
+         number — the was-price, not the price without a member discount. The
+         bag then rendered that as the line total, which is how a $30 line came
+         to read $40. memberCents was hardcoded to 0 because /api/prices did not
+         send one; it does now, and forcing it to zero meant a member was
+         repriced to the guest figure on every render. */
       const priced = fromServer && fromServer.priceCents > 0
-        ? { regularCents: fromServer.compareAtCents && fromServer.compareAtCents > fromServer.priceCents
-              ? fromServer.compareAtCents : fromServer.priceCents,
-            memberCents: 0, priceCents: fromServer.priceCents }
+        ? { regularCents: Number(fromServer.regularCents) || fromServer.priceCents,
+            memberCents: Number(fromServer.memberPriceCents) || 0,
+            priceCents: fromServer.priceCents }
         : (window.ZWVariantPrice ? window.ZWVariantPrice.resolve(p, variant, member) : null);
       const regular     = priced ? priced.regularCents / 100 : parseFloat(p.current_price);
       const memberPrice = priced ? priced.memberCents / 100  : parseFloat(p.member_price);

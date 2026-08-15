@@ -1527,6 +1527,40 @@
   function bagCart() {
     try { return JSON.parse(localStorage.getItem('cart') || '[]') || []; } catch (_) { return []; }
   }
+
+  /* ── What a bag line actually costs ───────────────────────────────────────
+     This panel printed item.price straight out of localStorage — the figure
+     frozen at the moment the thing was added. So it went on showing yesterday's
+     price after a price change, and the catalogue price to a member, on the one
+     control a shopper opens to check what they are about to spend.
+
+     It asks the server instead, through the same module the product page and
+     checkout use. The colour is matched by NAME because that is all a cart line
+     carries, and it is the same key the till uses when it resolves the colour
+     for the charge. Falls back to the stored figure until the answer lands, and
+     if it never lands — which is the number the page had before. */
+  function bagAskPrices(cart) {
+    if (!window.ZWVariantPrice || typeof window.ZWVariantPrice.ask !== 'function') return;
+    var ids = [];
+    (cart || []).forEach(function (i) {
+      var id = String((i && i.productId) || '');
+      if (id && ids.indexOf(id) < 0) ids.push(id);
+    });
+    if (ids.length) { try { window.ZWVariantPrice.ask(ids); } catch (_) {} }
+  }
+
+  function bagLineCents(item) {
+    var stored = Math.round((Number(item && item.price) || 0) * 100);
+    var VP = window.ZWVariantPrice;
+    if (!VP || typeof VP.resolvedForColor !== 'function') return stored;
+    var hit = VP.resolvedForColor(item && item.productId, item && item.colorName);
+    return (hit && hit.priceCents > 0) ? hit.priceCents : stored;
+  }
+
+  /* The panel redraws itself when the server's answer arrives, the same way the
+     product page does — otherwise the correction only appears the next time
+     somebody happens to reopen the bag. */
+  window.addEventListener('zw:prices', function () { if (_bagPanel) renderBagPanel(); });
   function bagMoney(n) {
     var v = Number(n) || 0;
     return '$' + (Number.isInteger(v) ? v : v.toFixed(2));
@@ -1693,7 +1727,10 @@
   function renderBagPanel() {
     var cart = bagCart();
     var user = bagUser();
-    var total = cart.reduce(function (n, i) { return n + (Number(i.price) || 0) * (Number(i.quantity) || 1); }, 0);
+    bagAskPrices(cart);
+    /* Totalled from the RESOLVED figure, not the stored one, so the header
+       and the lines under it can never disagree. */
+    var total = cart.reduce(function (n, i) { return n + (bagLineCents(i) / 100) * (Number(i.quantity) || 1); }, 0);
 
     var items = cart.length ? '<div class="zwf-bag-items">' + cart.slice(0, 6).map(function (i) {
       var meta = [i.color, i.size].filter(Boolean).join(' · ');
@@ -1702,7 +1739,7 @@
         + '<img class="zwf-bag-thumb" src="' + esc(i.image || '') + '" alt="" loading="lazy">'
         + '<div><div class="zwf-bag-nm">' + esc(i.title || 'Item') + '</div>'
         + (meta || qty ? '<div class="zwf-bag-meta">' + esc(meta) + qty + '</div>' : '') + '</div>'
-        + '<div class="zwf-bag-price">' + bagMoney((Number(i.price) || 0) * (Number(i.quantity) || 1)) + '</div></a>';
+        + '<div class="zwf-bag-price">' + bagMoney((bagLineCents(i) / 100) * (Number(i.quantity) || 1)) + '</div></a>';
     }).join('') + (cart.length > 6 ? '<a class="zwf-bag-meta" style="text-decoration:none;color:inherit" href="/bag.html">+ ' + (cart.length - 6) + ' more</a>' : '') + '</div>'
       : '<p class="zwf-bag-empty">Your bag is empty.</p>';
 
