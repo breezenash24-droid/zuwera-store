@@ -173,5 +173,80 @@ console.log('\n  the snippet and the engine agree');
     && /classList\.toggle\('super-light-mode', theme\.base === 'super-light'\)/.test(engine));
 }
 
+console.log('\n  the engine does not undo what the build stamped');
+{
+  /* THE BUG THIS CATCHES, and it is the reason "it still glitches on refresh".
+     stamp-theme-default.js bakes light-mode onto <body> so the first frame is
+     right for a visitor with no localStorage. theme-engine.js then ran with
+     config.default = 'dark' — a guess, made before it has spoken to the
+     database — and apply() called classList.toggle('light-mode', false), which
+     STRIPPED the stamped class. The sequence on every cache-less load was:
+     correct first paint, engine repaints it wrong, fetch puts it back. The
+     stamp fixed the flash and the engine reintroduced it one step later.
+
+     This RUNS the engine. The class list at the end is what a visitor sees. */
+  const engineSrc = fs.readFileSync(path.join(ROOT, 'theme-engine.js'), 'utf8');
+
+  const run = (bodyClasses, store) => {
+    const classes = new Set(String(bodyClasses || '').split(/\s+/).filter(Boolean));
+    const mkStyle = () => {
+      const p = {};
+      return { setProperty: (k, v) => { p[k] = v; }, removeProperty: (k) => { delete p[k]; },
+               _p: p, backgroundColor: '', background: '' };
+    };
+    const classList = {
+      contains: (c) => classes.has(c),
+      toggle: (c, on) => { if (on) classes.add(c); else classes.delete(c); },
+      add: (c) => classes.add(c), remove: (c) => classes.delete(c),
+    };
+    const body = { classList, style: mkStyle(), setAttribute: () => {}, removeAttribute: () => {} };
+    const root = { style: mkStyle(), setAttribute: () => {}, removeAttribute: () => {},
+                   classList: { toggle: () => {}, contains: () => false, add: () => {}, remove: () => {} } };
+    const doc = {
+      body, documentElement: root,
+      querySelector: () => null, querySelectorAll: () => [],
+      addEventListener: (ev, fn) => { if (ev === 'DOMContentLoaded') fn(); },
+      createElement: () => ({ style: {}, setAttribute: () => {} }),
+      head: { appendChild: () => {} },
+    };
+    const win = { addEventListener: () => {}, dispatchEvent: () => {}, CustomEvent: function () {} };
+    /* The fetch never resolves. That is the window being tested: what the page
+       looks like between the engine running and the network answering. */
+    const fetchStub = () => new Promise(() => {});
+    new Function('window', 'document', 'localStorage', 'fetch', 'CustomEvent', 'location', engineSrc)(
+      win, doc, {
+        getItem: (k) => (Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null),
+        setItem: (k, v) => { store[k] = v; },
+      }, fetchStub, win.CustomEvent, { pathname: '/product' });
+    return classes;
+  };
+
+  const stamped = 'zw-theme-stamp light-mode super-light-mode';
+
+  const cold = run(stamped, {});
+  ok('a stamped super-light page stays light with no cache', cold.has('light-mode'),
+    'apply() toggled it off against config.default = "dark", which is a guess made before the fetch');
+  ok('…and stays super-light too', cold.has('super-light-mode'));
+
+  const coldLight = run('zw-theme-stamp light-mode', {});
+  ok('a stamped light page stays light', coldLight.has('light-mode'));
+  ok('…and is not promoted to super-light', !coldLight.has('super-light-mode'));
+
+  /* The parts that must NOT change. */
+  const darkShipped = run('', {});
+  ok('an unstamped page is still dark', !darkShipped.has('light-mode'),
+    'a dark store stamps no class at all, and must not be turned light by this');
+
+  const chose = run(stamped, { zw_theme_mode: 'dark' });
+  ok('a visitor who PICKED dark still gets dark', !chose.has('light-mode'),
+    'the stamp is what shipped, not an override of somebody\'s choice');
+
+  const warm = run(stamped, {
+    zw_theme_modes: JSON.stringify({ default: 'dark', modes: [{ id: 'dark', base: 'dark', tokens: {} }] }),
+  });
+  ok('a real cached config still wins over the stamp', !warm.has('light-mode'),
+    'the stamp is a fallback for knowing nothing, not a veto on knowing something');
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
