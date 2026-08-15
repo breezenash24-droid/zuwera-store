@@ -390,7 +390,38 @@
   var cached = readCache();
   if (cached) config = normalise(cached);
 
+  /* WHAT THE BUILD ALREADY DECIDED, read back off <body>.
+     stamp-theme-default.js bakes the store's default theme onto <body> at build
+     time so the FIRST frame is right for a visitor with no localStorage. That
+     class is the only thing standing between such a visitor and a page of
+     near-white text on a white ground. */
+  function shippedBase() {
+    var b = document.body;
+    if (!b || !b.classList) return '';
+    if (b.classList.contains('super-light-mode')) return 'super-light';
+    if (b.classList.contains('light-mode')) return 'light';
+    return '';
+  }
+
   function resolveAndApply() {
+    /* WITH NO CACHE THERE IS NOTHING TO RESOLVE FROM, and config.default is
+       'dark' — a guess, made by a file that has not spoken to the database yet.
+       Applying it called classList.toggle('light-mode', false) and STRIPPED the
+       class the build had baked in, so the sequence on every cache-less load
+       was: correct first paint, then this file repainting it wrong, then the
+       fetch putting it back a few hundred milliseconds later. The stamp fixed
+       the flash and the engine reintroduced it, one step further along.
+
+       So when this file knows nothing, it defers to what shipped rather than
+       guessing over it. A visitor who actually PICKED a theme is still honoured
+       — chosenId() is consulted first, below. */
+    if (!cached) {
+      var shipped = shippedBase();
+      if (shipped) {
+        var match = config.modes.filter(function (m) { return m && m.base === shipped; })[0];
+        if (match) config.default = match.id;
+      }
+    }
     var theme = byId(chosenId())
              || byId(themeForPath(location.pathname))
              || byId(config.default)
