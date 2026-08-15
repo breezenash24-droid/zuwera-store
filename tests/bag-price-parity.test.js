@@ -148,17 +148,36 @@ function loadModule(payload) {
 
   console.log('\n  the bag panel follows the theme');
   {
-    /* .zwf-bag-panel reads --zw-page / --zw-ink. Those are declared statically
-       in storefront-cohesion.css — :root carries a LIGHT pair and only
-       body.super-light-mode overrides them — so in dark mode the panel opened
-       as a cream card with dark text under a dark header. */
-    ok('the engine drives the panel tokens',
-      /set\('--zw-page', t\.bg \? 'rgb\(' \+ t\.bg \+ '\)' : ''\);/.test(ENGINE)
-      && /set\('--zw-ink', t\.fg \? 'rgb\(' \+ t\.fg \+ '\)' : ''\);/.test(ENGINE),
-      'the theme reached the page and stopped at the panel');
-    ok('…from the same triplets as everything else',
-      /set\('--fg-rgb', t\.fg\);/.test(ENGINE) && /set\('--bg-rgb', t\.bg\);/.test(ENGINE),
-      'a second source for the same colour is how they drift apart');
+    /* THE FIRST ATTEMPT AT THIS BROKE TEXT ACROSS THE WHOLE SITE, and this test
+       asserted the broken thing.
+
+       The panel read --zw-page / --zw-ink, which are static literals in
+       storefront-cohesion.css, so in dark mode it opened as a cream card with
+       dark text under a dark header. I made theme-engine.js set them from the
+       theme's fg/bg. But --zw-ink is not a semantic "foreground": it is a
+       LITERAL near-black, read as `color:` in 21 rules and as `background:` in
+       8. Pointing it at the theme's foreground turned every one of those 21
+       into near-white text in dark mode, on surfaces that had stayed light —
+       invisible copy on the homepage, the product page and the collection.
+
+       A token used in BOTH roles has no single theme-aware value. The fix is
+       not to make that token cleverer; it is for the panel to read the two
+       tokens that mean exactly one thing each. */
+    ok('the panel reads the unambiguous triplets',
+      /\.zwf-bag-panel\{background:rgb\(var\(--bg-rgb/.test(PANEL)
+      && /color:rgb\(var\(--fg-rgb/.test(PANEL),
+      'the ground is the page ground and the text is the page text — one meaning each');
+    ok('…and so does the search panel beside it',
+      /\.zwf-search-panel\{background:rgb\(var\(--bg-rgb/.test(PANEL),
+      'they are the same drawer in two costumes; fixing one and not the other is how they drift');
+    ok('…with a fallback for a page that never loaded the theme',
+      /--bg-rgb, 9 9 11/.test(PANEL) && /--fg-rgb, 244 241 235/.test(PANEL));
+    ok('the engine does NOT drive --zw-ink or --zw-page',
+      !/set\('--zw-ink'/.test(ENGINE) && !/set\('--zw-page'/.test(ENGINE),
+      'this is the change that broke the site; the comment where it was says why');
+    ok('…and the reason is written where the next person will look',
+      /--zw-ink AND --zw-page ARE NOT SET HERE/.test(ENGINE),
+      'a removed line leaves no trace, and the next person makes the same change');
   }
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
