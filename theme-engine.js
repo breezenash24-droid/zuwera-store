@@ -260,6 +260,21 @@
     set('--white', t.paper);
     set('--zw-theme-surface', t.surface);
     set('--accent', t.accent);
+
+    /* ── Price colours ──────────────────────────────────────────────────────
+       A markdown is a claim a store makes, and stores want to make it in their
+       own palette — green for a saving reads as a bargain, red reads as urgent,
+       and the accent reads as "us". These are theme tokens rather than hard
+       -coded so that says whatever the store wants without editing product.css.
+
+       Absent, product.css's own defaults stand: the struck figure recedes, the
+       saving is the only element that earns a colour, and the price itself
+       inherits the page text so it never fights the theme. A store that never
+       opens this gets a sensible treatment rather than an unstyled one. */
+    set('--zw-price-now', t.priceNow);
+    set('--zw-price-was', t.priceWas);
+    set('--zw-price-off', t.priceOff);
+    set('--zw-price-member', t.priceMember);
     set('--err', t.err);
     /* Optional, and the fallback matters: every nav rule reads
        var(--zw-nav-bg, <its old value>), so clearing these returns the header

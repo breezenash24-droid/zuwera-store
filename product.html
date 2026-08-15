@@ -93,7 +93,7 @@
 <script src="/flags.js?v=5dc05f38" defer></script>
 <script src="fit-finder.js?v=f5cdcd6f" defer></script>
 <script src="/storefront-features.js?v=a00109b1" defer></script>
-<script src="/variant-price.js?v=7dc98783"></script>
+<script src="/variant-price.js?v=0f61b79e"></script>
 <script src="/attribution.js?v=7ecae669" defer></script>
 <script src="/meta-pixel.js?v=4919f284" defer></script>
 <script src="/google-tag.js?v=fdfca537" defer></script>
@@ -117,7 +117,7 @@
 <link rel="stylesheet" href="base.css?v=bb88d7da">
 <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
 <link rel="stylesheet" href="nav.css?v=da3af1da">
-<link rel="stylesheet" href="product.css?v=cebf612f">
+<link rel="stylesheet" href="product.css?v=dfec09eb">
 <link rel="stylesheet" href="cart.css?v=e6db1b08">
 <!-- reviews.css styles only below-the-fold review content + hidden review
      modals, so load it non-render-blocking (matches index.html). reviews-vibe.css
@@ -2980,41 +2980,72 @@ function syncProductSaveButton() {
 
 function renderPrice() {
   const p = resolvedPrices(currentProduct);
-  const current   = p.regularCents / 100;
   /* The SELECTED COLOUR's compare-at, not the product's. A colourway with its
-     own price inherits no msrp, so reading currentProduct.msrp here would strike
-     through a figure this colour never cost and advertise a discount nobody is
-     offering. */
-  const msrp      = p.msrpCents / 100;
-  const member    = p.memberCents / 100;
+     own price inherits no compare-at, so reading currentProduct.msrp here would
+     strike through a figure this colour never cost and advertise a saving
+     nobody is offering. */
   const effective = p.priceCents / 100;
-  const usingMemberPrice = p.usingMember;
 
-  document.getElementById('priceDisplay').innerHTML = effective > 0
-    ? `$${effective.toFixed(2)}`
+  /* WHAT TO STRIKE THROUGH. One question, asked once.
+
+     It used to be two labelled lines — "MSRP: $230" or "Regular: $40.00" —
+     and neither word means anything to a shopper. MSRP is a trade term, and
+     "Regular" invited the question "regular compared to what?". Every store
+     that sells at a discount shows the same three things instead: what you
+     pay, what it was, and how much less that is. The number carries the
+     meaning, so the label can go.
+
+     The compare-at is whichever is HIGHER of the colourway's compare-at and
+     the price this shopper would otherwise have paid. A member looking at a
+     $35 member price on a $40 product should see $40 struck through; a guest
+     looking at a $176.97 sale price on a $220 product should see $220. Taking
+     the higher of the two means one rule covers both rather than a branch per
+     case — and a branch per case is how the old version ended up able to show
+     "Regular" beside a price that was not a member discount at all. */
+  const wasCents = Math.max(p.msrpCents || 0, p.usingMember ? (p.regularCents || 0) : 0);
+  const was = wasCents / 100;
+  const saving = was > effective && was > 0
+    /* FLOOR, not round. 12.5% rounds up to 13, and a store that advertises a
+       bigger saving than it is giving has made a claim it cannot back — the
+       shopper can do the subtraction. Rounding down understates it by less
+       than a percent and is always defensible. */
+    ? Math.floor(((was - effective) / was) * 100)
+    : 0;
+
+  const el = (id) => document.getElementById(id);
+
+  el('priceDisplay').innerHTML = effective > 0
+    ? `<span class="zw-price-now">$${effective.toFixed(2)}</span>`
     : 'Price TBA';
 
-  const comparePrice = usingMemberPrice ? current : msrp;
-  const compareLabel = usingMemberPrice ? 'Regular' : 'MSRP';
+  /* Struck-through figure and the saving sit together on one line, because
+     they are one statement. A percentage with nothing beside it is a claim
+     with no evidence.
 
-  if (comparePrice && comparePrice > effective) {
-    document.getElementById('msrpDisplay').innerHTML = `
-      ${compareLabel}: <strike>$${comparePrice.toFixed(2)}</strike>
-    `;
-  } else {
-    document.getElementById('msrpDisplay').innerHTML = '';
-  }
+     Rounded, and only shown from 1% — a "0% off" badge on a five-cent
+     difference is worse than no badge, and it is what an unrounded
+     calculation produces on a rounding artefact. */
+  el('msrpDisplay').innerHTML = saving >= 1
+    ? `<span class="zw-price-was">$${was.toFixed(2)}</span>`
+      + `<span class="zw-price-off">${saving}% off</span>`
+    : '';
 
-  if (member && member < current && !usingMemberPrice) {
-    document.getElementById('memberPrice').innerHTML = `Member Price: $${member.toFixed(2)}`;
-  } else if (usingMemberPrice) {
-    document.getElementById('memberPrice').innerHTML = 'Member savings applied';
+  /* The member line says only what is TRUE. It used to print "Member savings
+     applied" whenever the catalogue rule picked a member price, so it appeared
+     beside a price-list figure that had discounted nothing. */
+  const member = (p.memberCents || 0) / 100;
+  const regular = (p.regularCents || 0) / 100;
+  if (p.usingMember) {
+    el('memberPrice').innerHTML = '<span class="zw-price-member">Member price</span>';
+  } else if (member > 0 && member < regular) {
+    el('memberPrice').innerHTML = `<span class="zw-price-member">Members pay $${member.toFixed(2)}</span>`;
   } else {
-    document.getElementById('memberPrice').innerHTML = '';
+    el('memberPrice').innerHTML = '';
   }
 
   syncProductSaveButton();
 }
+
 
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 // RENDER GALLERY
@@ -5579,7 +5610,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 
 <!-- Language selector -->
 <script src="modal-lock.js?v=fb1f304f"></script>
-<script src="/theme-engine.js?v=aad6a167" defer></script>
+<script src="/theme-engine.js?v=dc6b612b" defer></script>
 <script src="/motion.js?v=5b9cc123" defer></script>
 <script src="/icon-sets.js?v=e0ed4bcb" defer></script>
 <script src="storefront-theme.js?v=91e56ca9" defer></script>
