@@ -306,6 +306,46 @@ const row = (o) => ({
       'fixing a typo in a description must not also allow taking 40% off it');
     ok('both routes demand it',
       /requireAdmin\(request, env, 'pricing_write'\)/.test(ADMIN));
+
+    /* RUN IT. The assertion above matched happily while the route was calling
+       verifyAdmin(request, env) — whose real signature is (env, accessToken).
+       That made the Request object the `env`, so the first read of
+       env.SUPABASE_URL threw "Supabase is not configured for commerce
+       features." and the page reported a configuration problem that did not
+       exist. A regex over the call site cannot see an argument order; only
+       calling the thing can.
+
+       Stubbed so the auth check FAILS: the interesting part is which failure
+       comes back. "Not authorised" means the handler got a real env and got as
+       far as checking a token. Anything about configuration means it did not. */
+    const A = await import(pathToFileURL(path.join(ROOT, 'functions/api/admin-prices.js')).href);
+    const realFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async () => ({ ok: false, status: 401, json: async () => ({}), text: async () => '' });
+      const env = { SUPABASE_URL: 'https://db.test', SUPABASE_SERVICE_ROLE_KEY: 'k', SITE_URL: 'https://zuwera.store' };
+      const req = new Request('https://zuwera.store/api/admin-prices', {
+        headers: { Authorization: 'Bearer not-a-real-token' },
+      });
+      const resp = await A.onRequestGet({ request: req, env });
+      const body = await resp.json().catch(() => ({}));
+      ok('an unauthenticated GET is refused as UNAUTHORISED',
+        /not authoris/i.test(String(body.error || '')),
+        'got: ' + JSON.stringify(body));
+      ok('…not as a configuration problem',
+        !/not configured/i.test(String(body.error || '')),
+        'this is what a wrong argument order looks like from the outside, and it sends you to check Cloudflare env vars that are fine');
+
+      const post = await A.onRequestPost({
+        request: new Request('https://zuwera.store/api/admin-prices', {
+          method: 'POST', headers: { Authorization: 'Bearer x', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'propose' }),
+        }), env,
+      });
+      const postBody = await post.json().catch(() => ({}));
+      ok('and so is an unauthenticated POST',
+        /not authoris/i.test(String(postBody.error || '')) && !/not configured/i.test(String(postBody.error || '')),
+        'got: ' + JSON.stringify(postBody));
+    } finally { globalThis.fetch = realFetch; }
   }
 
   console.log('\n  the browser is never told how to price');

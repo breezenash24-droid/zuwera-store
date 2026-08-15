@@ -41,10 +41,17 @@ function H(env) {
   return { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' };
 }
 
+/* verifyAdmin's signature is (env, accessToken) and it returns the admin object
+   or NULL — it does not return {ok}. Getting that wrong is not a small mistake:
+   passing (request, env) makes the Request object the `env`, so the first thing
+   that reads env.SUPABASE_URL throws "Supabase is not configured for commerce
+   features." and the page reports a configuration problem that does not exist.
+   Copied from admin-returns.js, which is the working shape. */
 async function requireAdmin(request, env, capability) {
-  const admin = await verifyAdmin(request, env);
-  if (!admin?.ok) throw new Error(admin?.error || 'Not authorised.');
-  if (capability && !permsHave(admin.perms, capability)) {
+  const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  const admin = await verifyAdmin(env, token);
+  if (!admin) throw new Error('Not authorised.');
+  if (capability && !permsHave(admin.permissions, capability)) {
     throw new Error('Your role does not have permission for this action.');
   }
   return admin;
@@ -104,7 +111,7 @@ async function writeAudit(env, row) {
 /* ── GET: the board ─────────────────────────────────────────────────────── */
 export async function onRequestGet({ request, env }) {
   try {
-    await requireAdmin(request, env, 'pricing_write');
+    const admin = await requireAdmin(request, env, 'pricing_write');
     const h = H(env);
     if (!h) return json({ ok: false, error: 'Not configured.' }, 503, cors(env));
     const base = env.SUPABASE_URL + '/rest/v1/';
@@ -127,7 +134,7 @@ export async function onRequestGet({ request, env }) {
       audit: audit || [],
       /* So the panel can show "you proposed this" without a second round trip,
          and so self-approval can be labelled before it is committed. */
-      you: (await verifyAdmin(request, env)).profile?.email || '',
+      you: admin.profile?.email || admin.email || '',
     }, 200, cors(env));
   } catch (e) {
     return json({ ok: false, error: e?.message || 'Could not load pricing.' }, 400, cors(env));
@@ -139,7 +146,9 @@ export async function onRequestPost({ request, env }) {
   try {
     const admin = await requireAdmin(request, env, 'pricing_write');
     const actor = admin.profile?.email || admin.email || '';
-    const actorId = admin.profile?.id || admin.userId || null;
+    /* verifyAdmin spreads the auth user, so `admin.id` is the user id. `userId`
+       was never a field on it — it would have made every audit row anonymous. */
+    const actorId = admin.profile?.id || admin.id || null;
     const body = await request.json().catch(() => ({}));
     const action = String(body.action || '').trim();
     const h = H(env);
