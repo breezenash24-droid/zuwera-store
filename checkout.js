@@ -481,6 +481,13 @@ async function getCheckoutAuthPayload() {
               { headers: H }).then((r) => r.ok ? r.json() : []).catch(() => [])
       : Promise.resolve([]);
 
+    /* Ask the server for the resolved price of everything in the bag, in ONE
+       request, before deciding what to display. Without this the bag shows the
+       catalogue figure while the till charges the price-list one. */
+    if (window.ZWVariantPrice && ids.length) {
+      try { await window.ZWVariantPrice.ask(ids); } catch (_) {}
+    }
+
     const [rows, colorRows] = await Promise.all([
       Promise.all(fetches).then((a) => a.flat()),
       colorFetch,
@@ -504,12 +511,23 @@ async function getCheckoutAuthPayload() {
       if (!p) continue;   // product deleted — server rejects it at payment; leave display as-is
       const variant = byColor.get(String(p.id) + '|' + canon(item.colorName)) || null;
 
-      /* The one rule, shared with the Worker that decides the charge. Absent —
-         a page that forgot the script — falls back to the product, which is
-         what this did before colours could be priced. */
-      const priced = window.ZWVariantPrice
-        ? window.ZWVariantPrice.resolve(p, variant, member)
+      /* The SERVER's figure when it has arrived — it is the only thing that
+         knows about price lists, effective dates and customer groups (0022).
+         This is the path that decides what the bag DISPLAYS, and the server
+         decides what is charged: a list price above the catalogue one shown
+         here means checkout refuses the sale for exceeding its own quote. */
+      const fromServer = window.ZWVariantPrice
+        ? window.ZWVariantPrice.resolvedFor(p.id, variant && variant.id)
         : null;
+
+      /* The one catalogue rule, shared with the Worker. Absent — a page that
+         forgot the script — falls back to the product, which is what this did
+         before colours could be priced. */
+      const priced = fromServer && fromServer.priceCents > 0
+        ? { regularCents: fromServer.compareAtCents && fromServer.compareAtCents > fromServer.priceCents
+              ? fromServer.compareAtCents : fromServer.priceCents,
+            memberCents: 0, priceCents: fromServer.priceCents }
+        : (window.ZWVariantPrice ? window.ZWVariantPrice.resolve(p, variant, member) : null);
       const regular     = priced ? priced.regularCents / 100 : parseFloat(p.current_price);
       const memberPrice = priced ? priced.memberCents / 100  : parseFloat(p.member_price);
       if (!(regular > 0)) continue;

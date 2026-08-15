@@ -405,6 +405,49 @@ const row = (o) => ({
       /create policy "prices are server-side"[\s\S]{0,120}using \(false\)/.test(MIG));
   }
 
+  console.log('\n  what the SHOPPER sees consults the price lists too');
+  {
+    /* THE AUDIT FINDING. The charge path resolved through the price lists and
+       no display did: an approved row of $30 meant the product page showed $35
+       (the catalogue member price) while the card was charged $30. Harmless in
+       that direction. The same gap with a list price ABOVE the catalogue one is
+       a checkout that refuses the sale for exceeding the figure it displayed —
+       the never-bill-above-the-quote guard firing on a price we set ourselves.
+
+       Every surface that renders a price a shopper acts on has to ask. */
+    const VP   = fs.readFileSync(path.join(ROOT, 'variant-price.js'), 'utf8');
+    const PROD = fs.readFileSync(path.join(ROOT, 'product.html'), 'utf8');
+    const CO   = fs.readFileSync(path.join(ROOT, 'checkout.js'), 'utf8');
+
+    ok('the browser can ask, and read the answer synchronously',
+      /ask: ask/.test(VP) && /resolvedFor: resolvedFor/.test(VP),
+      'six call sites read the price mid-render — the reader has to be sync, like ZWCheckoutTax');
+    ok('…and announces it so a drawn price can be redrawn',
+      /new CustomEvent\('zw:prices'/.test(VP));
+    ok('…without inventing one when the read fails',
+      /Leave the catalogue answer standing/.test(VP));
+    ok('…sending the shopper\'s token so member pricing is theirs, not a guess',
+      /storedAccessToken/.test(VP));
+
+    ok('the product page asks', /ZWVariantPrice\.ask\(currentProduct\.id\)/.test(PROD));
+    ok('…prefers the server answer over the catalogue one',
+      /ZWVariantPrice\.resolvedFor\(/.test(PROD));
+    ok('…and redraws when it lands', /addEventListener\('zw:prices'/.test(PROD));
+
+    ok('the bag asks before it re-prices', /await window\.ZWVariantPrice\.ask\(ids\)/.test(CO));
+    ok('…in one request for the whole cart, not one per line',
+      /ask\(ids\)/.test(CO) && /productIds=/.test(VP),
+      'a round trip per row is what the cart already avoids for its own pricing context');
+    ok('…and uses it in preference to the catalogue', /fromServer && fromServer\.priceCents > 0/.test(CO));
+
+    /* The endpoint has to answer for several products at once or the cart
+       cannot ask in one request. */
+    ok('the endpoint takes a list of products', /productIds/.test(PUBLIC) && /slice\(0, 25\)/.test(PUBLIC),
+      'uncapped, a crafted URL turns one request into an unbounded scan');
+    ok('…and still answers a single one in the old shape',
+      /productId: first\.productId/.test(PUBLIC) && /base: first\.base/.test(PUBLIC));
+  }
+
   console.log('\n  the charge path');
   {
     const code = CART.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
