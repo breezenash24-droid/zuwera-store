@@ -12,14 +12,16 @@
     if (meta) meta.setAttribute('content', navBg);
     document.documentElement.style.backgroundColor = navBg;
   }
-  try {
-    var _m = localStorage.getItem('zw_theme_mode') || localStorage.getItem('zw_homepage_theme_mode');
-    if (_m === 'light') {
-      document.body.classList.add('light-mode');
-    } else if (_m === 'super-light') {
-      document.body.classList.add('light-mode', 'super-light-mode');
-    }
-  } catch(_) {}
+  /* NO CLASS WRITING HERE ANY MORE. This used to add light-mode from
+     localStorage, and it was the third writer of the same two classes:
+     additive-only (so it could never correct a wrong one), and comparing
+     against the built-in ids 'light'/'super-light' (so it did nothing at all
+     the moment anybody made a theme of their own).
+
+     index.html applies the classes immediately after <body> opens, from
+     data-zw-base, which the <head> snippet resolves out of the cached config —
+     so it works for custom themes and runs earlier than this did. Anything here
+     could only contradict it. */
   syncThemeColor();
   window.__zwSyncThemeColor = syncThemeColor;
 })();
@@ -749,6 +751,37 @@ function showToast(msg) {
      of the pairing is a second place for it to be wrong. */
   window.zwSectionFgForBg = sectionFgForToken;
 
+  /* The builder's explicit theme for THIS page, or null for "follow the site".
+     Kept rather than applied once, because theme-engine.js re-applies when its
+     network fetch lands — and without re-asserting, that late re-apply silently
+     replaces the page's own theme with the store default. */
+  var _pageTheme = null;
+
+  function applyPageTheme() {
+    if (!_pageTheme) return;                       // blank means the engine owns it
+    var T = window.ZWTheme;
+    if (!T || typeof T.apply !== 'function') return;
+    /* Already there. This is also what stops a loop: apply() dispatches
+       zw-theme-applied, which calls straight back into here. */
+    if (typeof T.current === 'function' && T.current() === _pageTheme) return;
+    T.apply(_pageTheme, false);
+  }
+  /* theme-engine.js announces every apply, including the late one after its
+     fetch resolves. That is the moment the page theme has to be re-asserted. */
+  window.addEventListener('zw-theme-applied', applyPageTheme);
+
+  /* ONE DOOR, for every source that has an opinion about this page's theme.
+     There were four writers of the same two classes — this file's boot block,
+     the builder config, the admin Appearance setting, and the theme engine —
+     and only the engine also wrote the matching tokens. Any of the other three
+     landing last produced classes and colours from different themes, which is
+     what made the footer disappear. They all come through here now. */
+  window.__zwSetPageTheme = function (id) {
+    _pageTheme = (id === 'light' || id === 'super-light' || id === 'dark') ? id : null;
+    applyPageTheme();
+    if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
+  };
+
   function applyBuilderConfig(cfg) {
     if (!cfg || !cfg.sections) return;
 
@@ -797,14 +830,29 @@ function showToast(msg) {
 
        Now: only an explicit choice is applied. Blank means the theme engine
        owns the classes and this leaves them alone. */
-    if (cfg.theme === 'light') {
-      document.body.classList.add('light-mode');
-      document.body.classList.remove('super-light-mode');
-    } else if (cfg.theme === 'super-light') {
-      document.body.classList.add('light-mode','super-light-mode');
-    } else if (cfg.theme === 'dark') {
-      document.body.classList.remove('light-mode','super-light-mode');
-    }
+    /* THROUGH THE ENGINE, NOT AROUND IT — and this is the fix for a page that
+       rendered with light-mode classes over dark-mode tokens.
+
+       This block used to toggle the two CLASSES and set no tokens. But
+       theme-engine.js writes its tokens INLINE ON <body>, and an inline
+       declaration beats `body.light-mode { --fg-rgb: … }`. So the two of them
+       could disagree, and on the homepage they did: the engine applied the
+       store's dark theme (dark tokens inline, light classes removed), then this
+       ran a moment later — it is async, off __zwReapplyBuilder and the builder
+       postMessage — and put the light classes back on top of the dark tokens.
+
+       The result was a page whose classes said light and whose colours said
+       dark. Every `body.light-mode .thing { color: #09090b }` rule then painted
+       near-black text onto a near-black ground: the footer vanished completely,
+       and the header came out white with the wrong text colour on it.
+
+       ZWTheme.apply moves the tokens and the classes together, because it is
+       the same call the engine makes for itself. `false` means do not remember:
+       a per-page theme set in the builder is not the visitor choosing one, and
+       writing it to their saved choice would follow them to every other page. */
+    _pageTheme = (cfg.theme === 'light' || cfg.theme === 'super-light' || cfg.theme === 'dark')
+      ? cfg.theme : null;
+    applyPageTheme();
     // Re-sync the status bar. syncThemeColor() runs once at boot and reads the body
     // classes, which at that point come only from localStorage — so a first-time
     // visitor (or anyone in incognito) has none, it resolves to #09090b, and
@@ -2578,12 +2626,12 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
     // builder's own theme buttons drive the preview.
     if (settings.theme !== undefined && !window.__ZW_BUILDER_PREVIEW__) {
         const mode = settings.theme && settings.theme.mode === 'dark' ? 'dark' : settings.theme && settings.theme.mode === 'super-light' ? 'super-light' : 'light';
-        if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
-        else {
-          document.body.classList.toggle('light-mode', mode === 'light' || mode === 'super-light');
-          document.body.classList.toggle('super-light-mode', mode === 'super-light');
-          if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
-        }
+        /* Through the engine, so the tokens move with the classes. The old else
+           branch toggled the classes alone, which on this page meant the admin
+           Appearance setting could put light-mode on a body still carrying the
+           engine's dark tokens — near-black text on a near-black ground. */
+        if (window.__zwSetPageTheme) window.__zwSetPageTheme(mode);
+        else if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
         // Persist the resolved mode so the synchronous <head> flash-prevention
         // script (which reads zw_homepage_theme_mode || zw_theme_mode before first
         // paint) renders the correct background on the NEXT load — no dark flash.

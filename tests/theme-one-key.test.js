@@ -69,8 +69,19 @@ console.log('\n  the legacy key is read, never written');
 
   const store = fs.readFileSync(path.join(ROOT, 'storefront.js'), 'utf8');
   ok('the builder theme now sets the SITE theme', /setItem\('zw_theme_mode', themeMode\)/.test(store));
-  ok('…and still reads the old one as a fallback',
-    /getItem\('zw_theme_mode'\) \|\| localStorage\.getItem\('zw_homepage_theme_mode'\)/.test(store));
+
+  /* THE FALLBACK READ MOVED, and this assertion moved with it.
+     It used to live in storefront.js's boot block, which added the theme
+     classes from localStorage. That block is gone — it was one of four writers
+     of the same two classes and the only one that could not correct a wrong
+     value, which is how a page ended up wearing light-mode classes over
+     dark-mode tokens. The read now happens in the pre-paint snippet in each
+     page, which runs earlier and toggles rather than adds. A visitor whose only
+     stored theme is the old homepage key must still get it. */
+  const home = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  ok('…and the old key is still read, in the pre-paint snippet',
+    /getItem\('zw_theme_mode'\)\s*\|\|\s*localStorage\.getItem\('zw_homepage_theme_mode'\)/.test(home),
+    'dropping it would silently reset the theme for anyone who has not been back since it was renamed');
 }
 
 console.log('\n  one default, not three');
