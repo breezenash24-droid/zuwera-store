@@ -57,6 +57,30 @@
       if(_tt.navBg)h.style.setProperty('--zw-nav-bg',_tt.navBg);
       if(_tt.bg)h.style.background='rgb('+_tt.bg+')';
       if(_tm.base&&_tm.base!=='dark')h.style.colorScheme='light';
+      /* The COLOUR tokens, not just the ground. Without these the page
+         painted a light background while every var(--fg-rgb) rule still held
+         the dark theme's near-white text — light on light until
+         theme-engine.js ran. A refresh hid it because the second load has
+         that file in cache and it executes before first paint. */
+      if(_tt.fg)h.style.setProperty('--fg-rgb',_tt.fg);
+      if(_tt.bg)h.style.setProperty('--bg-rgb',_tt.bg);
+      if(_tt.ink)h.style.setProperty('--ink',_tt.ink);
+      if(_tt.paper)h.style.setProperty('--paper',_tt.paper);
+      if(_tt.surface)h.style.setProperty('--surface',_tt.surface);
+      if(_tt.accent)h.style.setProperty('--accent',_tt.accent);
+      if(_tt.bg)h.style.setProperty('--black','rgb('+_tt.bg+')');
+      if(_tt.fg)h.style.setProperty('--white','rgb('+_tt.fg+')');
+      /* And the body class, the moment <body> exists. Hundreds of rules are
+         written as `body.light-mode .thing`, and none of them fire without
+         it. document.body is null here — this runs in <head> — so it is
+         applied at the first opportunity rather than waiting for the
+         deferred engine. Idempotent: apply() toggles the same classes. */
+      h.setAttribute('data-zw-base',_tm.base||'dark');
+      (function(){var go=function(){if(!document.body)return false;
+        document.body.classList.toggle('light-mode',_tm.base!=='dark');
+        document.body.classList.toggle('super-light-mode',_tm.base==='super-light');
+        return true;};
+        if(!go())document.addEventListener('readystatechange',go,{once:false});})();
     }
   }catch(_){}
   var f=localStorage.getItem('zw_fonts');
