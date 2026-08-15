@@ -512,13 +512,27 @@ const row = (o) => ({
       /id="pricing-member-note"[^>]*display:none/.test(UI),
       'a store with no member tier should never be told how the member tier resolves');
 
-    /* The member figure must not come from the public endpoint. */
+    /* THIS TEST USED TO ASSERT THE OPPOSITE, and the opposite was wrong.
+       It required /api/prices never to mention a member price, on the reasoning
+       that publishing one tier to everybody is a disclosure. But the product
+       page has always printed "Members pay $35.00" straight from the public
+       products table, so the figure was never withheld — only the SERVER's
+       version of it was. product.html filled the gap by resolving the member
+       price from the catalogue itself, and a member already being charged $30 by
+       a price list was shown "Members pay $35.00" beside it: the page
+       advertising a worse price than the one it was about to charge.
+
+       So the rule is narrower than the old test made it. What must not be
+       published is which LIST a shopper is on and what its window is. What a
+       member pays is a price this store advertises. */
     ok('the panel quotes through the admin gate, not /api/prices',
       /\?quote=/.test(UI) && !/\/api\/prices\?productId=/.test(UI),
-      '/api/prices deliberately never says what a member pays');
-    ok('…and the public endpoint still withholds it',
-      !/memberPriceCents/.test(PUBLIC),
-      'publishing one tier\'s price to anybody who asks is what that endpoint exists to avoid');
+      'the panel needs guest AND member at once; /api/prices answers as whoever asks');
+    ok('the public endpoint sends what a member pays', /memberPriceCents/.test(PUBLIC),
+      'without it the page invents the figure from the catalogue and contradicts the till');
+    ok('…and still withholds which list it came from',
+      !/priceListCode/.test(PUBLIC) && /source: r\.source === 'price_list' \? 'list'/.test(PUBLIC),
+      'the tier a shopper is on is theirs to know; the tiers that exist are not the storefront\'s to publish');
     ok('the quote resolves as BOTH shoppers',
       /shopperFor\(\{ isMember: false \}\), now \}\)/.test(ADMIN) && /shopperFor\(\{ isMember: true \}\), now \}\)/.test(ADMIN),
       'member is not a modifier on a price — it can select a different row entirely');

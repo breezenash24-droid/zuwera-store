@@ -119,11 +119,20 @@
   var _asked = {};      // productId -> true, so a redraw does not re-ask
 
   var STORE_KEY = 'zw_prices_v1';
-  /* Ten minutes. The fetch ALWAYS runs and corrects, so this only bounds how
-     long a stale figure can be the FIRST thing painted — and the thing most
-     likely to go stale is a scheduled price crossing its start date, which this
-     keeps within ten minutes of being right on a cold load. */
-  var TTL_MS = 10 * 60 * 1000;
+  /* HOW OLD IS TOO OLD TO PAINT.
+     This was ten minutes, on the reasoning that a stale figure should not be
+     the first thing on screen. That had it backwards. Discarding the cache does
+     not leave the page with nothing to draw — it leaves the page drawing the
+     CATALOGUE price, which is not a stale answer to this question but an answer
+     to a different one, and on any product with a price list it is further from
+     the truth than the stale figure just thrown away. Eleven minutes after a
+     visit, $40 was being painted over a $30 product and then corrected: exactly
+     the flash the cache exists to prevent, caused by the cache.
+
+     So: paint the last thing the SERVER said, however old, and let the fetch
+     correct it — the fetch always runs. A day is the outer bound, past which a
+     figure is old enough that the catalogue is the more honest guess. */
+  var TTL_MS = 24 * 60 * 60 * 1000;
 
   function token() {
     try {

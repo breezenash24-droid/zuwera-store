@@ -130,21 +130,50 @@ function browser(opts) {
     ok('…and signing in discards the guest one', nowMember.api.resolvedFor('p-1') === null);
   }
 
-  console.log('\n  a stale cache expires rather than lingering');
+  console.log('\n  a cache from yesterday still beats the catalogue');
   {
+    /* THIS TEST USED TO ASSERT THE OPPOSITE, and the opposite was wrong.
+       The window was ten minutes, on the reasoning that a stale figure should
+       not be the first thing painted. But discarding the cache does not leave
+       the page with nothing to draw — it leaves the page drawing the CATALOGUE
+       price, which is not a stale answer to this question but an answer to a
+       different one. On a product with a live price list it is further from the
+       truth than the figure just thrown away: eleven minutes after a visit, $40
+       was being painted over a $30 product and then corrected, which is exactly
+       the flash the cache exists to prevent, caused by the cache.
+
+       So the last thing the SERVER said is painted however old it is, and the
+       fetch — which always runs — corrects it. */
     const b = browser();
     const first = b.load(PRICED, false);
     await first.api.ask('p-1');
 
-    /* Age it past the window. A scheduled price crossing its start date is the
-       thing most likely to go stale, and this bounds how long it can be the
-       first thing painted. */
     const raw = JSON.parse(b.store.zw_prices_v1);
     raw.at = Date.now() - (11 * 60 * 1000);
     b.store.zw_prices_v1 = JSON.stringify(raw);
 
     const later = b.load(PRICED, false);
-    ok('an old cache is not painted', later.api.resolvedFor('p-1') === null);
+    ok('an eleven-minute-old answer is still painted', later.api.resolvedFor('p-1').priceCents === 3000,
+      'the alternative is not "no price", it is the catalogue price');
+    await later.api.ask('p-1');
+    ok('…and the fetch confirms it', later.api.resolvedFor('p-1').priceCents === 3000);
+  }
+
+  console.log('\n  …but not one from last month');
+  {
+    /* There is still an outer bound. Past some age a figure is old enough that
+       the catalogue price is the more honest guess, and a cache with no expiry
+       at all is one that can outlive the product it prices. */
+    const b = browser();
+    const first = b.load(PRICED, false);
+    await first.api.ask('p-1');
+
+    const raw = JSON.parse(b.store.zw_prices_v1);
+    raw.at = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    b.store.zw_prices_v1 = JSON.stringify(raw);
+
+    const later = b.load(PRICED, false);
+    ok('a month-old answer is discarded', later.api.resolvedFor('p-1') === null);
     await later.api.ask('p-1');
     ok('…and the fetch refills it', later.api.resolvedFor('p-1').priceCents === 3000);
   }

@@ -2902,17 +2902,25 @@ function resolvedPrices(product) {
       product && product.id, (priceVariant() || {}).id
     );
     if (server && server.priceCents > 0) {
-      const memberCents = window.ZWVariantPrice.resolve(product, priceVariant(), true).memberCents;
+      /* EVERY figure from the server, including the member ones.
+         This used to take priceCents from the server and then patch the member
+         price in from the CATALOGUE, because /api/prices did not send one. Two
+         consequences, both live on the site: a member already being charged $30
+         by a price list was told "Members pay $35.00" beside it — the page
+         advertising a worse price than the one it was about to charge — and a
+         member price set on a price list could never appear at all.
+
+         usingMember is likewise the server's answer rather than an equality
+         test between two numbers that happened to match; the older
+         `memberCents === priceCents` guess labelled an ordinary list price
+         "Member price" whenever the two coincided. */
+      const memberCents = Number(server.memberPriceCents) || 0;
       return {
-        regularCents: server.compareAtCents && server.compareAtCents > server.priceCents
-          ? server.compareAtCents : server.priceCents,
+        regularCents: Number(server.regularCents) || server.priceCents,
         memberCents,
         msrpCents: server.compareAtCents || 0,
         priceCents: server.priceCents,
-        /* The server already applied membership. Saying "member savings
-           applied" beside a figure it did not discount is the sort of claim a
-           shopper checks. */
-        usingMember: isMemberSignedIn() && memberCents > 0 && memberCents === server.priceCents,
+        usingMember: Boolean(server.usingMember),
         source: server.source,
       };
     }
