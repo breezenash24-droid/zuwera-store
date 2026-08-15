@@ -711,20 +711,35 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
   /* One settings read covers both the rule and the words it is explained in.
      Two reads would let them arrive out of step, and this is the request that
      takes money. */
-  const { limitToStock, say } = await (async () => {
+  const { limitToStock, say, memberPricingOn } = await (async () => {
     try {
       const cfg = sanitizeCommerceConfig(await getSetting(env, 'commerce_config', {}));
       return {
         limitToStock: cfg?.customerExperience?.limitQtyToStock !== false,
         say: messagesFrom(cfg),
+        /* Whether members are charged differently AT ALL. Absent means on:
+           every store predates the switch, and reading a missing key as "off"
+           would withdraw a discount shoppers are currently being shown. */
+        memberPricingOn: cfg?.memberPricing?.enabled !== false,
       };
     } catch (_) {
       // Unreadable settings must not become permission to oversell, nor silence.
-      return { limitToStock: true, say: shippedMessages };
+      return { limitToStock: true, say: shippedMessages, memberPricingOn: true };
     }
   })();
 
-  const catalogItems = await resolveCatalogItems(items, env, isMember, limitToStock, say);
+  /* THE SWITCH, applied where membership is decided rather than where each
+     price is worked out.
+     Every member rule downstream — the catalogue's member_price, a price list
+     row's member_price — hangs off this one boolean, so turning the feature off
+     here turns it off everywhere without a second flag threaded through the
+     resolver. /api/prices reads the same setting at the same point, which is
+     what keeps the figure on the page and the figure on the card identical:
+     gating only one of the two is how a page comes to show $25 and a card to be
+     charged $40. */
+  const chargeAsMember = isMember && memberPricingOn;
+
+  const catalogItems = await resolveCatalogItems(items, env, chargeAsMember, limitToStock, say);
   const subtotalCents = catalogItems.reduce((sum, item) => sum + item.amount * item.quantity, 0);
   const shipping = await resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env, deliveryMethod, say });
 
@@ -796,7 +811,14 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
   }));
 
   return {
-    verifiedUser, attributedUser, isMember, catalogItems, lineItems, inventoryItems,
+    verifiedUser, attributedUser,
+    /* `isMember` stays "is this a signed-in customer", because that is what the
+       word means and what anything reading it later would expect. Whether they
+       were PRICED as one is a separate fact, reported separately — folding the
+       two together would leave an order that cannot say why it charged what it
+       charged. */
+    isMember, chargeAsMember, memberPricingOn,
+    catalogItems, lineItems, inventoryItems,
     subtotalCents, shipping, promotion, normalizedPromoCode, discountCents,
     discountedSubtotalCents, tax,
     taxStateCode: tax.stateCode, taxRate: tax.rate, taxCents: tax.taxCents,

@@ -33,6 +33,7 @@
 
 import { verifyAccessToken } from './_cart-pricing.js';
 import { fetchPricingContext, resolvePrice, shopperFor } from './_price-resolution.js';
+import { getSetting, sanitizeCommerceConfig } from './_commerce.js';
 
 const CORS = (env) => ({
   'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
@@ -77,7 +78,20 @@ export async function onRequestGet({ request, env }) {
        price the till then refuses. */
     const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
     const user = token ? await verifyAccessToken(token, env) : null;
-    const isMember = Boolean(user && user.id);
+
+    /* Does this store price members differently at all?
+       Read HERE, at the point membership is decided, exactly as quoteCart reads
+       it — that is what keeps the figure on the page and the figure on the card
+       the same one. Absent, or unreadable, means on: every store predates the
+       switch, and treating a missing key as "off" would withdraw a discount
+       shoppers are being shown. */
+    let memberPricingOn = true;
+    try {
+      const cfg = sanitizeCommerceConfig(await getSetting(env, 'commerce_config', {}));
+      memberPricingOn = cfg?.memberPricing?.enabled !== false;
+    } catch (_) { memberPricingOn = true; }
+
+    const isMember = Boolean(user && user.id) && memberPricingOn;
 
     const inList = `in.(${ids.join(',')})`;
     const [productRows, variantRows] = await Promise.all([
@@ -108,7 +122,10 @@ export async function onRequestGet({ request, env }) {
        shopper is not being offered. */
     const priceOf = (product, variant) => {
       const r = resolvePrice({ product, variant, rows: ctx.rows, lists: ctx.lists, shopper, now });
-      const m = isMember ? r : resolvePrice({
+      /* Not asked at all when the store has member pricing switched off, so a
+         guest is never offered "Members pay $25" for a tier that no longer
+         charges anything different. */
+      const m = (isMember || !memberPricingOn) ? r : resolvePrice({
         product, variant, rows: ctx.rows, lists: ctx.lists,
         shopper: shopperFor({ isMember: true }), now,
       });
@@ -147,6 +164,10 @@ export async function onRequestGet({ request, env }) {
     return json({
       ok: true,
       member: isMember,
+      /* So the browser's OWN fallback — the catalogue rule it uses when this
+         request fails — does not go on advertising a member price the store has
+         switched off. */
+      memberPricing: memberPricingOn,
       /* `products` for a cart; the single-product shape is kept alongside it so
          a caller asking for one thing does not have to unwrap an array it did
          not ask for. */

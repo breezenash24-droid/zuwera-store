@@ -6589,8 +6589,63 @@
             }
         };
 
+        /* ── Member pricing on or off ─────────────────────────────────────────
+           Whether signed-in customers are charged a different price at all.
+
+           Stored under commerce_config.memberPricing, read by quoteCart (the
+           till) and /api/prices (the page) at the point each decides whether the
+           shopper is a member — one flag, consulted in both, because a switch
+           that reaches only the storefront hides the member price and still
+           charges it.
+
+           ABSENT MEANS ON, here and on the server. Every store predates this
+           setting and several have member prices saved right now; reading a
+           missing key as "off" would silently withdraw a discount shoppers are
+           being shown. An unreadable settings row means the same. */
+        async function loadMemberPricingSettings() {
+            const el = document.getElementById('mp-enabled');
+            if (!el) return;
+            try {
+                const { data: rows } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
+                let v = rows && rows[0] && rows[0].value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                el.checked = ((v && v.memberPricing) || {}).enabled !== false;
+            } catch (_) {
+                el.checked = true;
+            }
+        }
+
+        window.memberPricingSaveSettings = async function () {
+            const btn = document.getElementById('mp-save-btn');
+            const el = document.getElementById('mp-enabled');
+            if (!el) return;
+            if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+            try {
+                /* Read-modify-write on a shared JSON blob, re-read immediately
+                   before writing and touching only this key — so saving here
+                   cannot roll back a coupon somebody edited a moment ago. */
+                const { data: rows, error } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
+                if (error) throw error;
+                let cfg = (rows && rows[0] && rows[0].value) || {};
+                if (typeof cfg === 'string') { try { cfg = JSON.parse(cfg); } catch (_) { cfg = {}; } }
+                cfg.memberPricing = Object.assign({}, cfg.memberPricing, { enabled: !!el.checked });
+                const { error: sErr } = await sb.from('site_settings').upsert({ key: 'commerce_config', value: cfg }, { onConflict: 'key' });
+                if (sErr) throw sErr;
+                if (typeof showToast === 'function') {
+                    showToast(el.checked
+                        ? 'Saved — signed-in customers pay their member price.'
+                        : 'Saved — everyone pays the same. Member prices are kept, just not applied.');
+                }
+            } catch (e) {
+                if (typeof showToast === 'function') showToast(e?.message || 'Could not save that.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Save member pricing'; }
+            }
+        };
+
         async function loadReferralSettings() {
             loadStockRulesSettings();
+            loadMemberPricingSettings();
             loadCustomerMessages();
             ['rf-type', 'rf-value', 'rf-min', 'rf-points', 'rf-max-uses', 'rf-expiry', 'rf-prefix', 'rf-message'].forEach(id => {
                 const el = document.getElementById(id);

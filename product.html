@@ -2928,7 +2928,16 @@ function resolvedPrices(product) {
         source: server.source,
       };
     }
-    return window.ZWVariantPrice.resolve(product, priceVariant(), isMemberSignedIn());
+    /* THE FALLBACK, used when /api/prices could not be reached. It applies the
+       catalogue rule here in the browser, so the store's member-pricing switch
+       has to reach it too — otherwise a failed request is all it takes for a
+       switched-off member price to reappear on the page. memberCents is cleared
+       as well as the flag, because that field is what draws "Members pay $X"
+       for a shopper who is not signed in. */
+    const on = typeof window.ZWVariantPrice.memberPricingOn !== 'function'
+      || window.ZWVariantPrice.memberPricingOn();
+    const cat = window.ZWVariantPrice.resolve(product, priceVariant(), isMemberSignedIn() && on);
+    return on ? cat : Object.assign({}, cat, { memberCents: 0, usingMember: false });
   }
   const regularCents = Math.round((parseFloat(product?.current_price ?? product?.price ?? 0) || 0) * 100);
   const memberCents  = Math.round((parseFloat(product?.member_price ?? 0) || 0) * 100);
