@@ -460,6 +460,28 @@ const row = (o) => ({
       'the screen could express two of the three figures a product carries');
     ok('…and it is shown in the before/after', /Members pay/.test(UI));
 
+    /* Nothing about members when there are no members pricing. */
+    ok('the member line only appears when a member actually pays less',
+      /const hasMemberToday = !!hit\.memberDiffers;/.test(UI)
+      && /\(hasMemberToday \|\| typedMember\)/.test(UI),
+      '"Members pay $50" beside "Charged today $50" describes a discount that does not exist');
+    ok('…and so does the explanation of how member pricing resolves',
+      /id="pricing-member-note"[^>]*display:none/.test(UI),
+      'a store with no member tier should never be told how the member tier resolves');
+
+    /* The member figure must not come from the public endpoint. */
+    ok('the panel quotes through the admin gate, not /api/prices',
+      /\?quote=/.test(UI) && !/\/api\/prices\?productId=/.test(UI),
+      '/api/prices deliberately never says what a member pays');
+    ok('…and the public endpoint still withholds it',
+      !/memberPriceCents/.test(PUBLIC),
+      'publishing one tier\'s price to anybody who asks is what that endpoint exists to avoid');
+    ok('the quote resolves as BOTH shoppers',
+      /shopperFor\(\{ isMember: false \}\), now \}\)/.test(ADMIN) && /shopperFor\(\{ isMember: true \}\), now \}\)/.test(ADMIN),
+      'member is not a modifier on a price — it can select a different row entirely');
+    ok('…and reports whether they differ rather than leaving it to the caller',
+      /memberDiffers: m\.priceCents !== g\.priceCents/.test(ADMIN));
+
     /* Two panes, catalogue persistent on the left. */
     ok('the catalogue stays visible beside the form', /zw-price-panes/.test(UI));
     ok('…and that layout class exists in the stylesheet',
@@ -482,11 +504,17 @@ const row = (o) => ({
 
     /* The screen exists to CHANGE a price, so the current one has to be on it. */
     ok('the price charged today is shown before you change it',
-      /Charged today/.test(UI) && /\/api\/prices\?productId=/.test(UI),
+      /Charged today/.test(UI) && /\?quote=/.test(UI),
       'typing a new price with no idea of the old one is the core failure of this form');
-    ok('…asked WITHOUT an admin token, so it is the shopper\'s price',
-      /fetch\('\/api\/prices\?productId=' \+ encodeURIComponent\(id\), \{ cache: 'no-store' \}\)/.test(UI),
-      'sending the admin session would show member pricing and mislead the person setting it');
+    /* This started out asking the public /api/prices without a token, so the
+       main figure would be the shopper's rather than the admin's. That was
+       right about the main figure and left the member one unobtainable: the
+       public endpoint withholds it by design. The admin ?quote resolves BOTH
+       shoppers explicitly, which keeps the main line a guest price AND makes
+       the member line possible — asserted just above. */
+    ok('…and the main figure is still the ordinary shopper\'s',
+      /shopperFor\(\{ isMember: false \}\)/.test(ADMIN) && /priceCents: g\.priceCents/.test(ADMIN),
+      'showing the admin their own member price would mislead the person setting it');
     ok('pricing something no customer can see is flagged',
       /function statusWarning/.test(UI));
 

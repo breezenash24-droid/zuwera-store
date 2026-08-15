@@ -43,9 +43,9 @@
     return session.access_token;
   }
 
-  async function api(method, body) {
+  async function api(method, body, query) {
     const t = await token();
-    const resp = await fetch('/api/admin-prices', {
+    const resp = await fetch('/api/admin-prices' + (query || ''), {
       method,
       headers: method === 'GET'
         ? { Authorization: 'Bearer ' + t }
@@ -180,6 +180,10 @@
        the caret put back — otherwise the first keystroke works and the second
        goes nowhere, which reads as the box being broken. Only the results list
        is redrawn, not the whole panel. */
+    /* The member caveat starts hidden in the markup, so its visibility has to
+       be settled once after every render — not only when a field is touched. */
+    if (_pick) window.pricingRefreshCurrent();
+
     const search = $('pricing-search');
     if (search) {
       search.addEventListener('input', (e) => {
@@ -288,14 +292,21 @@
       : '';
     /* Members are a separate line rather than folded into the arrow above: two
        audiences, two before-and-afters, and conflating them is what made the
-       missing member field easy to miss in the first place. */
-    const memberLine = (hit.memberCents || typedMember)
+       missing member field easy to miss in the first place.
+
+       SHOWN ONLY WHEN THERE IS ONE. `memberDiffers` is the server saying a
+       member genuinely pays less today. Printing "Members pay $50" beside
+       "Charged today $50" would describe a discount that does not exist, and a
+       screen that mentions a tier nobody is on invites somebody to go looking
+       for it. A member figure being typed counts too — that is a member price
+       about to exist. */
+    const hasMemberToday = !!hit.memberDiffers;
+    const memberLine = (hasMemberToday || typedMember)
       ? `<div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:.5rem;margin-top:.35rem;color:var(--text-secondary);font-size:.8rem;">
            <span>Members pay</span>
            <strong style="font-variant-numeric:tabular-nums;color:var(--text-primary);">${
-             hit.memberCents ? money(hit.memberCents) : money(hit.priceCents)}</strong>
-           ${typedMember ? `<span>→</span><strong style="color:var(--text-primary);">$${typedMember.toFixed(2)}</strong>`
-             : (typed ? `<span>→</span><strong style="color:var(--text-primary);">$${typed.toFixed(2)}</strong>` : '')}
+             hasMemberToday ? money(hit.memberPriceCents) : '—'}</strong>
+           ${typedMember ? `<span>→</span><strong style="color:var(--text-primary);">$${typedMember.toFixed(2)}</strong>` : ''}
          </div>`
       : '';
 
@@ -354,8 +365,11 @@
           <div><label class="form-label">Compare at <span style="color:var(--text-secondary);font-weight:400;">(opt)</span></label>
             <input id="pricing-compare" type="number" step="0.01" min="0" class="form-input" placeholder="0.00"></div>
         </div>
-        <div style="font-size:.75rem;color:var(--text-secondary);margin-top:.35rem;line-height:1.5;">
-          Member applies only when this row is the one in effect — it never competes with the Members price list.
+        <!-- The caveat only appears once there is a member price to caveat.
+             A store with no member tier should never be told how the member
+             tier resolves. -->
+        <div id="pricing-member-note" style="font-size:.75rem;color:var(--text-secondary);margin-top:.35rem;line-height:1.5;display:none;">
+          Members pay this only while this row is the one in effect. It never competes with the Members price list.
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.6rem;">
@@ -382,13 +396,13 @@
     _pick = _products.find((p) => String(p.id) === String(id)) || null;
     _live = null;
     render();
-    /* Asked WITHOUT an admin token on purpose: this must show the price an
-       ordinary shopper is charged, not whatever the signed-in admin qualifies
-       for. Same choice the server makes when it records the "from" figure. */
+    /* Admin-gated ?quote, not the public /api/prices. That endpoint never says
+       what a member pays — publishing one tier's price to anybody who asks is
+       precisely what it withholds — and this panel needs both figures. Sending
+       the admin token to /api/prices instead would have priced the WHOLE
+       response as a member, which is the wrong number for the main line. */
     try {
-      const r = await fetch('/api/prices?productId=' + encodeURIComponent(id), { cache: 'no-store' });
-      const j = await r.json().catch(() => ({}));
-      _live = j && j.ok ? j : null;
+      _live = await api('GET', null, '?quote=' + encodeURIComponent(id));
     } catch (_) { _live = null; }
     render();
   };
@@ -400,6 +414,16 @@
   window.pricingRefreshCurrent = function () {
     const host = $('pricing-current');
     if (host) host.innerHTML = currentLine();
+
+    /* The member caveat follows the member field, not the page load. */
+    const noteEl = $('pricing-member-note');
+    if (noteEl) {
+      const el = $('pricing-member');
+      const typed = el && Number(el.value) > 0;
+      const cid = $('pricing-colour') ? $('pricing-colour').value : '';
+      const hit = _live && (cid ? (_live.colours || []).find((c) => String(c.id) === String(cid)) : _live.base);
+      noteEl.style.display = (typed || (hit && hit.memberDiffers)) ? '' : 'none';
+    }
   };
 
   function listsTable() {
