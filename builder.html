@@ -857,7 +857,7 @@ const PDP_BLOCK_META = {
 const PDP_CARD_BLOCKS = { recommendations:1, recently_viewed:1, new_arrivals:1 };
 // What a store shows before anyone touches this tab.
 const PDP_ORDER_DEFAULT = ['more_from_release','bundle','recently_viewed','recommendations','qa'];
-let pdpCfg = null, pdpFlags = null, pdpGallery = null;
+let pdpCfg = null, pdpFlags = null, pdpGallery = null, pdpPrice = null;
 
 // A saved layout is taken literally so REMOVALS STICK. This used to append any
 // missing block, which made delete impossible — it came straight back on reload.
@@ -901,6 +901,81 @@ function pdpGallerySet(k,v){
 }
 window.pdpGallerySet = pdpGallerySet;
 
+/* How the member price reads. Same shape and the same rule as the gallery
+   options above: validated here against the SAME lists parsePriceConfig
+   enforces on read, so a value that would be rejected on the way out cannot be
+   written on the way in. First entry is the default and is what the page does
+   today, so opening this tab and saving changes nothing by itself. */
+const PDP_PRICE_OPTS = {
+  member_position:['inline','below','hidden'],
+  member_style:['pill','plain','solid'],
+};
+function pdpPriceNormalize(p){
+  const out={};
+  for(const k in PDP_PRICE_OPTS){
+    const allowed=PDP_PRICE_OPTS[k];
+    out[k]=(p && allowed.indexOf(p[k])>=0) ? p[k] : allowed[0];
+  }
+  out.member_label = pdpPriceLabelClean(p && p.member_label);
+  return out;
+}
+/* Mirrors sanitizePriceLabel in functions/api/product-page-config.js. The
+   server's copy is the one that matters — this one stops a value that looks
+   like markup from being stored in the first place. */
+function pdpPriceLabelClean(v){
+  if(typeof v!=='string') return '';
+  return v.replace(new RegExp('[\\u0000-\\u001f\\u007f<>]','g'),'').trim().slice(0,24);
+}
+function pdpPriceDirty(){
+  const msg=document.getElementById('pdpMsg');
+  if(msg) msg.textContent='Unsaved — hit Save Product Layout to apply.';
+}
+function pdpPriceSet(k,v){
+  if(!PDP_PRICE_OPTS[k] || PDP_PRICE_OPTS[k].indexOf(v)<0) return;
+  pdpPrice = pdpPriceNormalize(Object.assign({}, pdpPrice, {[k]:v}));
+  /* Repainted so the fields that no longer do anything grey out as you choose
+     — "Hidden" leaving a live-looking Style and Wording beside it is the same
+     trap the Arrows setting fell into. */
+  const host=document.getElementById('pdpPriceFields');
+  if(host) host.innerHTML=pdpPriceFieldsHtml();
+  pdpPriceDirty();
+}
+function pdpPriceLabelSet(v){
+  pdpPrice = pdpPriceNormalize(Object.assign({}, pdpPrice, {member_label:pdpPriceLabelClean(v)}));
+  pdpPriceDirty();
+}
+window.pdpPriceSet = pdpPriceSet;
+window.pdpPriceLabelSet = pdpPriceLabelSet;
+
+/* Its own function because choosing "Hidden" repaints just these fields, rather
+   than the whole tab — repainting the tab would collapse the block list and
+   throw away the scroll position mid-edit. */
+function pdpPriceFieldsHtml(){
+  const P = pdpPrice || pdpPriceNormalize(null);
+  const esc = v => String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const sel=(k,l,v,opts,hint='',off='')=>`<div class="field"${off?' style="opacity:.45"':''}><label>${l}</label><select data-pdpp="${k}" onchange="pdpPriceSet('${k}',this.value)"${off?' disabled':''}>${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select>${off?`<span class="fhint">${off}</span>`:(hint?`<span class="fhint">${hint}</span>`:'')}</div>`;
+  // Greyed rather than removed when the badge is hidden: a control that vanishes
+  // reads as a bug, one that greys out explains itself.
+  const hiddenOff = P.member_position==='hidden' ? 'Nothing to style while the badge is hidden.' : '';
+  return `
+    ${sel('member_position','Member badge',P.member_position,[
+      ['inline','Beside the price (default)'],
+      ['below','On its own line underneath'],
+      ['hidden','Don’t show it']],
+      'Beside the price names the number it sits on. Underneath gives it room when your prices run long — “$1,249.00” and a badge on one line is what makes it look cramped.')}
+    ${sel('member_style','Style',P.member_style,[
+      ['pill','Outlined pill (default)'],
+      ['plain','Plain text'],
+      ['solid','Filled']],
+      'Colours come from Appearance → Prices, so this is the shape only.',hiddenOff)}
+    <div class="field"${hiddenOff?' style="opacity:.45"':''}>
+      <label>Wording</label>
+      <input type="text" maxlength="24" data-pdpp="member_label" value="${esc(P.member_label)}"
+             placeholder="Member price" oninput="pdpPriceLabelSet(this.value)"${hiddenOff?' disabled':''}>
+      <span class="fhint">${hiddenOff || 'Leave empty for “Member price”. Shown only to signed-in members who are actually getting the lower price.'}</span>
+    </div>`;
+}
+
 async function renderProductTab(container){
   container.innerHTML = '<div class="tab-pane"><div class="tab-hd">Under the product</div><div style="font-size:.6rem;color:var(--mu)">Loading…</div></div>';
   if(!pdpCfg){
@@ -917,10 +992,11 @@ async function renderProductTab(container){
       if(typeof v==='string'){ try{ v=JSON.parse(v); }catch(_){ v=null; } }
       pdpCfg = pdpNormalize(v);
       pdpGallery = pdpGalleryNormalize(v && v.gallery);
+      pdpPrice = pdpPriceNormalize(v && v.price);
       let fl = flagRes && flagRes.data && flagRes.data.value;
       if(typeof fl==='string'){ try{ fl=JSON.parse(fl); }catch(_){ fl=null; } }
       pdpFlags = fl || {};
-    }catch(_){ pdpCfg = pdpNormalize(null); pdpGallery = pdpGalleryNormalize(null); pdpFlags = {}; }
+    }catch(_){ pdpCfg = pdpNormalize(null); pdpGallery = pdpGalleryNormalize(null); pdpPrice = pdpPriceNormalize(null); pdpFlags = {}; }
   }
   paintProductTab(container);
 }
@@ -950,6 +1026,9 @@ function paintProductTab(container){
     ${gsel('modal_layout','Image area',G.modal_layout,[['dual','Two side by side \u2014 page across (default)'],['single','One image with arrows']],'Matches the product page: two photos at once, paged sideways with a position counter. \u201cOne image\u201d is the older popup gallery, where the thumbnail and arrow settings below apply.')}
     ${gsel('modal_style','Look',G.modal_style,[['product','Match the product page (default)'],['compact','Its own compact style']],'“Match the product page” gives the popup the same headings, price, swatch and size styling as a full product page, so the two don’t read as different designs. Switch back here any time.')}
     <div style="font-size:.58rem;color:var(--mu);line-height:1.6;margin:-.2rem 0 .4rem">On phones both fall back to the strip underneath — a left rail leaves the photo too small to read.</div>
+    <div class="tab-hd" style="margin-top:.4rem">Price</div>
+    <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">What you pay, what it was and how much less are always shown the same way. This is the member badge beside them — whether it appears, where, and what it says.</div>
+    <div id="pdpPriceFields">${pdpPriceFieldsHtml()}</div>
     <div class="tab-hd" style="margin-top:.4rem">Under the product</div>
     <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">Everything that stacks below a product page. Eye hides a block, ✕ removes it, drag to reorder. Fewer blocks = a calmer page.</div>
     <div class="sec-list" id="pdpList" style="padding:0;overflow:visible"></div>
@@ -1081,7 +1160,7 @@ async function pdpSave(publish){
   try{
     const token=await getAccessToken(); if(!token) throw new Error('Session expired — sign in again.');
     const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({accessToken:token,key:'product_page_draft',value:{sections:pdpCfg,gallery:pdpGallery},published:!!publish})});
+      body:JSON.stringify({accessToken:token,key:'product_page_draft',value:{sections:pdpCfg,gallery:pdpGallery,price:pdpPrice},published:!!publish})});
     const j=await res.json().catch(()=>({}));
     if(!res.ok||j.error) throw new Error(j.error||'Save failed');
     if(msg) msg.textContent=publish?'Published — live on product pages.':'Draft saved. Press Publish to make it live.';

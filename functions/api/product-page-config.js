@@ -68,10 +68,54 @@ export function parseGalleryConfig(g) {
   return out;
 }
 
+/**
+ * How the price reads (Builder → Product → Price).
+ *
+ * Only the MEMBER part is arranged here, because it is the only part of the
+ * price whose right answer depends on the store: what you pay, what it was and
+ * how much less is the same three things everywhere, but a badge saying "member
+ * price" can be the whole point of the tier or a distraction beside it.
+ *
+ * FIRST ENTRY IS THE DEFAULT, and each first entry is what the page does today
+ * — so a store that never opens this tab is not redesigned by upgrading.
+ */
+const PRICE_OPTS = {
+  member_position: ['inline', 'below', 'hidden'],
+  member_style: ['pill', 'plain', 'solid'],
+};
+
+/* The label is free text rather than a list, because "Member price", "Members",
+   "Insider" and "Crew price" are all reasonable and none of them is ours to
+   choose. Sanitised rather than trusted: it lands in the DOM on a public page.
+   Angle brackets and control characters are removed here AND the value is
+   escaped where it is inserted — the second is what actually protects the page,
+   the first stops a stored value that looks like markup from ever existing. */
+export function sanitizePriceLabel(value) {
+  if (typeof value !== 'string') return '';
+  return value
+    .replace(new RegExp('[\\u0000-\\u001f\\u007f<>]', 'g'), '')
+    .trim()
+    .slice(0, 24);
+}
+
+export function parsePriceConfig(p) {
+  const out = {};
+  for (const [key, allowed] of Object.entries(PRICE_OPTS)) {
+    const val = p && typeof p[key] === 'string' ? p[key] : '';
+    out[key] = allowed.includes(val) ? val : allowed[0];
+  }
+  /* Empty means "use the wording we ship" rather than an empty badge — a label
+     the merchant cleared should read as "I did not choose one", not as a blank
+     pill nobody can see the point of. */
+  out.member_label = sanitizePriceLabel(p && p.member_label);
+  return out;
+}
+
 export function parsePdpConfig(v) {
   const gallery = parseGalleryConfig(v && v.gallery);
+  const price = parsePriceConfig(v && v.price);
   const saved = (v && Array.isArray(v.sections)) ? v.sections : null;
-  if (!saved) return { sections: DEFAULTS.sections.map((s) => ({ ...s })), gallery };
+  if (!saved) return { sections: DEFAULTS.sections.map((s) => ({ ...s })), gallery, price };
   const seen = [];
   const out = [];
   saved.forEach((s) => {
@@ -82,7 +126,7 @@ export function parsePdpConfig(v) {
     if (s.cfg && typeof s.cfg === 'object') block.cfg = s.cfg;   // per-block card controls
     out.push(block);
   });
-  return { sections: out, gallery };
+  return { sections: out, gallery, price };
 }
 
 export async function onRequestOptions({ env }) {
