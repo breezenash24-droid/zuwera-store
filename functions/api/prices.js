@@ -46,10 +46,20 @@ export async function onRequestGet({ request, env }) {
   const headers = CORS(env);
   try {
     const url = new URL(request.url);
-    const productId = String(url.searchParams.get('productId') || '').trim();
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId)) {
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    /* `productIds` (comma-separated) as well as `productId`, because a cart is
+       several products and asking once per line would be a round trip per row —
+       the same reason the cart reads its pricing context in one query. Capped
+       so a crafted URL cannot turn one request into an unbounded scan. */
+    const many = String(url.searchParams.get('productIds') || '')
+      .split(',').map((s) => s.trim()).filter((s) => UUID.test(s)).slice(0, 25);
+    const single = String(url.searchParams.get('productId') || '').trim();
+    const ids = many.length ? [...new Set(many)] : (UUID.test(single) ? [single] : []);
+    if (!ids.length) {
       return json({ ok: false, error: 'A product id is required.' }, 400, headers);
     }
+    const productId = ids[0];
 
     const key = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_ANON_KEY;
     if (!env.SUPABASE_URL || !key) return json({ ok: false, error: 'Catalog is not configured.' }, 503, headers);
@@ -62,21 +72,22 @@ export async function onRequestGet({ request, env }) {
     const user = token ? await verifyAccessToken(token, env) : null;
     const isMember = Boolean(user && user.id);
 
+    const inList = `in.(${ids.join(',')})`;
     const [productRows, variantRows] = await Promise.all([
-      fetch(`${env.SUPABASE_URL}/rest/v1/products?select=id,current_price,member_price,msrp&id=eq.${productId}&limit=1`,
+      fetch(`${env.SUPABASE_URL}/rest/v1/products?select=id,current_price,member_price,msrp&id=${inList}`,
             { headers: H, cache: 'no-store' }).then((r) => r.ok ? r.json() : []).catch(() => []),
-      fetch(`${env.SUPABASE_URL}/rest/v1/color_variants?select=id,color_name,current_price,member_price,msrp&product_id=eq.${productId}`,
+      fetch(`${env.SUPABASE_URL}/rest/v1/color_variants?select=id,product_id,color_name,current_price,member_price,msrp&product_id=${inList}`,
             { headers: H, cache: 'no-store' }).then((r) => r.ok ? r.json() : []).catch(() => []),
     ]);
 
-    const product = Array.isArray(productRows) ? productRows[0] : null;
-    if (!product) return json({ ok: false, error: 'No such product.' }, 404, headers);
+    const products = Array.isArray(productRows) ? productRows : [];
+    if (!products.length) return json({ ok: false, error: 'No such product.' }, 404, headers);
 
-    const ctx = await fetchPricingContext(env, [productId]);
+    const ctx = await fetchPricingContext(env, ids);
     const shopper = shopperFor({ isMember });
     const now = Date.now();
 
-    const priceOf = (variant) => {
+    const priceOf = (product, variant) => {
       const r = resolvePrice({ product, variant, rows: ctx.rows, lists: ctx.lists, shopper, now });
       return {
         priceCents: r.priceCents,
@@ -87,20 +98,29 @@ export async function onRequestGet({ request, env }) {
       };
     };
 
-    const colours = (Array.isArray(variantRows) ? variantRows : []).map((v) => ({
-      id: v.id,
-      colorName: v.color_name || '',
-      ...priceOf(v),
-    }));
+    const forProduct = (product) => ({
+      productId: product.id,
+      /* The price with no colour chosen — what the page shows before a swatch
+         is clicked, and what a grid would show. */
+      base: priceOf(product, null),
+      colours: (Array.isArray(variantRows) ? variantRows : [])
+        .filter((v) => String(v.product_id) === String(product.id))
+        .map((v) => ({ id: v.id, colorName: v.color_name || '', ...priceOf(product, v) })),
+    });
+
+    const byProduct = products.map(forProduct);
+    const first = byProduct.find((p) => String(p.productId) === String(productId)) || byProduct[0];
 
     return json({
       ok: true,
-      productId,
       member: isMember,
-      /* The price with no colour chosen — what the page shows before a swatch
-         is clicked, and what a grid would show. */
-      base: priceOf(null),
-      colours,
+      /* `products` for a cart; the single-product shape is kept alongside it so
+         a caller asking for one thing does not have to unwrap an array it did
+         not ask for. */
+      products: byProduct,
+      productId: first.productId,
+      base: first.base,
+      colours: first.colours,
     }, 200, headers);
   } catch (err) {
     console.error('/api/prices failed:', err && err.message);

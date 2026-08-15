@@ -93,7 +93,7 @@
 <script src="/flags.js?v=5dc05f38" defer></script>
 <script src="fit-finder.js?v=f5cdcd6f" defer></script>
 <script src="/storefront-features.js?v=a00109b1" defer></script>
-<script src="/variant-price.js?v=dfb47f6d"></script>
+<script src="/variant-price.js?v=7dc98783"></script>
 <script src="/attribution.js?v=7ecae669" defer></script>
 <script src="/meta-pixel.js?v=4919f284" defer></script>
 <script src="/google-tag.js?v=fdfca537" defer></script>
@@ -2587,6 +2587,15 @@ function renderProduct() {
   // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Price ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   renderPrice();
 
+  /* Ask the server what this actually costs. The catalogue figure is already
+     on screen, so this corrects rather than delays — and it is the only thing
+     that knows about price lists, effective dates and customer groups
+     (migration 0022). Without it this page showed $35 while the card was
+     charged the approved list price of $30. */
+  if (window.ZWVariantPrice && currentProduct && currentProduct.id) {
+    window.ZWVariantPrice.ask(currentProduct.id);
+  }
+
   // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Gallery ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   renderGallery();
 
@@ -2879,6 +2888,34 @@ function priceVariant() {
 
 function resolvedPrices(product) {
   if (window.ZWVariantPrice) {
+    /* The SERVER's answer first, when it has arrived. The catalogue rule below
+       knows nothing about price lists, effective dates or customer groups
+       (migration 0022), so on its own it showed $35 for a product whose
+       approved list price was $30 — and the card was charged $30. In the other
+       direction, a list price above the catalogue one means checkout refuses
+       the sale for exceeding the figure this page just displayed.
+
+       Null until the ask returns, and then the catalogue answer stands — which
+       is what this page showed before price lists existed. The zw:prices
+       listener redraws when it lands. */
+    const server = window.ZWVariantPrice.resolvedFor(
+      product && product.id, (priceVariant() || {}).id
+    );
+    if (server && server.priceCents > 0) {
+      const memberCents = window.ZWVariantPrice.resolve(product, priceVariant(), true).memberCents;
+      return {
+        regularCents: server.compareAtCents && server.compareAtCents > server.priceCents
+          ? server.compareAtCents : server.priceCents,
+        memberCents,
+        msrpCents: server.compareAtCents || 0,
+        priceCents: server.priceCents,
+        /* The server already applied membership. Saying "member savings
+           applied" beside a figure it did not discount is the sort of claim a
+           shopper checks. */
+        usingMember: isMemberSignedIn() && memberCents > 0 && memberCents === server.priceCents,
+        source: server.source,
+      };
+    }
     return window.ZWVariantPrice.resolve(product, priceVariant(), isMemberSignedIn());
   }
   const regularCents = Math.round((parseFloat(product?.current_price ?? product?.price ?? 0) || 0) * 100);
@@ -2922,6 +2959,13 @@ function isMemberSignedIn() {
 function getEffectiveProductPrice(product) {
   return resolvedPrices(product).priceCents / 100;
 }
+
+/* The server's price landed. Redraw whatever showed the catalogue one.
+   Same shape as the zw:tax listener in checkout: a figure drawn from cache,
+   corrected in place the moment the real answer arrives. */
+window.addEventListener('zw:prices', function () {
+  try { if (currentProduct) { renderPrice(); syncProductSaveButton(); } } catch (_) {}
+});
 
 function syncProductSaveButton() {
   const btn = document.getElementById('saveProductBtn');

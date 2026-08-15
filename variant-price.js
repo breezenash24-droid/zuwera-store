@@ -96,10 +96,80 @@
     return { lowestCents: low, varies: count > 1 };
   }
 
+  /* ── The price lists (migration 0022) ─────────────────────────────────────
+     Everything above answers from the CATALOGUE — the product row and the
+     colourway row. It does not know about price lists, effective dates or
+     customer groups, and it must not: those need the calendar and the group
+     membership resolved, and a browser copy of that is a second answer to a
+     money question.
+
+     So the browser ASKS. Same shape checkout-tax.js uses for tax: a synchronous
+     reader that answers from cache, an async ask that fills it, and an event so
+     whatever drew a price can redraw it. Until an answer arrives, resolvedFor
+     returns null and callers fall back to the catalogue — which is what the
+     page showed before price lists existed, and is never a figure nobody
+     intended.
+
+     THE BUG THIS FIXES: the charge path consulted the price lists and no
+     display did. An approved row of $30 meant the page said $35 and the card
+     was charged $30. Harmless in that direction; the same gap with the row
+     ABOVE the catalogue price is a checkout that refuses the sale for
+     exceeding the figure it just displayed. */
+  var _cache = {};      // productId -> { base, colours: [] }
+  var _asked = {};      // productId -> true, so a redraw does not re-ask
+
+  function token() {
+    try {
+      if (window.ZWStock && typeof window.ZWStock.storedAccessToken === 'function') {
+        return window.ZWStock.storedAccessToken() || '';
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  function resolvedFor(productId, variantId) {
+    var entry = _cache[String(productId || '')];
+    if (!entry) return null;
+    if (variantId) {
+      var hit = (entry.colours || []).filter(function (c) { return String(c.id) === String(variantId); })[0];
+      if (hit) return hit;
+    }
+    return entry.base || null;
+  }
+
+  function ask(productIds) {
+    var ids = (Array.isArray(productIds) ? productIds : [productIds])
+      .map(String).filter(function (id) { return id && !_asked[id]; });
+    if (!ids.length) return Promise.resolve(_cache);
+    ids.forEach(function (id) { _asked[id] = true; });
+
+    var t = token();
+    return fetch('/api/prices?productIds=' + encodeURIComponent(ids.join(',')), {
+      cache: 'no-store',
+      headers: t ? { Authorization: 'Bearer ' + t } : {}
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (!j || !j.ok || !Array.isArray(j.products)) return _cache;
+        j.products.forEach(function (p) { _cache[String(p.productId)] = { base: p.base, colours: p.colours || [] }; });
+        try {
+          window.dispatchEvent(new CustomEvent('zw:prices', { detail: { productIds: ids } }));
+        } catch (_) {}
+        return _cache;
+      })
+      .catch(function () {
+        /* Leave the catalogue answer standing. A pricing read that fails must
+           not blank a price or invent one. */
+        return _cache;
+      });
+  }
+
   window.ZWVariantPrice = {
     cents: priceCents,
     overrides: variantOverrides,
     resolve: resolveVariantPrice,
-    lowest: lowestPriceCents
+    lowest: lowestPriceCents,
+    ask: ask,
+    resolvedFor: resolvedFor
   };
 })();
