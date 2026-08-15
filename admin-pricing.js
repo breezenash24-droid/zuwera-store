@@ -21,6 +21,9 @@
   let _audit = [];
   let _you = '';
   let _products = [];   // id, title + colourways, for the propose form
+  let _pick = null;     // the chosen product
+  let _live = null;     // /api/prices for _pick — what a shopper is charged TODAY
+  let _query = '';      // product search text
 
   const $ = (id) => document.getElementById(id);
   const money = (cents) => '$' + (Number(cents || 0) / 100).toFixed(2);
@@ -66,9 +69,11 @@
       _you = data.you || '';
 
       /* The catalogue, for the propose form. Read straight from Supabase like
-         every other admin page — it is only names and ids. */
+         every other admin page — it is only names and ids. `sku` and `status`
+         come along so the picker can be searched by code and can say when you
+         are about to price something no customer can see. */
       const { data: prods } = await sb.from('products')
-        .select('id,title,current_price,color_variants(id,color_name,current_price)')
+        .select('id,title,sku,status,current_price,color_variants(id,color_name,current_price)')
         .order('title', { ascending: true });
       _products = prods || [];
 
@@ -163,9 +168,20 @@
       ${_audit.length ? auditTable() : empty('Nothing recorded yet.')}
     `;
 
-    const sel = $('pricing-product');
-    if (sel) sel.addEventListener('change', syncColourOptions);
-    syncColourOptions();
+    /* The search box is re-rendered as you type, so it has to be re-focused and
+       the caret put back — otherwise the first keystroke works and the second
+       goes nowhere, which reads as the box being broken. Only the results list
+       is redrawn, not the whole panel. */
+    const search = $('pricing-search');
+    if (search) {
+      search.addEventListener('input', (e) => {
+        _query = e.target.value;
+        const at = e.target.selectionStart;
+        render();
+        const again = $('pricing-search');
+        if (again) { again.focus(); try { again.setSelectionRange(at, at); } catch (_) {} }
+      });
+    }
   }
 
   const empty = (msg) => `<p style="color:var(--text-secondary);font-size:.85rem;">${escapeHtml(msg)}</p>`;
@@ -188,26 +204,123 @@
       </div>`;
   }
 
+  /* ── Choosing a product ───────────────────────────────────────────────────
+     A <select> of every product is unusable past about twenty of them: you
+     cannot type, you cannot search by SKU, and you cannot see what anything
+     costs while choosing. This is a search box over title and SKU with the
+     current price beside each result, so the thing you are about to change is
+     visible before you change it. */
+  function picker() {
+    if (_pick) {
+      const colours = (_pick.color_variants || []).length;
+      return `
+        <div style="display:flex;align-items:center;gap:.75rem;padding:.7rem .85rem;border:1px solid var(--border);border-radius:8px;background:var(--bg-primary);">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;">${escapeHtml(_pick.title || 'Untitled')}</div>
+            <div style="color:var(--text-secondary);font-size:.78rem;">
+              ${escapeHtml(_pick.sku || '')}${_pick.sku && colours ? ' · ' : ''}${colours ? colours + ' colourway' + (colours === 1 ? '' : 's') : ''}
+              ${statusWarning(_pick)}
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="pricingClearPick()">Change</button>
+        </div>`;
+    }
+
+    const q = _query.trim().toLowerCase();
+    const matches = (q
+      ? _products.filter((p) => (String(p.title || '') + ' ' + String(p.sku || '')).toLowerCase().includes(q))
+      : _products).slice(0, 8);
+
+    return `
+      <input id="pricing-search" class="form-input" type="search" autocomplete="off"
+             placeholder="Search by name or SKU…" value="${escapeAttr(_query)}">
+      <div style="border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;max-height:260px;overflow-y:auto;">
+        ${matches.length ? matches.map((p) => `
+          <button type="button" onclick="pricingPick('${escapeAttr(p.id)}')"
+                  style="display:flex;width:100%;gap:.75rem;align-items:center;text-align:left;padding:.6rem .85rem;background:none;border:none;border-bottom:1px solid var(--border);color:inherit;cursor:pointer;font:inherit;">
+            <span style="flex:1;min-width:0;">
+              <span style="display:block;">${escapeHtml(p.title || 'Untitled')}</span>
+              <span style="color:var(--text-secondary);font-size:.76rem;">${escapeHtml(p.sku || '—')}${statusWarning(p)}</span>
+            </span>
+            <span style="font-variant-numeric:tabular-nums;color:var(--text-secondary);">${dollars(p.current_price)}</span>
+          </button>`).join('')
+        : `<div style="padding:.85rem;color:var(--text-secondary);font-size:.82rem;">
+             ${_products.length ? 'Nothing matches “' + escapeHtml(_query) + '”.' : 'No products.'}
+           </div>`}
+      </div>
+      ${!q && _products.length > 8
+        ? `<div style="font-size:.75rem;color:var(--text-secondary);margin-top:.35rem;">Showing 8 of ${_products.length}. Type to narrow.</div>`
+        : ''}`;
+  }
+
+  /* Pricing something nobody can buy is a real mistake and a silent one. */
+  function statusWarning(p) {
+    const s = String(p.status || '').toLowerCase();
+    if (!s || s === 'live') return '';
+    return ` <span style="color:#fbbf24;">· ${escapeHtml(p.status)}</span>`;
+  }
+
+  /* What a shopper pays for this right now, from /api/prices — the SERVER's
+     answer, not a second calculation here. Without it you are typing a new
+     price with no idea what the old one is, which is the one thing this whole
+     screen exists to change. */
+  function currentLine() {
+    if (!_pick) return '';
+    if (!_live) return '<div style="color:var(--text-secondary);font-size:.8rem;">Checking the current price…</div>';
+
+    const cid = $('pricing-colour') ? $('pricing-colour').value : '';
+    const hit = cid ? (_live.colours || []).find((c) => String(c.id) === String(cid)) : _live.base;
+    if (!hit) return '';
+    const why = { list: 'from a price list', variant: "this colourway's own price", product: "the product's price" }[hit.source] || hit.source;
+
+    const typed = $('pricing-amount') && Number($('pricing-amount').value);
+    const after = Number.isFinite(typed) && typed > 0
+      ? `<span style="color:var(--text-secondary);"> → </span><strong>$${typed.toFixed(2)}</strong>`
+      : '';
+
+    return `
+      <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:.5rem;padding:.6rem .85rem;border:1px solid var(--border);border-radius:8px;background:var(--bg-primary);font-size:.85rem;">
+        <span style="color:var(--text-secondary);">Charged today</span>
+        <strong style="font-variant-numeric:tabular-nums;">${money(hit.priceCents)}</strong>${after}
+        <span style="color:var(--text-secondary);font-size:.78rem;">· ${escapeHtml(why)}</span>
+      </div>`;
+  }
+
   function proposeForm() {
-    const opts = _products.map((p) => `<option value="${escapeAttr(p.id)}">${escapeHtml(p.title || 'Untitled')}</option>`).join('');
     const lists = _lists.filter((l) => l.active !== false)
       .map((l) => `<option value="${escapeAttr(l.id)}">${escapeHtml(l.name || l.code)}</option>`).join('');
+
+    if (!_pick) {
+      return `<div style="border:1px solid var(--border);border-radius:8px;padding:1rem;">
+        <label class="form-label">Product</label>
+        ${picker()}
+      </div>`;
+    }
+
+    const colours = _pick.color_variants || [];
     return `
       <div style="border:1px solid var(--border);border-radius:8px;padding:1rem;">
         <label class="form-label">Product</label>
-        <select id="pricing-product" class="form-input">${opts}</select>
+        ${picker()}
 
-        <label class="form-label" style="margin-top:.6rem;">Colourway</label>
-        <select id="pricing-colour" class="form-input"></select>
+        <label class="form-label" style="margin-top:.7rem;">Colourway</label>
+        <select id="pricing-colour" class="form-input" onchange="pricingRefreshCurrent()">
+          <option value="">All colours</option>
+          ${colours.map((c) => `<option value="${escapeAttr(c.id)}">${escapeHtml(c.color_name || 'Colour')}${
+            c.current_price ? ' — ' + dollars(c.current_price) : ''}</option>`).join('')}
+        </select>
 
-        <label class="form-label" style="margin-top:.6rem;">Price list</label>
+        <div id="pricing-current" style="margin-top:.7rem;">${currentLine()}</div>
+
+        <label class="form-label" style="margin-top:.7rem;">Price list</label>
         <select id="pricing-list" class="form-input">${lists}</select>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.6rem;">
-          <div><label class="form-label">Price</label>
-            <input id="pricing-amount" type="number" step="0.01" min="0.01" class="form-input" placeholder="176.97"></div>
-          <div><label class="form-label">Compare at</label>
-            <input id="pricing-compare" type="number" step="0.01" min="0" class="form-input" placeholder="220.00"></div>
+          <div><label class="form-label">New price</label>
+            <input id="pricing-amount" type="number" step="0.01" min="0.01" class="form-input"
+                   oninput="pricingRefreshCurrent()" placeholder="0.00"></div>
+          <div><label class="form-label">Compare at <span style="color:var(--text-secondary);font-weight:400;">(optional)</span></label>
+            <input id="pricing-compare" type="number" step="0.01" min="0" class="form-input" placeholder="0.00"></div>
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.6rem;">
@@ -217,32 +330,46 @@
             <input id="pricing-ends" type="date" class="form-input"></div>
         </div>
         <div style="font-size:.75rem;color:var(--text-secondary);margin-top:.35rem;line-height:1.5;">
-          Leave both blank for a price that starts now and runs until you change it.
+          Leave both blank to start now and run until you change it.
         </div>
 
         <label class="form-label" style="margin-top:.6rem;">Why</label>
         <input id="pricing-note-in" type="text" class="form-input" placeholder="End-of-season markdown">
 
-        <button class="btn btn-secondary btn-sm" style="margin-top:.8rem;" onclick="pricingPropose(this)">Propose</button>
+        <button class="btn btn-primary btn-sm" style="margin-top:.8rem;" onclick="pricingPropose(this)">Propose</button>
         <div style="font-size:.75rem;color:var(--text-secondary);margin-top:.5rem;line-height:1.5;">
           Nothing changes for shoppers until this is approved.
         </div>
       </div>`;
   }
 
-  function syncColourOptions() {
-    const sel = $('pricing-colour');
-    const pid = $('pricing-product') && $('pricing-product').value;
-    if (!sel) return;
-    const p = _products.find((x) => String(x.id) === String(pid));
-    const colours = (p && p.color_variants) || [];
-    sel.innerHTML = '<option value="">All colours</option>'
-      + colours.map((c) => `<option value="${escapeAttr(c.id)}">${escapeHtml(c.color_name || 'Colour')}</option>`).join('');
-  }
+  window.pricingPick = async function (id) {
+    _pick = _products.find((p) => String(p.id) === String(id)) || null;
+    _live = null;
+    render();
+    /* Asked WITHOUT an admin token on purpose: this must show the price an
+       ordinary shopper is charged, not whatever the signed-in admin qualifies
+       for. Same choice the server makes when it records the "from" figure. */
+    try {
+      const r = await fetch('/api/prices?productId=' + encodeURIComponent(id), { cache: 'no-store' });
+      const j = await r.json().catch(() => ({}));
+      _live = j && j.ok ? j : null;
+    } catch (_) { _live = null; }
+    render();
+  };
+
+  window.pricingClearPick = function () { _pick = null; _live = null; _query = ''; render(); };
+
+  /* Redraw only the "charged today → new price" line. A full render would take
+     focus out of the box being typed in. */
+  window.pricingRefreshCurrent = function () {
+    const host = $('pricing-current');
+    if (host) host.innerHTML = currentLine();
+  };
 
   function listsTable() {
     if (!_lists.length) return empty('No price lists.');
-    return `<div style="overflow-x:auto;"><table class="data-table" style="width:100%;font-size:.82rem;">
+    return `<div style="overflow-x:auto;"><table class="products-table" style="width:100%;font-size:.82rem;">
       <thead><tr><th>List</th><th>For</th><th>Priority</th><th>State</th></tr></thead>
       <tbody>${_lists.map((l) => `
         <tr>
@@ -256,7 +383,7 @@
   }
 
   function pricesTable(rows) {
-    return `<div style="overflow-x:auto;"><table class="data-table" style="width:100%;font-size:.82rem;">
+    return `<div style="overflow-x:auto;"><table class="products-table" style="width:100%;font-size:.82rem;">
       <thead><tr><th>Product</th><th>Colour</th><th>List</th><th>Price</th><th>When</th><th></th></tr></thead>
       <tbody>${rows.map((p) => `
         <tr>
@@ -270,7 +397,7 @@
   }
 
   function auditTable() {
-    return `<div style="overflow-x:auto;"><table class="data-table" style="width:100%;font-size:.82rem;">
+    return `<div style="overflow-x:auto;"><table class="products-table" style="width:100%;font-size:.82rem;">
       <thead><tr><th>When</th><th>Who</th><th>What</th><th>From</th><th>To</th><th></th></tr></thead>
       <tbody>${_audit.map((a) => `
         <tr>
