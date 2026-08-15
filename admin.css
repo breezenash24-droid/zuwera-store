@@ -24,6 +24,17 @@
             --radius-md: 8px;
             --border-color: var(--border);
             --bg-tertiary: #141416;
+            /* Browser-drawn controls — the calendar button in <input type="date">
+               above all — follow this. See the note by the light-mode inputs. */
+            color-scheme: dark;
+        }
+
+        /* Both light treatments flip it. super-light-mode carries BOTH classes,
+           so it would inherit from light-mode anyway; it is named explicitly
+           because relying on that has caught this codebase out before. */
+        body.light-mode,
+        body.super-light-mode {
+            color-scheme: light;
         }
 
         body.light-mode {
@@ -62,6 +73,21 @@
             --text-secondary: #666;
         }
 
+        /* ── Native controls follow the panel's theme ────────────────────────
+           The calendar button inside <input type="date"> is drawn by the
+           BROWSER, not by us, so no colour we set reaches it. On the dark panel
+           it was rendering as a near-black glyph on a near-black field —
+           present, clickable, and effectively invisible.
+
+           color-scheme is the property that governs it, and it covers every
+           other control the browser paints for itself at the same time: the
+           date and time pickers, the select dropdown list, scrollbars, and the
+           spinners on number inputs. Setting it here rather than filtering the
+           icon means those all agree, and that a control added later inherits
+           the right treatment without anybody remembering to style it.
+
+           Declared on :root so it applies before any body class is known —
+           the panel is dark by default and paints dark on first frame. */
         body.light-mode select,
         body.light-mode input[type="text"],
         body.light-mode input[type="email"],
@@ -897,6 +923,20 @@
         }
 
         /* Products Table */
+        /* Pricing: catalogue on the left, the selected product's settings on the
+           right, both visible at once. A single column under 900px, where two
+           panes would each be too narrow to read. */
+        .zw-price-panes {
+            display: grid;
+            grid-template-columns: minmax(280px, 380px) 1fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .zw-price-panes { grid-template-columns: 1fr; }
+        }
+
         .products-table {
             width: 100%;
             border-collapse: collapse;

@@ -146,6 +146,9 @@ export function resolvePrice({ product, variant, rows, lists, shopper, now }) {
   if (!row) {
     return {
       priceCents: base.priceCents,
+      regularCents: base.regularCents,
+      memberCents: base.memberCents,
+      usingMember: base.usingMember,
       compareAtCents: base.msrpCents,
       source: base.source,          // 'variant' | 'product'
       priceListCode: '',
@@ -161,6 +164,9 @@ export function resolvePrice({ product, variant, rows, lists, shopper, now }) {
   if (amountCents <= 0) {
     return {
       priceCents: base.priceCents,
+      regularCents: base.regularCents,
+      memberCents: base.memberCents,
+      usingMember: base.usingMember,
       compareAtCents: base.msrpCents,
       source: base.source,
       priceListCode: '',
@@ -170,9 +176,23 @@ export function resolvePrice({ product, variant, rows, lists, shopper, now }) {
     };
   }
 
+  /* STAGE TWO: what a member pays, WITHIN the row that already won (0023).
+     Membership plays no part in choosing the row — that is stage one above —
+     so a member_price here can never compete with a Members price list. Only
+     the winning row's figures are ever read.
+
+     Ignored when it is not actually cheaper, exactly as on products and
+     colourways: charging somebody more for being a member is never what was
+     meant, and it is what a transposed pair of numbers produces. */
+  const rowMemberCents = cents(row.member_price);
+  const useRowMember = isMember && rowMemberCents > 0 && rowMemberCents < amountCents;
+
   const list = (lists || []).find((l) => String(l.id) === String(row.price_list_id)) || {};
   return {
-    priceCents: amountCents,
+    priceCents: useRowMember ? rowMemberCents : amountCents,
+    regularCents: amountCents,
+    memberCents: rowMemberCents,
+    usingMember: useRowMember,
     compareAtCents: cents(row.compare_at) || base.msrpCents,
     source: 'price_list',
     priceListCode: String(list.code || ''),

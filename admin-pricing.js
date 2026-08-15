@@ -150,16 +150,24 @@
         ${pending.map(pendingRow).join('')}
       </div>` : ''}
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;">
+      <!-- Two panes: the catalogue stays on the left while you work on the
+           right, so moving between products does not mean re-finding the list
+           each time. Collapses to one column under 900px. -->
+      <div class="zw-price-panes">
         <div>
-          <div class="zw-eyebrow" style="margin-bottom:.6rem;">Propose a price change</div>
+          <div class="zw-eyebrow" style="margin-bottom:.6rem;">Products</div>
+          ${picker()}
+        </div>
+        <div>
+          <div class="zw-eyebrow" style="margin-bottom:.6rem;">
+            ${_pick ? escapeHtml(_pick.title || 'Untitled') : 'Propose a price change'}
+          </div>
           ${proposeForm()}
         </div>
-        <div>
-          <div class="zw-eyebrow" style="margin-bottom:.6rem;">Price lists</div>
-          ${listsTable()}
-        </div>
       </div>
+
+      <div class="zw-eyebrow" style="margin:1.75rem 0 .6rem;">Price lists</div>
+      ${listsTable()}
 
       <div class="zw-eyebrow" style="margin:1.75rem 0 .6rem;">Prices</div>
       ${live.length ? pricesTable(live) : empty('No price overrides yet. Products and colourways are priced from the catalogue.')}
@@ -210,47 +218,46 @@
      costs while choosing. This is a search box over title and SKU with the
      current price beside each result, so the thing you are about to change is
      visible before you change it. */
+  /* The catalogue pane. Stays on screen while the right-hand form is used, so
+     the selected row is highlighted rather than the list being replaced — the
+     whole point of two panes is comparing and moving between products without
+     losing your place. */
   function picker() {
-    if (_pick) {
-      const colours = (_pick.color_variants || []).length;
-      return `
-        <div style="display:flex;align-items:center;gap:.75rem;padding:.7rem .85rem;border:1px solid var(--border);border-radius:8px;background:var(--bg-primary);">
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:600;">${escapeHtml(_pick.title || 'Untitled')}</div>
-            <div style="color:var(--text-secondary);font-size:.78rem;">
-              ${escapeHtml(_pick.sku || '')}${_pick.sku && colours ? ' · ' : ''}${colours ? colours + ' colourway' + (colours === 1 ? '' : 's') : ''}
-              ${statusWarning(_pick)}
-            </div>
-          </div>
-          <button class="btn btn-secondary btn-sm" onclick="pricingClearPick()">Change</button>
-        </div>`;
-    }
-
     const q = _query.trim().toLowerCase();
-    const matches = (q
+    const matches = q
       ? _products.filter((p) => (String(p.title || '') + ' ' + String(p.sku || '')).toLowerCase().includes(q))
-      : _products).slice(0, 8);
+      : _products;
 
     return `
       <input id="pricing-search" class="form-input" type="search" autocomplete="off"
-             placeholder="Search by name or SKU…" value="${escapeAttr(_query)}">
-      <div style="border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;max-height:260px;overflow-y:auto;">
-        ${matches.length ? matches.map((p) => `
-          <button type="button" onclick="pricingPick('${escapeAttr(p.id)}')"
-                  style="display:flex;width:100%;gap:.75rem;align-items:center;text-align:left;padding:.6rem .85rem;background:none;border:none;border-bottom:1px solid var(--border);color:inherit;cursor:pointer;font:inherit;">
+             placeholder="Search by name or SKU…" value="${escapeAttr(_query)}"
+             style="border-radius:8px 8px 0 0;">
+      <div style="border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;max-height:520px;overflow-y:auto;">
+        ${matches.length ? matches.map((p) => {
+          const on = _pick && String(_pick.id) === String(p.id);
+          const colours = (p.color_variants || []).length;
+          return `
+          <button type="button" onclick="pricingPick('${escapeAttr(p.id)}')" aria-current="${on ? 'true' : 'false'}"
+                  style="display:flex;width:100%;gap:.75rem;align-items:center;text-align:left;padding:.6rem .85rem;
+                         background:${on ? 'var(--bg-primary)' : 'none'};border:none;
+                         border-left:3px solid ${on ? 'var(--accent)' : 'transparent'};
+                         border-bottom:1px solid var(--border);color:inherit;cursor:pointer;font:inherit;">
             <span style="flex:1;min-width:0;">
-              <span style="display:block;">${escapeHtml(p.title || 'Untitled')}</span>
-              <span style="color:var(--text-secondary);font-size:.76rem;">${escapeHtml(p.sku || '—')}${statusWarning(p)}</span>
+              <span style="display:block;${on ? 'font-weight:600;' : ''}">${escapeHtml(p.title || 'Untitled')}</span>
+              <span style="color:var(--text-secondary);font-size:.76rem;">
+                ${escapeHtml(p.sku || '—')}${colours ? ' · ' + colours + ' colour' + (colours === 1 ? '' : 's') : ''}${statusWarning(p)}
+              </span>
             </span>
-            <span style="font-variant-numeric:tabular-nums;color:var(--text-secondary);">${dollars(p.current_price)}</span>
-          </button>`).join('')
+            <span style="font-variant-numeric:tabular-nums;color:var(--text-secondary);white-space:nowrap;">${dollars(p.current_price)}</span>
+          </button>`;
+        }).join('')
         : `<div style="padding:.85rem;color:var(--text-secondary);font-size:.82rem;">
              ${_products.length ? 'Nothing matches “' + escapeHtml(_query) + '”.' : 'No products.'}
            </div>`}
       </div>
-      ${!q && _products.length > 8
-        ? `<div style="font-size:.75rem;color:var(--text-secondary);margin-top:.35rem;">Showing 8 of ${_products.length}. Type to narrow.</div>`
-        : ''}`;
+      <div style="font-size:.75rem;color:var(--text-secondary);margin-top:.35rem;">
+        ${matches.length} of ${_products.length} product${_products.length === 1 ? '' : 's'}
+      </div>`;
   }
 
   /* Pricing something nobody can buy is a real mistake and a silent one. */
@@ -273,16 +280,33 @@
     if (!hit) return '';
     const why = { list: 'from a price list', variant: "this colourway's own price", product: "the product's price" }[hit.source] || hit.source;
 
-    const typed = $('pricing-amount') && Number($('pricing-amount').value);
-    const after = Number.isFinite(typed) && typed > 0
+    const num = (id) => { const el = $(id); const n = el ? Number(el.value) : NaN; return Number.isFinite(n) && n > 0 ? n : null; };
+    const typed = num('pricing-amount');
+    const typedMember = num('pricing-member');
+    const after = typed
       ? `<span style="color:var(--text-secondary);"> → </span><strong>$${typed.toFixed(2)}</strong>`
+      : '';
+    /* Members are a separate line rather than folded into the arrow above: two
+       audiences, two before-and-afters, and conflating them is what made the
+       missing member field easy to miss in the first place. */
+    const memberLine = (hit.memberCents || typedMember)
+      ? `<div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:.5rem;margin-top:.35rem;color:var(--text-secondary);font-size:.8rem;">
+           <span>Members pay</span>
+           <strong style="font-variant-numeric:tabular-nums;color:var(--text-primary);">${
+             hit.memberCents ? money(hit.memberCents) : money(hit.priceCents)}</strong>
+           ${typedMember ? `<span>→</span><strong style="color:var(--text-primary);">$${typedMember.toFixed(2)}</strong>`
+             : (typed ? `<span>→</span><strong style="color:var(--text-primary);">$${typed.toFixed(2)}</strong>` : '')}
+         </div>`
       : '';
 
     return `
-      <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:.5rem;padding:.6rem .85rem;border:1px solid var(--border);border-radius:8px;background:var(--bg-primary);font-size:.85rem;">
-        <span style="color:var(--text-secondary);">Charged today</span>
-        <strong style="font-variant-numeric:tabular-nums;">${money(hit.priceCents)}</strong>${after}
-        <span style="color:var(--text-secondary);font-size:.78rem;">· ${escapeHtml(why)}</span>
+      <div style="padding:.6rem .85rem;border:1px solid var(--border);border-radius:8px;background:var(--bg-primary);font-size:.85rem;">
+        <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:.5rem;">
+          <span style="color:var(--text-secondary);">Charged today</span>
+          <strong style="font-variant-numeric:tabular-nums;">${money(hit.priceCents)}</strong>${after}
+          <span style="color:var(--text-secondary);font-size:.78rem;">· ${escapeHtml(why)}</span>
+        </div>
+        ${memberLine}
       </div>`;
   }
 
@@ -291,19 +315,21 @@
       .map((l) => `<option value="${escapeAttr(l.id)}">${escapeHtml(l.name || l.code)}</option>`).join('');
 
     if (!_pick) {
-      return `<div style="border:1px solid var(--border);border-radius:8px;padding:1rem;">
-        <label class="form-label">Product</label>
-        ${picker()}
+      return `<div style="border:1px solid var(--border);border-radius:8px;padding:1.25rem;color:var(--text-secondary);font-size:.85rem;line-height:1.7;">
+        Choose a product on the left.<br>
+        Its current price, colourways and everything you can set will appear here.
       </div>`;
     }
 
     const colours = _pick.color_variants || [];
     return `
       <div style="border:1px solid var(--border);border-radius:8px;padding:1rem;">
-        <label class="form-label">Product</label>
-        ${picker()}
+        <div style="color:var(--text-secondary);font-size:.78rem;margin-bottom:.7rem;">
+          ${escapeHtml(_pick.sku || '')}${_pick.sku && colours.length ? ' · ' : ''}${
+            colours.length ? colours.length + ' colourway' + (colours.length === 1 ? '' : 's') : ''}${statusWarning(_pick)}
+        </div>
 
-        <label class="form-label" style="margin-top:.7rem;">Colourway</label>
+        <label class="form-label">Colourway</label>
         <select id="pricing-colour" class="form-input" onchange="pricingRefreshCurrent()">
           <option value="">All colours</option>
           ${colours.map((c) => `<option value="${escapeAttr(c.id)}">${escapeHtml(c.color_name || 'Colour')}${
@@ -315,12 +341,21 @@
         <label class="form-label" style="margin-top:.7rem;">Price list</label>
         <select id="pricing-list" class="form-input">${lists}</select>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.6rem;">
+        <!-- All three figures the product form has. Member price was missing,
+             so this screen could express two of the three — and the missing one
+             is the one nearly every product here uses. -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-top:.6rem;">
           <div><label class="form-label">New price</label>
             <input id="pricing-amount" type="number" step="0.01" min="0.01" class="form-input"
                    oninput="pricingRefreshCurrent()" placeholder="0.00"></div>
-          <div><label class="form-label">Compare at <span style="color:var(--text-secondary);font-weight:400;">(optional)</span></label>
+          <div><label class="form-label">Member <span style="color:var(--text-secondary);font-weight:400;">(opt)</span></label>
+            <input id="pricing-member" type="number" step="0.01" min="0" class="form-input"
+                   oninput="pricingRefreshCurrent()" placeholder="0.00"></div>
+          <div><label class="form-label">Compare at <span style="color:var(--text-secondary);font-weight:400;">(opt)</span></label>
             <input id="pricing-compare" type="number" step="0.01" min="0" class="form-input" placeholder="0.00"></div>
+        </div>
+        <div style="font-size:.75rem;color:var(--text-secondary);margin-top:.35rem;line-height:1.5;">
+          Member applies only when this row is the one in effect — it never competes with the Members price list.
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.6rem;">
@@ -414,20 +449,40 @@
   }
 
   window.pricingPropose = async function (btn) {
-    const amount = $('pricing-amount') && $('pricing-amount').value;
+    /* The product comes from _pick, not from a form field. It used to read
+       $('pricing-product').value, and when the <select> was replaced by the
+       search picker that element stopped existing — so every Propose threw
+       "Cannot read properties of null (reading 'value')" before it sent
+       anything. Read through a helper so a missing field is a clear message
+       rather than a crash. */
+    const val = (id) => { const el = $(id); return el ? String(el.value || '').trim() : ''; };
+
+    if (!_pick) { note('Choose a product first.', 'error'); return; }
+    const amount = val('pricing-amount');
     if (!amount || Number(amount) <= 0) { note('Enter a price above zero.', 'error'); return; }
+
+    const memberPrice = val('pricing-member');
+    if (memberPrice && Number(memberPrice) >= Number(amount)) {
+      /* Refused here as well as ignored by the resolver: a member price at or
+         above the regular one is a transposed pair of numbers, and silently
+         dropping it would leave somebody believing members have a discount. */
+      note('The member price must be below the new price.', 'error');
+      return;
+    }
+
     if (btn) { btn.disabled = true; btn.textContent = 'Proposing…'; }
     try {
       await api('POST', {
         action: 'propose',
-        productId: $('pricing-product').value,
-        colorVariantId: $('pricing-colour').value || null,
-        priceListId: $('pricing-list').value,
+        productId: _pick.id,
+        colorVariantId: val('pricing-colour') || null,
+        priceListId: val('pricing-list'),
         amount: Number(amount),
-        compareAt: $('pricing-compare').value || null,
-        startsAt: $('pricing-starts').value || null,
-        endsAt: $('pricing-ends').value || null,
-        note: $('pricing-note-in').value || '',
+        memberPrice: memberPrice ? Number(memberPrice) : null,
+        compareAt: val('pricing-compare') || null,
+        startsAt: val('pricing-starts') || null,
+        endsAt: val('pricing-ends') || null,
+        note: val('pricing-note-in'),
       });
       _loaded = false;
       await window.pricingLoadData();
