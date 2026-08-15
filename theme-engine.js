@@ -260,15 +260,16 @@
     set('--white', t.paper);
     set('--zw-theme-surface', t.surface);
 
-    /* The bag and search panels read --zw-page / --zw-ink, which are declared
-       statically in storefront-cohesion.css: :root carries a LIGHT pair and only
-       body.super-light-mode overrides them. Nothing set them from the theme, so
-       in dark mode the bag panel opened as a cream card with dark text under a
-       dark header — the theme reaching the page and stopping at the panel.
-       Driven from the same two triplets as everything else, so a custom theme's
-       colours reach them like they reach the rest. */
-    set('--zw-page', t.bg ? 'rgb(' + t.bg + ')' : '');
-    set('--zw-ink', t.fg ? 'rgb(' + t.fg + ')' : '');
+    /* --zw-ink AND --zw-page ARE NOT SET HERE, and that is deliberate.
+       I set them from the theme's fg/bg once, to make the bag panel follow the
+       theme, and it broke text across the whole site. --zw-ink is not a
+       semantic "foreground": it is a LITERAL near-black, read as `color:` in 21
+       rules and as `background:` in 8. Pointing it at the theme's foreground
+       turned every one of those 21 into near-white text in dark mode, on
+       surfaces that had stayed light.
+       A token used in both roles has no single theme-aware value. Anything that
+       needs the theme's colours reads --fg-rgb / --bg-rgb, which mean exactly
+       one thing each. */
     set('--accent', t.accent);
 
     /* ── Price colours ──────────────────────────────────────────────────────
