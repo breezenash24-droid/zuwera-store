@@ -2587,11 +2587,15 @@ function renderProduct() {
   // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Price ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   renderPrice();
 
-  /* Ask the server what this actually costs. The catalogue figure is already
-     on screen, so this corrects rather than delays — and it is the only thing
-     that knows about price lists, effective dates and customer groups
-     (migration 0022). Without it this page showed $35 while the card was
-     charged the approved list price of $30. */
+  /* Ask the server what this actually costs — the only thing that knows about
+     price lists, effective dates and customer groups (migration 0022). Without
+     it this page showed $35 while the card was charged the approved list price
+     of $30.
+
+     Usually a no-op by now: variant-price.js fires the same request from the
+     URL's product id on DOMContentLoaded, in parallel with the fetch that
+     loaded this product, and ask() will not repeat one it has already sent.
+     Kept because it is what covers a URL carrying a slug and no id. */
   if (window.ZWVariantPrice && currentProduct && currentProduct.id) {
     window.ZWVariantPrice.ask(currentProduct.id);
   }
@@ -3022,8 +3026,43 @@ function renderPrice() {
 
   const el = (id) => document.getElementById(id);
 
+  /* ── NOTHING IS PRINTED UNTIL THE SERVER HAS ANSWERED ────────────────────
+     "It still loads the old price first when you reload."
+
+     It did, and removing the cache would not have fixed it — without a cached
+     figure this drew the CATALOGUE price instead, which on a discounted product
+     is just as wrong. The mistake was never which fallback to draw. It was
+     drawing a price at all before knowing one.
+
+     So the price waits, the way the tax total in checkout waits on isKnown():
+     a figure the browser has not been told is not rendered as though it had
+     been. The wait is one round trip, fired in parallel with the product fetch,
+     and it settles to the fallback if the network fails. */
+  const VP = window.ZWVariantPrice;
+  const settled = !VP || typeof VP.known !== 'function'
+    || VP.known(currentProduct && currentProduct.id);
+  if (!settled) {
+    /* Fire the request from here too. ask() ignores an id it has already sent,
+       so this costs nothing on the normal path — and it means the placeholder
+       can never be permanent. A price area waiting forever on a request nobody
+       made would be a far worse bug than the flash this replaces, and it is the
+       kind that only shows up on the one code path somebody forgot. */
+    try { VP.ask(currentProduct.id); } catch (_) {}
+    el('priceDisplay').innerHTML = '<span class="zw-price-pending" aria-label="Loading price"></span>';
+    el('msrpDisplay').innerHTML = '';
+    el('memberPrice').innerHTML = '';
+    syncProductSaveButton();
+    return;
+  }
+
+  /* THE MEMBER LABEL BELONGS ON THE PRICE, not under it. It used to sit on its
+     own line below the struck figure, which read as a footnote arriving after
+     the fact — and when the member price is the only price shown, a trailing
+     "Member price" looks like it is describing something else. Beside the
+     number it is what it actually is: the name of the figure above it. */
   el('priceDisplay').innerHTML = effective > 0
     ? `<span class="zw-price-now">$${effective.toFixed(2)}</span>`
+      + (p.usingMember ? '<span class="zw-price-member-tag">Member price</span>' : '')
     : 'Price TBA';
 
   /* Struck-through figure and the saving sit together on one line, because
@@ -3044,7 +3083,9 @@ function renderPrice() {
   const member = (p.memberCents || 0) / 100;
   const regular = (p.regularCents || 0) / 100;
   if (p.usingMember) {
-    el('memberPrice').innerHTML = '<span class="zw-price-member">Member price</span>';
+    /* Already said, beside the price. Repeating it here was the trailing line
+       that made the member price look like an afterthought. */
+    el('memberPrice').innerHTML = '';
   } else if (member > 0 && member < regular) {
     el('memberPrice').innerHTML = `<span class="zw-price-member">Members pay $${member.toFixed(2)}</span>`;
   } else {

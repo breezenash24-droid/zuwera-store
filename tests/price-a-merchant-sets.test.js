@@ -324,8 +324,16 @@ const LISTS = [{ id: 'L-default', code: 'default', name: 'Default', priority: 0,
       'past some age the catalogue price is the more honest guess');
     ok('…and the fetch still always runs and corrects',
       /_asked\[id\] = true;/.test(BROWSER) && /dispatchEvent\(new CustomEvent\('zw:prices'/.test(BROWSER));
-    ok('…only when the answer moved', /if \(changed\) \{/.test(BROWSER),
-      'firing regardless makes every page load redraw its prices for nothing');
+    /* THIS ASSERTION USED TO READ "only when the answer moved", and that was
+       right while the page painted from cache and wrong the moment it started
+       waiting for the server. The first answer of a page load usually MATCHES
+       the cache — and that is precisely the redraw that swaps the placeholder
+       for a real price. Firing only on a change left it a placeholder forever.
+       The event now fires when the answer moved OR when it first becomes
+       known, which is still not "every load, for nothing". */
+    ok('…when the answer moved, or has just become known',
+      /if \(!changed && !flipped\) return;/.test(BROWSER),
+      'a redraw for nothing is a flash with an extra step; no redraw at all is a permanent placeholder');
   }
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

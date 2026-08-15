@@ -29,19 +29,25 @@ const ADMIN = fs.readFileSync(path.join(ROOT, 'admin-themes.js'), 'utf8');
 const STAMP = fs.readFileSync(path.join(ROOT, 'scripts/stamp-theme-default.js'), 'utf8');
 const PKG   = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 
-/* Run the real renderPrice against a DOM small enough to read back. */
-function render(prices, member) {
+/* Run the real renderPrice against a DOM small enough to read back.
+   `known` is whether the server has answered for this product yet — the page
+   prints no figure at all until it has. Default true, because almost every case
+   below is about what a settled price LOOKS like. */
+function render(prices, member, known) {
   const els = {};
   const doc = { getElementById: (id) => (els[id] = els[id] || { id, innerHTML: '' }) };
   const src = PROD.slice(PROD.indexOf('function renderPrice() {'));
   const body = src.slice(0, src.indexOf('\n}') + 2);
-  new Function('resolvedPrices', 'currentProduct', 'document', 'syncProductSaveButton', 'isMemberSignedIn',
+  const asked = [];
+  const win = { ZWVariantPrice: { known: () => known !== false, ask: (id) => asked.push(id) } };
+  new Function('resolvedPrices', 'currentProduct', 'document', 'syncProductSaveButton', 'isMemberSignedIn', 'window',
     body + '\nrenderPrice();')(
-    () => prices, {}, doc, () => {}, () => !!member);
+    () => prices, { id: 'p-1' }, doc, () => {}, () => !!member, win);
   return {
     now: (els.priceDisplay || {}).innerHTML || '',
     was: (els.msrpDisplay || {}).innerHTML || '',
     member: (els.memberPrice || {}).innerHTML || '',
+    asked,
   };
 }
 
@@ -81,7 +87,35 @@ console.log('\n  a member price is a discount too, and reads the same way');
   ok('…struck against what they would otherwise pay', /\$40\.00/.test(r.was),
     'one rule — the higher of compare-at and the price this shopper avoided — covers both cases');
   ok('…with the saving shown', /12% off/.test(r.was));
-  ok('…and the line says it plainly', /Member price/.test(r.member));
+  /* THE LABEL MOVED, on purpose. It used to be its own line under the struck
+     figure, which read as a footnote arriving after the fact — and when the
+     member price is the ONLY price shown, a trailing "Member price" looks like
+     it is describing something further down the page. Beside the number it is
+     what it actually is: the name of the figure it sits on. */
+  ok('…and the label sits on the price it names', /Member price/.test(r.now),
+    'got: ' + r.now);
+  ok('…rather than trailing underneath it', r.member === '',
+    'saying it twice is what made it look like an afterthought');
+}
+
+console.log('\n  no price is printed before the server has answered');
+{
+  /* "It still loads the old price first when you reload."
+     Removing the cache would not have fixed it — with nothing cached the page
+     drew the CATALOGUE price, which on a discounted product is just as wrong.
+     The fix is not a better fallback, it is not printing a figure until one is
+     known. Same rule the tax total follows in checkout. */
+  const r = render({ priceCents: 4000, regularCents: 4000, memberCents: 0, msrpCents: 0, usingMember: false, source: 'product' }, false, false);
+  ok('no figure at all', !/\$/.test(r.now), 'got: ' + r.now);
+  ok('a placeholder holds the space instead', /zw-price-pending/.test(r.now),
+    'a price area that collapses and reopens is its own flash');
+  ok('nothing is struck through either', r.was === '');
+  ok('and no member line is guessed at', r.member === '');
+  ok('…while the request is made from here too', r.asked.length === 1,
+    'a placeholder waiting on a request nobody sent would be permanent');
+
+  const settled = render({ priceCents: 4000, regularCents: 4000, memberCents: 0, msrpCents: 0, usingMember: false, source: 'product' }, false, true);
+  ok('and the figure appears once it is known', /\$40\.00/.test(settled.now));
 }
 
 console.log('\n  and it does not claim a member saving that is not one');
@@ -112,6 +146,16 @@ console.log('\n  the colours are a store\'s to choose');
   ok('…as optional, so a store that ignores them still looks considered',
     /key: 'priceOff'[^}]*optional: true/.test(ADMIN));
   /* The default treatment is a decision, not an absence: one coloured element. */
+  ok('the member label and the placeholder are styled, not bare markup',
+    /\.zw-price-member-tag\s*\{/.test(CSS) && /\.zw-price-pending\s*\{/.test(CSS));
+  ok('…the label takes the same token as the member line',
+    /\.zw-price-member-tag[^}]*var\(--zw-price-member\)/.test(CSS),
+    'a store that recolours member pricing should not have to find two places');
+  ok('…and the placeholder holds the line height so nothing reflows',
+    /\.zw-price-pending[^}]*height:\s*1em/.test(CSS));
+  ok('…and stops moving for anyone who asked it to',
+    /prefers-reduced-motion[^}]*\}\s*[^@]*\.zw-price-pending\s*\{\s*animation:\s*none/.test(CSS)
+    || /@media \(prefers-reduced-motion: reduce\) \{\s*\.zw-price-pending \{ animation: none; \}/.test(CSS));
   ok('by default only the saving is coloured',
     /--zw-price-now: var\(--text-primary/.test(CSS) && /--zw-price-off: #22c55e/.test(CSS),
     'a price that fights the theme is worse than one that matches it');
