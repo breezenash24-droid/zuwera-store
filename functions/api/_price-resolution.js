@@ -15,13 +15,24 @@
  *
  *   1. LIST PRIORITY, highest first. A members list at 10 beats the default
  *      at 0. This is the axis a merchant thinks in.
- *   2. SPECIFICITY. A row naming a colour beats one that does not, so "the
- *      product is $220 but crimson is $176.97" needs two rows, not twelve.
- *   3. LATEST START. Of two rows that are otherwise equal, the one that came
- *      into effect most recently wins — a scheduled change supersedes the
- *      standing price the moment its window opens.
- *   4. NEWEST ROW. A total tie is broken by id/created_at so the answer is
- *      stable rather than dependent on row order from the database.
+ *   2. THE LATEST CHANGE. Whichever row took effect most recently wins,
+ *      whatever scope it names — see effectiveStart() below.
+ *   3. SPECIFICITY. Only for two rows that took effect at the same instant: a
+ *      row naming a colour is the more specific instruction, so it wins.
+ *   4. NEWEST ROW. A total tie is broken by created_at then id, so the answer
+ *      is stable rather than dependent on row order from the database.
+ *
+ * SPECIFICITY USED TO SIT AT 2, ABOVE RECENCY, and that is the ordering this
+ * changed. It meant a colour price set once outranked every later change to the
+ * product for good: set crimson to $30 in August, move the whole product to $32
+ * in September, and crimson stayed $30 with nothing on screen to say why. The
+ * merchant's own words for what they wanted: "the most recent change to the
+ * product price per configuration".
+ *
+ * The cost of the new order, stated plainly: a colour price is no longer
+ * permanent. Repricing the product supersedes it, and to keep a colour apart you
+ * re-set that colour afterwards. Nothing is deleted — end the newer row and the
+ * colour's own price is live again.
  *
  * A row is only a candidate if it is APPROVED and `now` is inside its window.
  * Proposed rows price nothing — that is what makes the workflow real rather
@@ -70,6 +81,30 @@ export function listApplies(list, shopper) {
   return true;
 }
 
+/**
+ * WHEN A ROW TOOK EFFECT — the field the whole ordering turns on.
+ *
+ * A blank start date means "start now", and the panel tells you to leave both
+ * blank for an ordinary price change. "Now" is the moment the row was written,
+ * so a row with no start date took effect at its created_at. That single
+ * substitution is what makes one comparison answer both questions a merchant
+ * has:
+ *
+ *   "I just changed the price"      → a row written today outranks one written
+ *                                     last week, whatever scope either names.
+ *   "I scheduled a change"          → a row starting next Tuesday outranks
+ *                                     everything from Tuesday, and not before.
+ *
+ * Reading a blank start as zero instead would rank "in effect since forever"
+ * below every dated row, so a price scheduled a year ago would beat one set
+ * this morning.
+ */
+function effectiveStart(row) {
+  const from = ms(row && row.starts_at);
+  if (from !== null) return from;
+  return ms(row && row.created_at) || 0;
+}
+
 /** Approved, and `now` is inside its window. */
 export function priceIsLive(row, now) {
   if (!row || row.status !== 'approved') return false;
@@ -110,18 +145,15 @@ export function pickPrice({ rows, lists, productId, colorVariantId, shopper, now
   candidates.sort((a, b) => {
     const p = priorityOf(b) - priorityOf(a);
     if (p) return p;
+    /* THE LATEST CHANGE WINS. See effectiveStart() above for why one comparison
+       covers both "I just changed the price" and "I scheduled a change". */
+    const start = effectiveStart(b) - effectiveStart(a);
+    if (start) return start;
+    /* Only for two rows that took effect at the SAME instant — a bulk edit, or
+       two rows saved in the same second. A colour naming itself is the more
+       specific instruction, so it wins that tie. */
     const spec = (b.color_variant_id ? 1 : 0) - (a.color_variant_id ? 1 : 0);
     if (spec) return spec;
-    const start = (ms(b.starts_at) || 0) - (ms(a.starts_at) || 0);
-    if (start) return start;
-    /* NEWEST ROW WINS, and "newest" means when it was WRITTEN.
-       This used to compare ids, and the ids are uuids — which sort by their
-       random first bytes, not by age. Two open-ended rows on one list (the
-       shape you get by leaving both dates blank, which the panel tells you to
-       do) therefore resolved by coin flip: raise a price from $30 to $32 and
-       roughly half the time the $30 row still won, forever, with nothing on
-       screen to explain it. created_at is the field that actually means
-       "later", so it decides. */
     const made = (ms(b.created_at) || 0) - (ms(a.created_at) || 0);
     if (made) return made;
     /* Last resort so the answer is stable rather than however the rows arrived. */
