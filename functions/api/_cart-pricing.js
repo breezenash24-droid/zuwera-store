@@ -33,6 +33,7 @@ import { normalizeStateCode, resolveTax } from './_tax.js';
 
 import { messagesFrom, shippedMessages } from './_messages.js';
 import { resolveVariantPrice } from './_variant-price.js';
+import { fetchPricingContext, resolvePrice, shopperFor } from './_price-resolution.js';
 /* A rejection the shopper caused and can fix, tagged with the status it should
    actually carry.
 
@@ -322,6 +323,19 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
   if (!Array.isArray(items) || items.length === 0) throw cartError('Missing cart items.', 400);
   if (items.length > 25) throw cartError('Cart has too many line items.', 400);
 
+  /* The pricing system (migration 0022), read ONCE for the whole cart rather
+     than once per line — five lines used to mean five round trips before this
+     existed, and the live set for a handful of products is one small query.
+
+     Empty on any failure, and empty means "nothing overrides the catalogue".
+     That is the only safe direction: the alternative is a store that cannot
+     quote a price because a pricing table is briefly unavailable. */
+  const pricingContext = await fetchPricingContext(
+    env,
+    items.map((i) => String(i?.productId || i?.id || '').trim()).filter(Boolean)
+  );
+  const shopper = shopperFor({ isMember });
+
   const resolved = [];
   for (const raw of items) {
     const productId = String(raw?.productId || raw?.id || '').trim();
@@ -345,7 +359,17 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
        colour is the only part of a cart line that selects a PRICE, so it is now
        as load-bearing as the product id. */
     const colorVariant = await fetchColorVariant(env, product.id, raw?.colorName);
-    const { priceCents } = resolveVariantPrice(product, colorVariant, isMember);
+
+    /* One question, one answerer. resolvePrice consults the price lists first
+       and falls back to exactly what resolveVariantPrice would have said, so
+       the catalogue price remains the answer until somebody deliberately puts a
+       row in the pricing system. */
+    const priced = resolvePrice({
+      product, variant: colorVariant,
+      rows: pricingContext.rows, lists: pricingContext.lists,
+      shopper, now: Date.now(),
+    });
+    const priceCents = priced.priceCents;
     /* A merchant data problem rather than a shopper one, but the shopper is the
        one standing at the till and the item genuinely cannot be sold, so it is
        reported as a cart conflict. It stays loud in the logs either way. */

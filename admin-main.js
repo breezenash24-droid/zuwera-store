@@ -1064,6 +1064,8 @@
             } else if (page === 'shipping') {
                 if (typeof window.shipLoadData === 'function') window.shipLoadData();
                 loadShippingOptionCard();
+            } else if (page === 'pricing') {
+                if (typeof window.pricingLoadData === 'function') window.pricingLoadData();
             } else if (page === 'orders') {
                 if (typeof window.ordersLoadData === 'function') window.ordersLoadData();
             } else if (page === 'receipts') {
