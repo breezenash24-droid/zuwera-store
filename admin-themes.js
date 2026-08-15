@@ -53,6 +53,17 @@
     { key: 'navFg', label: 'Header text', kind: 'hex', optional: true, help: 'Only needed when the header has its own background.' },
     { key: 'barBg', label: 'Announcement bar', kind: 'hex', optional: true, help: 'The strip above the header. Off and it follows the page; on and it can be the loud band that carries a promotion.' },
     { key: 'barFg', label: 'Announcement bar text', kind: 'hex', optional: true, help: 'Only needed when the bar has its own background.' },
+    /* ── Prices ────────────────────────────────────────────────────────────
+       A markdown is a claim a store makes, and stores want to make it in their
+       own palette — green reads as a bargain, red as urgent, the accent as
+       "us". All optional: left off, product.css keeps a quiet default where the
+       struck figure recedes, the saving is the only element that earns a
+       colour, and the price itself inherits the page text so it never fights
+       the theme. A store that never opens this still looks considered. */
+    { key: 'priceOff', label: 'Saving', kind: 'hex', optional: true, help: 'The "27% off" figure — the only part of a price that earns a colour by default. Green reads as a bargain, red as urgent.' },
+    { key: 'priceWas', label: 'Was-price', kind: 'hex', optional: true, help: 'The struck-through original. Should recede: if it competes with the price being charged, shoppers read the wrong number.' },
+    { key: 'priceNow', label: 'Price', kind: 'hex', optional: true, help: 'What the shopper pays. Off by default so it matches your body text — set it only if a price should stand apart from everything around it.' },
+    { key: 'priceMember', label: 'Member price', kind: 'hex', optional: true, help: 'The member line under the price.' },
   ];
 
   /* Not colours, but part of the theme all the same. These are the dimensions

@@ -1456,3 +1456,45 @@ body.light-mode .low-stock-badge {
   border-color: rgba(9,9,11,.6);
   color: #E8E3DC;
 }
+
+/* ── Price display ──────────────────────────────────────────────────────────
+   What you pay, what it was, and how much less — the three things every store
+   selling at a discount shows, in that order. It replaced two labelled lines
+   ("MSRP: $230", "Regular: $40.00") whose labels meant nothing to a shopper:
+   MSRP is a trade term and "Regular" invites "compared to what?".
+
+   The colours are TOKENS so a store can signify a markdown in its own palette
+   without touching this file. Defaults are deliberately quiet — the struck
+   figure recedes, the saving is the only thing that earns a colour, and the
+   price itself stays the page's own text colour so it never fights the theme.
+   Admin → Appearance → Prices writes these; see themePriceVars(). */
+:root {
+  --zw-price-now: var(--text-primary, inherit);
+  --zw-price-was: rgba(var(--fg-rgb, 244 241 235) / 0.55);
+  --zw-price-off: #22c55e;
+  --zw-price-member: rgba(var(--fg-rgb, 244 241 235) / 0.75);
+}
+
+.zw-price-now {
+  color: var(--zw-price-now);
+  font-variant-numeric: tabular-nums;
+}
+
+.zw-price-was {
+  color: var(--zw-price-was);
+  text-decoration: line-through;
+  font-variant-numeric: tabular-nums;
+  margin-right: .5em;
+}
+
+/* The saving is the claim, so it is the one that carries colour. */
+.zw-price-off {
+  color: var(--zw-price-off);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.zw-price-member {
+  color: var(--zw-price-member);
+  font-variant-numeric: tabular-nums;
+}
