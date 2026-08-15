@@ -932,9 +932,23 @@ function normalizeCartPricing(cart) {
     const isMember = typeof window.zwHasValidSession === 'function'
       ? window.zwHasValidSession()
       : Boolean(_bagUser);
-    const effectivePrice = (isMember && memberPrice > 0 && (!regularPrice || memberPrice < regularPrice))
-      ? memberPrice
-      : (regularPrice || parseFloat(item.price) || 0);
+    /* THE STORED PRICE FIRST. This read `regularPrice || item.price`, and
+       regularPrice is the WAS-price — checkout.js fills it from compare-at. So
+       a line the repricing had correctly set to $30 was rendered at its $40
+       compare-at, on the one page whose whole job is to say what the bag costs.
+       item.price is the figure the repricing writes and the figure sent to the
+       till, so it is the one to show.
+
+       The member branch stays only for a cart that predates the repricing, or a
+       page where checkout.js has not loaded: when the server has spoken,
+       item.price is ALREADY the member figure and re-applying the rule here
+       would be a second answerer to the same question. */
+    const stored = parseFloat(item.price) || 0;
+    const effectivePrice = stored > 0
+      ? stored
+      : ((isMember && memberPrice > 0 && (!regularPrice || memberPrice < regularPrice))
+          ? memberPrice
+          : (regularPrice || 0));
     return {
       ...item,
       regularPrice,

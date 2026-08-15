@@ -245,6 +245,30 @@
     } catch (_) {}
   }
 
+  /* The same answer, found by COLOUR NAME rather than by variant id.
+     A cart line carries colorName and nothing else — no variant id was ever
+     stored — so every surface that prices a bag needs this door in. It is the
+     same key _cart-pricing.js uses when it resolves the colour for the charge,
+     which is what keeps the bag and the till on one answer.
+
+     Folded the way colour is compared everywhere else: a swatch writes "Bright
+     Crimson" and a stale bag entry may hold "bright crimson". A line with no
+     colour, or a colour the server did not return, falls back to the
+     product-wide figure — which is what a product without colourway pricing
+     costs anyway. */
+  function resolvedForColor(productId, colorName) {
+    var entry = _cache[String(productId || '')];
+    if (!entry) return null;
+    var want = String(colorName || '').trim().toLowerCase();
+    if (want) {
+      var hit = (entry.colours || []).filter(function (c) {
+        return String(c.colorName || '').trim().toLowerCase() === want;
+      })[0];
+      if (hit) return hit;
+    }
+    return entry.base || null;
+  }
+
   function ask(productIds) {
     var ids = (Array.isArray(productIds) ? productIds : [productIds])
       .map(String).filter(function (id) { return id && !_asked[id]; });
@@ -326,6 +350,7 @@
     lowest: lowestPriceCents,
     ask: ask,
     resolvedFor: resolvedFor,
+    resolvedForColor: resolvedForColor,
     known: known,
     memberPricingOn: memberPricingOn
   };
