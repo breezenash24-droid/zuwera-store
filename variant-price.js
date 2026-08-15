@@ -118,6 +118,13 @@
   var _cache = {};      // productId -> { base, colours: [] }
   var _asked = {};      // productId -> true, so a redraw does not re-ask
 
+  var STORE_KEY = 'zw_prices_v1';
+  /* Ten minutes. The fetch ALWAYS runs and corrects, so this only bounds how
+     long a stale figure can be the FIRST thing painted — and the thing most
+     likely to go stale is a scheduled price crossing its start date, which this
+     keeps within ten minutes of being right on a cold load. */
+  var TTL_MS = 10 * 60 * 1000;
+
   function token() {
     try {
       if (window.ZWStock && typeof window.ZWStock.storedAccessToken === 'function') {
@@ -126,6 +133,50 @@
     } catch (_) {}
     return '';
   }
+
+  /* ── Paint the last known answer immediately ──────────────────────────────
+     Without this the page draws the CATALOGUE price, waits for the round trip,
+     then redraws — a visible second of the wrong number on every load. Exactly
+     the flash the theme cache exists to prevent, solved the same way: read the
+     previous answer synchronously before anything renders, then let the fetch
+     correct it.
+
+     Keyed by whether the shopper was signed in, because a member and a guest
+     get different figures and showing one to the other is worse than showing
+     the catalogue price. Signing in or out simply discards it. */
+  function memberish() { return token() ? 1 : 0; }
+
+  function loadCache() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+      if (!raw || raw.v !== 1) return;
+      if (raw.member !== memberish()) return;              // different shopper
+      if (!raw.at || Date.now() - raw.at > TTL_MS) return; // too old to trust first
+      if (raw.byId && typeof raw.byId === 'object') _cache = raw.byId;
+    } catch (_) {}
+  }
+
+  function saveCache() {
+    try {
+      /* Bounded. Without a cap this map only ever grows — a shopper who browses
+         a large catalogue over months ends up with every product they have ever
+         seen in localStorage, and the write eventually throws QuotaExceeded and
+         silently stops caching anything. Keeping the most recent is enough:
+         the ones worth painting instantly are the ones just looked at. */
+      var keys = Object.keys(_cache);
+      var trimmed = _cache;
+      if (keys.length > 60) {
+        trimmed = {};
+        keys.slice(-60).forEach(function (k) { trimmed[k] = _cache[k]; });
+        _cache = trimmed;
+      }
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        v: 1, at: Date.now(), member: memberish(), byId: trimmed,
+      }));
+    } catch (_) {}
+  }
+
+  loadCache();
 
   function resolvedFor(productId, variantId) {
     var entry = _cache[String(productId || '')];
@@ -151,10 +202,22 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
         if (!j || !j.ok || !Array.isArray(j.products)) return _cache;
-        j.products.forEach(function (p) { _cache[String(p.productId)] = { base: p.base, colours: p.colours || [] }; });
-        try {
-          window.dispatchEvent(new CustomEvent('zw:prices', { detail: { productIds: ids } }));
-        } catch (_) {}
+        var changed = false;
+        j.products.forEach(function (p) {
+          var key = String(p.productId);
+          var next = { base: p.base, colours: p.colours || [] };
+          if (JSON.stringify(_cache[key]) !== JSON.stringify(next)) changed = true;
+          _cache[key] = next;
+        });
+        saveCache();
+        /* Only when the answer actually MOVED. Firing regardless makes every
+           page load redraw its prices for nothing, which is the flash again
+           with an extra step. */
+        if (changed) {
+          try {
+            window.dispatchEvent(new CustomEvent('zw:prices', { detail: { productIds: ids } }));
+          } catch (_) {}
+        }
         return _cache;
       })
       .catch(function () {
