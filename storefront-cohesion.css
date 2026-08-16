@@ -114,6 +114,13 @@ body.light-mode .zw-hdr-bag:hover,body.super-light-mode .zw-hdr-bag:hover{border
   --zw-ink:#09090b;
   --zw-paper:#f4f1eb;
   --zw-page:#F0EEE9;
+  /* The same two colours as triplets, so a surface that paints itself with the
+     FIXED pair above can also re-key the ladder to match. A panel whose
+     background is var(--zw-page) has near-black as its foreground whatever the
+     page is doing, and the controls inside it need to know that — see
+     .zwf-modal-box below. Kept next to their hex forms so the two cannot drift. */
+  --zw-ink-rgb:9 9 11;
+  --zw-page-rgb:240 238 233;
   /* --zw-cream is the LABEL on a foreground-coloured surface: the text on a
      primary button, whose background is rgb(var(--fg-rgb)). It was written out
      as #E8E3DC in eighteen places and read through this name in two, so moving

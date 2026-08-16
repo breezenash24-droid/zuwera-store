@@ -85,6 +85,48 @@ console.log('  the fit finder is drawn on two different surfaces');
     '--zw-ink does not follow the page; it IS one of the two page colours');
 }
 
+console.log('\n  one form, two surfaces, and neither rule knows where it is');
+{
+  /* THE BUG SWAPPED SURFACES TWICE BEFORE THIS.
+   *
+   * The same form is mounted in two places:
+   *
+   *   product page   inside .zwf-modal-box, which paints itself with
+   *                  --zw-page over --zw-ink — the FIXED pair. It is a cream
+   *                  panel even when the page behind it is dark.
+   *   size guide     bare into #sizeGuideFinder, inheriting the page.
+   *
+   * Written against the page, the button went pale-on-cream in the modal.
+   * Written against the fixed pair, it went black-on-black in the guide. There
+   * is no value for one set of control rules that is right on both — until the
+   * SURFACE says what it is and the controls read that. Then the same rules
+   * serve both and neither has to know which one it is in.
+   */
+  const box = /\.zwf-modal-box\{[^']*(?:'\s*\+\s*'[^']*)*\}/.exec(code.replace(/\n\s*/g, ''));
+  ok('the cream panel declares its own foreground',
+    box && /--fg-rgb:var\(--zw-ink-rgb/.test(box[0]),
+    'without this, rgb(var(--fg-rgb)) inside it is the PAGE foreground — near-white on a dark page');
+  ok('…and its own background',
+    box && /--bg-rgb:var\(--zw-page-rgb/.test(box[0]));
+  ok('…and re-keys the rungs, which do not recompute on their own',
+    box && /--c06:rgb\(var\(--zw-ink-rgb/.test(box[0]) && /--c15:rgb\(var\(--zw-ink-rgb/.test(box[0]),
+    '--c06 is declared on body, so it resolves there and inherits as a finished colour');
+
+  const coh = fs.readFileSync(path.join(ROOT, 'storefront-cohesion.css'), 'utf8');
+  ok('the triplets exist and match their hex forms',
+    /--zw-ink-rgb:9 9 11;/.test(coh) && /--zw-page-rgb:240 238 233;/.test(coh)
+    && /--zw-ink:#09090b;/.test(coh) && /--zw-page:#F0EEE9;/.test(coh),
+    '#09090b is 9 9 11 and #F0EEE9 is 240 238 233 — if these drift the panel lies about itself');
+
+  /* And the guide must NOT be wrapped in that panel, or it would be forced
+     cream on a dark page — the bug in its original direction. */
+  const guide = fs.readFileSync(path.join(ROOT, 'sizeguide.html'), 'utf8');
+  const host = guide.indexOf('sizeGuideFinder');
+  ok('the size guide mounts the form bare, not in the cream panel',
+    host > 0 && !/zwf-modal-box/.test(guide),
+    'wrapping it there would pin the guide light whatever theme the page is in');
+}
+
 console.log('\n  the surface behind the element is the whole question');
 {
   /* Two rules in this file look identical and want opposite answers, which is
