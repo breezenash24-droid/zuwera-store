@@ -2035,7 +2035,13 @@ body.light-mode::after{opacity:0.15}
 
 </style>
   <link rel="preload" href="reviews-vibe.css?v=16e9b2fb" as="style" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="reviews-vibe.css?v=16e9b2fb"></noscript>
-<script src="image-utils.js?v=3fee4aec" defer></script>
+<!-- image-utils.js is already loaded above, beside pdp-gallery and
+     quick-add-modal. A second tag for the same URL costs no download — the
+     cache answers it — but the browser still EXECUTES the file twice, so every
+     global in it was defined, then defined again. Removing the later one is
+     safe rather than a judgement call: both were `defer`, so both ran after
+     parsing in document order, and nothing between them could have seen only
+     the second. -->
 <script src="mobile-menu.js?v=f7defb81" defer></script>
 <!-- theme flash prevention moved to top of <head> -->
 <style>

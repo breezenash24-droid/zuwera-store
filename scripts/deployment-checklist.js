@@ -102,6 +102,34 @@ const checks = [
     pass: () => Object.values(htmlFiles).every(file => !hasDuplicateIds(file)),
   },
   {
+    /* The sibling of the check above, and it found a live one: index.html
+       carried <script src="image-utils.js"> twice. A repeat tag costs no
+       download — the cache answers the second — so it is invisible in a
+       network waterfall, and the browser EXECUTES the file again anyway,
+       re-running every top-level statement in it. The version query is
+       stripped first, because two tags for the same file at different ?v=
+       hashes is the same bug wearing a disguise. */
+    name: 'No page loads the same script twice',
+    pass: () => Object.entries(htmlFiles).every(([, file]) => {
+      const seen = new Set();
+      for (const m of file.matchAll(/<script\b[^>]*\ssrc="([^"]+)"/g)) {
+        const src = m[1].split('?')[0];
+        if (seen.has(src)) return false;
+        seen.add(src);
+      }
+      return true;
+    }),
+    detail: () => Object.entries(htmlFiles).flatMap(([name, file]) => {
+      const seen = new Set(); const dupes = [];
+      for (const m of file.matchAll(/<script\b[^>]*\ssrc="([^"]+)"/g)) {
+        const src = m[1].split('?')[0];
+        if (seen.has(src)) dupes.push(name + ' → ' + src);
+        seen.add(src);
+      }
+      return dupes;
+    }).join(', '),
+  },
+  {
     name: 'Homepage footer Size Guide goes to dedicated page',
     pass: () => /<a(?=[^>]*id="footer-size-guide-link")(?=[^>]*href="\/sizeguide\.html")[^>]*>Size Guide<\/a>/.test(files.index)
       && !/id="footer-size-guide-link"[^>]*openSizeGuideModal/.test(files.index),
