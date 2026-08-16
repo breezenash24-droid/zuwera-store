@@ -114,8 +114,21 @@ body.light-mode .zw-hdr-bag:hover,body.super-light-mode .zw-hdr-bag:hover{border
   --zw-ink:#09090b;
   --zw-paper:#f4f1eb;
   --zw-page:#F0EEE9;
+  /* --zw-cream is the LABEL on a foreground-coloured surface: the text on a
+     primary button, whose background is rgb(var(--fg-rgb)). It was written out
+     as #E8E3DC in eighteen places and read through this name in two, so moving
+     it meant finding all twenty. Now it is one line, and theme-engine.js can
+     set it from a theme's own `cream`. */
   --zw-cream:#E8E3DC;
+  /* A panel lifted off a dark page — cards, skeletons, review boxes. Note this
+     is NOT --zw-theme-surface (#111113 in base.css); they are two different
+     surfaces that have both always been called "surface", and unifying them
+     would be a visible change rather than a rename. */
   --zw-surface:#0f0f0f;
+  /* The hover state of a foreground-coloured button. It existed as #1a1a1a in
+     some places and #1b1b1d in others — one role, two spellings, three parts in
+     255 apart, which is how you can tell nobody chose the difference. */
+  --zw-fg-hover:#1a1a1a;
   --zw-accent:#F891A5;
   --zw-danger:#c0392b;
   --zw-line-dark:var(--c10);
@@ -220,7 +233,7 @@ body.light-mode{
 }
 
 body.super-light-mode{
-  background:#FFFFFF;
+  background: var(--ink);
   --zw-page:#FFFFFF;
   --zw-paper:#f5f5f5;
   --zw-cream:#e8e8e8;
@@ -319,8 +332,8 @@ select:focus-visible{
 }
 
 .zw-saved-item-btn--primary:hover{
-  background:#f4f1eb;
-  border-color:#f4f1eb;
+  background:var(--paper);
+  border-color:var(--paper);
 }
 
 .zw-saved-item-btn--ghost{
@@ -385,8 +398,8 @@ body.light-mode .zw-saved-item-btn--primary{
 }
 
 body.light-mode .zw-saved-item-btn--primary:hover{
-  background:#1b1b1d;
-  border-color:#1b1b1d;
+  background:var(--zw-fg-hover);
+  border-color:var(--zw-fg-hover);
 }
 
 body.light-mode .cart-shell-footer{
@@ -604,22 +617,22 @@ body.super-light-mode .cbox,
 body.super-light-mode .ret-inner-box,
 body.super-light-mode .review-mbox,
 body.super-light-mode .review-list-mbox,
-body.super-light-mode .size-guide-dialog{ background:#FFFFFF !important; border-color:var(--c10) !important; color:rgb(var(--fg-rgb)) !important; }
+body.super-light-mode .size-guide-dialog{ background: var(--ink) !important; border-color:var(--c10) !important; color:rgb(var(--fg-rgb)) !important; }
 
 body.super-light-mode .mclose{ background:var(--c08) !important; border-color:var(--c20) !important; color:rgb(var(--fg-rgb)) !important; }
 
-body.super-light-mode .csummary{ background:#FFFFFF !important; border-color:var(--c10) !important; }
+body.super-light-mode .csummary{ background: var(--ink) !important; border-color:var(--c10) !important; }
 
 body.super-light-mode #payment-modal,
-body.super-light-mode #payment-modal > div{ background:#FFFFFF !important; border-color:var(--c10) !important; }
+body.super-light-mode #payment-modal > div{ background: var(--ink) !important; border-color:var(--c10) !important; }
 body.super-light-mode #payment-modal h2{ color:rgb(var(--fg-rgb)) !important; }
 body.super-light-mode #payment-modal label,
 body.super-light-mode #payment-modal p{ color:var(--c50) !important; }
 body.super-light-mode #payment-modal input,
 body.super-light-mode #payment-modal select{ background:rgb(var(--fg-rgb) / 4%) !important; border-color:var(--c12) !important; color:rgb(var(--fg-rgb)) !important; }
-body.super-light-mode #payment-modal #pay-submit{ background:rgb(var(--fg-rgb)) !important; color:#E8E3DC !important; }
+body.super-light-mode #payment-modal #pay-submit{ background:rgb(var(--fg-rgb)) !important; color:var(--zw-cream) !important; }
 
-body.super-light-mode #payment-success{ background:#FFFFFF !important; }
+body.super-light-mode #payment-success{ background: var(--ink) !important; }
 
 /* Cookie consent bar — one consistent dark bar in EVERY theme. It used to flip
    to a washed-out cream (#F0EEE9) in light mode and white in super-light, and it
@@ -629,7 +642,7 @@ body.super-light-mode #payment-success{ background:#FFFFFF !important; }
 #cookie-banner,
 body.light-mode #cookie-banner,
 body.super-light-mode #cookie-banner{
-  background:#0f0f0f !important;
+  background:var(--zw-surface) !important;
   color:rgba(244,241,235,.72) !important;
   border-top:1px solid rgba(244,241,235,.12) !important;
 }
@@ -646,20 +659,20 @@ body.super-light-mode #cookie-banner button:last-child{
   background:transparent !important; color:rgba(244,241,235,.62) !important; border:1px solid rgba(244,241,235,.22) !important;
 }
 
-body.super-light-mode #toast{ background:#FFFFFF !important; color:rgb(var(--fg-rgb)) !important; border-color:var(--c12) !important; }
+body.super-light-mode #toast{ background: var(--ink) !important; color:rgb(var(--fg-rgb)) !important; border-color:var(--c12) !important; }
 
-body.super-light-mode .wallet-chip{ background:#FFFFFF !important; border-color:var(--c12) !important; color:rgb(var(--fg-rgb)) !important; }
+body.super-light-mode .wallet-chip{ background: var(--ink) !important; border-color:var(--c12) !important; color:rgb(var(--fg-rgb)) !important; }
 
-body.super-light-mode .collection-review-box{ background:#FFFFFF !important; border-color:var(--c08) !important; }
-body.super-light-mode .collection-review-close{ background:var(--c55) !important; color:#fff !important; }
+body.super-light-mode .collection-review-box{ background: var(--ink) !important; border-color:var(--c08) !important; }
+body.super-light-mode .collection-review-close{ background:var(--c55) !important; color: var(--ink) !important; }
 
-body.super-light-mode .ret-hd{ background:rgba(255,255,255,.96) !important; border-bottom-color:var(--c07) !important; }
-body.super-light-mode .quick-size-panel{ background:#FFFFFF !important; border-top-color:var(--c10) !important; }
+body.super-light-mode .ret-hd{ background: rgb(var(--bg-rgb) / 96%) !important; border-bottom-color:var(--c07) !important; }
+body.super-light-mode .quick-size-panel{ background: var(--ink) !important; border-top-color:var(--c10) !important; }
 body.super-light-mode .quick-size-panel-header{ color:var(--c50) !important; }
 body.super-light-mode .quick-size-close{ color:var(--c40) !important; }
 
 body.super-light-mode #bar{
-  background:#FFFFFF !important;
+  background: var(--ink) !important;
   color:rgb(var(--fg-rgb)) !important;
   border-bottom-color:var(--c10) !important;
 }
@@ -697,7 +710,7 @@ body.super-light-mode .quick-add-review-modal > .mbox.quick-add-review-box.quick
 
 body.super-light-mode #mobile-menu.zw-mobile-menu,
 body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
-  background:#FFFFFF !important;
+  background: var(--ink) !important;
   color:rgb(var(--fg-rgb)) !important;
 }
 
@@ -724,7 +737,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
     color:var(--zw-ink) !important;
   }
   body.super-light-mode #all-reviews-modal > .review-list-mbox{
-    background:#FFFFFF !important;
+    background: var(--ink) !important;
     border-color:var(--c10) !important;
     border-top-color:rgb(var(--fg-rgb)) !important;
     color:rgb(var(--fg-rgb)) !important;
@@ -757,7 +770,7 @@ body.light-mode #zw-lang-box{
 }
 
 body.super-light-mode #zw-lang-box{
-  background:#FFFFFF !important;
+  background: var(--ink) !important;
   border-color:var(--c10) !important;
   border-top-color:rgb(var(--fg-rgb)) !important;
   color:rgb(var(--fg-rgb)) !important;
@@ -904,7 +917,7 @@ body.super-light-mode #zw-lang-box{
   align-items:center !important;
   justify-content:center !important;
   border:1px solid var(--c10) !important;
-  background:rgba(9,9,11,.7) !important;
+  background: rgb(var(--bg-rgb) / 70%) !important;
   color:var(--zw-paper) !important;
   border-radius:0 !important;
   opacity:1 !important;
@@ -1028,7 +1041,7 @@ body.light-mode .zw-test-mode-banner{
 
 :is(.add-to-cart-btn,.pcard-add-btn,.product-add-btn,.auth-submit-btn,.btn-primary,#checkout-btn,#pay-submit,.quick-add-review-confirm,.collection-review-confirm,.notify-form button,.cookie-accept):hover:not(:disabled):not(.disabled){
   opacity:1;
-  background:#E8E3DC !important;
+  background:var(--zw-cream) !important;
   transform:translateY(-1px);
 }
 
@@ -1038,7 +1051,7 @@ body.light-mode :is(.add-to-cart-btn,.pcard-add-btn,.product-add-btn,.auth-submi
 }
 
 body.light-mode :is(.add-to-cart-btn,.pcard-add-btn,.product-add-btn,.auth-submit-btn,.btn-primary,#checkout-btn,#pay-submit,.quick-add-review-confirm,.collection-review-confirm,.notify-form button,.cookie-accept):hover:not(:disabled):not(.disabled){
-  background:#1a1a1a !important;
+  background:var(--zw-fg-hover) !important;
   color:var(--zw-cream) !important;
 }
 
@@ -1254,7 +1267,7 @@ body.light-mode :is(.pcard-badge,.coming-soon-badge){
 }
 
 .heart-btn{
-  background:rgba(9,9,11,.7) !important;
+  background: rgb(var(--bg-rgb) / 70%) !important;
   border:1px solid var(--c10) !important;
   color:var(--c30) !important;
 }
@@ -1462,7 +1475,7 @@ body.light-mode .heart-btn{
     align-items:stretch !important;
     justify-content:flex-end !important;
     padding:0 !important;
-    background:rgba(9,9,11,.58) !important;
+    background: rgb(var(--bg-rgb) / 58%) !important;
   }
 
   .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box{
@@ -1492,7 +1505,7 @@ body.light-mode .heart-btn{
   }
 
   body.super-light-mode .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box{
-    background:#FFFFFF !important;
+    background: var(--ink) !important;
   }
 
   .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .mclose{
@@ -1770,7 +1783,7 @@ body.light-mode .heart-btn{
     padding:0 !important;
     background:none !important;
     border:0 !important;
-    color:#f4f1eb !important;
+    color: var(--paper) !important;
     cursor:pointer;
     -webkit-appearance:none;
     appearance:none;
@@ -1899,7 +1912,7 @@ body.light-mode .heart-btn{
     padding:1.6rem 1.25rem calc(1.4rem + env(safe-area-inset-bottom,0px)) !important;
     align-items:stretch !important;
     justify-content:stretch !important;
-    background:#09090b !important;
+    background: var(--ink) !important;
     border-top:1px solid var(--c08) !important;
     z-index:500 !important;
     animation:zwMobileMenuFade .3s ease;
@@ -1911,12 +1924,12 @@ body.light-mode .heart-btn{
   }
 
   body.light-mode #mobile-menu{
-    background:#F0EEE9 !important;
+    background: var(--ink) !important;
     border-top-color:var(--c08) !important;
   }
 
   body.super-light-mode #mobile-menu{
-    background:#FFFFFF !important;
+    background: var(--ink) !important;
   }
 
   #mobile-menu-close{
@@ -2292,7 +2305,7 @@ body.light-mode #mobile-menu.zw-mobile-menu{
 }
 
 body.super-light-mode #mobile-menu.zw-mobile-menu{
-  background:#FFFFFF !important;
+  background: var(--ink) !important;
   color:rgb(var(--fg-rgb)) !important;
 }
 
@@ -2418,7 +2431,7 @@ body.light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
 }
 
 body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
-  background:#FFFFFF !important;
+  background: var(--ink) !important;
   border-left-color:var(--c08) !important;
 }
 
@@ -2516,7 +2529,7 @@ body.light-mode #mobile-menu .zw-mobile-menu-close{
 
 body.super-light-mode #mobile-menu .zw-mobile-menu-close{
   border-color:var(--c15) !important;
-  background:#FFFFFF !important;
+  background: var(--ink) !important;
   color:rgb(var(--fg-rgb)) !important;
 }
 
@@ -2831,7 +2844,7 @@ footer:not(.zw-mobile-menu-footer){border-top:1px solid var(--c14);padding:2rem 
 .footer-nl{grid-column:1/-1;display:flex;align-items:center;gap:1.2rem;padding-bottom:1.2rem;margin-bottom:1rem;border-bottom:1px solid var(--c07)}
 .fnl-label{font-family:var(--fm);font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;color:rgb(var(--fg-rgb) / 28%);white-space:nowrap;flex-shrink:0}
 .footer-nl #nl-form{display:flex;gap:0;flex:1;max-width:280px}
-.footer-nl #nl-email{flex:1;background:rgb(var(--fg-rgb) / 4%);border:1px solid var(--c12);border-right:none;color:#f4f1eb;font-family:var(--fb);font-size:.75rem;padding:.42rem .75rem;outline:none;min-width:0}
+.footer-nl #nl-email{flex:1;background:rgb(var(--fg-rgb) / 4%);border:1px solid var(--c12);border-right:none;color:var(--paper);font-family:var(--fb);font-size:.75rem;padding:.42rem .75rem;outline:none;min-width:0}
 .footer-nl #nl-email::placeholder{color:var(--c20)}
 .footer-nl #nl-email:focus{border-color:rgb(var(--fg-rgb) / 28%)}
 .footer-nl button{background:transparent;border:1px solid rgb(var(--fg-rgb) / 16%);color:var(--c50);font-family:var(--fm);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;padding:.42rem .85rem;cursor:pointer;white-space:nowrap;transition:all .2s}
@@ -3008,11 +3021,11 @@ body.light-mode .zw-lang-trigger:hover{
 }
 
 body.light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
-  background:#F0EEE9!important;
+  background: var(--ink) !important;
   border-left-color:var(--c10)!important;
 }
 body.super-light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
-  background:#fff!important;
+  background: var(--ink) !important;
 }
 
 /* Panel open animation: smoother slide from the RIGHT */
@@ -3074,7 +3087,7 @@ body.light-mode .zw-mobile-menu-kicker{color:var(--c35)!important;}
   width:44px!important; height:44px!important;
   min-height:44px!important;
   border:1px solid var(--c10)!important;
-  background:rgba(9,9,11,.7)!important;
+  background: rgb(var(--bg-rgb) / 70%) !important;
   border-radius:0!important;
   color:var(--c55)!important;
   flex-shrink:0!important;
@@ -3689,7 +3702,7 @@ body.embed-mode :is(nav#nav,.nav,header.nav,#mobile-menu,#mobile-menu-btn,footer
 .quick-add-gallery-arrow{
   position:absolute;top:50%;transform:translateY(-50%);z-index:8;
   width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.55);
-  background:rgba(9,9,11,.55);color:#fff;display:flex;align-items:center;justify-content:center;
+  background: rgb(var(--bg-rgb) / 55%);color:#fff;display:flex;align-items:center;justify-content:center;
   font-size:1.2rem;line-height:1;cursor:pointer;backdrop-filter:blur(10px);
   box-shadow:0 2px 10px rgba(0,0,0,.45);
   transition:background .2s ease,border-color .2s ease,opacity .2s ease;
@@ -3937,7 +3950,7 @@ body.light-mode .zw-navitem > .zw-mega{
 /* Super-light: panel is pure white like the page, with no top border line so it
    blends seamlessly into the white header (no apparent colour shift on open). */
 body.super-light-mode .zw-navitem > .zw-mega{
-  background:#FFFFFF; border-color:var(--c06); border-top-color:transparent; box-shadow:0 26px 34px -20px rgba(0,0,0,.10);
+  background: var(--ink); border-color:var(--c06); border-top-color:transparent; box-shadow:0 26px 34px -20px rgba(0,0,0,.10);
 }
 
 /* When a mega panel is open, drop the header's own bottom border so the nav and

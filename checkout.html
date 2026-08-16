@@ -432,7 +432,7 @@ try {
     .wallet-methods { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; margin: -.2rem 0 1rem; }
 
     /* Test banner */
-    .zw-test-mode-banner { display: none; padding: .55rem .9rem; background: rgba(248,145,165,.08); border: 1px solid rgba(248,145,165,.2); color: #F891A5; font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 1.25rem; }
+    .zw-test-mode-banner { display: none; padding: .55rem .9rem; background: rgba(248,145,165,.08); border: 1px solid rgba(248,145,165,.2); color: var(--zw-accent); font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 1.25rem; }
     .zw-test-mode-banner.is-visible { display: block; }
 
     /* Promo */
@@ -449,8 +449,8 @@ try {
     /* Submit */
     #pay-submit {
       width: 100%;
-      background: #f4f1eb;
-      color: #09090b;
+      background: var(--paper);
+      color: var(--ink);
       border: none;
       padding: 1rem;
       font-family: var(--font-head);
@@ -468,7 +468,7 @@ try {
     }
     #pay-submit:hover { opacity: .82; }
     #pay-submit:disabled { opacity: .38; cursor: not-allowed; }
-    body.light-mode #pay-submit { background: rgb(var(--fg-rgb)); color: #E8E3DC; }
+    body.light-mode #pay-submit { background: rgb(var(--fg-rgb)); color: var(--zw-cream); }
 
     .psecure {
       display: flex;
@@ -502,14 +502,14 @@ try {
     #payment-success h2 { font-family: var(--font-head); font-size: 2.5rem; letter-spacing: .1em; margin-bottom: .6rem; }
     #payment-success p { color: var(--sub); font-size: .9rem; margin-bottom: 1.5rem; max-width: 340px; line-height: 1.8; }
     #success-order { font-size: .75rem; letter-spacing: .2em; color: var(--dim) !important; }
-    #success-continue { background: rgb(var(--fg-rgb) / 90%); color: #09090b; border: none; padding: .9rem 2.5rem; font-family: var(--font-body); font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: opacity .2s; margin-top: 1rem; }
+    #success-continue { background: rgb(var(--fg-rgb) / 90%); color: var(--ink); border: none; padding: .9rem 2.5rem; font-family: var(--font-body); font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: opacity .2s; margin-top: 1rem; }
     #success-continue:hover { opacity: .82; }
-    body.light-mode #success-continue { background: rgb(var(--fg-rgb)); color: #E8E3DC; }
+    body.light-mode #success-continue { background: rgb(var(--fg-rgb)); color: var(--zw-cream); }
 
     /* --------------------------------- Toast -- */
-    #toast { position: fixed; bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%) translateY(10px); background: #0f0f0f; color: rgb(var(--fg-rgb) / 90%); padding: .5rem 1.2rem; font-size: .72rem; letter-spacing: .08em; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; z-index: 9999; white-space: nowrap; }
+    #toast { position: fixed; bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%) translateY(10px); background: var(--zw-surface); color: rgb(var(--fg-rgb) / 90%); padding: .5rem 1.2rem; font-size: .72rem; letter-spacing: .08em; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; z-index: 9999; white-space: nowrap; }
     #toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
-    body.light-mode #toast { background: #F0EEE9; color: rgb(var(--fg-rgb)); }
+    body.light-mode #toast { background: var(--ink); color: rgb(var(--fg-rgb)); }
 
     /* --------------------------------- Mobile tweaks -- */
     @media (max-width: 600px) {
@@ -566,7 +566,7 @@ try {
     }
     @media (max-width: 900px) { .co-logo-wrap img { height: 45.1px !important; } }
   </style>
-<style>body.super-light-mode{background:var(--black,#FFFFFF)!important;--bg:#FFFFFF}body.super-light-mode #toast{background:#FFFFFF!important;color:rgb(var(--fg-rgb))!important}</style>
+<style>body.super-light-mode{background:var(--black,#FFFFFF)!important;--bg:#FFFFFF}body.super-light-mode #toast{background: var(--ink) !important;color:rgb(var(--fg-rgb))!important}</style>
 <script src="error-reporter.js?v=6622e7d7" defer></script>
 <script src="consent.js?v=2e7601ab" defer></script>
 </head>

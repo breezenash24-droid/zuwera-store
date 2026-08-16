@@ -36,14 +36,19 @@ console.log('\n  theme pre-paint\n');
 
 console.log('  fourteen copies, one source');
 {
-  const want = block();
+  /* Compared with line endings normalised. A page checked out on Windows comes
+     back CRLF while the source file is LF, and comparing raw bytes made this
+     fail on a difference git itself does not record — a false alarm that says
+     "the theme block has drifted" when nothing about it has changed. */
+  const lf = (s) => s.replace(/\r\n/g, '\n');
+  const want = lf(block());
   const drifted = [];
   for (const page of PAGES) {
     const html = fs.readFileSync(path.join(ROOT, page), 'utf8');
     const a = html.indexOf(OPEN);
     const b = html.indexOf(CLOSE);
     if (a < 0 || b < a) { drifted.push(page + ' (unmarked)'); continue; }
-    if (html.slice(a, b + CLOSE.length) !== want) drifted.push(page);
+    if (lf(html.slice(a, b + CLOSE.length)) !== want) drifted.push(page);
   }
   ok('every page carries the generated block verbatim', drifted.length === 0,
     drifted.join(', ') + ' — run `node scripts/sync-preboot.js`');

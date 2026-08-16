@@ -108,7 +108,18 @@ function sync({ quiet } = {}) {
        entire thing being prevented here. */
     if (html.indexOf(OPEN, a + 1) >= 0) { missing.push(page + ' (duplicate markers)'); continue; }
 
-    const next = html.slice(0, a) + want + html.slice(b + CLOSE.length);
+    /* Match the page's own line endings.
+       The source file is LF; a page that has been through `git checkout` on
+       Windows comes back CRLF. Writing LF into it changed every byte of the
+       region, so this reported ten pages "updated" on every run and the drift
+       test could fail for a reason that has nothing to do with the code. Git
+       normalises to LF in the blob either way, so this only ever mattered
+       locally — which is exactly where a spurious failure wastes the most
+       time. */
+    const crlf = (html.match(/\r\n/g) || []).length > (html.split('\n').length / 2);
+    const shaped = crlf ? want.replace(/\r?\n/g, '\r\n') : want.replace(/\r\n/g, '\n');
+
+    const next = html.slice(0, a) + shaped + html.slice(b + CLOSE.length);
     if (next !== html) { fs.writeFileSync(file, next); changed.push(page); }
   }
 
