@@ -38,7 +38,10 @@ const DERIVERS = ['bag.html', 'checkout.html', 'storefront.js', 'product.html'];
 console.log('\n  one answer to "is this shopper a member"');
 
 for (const file of DERIVERS) {
-  const src = strip(fs.readFileSync(ROOT + file, 'utf8'));
+  /* The product page is three files now — see _product-source.js. */
+  const src = strip(file === 'product.html'
+    ? require('./_product-source').all()
+    : fs.readFileSync(ROOT + file, 'utf8'));
   ok(file + ' consults the published answer', /zwHasValidSession/.test(src),
     'no reference to window.zwHasValidSession');
 }

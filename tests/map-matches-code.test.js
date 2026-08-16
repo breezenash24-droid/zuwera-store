@@ -37,7 +37,10 @@ const M = w.ZWMessages;
 /* Which files draw each surface. The map names screens in a shopper's words;
    this is the only place that maps those onto code. */
 const SOURCE = {
-  'Product page': ['product.html'],
+  /* Three files, one surface. The page's two big script blocks were extracted
+     to product-main.js and product-cart.js — a shopper still sees one screen,
+     so the map is right and only the file list moved. */
+  'Product page': require('./_product-source').files(),
   /* stock-rules.js counts as part of the bag. The bag's back-in-stock replies
      come from ZWStock.joinWaitlist(), which picks the message and hands back its
      KEY — bag.html then renders `res.key`, so those four names appear nowhere in

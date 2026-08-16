@@ -174,7 +174,7 @@ console.log('\n  the size guide takes the theme it was opened from');
   /* Two documents answering the same question from different evidence is how
      the guide opened dark over a light product page. The parent knows; it says
      so, and the guide takes what it is given. */
-  const product = fs.readFileSync(path.join(ROOT, 'product.html'), 'utf8');
+  const product = require('./_product-source').all()  /* product.html + its extracted scripts — see _product-source.js */;
   const guide = fs.readFileSync(path.join(ROOT, 'sizeguide.html'), 'utf8');
 
   ok('the product page hands its theme to the iframe',

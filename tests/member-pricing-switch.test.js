@@ -38,7 +38,7 @@ const load = (rel) => import(pathToFileURL(path.join(ROOT, rel)).href);
 
 const UI    = fs.readFileSync(path.join(ROOT, 'admin-main.js'), 'utf8');
 const PANEL = fs.readFileSync(path.join(ROOT, 'admin-pricing.js'), 'utf8');
-const PAGE  = fs.readFileSync(path.join(ROOT, 'product.html'), 'utf8');
+const PAGE  = require('./_product-source').all()  /* product.html + its extracted scripts — see _product-source.js */;
 const HTML  = fs.readFileSync(path.join(ROOT, 'admin.html'), 'utf8');
 
 const ENV = {

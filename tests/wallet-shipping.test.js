@@ -82,7 +82,9 @@ console.log('\n  and the sheet actually uses it');
   /* The three paths that were already right. If one of them regresses to a
      hardcoded zero, that is the same bug in a different place. */
   for (const f of ['product.html', 'storefront.js', 'mobile-checkout.html']) {
-    const other = fs.readFileSync(R + f, 'utf8');
+    /* product.html's script blocks live in product-main.js / product-cart.js
+       now — same code, same order, just cacheable. See _product-source.js. */
+    const other = f === 'product.html' ? require('./_product-source').all() : fs.readFileSync(R + f, 'utf8');
     ok(f + ' still computes its own shipping',
       /qualifiesFree|activeTotals\.shippingCents/.test(other));
   }

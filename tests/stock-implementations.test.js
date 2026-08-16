@@ -40,7 +40,11 @@ const CANONICAL = [
    To remove one: make the file use ZWStock (browser) or import the matcher
    (worker), then drop it from this list and watch this test still pass. */
 const GRANDFATHERED = [
-  'product.html',                      // sizeStockForColor + canonicalizeProductSizeToken
+  /* Was 'product.html'. The code did not change — it was extracted verbatim to
+     product-main.js so the browser can cache 195KB it used to re-download every
+     product view. The detector found the new filename and flagged it as a new
+     implementation, which is exactly right: it names where the duplicate IS. */
+  'product-main.js',                   // sizeStockForColor + canonicalizeProductSizeToken
   'drop001.html',                      // collection grid availability
   'quick-add-modal.js',                // the quick-add size buttons
   'functions/api/notify-restock.js',   // its own SIZE_ALIASES + colour normaliser

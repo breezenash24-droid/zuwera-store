@@ -40,7 +40,7 @@ const UI      = fs.readFileSync(path.join(ROOT, 'admin-pricing.js'), 'utf8');
 const ADMIN   = fs.readFileSync(path.join(ROOT, 'functions/api/admin-prices.js'), 'utf8');
 const MIG22   = fs.readFileSync(path.join(ROOT, 'migrations/0022_pricing_is_its_own_system.sql'), 'utf8');
 const BROWSER = fs.readFileSync(path.join(ROOT, 'variant-price.js'), 'utf8');
-const PROD    = fs.readFileSync(path.join(ROOT, 'product.html'), 'utf8');
+const PROD    = require('./_product-source').all()  /* product.html + its extracted scripts — see _product-source.js */;
 
 const NOW = Date.parse('2026-09-01T12:00:00Z');
 const PRODUCT = { id: 'p-1', current_price: 40, member_price: 35, msrp: 40 };

@@ -22,7 +22,7 @@ const ROOT = path.resolve(__dirname, '..');
 let pass = 0, fail = 0;
 const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { fail++; console.log('  ✗ ' + n + (e ? '  — ' + e : '')); } };
 
-const PROD  = fs.readFileSync(path.join(ROOT, 'product.html'), 'utf8');
+const PROD  = require('./_product-source').all()  /* product.html + its extracted scripts — see _product-source.js */;
 const CSS   = fs.readFileSync(path.join(ROOT, 'product.css'), 'utf8');
 const ENG   = fs.readFileSync(path.join(ROOT, 'theme-engine.js'), 'utf8');
 const ADMIN = fs.readFileSync(path.join(ROOT, 'admin-themes.js'), 'utf8');

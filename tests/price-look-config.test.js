@@ -30,7 +30,7 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
 
 const BUILDER = fs.readFileSync(path.join(ROOT, 'builder.html'), 'utf8');
 const API_SRC = fs.readFileSync(path.join(ROOT, 'functions/api/product-page-config.js'), 'utf8');
-const PAGE    = fs.readFileSync(path.join(ROOT, 'product.html'), 'utf8');
+const PAGE    = require('./_product-source').all()  /* product.html + its extracted scripts — see _product-source.js */;
 
 /* Pull an option table out of source as DATA. Comparing two literal lists is
    what a regex is actually good for — unlike asserting that logic exists. */

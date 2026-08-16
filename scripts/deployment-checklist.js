@@ -11,6 +11,14 @@ function read(file) {
 const files = {
   index: read('index.html'),
   product: read('product.html'),
+  /* The page's JavaScript, which is no longer inside the page: 229KB of it was
+     extracted verbatim to these two classic scripts so the browser can cache
+     what it used to re-download on every product view. Kept SEPARATE from
+     files.product on purpose — htmlFiles below scans that one for duplicate
+     element ids, and folding script text into it would have that scan reading
+     `id="…"` out of template strings. Markup checks read files.product; checks
+     about behaviour read this. */
+  productCode: read('product.html') + '\n' + read('product-main.js') + '\n' + read('product-cart.js'),
   drop: read('drop001.html'),
   account: read('account.html'),
   bag: read('bag.html'),
@@ -208,13 +216,13 @@ const checks = [
   },
   {
     name: 'Product controls render before media and reviews finish loading',
-    pass: () => /const imagesPromise = fetch/.test(files.product)
-      && /const reviewsPromise = fetch/.test(files.product)
-      && /const \[colorsResp, sizesResp\] = await Promise\.all/.test(files.product)
-      && /currentProduct\.images\s*=\s*ensureProductImageFallback/.test(files.product)
-      && /imagesPromise\.then/.test(files.product)
-      && /currentProduct\.reviews\s*=\s*\[\]/.test(files.product)
-      && /reviewsPromise\.then/.test(files.product),
+    pass: () => /const imagesPromise = fetch/.test(files.productCode)
+      && /const reviewsPromise = fetch/.test(files.productCode)
+      && /const \[colorsResp, sizesResp\] = await Promise\.all/.test(files.productCode)
+      && /currentProduct\.images\s*=\s*ensureProductImageFallback/.test(files.productCode)
+      && /imagesPromise\.then/.test(files.productCode)
+      && /currentProduct\.reviews\s*=\s*\[\]/.test(files.productCode)
+      && /reviewsPromise\.then/.test(files.productCode),
   },
   {
     name: 'Mobile hamburger menu has stable footer utilities',
