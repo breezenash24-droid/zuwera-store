@@ -176,31 +176,51 @@ console.log('\n  the named roles');
 
 console.log('\n  what is still hardcoded, counted honestly');
 {
-  /* Was 885, now 400. Two passes got here:
-       tokenize-colors.js --overrides   1,268, the light-mode foreground family
-       tokenize-cascade.js --write        83, everything whose resolved colour
-                                               is identical in all three themes
-     What is left is NOT more of the same, and that matters for whoever picks
-     this up next. It is dominated by rules with a hardcoded colour and NO
-     light-mode twin — `.zw-hdr-action { color:#f4f1eb !important }`. Tokenising
-     one of those does not preserve the colour, it CHANGES light mode, usually
-     from a bug to correct behaviour. That is a coverage fix needing eyes on the
-     page, not a mechanical pass, and running a script over it would be the
-     "blind CSS edits break working parts" mistake with extra confidence.
+  /* COUNTS THE <style> BLOCKS TOO, which it did not before — and that omission
+     hid more than it counted. Walking only *.css put the figure at 372 while
+     533 further literals sat inline in the pages, product.html alone holding
+     93. tokenize-cascade.js had the same blind spot for the same reason, so an
+     entire population was neither measured nor converted. A budget that cannot
+     see half the codebase is worse than no budget: it reports success.
 
-     156 of the total is admin.css, which has its own palette and its own dark
-     mode; pointing it at storefront tokens would make the admin change colour
-     because a shopper-facing theme changed. Storefront-only the figure is 244.
+     Four passes to here:
+       tokenize-colors.js --overrides   1,268  the light-mode foreground family
+       tokenize-cascade.js (css)           83  resolved colour identical in all
+                                               three built-in themes
+       named roles, by hand                81  --zw-cream / --zw-surface /
+                                               --zw-fg-hover, which already
+                                               existed and nothing could set
+       tokenize-cascade.js (html)         121  the same rule, applied to the
+                                               inline blocks
+
+     What is left is not more of the same. It is dominated by rules with a
+     hardcoded colour and NO light-mode twin — `.zw-hdr-action { color:#f4f1eb
+     !important }`. Tokenising one of those does not preserve the colour, it
+     CHANGES light mode, usually from a bug to correct behaviour. That is a
+     coverage fix needing eyes on the page, not a mechanical pass.
+
+     Of the remainder, 156 is admin.css and ~174 is builder/analytics/
+     diagnostic — the back office, with its own palette and its own dark mode.
+     Pointing those at storefront tokens would repaint the admin because a
+     customer-facing theme changed.
 
      The budget is a ratchet: a change that makes it worse has to edit this
      line, and say why. */
-  const BUDGET = 380;
+  const BUDGET = 800;
   const PROPS = /(^|[;{])\s*(color|background|background-color|border|border-color|border-[a-z]+-color|fill|stroke|box-shadow|outline-color)\s*:\s*([^;}]+)/gi;
   const LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(\s*\d/;
 
   let literals = 0, tokens = 0;
-  for (const f of fs.readdirSync(ROOT).filter((x) => x.endsWith('.css'))) {
-    const css = fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const sheets = [];
+  for (const f of fs.readdirSync(ROOT)) {
+    if (f.endsWith('.css')) sheets.push(fs.readFileSync(path.join(ROOT, f), 'utf8'));
+    else if (f.endsWith('.html')) {
+      const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+      for (const m of src.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)) sheets.push(m[1]);
+    }
+  }
+  for (const raw of sheets) {
+    const css = raw.replace(/\/\*[\s\S]*?\*\//g, '');
     let m;
     PROPS.lastIndex = 0;
     while ((m = PROPS.exec(css))) {

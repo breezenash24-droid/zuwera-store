@@ -313,7 +313,7 @@ try {
   body.light-mode .brand img { filter: invert(1); }
   body.light-mode .logo-link:hover { opacity: .55; }
   body.light-mode .card {
-    background: #F0EEE9;
+    background: var(--ink);
     border-color: var(--c08);
     border-top-color: rgb(var(--fg-rgb));
   }
@@ -332,8 +332,8 @@ try {
   /* SUPER-LIGHT MODE — declared AFTER the light-mode rules so these win the
      cascade. super-light-mode always co-occurs with light-mode, so without this
      ordering the later light-mode .card rule reverted the card back to cream. */
-  body.super-light-mode { background: #FFFFFF; --black: #FFFFFF; }
-  body.super-light-mode .card { background: #FFFFFF; border-top-color: rgb(var(--fg-rgb)); }
+  body.super-light-mode { background: var(--ink); --black: #FFFFFF; }
+  body.super-light-mode .card { background: var(--ink); border-top-color: rgb(var(--fg-rgb)); }
   body.super-light-mode .fgroup input { background: rgb(var(--fg-rgb) / 2%); }
 </style>
 <script>try{var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>

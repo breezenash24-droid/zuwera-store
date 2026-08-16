@@ -184,7 +184,7 @@ try {
       --border: var(--c15);
       --hover: var(--c06);
     }
-    body.super-light-mode { --bg: #FFFFFF; background: #FFFFFF !important; }
+    body.super-light-mode { --bg: #FFFFFF; background: var(--ink) !important; }
 
     body {
       background: var(--bg);
@@ -425,8 +425,8 @@ try {
       cursor: pointer;
     }
     .calc-select option {
-      background: #09090b;
-      color: #f4f1eb;
+      background: var(--ink);
+      color: var(--paper);
     }
     .calc-input:focus, .calc-select:focus {
       outline: none;
@@ -930,7 +930,7 @@ try {
     }
     body.light-mode .nav { background: var(--zw-nav-bg, #F0EEE9); border-bottom-color: var(--c08); }
     body.super-light-mode .nav { background: var(--zw-nav-bg, #FFFFFF); }
-    body.super-light-mode .calc-select option { background: #FFFFFF; color: rgb(var(--fg-rgb)); }
+    body.super-light-mode .calc-select option { background: var(--ink); color: rgb(var(--fg-rgb)); }
     body.light-mode .flogo img { filter: none; }
     body.light-mode .calculator { background: rgb(var(--fg-rgb) / 2%); }
     body.light-mode .focused-guide-note { background: rgb(var(--fg-rgb) / 3%); }
@@ -941,7 +941,7 @@ try {
     body.light-mode .calc-select {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2309090b' stroke-width='1.5' fill='none' opacity='0.4'/%3E%3C/svg%3E");
     }
-    body.light-mode .calc-select option { background: #F0EEE9; color: rgb(var(--fg-rgb)); }
+    body.light-mode .calc-select option { background: var(--ink); color: rgb(var(--fg-rgb)); }
     body.light-mode .calc-input:focus, body.light-mode .calc-select:focus {
       background: var(--c06);
       border-color: var(--c40);

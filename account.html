@@ -187,7 +187,7 @@ try {
       flex-direction: column;
     }
     body.light-mode {
-      background: #F0EEE9; color: var(--ink);
+      background: var(--ink); color: var(--ink);
       --a-border: var(--c10);
       --a-border-soft: var(--c07);
       --a-border-mid: var(--c14);
@@ -666,7 +666,7 @@ try {
     .ret-qty-wrap.visible { display:flex; }
     .ret-qty-label { font-size:.58rem; color:var(--c35); font-family:var(--fm); letter-spacing:.1em; text-transform:uppercase; }
     body.light-mode .ret-qty-label { color:var(--c40); }
-    .ret-qty-sel { background:var(--c08); border:1px solid var(--c20); color:#f4f1eb; font-family:var(--fb); font-size:.75rem; padding:.25rem .45rem; border-radius:3px; cursor:pointer; outline:none; }
+    .ret-qty-sel { background:var(--c08); border:1px solid var(--c20); color: var(--paper); font-family:var(--fb); font-size:.75rem; padding:.25rem .45rem; border-radius:3px; cursor:pointer; outline:none; }
     body.light-mode .ret-qty-sel { background:rgb(var(--fg-rgb) / 5%); border-color:var(--c20); color:rgb(var(--fg-rgb) / 85%); }
 
     .ret-item-chk {
@@ -714,7 +714,7 @@ try {
     body.light-mode .ret-status { border-color: var(--c15); color: var(--c55); }
     .ret-status.ret-s-requested  { border-color: rgba(255,185,60,.35);  color: rgba(255,185,60,.9); }
     .ret-status.ret-s-approved   { border-color: rgba(100,160,255,.35); color: rgba(100,160,255,.9); }
-    .ret-status.ret-s-label_sent { border-color: rgba(248,145,165,.4);  color: rgba(248,145,165,1); }
+    .ret-status.ret-s-label_sent { border-color: rgba(248,145,165,.4);  color: var(--zw-accent); }
     .ret-status.ret-s-completed  { border-color: rgba(80,200,110,.35);  color: rgba(80,200,110,.9); }
     .ret-status.ret-s-denied     { border-color: rgba(255,90,90,.35);   color: rgba(255,90,90,.9); }
     body.light-mode .ret-status.ret-s-requested  { border-color: rgba(190,120,0,.3);  color: rgba(190,120,0,.85); }
@@ -781,8 +781,8 @@ try {
 <style>
   #toast { position:fixed; bottom:calc(1.5rem + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%) translateY(10px); background:var(--zw-surface); color:rgb(var(--fg-rgb) / 90%); padding:.5rem 1.2rem; font-size:.72rem; letter-spacing:.08em; opacity:0; transition:opacity .3s, transform .3s; pointer-events:none; z-index:9999; white-space:nowrap; }
   #toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
-  body.light-mode #toast { background:#F0EEE9; color:rgb(var(--fg-rgb)); }
-  body.super-light-mode #toast { background:#FFFFFF; color:rgb(var(--fg-rgb)); }
+  body.light-mode #toast { background: var(--ink); color:rgb(var(--fg-rgb)); }
+  body.super-light-mode #toast { background: var(--ink); color:rgb(var(--fg-rgb)); }
 </style>
 <script src="mobile-menu.js?v=f7defb81" defer></script>
 <script>try{var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>

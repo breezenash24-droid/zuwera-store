@@ -61,9 +61,36 @@ const root = path.resolve(__dirname, '..');
    side-effect of tidying. */
 const TOLERANCE = 2;
 
+/* The storefront's stylesheets AND the <style> blocks inside its pages.
+ *
+ * The first version of this list was .css only, which quietly left 533 literals
+ * unexamined — more than were in the stylesheets. product.html alone carries 93.
+ * A page's inline <style> is the same cascade as a linked one; there was no
+ * reason for it to be exempt beyond my having forgotten it existed.
+ *
+ * Deliberately NOT here: admin.html, builder.html, analytics.html,
+ * diagnostic.html. They are the shop's back office, with their own palette and
+ * their own dark mode, and wiring them to storefront tokens would repaint the
+ * admin because a customer-facing theme changed. */
 const FILES = ['storefront-cohesion.css', 'cart.css', 'nav.css', 'product.css',
   'reviews.css', 'reviews-vibe.css', 'email-popup.css', 'storefront-mobile-rebuild.css',
-  'base.css'];
+  'base.css',
+  'index.html', 'product.html', 'drop001.html', 'bag.html', 'checkout.html',
+  'account.html', 'returns.html', 'landing.html', 'policies.html', 'journal.html',
+  'about.html', 'confirm.html', 'sizeguide.html', '404.html'];
+
+/* An HTML page is treated as the concatenation of its <style> blocks — one
+   cascade, which is what the browser sees — while edits are written back at the
+   real offsets in the file. Anything outside a <style> block is invisible to
+   this tool, which is what keeps it out of the JS. */
+function styleSegments(src, file) {
+  if (!/\.html$/i.test(file)) return [{ at: 0, text: src }];
+  const segs = [];
+  for (const m of src.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)) {
+    segs.push({ at: m.index + m[0].indexOf('>') + 1, text: m[1] });
+  }
+  return segs;
+}
 
 const MODES = ['dark', 'light', 'super-light'];
 
@@ -100,11 +127,29 @@ function palette() {
     light: grab(light, name) || grab(root_, name) || grab(block('body'), name),
     'super-light': grab(sup, name) || grab(light, name) || grab(root_, name) || grab(block('body'), name),
   });
+  /* The named roles from storefront-cohesion.css. Constant across the three
+     built-in modes — they are declared once in :root — but NOT constant across
+     themes any more: theme-engine.js sets all four from a theme's own tokens.
+     That is exactly what makes them worth converting to, and it is why leaving
+     them out of this list the first time made the tool report a pile of free
+     conversions as "a real colour choice, 19/255 away". They were 0 away. */
+  const coh = fs.readFileSync(path.join(root, 'storefront-cohesion.css'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, (c) => ' '.repeat(c.length));
+  const flat = (name) => {
+    const m = new RegExp('--' + name + ':\\s*([^;]+);').exec(coh);
+    if (!m) return null;
+    const v = m[1].trim();
+    return { dark: v, light: v, 'super-light': v };
+  };
   return {
     '--fg-rgb': pick('fg-rgb'), '--bg-rgb': pick('bg-rgb'),
     '--ink': pick('ink'), '--paper': pick('paper'),
     '--black': pick('black'), '--white': pick('white'),
     '--zw-theme-surface': pick('zw-theme-surface'),
+    '--zw-cream': flat('zw-cream'),
+    '--zw-surface': flat('zw-surface'),
+    '--zw-fg-hover': flat('zw-fg-hover'),
+    '--zw-accent': flat('zw-accent'),
   };
 }
 const PAL = palette();
@@ -254,7 +299,33 @@ function classify(sel) {
 /* Only tokens whose meaning is the same kind of thing as the literal being
    replaced. --ink is the page, --paper is the text on it, --zw-theme-surface is
    a panel lifted off the page. */
-const CANDIDATES = ['var(--ink)', 'var(--paper)', 'var(--zw-theme-surface)'];
+/* A ROLE HAS A SHAPE, and matching only on value is how a refactor smears two
+ * roles together.
+ *
+ * --zw-cream is documented as "the label on a foreground-coloured surface". Let
+ * it match on value alone and it also swallows `body.light-mode .lp-hero {
+ * background: #e8e5de }` — two parts in 255 away, so provably no visual change
+ * today, and a landing hero that turns white the first time somebody sets
+ * `cream` to brighten their button labels. The colours agreed; the meanings did
+ * not.
+ *
+ * --zw-surface is a background, and matching it against `color:#111` on the
+ * carousel arrows would have made the glyph follow the theme while the white
+ * circle it sits in stayed fixed.
+ *
+ * So each candidate declares which properties it is allowed to answer for.
+ * --zw-accent has no restriction because an accent genuinely is all three: it
+ * is text on a link, a border on a focused field, and the fill of a rating bar.
+ */
+const CANDIDATES = [
+  { token: 'var(--ink)' },
+  { token: 'var(--paper)' },
+  { token: 'var(--zw-theme-surface)' },
+  { token: 'var(--zw-cream)', props: /^color$/ },
+  { token: 'var(--zw-surface)', props: /^background(-color)?$/ },
+  { token: 'var(--zw-fg-hover)', props: /^(background(-color)?|border(-[a-z]+)?-color)$/ },
+  { token: 'var(--zw-accent)' },
+];
 function alphaCandidates(a) {
   const pct = +(a * 100).toFixed(2);
   return ['--bg-rgb', '--fg-rgb'].map((t) => `rgb(var(${t}) / ${pct}%)`);
@@ -272,7 +343,15 @@ function run(write) {
     const p = path.join(root, file);
     if (!fs.existsSync(p)) continue;
     const css = fs.readFileSync(p, 'utf8');
-    const decls = declarations(css);
+    /* Parse each <style> block on its own, then shift every offset to where it
+       really sits in the file. Concatenating first would be simpler and would
+       put the edits in the wrong place. */
+    const decls = [];
+    for (const seg of styleSegments(css, file)) {
+      for (const d of declarations(seg.text)) {
+        decls.push({ ...d, start: d.start + seg.at, end: d.end + seg.at });
+      }
+    }
 
     /* What each (media, selector, property) resolves to in each mode today. */
     const index = new Map();
@@ -308,6 +387,15 @@ function run(write) {
       const c = classify(d.sel);
       if (!c) { note('mixed-mode selector list', file, raw); continue; }
 
+      /* SITTING ON SOMETHING THAT IS NOT THE PAGE.
+         .zw-hc-dots draws a hard-coded white pill over the hero carousel and
+         the dots live inside it, so their colour has to contrast with THAT
+         pill, not with the theme. This tool cannot see what is behind an
+         element — it reads rules, not layout — so the handful of places where
+         the answer comes from the layout are named here. It is the same reason
+         quick-add-modal.css is excluded from the other pass. */
+      if (/\.zw-hc-(dot|prev|next|pause)\b/.test(d.sel)) { note('on a fixed surface, not the page', file, raw); continue; }
+
       /* <html> IS :root, and the palette lives on body. --ink on html therefore
          resolves to the dark value in every mode, so `html:has(body.light-mode)
          { background: var(--ink) }` would paint a light store's ground dark.
@@ -323,8 +411,12 @@ function run(write) {
       const strip = (v) => (v === undefined ? v : String(v).replace(/\s*!important\s*$/i, '').trim());
       const before = MODES.map((m) => resolve(strip(effective(k, m)), m));
 
+      const usable = lit[3] === 1
+        ? CANDIDATES.filter((c) => !c.props || c.props.test(d.prop)).map((c) => c.token)
+        : alphaCandidates(lit[3]);
+
       let chosen = null, chosenWorst = Infinity;
-      for (const cand of (lit[3] === 1 ? CANDIDATES : alphaCandidates(lit[3]))) {
+      for (const cand of usable) {
         /* Substitute the candidate wherever this declaration is the one that
            wins, and re-resolve all three modes. */
         const after = MODES.map((m) => {
