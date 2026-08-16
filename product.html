@@ -4737,7 +4737,21 @@ async function getSizeGuideDocumentHtml() {
 
 function buildSizeGuideSrcdoc(sourceHtml, params) {
   const serializedParams = JSON.stringify(params || {}).replace(/</g, '\\u003c');
-  const injectedHead = `<base href="${window.location.origin}/"><script>window.__ZW_SIZEGUIDE_PARAMS__=${serializedParams};window.__ZW_SIZEGUIDE_EMBED__=true;<\/script>`;
+  /* THE GUIDE INHERITS THE PAGE'S THEME RATHER THAN WORKING IT OUT AGAIN.
+     It is a separate document, so it was resolving the theme for itself from
+     localStorage — and a srcdoc frame does not always get to read localStorage,
+     which is how the size guide could open dark over a light product page. Two
+     documents answering the same question from different evidence.
+     The parent already knows; it says so. */
+  const themeNow = (function () {
+    try {
+      if (window.ZWTheme && window.ZWTheme.current) return String(window.ZWTheme.current() || '');
+    } catch (_) {}
+    return String(document.documentElement.getAttribute('data-zw-base') || '');
+  }());
+  const baseNow = document.body.classList.contains('super-light-mode') ? 'super-light'
+    : document.body.classList.contains('light-mode') ? 'light' : 'dark';
+  const injectedHead = `<base href="${window.location.origin}/"><script>window.__ZW_SIZEGUIDE_PARAMS__=${serializedParams};window.__ZW_SIZEGUIDE_EMBED__=true;window.__ZW_SIZEGUIDE_THEME__=${JSON.stringify({ id: themeNow, base: baseNow })};<\/script>`;
   // Strip scripts the embedded guide doesn't use — analytics/pixels, favicon,
   // the mobile nav, and modal-lock — so the iframe boots faster on every open
   // (fewer requests, and no third-party network calls from inside the modal).

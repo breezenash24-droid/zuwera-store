@@ -233,7 +233,7 @@
       '.zwf-bag-inner{overflow-y:auto;padding:clamp(1.2rem,3vw,2rem) clamp(1rem,4vw,2.5rem) clamp(1.6rem,4vw,2.4rem);max-width:1100px;margin:0 auto;width:100%}',
       '.zwf-bag-hd{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.2rem}',
       '.zwf-bag-hd h2{font-family:var(--fw,inherit);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:clamp(1.3rem,3vw,1.9rem);margin:0}',
-      '.zwf-bag-review{border:none;border-radius:var(--zw-radius-pill, 999px);background:var(--zw-ink,#09090b);color:var(--zw-page,#fff);padding:.72rem 1.5rem;cursor:pointer;font-family:var(--fm,inherit);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}',
+      '.zwf-bag-review{border:none;border-radius:var(--zw-radius-pill, 999px);background:rgb(var(--fg-rgb));color:rgb(var(--bg-rgb));padding:.72rem 1.5rem;cursor:pointer;font-family:var(--fm,inherit);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}',
       '.zwf-bag-review:hover{opacity:.85}',
       '.zwf-bag-items{display:flex;flex-direction:column;gap:.9rem;margin-bottom:1.6rem}',
       '.zwf-bag-item{display:flex;align-items:center;gap:1rem;text-decoration:none;color:inherit}',
@@ -250,7 +250,7 @@
       '.zwf-bag-count{margin-left:auto;min-width:1.35em;height:1.35em;padding:0 .45em;border-radius:1em;background:var(--zw-accent,#F891A5);color:#09090b;font-family:var(--fm,var(--fb,inherit));font-size:.68rem;font-weight:600;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}',
       // Accent mode: the saves badge is a filled pill, so it can\'t use currentColor
       // like the text accents — give it a neutral ink fill in the mono modes (B/C).
-      'body.zw-macc-b .zwf-bag-count,body.zw-macc-c .zwf-bag-count{background:var(--zw-ink,#09090b);color:var(--zw-page,#fff)}',
+      'body.zw-macc-b .zwf-bag-count,body.zw-macc-c .zwf-bag-count{background:rgb(var(--fg-rgb));color:rgb(var(--bg-rgb))}',
       /* The account button moves INTO this panel, so hide the header one while
          the feature is on (both header systems). */
       /* …unless the theme asks for it to stay. data-zw-account="header" is the
@@ -345,16 +345,39 @@
       '.zwf-modal-sub{font-family:var(--fb,inherit);font-size:.85rem;opacity:.6;margin:0 0 1.4rem;line-height:1.5}',
       '.zwf-field{margin-bottom:1.05rem}',
       '.zwf-field label{display:block;font-family:var(--fm,inherit);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;opacity:.6;margin-bottom:.45rem}',
-      '.zwf-field input,.zwf-field select{width:100%;padding:.7rem .8rem;background:rgba(9,9,11,.04);border:1px solid rgba(9,9,11,.16);border-radius:3px;color:inherit;font-family:var(--fb,inherit);font-size:.95rem;outline:none}',
+      /* THE CONTROLS FOLLOW THE SURFACE THEY ARE DRAWN ON.
+       *
+       * These were rgba(9,9,11,.04) and rgba(9,9,11,.16) — near-black at 4% and
+       * 16%. On the light fit-finder modal that is a faint grey box, which is
+       * what it was designed against and what it still looks like. On a DARK
+       * surface it is near-black on near-black: no box, no border, no buttons.
+       *
+       * That is exactly what the size guide shows, because the guide opens the
+       * SAME form inside an iframe whose page is dark. The words render and the
+       * controls do not, so the form reads as three floating labels.
+       *
+       * --c06 and --c15 are the same faint wash, derived from --fg-rgb, so they
+       * are near-black on a light surface and near-white on a dark one. One
+       * declaration, correct on both. */
+      '.zwf-field input,.zwf-field select{width:100%;padding:.7rem .8rem;background:var(--c06);border:1px solid var(--c15);border-radius:3px;color:inherit;font-family:var(--fb,inherit);font-size:.95rem;outline:none}',
       '.zwf-seg{display:flex;gap:.5rem}',
-      '.zwf-seg button{flex:1;padding:.6rem .3rem;background:rgba(9,9,11,.04);border:1px solid rgba(9,9,11,.16);border-radius:3px;color:inherit;font-family:var(--fm,inherit);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}',
-      // --ink/--paper are the PAGE colours and they flip with the theme: --ink is
-      // #09090b dark, but #F0EEE9 in light and #FFFFFF in super-light. So the selected
-      // chip filled itself with the page colour — white on white, which is why picking
-      // a fit made it vanish. --zw-ink/--zw-page are ink-on-page by definition, so
-      // inverting them is contrasty in every mode.
-      '.zwf-seg button.on{background:var(--zw-ink,#09090b);color:var(--zw-page,#f4f1eb);border-color:var(--zw-ink,#09090b)}',
-      '.zwf-btn{width:100%;padding:.9rem;background:var(--zw-ink,#09090b);color:var(--zw-page,#f4f1eb);border:none;border-radius:3px;font-family:var(--fm,inherit);font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;margin-top:.5rem}',
+      '.zwf-seg button{flex:1;padding:.6rem .3rem;background:var(--c06);border:1px solid var(--c15);border-radius:3px;color:inherit;font-family:var(--fm,inherit);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}',
+      /* THE FILLED ONES INVERT, and the previous note here had it half right.
+       *
+       * It said --ink/--paper flip with the theme (true — that is why filling
+       * with them made the chip vanish) and that --zw-ink/--zw-page are
+       * "ink-on-page by definition, so inverting them is contrasty in every
+       * mode". That last part is only true while the surface is light.
+       * --zw-ink is a fixed near-black, so on the dark size guide the SEE MY
+       * SIZE button filled itself near-black on a near-black page — the label
+       * showed and the button did not, which is the other half of the same bug.
+       *
+       * The pair that actually inverts against whatever is behind it is
+       * --fg-rgb over --bg-rgb: foreground-coloured fill, background-coloured
+       * label. Dark button on a light page, light button on a dark one, and it
+       * follows a custom theme as well. */
+      '.zwf-seg button.on{background:rgb(var(--fg-rgb));color:rgb(var(--bg-rgb));border-color:rgb(var(--fg-rgb))}',
+      '.zwf-btn{width:100%;padding:.9rem;background:rgb(var(--fg-rgb));color:rgb(var(--bg-rgb));border:none;border-radius:3px;font-family:var(--fm,inherit);font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;margin-top:.5rem}',
       '.zwf-btn:hover{opacity:.9}',
       '.zwf-result{text-align:center;padding:.6rem 0 .2rem}',
       '.zwf-result-size{font-family:var(--fw,inherit);font-weight:900;font-style:italic;font-size:3.2rem;line-height:1;margin:.3rem 0}',
@@ -372,6 +395,14 @@
       '.zwf-support-panel h4{font-family:var(--fw,inherit);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:1.05rem;margin:0 0 .2rem}',
       '.zwf-support-panel p{font-family:var(--fb,inherit);font-size:.78rem;opacity:.6;margin:0 0 .9rem;line-height:1.5}',
       '.zwf-support-panel a{display:block;padding:.55rem .7rem;margin:0 -.7rem;border-radius:5px;text-decoration:none;color:inherit;font-family:var(--fm,inherit);font-size:.7rem;letter-spacing:.05em}',
+      /* NOT --c07, and this one is worth writing down because I changed it and
+         had to change it back. The rule above it is
+         `.zwf-support-panel{background:#f4f1eb}` — a FIXED light panel that does
+         not follow the theme at all. --c07 derives from --fg-rgb, so on a dark
+         page it is a near-WHITE wash, which is invisible on a permanently cream
+         panel. The literal is right here for the same reason it was wrong in the
+         fit finder: what matters is the surface behind the element, and this
+         surface never changes. */
       '.zwf-support-panel a:hover{background:rgba(9,9,11,.07)}',
       '@media(prefers-reduced-motion:reduce){.zwf-modal,.zwf-modal-box,.zwf-support-panel{transition:none}}'
     ].join('');
