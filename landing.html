@@ -369,6 +369,32 @@ try {
     })();
     </script>
   </nav>
+<script>/* zw:hdrboot */
+/* Generated from scripts/header-preboot.head.js — edit there, not here. */
+(function () {
+  try {
+    if (localStorage.getItem('zw_bp') !== '0') document.body.classList.add('zwf-bagpanel-on');
+    if (localStorage.getItem('zw_srch') !== '1') return;
+    var host = null, before = null, cls = '';
+    var nr = document.querySelector('.nav-right');
+    var ct = nr && nr.querySelector('#cart-btn');
+    if (nr && ct) {
+      host = nr; before = ct; cls = 'nbtn';
+    } else {
+      var g = document.querySelector('.zw-hdr-group');
+      if (g) { host = g; before = g.querySelector('.zw-hdr-bag'); cls = 'zw-hdr-action'; }
+    }
+    if (!host) return;
+    if (host.querySelector('.zwf-search-btn')) return;
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = cls + ' zwf-search-btn';
+    b.setAttribute('aria-label', 'Search');
+    b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
+    if (before) host.insertBefore(b, before); else host.appendChild(b);
+  } catch (_) {  }
+}());
+/* /zw:hdrboot */</script>
 
   <div id="mobile-menu" class="modal zw-mobile-menu" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobile-menu-title">
     <div class="mbox zw-mobile-menu-panel">

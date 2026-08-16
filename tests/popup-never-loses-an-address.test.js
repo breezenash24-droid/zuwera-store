@@ -26,7 +26,13 @@ const ROOT = path.resolve(__dirname, '..');
 let pass = 0, fail = 0;
 const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { fail++; console.log('  ✗ ' + n + (e ? '  — ' + e : '')); } };
 
-const SRC = fs.readFileSync(path.join(ROOT, 'email-popup.js'), 'utf8');
+/* Line endings normalised on the way in. The end marker below is written with
+   \n, and this file comes off disk as CRLF after a Windows checkout — so the
+   marker was not found, the suite bailed with "could not find the queue block",
+   and nothing about the code had changed. A test whose result depends on how
+   git happened to write the file is not testing the code. Same class as the
+   absolute path that made another suite green for one person only. */
+const SRC = fs.readFileSync(path.join(ROOT, 'email-popup.js'), 'utf8').replace(/\r\n/g, '\n');
 
 /* The real block, from the queue key to the end of the beacon. */
 const START = SRC.indexOf("var QUEUE_KEY = 'zw_popup_pending';");
