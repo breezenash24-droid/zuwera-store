@@ -19,9 +19,28 @@
  */
 const fs = require('fs');
 const path = require('path');
+/* The mechanism — comment stripping, marker replacement, line-ending matching —
+   moved to _inline-block.js when a SECOND block needed it. Copying this file to
+   sync the header block would have been the same duplication one level up. */
+const { syncBlock, stripComments: strip } = require('./_inline-block.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const SRC = path.join(__dirname, 'theme-preboot.head.js');
+
+/* ── The header feature pre-paint ──────────────────────────────────────────
+   A second block with the same problem and a worse history: it was inline on
+   two pages, absent from eight, and did not work on either of the two — it sat
+   ABOVE the markup it queries, so querySelector('.nav-right') returned null
+   every time. See scripts/header-preboot.head.js.
+   Its markers go AFTER the header rather than in <head>, because the parser
+   cannot paint a header it has not read yet. */
+const HDR_SRC = path.join(__dirname, 'header-preboot.head.js');
+const HDR_OPEN = '/* zw:hdrboot */';
+const HDR_CLOSE = '/* /zw:hdrboot */';
+const HDR_PAGES = ['about.html', 'account.html', 'drop001.html', 'index.html',
+  'journal.html', 'landing.html', 'policies.html', 'product.html',
+  'returns.html', 'sizeguide.html'];
+const HDR_POINTER = '/* Generated from scripts/header-preboot.head.js — edit there, not here. */';
 
 /* Every page that paints a theme before its stylesheets load. A page missing
    from this list keeps whatever stale copy it has, which is the failure mode
@@ -134,9 +153,29 @@ function sync({ quiet } = {}) {
   return { changed, missing };
 }
 
-module.exports = { sync, block, PAGES, OPEN, CLOSE, SRC };
+/** The header block, synced by the same mechanism into its own markers. */
+function syncHeader(opts) {
+  return syncBlock({
+    src: HDR_SRC, open: HDR_OPEN, close: HDR_CLOSE, pointer: HDR_POINTER,
+    pages: HDR_PAGES, label: 'sync-hdrboot', quiet: opts && opts.quiet,
+  });
+}
+
+/** What belongs between the header markers, for the drift test to compare. */
+function headerBlock() {
+  const code = strip(fs.readFileSync(HDR_SRC, 'utf8'));
+  new Function(code);
+  return HDR_OPEN + '\n' + HDR_POINTER + '\n' + code + '\n' + HDR_CLOSE;
+}
+
+module.exports = {
+  sync, block, PAGES, OPEN, CLOSE, SRC,
+  syncHeader, headerBlock,
+  HDR_PAGES, HDR_OPEN, HDR_CLOSE, HDR_SRC,
+};
 
 if (require.main === module) {
-  const { missing } = sync();
-  process.exit(missing.length ? 1 : 0);
+  const a = sync();
+  const b = syncHeader();
+  process.exit((a.missing.length + b.missing.length) ? 1 : 0);
 }
