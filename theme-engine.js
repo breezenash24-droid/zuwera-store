@@ -405,6 +405,25 @@
       document.body.classList.toggle('super-light-mode', theme.base === 'super-light');
     }
 
+    /* THE NATIVE HALF OF THE THEME.
+     *
+     * color-scheme is what the browser reads to draw the things our CSS cannot
+     * reach: the option list a <select> pops up, scrollbars, date pickers,
+     * autofill. Only the pre-paint block was setting it, and only from its own
+     * guess — so the moment this function applied a different answer, every
+     * native control was left on the guess.
+     *
+     * The size guide showed it plainly. It is a srcdoc iframe, localStorage is
+     * unreadable in one, so the block adopted the light class the build stamped
+     * and set color-scheme: light; then the theme handed in by the product page
+     * was applied here as DARK, tokens, classes and all — and the height
+     * dropdown still opened as a white UA panel with the page's near-white text
+     * on it. Unreadable options on a correctly dark form.
+     *
+     * It is not only the iframe: switching theme anywhere left the same
+     * mismatch, because nothing after first paint had ever set this. */
+    root.style.colorScheme = theme.base === 'dark' ? 'dark' : 'light';
+
     /* TAKE BACK THE PRE-PAINT GUESS.
        The inline block in <head> paints a light ground with `!important` — it
        has to, to beat html{background:#09090b} before any class exists. But
