@@ -911,6 +911,25 @@
         </div>
       </div>
 
+      <!-- Cohorts.
+           Everything above is a single number over all of time, which cannot
+           answer the question a store actually has: are the people who bought
+           this month worth more or less than the people who bought in March?
+           A cohort table can, and — unlike RFM scores or a predicted LTV — it
+           is a LEDGER. Every cell is money that was really taken from people
+           who really did place a first order in that month. It stays true at
+           61 orders and at 61,000; only the size of the cells changes. -->
+      <div class="card" style="margin-top:1.25rem;">
+        <div class="card-label">Cohorts — what each month's first-time buyers went on to spend</div>
+        <div class="card-subtitle" id="cohortSub" style="margin-bottom:.9rem;">grouped by the month of a customer's first order</div>
+        <div style="overflow-x:auto;">
+          <table id="cohortTable" style="width:100%;border-collapse:collapse;font-size:.82rem;font-variant-numeric:tabular-nums;">
+            <tbody><tr><td style="padding:.6rem 0;opacity:.6;">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div id="cohortNote" style="margin-top:.75rem;font-size:.76rem;opacity:.62;line-height:1.5;"></div>
+      </div>
+
       <!-- Traffic & Discounts -->
       <h2 style="margin-top: 2.5rem; margin-bottom: 0.35rem;">Traffic &amp; Discounts</h2>
       <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Where visitors come from (last 30 days) &amp; which codes get used</div>
@@ -2747,6 +2766,129 @@
       setText('repeatSub', repeat + ' of ' + customers + ' bought again');
     };
 
+    /* ── Cohorts ───────────────────────────────────────────────────────────
+       A customer belongs to the month of their FIRST order and never moves.
+       Each cell is cumulative revenue per customer in that cohort by that many
+       months later, so a row only ever goes up and the last column is what
+       that month's intake has been worth so far.
+
+       Cumulative, not per-period, on purpose: per-period cells at this volume
+       are mostly zero with the occasional spike, which reads as noise. The
+       cumulative curve reads as what it is — a cohort's value flattening or
+       still climbing.
+
+       WHAT THIS DELIBERATELY DOES NOT DO. It does not project. A cohort three
+       months old has three months of evidence, and the honest thing to show is
+       three cells, not a fitted curve out to twelve. Predicted LTV needs
+       enough repeat customers to fit against; with 61 orders it would be a
+       number invented from a shape, presented next to numbers that are real.
+       When it exists it will be labelled as a model. */
+    const renderCohorts = () => {
+      const table = document.getElementById('cohortTable');
+      const note = document.getElementById('cohortNote');
+      if (!table) return;
+
+      /* No email, no cohort. A guest order with nothing to identify it cannot
+         be tied to a first order or a later one, and quietly bundling those
+         into "new" would inflate every first cell. Counted and disclosed
+         instead. */
+      const rows = [];
+      let anonymous = 0;
+      for (const o of (allOrders || [])) {
+        const cust = String(o.email || o.user_id || '').trim().toLowerCase();
+        const at = new Date(o.created_at);
+        if (!cust || isNaN(at)) { anonymous++; continue; }
+        rows.push({ cust, at, amt: orderTotal(o) });
+      }
+      rows.sort((a, b) => a.at - b.at);
+
+      const monthKey = (d) => d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0');
+      const monthsBetween = (a, b) =>
+        (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + (b.getUTCMonth() - a.getUTCMonth());
+
+      const first = {};                       // customer → first order date
+      for (const r of rows) if (!first[r.cust]) first[r.cust] = r.at;
+
+      const cohorts = {};                     // month → { customers:Set, byOffset:{} }
+      for (const r of rows) {
+        const key = monthKey(first[r.cust]);
+        const c = cohorts[key] || (cohorts[key] = { customers: new Set(), byOffset: {} });
+        c.customers.add(r.cust);
+        const off = Math.max(0, monthsBetween(first[r.cust], r.at));
+        c.byOffset[off] = (c.byOffset[off] || 0) + r.amt;
+      }
+
+      const keys = Object.keys(cohorts).sort();
+      if (!keys.length) {
+        table.innerHTML = '<tbody><tr><td style="padding:.6rem 0;opacity:.6;">No orders with an email address yet.</td></tr></tbody>';
+        if (note) note.textContent = '';
+        return;
+      }
+
+      /* Width is decided by the OLDEST cohort — a younger one simply has fewer
+         cells, and leaving them blank is the point of the shape. Filling them
+         with $0 would read as "these people stopped buying" rather than "this
+         month has not happened yet", which is the single most common way a
+         cohort table lies. */
+      const now = new Date();
+      const span = Math.min(12, monthsBetween(new Date(keys[0] + '-01T00:00:00Z'), now) + 1);
+
+      const head = ['<tr><th style="text-align:left;padding:.45rem .6rem .45rem 0;font-weight:600;opacity:.7;">First order</th>'
+        + '<th style="text-align:right;padding:.45rem .6rem;font-weight:600;opacity:.7;">Customers</th>'];
+      for (let i = 0; i < span; i++) {
+        head.push('<th style="text-align:right;padding:.45rem .6rem;font-weight:600;opacity:.7;">' + (i === 0 ? 'Month 0' : '+' + i) + '</th>');
+      }
+      head.push('</tr>');
+
+      const body = [];
+      let best = 0;
+      for (const k of keys) {
+        const c = cohorts[k];
+        const n = c.customers.size;
+        const age = monthsBetween(new Date(k + '-01T00:00:00Z'), now);
+        let cum = 0;
+        const cells = [];
+        for (let i = 0; i < span; i++) {
+          if (i > age) { cells.push('<td style="padding:.45rem .6rem;"></td>'); continue; }
+          cum += (c.byOffset[i] || 0);
+          const per = cum / n;
+          best = Math.max(best, per);
+          cells.push('<td data-per="' + per.toFixed(2) + '" style="text-align:right;padding:.45rem .6rem;">' + fmtMoney0(per) + '</td>');
+        }
+        /* A cohort of one or two people is a person, not a trend. Shown —
+           hiding it would make the table look more even than the business is —
+           but marked, so nobody reads a single big order as a pattern. */
+        const thin = n < 5;
+        body.push('<tr style="border-top:1px solid rgba(128,128,128,.18);' + (thin ? 'opacity:.72;' : '') + '">'
+          + '<td style="padding:.45rem .6rem .45rem 0;white-space:nowrap;">' + k + (thin ? ' <span title="fewer than 5 customers — read as anecdote, not trend">·</span>' : '') + '</td>'
+          + '<td style="text-align:right;padding:.45rem .6rem;">' + n + '</td>'
+          + cells.join('') + '</tr>');
+      }
+
+      table.innerHTML = '<thead>' + head.join('') + '</thead><tbody>' + body.join('') + '</tbody>';
+
+      /* Shade by value, after the max is known. Done here rather than inline so
+         a single outlier sets the scale for everyone instead of each row
+         inventing its own. */
+      if (best > 0) {
+        table.querySelectorAll('td[data-per]').forEach((td) => {
+          const t = Math.min(1, Number(td.getAttribute('data-per')) / best);
+          td.style.background = 'rgba(52,168,120,' + (0.06 + t * 0.26).toFixed(3) + ')';
+        });
+      }
+
+      const totalCustomers = keys.reduce((s, k) => s + cohorts[k].customers.size, 0);
+      setText('cohortSub', totalCustomers + ' customer' + (totalCustomers === 1 ? '' : 's')
+        + ' across ' + keys.length + ' cohort' + (keys.length === 1 ? '' : 's')
+        + ' · cumulative revenue per customer');
+      if (note) {
+        note.textContent = 'Each cell is money already taken, divided by the customers in that cohort — '
+          + 'cumulative, so a row only rises. Blank cells are months that have not happened yet, not months with no sales. '
+          + 'Rows marked · have fewer than 5 customers and are anecdotes rather than trends.'
+          + (anonymous ? ' ' + anonymous + ' order' + (anonymous === 1 ? '' : 's') + ' had no email address and are excluded — they cannot be tied to a first order.' : '');
+      }
+    };
+
     // Merchandising — avg units/order + real "frequently bought together" pair
     const renderMerchandising = () => {
       const orders = allOrders || [];
@@ -3075,6 +3217,7 @@
       renderReturnsBySize().catch((e) => console.warn('Returns by size failed:', e));
       try { renderTodayGlance(); } catch (e) { console.warn('Today glance failed:', e); }
       try { renderRetention(); } catch (e) { console.warn('Retention failed:', e); }
+      try { renderCohorts(); } catch (e) { console.warn('Cohorts failed:', e); }
       try { renderMerchandising(); } catch (e) { console.warn('Merchandising failed:', e); }
       renderPromos().catch((e) => console.warn('Promos failed:', e));
       renderTrafficAndFunnel().catch((e) => console.warn('Traffic/funnel failed:', e));

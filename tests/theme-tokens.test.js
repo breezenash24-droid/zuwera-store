@@ -667,14 +667,14 @@ console.log('\n  the announcement bar is themeable too');
      beats the theme for anyone who set one, and clearing it hands the bar back
      to the theme rather than to a hardcoded black. */
   for (const f of ['storefront.js', 'product.html']) {
-    const src = fs.readFileSync(R + f, 'utf8');
+    const src = f === 'product.html' ? require('./_product-source').all() : fs.readFileSync(R + f, 'utf8');
     ok('nothing in ' + f + ' forces the bar colour past the token',
       !/bar\.style\.setProperty\('(background|color)'/.test(src),
       'an inline !important on #bar is the last word and the theme never gets one');
   }
   ok('…the builder colour feeds --zw-bar-bg instead',
     /bar\.style\.setProperty\('--zw-bar-bg'/.test(fs.readFileSync(R + 'storefront.js', 'utf8')) &&
-    /bar\.style\.setProperty\('--zw-bar-fg'/.test(fs.readFileSync(R + 'product.html', 'utf8')));
+    /bar\.style\.setProperty\('--zw-bar-fg'/.test(require('./_product-source').all()));
   ok('and the editor offers them like the header’s', /barBg/.test(at) && /barFg/.test(at));
   ok('both are optional, so an unset theme leaves the bar alone',
     /key: 'barBg'[^}]*optional: true/.test(at));

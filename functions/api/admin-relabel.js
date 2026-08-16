@@ -48,7 +48,7 @@
  * from what is on the order right now.
  */
 
-import { cors, json, verifyAdmin, decide, mutateSetting } from './_commerce.js';
+import { cors, json, verifyAdmin, decide, limitError, limitResponse, mutateSetting } from './_commerce.js';
 import { permsHave } from './_rbac.js';
 import { shipFrom, shipFromIsComplete } from './_ship-from.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
@@ -160,7 +160,7 @@ function parcelFor(items) {
  * downgrade a store that has chosen Priority Mail for everything, and the
  * re-buy is exactly the moment nobody is watching.
  */
-async function buyLabel(env, { from, to, items, preferred }) {
+async function buyLabel(env, { from, to, items, preferred, gate }) {
   const shipResp = await fetch(SHIPPO + '/shipments/', {
     method: 'POST',
     headers: { Authorization: 'ShippoToken ' + env.SHIPPO_API_KEY, 'Content-Type': 'application/json' },
@@ -191,6 +191,16 @@ async function buyLabel(env, { from, to, items, preferred }) {
     }
   }
   if (!chosen) chosen = rates.slice().sort((a, b) => price(a) - price(b))[0];
+
+  /* HERE, and not in the handler. A label's price is not knowable until the
+     carrier has quoted it, so "no label over $40" can only be asked between the
+     quote and the purchase. Asked earlier it would have no amount to read, and
+     a rule whose attribute is missing DENIES — the limit would refuse every
+     relabel and look exactly like the limit working.
+     Quoting costs nothing, so a refusal here has spent nothing either. */
+  if (gate) await gate({ amount: Number(chosen.amount) || null,
+                         carrier: String(chosen.provider || ''),
+                         service: String((chosen.servicelevel && chosen.servicelevel.name) || '') });
 
   const txResp = await fetch(SHIPPO + '/transactions/', {
     method: 'POST',
@@ -278,15 +288,13 @@ export async function onRequestPost({ request, env }) {
       return json({ ok: true, action: 'validate', address: to, ...check }, 200, H);
     }
 
-    /* Buying is spending real money against the store's carrier account, so it
-       goes through the same limit engine as a refund does. */
-    const verdict = await decide(env, accessToken, 'order_write', {
-      action: 'relabel',
-      resource: { orderId: String(order.id || ''), orderNumber },
-    });
-    if (!verdict.allow) {
-      return json({ error: verdict.reason || 'A limit on your account stopped this.', rule: verdict.rule || '' }, 403, H);
-    }
+    /* The limit check used to sit here, on `action: 'relabel'`. Nothing could
+       ever match it — the limits catalogue has no such action, and checkRule
+       compares action names exactly — so it was a gate that always opened,
+       reading in the source like a guard. It has moved down into buyLabel,
+       under the name `ship_label`, at the point the price exists.
+       RBAC's `order_write` is still checked at the top of this handler; that
+       part was never the advisory half. */
 
     if (order.tracking_number) {
       /* Two labels for one parcel is two charges and two tracking numbers, one
@@ -312,8 +320,24 @@ export async function onRequestPost({ request, env }) {
 
     let label;
     try {
-      label = await buyLabel(env, { from, to, items: order.items, preferred });
+      label = await buyLabel(env, {
+        from, to, items: order.items, preferred,
+        /* Asked once the carrier has said what it costs. Throws rather than
+           returns, so there is no way for the purchase below it to proceed on
+           an unchecked return value. */
+        gate: async ({ amount, carrier, service }) => {
+          const verdict = await decide(env, accessToken, 'order_write', {
+            action: 'ship_label',
+            resource: { amount, carrier, service, orderId: String(order.id || ''), orderNumber },
+          });
+          if (!verdict.allow) throw limitError(verdict);
+        },
+      });
     } catch (e) {
+      /* A limit refusing is not a carrier failure and must not be reported as
+         one — 502 would send somebody to check Shippo's status page about a
+         decision this store made. */
+      if (e && e.limitVerdict) return limitResponse(e, H);
       /* The reason goes back to the person who pressed the button, in full.
          "Label failed" with the detail only in a Worker log is how this ended
          up being diagnosed from a dashboard banner in the first place. */

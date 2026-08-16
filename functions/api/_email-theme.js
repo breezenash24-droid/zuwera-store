@@ -1,3 +1,4 @@
+import { siteUrl } from './_config.js';
 /**
  * Shared email theming + editable content.
  *
@@ -129,7 +130,7 @@ export function getEmailAppearance(cache = {}, env = null) {
 // / {product} are filled by fillTemplate at send time.
 const CONTENT_DEFAULTS = {
   order_confirmation: { subject: 'Order Confirmed – #{order}', kicker: 'Order Confirmed', heading: '#{order}', intro: 'Thanks, {name}. Your order is confirmed and being prepared.', footer: 'Questions about your order? Just reply to this email.' },
-  shipped:            { subject: 'Your Zuwera order has shipped', kicker: 'Shipped', heading: 'On its way', intro: '', footer: '' },
+  shipped:            { subject: 'Your {brand} order has shipped', kicker: 'Shipped', heading: 'On its way', intro: '', footer: '' },
   back_in_stock:      { subject: 'Back in stock: {product} ({size})', kicker: 'Back in stock', heading: '{product}', intro: 'The size you wanted is available again — but it may not last. Grab it before it sells out.', footer: "You're receiving this because you asked to be notified when this item came back." },
   return_status:      { subject: 'An update on your return', kicker: 'Return update', heading: 'Your return', intro: '', footer: '' },
   /* The link a guest gets after asking to start a return. It was the only
@@ -138,21 +139,41 @@ const CONTENT_DEFAULTS = {
      first impression at the exact moment someone is already unhappy enough to
      be sending something back. */
   return_link:        { subject: 'Start your return — order #{order}', kicker: 'Return', heading: 'Start your return', intro: "Here's your link for order #{order}. It opens your order directly — no password, no account needed.", footer: 'If you did not ask for this, you can ignore this email. Nothing has changed.' },
-  review_request:     { subject: 'How was your Zuwera order?', kicker: 'Your thoughts', heading: 'How did we do?', intro: '{name}your order has had a few days to settle in. A quick review — a line or two, and a photo if you have one — helps other athletes shop with confidence.', footer: "You're receiving this because you ordered from zuwera.store. Thanks for being part of it." },
-  abandoned_cart:     { subject: 'You left something in your bag', kicker: 'Still in your bag', heading: 'You left something behind', intro: 'Your bag is still here — grab your picks before they sell out.', footer: "You're receiving this because you started a checkout at zuwera.store. If this wasn't you, ignore this email." },
+  review_request:     { subject: 'How was your {brand} order?', kicker: 'Your thoughts', heading: 'How did we do?', intro: '{name}your order has had a few days to settle in. A quick review — a line or two, and a photo if you have one — helps other athletes shop with confidence.', footer: "You're receiving this because you ordered from {site}. Thanks for being part of it." },
+  abandoned_cart:     { subject: 'You left something in your bag', kicker: 'Still in your bag', heading: 'You left something behind', intro: 'Your bag is still here — grab your picks before they sell out.', footer: "You're receiving this because you started a checkout at {site}. If this wasn't you, ignore this email." },
   // Sent when someone signs up through the email popup. {code} is the discount
   // code they were given and {discount} reads as "10% off" / "$15 off"; both are
   // empty when the popup is running in email-only mode, so the default wording
   // has to make sense either way.
-  popup_welcome:      { subject: 'Welcome in — here is your code', kicker: 'Welcome', heading: 'You are on the list', intro: 'Thanks for signing up. Here is your code — use it at checkout.', footer: "You're receiving this because you signed up at zuwera.store. Unsubscribe any time." },
+  popup_welcome:      { subject: 'Welcome in — here is your code', kicker: 'Welcome', heading: 'You are on the list', intro: 'Thanks for signing up. Here is your code — use it at checkout.', footer: "You're receiving this because you signed up at {site}. Unsubscribe any time." },
 };
 
-export function getEmailContent(cache, type) {
+export function getEmailContent(cache, type, env = null) {
   const all = asObj(cache && cache.email_settings);
   const def = CONTENT_DEFAULTS[type] || {};
   const cfg = asObj(all[type]);
   const pick = (k) => (cfg[k] != null && String(cfg[k]).trim()) ? String(cfg[k]) : (def[k] || '');
-  return { subject: pick('subject'), kicker: pick('kicker'), heading: pick('heading'), intro: pick('intro'), footer: pick('footer') };
+
+  /* {brand} and {site} are filled HERE rather than left for fillTemplate.
+   *
+   * The shipped defaults said "Your Zuwera order has shipped" — the store's
+   * name written into the copy of every other store that runs this code. They
+   * say {brand} now, and an admin writing their own copy can use it too.
+   *
+   * But fillTemplate replaces an unknown placeholder with an EMPTY STRING, so
+   * leaving these to the nine callers would mean any caller that forgot to
+   * pass one sent "Your  order has shipped" — wrong in a way that reads as a
+   * typo rather than a missing variable, and only in production. Filled at the
+   * point the copy is read, every caller gets it right without knowing.
+   *
+   * Only these two are substituted. {order}, {product}, {name} and the rest
+   * are the caller's to fill and must survive untouched. */
+  const brand = getEmailAppearance(cache, env).brand;
+  const site = siteUrl(env).replace(/^https?:\/\//, '');
+  const fill = (s) => String(s).replace(/\{brand\}/g, brand).replace(/\{site\}/g, site);
+
+  return { subject: fill(pick('subject')), kicker: fill(pick('kicker')), heading: fill(pick('heading')),
+           intro: fill(pick('intro')), footer: fill(pick('footer')) };
 }
 
 // Fill {order}, {product}, … placeholders in editable copy.

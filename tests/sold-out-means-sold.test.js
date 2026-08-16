@@ -24,7 +24,11 @@ function ok(name, cond, extra) {
   else { fail++; console.log('  ✗ ' + name + (extra ? '  — ' + extra : '')); }
 }
 
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+/* product.html's two big script blocks were extracted to product-main.js and
+   product-cart.js — same classic scripts, same position, same order, now
+   cacheable. A test asking what the product PAGE does still means all of it. */
+const P = require('./_product-source');
+const read = (rel) => (rel === 'product.html' ? P.all() : fs.readFileSync(path.join(ROOT, rel), 'utf8'));
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 const w = {};

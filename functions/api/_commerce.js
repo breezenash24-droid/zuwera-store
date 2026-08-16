@@ -301,8 +301,41 @@ export async function decide(env, accessToken, permission, ctx = {}) {
        refusal somebody can be asked to approve; "your role cannot do this" is
        not, and offering to ask about it wastes everyone's time. */
     limited: !!verdict.limited && rbacAllowed,
+    ownerMayOverride: !!verdict.ownerMayOverride,
     admin: verdict.allow ? admin : null,
   };
+}
+
+/**
+ * A refusal that has to travel out of a function that is not the handler.
+ *
+ * Some limits can only be checked in the middle of the work. A shipping label's
+ * price is not known until the carrier has quoted it, so "no label over $40"
+ * has to be asked after the quote and before the purchase — inside the function
+ * that buys, several frames below the one that can return a 403.
+ *
+ * Thrown rather than returned so the buy cannot continue by accident: a
+ * `return` that a caller forgets to check reads as success, and here that means
+ * the money is already spent. The handler recognises it by `limitVerdict` and
+ * answers with the SAME shape every other limited endpoint uses — `rule` is
+ * load-bearing, because the panel offers to request a waiver for exactly that
+ * rule and a refusal that does not name one cannot be asked about.
+ */
+export function limitError(verdict) {
+  const e = new Error((verdict && verdict.reason) || 'A limit on your account stopped this.');
+  e.limitVerdict = verdict || {};
+  return e;
+}
+
+/** The 403 body for one of the above. One shape, so two endpoints cannot drift. */
+export function limitResponse(e, headers) {
+  const v = (e && e.limitVerdict) || {};
+  return json({
+    error: e && e.message,
+    limited: !!v.limited,
+    rule: v.rule || '',
+    ownerMayOverride: !!v.ownerMayOverride,
+  }, 403, headers);
 }
 
 export async function verifyAdminCan(env, accessToken, permission, ctx = {}) {

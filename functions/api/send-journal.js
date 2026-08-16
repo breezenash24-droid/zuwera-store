@@ -67,7 +67,7 @@ export function buildJournalEmail({ post, label, logoUrl, unsubUrl, appearance }
     heading: post.title,
     intro:   '',
     bodyHtml: body,
-    footerHtml: `You're receiving this because you subscribed to the Zuwera journal.<br><a href="${esc(unsubUrl)}" style="color:${a.muted};text-decoration:underline">Unsubscribe</a>`,
+    footerHtml: `You're receiving this because you subscribed to the ${esc(a.brand)} journal.<br><a href="${esc(unsubUrl)}" style="color:${a.muted};text-decoration:underline">Unsubscribe</a>`,
   });
 }
 
@@ -116,8 +116,8 @@ export async function onRequestPost({ request, env }) {
     let js = resolveSetting('journal_settings', env, cache);
     if (typeof js === 'string') { try { js = JSON.parse(js); } catch (_) { js = null; } }
     const label = (js && js.label) || 'The Journal';
-    const subject = post.title || 'From the Zuwera journal';
     const appearance = getEmailAppearance(cache, env); appearance.logo = logoUrl;
+    const subject = post.title || ('From the ' + appearance.brand + ' journal');
 
     let sent = 0;
     for (const sub of subs) {

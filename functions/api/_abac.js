@@ -1,10 +1,23 @@
 /* ────────────────────────────────────────────────────────────────────────────
    _abac.js — attribute rules that NARROW what RBAC already granted.
 
-   Deliberately wired to nothing yet. An authorization change is the one kind
-   that must not be half-applied, so the decision logic and its tests land
-   first, on their own, where they cannot affect a single request. Wiring is a
-   separate, reviewable step.
+   WIRED AND LIVE. This said "deliberately wired to nothing yet" long after it
+   stopped being true — `_commerce.js` imports `can` from here and every
+   `decide()` call runs it. A stale note in an authorization file is not a
+   documentation problem: it reads as "editing rules is inert", which is the
+   most dangerous thing to believe about a file that decides who can move money.
+
+   It reaches requests through `decide()` in _commerce.js. Two ways:
+     SEALED    the endpoint itself asks, and the browser cannot skip it —
+               refunds, deleting a product, granting a role, exporting
+               customers, buying a shipping label.
+     ADVISORY  admin-guard.js answers for a thing the BROWSER then does with
+               its own credentials — prices, bulk edits, promo codes. Read the
+               top of that file before trusting one; it says plainly that
+               somebody who skips the call skips the limit.
+   The limits catalogue in admin-main.js marks which is which as `sealed`, and
+   `ready: false` marks a limit that is offered but reaches no endpoint yet.
+   tests/abac-limits-reach-something.test.js holds those claims to the code.
 
    THE CONTRACT, and everything here exists to keep it true:
 

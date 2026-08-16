@@ -62,6 +62,12 @@ const files = [
   'posthog-init.js',
   'product.css',
   'product.html',
+  /* Extracted from product.html verbatim — 229KB of inline script that every
+     product view re-downloaded because inline JS cannot carry an ETag. Loaded
+     as classic scripts at the same position in the document, so execution order
+     and top-level scope are exactly what they were. */
+  'product-main.js',
+  'product-cart.js',
   'quick-add-modal.css',
   'quick-add-modal.js',
   'reviews-vibe.css',

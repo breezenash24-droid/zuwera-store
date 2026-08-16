@@ -116,7 +116,17 @@ console.log('\n  what is still hardcoded, counted');
      only go down. The remainder is mostly the DOMAIN and the reply-to
      addresses, which are siteUrl(env) and EMAIL_FROM — different settings, and
      folding them into the brand name would recreate the problem. */
-  const BUDGET = 80;
+  /* 80 → 42. What is left is deliberately NOT the brand name:
+       - the DOMAIN (zuwera.store, orders@zuwera.store) — siteUrl(env) and
+         EMAIL_FROM, different settings, and folding them into the name is the
+         mistake this file exists to prevent
+       - the LOGO asset path, which a fork replaces with its own file
+       - sample data in email-preview.js, which renders a demo, not an email
+       - the shipped fallback inside _email-theme.js, which is the last link in
+         the chain and has to be a literal or there is nothing to fall back to
+     Every place the store's NAME is printed to a customer or an admin now
+     reads the setting. */
+  const BUDGET = 42;
   const files = [];
   for (const f of fs.readdirSync(API).filter((x) => x.endsWith('.js'))) {
     const n = (read(f).match(/Zuwera/g) || []).length;

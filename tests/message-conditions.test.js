@@ -27,7 +27,7 @@ const M = win.ZWMessages;
 
 /* The real function, taken from the real file. If somebody rewrites it, this
    picks up the rewrite rather than a copy of what it used to do. */
-const SRC = fs.readFileSync(ROOT + 'product.html', 'utf8');
+const SRC = require('./_product-source').all()  /* product.html + its extracted scripts — see _product-source.js */;
 const start = SRC.indexOf('function updateStockInfo() {');
 const end = SRC.indexOf('\nfunction checkLowStock()');
 if (start === -1 || end === -1) {

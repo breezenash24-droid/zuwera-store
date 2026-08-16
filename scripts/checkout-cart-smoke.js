@@ -11,7 +11,13 @@ function check(name, pass, detail = '') {
 
 const index = read('index.html');
 const bag = read('bag.html');
-const product = read('product.html');
+/* The page plus the two script files extracted out of it — product-main.js and
+   product-cart.js are classic scripts at the same position in the document, so
+   every check below is asking the same question of the same code. Inline JS
+   cannot carry an ETag, which is why 229KB of it moved out. */
+const product = read('product.html')
+  + '\n' + read('product-main.js')
+  + '\n' + read('product-cart.js');
 const checkout = read('commerce-checkout.js');
 const checkoutPage = read('checkout.js');
 const account = read('account.html');

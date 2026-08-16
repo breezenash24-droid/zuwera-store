@@ -109,7 +109,16 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
     ok('…and none freezes it into a module constant', constReaders.length === 0,
       constReaders.join(', ') + ' — a constant cannot see env, so a licensee gets this project');
 
-    const callers = importers.filter((f) => /supabaseUrl\(env\)|supabaseAnonKey\(env\)/.test(fs.readFileSync(f, 'utf8')));
+    /* Every resolver _config.js exports, read from the file rather than listed
+       here. The list version named supabaseUrl and supabaseAnonKey only, so the
+       first Worker to import siteUrl or brandName failed a check about
+       resolving from env while doing exactly that. The property is "calls a
+       resolver with env", not "calls one of the two I thought of." */
+    const config = fs.readFileSync(path.join(ROOT, 'functions', 'api', '_config.js'), 'utf8');
+    const resolvers = [...config.matchAll(/export function (\w+)\(env\)/g)].map((m) => m[1]);
+    ok('the resolver list is derived, not guessed', resolvers.length >= 2, resolvers.join(', '));
+    const callsResolver = new RegExp('(?:' + resolvers.join('|') + ')\\(env\\)');
+    const callers = importers.filter((f) => callsResolver.test(fs.readFileSync(f, 'utf8')));
     ok('…they resolve per request instead', callers.length === importers.length,
       (importers.length - callers.length) + ' importer(s) never call the helper');
   }

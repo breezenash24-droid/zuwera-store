@@ -28,6 +28,7 @@ import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { sendTransactional, orderStatusUrl } from './_email.js';
 import { mintOrderToken } from './_order-token.js';
 import { isPaused } from './_paused.js';
+import { siteUrl } from './_config.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
@@ -197,7 +198,7 @@ export function deliveredEmail({ orderId, customerName, logoUrl, appearance, sta
     heading: "It's here",
     intro:   `Order #${orderId} — great news, ${customerName}! Your order was delivered.`,
     bodyHtml: body,
-    footer:  'Loving Zuwera? Leave a review — it means the world to us.',
+    footer:  `Loving ${appearance.brand}? Leave a review — it means the world to us.`,
   });
 }
 
@@ -376,7 +377,7 @@ export async function onRequestPost({ request, env }) {
 
   // ── Shipped ────────────────────────────────────────────────────────────────
   if (status === 'TRANSIT') {
-    const subject = `Your Zuwera order #${orderId} is on its way! 🚀`;
+    const subject = `Your ${appearance.brand} order #${orderId} is on its way! 🚀`;
     const html    = shippedEmail({ orderId, customerName, carrier, trackingNumber: trackNo, trackingUrl, eta, logoUrl, appearance });
 
     const [emailR, smsR] = await Promise.allSettled([
@@ -387,7 +388,7 @@ export async function onRequestPost({ request, env }) {
       smsConsent && smsPhone
         ? sendSms({
             to: smsPhone,
-            body: `Zuwera: Order #${orderId} shipped via ${carrier}! Track: ${trackingUrl || trackNo}`,
+            body: `${appearance.brand}: Order #${orderId} shipped via ${carrier}! Track: ${trackingUrl || trackNo}`,
             accountSid: twilioSid, authToken: twilioAuth, fromNumber: twilioFrom,
           })
         : Promise.resolve('skipped — no consent/phone'),
@@ -403,7 +404,7 @@ export async function onRequestPost({ request, env }) {
 
   // ── Delivered ──────────────────────────────────────────────────────────────
   if (status === 'DELIVERED') {
-    const subject = `Your Zuwera order #${orderId} has been delivered ✅`;
+    const subject = `Your ${appearance.brand} order #${orderId} has been delivered ✅`;
     /* Where this particular customer can see the order. It was hardcoded to
        /account.html, so a guest — most buyers here — was sent to a login
        wall, and on a shared machine to somebody else's orders.
@@ -429,7 +430,10 @@ export async function onRequestPost({ request, env }) {
       smsConsent && smsPhone
         ? sendSms({
             to: smsPhone,
-            body: `Zuwera: Order #${orderId} delivered! Hope you love it 🎉 zuwera.store`,
+            /* The domain is a different setting from the name — siteUrl(env),
+               not the brand — and folding one into the other is how a store
+               ends up texting its customers somebody else's address. */
+            body: `${appearance.brand}: Order #${orderId} delivered! Hope you love it 🎉 ${siteUrl(env).replace(/^https?:\/\//, '')}`,
             accountSid: twilioSid, authToken: twilioAuth, fromNumber: twilioFrom,
           })
         : Promise.resolve('skipped'),

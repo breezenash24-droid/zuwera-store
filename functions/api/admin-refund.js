@@ -571,11 +571,12 @@ async function audit(env, entry) {
 
 async function sendLockoutAlert(env, { adminEmail, adminId, orderId, attempts, lockedUntil }) {
   try {
-    const cache      = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM'], env);
+    const cache      = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'brand'], env);
     const resendKey  = resolveSetting('RESEND_API_KEY', env, cache);
     const brevoKey   = resolveSetting('BREVO_API_KEY',  env, cache);
     const fromEmail  = resolveSetting('EMAIL_FROM', env, cache) || 'alerts@zuwera.store';
     const alertEmail = adminEmail || env.ADMIN_EMAILS?.split(',')[0]?.trim();
+    const brand      = getEmailAppearance(cache, env).brand;
 
     if (!alertEmail || (!resendKey && !brevoKey)) return;
 
@@ -585,7 +586,7 @@ async function sendLockoutAlert(env, { adminEmail, adminId, orderId, attempts, l
 <!DOCTYPE html><html><body style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#111">
   <div style="border-top:3px solid #e05050;padding-top:20px">
     <h2 style="margin:0 0 8px;color:#e05050">Refund Lockout Triggered</h2>
-    <p style="color:#555;margin:0 0 20px">Someone entered the wrong refund authorization code <strong>${attempts} times</strong> on your Zuwera admin panel. Refund access has been locked for 1 hour.</p>
+    <p style="color:#555;margin:0 0 20px">Someone entered the wrong refund authorization code <strong>${attempts} times</strong> on your ${esc(brand)} admin panel. Refund access has been locked for 1 hour.</p>
     <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:20px">
       <tr style="border-bottom:1px solid #eee"><td style="padding:8px 4px;color:#888">Admin account</td><td style="padding:8px 4px"><strong>${esc(adminEmail)}</strong></td></tr>
       <tr style="border-bottom:1px solid #eee"><td style="padding:8px 4px;color:#888">Failed attempts</td><td style="padding:8px 4px"><strong>${attempts}</strong></td></tr>
@@ -593,7 +594,7 @@ async function sendLockoutAlert(env, { adminEmail, adminId, orderId, attempts, l
       <tr><td style="padding:8px 4px;color:#888">Locked until</td><td style="padding:8px 4px">${esc(lockedUntilStr)}</td></tr>
     </table>
     <p style="font-size:13px;color:#888">If this was you, wait 1 hour and try again with the correct code. If you did not attempt this, your admin session may be compromised — change your password immediately.</p>
-    <p style="font-size:12px;color:#bbb;margin-top:24px;border-top:1px solid #eee;padding-top:12px">Zuwera Admin Security &nbsp;·&nbsp; This is an automated alert</p>
+    <p style="font-size:12px;color:#bbb;margin-top:24px;border-top:1px solid #eee;padding-top:12px">${esc(brand)} Admin Security &nbsp;·&nbsp; This is an automated alert</p>
   </div>
 </body></html>`;
 
@@ -611,7 +612,7 @@ async function sendLockoutAlert(env, { adminEmail, adminId, orderId, attempts, l
         method:  'POST',
         headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          sender:  { email: fromEmail, name: 'Zuwera Security' },
+          sender:  { email: fromEmail, name: brand + ' Security' },
           to:      [{ email: alertEmail }],
           subject,
           htmlContent: html,
@@ -661,7 +662,7 @@ export function buildRefundEmail({ action, orderNumber, orderTotal, stripeRefund
     <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(128,128,128,.06);border-radius:8px;margin-bottom:24px;">
       <tr><td style="padding:16px 20px;">
         <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:${a.muted};font-family:${a.fontMono};">Don't see it after 10 days?</p>
-        <p style="margin:0;font-size:13px;color:${a.muted};line-height:1.65;">Check your bank statement for a credit from Stripe or Zuwera. If it still hasn't appeared, reply to this email and we'll look into it right away.</p>
+        <p style="margin:0;font-size:13px;color:${a.muted};line-height:1.65;">Check your bank statement for a credit from ${esc(a.brand)}. If it still hasn't appeared, reply to this email and we'll look into it right away.</p>
       </td></tr>
     </table>
     ${customerNote ? `
@@ -676,7 +677,7 @@ export function buildRefundEmail({ action, orderNumber, orderTotal, stripeRefund
     heading: 'Your money is on its way back',
     intro:   '',
     bodyHtml: body,
-    footer:  `© ${new Date().getFullYear()} Zuwera · zuwera.store · This is an automated message`,
+    footer:  `© ${new Date().getFullYear()} ${esc(a.brand)} · This is an automated message`,
   });
   return { subject, html };
 }
@@ -710,7 +711,7 @@ async function sendRefundEmail(env, { customerEmail, customerName, orderNumber, 
         method:  'POST',
         headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          sender:      { email: fromEmail, name: 'Zuwera' },
+          sender:      { email: fromEmail, name: a.brand },
           to:          [{ email: customerEmail }],
           subject,
           htmlContent: html,

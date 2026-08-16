@@ -416,7 +416,7 @@ const row = (o) => ({
 
        Every surface that renders a price a shopper acts on has to ask. */
     const VP   = fs.readFileSync(path.join(ROOT, 'variant-price.js'), 'utf8');
-    const PROD = fs.readFileSync(path.join(ROOT, 'product.html'), 'utf8');
+    const PROD = require('./_product-source').all()  /* product.html + its extracted scripts — see _product-source.js */;
     const CO   = fs.readFileSync(path.join(ROOT, 'checkout.js'), 'utf8');
 
     ok('the browser can ask, and read the answer synchronously',

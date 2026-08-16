@@ -128,5 +128,42 @@ if (notClaimed.length) {
   console.log('       The runner applies those on a new project. Regenerate install.sql once they are live.');
 }
 
+/* ── AND THE DRIFT IS BUDGETED, not merely mentioned ────────────────────────
+ *
+ * The line above has been printing for weeks and everything stayed green, so
+ * it said the true thing and changed nothing. Five migrations post-dating the
+ * snapshot is survivable — the runner applies them on a new project, which is
+ * why this is a budget and not a failure. Fifteen is a snapshot nobody trusts,
+ * and the way you get there is one at a time with a passing test each time.
+ *
+ * So the count may not GROW. Add a migration and this fails until install.sql
+ * is regenerated, which is the only moment anybody is thinking about it.
+ *
+ * REGENERATING NEEDS A LIVE DATABASE and cannot be done from the repo:
+ *
+ *     SUPABASE_DB_URL=... SUPABASE_DB_PASSWORD=... node scripts/dump-schema.js
+ *     node scripts/build-install-sql.js schema.sql
+ *
+ * `supabase db dump` needs Docker, which is why dump-schema.js exists at all.
+ * schema.sql is gitignored: it is the input, not the artifact.
+ *
+ * Lower this number when you regenerate. It only ever goes down. */
+const DRIFT_BUDGET = 6;
+ok('install.sql has not fallen further behind', notClaimed.length <= DRIFT_BUDGET,
+  notClaimed.length + ' migrations post-date the snapshot (budget ' + DRIFT_BUDGET + ') — '
+  + 'regenerate it, then lower DRIFT_BUDGET to ' + notClaimed.length);
+
+/* The other half, and the one nobody can automate from in here: coverage
+   proves each migration is RECORDED, never that the SQL beside it is current.
+   A column added by hand in the dashboard, a policy edited in the UI, a type
+   changed during an incident — none of that is a migration, and none of it
+   shows up above. Only a diff of a fresh install against production finds it,
+   and that needs two live databases. Stated here so the gap is a known shape
+   rather than a thing the green tick implies is covered. */
+console.log('\n      What this still cannot tell you: whether the SQL matches production.');
+console.log('      Coverage proves the migrations are recorded. Only a diff of a fresh');
+console.log('      install against the live database proves the schema is current, and');
+console.log('      that needs two databases this test does not have.');
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
