@@ -411,6 +411,10 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
      up being. */
   height: min(88vh, 1040px);
   object-fit: cover;
+  /* Crop from the BOTTOM, not the middle. Product shots are 4/5 portrait with
+     the model's head near the top; a fixed height plus centred cover took the
+     crop off both ends and cut the head off. */
+  object-position: center top;
   display: block;
   background: var(--zw-surface);
 }
@@ -565,8 +569,12 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
   }
   /* 80vh is too tall once it's one photo per screen — the buy button ends up
      pushed well below the fold. */
+  /* One photo per screen at this width, so it is full-bleed wide — 62vh of that
+     filled the whole viewport on a tablet and there was nothing but photo above
+     the fold. Shorter, and capped against the WIDTH too so a narrow window
+     cannot produce a photo taller than it is wide. */
   .gallery-dual img,
-  .gallery-dual video { height: min(62vh, 560px); }
+  .gallery-dual video { height: min(52vh, 460px, 105vw); }
 }
 
 /* Carousel position indicator (Nike-style frosted pill of dots) — overlaid on
