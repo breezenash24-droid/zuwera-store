@@ -321,7 +321,33 @@
          super-light (white page) the modal read as a cream slab that belonged to a
          different site. --zw-page/--zw-ink are what the bag panel already uses, so it
          follows all three modes. */
-      '.zwf-modal-box{position:relative;background:var(--zw-page,#fff);color:var(--zw-ink,#09090b);border:1px solid rgba(128,128,128,.18);width:100%;max-width:440px;border-radius:4px;padding:2rem 1.8rem;max-height:90vh;overflow-y:auto;transform:translateY(10px);transition:transform .26s cubic-bezier(.2,.7,.2,1);box-shadow:0 24px 60px -12px rgba(0,0,0,.3)}',
+      /* THIS PANEL IS ALWAYS CREAM, AND IT HAS TO SAY SO.
+       *
+       * It paints itself with --zw-page over --zw-ink, which are the FIXED
+       * pair — they do not follow the theme, by design, so this box is a light
+       * surface even when the page behind it is dark.
+       *
+       * The controls inside it were then written against the page: the button
+       * filled with rgb(var(--fg-rgb)), which is near-WHITE while the page is
+       * dark, so a black-on-cream button turned into a pale box on a cream
+       * panel. Chasing that from the control end is how this bug keeps swapping
+       * which surface it is broken on — fixing the modal breaks the size guide
+       * and back again, because one set of rules was trying to serve two
+       * surfaces with opposite foregrounds.
+       *
+       * So the SURFACE declares what it is and the controls read it. One set of
+       * control rules, correct in the modal and correct inlined into the size
+       * guide, with nothing in either of them knowing where it is.
+       *
+       * The rungs are re-keyed too, and that is not optional: --c06 is declared
+       * on body, so it resolves against BODY's --fg-rgb and inherits down as an
+       * already-finished colour. Redefining --fg-rgb here does not reach back
+       * and change it. Same reason quick-add-modal.css re-keys its own. */
+      '.zwf-modal-box{position:relative;background:var(--zw-page,#fff);color:var(--zw-ink,#09090b);'
+        + '--fg-rgb:var(--zw-ink-rgb,9 9 11);--bg-rgb:var(--zw-page-rgb,240 238 233);'
+        + '--c06:rgb(var(--zw-ink-rgb,9 9 11) / 6%);--c07:rgb(var(--zw-ink-rgb,9 9 11) / 7%);'
+        + '--c15:rgb(var(--zw-ink-rgb,9 9 11) / 15%);'
+        + 'border:1px solid rgba(128,128,128,.18);width:100%;max-width:440px;border-radius:4px;padding:2rem 1.8rem;max-height:90vh;overflow-y:auto;transform:translateY(10px);transition:transform .26s cubic-bezier(.2,.7,.2,1);box-shadow:0 24px 60px -12px rgba(0,0,0,.3)}',
       '.zwf-modal.open .zwf-modal-box{transform:none}',
       /* Mobile = bottom sheet, like every other non-header modal. This shell is
          .zwf-modal, not .modal > .mbox, so storefront-cohesion.css's sheet rules
