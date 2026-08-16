@@ -111,7 +111,14 @@ console.log('  a light theme, cold, no body yet');
   ok('…and its older alias', props['--white'] === 'rgb(10 10 10)',
     '88 rules still read --white/--black rather than the ladder');
   ok('--ink and --paper are set', props['--ink'] === LIGHT.ink && props['--paper'] === LIGHT.paper);
-  ok('--surface and --accent are set', props['--surface'] === LIGHT.surface && props['--accent'] === LIGHT.accent);
+  /* --zw-theme-surface, which is the name base.css declares and cart.css reads.
+     This asserted `--surface`, and so it PASSED while the block wrote a token
+     nothing on the storefront has ever looked at — the assertion and the code
+     agreed with each other and both were wrong about the stylesheet. Checking a
+     writer against another writer is not a check. */
+  ok('--zw-theme-surface and --accent are set',
+    props['--zw-theme-surface'] === LIGHT.surface && props['--accent'] === LIGHT.accent,
+    'got ' + JSON.stringify(props['--zw-theme-surface']));
   ok('the colour scheme flips for native controls', props['color-scheme'] === 'light');
   ok('the base is recorded for anything that needs it', attrs['data-zw-base'] === 'light');
 }

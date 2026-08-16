@@ -162,12 +162,25 @@ try {
      previous theme's colour until the engine loads. Set on <html>; the engine
      later sets them on <body>, which is nearer, so nothing here fights it. */
   if (_tt) {
+    /* THE NAV IS A PAIR AND HAS TO MOVE AS ONE.
+       This set --zw-nav-bg and not --zw-nav-fg, and four rules read the second
+       one. A two-tone theme paints a dark bar over a light page, so on the
+       first frame the bar got its dark background while its links fell through
+       `color: var(--zw-nav-fg, inherit)` to the PAGE's foreground — dark text
+       on a dark bar, until theme-engine.js loaded and set the other half. The
+       same ground-without-text mistake as the page itself, one element in. */
     if (_tt.navBg) h.style.setProperty('--zw-nav-bg', _tt.navBg);
+    if (_tt.navFg) h.style.setProperty('--zw-nav-fg', _tt.navFg);
     if (_tt.fg) h.style.setProperty('--fg-rgb', _tt.fg);
     if (_tt.bg) h.style.setProperty('--bg-rgb', _tt.bg);
     if (_tt.ink) h.style.setProperty('--ink', _tt.ink);
     if (_tt.paper) h.style.setProperty('--paper', _tt.paper);
-    if (_tt.surface) h.style.setProperty('--surface', _tt.surface);
+    /* --zw-theme-surface, which is the name base.css declares and cart.css
+       reads. This wrote `--surface`, a name nothing on the storefront has ever
+       looked at, so a custom theme's panel colour simply did not arrive before
+       the engine ran. A token written under the wrong name fails silently and
+       forever — nothing errors, the value is just never asked for. */
+    if (_tt.surface) h.style.setProperty('--zw-theme-surface', _tt.surface);
     if (_tt.accent) h.style.setProperty('--accent', _tt.accent);
     if (_tt.bg) h.style.setProperty('--black', 'rgb(' + _tt.bg + ')');
     if (_tt.fg) h.style.setProperty('--white', 'rgb(' + _tt.fg + ')');
