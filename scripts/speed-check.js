@@ -97,14 +97,35 @@ function assetsIn(html, base) {
     const attrs = (m[1] || '') + (m[3] || '');
     add(m[2], !/\bdefer\b|\basync\b/.test(attrs));
   }
-  /* Every stylesheet blocks rendering. There is no defer for CSS, which is why
-     they are counted as blocking without looking at attributes. */
+  /* STYLESHEETS, and only the ones that actually block.
+   *
+   * The first version of this counted any <link> whose tag text contained the
+   * word "stylesheet", and it was wrong twice over on the product page. It
+   * reported reviews.css as loaded twice and blocking, when in fact:
+   *
+   *   <link rel="preload" as="style" onload="…this.rel='stylesheet'">
+   *   <noscript><link rel="stylesheet" …></noscript>
+   *
+   * are a deliberate non-blocking pair — the preload does not block, and the
+   * noscript copy only exists for a browser with JS off. Counting both put
+   * 8 KB of phantom blocking weight into the report and sent me off to fix a
+   * duplicate that was not there.
+   *
+   * So: read the rel ATTRIBUTE rather than searching the tag, and ignore
+   * anything inside <noscript>. There is no defer for CSS, so a real
+   * rel="stylesheet" does block — that part was right. */
+  const withoutNoscript = html.replace(/<noscript[\s\S]*?<\/noscript>/gi, '');
   const link = /<link[^>]*>/g;
-  while ((m = link.exec(html))) {
+  while ((m = link.exec(withoutNoscript))) {
     const tag = m[0];
-    if (!/stylesheet/.test(tag)) continue;
-    const href = /href="([^"]+)"/.exec(tag);
-    if (href) add(href[1], true);
+    const rel = /\srel="([^"]*)"/.exec(tag);
+    const kind = rel ? rel[1].trim().toLowerCase() : '';
+    const href = /\shref="([^"]+)"/.exec(tag);
+    if (!href) continue;
+    if (kind === 'stylesheet') add(href[1], true);
+    /* A preload still costs bytes and a request, so it is counted — it just
+       does not hold up the first paint. */
+    else if (kind === 'preload' && /as="style"|as="script"/.test(tag)) add(href[1], false);
   }
   return out;
 }

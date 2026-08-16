@@ -4100,8 +4100,15 @@ function renderReviews() {
   // Calculate average rating
   const avgRating = (currentProduct.reviews.reduce((sum, r) => sum + r.rating, 0) / currentProduct.reviews.length).toFixed(1);
 
-  // Prepend summary
-  content.innerHTML = generateReviewSummaryHtml(currentProduct.reviews);
+  /* Guarded, like the two other call sites already were. reviews.js is deferred
+     now, and although renderReviews() runs off the async product fetch — long
+     after any deferred script — an unguarded call is a dependency on that
+     timing rather than on anything stated. When it is not there yet, the
+     summary is skipped and the next render fills it in; the reviews themselves
+     below are rendered by this page regardless. */
+  content.innerHTML = typeof generateReviewSummaryHtml === 'function'
+    ? generateReviewSummaryHtml(currentProduct.reviews)
+    : '';
 
   // Update header
   document.getElementById('reviewsHeader').textContent =
@@ -5757,11 +5764,14 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 <script src="/icon-sets.js?v=e0ed4bcb" defer></script>
 <script src="storefront-theme.js?v=91e56ca9" defer></script>
 <script src="lang.js?v=f4b70f65" defer></script>
-<script src="reviews.js?v=2827c337" charset="utf-8"></script>
+<!-- deferred: nothing is parsed after this that needs it, and renderReviews()
+     runs off the async product fetch, long after a deferred script has run.
+     8 KB off the render-blocking path for content 25% down the page. -->
+<script src="reviews.js?v=2827c337" charset="utf-8" defer></script>
 
 <div id="toast"></div>
-<script src="commerce-checkout.js?v=b42a55a1"></script>
-<script src="customer-hub.js?v=13adfe65"></script>
+<script src="commerce-checkout.js?v=b42a55a1" defer></script>
+<script src="customer-hub.js?v=13adfe65" defer></script>
 
 <script>
 /* ── Modal backdrop transparency enforcer ──────────────────────────────────
