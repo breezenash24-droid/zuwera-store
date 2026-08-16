@@ -629,14 +629,18 @@
     var was = els.btn.textContent;
     els.btn.textContent = 'One moment…';
 
-    fetch('/api/popup-claim', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, source: 'popup:' + pageKey() }),
-    })
-      .then(function (r) { return r.json().catch(function () { return null; }); })
+    /* WRITTEN DOWN BEFORE IT IS SENT.
+       Up to here the address existed only in the input box, so a dropped
+       connection — or the shopper closing the tab on the error — lost it for
+       good. There is no second chance at an email address: the popup will not
+       ask this browser again, and the person has already done the one thing we
+       wanted. Persisting first means the worst case is a delay. */
+    queueClaim(email);
+
+    claimOnce(email)
       .then(function (data) {
         if (!data || !data.ok) throw new Error((data && data.error) || 'Something went wrong. Please try again.');
+        unqueueClaim(email);
         put(DONE_KEY, '1');
         markKnown();
         // Hand the code to the bag/checkout promo box. Both pages rehydrate
@@ -652,9 +656,111 @@
       .catch(function (err) {
         els.btn.disabled = false;
         els.btn.textContent = was;
-        els.err.textContent = (err && err.message) || 'Something went wrong. Please try again.';
+        /* The address is queued, so this is a "not yet", not a "lost". Say that
+           — an error that implies the shopper must retype it invites them to
+           give up, when in fact the browser will finish the job on its own. */
+        els.err.textContent = (err && err.message)
+          || 'We could not reach the server. Your email is saved and we will finish signing you up.';
       });
   }
+
+  /* ── Never lose an address ──────────────────────────────────────────────────
+   *
+   * One POST, one chance, and the address was gone if it failed. Everything
+   * below exists so that the only way to lose one is to never type it.
+   *
+   *   · it is written to localStorage BEFORE the request goes out
+   *   · the request retries with backoff rather than failing on one blip
+   *   · anything still queued is flushed on the next page load, on coming back
+   *     online, and on the way out of the tab via sendBeacon
+   *   · the queue entry is cleared only on a CONFIRMED ok from the server
+   *
+   * RETRYING IS SAFE, and that is a property of the endpoint rather than a hope
+   * about it. /api/popup-claim treats an address already on the list as
+   * success, only creates a shared promo if one does not exist, and derives a
+   * unique code from a hash of the address — so the second and fifth attempts
+   * produce exactly what the first would have. Without that idempotence none of
+   * this would be allowed to exist: a retry would mint a second coupon.
+   *
+   * The beacon cannot read a response, so it cannot confirm anything. Its
+   * entries stay queued and are retried on the next visit; the endpoint's
+   * idempotence is what makes that a duplicate request rather than a duplicate
+   * signup. */
+  var QUEUE_KEY = 'zw_popup_pending';
+
+  function readQueue() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+      return Array.isArray(raw) ? raw.filter(function (e) { return e && e.email; }) : [];
+    } catch (_) { return []; }
+  }
+  function writeQueue(list) {
+    /* Capped. A browser that can never reach the server must not grow an
+       unbounded list in storage; the newest few are the ones worth keeping. */
+    try { localStorage.setItem(QUEUE_KEY, JSON.stringify(list.slice(-5))); } catch (_) {}
+  }
+  function queueClaim(email) {
+    var list = readQueue().filter(function (e) { return e.email !== email; });
+    list.push({ email: email, source: 'popup:' + pageKey(), at: Date.now() });
+    writeQueue(list);
+  }
+  function unqueueClaim(email) {
+    writeQueue(readQueue().filter(function (e) { return e.email !== email; }));
+  }
+
+  /** One POST, with a couple of quick retries for a blip rather than an outage. */
+  function claimOnce(email, source, attempt) {
+    var n = attempt || 0;
+    return fetch('/api/popup-claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, source: source || ('popup:' + pageKey()) }),
+    })
+      .then(function (r) {
+        /* A 4xx is an answer — a malformed address is not going to become valid
+           by asking again. Only a transport failure or a 5xx is worth a retry. */
+        if (r.status >= 500) throw new Error('server');
+        return r.json().catch(function () { return null; });
+      })
+      .catch(function (e) {
+        if (n >= 2) throw e;
+        return new Promise(function (res) { setTimeout(res, 600 * (n + 1)); })
+          .then(function () { return claimOnce(email, source, n + 1); });
+      });
+  }
+
+  /** Retry everything still queued. Silent — the shopper has moved on. */
+  function flushQueue() {
+    var list = readQueue();
+    if (!list.length) return;
+    list.forEach(function (e) {
+      claimOnce(e.email, e.source)
+        .then(function (data) { if (data && data.ok) unqueueClaim(e.email); })
+        .catch(function () {});
+    });
+  }
+
+  /** Last resort on the way out. Cannot be confirmed, so nothing is unqueued. */
+  function beaconQueue() {
+    if (!navigator.sendBeacon) return;
+    readQueue().forEach(function (e) {
+      try {
+        navigator.sendBeacon('/api/popup-claim',
+          new Blob([JSON.stringify({ email: e.email, source: e.source })], { type: 'application/json' }));
+      } catch (_) {}
+    });
+  }
+
+  try {
+    flushQueue();
+    window.addEventListener('online', flushQueue);
+    /* pagehide rather than unload: unload does not fire on mobile Safari, which
+       is where a tab is most likely to be closed mid-request. */
+    window.addEventListener('pagehide', beaconQueue);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') beaconQueue();
+    });
+  } catch (_) {}
 
   /**
    * Flip a specific instance to its success state. Takes the elements rather
