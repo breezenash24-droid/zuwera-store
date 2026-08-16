@@ -71,7 +71,7 @@ export async function onRequestPost({ request, env }) {
       cache.email_settings = es;
     }
 
-    const appearance = getEmailAppearance(cache);
+    const appearance = getEmailAppearance(cache, env);
     const logoUrl = resolveSetting('BRAND_LOGO_URL', env, cache) || LOGO_FALLBACK;
     appearance.logo = logoUrl;
     const content = getEmailContent(cache, type);

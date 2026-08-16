@@ -117,7 +117,7 @@ export async function onRequestPost({ request, env }) {
     if (typeof js === 'string') { try { js = JSON.parse(js); } catch (_) { js = null; } }
     const label = (js && js.label) || 'The Journal';
     const subject = post.title || 'From the Zuwera journal';
-    const appearance = getEmailAppearance(cache); appearance.logo = logoUrl;
+    const appearance = getEmailAppearance(cache, env); appearance.logo = logoUrl;
 
     let sent = 0;
     for (const sub of subs) {

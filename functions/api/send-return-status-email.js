@@ -180,18 +180,18 @@ export function buildEmail({ r, status, resolution, fromFirstName, logoUrl, appe
     ${nextSteps}
     ${adminMsg ? `
     <div style="margin:20px 0;padding:16px 20px;border-left:3px solid ${a.accent};background:rgba(128,128,128,.06);">
-      <p style="margin:0 0 6px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${a.muted};">Message from Zuwera</p>
+      <p style="margin:0 0 6px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${a.muted};">Message from ${a.brand}</p>
       <p style="margin:0;font-size:14px;color:${a.text};line-height:1.6;">${adminMsg.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'<br>')}</p>
     </div>` : ''}
     <p style="margin:20px 0 6px;font-size:14px;color:${a.muted};line-height:1.75;">Questions? Reply to this email or visit <a href="https://zuwera.store/returns.html" style="color:${a.accent};text-decoration:underline">your return portal</a>.</p>
-    <p style="margin:0;font-size:14px;color:${a.muted};line-height:1.75;">Thanks,<br>The Zuwera Team</p>`;
+    <p style="margin:0;font-size:14px;color:${a.muted};line-height:1.75;">Thanks,<br>The ${a.brand} Team</p>`;
 
   return renderEmailShell(a, {
     kicker:  `${orderLabel} · ${resolutionDisplay}`,
     heading: headline,
     intro:   '',
     bodyHtml: body,
-    footer:  `© ${new Date().getFullYear()} Zuwera · zuwera.store`,
+    footer:  `© ${new Date().getFullYear()} ${a.brand}`,
   });
 }
 
@@ -249,7 +249,7 @@ export async function onRequestPost({ request, env }) {
     const resolution = String(r.resolution || 'return').trim();
     const toName     = (r.customerName || 'Customer').trim();
     const fromFirstName = toName.split(' ')[0] || 'there';
-    const appearance = getEmailAppearance(cache); appearance.logo = logoUrl;
+    const appearance = getEmailAppearance(cache, env); appearance.logo = logoUrl;
 
     const html    = buildEmail({ r, status, resolution, fromFirstName, logoUrl, appearance });
     const subject = `${statusHeadline(status, resolution)} — ${r.orderLabel || 'Your Zuwera Return'}`;

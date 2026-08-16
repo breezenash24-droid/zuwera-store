@@ -687,7 +687,7 @@ async function sendRefundEmail(env, { customerEmail, customerName, orderNumber, 
     const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
     const brevoKey  = resolveSetting('BREVO_API_KEY',  env, cache);
     const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'support@zuwera.store';
-    const a         = getEmailAppearance(cache);
+    const a         = getEmailAppearance(cache, env);
     a.logo = resolveSetting('BRAND_LOGO_URL', env, cache) || a.logo;   // covers an env-var logo
 
     if (!customerEmail || (!resendKey && !brevoKey)) return;

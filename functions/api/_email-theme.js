@@ -70,9 +70,21 @@ function contrastAccent(hex, light) {
   return String(hex).trim();
 }
 
-export function getEmailAppearance(cache = {}) {
+export function getEmailAppearance(cache = {}, env = null) {
   const fonts = asObj(cache.fonts);
   const brand = asObj(cache.brand);
+  /* THE STORE'S NAME, which every email had written out by hand.
+     site_settings.brand.name has existed all along — the storefront reads it as
+     window.ZW_BRAND_NAME — and the emails did not, so "Zuwera" appeared as a
+     literal in from-names, subjects, footers and sign-offs across a dozen
+     Workers. Reading it here means the theme that already decides an email's
+     fonts, colours and logo also decides whose name is on it, which is the
+     obvious place and was the missing one.
+     Falls back through the env override to the shipped default, so a store
+     that has set nothing is unchanged to the byte. */
+  const brandNameValue = String(brand.name || '').trim()
+    || (env && String(env.BRAND_NAME || env.ZW_BRAND_NAME || '').trim())
+    || 'Zuwera';
   const roles = asObj(fonts.roles);
   const headStack = (roles.head && roles.head.stack) || fonts.head || "'Barlow Condensed'";
   const bodyStack = (roles.body && roles.body.stack) || fonts.body || "'Barlow'";
@@ -96,6 +108,9 @@ export function getEmailAppearance(cache = {}) {
     fontMono: `${String(monoStack).replace(/"/g, "'").replace(/;+$/, '').replace(/,?\s*monospace\s*$/i, '')},'Courier New',monospace`,
     accent,
     logo,
+    /* Every email that signs itself, sets a from-name or prints a copyright
+       line reads this instead of spelling the name out. */
+    brand: brandNameValue,
     bg:     light ? '#F0EEE9' : '#0b0b0e',
     panel:  light ? '#FFFFFF' : '#17171c',
     text:   light ? '#0b0b0d' : '#f6f3ed',

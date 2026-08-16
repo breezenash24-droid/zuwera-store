@@ -209,13 +209,13 @@ export function buildReturnLabelEmail({ toName, orderLabel, label, storeAddress,
     </td></tr></table>
     ${label.trackingUrl ? `<p style="margin:0 0 16px;font-size:14px;color:${a.muted};line-height:1.75;">You can <a href="${label.trackingUrl}" style="color:${a.accent};text-decoration:underline">track your return</a> once it's been picked up.</p>` : ''}
     <p style="margin:0 0 20px;font-size:14px;color:${a.muted};line-height:1.75;">Once we receive your return, we'll process your ${resolutionLabel} within 3–5 business days. We'll send you a confirmation email when it's done.</p>
-    <p style="margin:0;font-size:14px;color:${a.muted};line-height:1.75;">Thanks,<br>The Zuwera Team</p>`;
+    <p style="margin:0;font-size:14px;color:${a.muted};line-height:1.75;">Thanks,<br>The ${a.brand} Team</p>`;
   return renderEmailShell(a, {
     kicker:  `Order ${orderLabel}`,
     heading: 'Your return label is ready',
     intro:   '',
     bodyHtml: body,
-    footer:  `© ${new Date().getFullYear()} Zuwera · zuwera.store`,
+    footer:  `© ${new Date().getFullYear()} ${a.brand}`,
   });
 }
 
@@ -224,7 +224,7 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
   const brevoKey   = resolveSetting('BREVO_API_KEY',   env, cache);
   const fromEmail  = resolveSetting('EMAIL_FROM',      env, cache) || 'orders@zuwera.store';
   const logoUrl    = resolveSetting('BRAND_LOGO_URL',  env, cache) || 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
-  const a          = getEmailAppearance(cache);
+  const a          = getEmailAppearance(cache, env);
   a.logo = logoUrl;   // resolveSetting also covers an env-var logo, which getEmailAppearance can't see
   const toEmail    = (order.email || order.customer_email || '').trim();
   const toName     = order.customer_name || 'Customer';

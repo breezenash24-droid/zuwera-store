@@ -151,7 +151,7 @@ export async function onRequestPost({ request, env }) {
        'fonts', 'brand', 'email_theme', 'email_settings'],
       env
     );
-    const appearance = getEmailAppearance(cache);
+    const appearance = getEmailAppearance(cache, env);
     const content = getEmailContent(cache, 'back_in_stock');
     const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
     const brevoKey  = resolveSetting('BREVO_API_KEY', env, cache);
