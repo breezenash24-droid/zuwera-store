@@ -371,6 +371,20 @@
       document.body.classList.toggle('super-light-mode', theme.base === 'super-light');
     }
 
+    /* TAKE BACK THE PRE-PAINT GUESS.
+       The inline block in <head> paints a light ground with `!important` — it
+       has to, to beat html{background:#09090b} before any class exists. But
+       `!important` on body outranks the root.style.backgroundColor written two
+       lines below, so once that <style> was in the document nothing could
+       remove the ground it painted. A visitor with no stored choice got a WHITE
+       page from the pre-paint and a DARK theme from here, and kept both: the
+       white ground, and every piece of text in the dark theme's near-white,
+       because the whole alpha ladder in base.css derives from --fg-rgb. That is
+       the "some pages are unreadable" bug, and it lasted because the guess
+       outlived the answer. It does not any more. */
+    var preboot = document.getElementById('zw-preboot-ground');
+    if (preboot && preboot.parentNode) preboot.parentNode.removeChild(preboot);
+
     // The notch/status bar and the browser chrome colour follow the page.
     var pageColor = t.bg ? 'rgb(' + t.bg + ')' : '#09090b';
     root.style.backgroundColor = pageColor;

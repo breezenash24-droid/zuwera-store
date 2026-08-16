@@ -44,7 +44,15 @@ function coldPaint(html, cache, choice) {
     get colorScheme() { return props['color-scheme']; },
   };
   const attrs = {};
-  const h = { style: styleObj, setAttribute: (k, v) => { attrs[k] = v; }, classList: { toggle: () => {} } };
+  const h = {
+    style: styleObj,
+    setAttribute: (k, v) => { attrs[k] = v; },
+    /* The block asks what default the BUILD stamped before falling back. A stub
+       without this throws inside the block's own try/catch, which swallows it
+       and silently paints nothing — a test that would pass by doing nothing. */
+    getAttribute: (k) => (k in attrs ? attrs[k] : null),
+    classList: { toggle: () => {} },
+  };
 
   const store = {};
   if (cache) store.zw_theme_modes = JSON.stringify(cache);
@@ -64,10 +72,16 @@ function coldPaint(html, cache, choice) {
     JSON, Object, Array, String, Number, parseInt, parseFloat,
   };
 
-  /* Just the theme block, lifted out of the page's first inline script. */
-  const start = html.indexOf("var _tc=JSON.parse");
-  const end = html.indexOf('}catch(_){}', start);
-  const src = html.slice(start, end);
+  /* The theme block, lifted whole out of the page between its markers.
+     This used to slice from a literal `var _tc=JSON.parse` to the next
+     `}catch(_){}` — a lift keyed to the exact spelling of one line in a block
+     that is now generated, so reformatting the source silently produced an
+     empty slice and a suite that tested nothing. Markers are the boundary
+     precisely because they do not move when the code inside does. */
+  const OPEN = '/* zw:preboot */', CLOSE = '/* /zw:preboot */';
+  const a = html.indexOf(OPEN), b = html.indexOf(CLOSE);
+  if (a < 0 || b < a) throw new Error('no zw:preboot markers in the page under test');
+  const src = html.slice(a + OPEN.length, b);
   new Function('h', 'localStorage', 'document', 'window', 'try{' + src + '}catch(e){throw e}')
     (h, win.localStorage, win.document, win);
 
@@ -134,7 +148,11 @@ console.log('\n  a dark theme paints dark, and adds no light classes');
   const { props, listeners, doc } = coldPaint(html, themeCache, 'dark');
   ok('the ground is dark', props['background'] === 'rgb(9 9 11)');
   ok('the text is the dark theme\'s', props['--fg-rgb'] === '244 241 235');
-  ok('colour-scheme is left alone', !props['color-scheme']);
+  /* It used to be left unset for dark, which means the UA default — light — so
+     native controls, scrollbars and form widgets rendered light on a dark page
+     until the engine loaded. Saying 'dark' out loud is the honest answer and
+     costs nothing. */
+  ok('colour-scheme says dark rather than leaving it to the UA', props['color-scheme'] === 'dark');
   const classes = new Set();
   doc.body = { classList: { toggle: (c, on) => { if (on) classes.add(c); else classes.delete(c); } } };
   listeners.forEach((f) => f());
@@ -208,6 +226,8 @@ console.log('\n  the engine does not undo what the build stamped');
       addEventListener: (ev, fn) => { if (ev === 'DOMContentLoaded') fn(); },
       createElement: () => ({ style: {}, setAttribute: () => {} }),
       head: { appendChild: () => {} },
+      /* apply() retracts the pre-paint ground override through this. */
+      getElementById: () => null,
     };
     const win = { addEventListener: () => {}, dispatchEvent: () => {}, CustomEvent: function () {} };
     /* The fetch never resolves. That is the window being tested: what the page
