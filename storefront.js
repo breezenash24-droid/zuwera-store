@@ -3278,7 +3278,7 @@ function renderProductCards(products, grid) {
         <div class="pcard-info">
           <p class="pcard-name">${escapeHomeFavoriteHtml(productName)}</p>
           <p class="pcard-cat">${escapeHomeFavoriteHtml(productType)}</p>
-          <p class="pcard-price">${priceDisplay}</p>
+          <p class="pcard-price" data-zw-price-for="${p.id}">${priceDisplay}</p>
           <button class="pcard-action" onclick="event.stopPropagation();openAllReviewsModal('${p.id}', '${domId}', this.dataset.pname)" data-review-pid="${p.id}" data-review-domid="${domId}" data-pname="${escapeHomeFavoriteHtml(productName)}">
             <span id="avg-${domId}" style="${_revCache[p.id] && _revCache[p.id].count > 0 ? '' : 'display:none'}">${_revCache[p.id] && _revCache[p.id].count > 0 ? zwStarsMarkup(_revCache[p.id].avg) : ''}</span>
             <span id="cnt-${domId}">${_revCache[p.id] ? zwReviewCountText(_revCache[p.id].count, _revCache[p.id].avg) : ''}</span>
@@ -3303,6 +3303,15 @@ function renderProductCards(products, grid) {
      knows exactly when it has finished, and observing the whole document to
      rediscover that would cost more than it saves. */
   if (window.ZWMotion) window.ZWMotion.scan(grid);
+
+  /* The cards printed the CATALOGUE price. Ask the resolver — the same one
+     the product page, the bag and the till use — and correct any that a
+     price list has moved. Ids the server does not answer for keep what they
+     rendered, so a slow or failed request shows the catalogue figure rather
+     than a gap. */
+  if (window.ZWVariantPrice && window.ZWVariantPrice.paintCards) {
+    try { window.ZWVariantPrice.paintCards(grid); } catch (_) {}
+  }
 
   // Re-init hearts for dynamically loaded cards
   if (typeof refreshHearts === 'function') refreshHearts();

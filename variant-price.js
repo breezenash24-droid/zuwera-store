@@ -343,8 +343,55 @@
     }
   }
 
+  /* THE GRIDS, WHICH WERE NEVER BROUGHT IN.
+   *
+   * The homepage and the collection page both paint a card price straight off
+   * the catalogue row — `p.current_price || p.msrp` — and never ask the
+   * resolver. Everywhere a shopper can see a price AFTER the card does went
+   * through /api/prices when price lists were built; the two grids did not, so
+   * on a store with any price list at all they disagree with the page they
+   * link to. Measured live while auditing this: catalogue $40, resolver $32.
+   *
+   * One implementation for both, because there are already two grid renderers
+   * to keep in step and a third copy of the price rule would be the thing that
+   * drifts. A card marks its price element with data-zw-price-for="<product
+   * id>" and calls this; ids that the server has not answered for are left
+   * exactly as the card rendered them, so a failed or slow request shows the
+   * catalogue price rather than a blank or a spinner.
+   */
+  function paintCards(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    var nodes = scope.querySelectorAll('[data-zw-price-for]');
+    if (!nodes.length) return Promise.resolve(0);
+    var ids = [];
+    for (var i = 0; i < nodes.length; i++) {
+      var id = nodes[i].getAttribute('data-zw-price-for');
+      if (id && ids.indexOf(id) === -1) ids.push(id);
+    }
+    var paint = function () {
+      var n = 0;
+      for (var j = 0; j < nodes.length; j++) {
+        var el = nodes[j];
+        var pid = el.getAttribute('data-zw-price-for');
+        if (!known(pid)) continue;               // no answer: leave what it rendered
+        var r = resolvedFor(pid);
+        if (!r || typeof r.priceCents !== 'number') continue;
+        /* The member figure only when this store charges one — the same switch
+           the product page and the till consult, so a store with member pricing
+           off never shows a member number on a card. */
+        var cents = (r.usingMember && memberPricingOn() && typeof r.memberPriceCents === 'number')
+          ? r.memberPriceCents : r.priceCents;
+        var next = '$' + (cents / 100).toFixed(2);
+        if (el.textContent !== next) { el.textContent = next; n++; }
+      }
+      return n;
+    };
+    return ask(ids).then(paint).catch(function () { return paint(); });
+  }
+
   window.ZWVariantPrice = {
     cents: priceCents,
+    paintCards: paintCards,
     overrides: variantOverrides,
     resolve: resolveVariantPrice,
     lowest: lowestPriceCents,

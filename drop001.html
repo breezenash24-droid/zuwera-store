@@ -2913,7 +2913,7 @@ function updateCountdown() {
                 <div class="product-info">
                   <p class="product-name">${productName}</p>
                   <p class="product-category">${productType}</p>
-                  <p class="product-price">${productPrice ? '$' + Number(productPrice).toFixed(2) : 'Price TBA'}</p>
+                  <p class="product-price" data-zw-price-for="${p.id}">${productPrice ? '$' + Number(productPrice).toFixed(2) : 'Price TBA'}</p>
                   ${isLowStock ? `<span class="stock-badge-low">${collectionEscapeHtml(colMsg('lowStockBadge'))}</span>` : ''}
                   ${!isLive
                     ? `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>`
@@ -2947,6 +2947,16 @@ function updateCountdown() {
               if (_sw) { _zwPreviewSwatch(_sw); break; }
             }
           });
+        }
+
+        /* The cards printed the CATALOGUE price. Ask the resolver — the same one
+           the product page, the bag and the till use — and correct any a price
+           list has moved. Inside renderProducts so every path gets it: first
+           paint, filters, sort. Ids the server does not answer for keep what
+           they rendered, so a slow or failed request shows the catalogue figure
+           rather than a gap. */
+        if (window.ZWVariantPrice && window.ZWVariantPrice.paintCards) {
+          try { window.ZWVariantPrice.paintCards(grid); } catch (_) {}
         }
       }
     })();
