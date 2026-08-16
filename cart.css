@@ -237,7 +237,7 @@
   transition: background var(--zw-motion-base), border-color var(--zw-motion-base);
 }
 body.light-mode .cart-summary { border-color: var(--c14); background: transparent; }
-body.super-light-mode .cart-summary { border-color: var(--c10); background: #fafafa; }
+body.super-light-mode .cart-summary { border-color: var(--c10); background: var(--ink); }
 @media (max-width: 760px) {
   .cart-summary { margin-left: 0; margin-top: 2rem; }
 }
@@ -301,18 +301,18 @@ body.super-light-mode .cart-summary { border-color: var(--c10); background: #faf
 .cart-summary.has-express #checkout-btn { margin-top: 0.7rem; }
 
 /* ===================== LIGHT MODE ===================== */
-body.light-mode #cart-modal { background: #F0EEE9; }
-body.light-mode .cart-page-header { background: #F0EEE9; border-bottom-color: var(--c08); }
+body.light-mode #cart-modal { background: var(--ink); }
+body.light-mode .cart-page-header { background: var(--ink); border-bottom-color: var(--c08); }
 body.light-mode .cart-back-btn { color: rgb(var(--fg-rgb)); }
 body.light-mode .cart-summary {
-  background: #F0EEE9;
+  background: var(--ink);
   border-color: var(--c10);
 }
 
 /* ===================== SUPER LIGHT MODE ===================== */
-body.super-light-mode #cart-modal { background: #FFFFFF; }
-body.super-light-mode .cart-page-header { background: #FFFFFF; }
-body.super-light-mode .cart-summary { background: #FFFFFF; }
+body.super-light-mode #cart-modal { background: var(--ink); }
+body.super-light-mode .cart-page-header { background: var(--ink); }
+body.super-light-mode .cart-summary { background: var(--ink); }
 body.light-mode .cart-empty-msg { color: var(--c40); }
 body.light-mode #cart-items-list { border-top-color: var(--c10); }
 body.light-mode #cart-items-list li {
@@ -616,7 +616,7 @@ body.light-mode .cart-item-qty-pill {
   border-color: var(--zw-line-light);
 }
 body.super-light-mode .cart-item-qty-pill {
-  background: #f5f5f5;
+  background: var(--zw-theme-surface);
   border-color: var(--c08);
 }
 

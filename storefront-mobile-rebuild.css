@@ -27,7 +27,7 @@
        without the old extra .75rem buffer that bloated the header; on devices
        where env works (>=50), env is used unchanged. */
     padding:max(env(safe-area-inset-top,0px) - 48px,16px) var(--zw-mobile-gutter) 0 !important;
-    background:#09090b !important; /* Force solid opaque dark background */
+    background: var(--ink) !important; /* Force solid opaque dark background */
     z-index:600 !important;
     transition: background .35s, border-color .35s !important; /* disable padding transition to avoid repaint lag */
     /* GPU-composite the fixed header so iOS Safari keeps it in sync during
@@ -41,12 +41,12 @@
 
   body.light-mode nav#nav,
   body.light-mode .nav{
-    background:#F0EEE9 !important; /* Force solid opaque light background */
+    background: var(--ink) !important; /* Force solid opaque light background */
   }
 
   body.super-light-mode nav#nav,
   body.super-light-mode .nav{
-    background:#FFFFFF !important; /* Force solid opaque super-light background */
+    background: var(--ink) !important; /* Force solid opaque super-light background */
   }
 
   nav#nav.scrolled{

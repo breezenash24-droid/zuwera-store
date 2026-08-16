@@ -1,0 +1,347 @@
+#!/usr/bin/env node
+/**
+ * tokenize-cascade.js — the literals a regex cannot safely touch.
+ *
+ *   node scripts/tokenize-cascade.js            report, change nothing
+ *   node scripts/tokenize-cascade.js --write    convert the safe ones
+ *
+ * ── Why a second tool ────────────────────────────────────────────────────────
+ *
+ * tokenize-colors.js converts a literal when the literal ITSELF says what it
+ * means: rgba(244,241,235,α) inside a dark rule is the foreground at α, and
+ * var(--cαα) is the same colour. Nothing else has to be true for that to hold.
+ *
+ * The literals left over are not like that. What they mean depends on rules
+ * somewhere else in the file:
+ *
+ *     body.light-mode      #cart-modal { background: #F0EEE9 }
+ *     body.super-light-mode #cart-modal { background: #FFFFFF }
+ *
+ * Both are var(--ink) — --ink is #F0EEE9 in light and #FFFFFF in super-light —
+ * so converting both changes nothing and makes the pair follow any theme. But
+ * take the FIRST one on its own, with no super-light partner, and it is not
+ * var(--ink): a body.light-mode rule also applies in super-light (super-light
+ * carries both classes), so today it paints cream on the white page and
+ * var(--ink) would paint white. Same literal, same property, same file —
+ * convertible or not depending on whether a rule twenty lines down exists.
+ *
+ * That is why the first tool stopped here, and it was right to.
+ *
+ * ── The rule this one holds to ───────────────────────────────────────────────
+ *
+ * A declaration is converted only when the colour it RESOLVES TO is unchanged
+ * in all three built-in themes. Not "close enough", not "probably fine": the
+ * cascade is walked per mode (dark → light → super-light, each falling back to
+ * the one before), both the literal and the proposed token are resolved against
+ * the real token values read out of base.css, and the largest channel
+ * difference across the three must be at or under TOLERANCE.
+ *
+ * Everything else is REPORTED, not converted, because everything else is a
+ * design decision wearing a refactor's clothes:
+ *
+ *   Four different near-blacks are used as lifted surfaces — #0f0f0f, #111,
+ *   #1a1a1a, #1b1b1d. Mapping them all to --surface would make a new theme
+ *   reach them and would also flatten a hierarchy somebody built on purpose.
+ *   That is a decision for a person.
+ *
+ *   #E8E3DC is a cream that is nobody's token, four shades off --ink. Snapping
+ *   it is a visible change to a colour someone chose.
+ *
+ *   Shadows and photo scrims stay literal for good: rgba(0,0,0,.45) under a
+ *   modal is a shadow, and a shadow that follows the foreground becomes a white
+ *   glow on a dark theme, which inverts what the rule means.
+ */
+
+const fs = require('fs');
+const path = require('path');
+const root = path.resolve(__dirname, '..');
+
+/* One channel in 255. The previous pass measured 1.00 and that was already
+   invisible; anything a person can actually see must be a decision, not a
+   side-effect of tidying. */
+const TOLERANCE = 2;
+
+const FILES = ['storefront-cohesion.css', 'cart.css', 'nav.css', 'product.css',
+  'reviews.css', 'reviews-vibe.css', 'email-popup.css', 'storefront-mobile-rebuild.css',
+  'base.css'];
+
+const MODES = ['dark', 'light', 'super-light'];
+
+/* Read the palette out of base.css rather than restating it — the whole point
+   of the exercise is that these are declared in one place. */
+function palette() {
+  /* Comments blanked FIRST. base.css explains the ladder in prose that contains
+     `body.light-mode { --fg-rgb: … }`, and slicing a block to the next `}`
+     without doing this stops at a brace inside the explanation — which read the
+     comment as the declaration and produced a palette of nonsense. The same
+     trap as before, in the tool built to fix its consequences. */
+  const css = fs.readFileSync(path.join(root, 'base.css'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, (c) => ' '.repeat(c.length));
+  const block = (sel) => {
+    /* Anchored: `body {` must not match `body.light-mode {`. */
+    const re = new RegExp('(^|[}\\s])' + sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{', 'm');
+    const m = re.exec(css);
+    if (!m) return '';
+    let i = m.index + m[0].length, depth = 1;
+    while (i < css.length && depth > 0) {
+      if (css[i] === '{') depth++;
+      else if (css[i] === '}') depth--;
+      i++;
+    }
+    return css.slice(m.index, i);
+  };
+  const grab = (src, name) => {
+    const m = new RegExp('--' + name + ':\\s*([^;]+);').exec(src);
+    return m ? m[1].trim() : null;
+  };
+  const root_ = block(':root'), light = block('body.light-mode'), sup = block('body.super-light-mode');
+  const pick = (name) => ({
+    dark: grab(root_, name) || grab(block('body'), name),
+    light: grab(light, name) || grab(root_, name) || grab(block('body'), name),
+    'super-light': grab(sup, name) || grab(light, name) || grab(root_, name) || grab(block('body'), name),
+  });
+  return {
+    '--fg-rgb': pick('fg-rgb'), '--bg-rgb': pick('bg-rgb'),
+    '--ink': pick('ink'), '--paper': pick('paper'),
+    '--black': pick('black'), '--white': pick('white'),
+    '--zw-theme-surface': pick('zw-theme-surface'),
+  };
+}
+const PAL = palette();
+
+// ── Colour maths ────────────────────────────────────────────────────────────
+
+function parseColor(v) {
+  v = String(v).trim();
+  let m = /^#([0-9a-f]{3})$/i.exec(v);
+  if (m) return [...m[1]].map((c) => parseInt(c + c, 16)).concat(1);
+  m = /^#([0-9a-f]{6})$/i.exec(v);
+  if (m) return [0, 2, 4].map((i) => parseInt(m[1].substr(i, 2), 16)).concat(1);
+  m = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)\s*(?:[,/]\s*([\d.]+%?)\s*)?\)$/i.exec(v);
+  if (m) {
+    const a = m[4] === undefined ? 1
+      : String(m[4]).endsWith('%') ? parseFloat(m[4]) / 100 : parseFloat(m[4]);
+    return [+m[1], +m[2], +m[3], a];
+  }
+  return null;
+}
+
+/** Resolve a value that may contain our tokens, in one mode.
+ *  Recurses, because base.css defines some aliases in terms of others —
+ *  `--paper: rgb(var(--fg-rgb))` in light mode — and a resolver that stops at
+ *  the first hop returns null and quietly rules that token out of every
+ *  comparison. */
+function resolve(value, mode, depth) {
+  if ((depth || 0) > 4) return null;
+  let v = String(value).trim();
+  {
+    /* A token whose value is itself a token expression. */
+    const alias = /^var\((--[a-z-]+)\)$/i.exec(v);
+    if (alias && PAL[alias[1]] && PAL[alias[1]][mode] && /var\(/.test(PAL[alias[1]][mode])) {
+      return resolve(PAL[alias[1]][mode], mode, (depth || 0) + 1);
+    }
+  }
+  // rgb(var(--x-rgb) / N%)  and  rgb(var(--x-rgb))
+  let m = /^rgb\(\s*var\((--[a-z-]+)\)\s*(?:\/\s*([\d.]+)%\s*)?\)$/i.exec(v);
+  if (m) {
+    const trip = PAL[m[1]] && PAL[m[1]][mode];
+    if (!trip) return null;
+    const p = trip.split(/[\s,]+/).map(Number);
+    if (p.length < 3 || p.some((n) => !isFinite(n))) return null;
+    return [p[0], p[1], p[2], m[2] === undefined ? 1 : Number(m[2]) / 100];
+  }
+  m = /^var\((--[a-z-]+)\)$/i.exec(v);
+  if (m) {
+    const raw = PAL[m[1]] && PAL[m[1]][mode];
+    return raw ? parseColor(raw) : null;
+  }
+  return parseColor(v);
+}
+
+/** Largest channel difference once both are composited over the mode's page. */
+function delta(a, b, mode) {
+  if (!a || !b) return Infinity;
+  const g = parseColor((PAL['--ink'] && PAL['--ink'][mode]) || '#09090b') || [0, 0, 0, 1];
+  const over = (c) => [0, 1, 2].map((i) => c[3] * c[i] + (1 - c[3]) * g[i]);
+  const A = over(a), B = over(b);
+  return Math.max(...A.map((v, i) => Math.abs(v - B[i])));
+}
+
+// ── Rule parsing ────────────────────────────────────────────────────────────
+
+const COLOR_PROPS = /^(color|background|background-color|border-color|border-[a-z]+-color|fill|stroke|outline-color)$/i;
+
+/** Every declaration in the file, with where it is and what selector owns it. */
+function declarations(css) {
+  const out = [];
+  const noComment = css.replace(/\/\*[\s\S]*?\*\//g, (c) => ' '.repeat(c.length));
+  const stack = [];
+  let i = 0, selStart = 0;
+  while (i < noComment.length) {
+    const ch = noComment[i];
+    if (ch === '{') {
+      const sel = noComment.slice(selStart, i).trim();
+      stack.push(sel);
+      // find the body of this block
+      if (!sel.startsWith('@')) {
+        let depth = 1, j = i + 1;
+        while (j < noComment.length && depth > 0) {
+          if (noComment[j] === '{') depth++;
+          else if (noComment[j] === '}') depth--;
+          j++;
+        }
+        const body = noComment.slice(i + 1, j - 1);
+        // only leaf rules carry declarations we care about
+        if (!/\{/.test(body)) {
+          let k = 0;
+          for (const part of body.split(';')) {
+            const at = i + 1 + k;
+            k += part.length + 1;
+            const c = part.indexOf(':');
+            if (c < 0) continue;
+            const prop = part.slice(0, c).trim();
+            const val = part.slice(c + 1);
+            if (!COLOR_PROPS.test(prop)) continue;
+            out.push({
+              sel, prop: prop.toLowerCase(), value: val,
+              media: stack.filter((s) => s.startsWith('@')).join(' & '),
+              start: at + c + 1, end: at + part.length,
+            });
+          }
+        }
+      }
+      selStart = i + 1;
+      i++;
+      continue;
+    }
+    if (ch === '}') { stack.pop(); selStart = i + 1; }
+    i++;
+  }
+  return out;
+}
+
+/** 'body.light-mode .x' → { mode:'light', key:'.x' } */
+function classify(sel) {
+  const parts = sel.split(',').map((s) => s.trim());
+  const modeOf = (s) => s.includes('super-light-mode') ? 'super-light'
+    : s.includes('light-mode') ? 'light' : 'dark';
+  const modes = new Set(parts.map(modeOf));
+  if (modes.size !== 1) return null;          // a mixed selector list is not ours to reason about
+  const mode = [...modes][0];
+  const key = parts.map((s) => s
+    .replace(/body\.super-light-mode\b/g, '')
+    .replace(/body\.light-mode\b/g, '')
+    .replace(/\s+/g, ' ').trim()).join(',');
+  return { mode, key };
+}
+
+// ── The proposals ───────────────────────────────────────────────────────────
+
+/* Only tokens whose meaning is the same kind of thing as the literal being
+   replaced. --ink is the page, --paper is the text on it, --zw-theme-surface is
+   a panel lifted off the page. */
+const CANDIDATES = ['var(--ink)', 'var(--paper)', 'var(--zw-theme-surface)'];
+function alphaCandidates(a) {
+  const pct = +(a * 100).toFixed(2);
+  return ['--bg-rgb', '--fg-rgb'].map((t) => `rgb(var(${t}) / ${pct}%)`);
+}
+
+function run(write) {
+  const skipped = {};
+  let converted = 0, worst = 0, worstAt = '';
+  const note = (why, where, val) => {
+    (skipped[why] = skipped[why] || { n: 0, ex: [] }).n++;
+    if (skipped[why].ex.length < 3) skipped[why].ex.push(where + '  ' + val.trim().slice(0, 48));
+  };
+
+  for (const file of FILES) {
+    const p = path.join(root, file);
+    if (!fs.existsSync(p)) continue;
+    const css = fs.readFileSync(p, 'utf8');
+    const decls = declarations(css);
+
+    /* What each (media, selector, property) resolves to in each mode today. */
+    const index = new Map();
+    for (const d of decls) {
+      const c = classify(d.sel);
+      if (!c) continue;
+      const k = d.media + '||' + c.key + '||' + d.prop;
+      if (!index.has(k)) index.set(k, {});
+      index.get(k)[c.mode] = d.value;
+    }
+    const effective = (k, mode) => {
+      const e = index.get(k) || {};
+      if (mode === 'dark') return e.dark;
+      if (mode === 'light') return e.light !== undefined ? e.light : e.dark;
+      return e['super-light'] !== undefined ? e['super-light']
+        : e.light !== undefined ? e.light : e.dark;
+    };
+
+    const edits = [];
+    for (const d of decls) {
+      /* !important is a cascade priority, not a colour. Skipping these was a
+         reflex and it cost the biggest single group of convertible rules — the
+         header actions, the modal closes, the cookie banner. It is stripped for
+         comparison and put back on the way out, so the rule keeps winning
+         exactly what it won before. */
+      const bang = /!important\s*$/i.test(d.value.trim());
+      const raw = d.value.trim().replace(/\s*!important\s*$/i, '');
+      if (/var\(/.test(raw)) continue;
+      const lit = parseColor(raw);
+      if (!lit) { if (/#|rgba?\(/.test(raw)) note('multi-part or non-plain value', file, raw); continue; }
+      if (lit[0] === 0 && lit[1] === 0 && lit[2] === 0) { note('shadows & scrims (absolute by design)', file, raw); continue; }
+
+      const c = classify(d.sel);
+      if (!c) { note('mixed-mode selector list', file, raw); continue; }
+      const k = d.media + '||' + c.key + '||' + d.prop;
+
+      /* Today's resolved colour, per mode, with this declaration in place.
+         Compared with !important stripped from every side, so a rule that has
+         it is judged on its colour like any other. */
+      const strip = (v) => (v === undefined ? v : String(v).replace(/\s*!important\s*$/i, '').trim());
+      const before = MODES.map((m) => resolve(strip(effective(k, m)), m));
+
+      let chosen = null, chosenWorst = Infinity;
+      for (const cand of (lit[3] === 1 ? CANDIDATES : alphaCandidates(lit[3]))) {
+        /* Substitute the candidate wherever this declaration is the one that
+           wins, and re-resolve all three modes. */
+        const after = MODES.map((m) => {
+          const eff = effective(k, m);
+          return resolve(eff === d.value ? cand : strip(eff), m);
+        });
+        const w = Math.max(...MODES.map((m, i) => delta(before[i], after[i], m)));
+        if (w < chosenWorst) { chosenWorst = w; chosen = cand; }
+      }
+
+      if (chosen && chosenWorst <= TOLERANCE) {
+        edits.push({ start: d.start, end: d.end, text: ' ' + chosen + (bang ? ' !important' : '') });
+        converted++;
+        if (chosenWorst > worst) { worst = chosenWorst; worstAt = file + '  ' + raw + ' → ' + chosen; }
+      } else {
+        note('no token within ' + TOLERANCE + '/255 (a real colour choice)', file, raw
+          + (chosen ? '  nearest ' + chosen + ' off by ' + chosenWorst.toFixed(1) : ''));
+      }
+    }
+
+    if (write && edits.length) {
+      let out = css;
+      for (const e of edits.sort((a, b) => b.start - a.start)) {
+        out = out.slice(0, e.start) + e.text + out.slice(e.end);
+      }
+      fs.writeFileSync(p, out);
+    }
+    if (edits.length) console.log('  ' + file.padEnd(32) + String(edits.length).padStart(5) + ' converted');
+  }
+
+  console.log('\n  ' + converted + ' declarations converted' + (write ? '' : ' (report only — pass --write)'));
+  console.log('  largest resolved difference in any built-in theme: ' + worst.toFixed(2) + ' / 255');
+  if (worstAt) console.log('    at ' + worstAt);
+  console.log('\n  left alone, and why:');
+  for (const [why, s] of Object.entries(skipped).sort((a, b) => b[1].n - a[1].n)) {
+    console.log('    ' + String(s.n).padStart(4) + '  ' + why);
+    s.ex.forEach((e) => console.log('          · ' + e));
+  }
+  console.log('');
+}
+
+run(process.argv.includes('--write'));

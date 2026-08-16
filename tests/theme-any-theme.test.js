@@ -133,13 +133,25 @@ console.log('\n  the premise the conversion rests on');
 
 console.log('\n  what is still hardcoded, counted honestly');
 {
-  /* Was 885. The light-mode foreground overrides are done; what is left is
-     white and cream inside light-mode blocks (entangled with the super-light
-     cascade, since a body.light-mode rule applies in super-light too), the
-     panel-keyed modal, and the genuine absolutes — accents, the semantic green
-     and red, scrims over photographs. The budget is a ratchet: a change that
-     makes it worse has to come and edit this line, and say why. */
-  const BUDGET = 490;
+  /* Was 885, now 438. Two passes got here:
+       tokenize-colors.js --overrides   1,268, the light-mode foreground family
+       tokenize-cascade.js --write         45, everything whose resolved colour
+                                               is identical in all three themes
+     What is left is NOT more of the same, and that matters for whoever picks
+     this up next. It is dominated by rules with a hardcoded colour and NO
+     light-mode twin — `.zw-hdr-action { color:#f4f1eb !important }`. Tokenising
+     one of those does not preserve the colour, it CHANGES light mode, usually
+     from a bug to correct behaviour. That is a coverage fix needing eyes on the
+     page, not a mechanical pass, and running a script over it would be the
+     "blind CSS edits break working parts" mistake with extra confidence.
+
+     156 of the total is admin.css, which has its own palette and its own dark
+     mode; pointing it at storefront tokens would make the admin change colour
+     because a shopper-facing theme changed. Storefront-only the figure is 282.
+
+     The budget is a ratchet: a change that makes it worse has to edit this
+     line, and say why. */
+  const BUDGET = 445;
   const PROPS = /(^|[;{])\s*(color|background|background-color|border|border-color|border-[a-z]+-color|fill|stroke|box-shadow|outline-color)\s*:\s*([^;}]+)/gi;
   const LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(\s*\d/;
 

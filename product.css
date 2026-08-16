@@ -214,7 +214,7 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
   position: absolute;
   top: 1rem;
   left: 1rem;
-  background: rgba(10,10,10,0.9);
+  background: rgb(var(--bg-rgb) / 90%);
   border: 1px solid var(--white);
   padding: 0.5rem 1rem;
   font-size: 0.65rem;
@@ -228,7 +228,7 @@ body[data-gal-scroll-speed="slower"] .main-image.zw-slide-prev { animation-durat
   top: .9rem;
   right: .9rem;
   z-index: 4;
-  background: rgba(9,9,11,.7);
+  background: rgb(var(--bg-rgb) / 70%);
   border: 1px solid var(--c10);
   backdrop-filter: blur(8px);
   border-radius: 50%;
@@ -1399,16 +1399,16 @@ body.light-mode .thumbnail {
   background: transparent;
 }
 body.light-mode .low-stock-badge {
-  background: rgba(244,241,235,0.9);
+  background: rgb(var(--bg-rgb) / 90%);
   border-color: var(--white);
   color: var(--white);
 }
 body.light-mode .cookie-consent-banner {
-  background: #F0EEE9;
+  background: var(--ink);
   border-top-color: var(--c10);
   color: var(--c65);
 }
-body.super-light-mode .cookie-consent-banner { background: #FFFFFF; }
+body.super-light-mode .cookie-consent-banner { background: var(--ink); }
 body.light-mode .cookie-consent-banner p { color: var(--c65); }
 body.light-mode .cookie-accept { background: rgb(var(--fg-rgb)); color: #E8E3DC; border-color: rgb(var(--fg-rgb)); }
 body.light-mode .cookie-decline { color: var(--c45); border-color: var(--c20); }

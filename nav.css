@@ -203,7 +203,7 @@ body.super-light-mode #cart-btn {
 }
 body.super-light-mode .cart-count {
   background: rgb(var(--fg-rgb));
-  color: #FFFFFF;
+  color: var(--ink);
 }
 
 /* ── Header composition ────────────────────────────────────────────────────
