@@ -55,6 +55,12 @@
   ];
 
   var config = { modes: BUILTINS.slice(), default: 'dark', pages: {} };
+  /* Whether the config above came from the STORE or is still the four themes
+     this file ships with. It is the difference between "the merchant has chosen
+     a default" and "nobody has said yet", and the legacy site_settings.theme
+     row needs to know which — see storefront-theme.js. Set from the cache and
+     again from the fetch, so a returning visitor knows synchronously. */
+  var fromStore = false;
   var applied = null;
 
   /* ── The surface that never moved ──────────────────────────────────────────
@@ -441,7 +447,7 @@
   /* Cached config first so the first paint is the right colour — a theme that
      arrives after a round trip is a visible flash of the wrong site. */
   var cached = readCache();
-  if (cached) config = normalise(cached);
+  if (cached) { config = normalise(cached); fromStore = true; }
 
   /* WHAT THE BUILD ALREADY DECIDED, read back off <body>.
      stamp-theme-default.js bakes the store's default theme onto <body> at build
@@ -493,6 +499,7 @@
       if (!raw) return;
       try { localStorage.setItem(CACHE_KEY, JSON.stringify(raw)); } catch (_) {}
       config = normalise(raw);
+      fromStore = true;
       // Re-apply only if the answer actually differs, so a settled page does
       // not repaint for nothing.
       var next = byId(chosenId()) || byId(themeForPath(location.pathname))
@@ -509,6 +516,10 @@
        hardcoding three buttons — which is the whole point. */
     list: function () { return config.modes.slice(); },
     current: function () { return applied ? applied.id : (chosenId() || config.default); },
+    /* True once the theme list came from the store rather than the four this
+       file ships with — i.e. the merchant has actually chosen a default. The
+       legacy site_settings.theme row defers to this. */
+    configured: function () { return fromStore; },
     forPath: themeForPath,
     get: function (id) { return byId(id); },
     apply: function (id, remember) {

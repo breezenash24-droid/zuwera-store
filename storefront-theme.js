@@ -420,12 +420,21 @@
         // returning visitors — previously a cached zw_theme_mode shadowed the
         // server value and permanently pinned whatever theme was seen first.
         // applyThemeMode rewrites zw_theme_mode to match, keeping reloads FOUC-free.
-        /* Hand the stored value to applyThemeMode as-is so the engine gets a
-           chance to recognise it. The coercion below it — anything unknown
-           becomes 'light' — is the fifth copy of that ternary I have found
-           today, and on this path it means a store whose theme_modes.default
-           is a custom or imported theme can never arrive through the settings
-           row: it lands as whichever built-in it falls through to. */
+        /* LEGACY, AND IT DEFERS NOW.
+           site_settings.theme.mode predates the theme engine and was the
+           storefront's theme for years. It is also written by the ADMIN
+           panel's own light/dark toggle, which is how a store ended up with
+           theme.mode = "dark" while theme_modes.default named a super-light
+           theme: switching the admin's own chrome was quietly re-theming the
+           shop. The toggle no longer writes it, but the value it already wrote
+           is still sitting there — so this row must not outrank the theme
+           system, or every store carries whatever its admin last set forever.
+           Applied only when the engine has nothing from the store, which is
+           exactly the case this row exists to cover. */
+        if (window.ZWTheme && window.ZWTheme.configured && window.ZWTheme.configured()) return;
+        /* Handed over as-is so the engine can recognise a custom id. The
+           coercion this replaced — anything unknown becomes 'light' — was the
+           fifth copy of that ternary today. */
         var mode = (row.value && row.value.mode) || '';
         if (mode) applyThemeMode(mode);
       }

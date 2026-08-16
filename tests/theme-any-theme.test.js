@@ -120,6 +120,40 @@ console.log('\n  how many places decide what theme the store is in');
   ok('…and an absent value applies nothing rather than defaulting',
     /if \(mode\) applyThemeMode\(mode\)/.test(row),
     'a missing setting is not an instruction to switch to light');
+
+  /* THE ADMIN'S CHROME IS NOT THE SHOP'S THEME.
+   *
+   * The sidebar light/dark toggle wrote site_settings.theme.mode, which the
+   * storefront reads — so putting your own dashboard into dark mode re-themed
+   * the shop for every customer, silently. It predated the theme engine, when
+   * there was one theme setting and that was it. Two controls sharing one key
+   * means the last one touched wins, which is how a live store came to hold
+   * theme.mode = "dark" and a super-light default simultaneously. */
+  const admin = fs.readFileSync(path.join(ROOT, 'admin-main.js'), 'utf8');
+  const applyFn = admin.slice(admin.indexOf('function applyTheme()'), admin.indexOf('async function saveThemeSettings'));
+  ok('the admin theme toggle does not write the storefront setting',
+    !/saveThemeSettings\(\{\s*mode/.test(applyFn),
+    'switching your own dashboard must not re-theme the shop');
+  ok('…and keeps its own preference in localStorage, where it already read it from',
+    /localStorage\.setItem\('theme', themeMode\)/.test(applyFn)
+    && /localStorage\.getItem\('theme'\)/.test(admin));
+  /* The blob carries real storefront settings too — the accent, the modal
+     backdrop, the gallery animation — so the writer stays; only `mode` left. */
+  ok('…while the genuinely storefront fields still save through it',
+    /saveThemeSettings\(\{ modal_backdrop/.test(admin) && /saveThemeSettings\(\{ gallery_anim/.test(admin),
+    'removing the whole writer would have taken three real settings with it');
+
+  /* And the value already written is still in the database, so deferring is
+     what stops every existing store carrying whatever its admin last set. */
+  const engine2 = fs.readFileSync(path.join(ROOT, 'theme-engine.js'), 'utf8');
+  ok('the legacy row defers to the theme system when it has an answer',
+    /ZWTheme\.configured\(\)\) return;/.test(st),
+    'the stale value outranks the engine otherwise, permanently');
+  ok('…and the engine reports whether its config came from the store',
+    /configured: function \(\) \{ return fromStore; \}/.test(engine2)
+    && /if \(cached\) \{ config = normalise\(cached\); fromStore = true; \}/.test(engine2)
+    && /config = normalise\(raw\);\s*\n\s*fromStore = true;/.test(engine2),
+    'set from the cache as well as the fetch, so a returning visitor knows synchronously');
 }
 
 console.log('\n  the premise the conversion rests on');
