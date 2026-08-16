@@ -139,7 +139,7 @@
 body.light-mode .announcement-bar {
   background: rgb(var(--fg-rgb));
   color: #F0EEE9;
-  border-bottom-color: rgba(244,241,235,0.1);
+  border-bottom-color: rgb(var(--bg-rgb) / 10%);
 }
 body.light-mode .announcement-close {
   color: #F0EEE9;
@@ -175,7 +175,7 @@ body.light-mode .cart-count {
 body.super-light-mode .announcement-bar {
   background: rgb(var(--fg-rgb));
   color: #F0EEE9;
-  border-bottom-color: rgba(244,241,235,0.1);
+  border-bottom-color: rgb(var(--bg-rgb) / 10%);
 }
 body.super-light-mode .announcement-close {
   color: #F0EEE9;

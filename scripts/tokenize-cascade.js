@@ -158,8 +158,22 @@ function resolve(value, mode, depth) {
   return parseColor(v);
 }
 
-/** Largest channel difference once both are composited over the mode's page. */
+/** Largest channel difference once both are composited over the mode's page.
+ *
+ * NOTHING AND NOTHING ARE THE SAME THING. This returned Infinity when either
+ * side was absent, which sounds cautious and is simply wrong: a mode where the
+ * rule declares nothing before and nothing after has not changed. It made the
+ * tool reject its own easiest cases —
+ *
+ *     body.super-light-mode #toast { background: #FFFFFF !important }
+ *
+ * where #FFFFFF IS super-light's --ink to the byte, and light and dark declare
+ * nothing at all for that selector. Fifty-odd provably free conversions were
+ * reported as "a real colour choice" because two nulls compared as a mismatch.
+ * One side present and the other absent is still Infinity — that is a genuine
+ * change in what the rule contributes. */
 function delta(a, b, mode) {
+  if (!a && !b) return 0;
   if (!a || !b) return Infinity;
   const g = parseColor((PAL['--ink'] && PAL['--ink'][mode]) || '#09090b') || [0, 0, 0, 1];
   const over = (c) => [0, 1, 2].map((i) => c[3] * c[i] + (1 - c[3]) * g[i]);
@@ -293,6 +307,14 @@ function run(write) {
 
       const c = classify(d.sel);
       if (!c) { note('mixed-mode selector list', file, raw); continue; }
+
+      /* <html> IS :root, and the palette lives on body. --ink on html therefore
+         resolves to the dark value in every mode, so `html:has(body.light-mode)
+         { background: var(--ink) }` would paint a light store's ground dark.
+         These rules exist precisely because the token cannot reach up there;
+         they are the one place a literal is the only correct answer. */
+      if (/(^|,)\s*html\b/.test(d.sel)) { note('the page ground, above where the tokens live', file, raw); continue; }
+
       const k = d.media + '||' + c.key + '||' + d.prop;
 
       /* Today's resolved colour, per mode, with this declaration in place.

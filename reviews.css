@@ -540,12 +540,12 @@ body.super-light-mode .review-list-mbox > .review-list-close {
 /* Super Light Mode Overrides */
 body.super-light-mode .review-mbox { background: var(--ink) !important; }
 body.super-light-mode .review-list-mbox { background: var(--ink) !important; }
-body.super-light-mode .review-summary-box { background: #FFFFFF; }
+body.super-light-mode .review-summary-box { background: var(--ink); }
 body.super-light-mode .translate-btn { background: var(--ink); }
 body.super-light-mode .review-advanced-legacy { background: var(--ink) !important; }
 body.super-light-mode .review-list-select,
 body.super-light-mode .review-list-translate,
-body.super-light-mode .review-list-close { background: #FFFFFF; }
+body.super-light-mode .review-list-close { background: var(--ink); }
 
 /* Light Mode Overrides */
 body.light-mode .review-mbox {
@@ -601,7 +601,7 @@ body.light-mode .review-fit-toggle-label { color: var(--c70); }
 body.light-mode .review-list-title { color: rgb(var(--fg-rgb)); }
 body.light-mode .review-list-select,
 body.light-mode .review-list-translate,
-body.light-mode .review-list-close { background: #F0EEE9; border-color: var(--c10); color: rgb(var(--fg-rgb)); }
+body.light-mode .review-list-close { background: var(--ink); border-color: var(--c10); color: rgb(var(--fg-rgb)); }
 body.light-mode .review-list-mbox .review-card-author,
 body.light-mode .review-list-mbox .review-card-title { color: rgb(var(--fg-rgb)); }
 body.light-mode .review-list-mbox .review-card-body,

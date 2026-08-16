@@ -133,9 +133,9 @@ console.log('\n  the premise the conversion rests on');
 
 console.log('\n  what is still hardcoded, counted honestly');
 {
-  /* Was 885, now 438. Two passes got here:
+  /* Was 885, now 400. Two passes got here:
        tokenize-colors.js --overrides   1,268, the light-mode foreground family
-       tokenize-cascade.js --write         45, everything whose resolved colour
+       tokenize-cascade.js --write        83, everything whose resolved colour
                                                is identical in all three themes
      What is left is NOT more of the same, and that matters for whoever picks
      this up next. It is dominated by rules with a hardcoded colour and NO
@@ -147,11 +147,11 @@ console.log('\n  what is still hardcoded, counted honestly');
 
      156 of the total is admin.css, which has its own palette and its own dark
      mode; pointing it at storefront tokens would make the admin change colour
-     because a shopper-facing theme changed. Storefront-only the figure is 282.
+     because a shopper-facing theme changed. Storefront-only the figure is 244.
 
      The budget is a ratchet: a change that makes it worse has to edit this
      line, and say why. */
-  const BUDGET = 445;
+  const BUDGET = 410;
   const PROPS = /(^|[;{])\s*(color|background|background-color|border|border-color|border-[a-z]+-color|fill|stroke|box-shadow|outline-color)\s*:\s*([^;}]+)/gi;
   const LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(\s*\d/;
 

@@ -220,7 +220,7 @@ body.light-mode{
 }
 
 body.super-light-mode{
-  background:#FFFFFF;
+  background: var(--ink);
   --zw-page:#FFFFFF;
   --zw-paper:#f5f5f5;
   --zw-cream:#e8e8e8;
@@ -604,14 +604,14 @@ body.super-light-mode .cbox,
 body.super-light-mode .ret-inner-box,
 body.super-light-mode .review-mbox,
 body.super-light-mode .review-list-mbox,
-body.super-light-mode .size-guide-dialog{ background:#FFFFFF !important; border-color:var(--c10) !important; color:rgb(var(--fg-rgb)) !important; }
+body.super-light-mode .size-guide-dialog{ background: var(--ink) !important; border-color:var(--c10) !important; color:rgb(var(--fg-rgb)) !important; }
 
 body.super-light-mode .mclose{ background:var(--c08) !important; border-color:var(--c20) !important; color:rgb(var(--fg-rgb)) !important; }
 
-body.super-light-mode .csummary{ background:#FFFFFF !important; border-color:var(--c10) !important; }
+body.super-light-mode .csummary{ background: var(--ink) !important; border-color:var(--c10) !important; }
 
 body.super-light-mode #payment-modal,
-body.super-light-mode #payment-modal > div{ background:#FFFFFF !important; border-color:var(--c10) !important; }
+body.super-light-mode #payment-modal > div{ background: var(--ink) !important; border-color:var(--c10) !important; }
 body.super-light-mode #payment-modal h2{ color:rgb(var(--fg-rgb)) !important; }
 body.super-light-mode #payment-modal label,
 body.super-light-mode #payment-modal p{ color:var(--c50) !important; }
@@ -619,7 +619,7 @@ body.super-light-mode #payment-modal input,
 body.super-light-mode #payment-modal select{ background:rgb(var(--fg-rgb) / 4%) !important; border-color:var(--c12) !important; color:rgb(var(--fg-rgb)) !important; }
 body.super-light-mode #payment-modal #pay-submit{ background:rgb(var(--fg-rgb)) !important; color:#E8E3DC !important; }
 
-body.super-light-mode #payment-success{ background:#FFFFFF !important; }
+body.super-light-mode #payment-success{ background: var(--ink) !important; }
 
 /* Cookie consent bar — one consistent dark bar in EVERY theme. It used to flip
    to a washed-out cream (#F0EEE9) in light mode and white in super-light, and it
@@ -646,20 +646,20 @@ body.super-light-mode #cookie-banner button:last-child{
   background:transparent !important; color:rgba(244,241,235,.62) !important; border:1px solid rgba(244,241,235,.22) !important;
 }
 
-body.super-light-mode #toast{ background:#FFFFFF !important; color:rgb(var(--fg-rgb)) !important; border-color:var(--c12) !important; }
+body.super-light-mode #toast{ background: var(--ink) !important; color:rgb(var(--fg-rgb)) !important; border-color:var(--c12) !important; }
 
-body.super-light-mode .wallet-chip{ background:#FFFFFF !important; border-color:var(--c12) !important; color:rgb(var(--fg-rgb)) !important; }
+body.super-light-mode .wallet-chip{ background: var(--ink) !important; border-color:var(--c12) !important; color:rgb(var(--fg-rgb)) !important; }
 
-body.super-light-mode .collection-review-box{ background:#FFFFFF !important; border-color:var(--c08) !important; }
-body.super-light-mode .collection-review-close{ background:var(--c55) !important; color:#fff !important; }
+body.super-light-mode .collection-review-box{ background: var(--ink) !important; border-color:var(--c08) !important; }
+body.super-light-mode .collection-review-close{ background:var(--c55) !important; color: var(--ink) !important; }
 
-body.super-light-mode .ret-hd{ background:rgba(255,255,255,.96) !important; border-bottom-color:var(--c07) !important; }
-body.super-light-mode .quick-size-panel{ background:#FFFFFF !important; border-top-color:var(--c10) !important; }
+body.super-light-mode .ret-hd{ background: rgb(var(--bg-rgb) / 96%) !important; border-bottom-color:var(--c07) !important; }
+body.super-light-mode .quick-size-panel{ background: var(--ink) !important; border-top-color:var(--c10) !important; }
 body.super-light-mode .quick-size-panel-header{ color:var(--c50) !important; }
 body.super-light-mode .quick-size-close{ color:var(--c40) !important; }
 
 body.super-light-mode #bar{
-  background:#FFFFFF !important;
+  background: var(--ink) !important;
   color:rgb(var(--fg-rgb)) !important;
   border-bottom-color:var(--c10) !important;
 }
@@ -697,7 +697,7 @@ body.super-light-mode .quick-add-review-modal > .mbox.quick-add-review-box.quick
 
 body.super-light-mode #mobile-menu.zw-mobile-menu,
 body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
-  background:#FFFFFF !important;
+  background: var(--ink) !important;
   color:rgb(var(--fg-rgb)) !important;
 }
 
@@ -724,7 +724,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
     color:var(--zw-ink) !important;
   }
   body.super-light-mode #all-reviews-modal > .review-list-mbox{
-    background:#FFFFFF !important;
+    background: var(--ink) !important;
     border-color:var(--c10) !important;
     border-top-color:rgb(var(--fg-rgb)) !important;
     color:rgb(var(--fg-rgb)) !important;
@@ -757,7 +757,7 @@ body.light-mode #zw-lang-box{
 }
 
 body.super-light-mode #zw-lang-box{
-  background:#FFFFFF !important;
+  background: var(--ink) !important;
   border-color:var(--c10) !important;
   border-top-color:rgb(var(--fg-rgb)) !important;
   color:rgb(var(--fg-rgb)) !important;
@@ -1462,7 +1462,7 @@ body.light-mode .heart-btn{
     align-items:stretch !important;
     justify-content:flex-end !important;
     padding:0 !important;
-    background:rgba(9,9,11,.58) !important;
+    background: rgb(var(--bg-rgb) / 58%) !important;
   }
 
   .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box{
@@ -1492,7 +1492,7 @@ body.light-mode .heart-btn{
   }
 
   body.super-light-mode .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box{
-    background:#FFFFFF !important;
+    background: var(--ink) !important;
   }
 
   .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .mclose{
@@ -2292,7 +2292,7 @@ body.light-mode #mobile-menu.zw-mobile-menu{
 }
 
 body.super-light-mode #mobile-menu.zw-mobile-menu{
-  background:#FFFFFF !important;
+  background: var(--ink) !important;
   color:rgb(var(--fg-rgb)) !important;
 }
 
@@ -2418,7 +2418,7 @@ body.light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
 }
 
 body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
-  background:#FFFFFF !important;
+  background: var(--ink) !important;
   border-left-color:var(--c08) !important;
 }
 
@@ -2516,7 +2516,7 @@ body.light-mode #mobile-menu .zw-mobile-menu-close{
 
 body.super-light-mode #mobile-menu .zw-mobile-menu-close{
   border-color:var(--c15) !important;
-  background:#FFFFFF !important;
+  background: var(--ink) !important;
   color:rgb(var(--fg-rgb)) !important;
 }
 
@@ -3008,11 +3008,11 @@ body.light-mode .zw-lang-trigger:hover{
 }
 
 body.light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
-  background:#F0EEE9!important;
+  background: var(--ink) !important;
   border-left-color:var(--c10)!important;
 }
 body.super-light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
-  background:#fff!important;
+  background: var(--ink) !important;
 }
 
 /* Panel open animation: smoother slide from the RIGHT */
@@ -3074,7 +3074,7 @@ body.light-mode .zw-mobile-menu-kicker{color:var(--c35)!important;}
   width:44px!important; height:44px!important;
   min-height:44px!important;
   border:1px solid var(--c10)!important;
-  background:rgba(9,9,11,.7)!important;
+  background: rgb(var(--bg-rgb) / 70%) !important;
   border-radius:0!important;
   color:var(--c55)!important;
   flex-shrink:0!important;
@@ -3689,7 +3689,7 @@ body.embed-mode :is(nav#nav,.nav,header.nav,#mobile-menu,#mobile-menu-btn,footer
 .quick-add-gallery-arrow{
   position:absolute;top:50%;transform:translateY(-50%);z-index:8;
   width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.55);
-  background:rgba(9,9,11,.55);color:#fff;display:flex;align-items:center;justify-content:center;
+  background: rgb(var(--bg-rgb) / 55%);color:#fff;display:flex;align-items:center;justify-content:center;
   font-size:1.2rem;line-height:1;cursor:pointer;backdrop-filter:blur(10px);
   box-shadow:0 2px 10px rgba(0,0,0,.45);
   transition:background .2s ease,border-color .2s ease,opacity .2s ease;
@@ -3937,7 +3937,7 @@ body.light-mode .zw-navitem > .zw-mega{
 /* Super-light: panel is pure white like the page, with no top border line so it
    blends seamlessly into the white header (no apparent colour shift on open). */
 body.super-light-mode .zw-navitem > .zw-mega{
-  background:#FFFFFF; border-color:var(--c06); border-top-color:transparent; box-shadow:0 26px 34px -20px rgba(0,0,0,.10);
+  background: var(--ink); border-color:var(--c06); border-top-color:transparent; box-shadow:0 26px 34px -20px rgba(0,0,0,.10);
 }
 
 /* When a mega panel is open, drop the header's own bottom border so the nav and

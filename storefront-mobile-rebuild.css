@@ -59,12 +59,12 @@
 
   body.light-mode nav#nav.scrolled,
   body.light-mode .nav.scrolled{
-    background:#F0EEE9 !important;
+    background: var(--ink) !important;
   }
 
   body.super-light-mode nav#nav.scrolled,
   body.super-light-mode .nav.scrolled{
-    background:#FFFFFF !important;
+    background: var(--ink) !important;
   }
 
   /* Securely shield the safe area under the status bar using an absolute pseudo-element */
@@ -83,14 +83,14 @@
   body.light-mode .nav::before,
   body.light-mode nav#nav.scrolled::before,
   body.light-mode .nav.scrolled::before{
-    background:#F0EEE9 !important; /* solid opaque light safe-area block */
+    background: var(--ink) !important; /* solid opaque light safe-area block */
   }
 
   body.super-light-mode nav#nav::before,
   body.super-light-mode .nav::before,
   body.super-light-mode nav#nav.scrolled::before,
   body.super-light-mode .nav.scrolled::before{
-    background:#FFFFFF !important; /* solid opaque super-light safe-area block */
+    background: var(--ink) !important; /* solid opaque super-light safe-area block */
   }
 
   .nav-center{
