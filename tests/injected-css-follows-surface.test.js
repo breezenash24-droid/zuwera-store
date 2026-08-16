@@ -103,28 +103,35 @@ console.log('\n  one form, two surfaces, and neither rule knows where it is');
    * serve both and neither has to know which one it is in.
    */
   const box = /\.zwf-modal-box\{[^']*(?:'\s*\+\s*'[^']*)*\}/.exec(code.replace(/\n\s*/g, ''));
-  ok('the cream panel declares its own foreground',
-    box && /--fg-rgb:var\(--zw-ink-rgb/.test(box[0]),
-    'without this, rgb(var(--fg-rgb)) inside it is the PAGE foreground — near-white on a dark page');
-  ok('…and its own background',
-    box && /--bg-rgb:var\(--zw-page-rgb/.test(box[0]));
-  ok('…and re-keys the rungs, which do not recompute on their own',
-    box && /--c06:rgb\(var\(--zw-ink-rgb/.test(box[0]) && /--c15:rgb\(var\(--zw-ink-rgb/.test(box[0]),
-    '--c06 is declared on body, so it resolves there and inherits as a finished colour');
+  ok('the modal panel follows the page',
+    box && /background:rgb\(var\(--bg-rgb\)\)/.test(box[0]) && /color:rgb\(var\(--fg-rgb\)\)/.test(box[0]),
+    'it is a DARK panel in dark mode — --zw-page/--zw-ink are the fixed pair and pinned it cream');
 
-  const coh = fs.readFileSync(path.join(ROOT, 'storefront-cohesion.css'), 'utf8');
-  ok('the triplets exist and match their hex forms',
-    /--zw-ink-rgb:9 9 11;/.test(coh) && /--zw-page-rgb:240 238 233;/.test(coh)
-    && /--zw-ink:#09090b;/.test(coh) && /--zw-page:#F0EEE9;/.test(coh),
-    '#09090b is 9 9 11 and #F0EEE9 is 240 238 233 — if these drift the panel lies about itself');
+  /* The fixed pair must not come back here. It is what made the panel a cream
+     slab on a dark store, and it is what forced the controls to be written
+     against a second, contradictory surface. */
+  ok('…and does not paint itself from the fixed pair',
+    box && !/background:var\(--zw-page/.test(box[0]) && !/color:var\(--zw-ink/.test(box[0]));
 
-  /* And the guide must NOT be wrapped in that panel, or it would be forced
-     cream on a dark page — the bug in its original direction. */
+  /* With both surfaces following the page there is nothing left to re-key —
+     and re-keying would now be actively wrong, since the panel is the same
+     lightness as the page it sits on. */
+  ok('…and no longer re-keys the ladder, because it has nothing to correct',
+    box && !/--c06:/.test(box[0]) && !/--fg-rgb:/.test(box[0]),
+    'a panel that matches the page must not redeclare the page tokens');
+
+  /* An edge is still needed — a dark panel on a dark page has no contrast of
+     its own — and that edge must NOT flip with the theme. */
+  ok('…but keeps a theme-neutral edge and shadow',
+    box && /border:1px solid rgba\(128,128,128/.test(box[0]) && /rgba\(0,0,0,\.3\)/.test(box[0]),
+    'a border derived from the foreground would vanish against one of the two grounds');
+
+  /* And the guide mounts the form bare, so both renderings resolve their
+     colours the same way — which is the whole reason one rule set works. */
   const guide = fs.readFileSync(path.join(ROOT, 'sizeguide.html'), 'utf8');
-  const host = guide.indexOf('sizeGuideFinder');
-  ok('the size guide mounts the form bare, not in the cream panel',
-    host > 0 && !/zwf-modal-box/.test(guide),
-    'wrapping it there would pin the guide light whatever theme the page is in');
+  ok('the size guide mounts the form bare, in the page',
+    guide.indexOf('sizeGuideFinder') > 0 && !/zwf-modal-box/.test(guide),
+    'both surfaces follow the page, so neither control rule has to know where it is');
 }
 
 console.log('\n  the surface behind the element is the whole question');
