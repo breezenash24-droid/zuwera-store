@@ -417,13 +417,13 @@ body.super-light-mode #review-modal .review-mbox-hd { background: #FFFFFF; }
 }
 body.light-mode .review-list-mbox > .review-list-close {
   background: #F0EEE9 !important;
-  border-color: rgba(9,9,11,0.2) !important;
-  color: #09090b !important;
+  border-color: var(--c20) !important;
+  color: rgb(var(--fg-rgb)) !important;
 }
 body.super-light-mode .review-list-mbox > .review-list-close {
   background: #FFFFFF !important;
-  border-color: rgba(9,9,11,0.2) !important;
-  color: #09090b !important;
+  border-color: var(--c20) !important;
+  color: rgb(var(--fg-rgb)) !important;
 }
 .review-list-write-btn { margin-bottom: 1.5rem; }
 .review-list-select {
@@ -550,89 +550,89 @@ body.super-light-mode .review-list-close { background: #FFFFFF; }
 /* Light Mode Overrides */
 body.light-mode .review-mbox {
   background: #F0EEE9 !important;
-  border-color: rgba(9,9,11,0.1) !important;
-  color: #09090b !important;
+  border-color: var(--c10) !important;
+  color: rgb(var(--fg-rgb)) !important;
 }
 body.light-mode .review-list-mbox {
   background: #F0EEE9 !important;
-  border-color: rgba(9,9,11,0.1) !important;
-  color: #09090b !important;
+  border-color: var(--c10) !important;
+  color: rgb(var(--fg-rgb)) !important;
 }
 /* Inline review summary on product page */
 body.light-mode .review-summary-box {
   background: none;
-  border-color: rgba(9,9,11,0.1);
+  border-color: var(--c10);
 }
-body.light-mode .rs-metric-bar { background: rgba(9,9,11,0.12); }
-body.light-mode .rs-left { border-right-color: rgba(9,9,11,0.08); }
+body.light-mode .rs-metric-bar { background: var(--c12); }
+body.light-mode .rs-left { border-right-color: var(--c08); }
 body.light-mode .translate-btn {
   background: #F0EEE9;
-  border-color: rgba(9,9,11,0.15);
-  color: #09090b;
+  border-color: var(--c15);
+  color: rgb(var(--fg-rgb));
 }
-body.light-mode .review-item { border-bottom-color: rgba(9,9,11,0.07); }
-body.light-mode .review-item-name { color: #09090b; }
-body.light-mode .review-item-date { color: rgba(9,9,11,0.4); }
-body.light-mode .review-item-title { color: #09090b; }
-body.light-mode .review-item-body { color: rgba(9,9,11,0.62); }
-body.light-mode .review-mbox-title { color: #09090b; }
-body.light-mode .review-mbox-eyebrow { color: #09090b; }
-body.light-mode .review-mbox-hd { border-bottom-color: rgba(9,9,11,.08); }
-body.light-mode .review-mbox .review-body-field { background: rgba(9,9,11,0.03); border-color: rgba(9,9,11,0.1); color: #09090b; }
-body.light-mode .review-mbox .review-body-field:focus { border-color: #09090b; box-shadow: 0 0 0 3px rgba(9,9,11,0.06); }
-body.light-mode .review-mbox .review-body-field::placeholder { color: rgba(9,9,11,0.25); }
+body.light-mode .review-item { border-bottom-color: var(--c07); }
+body.light-mode .review-item-name { color: rgb(var(--fg-rgb)); }
+body.light-mode .review-item-date { color: var(--c40); }
+body.light-mode .review-item-title { color: rgb(var(--fg-rgb)); }
+body.light-mode .review-item-body { color: rgb(var(--fg-rgb) / 62%); }
+body.light-mode .review-mbox-title { color: rgb(var(--fg-rgb)); }
+body.light-mode .review-mbox-eyebrow { color: rgb(var(--fg-rgb)); }
+body.light-mode .review-mbox-hd { border-bottom-color: var(--c08); }
+body.light-mode .review-mbox .review-body-field { background: rgb(var(--fg-rgb) / 3%); border-color: var(--c10); color: rgb(var(--fg-rgb)); }
+body.light-mode .review-mbox .review-body-field:focus { border-color: rgb(var(--fg-rgb)); box-shadow: 0 0 0 3px var(--c06); }
+body.light-mode .review-mbox .review-body-field::placeholder { color: rgb(var(--fg-rgb) / 25%); }
 body.light-mode .review-mbox .review-submit-btn,
-body.light-mode .review-list-mbox .review-submit-btn { background: #09090b; color: #E8E3DC; }
+body.light-mode .review-list-mbox .review-submit-btn { background: rgb(var(--fg-rgb)); color: #E8E3DC; }
 body.light-mode .review-mbox .review-submit-btn:hover,
 body.light-mode .review-list-mbox .review-submit-btn:hover { background: #1a1a1a; color: #E8E3DC; }
-body.light-mode .review-mbox .star-selector button { color: rgba(9,9,11,0.15); }
-body.light-mode .review-mbox .star-selector button.lit { color: #09090b; }
-body.light-mode .review-mbox .star-selector button.hover { color: rgba(9,9,11,0.55); }
-body.light-mode .review-mbox .review-radio-group label { background: rgba(9,9,11,0.04); border-color: rgba(9,9,11,0.15); color: rgba(9,9,11,0.6); }
-body.light-mode .review-mbox .review-radio-group label:hover { background: rgba(9,9,11,0.08); color: #09090b; }
-body.light-mode .review-mbox .review-radio-group input[type="radio"]:checked + label { border-color: #09090b; background: rgba(9,9,11,0.07); color: #09090b; }
+body.light-mode .review-mbox .star-selector button { color: var(--c15); }
+body.light-mode .review-mbox .star-selector button.lit { color: rgb(var(--fg-rgb)); }
+body.light-mode .review-mbox .star-selector button.hover { color: var(--c55); }
+body.light-mode .review-mbox .review-radio-group label { background: rgb(var(--fg-rgb) / 4%); border-color: var(--c15); color: rgb(var(--fg-rgb) / 60%); }
+body.light-mode .review-mbox .review-radio-group label:hover { background: var(--c08); color: rgb(var(--fg-rgb)); }
+body.light-mode .review-mbox .review-radio-group input[type="radio"]:checked + label { border-color: rgb(var(--fg-rgb)); background: var(--c07); color: rgb(var(--fg-rgb)); }
 /* Was #F0EEE9 (the warm panel tint) which read as a dingy beige box inside the
    white review modal. Use a barely-there neutral grey + a clearer border so the
    optional-ratings block reads as an intentional grouped card, not a colour mismatch. */
-body.light-mode .review-advanced-legacy { background: rgba(9,9,11,0.02) !important; border-color: rgba(9,9,11,0.12) !important; }
-body.light-mode .review-mbox .review-slider-wrap { color: rgba(9,9,11,0.5); }
+body.light-mode .review-advanced-legacy { background: rgb(var(--fg-rgb) / 2%) !important; border-color: var(--c12) !important; }
+body.light-mode .review-mbox .review-slider-wrap { color: var(--c50); }
 body.light-mode .review-mbox .review-legacy-label,
-body.light-mode .review-fit-toggle-label { color: rgba(9,9,11,0.7); }
-body.light-mode .review-list-title { color: #09090b; }
+body.light-mode .review-fit-toggle-label { color: var(--c70); }
+body.light-mode .review-list-title { color: rgb(var(--fg-rgb)); }
 body.light-mode .review-list-select,
 body.light-mode .review-list-translate,
-body.light-mode .review-list-close { background: #F0EEE9; border-color: rgba(9,9,11,0.1); color: #09090b; }
+body.light-mode .review-list-close { background: #F0EEE9; border-color: var(--c10); color: rgb(var(--fg-rgb)); }
 body.light-mode .review-list-mbox .review-card-author,
-body.light-mode .review-list-mbox .review-card-title { color: #09090b; }
+body.light-mode .review-list-mbox .review-card-title { color: rgb(var(--fg-rgb)); }
 body.light-mode .review-list-mbox .review-card-body,
 body.light-mode .review-list-mbox .review-admin-body,
-body.light-mode .review-list-mbox .review-modal-message { color: rgba(9,9,11,0.72); }
-body.light-mode .review-list-mbox .review-card-date { color: rgba(9,9,11,0.52); }
-body.light-mode .review-list-mbox .review-modal-card { border-bottom-color: rgba(9,9,11,0.08); }
+body.light-mode .review-list-mbox .review-modal-message { color: rgb(var(--fg-rgb) / 72%); }
+body.light-mode .review-list-mbox .review-card-date { color: rgb(var(--fg-rgb) / 52%); }
+body.light-mode .review-list-mbox .review-modal-card { border-bottom-color: var(--c08); }
 /* Stars and rating widgets */
-body.light-mode .review-item-stars { color: #09090b; }
+body.light-mode .review-item-stars { color: rgb(var(--fg-rgb)); }
 body.light-mode .rs-rating,
-body.light-mode .rs-stars { color: #09090b; }
-body.light-mode .rs-metric-fill { background: #09090b; }
-body.light-mode .review-mbox { border-top-color: #09090b; }
-body.light-mode .review-list-mbox { border-top-color: #09090b; }
+body.light-mode .rs-stars { color: rgb(var(--fg-rgb)); }
+body.light-mode .rs-metric-fill { background: rgb(var(--fg-rgb)); }
+body.light-mode .review-mbox { border-top-color: rgb(var(--fg-rgb)); }
+body.light-mode .review-list-mbox { border-top-color: rgb(var(--fg-rgb)); }
 /* Translate / toolbar hover */
 body.light-mode .translate-btn:hover,
-body.light-mode .review-list-translate:hover { border-color: #09090b; color: #09090b; background: rgba(9,9,11,.04); }
-body.light-mode .review-list-select:focus { border-color: #09090b; }
+body.light-mode .review-list-translate:hover { border-color: rgb(var(--fg-rgb)); color: rgb(var(--fg-rgb)); background: rgb(var(--fg-rgb) / 4%); }
+body.light-mode .review-list-select:focus { border-color: rgb(var(--fg-rgb)); }
 /* Slider and checkbox */
-body.light-mode .review-mbox .review-slider { accent-color: #09090b; }
-body.light-mode .review-fit-toggle-label input[type="checkbox"] { accent-color: #09090b; }
+body.light-mode .review-mbox .review-slider { accent-color: rgb(var(--fg-rgb)); }
+body.light-mode .review-fit-toggle-label input[type="checkbox"] { accent-color: rgb(var(--fg-rgb)); }
 /* Card action link and admin response */
-body.light-mode .review-list-mbox .review-card-action { color: #09090b; }
-body.light-mode { --admin-res-bg: rgba(9,9,11,0.05); --admin-res-text: #09090b; }
+body.light-mode .review-list-mbox .review-card-action { color: rgb(var(--fg-rgb)); }
+body.light-mode { --admin-res-bg: rgb(var(--fg-rgb) / 5%); --admin-res-text: rgb(var(--fg-rgb)); }
 /* Inline review items — author meta and write button */
-body.light-mode .review-item-author { color: rgba(9,9,11,.45); }
-body.light-mode .review-item-meta { color: rgba(9,9,11,.35); }
-body.light-mode .write-review-btn { border-color: rgba(9,9,11,.22); color: rgba(9,9,11,.7); }
-body.light-mode .write-review-btn:hover { border-color: rgba(9,9,11,.45); color: #09090b; }
+body.light-mode .review-item-author { color: var(--c45); }
+body.light-mode .review-item-meta { color: var(--c35); }
+body.light-mode .write-review-btn { border-color: rgb(var(--fg-rgb) / 22%); color: var(--c70); }
+body.light-mode .write-review-btn:hover { border-color: var(--c45); color: rgb(var(--fg-rgb)); }
 /* View All Reviews button — stronger border for visibility */
-body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.28); color: #09090b; }
+body.light-mode .view-all-btn { background: rgb(var(--fg-rgb) / 4%); border-color: rgb(var(--fg-rgb) / 28%); color: rgb(var(--fg-rgb)); }
 
 @media(max-width: 900px) {
   .review-summary-box { flex-direction: column; gap: 1.5rem; padding: 1.2rem; }
@@ -686,7 +686,7 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
      white surface — no pull indicator showed. Use a dark bar there so the sheet reads
      as draggable in every theme. */
   body.light-mode .review-mbox::before,
-  body.super-light-mode .review-mbox::before { background: rgba(9,9,11,.22); }
+  body.super-light-mode .review-mbox::before { background: rgb(var(--fg-rgb) / 22%); }
   /* Close btn stays visible — it's inside .review-mbox-hd which is above the fold */
   .review-mbox-hd .mclose { position: static !important; flex-shrink: 0; }
   .review-mbox-hd { display: flex !important; align-items: flex-start !important; justify-content: space-between !important; margin-bottom: 1.25rem !important; }
@@ -750,6 +750,6 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
 
 /* Light/super-light: review toggle + count sit on the product card (theme bg),
    so their hardcoded light color goes invisible on light backgrounds. */
-body.light-mode .review-toggle-btn, body.super-light-mode .review-toggle-btn{ color:rgba(9,9,11,.55); }
-body.light-mode .review-toggle-btn:hover, body.super-light-mode .review-toggle-btn:hover{ color:rgba(9,9,11,.85); }
-body.light-mode .review-count, body.super-light-mode .review-count{ color:rgba(9,9,11,.42); }
+body.light-mode .review-toggle-btn, body.super-light-mode .review-toggle-btn{ color:var(--c55); }
+body.light-mode .review-toggle-btn:hover, body.super-light-mode .review-toggle-btn:hover{ color:rgb(var(--fg-rgb) / 85%); }
+body.light-mode .review-count, body.super-light-mode .review-count{ color:rgb(var(--fg-rgb) / 42%); }

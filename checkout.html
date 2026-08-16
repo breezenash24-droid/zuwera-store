@@ -148,11 +148,11 @@ try {
     body.light-mode {
       --bg:      #F0EEE9;
       --surface: #ffffff;
-      --border:  rgba(9,9,11,.1);
-      --border2: rgba(9,9,11,.18);
-      --text:    #09090b;
-      --sub:     rgba(9,9,11,.55);
-      --dim:     rgba(9,9,11,.32);
+      --border:  var(--c10);
+      --border2: rgb(var(--fg-rgb) / 18%);
+      --text:    rgb(var(--fg-rgb));
+      --sub:     var(--c55);
+      --dim:     rgb(var(--fg-rgb) / 32%);
     }
     body.super-light-mode { --bg: #FFFFFF; --surface: #f5f5f5; }
 
@@ -230,8 +230,8 @@ try {
       font-size: .6rem; font-weight: 600; font-family: var(--font-mono);
       flex-shrink: 0;
     }
-    body.light-mode .co-bag-icon { border-color: rgba(9,9,11,.2); color: rgba(9,9,11,.85); }
-    body.light-mode .co-bag-icon:hover { border-color: rgba(9,9,11,.5); }
+    body.light-mode .co-bag-icon { border-color: var(--c20); color: rgb(var(--fg-rgb) / 85%); }
+    body.light-mode .co-bag-icon:hover { border-color: var(--c50); }
 
     /* --------------------------------- Page body -- */
     .co-body {
@@ -380,15 +380,15 @@ try {
       border-radius: 0;
     }
     .pfield input:focus { border-color: var(--c45); }
-    body.light-mode .pfield input { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.16); color: #09090b; }
-    body.light-mode .pfield input:focus { border-color: rgba(9,9,11,.45); }
+    body.light-mode .pfield input { background: rgb(var(--fg-rgb) / 4%); border-color: rgb(var(--fg-rgb) / 16%); color: rgb(var(--fg-rgb)); }
+    body.light-mode .pfield input:focus { border-color: var(--c45); }
     /* Placeholders have to be unmistakably NOT typed text. These read as real
        example values ("Jane Smith", "New York", "10001"), and at the browser's
        default placeholder contrast a whole empty address looked filled in — so
        shipping and tax showing "—" read as a broken calculation rather than the
        correct answer for an address that had not been entered yet. */
     .pfield input::placeholder { color: rgb(var(--fg-rgb) / 32%); font-style: italic; }
-    body.light-mode .pfield input::placeholder { color: rgba(9,9,11,.30); font-style: italic; }
+    body.light-mode .pfield input::placeholder { color: var(--c30); font-style: italic; }
     body.light-mode .pfield label { color: var(--sub); }
     /* Delivery method options — match the square, bordered look of the inputs */
     .co-delivery-hint { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--sub); margin-bottom: .4rem; }
@@ -407,24 +407,24 @@ try {
     .co-delivery-opt.is-selected { border-color: var(--c45); }
     .co-delivery-opt input { margin: 0; accent-color: rgb(var(--fg-rgb) / 85%); flex-shrink: 0; }
     .co-delivery-note { font-size: .78rem; color: var(--sub); line-height: 1.5; margin-top: .55rem; }
-    body.light-mode .co-delivery-opt { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.16); color: #09090b; }
-    body.light-mode .co-delivery-opt.is-selected { border-color: rgba(9,9,11,.45); }
-    body.light-mode .co-delivery-opt input { accent-color: rgba(9,9,11,.8); }
+    body.light-mode .co-delivery-opt { background: rgb(var(--fg-rgb) / 4%); border-color: rgb(var(--fg-rgb) / 16%); color: rgb(var(--fg-rgb)); }
+    body.light-mode .co-delivery-opt.is-selected { border-color: var(--c45); }
+    body.light-mode .co-delivery-opt input { accent-color: var(--c80); }
 
     /* Shipping rate options */
     .rate-opt { display: flex; align-items: center; justify-content: space-between; gap: .7rem; padding: .65rem .85rem; border: 1px solid var(--border2); cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: .4rem; background: rgb(var(--fg-rgb) / 2%); font-size: .84rem; }
     .rate-opt:hover { border-color: var(--c35); background: rgb(var(--fg-rgb) / 4%); }
     .rate-opt.selected { border-color: rgb(var(--fg-rgb) / 60%); background: var(--c07); }
     .rate-meta { font-size: .78rem; color: var(--sub); margin-top: .15rem; }
-    body.light-mode .rate-opt { background: rgba(9,9,11,.02); border-color: rgba(9,9,11,.12); }
-    body.light-mode .rate-opt.selected { border-color: rgba(9,9,11,.55); }
+    body.light-mode .rate-opt { background: rgb(var(--fg-rgb) / 2%); border-color: var(--c12); }
+    body.light-mode .rate-opt.selected { border-color: var(--c55); }
 
     /* Stripe card */
     #stripe-card-element { background: rgb(var(--fg-rgb) / 4%); border: 1px solid var(--border2); padding: .8rem .85rem; transition: border-color .2s; }
     #stripe-card-element.StripeElement--focus { border-color: var(--c45); }
     #stripe-card-element.StripeElement--invalid { border-color: #e07060; }
-    body.light-mode #stripe-card-element { background: #f4f1eb; border-color: rgba(9,9,11,.28); }
-    body.light-mode #stripe-card-element.StripeElement--focus { border-color: rgba(9,9,11,.55); }
+    body.light-mode #stripe-card-element { background: #f4f1eb; border-color: rgb(var(--fg-rgb) / 28%); }
+    body.light-mode #stripe-card-element.StripeElement--focus { border-color: var(--c55); }
 
     #pay-error { color: #e07060; font-size: .84rem; min-height: 1rem; margin: .4rem 0; }
 
@@ -443,8 +443,8 @@ try {
     #zw-promo-apply { border: 1px solid rgb(var(--fg-rgb) / 22%); background: transparent; color: inherit; padding: .72rem 1.2rem; font-family: var(--font-body); font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: border-color .2s; }
     #zw-promo-apply:hover { border-color: var(--c50); }
     #zw-promo-message { font-size: .78rem; color: var(--sub); min-height: .85rem; margin-top: .3rem; }
-    body.light-mode #zw-promo-input { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.14); color: #09090b; }
-    body.light-mode #zw-promo-apply { border-color: rgba(9,9,11,.2); color: #09090b; }
+    body.light-mode #zw-promo-input { background: rgb(var(--fg-rgb) / 4%); border-color: var(--c14); color: rgb(var(--fg-rgb)); }
+    body.light-mode #zw-promo-apply { border-color: var(--c20); color: rgb(var(--fg-rgb)); }
 
     /* Submit */
     #pay-submit {
@@ -468,7 +468,7 @@ try {
     }
     #pay-submit:hover { opacity: .82; }
     #pay-submit:disabled { opacity: .38; cursor: not-allowed; }
-    body.light-mode #pay-submit { background: #09090b; color: #E8E3DC; }
+    body.light-mode #pay-submit { background: rgb(var(--fg-rgb)); color: #E8E3DC; }
 
     .psecure {
       display: flex;
@@ -498,18 +498,18 @@ try {
     }
     #payment-success.open { display: flex; }
     .success-check { width: 64px; height: 64px; border: 1px solid var(--c20); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin: 0 auto 1.5rem; }
-    body.light-mode .success-check { border-color: rgba(9,9,11,.2); }
+    body.light-mode .success-check { border-color: var(--c20); }
     #payment-success h2 { font-family: var(--font-head); font-size: 2.5rem; letter-spacing: .1em; margin-bottom: .6rem; }
     #payment-success p { color: var(--sub); font-size: .9rem; margin-bottom: 1.5rem; max-width: 340px; line-height: 1.8; }
     #success-order { font-size: .75rem; letter-spacing: .2em; color: var(--dim) !important; }
     #success-continue { background: rgb(var(--fg-rgb) / 90%); color: #09090b; border: none; padding: .9rem 2.5rem; font-family: var(--font-body); font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: opacity .2s; margin-top: 1rem; }
     #success-continue:hover { opacity: .82; }
-    body.light-mode #success-continue { background: #09090b; color: #E8E3DC; }
+    body.light-mode #success-continue { background: rgb(var(--fg-rgb)); color: #E8E3DC; }
 
     /* --------------------------------- Toast -- */
     #toast { position: fixed; bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%) translateY(10px); background: #0f0f0f; color: rgb(var(--fg-rgb) / 90%); padding: .5rem 1.2rem; font-size: .72rem; letter-spacing: .08em; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; z-index: 9999; white-space: nowrap; }
     #toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
-    body.light-mode #toast { background: #F0EEE9; color: #09090b; }
+    body.light-mode #toast { background: #F0EEE9; color: rgb(var(--fg-rgb)); }
 
     /* --------------------------------- Mobile tweaks -- */
     @media (max-width: 600px) {
@@ -566,7 +566,7 @@ try {
     }
     @media (max-width: 900px) { .co-logo-wrap img { height: 45.1px !important; } }
   </style>
-<style>body.super-light-mode{background:var(--black,#FFFFFF)!important;--bg:#FFFFFF}body.super-light-mode #toast{background:#FFFFFF!important;color:#09090b!important}</style>
+<style>body.super-light-mode{background:var(--black,#FFFFFF)!important;--bg:#FFFFFF}body.super-light-mode #toast{background:#FFFFFF!important;color:rgb(var(--fg-rgb))!important}</style>
 <script src="error-reporter.js?v=6622e7d7" defer></script>
 <script src="consent.js?v=2e7601ab" defer></script>
 </head>

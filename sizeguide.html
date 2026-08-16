@@ -179,10 +179,10 @@ try {
     }
     body.light-mode {
       --bg: #F0EEE9;
-      --text: #09090b;
-      --muted: rgba(9, 9, 11, 0.6);
-      --border: rgba(9, 9, 11, 0.15);
-      --hover: rgba(9, 9, 11, 0.06);
+      --text: rgb(var(--fg-rgb));
+      --muted: rgb(var(--fg-rgb) / 60%);
+      --border: var(--c15);
+      --hover: var(--c06);
     }
     body.super-light-mode { --bg: #FFFFFF; background: #FFFFFF !important; }
 
@@ -923,62 +923,62 @@ try {
     /* ------ LIGHT MODE ------ */
     body.light-mode {
       --bg: #F0EEE9;
-      --text: #09090b;
-      --muted: rgba(9, 9, 11, 0.6);
-      --border: rgba(9, 9, 11, 0.15);
-      --hover: rgba(9, 9, 11, 0.08);
+      --text: rgb(var(--fg-rgb));
+      --muted: rgb(var(--fg-rgb) / 60%);
+      --border: var(--c15);
+      --hover: var(--c08);
     }
-    body.light-mode .nav { background: var(--zw-nav-bg, #F0EEE9); border-bottom-color: rgba(9,9,11,0.08); }
+    body.light-mode .nav { background: var(--zw-nav-bg, #F0EEE9); border-bottom-color: var(--c08); }
     body.super-light-mode .nav { background: var(--zw-nav-bg, #FFFFFF); }
-    body.super-light-mode .calc-select option { background: #FFFFFF; color: #09090b; }
+    body.super-light-mode .calc-select option { background: #FFFFFF; color: rgb(var(--fg-rgb)); }
     body.light-mode .flogo img { filter: none; }
-    body.light-mode .calculator { background: rgba(9,9,11,0.02); }
-    body.light-mode .focused-guide-note { background: rgba(9, 9, 11, 0.03); }
+    body.light-mode .calculator { background: rgb(var(--fg-rgb) / 2%); }
+    body.light-mode .focused-guide-note { background: rgb(var(--fg-rgb) / 3%); }
     body.light-mode .calc-input, body.light-mode .calc-select {
-      background-color: rgba(9,9,11,0.04);
-      color: #09090b;
+      background-color: rgb(var(--fg-rgb) / 4%);
+      color: rgb(var(--fg-rgb));
     }
     body.light-mode .calc-select {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2309090b' stroke-width='1.5' fill='none' opacity='0.4'/%3E%3C/svg%3E");
     }
-    body.light-mode .calc-select option { background: #F0EEE9; color: #09090b; }
+    body.light-mode .calc-select option { background: #F0EEE9; color: rgb(var(--fg-rgb)); }
     body.light-mode .calc-input:focus, body.light-mode .calc-select:focus {
-      background: rgba(9,9,11,0.06);
-      border-color: rgba(9,9,11,0.4);
+      background: var(--c06);
+      border-color: var(--c40);
     }
-    body.light-mode thead tr { background: rgba(9,9,11,0.04); }
-    body.light-mode tbody tr { border-bottom-color: rgba(9,9,11,0.04); }
-    body.light-mode tbody tr:hover { background: rgba(9,9,11,0.04); }
-    body.light-mode tbody td { color: rgba(9,9,11,0.65); }
-    body.light-mode .measure-letter { color: rgba(9,9,11,0.15); }
-    body.light-mode .sizing-notes { background: rgba(9,9,11,0.03); }
-    body.light-mode .tech-card { background: rgba(9,9,11,0.02); }
+    body.light-mode thead tr { background: rgb(var(--fg-rgb) / 4%); }
+    body.light-mode tbody tr { border-bottom-color: rgb(var(--fg-rgb) / 4%); }
+    body.light-mode tbody tr:hover { background: rgb(var(--fg-rgb) / 4%); }
+    body.light-mode tbody td { color: var(--c65); }
+    body.light-mode .measure-letter { color: var(--c15); }
+    body.light-mode .sizing-notes { background: rgb(var(--fg-rgb) / 3%); }
+    body.light-mode .tech-card { background: rgb(var(--fg-rgb) / 2%); }
     /* Replace pink accent with black in light mode */
-    body.light-mode { --accent: #09090b; }
+    body.light-mode { --accent: rgb(var(--fg-rgb)); }
     body.light-mode .tab-btn.active {
-      color: #09090b;
-      border-bottom-color: #09090b;
+      color: rgb(var(--fg-rgb));
+      border-bottom-color: rgb(var(--fg-rgb));
     }
-    body.light-mode .tab-btn:hover { color: #09090b; }
+    body.light-mode .tab-btn:hover { color: rgb(var(--fg-rgb)); }
     body.light-mode .calc-result {
-      background: rgba(9,9,11,0.02);
-      border-color: #09090b;
+      background: rgb(var(--fg-rgb) / 2%);
+      border-color: rgb(var(--fg-rgb));
     }
-    body.light-mode .calc-result-title { color: rgba(9,9,11,0.55); }
+    body.light-mode .calc-result-title { color: var(--c55); }
     body.light-mode .highlight-card {
-      background: rgba(9,9,11,0.04);
-      border-color: rgba(9,9,11,0.15);
+      background: rgb(var(--fg-rgb) / 4%);
+      border-color: var(--c15);
     }
-    body.light-mode .highlight-title { color: #09090b; }
-    body.light-mode .nav-back { color: #09090b; opacity: 0.55; }
+    body.light-mode .highlight-title { color: rgb(var(--fg-rgb)); }
+    body.light-mode .nav-back { color: rgb(var(--fg-rgb)); opacity: 0.55; }
     body.light-mode .nav-back:hover { opacity: 1; }
-    body.light-mode .page-title { color: #09090b; }
-    body.light-mode .page-subtitle { color: rgba(9,9,11,0.5); }
-    body.light-mode .calc-toggle-btn { border-color: rgba(9,9,11,0.15); color: rgba(9,9,11,0.5); }
-    body.light-mode .calc-toggle-btn:hover:not(.active) { border-color: #09090b; color: #09090b; }
-    body.light-mode .calc-toggle-btn.active { background: #09090b; border-color: #09090b; color: #E8E3DC; }
-    body.light-mode .calc-button { background: #09090b; color: #E8E3DC; }
-    body.light-mode .tabs-nav { border-bottom-color: rgba(9,9,11,0.1); }
+    body.light-mode .page-title { color: rgb(var(--fg-rgb)); }
+    body.light-mode .page-subtitle { color: var(--c50); }
+    body.light-mode .calc-toggle-btn { border-color: var(--c15); color: var(--c50); }
+    body.light-mode .calc-toggle-btn:hover:not(.active) { border-color: rgb(var(--fg-rgb)); color: rgb(var(--fg-rgb)); }
+    body.light-mode .calc-toggle-btn.active { background: rgb(var(--fg-rgb)); border-color: rgb(var(--fg-rgb)); color: #E8E3DC; }
+    body.light-mode .calc-button { background: rgb(var(--fg-rgb)); color: #E8E3DC; }
+    body.light-mode .tabs-nav { border-bottom-color: var(--c10); }
   </style>
 <script>try{var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
 <script src="/posthog-init.js?v=653a267b" defer></script>
