@@ -46,24 +46,37 @@ try {
     var _id = _sel || (_tc && _tc.default) || '';
     _rec = (_tc && _tc.modes && _tc.modes.filter(function (x) { return x && x.id === _id; })[0]) || null;
   } catch (_) {}
+  var _known = true;
   var _base = (_rec && _rec.base) || '';
   if (!_base && (_sel === 'dark' || _sel === 'light' || _sel === 'super-light')) _base = _sel;
   if (!_base) _base = h.getAttribute('data-zw-theme-default') || '';
-  if (_base !== 'light' && _base !== 'super-light') _base = 'dark';
+  if (_base !== 'light' && _base !== 'super-light' && _base !== 'dark') { _base = ''; }
+  if (!_base) { _base = 'dark'; _known = false; }
   var _tt = (_rec && _rec.tokens) || null;
   var _light = _base !== 'dark';
-  h.setAttribute('data-zw-base', _base);
-  h.style.colorScheme = _light ? 'light' : 'dark';
+  if (_known) {
+    h.setAttribute('data-zw-base', _base);
+    h.style.colorScheme = _light ? 'light' : 'dark';
+  }
   (function () {
     var go = function () {
       if (!document.body) return false;
-      document.body.classList.toggle('light-mode', _light);
-      document.body.classList.toggle('super-light-mode', _base === 'super-light');
+      if (_known) {
+        document.body.classList.toggle('light-mode', _light);
+        document.body.classList.toggle('super-light-mode', _base === 'super-light');
+      } else {
+        var cl = document.body.classList;
+        var shipped = cl.contains('super-light-mode') ? 'super-light'
+                    : cl.contains('light-mode') ? 'light' : 'dark';
+        h.setAttribute('data-zw-base', shipped);
+        h.style.colorScheme = shipped === 'dark' ? 'dark' : 'light';
+      }
       return true;
     };
     if (!go()) document.addEventListener('readystatechange', go, { once: false });
   }());
-  var _ground = (_tt && _tt.bg) ? ('rgb(' + _tt.bg + ')')
+  var _ground = !_known ? ''
+              : (_tt && _tt.bg) ? ('rgb(' + _tt.bg + ')')
               : _base === 'super-light' ? '#FFFFFF'
               : _base === 'light' ? '#F0EEE9' : '';
   if (_ground) {

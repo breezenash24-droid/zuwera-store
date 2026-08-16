@@ -76,7 +76,10 @@ try {
     _rec = (_tc && _tc.modes && _tc.modes.filter(function (x) { return x && x.id === _id; })[0]) || null;
   } catch (_) {}
 
-  /* THE BASE. Everything below reads this and nothing below re-decides it. */
+  /* THE BASE. Everything below reads this and nothing below re-decides it.
+     _known tracks whether it was actually LEARNED or merely fallen back to —
+     the difference matters, see the class block. */
+  var _known = true;
   var _base = (_rec && _rec.base) || '';
   /* The three built-in ids ARE their own base, and base.css already declares
      their token sets against the body classes — so for these the class alone is
@@ -84,25 +87,45 @@ try {
   if (!_base && (_sel === 'dark' || _sel === 'light' || _sel === 'super-light')) _base = _sel;
   /* What the build baked in, for a visitor with nothing stored at all. */
   if (!_base) _base = h.getAttribute('data-zw-theme-default') || '';
+  if (_base !== 'light' && _base !== 'super-light' && _base !== 'dark') { _base = ''; }
   /* And finally what ships in the stylesheet. See rule 2 above. */
-  if (_base !== 'light' && _base !== 'super-light') _base = 'dark';
+  if (!_base) { _base = 'dark'; _known = false; }
 
   var _tt = (_rec && _rec.tokens) || null;
   var _light = _base !== 'dark';
 
-  h.setAttribute('data-zw-base', _base);
-  h.style.colorScheme = _light ? 'light' : 'dark';
+  if (_known) {
+    h.setAttribute('data-zw-base', _base);
+    h.style.colorScheme = _light ? 'light' : 'dark';
+  }
 
-  /* GROUND AND TEXT MOVE TOGETHER — the classes are set from the same _base as
-     the background, unconditionally. The old version set them only when it had
-     a token cache to read, so the common case (no cache) painted a light ground
-     under dark-mode rules. <body> does not exist yet in <head>, so this applies
-     at the first moment it does. Idempotent: the engine toggles the same two. */
+  /* GROUND AND TEXT MOVE TOGETHER — the classes come from the same _base as the
+     background. The old version set them only when it had a token cache to
+     read, so the common case (no cache) painted a light ground under dark-mode
+     rules. <body> does not exist yet in <head>, so this applies at the first
+     moment it does. Idempotent: the engine toggles the same two.
+
+     KNOWING NOTHING IS NOT THE SAME AS KNOWING DARK, and conflating them is its
+     own bug. stamp-theme-default.js bakes the store's default onto <body> at
+     build time, and in a srcdoc iframe or anywhere localStorage is unreadable
+     that stamp is the ONLY signal there is. Toggling from the fallback would
+     strip it and turn a light store dark on exactly the loads that have nothing
+     else to go on — the same mistake theme-engine.js's shippedBase() exists to
+     avoid, made one step earlier. So when nothing was learned, the stamp is
+     read rather than overwritten. */
   (function () {
     var go = function () {
       if (!document.body) return false;
-      document.body.classList.toggle('light-mode', _light);
-      document.body.classList.toggle('super-light-mode', _base === 'super-light');
+      if (_known) {
+        document.body.classList.toggle('light-mode', _light);
+        document.body.classList.toggle('super-light-mode', _base === 'super-light');
+      } else {
+        var cl = document.body.classList;
+        var shipped = cl.contains('super-light-mode') ? 'super-light'
+                    : cl.contains('light-mode') ? 'light' : 'dark';
+        h.setAttribute('data-zw-base', shipped);
+        h.style.colorScheme = shipped === 'dark' ? 'dark' : 'light';
+      }
       return true;
     };
     if (!go()) document.addEventListener('readystatechange', go, { once: false });
@@ -110,7 +133,8 @@ try {
 
   /* The ground. Dark is left alone deliberately: it is what base.css already
      paints, so writing it again can only be a chance to write it wrong. */
-  var _ground = (_tt && _tt.bg) ? ('rgb(' + _tt.bg + ')')
+  var _ground = !_known ? ''
+              : (_tt && _tt.bg) ? ('rgb(' + _tt.bg + ')')
               : _base === 'super-light' ? '#FFFFFF'
               : _base === 'light' ? '#F0EEE9' : '';
   if (_ground) {

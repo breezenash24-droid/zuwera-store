@@ -63,7 +63,8 @@ console.log('  fourteen copies, one source');
 
 /* ── Run the real block, against a DOM small enough to inspect ─────────────── */
 
-function runPreboot({ stored = null, themeModes = null, shipped = null, landing = null } = {}) {
+function runPreboot({ stored = null, themeModes = null, shipped = null, landing = null,
+                     bodyClasses = '', storageThrows = false } = {}) {
   const store = {};
   if (stored) store.zw_theme_mode = stored;
   if (themeModes) store.zw_theme_modes = JSON.stringify(themeModes);
@@ -75,10 +76,16 @@ function runPreboot({ stored = null, themeModes = null, shipped = null, landing 
     getAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k) ? this._attrs[k] : null; },
     style: { _props: {}, setProperty(k, v) { this._props[k] = v; } },
   };
-  const classes = new Set();
+  /* Pre-seeded with whatever stamp-theme-default.js baked onto <body> at build
+     time, because on a load with no localStorage that stamp is the only thing
+     standing between the visitor and the wrong theme. */
+  const classes = new Set(String(bodyClasses || '').split(/\s+/).filter(Boolean));
   const doc = {
     documentElement: htmlEl,
-    body: { classList: { toggle(name, on) { if (on) classes.add(name); else classes.delete(name); } } },
+    body: { classList: {
+      toggle(name, on) { if (on) classes.add(name); else classes.delete(name); },
+      contains(name) { return classes.has(name); },
+    } },
     head: { appendChild(el) { styles.push(el); } },
     createElement: () => ({ id: '', textContent: '' }),
     querySelector: () => null,
@@ -88,7 +95,12 @@ function runPreboot({ stored = null, themeModes = null, shipped = null, landing 
 
   const code = block().replace(OPEN, '').replace(CLOSE, '');
   new Function('window', 'document', 'localStorage', code)(win, doc, {
-    getItem: (k) => (Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null),
+    /* A srcdoc iframe, a private window with storage blocked, or a browser that
+       has run out of quota all THROW here rather than returning null. */
+    getItem: (k) => {
+      if (storageThrows) throw new Error('storage is not available');
+      return Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null;
+    },
   });
 
   const ground = styles.filter((s) => s.id === 'zw-preboot-ground')[0] || null;
@@ -152,6 +164,50 @@ console.log('\n  the last-resort default is what the stylesheet ships');
   /* A real choice beats both. */
   const c = runPreboot({ stored: 'dark', shipped: 'super-light' });
   ok('…and an explicit choice beats the stamp', c.base === 'dark' && !c.light);
+}
+
+console.log('\n  knowing nothing is not the same as knowing dark');
+{
+  /* THE REGRESSION THIS CAUGHT, found by looking at the size-guide iframe.
+     It is loaded with srcdoc, and localStorage in a srcdoc frame is unreadable
+     in some browsers — it THROWS rather than returning null. The first version
+     of the one-base rewrite toggled the classes from the fallback whatever the
+     reason for falling back, which STRIPPED the light-mode class the build had
+     baked onto <body>. A light store would have gone dark for every visitor
+     with no localStorage: every first visit, every private window, and the size
+     guide on every device. Exactly the mistake theme-engine.js's shippedBase()
+     exists to avoid, made one step earlier.
+
+     A pre-paint block that has learned nothing must READ what shipped, not
+     overwrite it. */
+  const stamped = 'zw-theme-stamp light-mode super-light-mode';
+
+  const blocked = runPreboot({ bodyClasses: stamped, storageThrows: true });
+  ok('unreadable storage leaves the stamped classes alone',
+    blocked.light && blocked.superLight,
+    'this is a light store going dark on every first visit');
+  ok('…and reports the stamped base rather than its own fallback',
+    blocked.base === 'super-light', blocked.base);
+  ok('…and paints no ground over it', !blocked.lightGround && !blocked.htmlBg,
+    'body.light-mode already sets --black, so the stamp alone paints correctly');
+
+  const empty = runPreboot({ bodyClasses: stamped });
+  ok('empty storage does the same', empty.light && empty.superLight && empty.base === 'super-light');
+
+  const plainLight = runPreboot({ bodyClasses: 'zw-theme-stamp light-mode' });
+  ok('a plain light stamp is not promoted to super-light',
+    plainLight.light && !plainLight.superLight && plainLight.base === 'light');
+
+  const unstamped = runPreboot({ bodyClasses: '' });
+  ok('an unstamped page is still dark', unstamped.base === 'dark' && !unstamped.light,
+    'a dark store stamps no class at all and must not be turned light by this');
+
+  /* And the stamp is a fallback for knowing nothing, never a veto on knowing
+     something — a visitor who picked dark on a light store still gets dark. */
+  const chose = runPreboot({ bodyClasses: stamped, stored: 'dark' });
+  ok('a real choice still overrules the stamp', chose.base === 'dark' && !chose.light);
+  const attr = runPreboot({ bodyClasses: stamped, shipped: 'dark' });
+  ok('…as does an explicit build default', attr.base === 'dark' && !attr.light);
 }
 
 console.log('\n  precedence');
