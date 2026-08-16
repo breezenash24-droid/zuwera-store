@@ -1020,10 +1020,27 @@ try {
       if (window.__ZW_SIZEGUIDE_EMBED__ === true) {
         document.body.classList.add('embed-mode');
       }
-      /* Falls back to the base the pre-paint block resolved, not to a second
-         guess at it — a hardcoded light default here repainted dark stores. */
-      try { applyThemeMode(localStorage.getItem('zw_theme_mode') || document.documentElement.getAttribute('data-zw-base') || 'dark'); }
-      catch(_) { applyThemeMode(document.documentElement.getAttribute('data-zw-base') || 'dark'); }
+      /* EMBEDDED, THE PAGE THAT OPENED US HAS ALREADY DECIDED.
+         The product page hands its resolved theme in on __ZW_SIZEGUIDE_THEME__.
+         Taking it is the difference between one answer and two: this document
+         is loaded with srcdoc, and a srcdoc frame does not always get to read
+         localStorage, so working the theme out again from in here is how the
+         size guide opened dark over a light product page. The id is tried first
+         so a CUSTOM theme arrives as itself; base is the fallback, because it
+         is the one thing that is always true. */
+      var _embedTheme = null;
+      try { _embedTheme = window.__ZW_SIZEGUIDE_THEME__ || null; } catch(_) {}
+      try {
+        if (_embedTheme && (_embedTheme.id || _embedTheme.base)) {
+          applyThemeMode(_embedTheme.id || _embedTheme.base);
+          /* apply() returns false for a theme this document does not know —
+             then the base still gets us the right SHAPE. */
+          if (window.ZWTheme && _embedTheme.id && !window.ZWTheme.current()) applyThemeMode(_embedTheme.base);
+        } else {
+          applyThemeMode(localStorage.getItem('zw_theme_mode') || document.documentElement.getAttribute('data-zw-base') || 'dark');
+        }
+      }
+      catch(_) { applyThemeMode((_embedTheme && _embedTheme.base) || document.documentElement.getAttribute('data-zw-base') || 'dark'); }
       window.__zwApplyAdminTheme = applyThemeMode;
       window.__zwSyncThemeColor = function() {
         var m = document.body.classList.contains('super-light-mode') ? 'super-light'
