@@ -47,7 +47,7 @@ async function sendEmail({ to, subject, html, fromEmail, env, cache }) {
   return sendTransactional({
     env, cache, to, subject, html, fromEmail,
     fromName: "Zuwera",
-    replyTo: 'orders@zuwera.store',
+    replyTo: fromEmail,
   });
 }
 
@@ -119,7 +119,7 @@ export async function onRequestPost({ request, env }) {
     }
     const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'orders@zuwera.store';
     const logoUrl = resolveSetting('BRAND_LOGO_URL', env, cache) || LOGO_FALLBACK;
-    const appearance = getEmailAppearance(cache); appearance.logo = logoUrl;
+    const appearance = getEmailAppearance(cache, env); appearance.logo = logoUrl;
     const content = getEmailContent(cache, 'review_request');
 
     const SUBJECT = fillTemplate(content.subject, {});

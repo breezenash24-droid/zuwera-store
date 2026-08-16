@@ -203,7 +203,7 @@ export async function onRequestPost({ request, env }) {
          'fonts', 'brand', 'email_theme', 'email_settings'], env,
       );
 
-      const appearance = getEmailAppearance(cache);
+      const appearance = getEmailAppearance(cache, env);
       appearance.logo = resolveSetting('BRAND_LOGO_URL', env, cache)
         || 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
       const content = getEmailContent(cache, 'return_link');

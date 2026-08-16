@@ -131,7 +131,7 @@ async function sendEmail({ to, toName, subject, html, fromEmail, env, cache }) {
   return sendTransactional({
     env, cache, to, toName, subject, html, fromEmail,
     fromName: "Zuwera",
-    replyTo: 'orders@zuwera.store',
+    replyTo: fromEmail,
   });
 }
 
@@ -365,7 +365,7 @@ export async function onRequestPost({ request, env }) {
   const brevoKey   = resolveSetting('BREVO_API_KEY',        env, cache);
   const fromEmail  = resolveSetting('EMAIL_FROM',           env, cache) || 'orders@zuwera.store';
   const logoUrl    = resolveSetting('BRAND_LOGO_URL',       env, cache) || LOGO_FALLBACK;
-  const appearance = getEmailAppearance(cache); appearance.logo = logoUrl;
+  const appearance = getEmailAppearance(cache, env); appearance.logo = logoUrl;
   /* A pause reads as "no credentials", so sendSms takes the early return it
      already has for an unconfigured account. Reusing a path that is known to be
      correct beats adding a second one that might not be. */

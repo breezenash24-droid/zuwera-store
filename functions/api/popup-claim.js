@@ -96,7 +96,7 @@ async function sendWelcomeEmail(env, { to, code, label }) {
     env
   );
   const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'orders@zuwera.store';
-  const a = getEmailAppearance(cache);
+  const a = getEmailAppearance(cache, env);
   const c = getEmailContent(cache, 'popup_welcome');
   const vars = { code: code || '', discount: label || '' };
 

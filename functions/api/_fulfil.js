@@ -1009,7 +1009,7 @@ export function buildOrderConfirmation({ appearance, content, orderId, toName, i
           &nbsp;·&nbsp;
           <a href="${orderStatusUrl({ userId: null, orderNumber, token })}" style="color:${a.text};text-decoration:underline;">30-day free returns</a><br>
           <span style="display:inline-block;margin-top:8px;">Questions? <a href="mailto:orders@zuwera.store" style="color:${a.muted};text-decoration:underline;">orders@zuwera.store</a></span><br>
-          <span style="display:inline-block;margin-top:8px;">© ${new Date().getFullYear()} Zuwera. All rights reserved.</span>`;
+          <span style="display:inline-block;margin-top:8px;">© ${new Date().getFullYear()} ${appearance.brand}. All rights reserved.</span>`;
 
   return renderEmailShell(a, {
     kicker:  fillTemplate(emailC.kicker, { name: toName, order: orderId }),
@@ -1039,7 +1039,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
   // Admin-controlled fonts + editable copy (site_settings, via _email-theme.js).
   // Layout/colours stay as this order-detail template's tested dark design; the
   // admin Emails editor drives the fonts, the subject, and the header copy.
-  const a = getEmailAppearance(emailKeyCache);
+  const a = getEmailAppearance(emailKeyCache, env);
   a.logo = logoUrl;   // resolveSetting also covers an env-var logo, which getEmailAppearance can't see
   const emailC = getEmailContent(emailKeyCache, 'order_confirmation');
   const escE = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1103,7 +1103,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
           </td>
         </tr>`;
       }).join('')
-    : `<tr><td colspan="3" style="padding:16px 0;color:${a.muted};">Your Zuwera order</td></tr>`;
+    : `<tr><td colspan="3" style="padding:16px 0;color:${a.muted};">Your ${a.brand} order</td></tr>`;
 
   const addrParts = [
     meta.ship_line1,
@@ -1172,9 +1172,9 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from:     `Zuwera <${fromEmail}>`,
+      from:     `${a.brand} <${fromEmail}>`,
       to:       [toEmail],
-      reply_to: 'orders@zuwera.store',
+      reply_to: fromEmail,
       subject:  fillTemplate(emailC.subject, { order: orderId }),
       html,
     }),
@@ -1202,9 +1202,9 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
       Accept:         'application/json',
     },
     body: JSON.stringify({
-      sender:      { name: 'Zuwera', email: fromEmail },
+      sender:      { name: a.brand, email: fromEmail },
       to:          [{ email: toEmail, name: toName }],
-      replyTo:     { email: 'orders@zuwera.store' },
+      replyTo:     { email: fromEmail },
       subject:     fillTemplate(emailC.subject, { order: orderId }),
       htmlContent: html,
     }),
@@ -1220,7 +1220,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
          them a sign-in flow with no order anywhere on it. Same destination as
          the main confirmation email now, which is also the point of having one
          helper decide this. */
-      text: `Your Zuwera order #${orderId} is confirmed and being prepared.\n\nView your order: ${orderStatusUrl({ userId: meta.user_id, orderNumber: meta.order_number, token: statusToken })}\n\nQuestions? orders@zuwera.store`,
+      text: `Your ${a.brand} order #${orderId} is confirmed and being prepared.\n\nView your order: ${orderStatusUrl({ userId: meta.user_id, orderNumber: meta.order_number, token: statusToken })}\n\nQuestions? orders@zuwera.store`,
       dataVariables: {
         orderId,
         orderUrl: orderStatusUrl({ userId: meta.user_id, orderNumber: meta.order_number, token: statusToken }),
