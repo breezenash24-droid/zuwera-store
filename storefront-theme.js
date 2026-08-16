@@ -420,9 +420,14 @@
         // returning visitors — previously a cached zw_theme_mode shadowed the
         // server value and permanently pinned whatever theme was seen first.
         // applyThemeMode rewrites zw_theme_mode to match, keeping reloads FOUC-free.
-        var mode = row.value && row.value.mode === 'dark' ? 'dark'
-                 : row.value && row.value.mode === 'super-light' ? 'super-light' : 'light';
-        applyThemeMode(mode);
+        /* Hand the stored value to applyThemeMode as-is so the engine gets a
+           chance to recognise it. The coercion below it — anything unknown
+           becomes 'light' — is the fifth copy of that ternary I have found
+           today, and on this path it means a store whose theme_modes.default
+           is a custom or imported theme can never arrive through the settings
+           row: it lands as whichever built-in it falls through to. */
+        var mode = (row.value && row.value.mode) || '';
+        if (mode) applyThemeMode(mode);
       }
       if (row.key === 'brand') {
         // Publish the store name for anything building a document title. It was

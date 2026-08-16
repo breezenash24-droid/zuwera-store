@@ -90,6 +90,38 @@ console.log('\n  the engine is the thing that knows the themes');
     'a theme that is only a name can never be more than one of the built-ins');
 }
 
+console.log('\n  how many places decide what theme the store is in');
+{
+  /* THIS IS A CONFIGURATION FAULT AND IT LOOKS EXACTLY LIKE A RENDERING ONE.
+   *
+   * A live store, audited: three keys, three different answers.
+   *
+   *     site_settings.theme.mode          "dark"
+   *     site_settings.theme_modes.default "imported-msmdwxzf"  (base super-light)
+   *     page_builder_published.theme      "super-light"
+   *
+   * So the homepage renders light while the Appearance toggle says dark, and
+   * nothing is broken in the sense of a bug — every reader is faithfully
+   * reporting the key it was told to read. The store simply has no single
+   * answer to "what theme am I in".
+   *
+   * The code cannot decide that for the merchant, but it can stop MULTIPLYING
+   * the disagreement, and that is what is asserted here: every path that turns
+   * a stored value into an applied theme must go through the engine, so at
+   * least a custom theme id survives the trip. The settings-row path was
+   * coercing anything it did not recognise to 'light' — the fifth copy of that
+   * ternary — which meant an imported theme could not arrive through it at all.
+   */
+  const st = fs.readFileSync(path.join(ROOT, 'storefront-theme.js'), 'utf8');
+  const row = st.slice(st.indexOf("if (row.key === 'theme')"), st.indexOf("if (row.key === 'brand')"));
+  ok('the settings row hands the stored value to the engine, not a guess at it',
+    /row\.value && row\.value\.mode\) \|\| ''/.test(row) && !/=== 'super-light' \? 'super-light' : 'light'/.test(row),
+    'coercing here means an imported or custom theme lands as whichever built-in it falls through to');
+  ok('…and an absent value applies nothing rather than defaulting',
+    /if \(mode\) applyThemeMode\(mode\)/.test(row),
+    'a missing setting is not an instruction to switch to light');
+}
+
 console.log('\n  the premise the conversion rests on');
 {
   /* 1,268 declarations inside light-mode blocks were rewritten from literals to
