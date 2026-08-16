@@ -4798,6 +4798,149 @@
             }
         }
 
+        /* Fix the address and buy the label again, without leaving the store.
+         *
+         * The dashboard used to say "buy labels manually", which meant: sign
+         * into Shippo, re-type the address, buy a label, come back, paste the
+         * tracking number into the order by hand. Four chances to ship to the
+         * wrong house, and the most common cause was never a payment problem at
+         * all — it was a shopper's typo in their own street.
+         *
+         * Two buttons, in the order a person would actually do it: CHECK asks
+         * the carrier what is wrong and offers its corrected version, costing
+         * nothing; BUY spends money. They are separate because a suggestion you
+         * cannot read before paying for it is not a suggestion.
+         */
+        window.fixShippingLabel = async function(orderNumber) {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:2.5rem 1rem;overflow:auto;';
+            const box = document.createElement('div');
+            box.style.cssText = 'background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;padding:1.5rem;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);';
+            box.innerHTML = '<div style="color:var(--text-secondary);font-size:.85rem;">Loading order ' + escapeHtml(orderNumber) + '…</div>';
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+            const close = () => { if (overlay.parentNode) document.body.removeChild(overlay); };
+            overlay.onclick = (e) => { if (e.target === overlay) close(); };
+
+            const { data: sess } = await sb.auth.getSession();
+            const token = sess && sess.session && sess.session.access_token;
+
+            const { data: rows } = await sb.from('orders')
+                .select('order_number, customer_name, email, ship_line1, ship_line2, ship_city, ship_state, ship_zip, ship_country, tracking_number')
+                .eq('order_number', String(orderNumber).replace(/^#/, '')).limit(1);
+            const order = rows && rows[0];
+            if (!order) { box.innerHTML = '<div style="color:#ef4444;font-size:.85rem;">No order numbered ' + escapeHtml(orderNumber) + '.</div>'; return; }
+
+            const field = (id, label, value, ph) =>
+                '<label style="display:block;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary);margin:.6rem 0 .2rem;">' + label + '</label>'
+                + '<input id="' + id + '" value="' + escapeHtml(value || '') + '"' + (ph ? ' placeholder="' + ph + '"' : '')
+                + ' style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);border-radius:7px;padding:.5rem .6rem;font-size:.85rem;">';
+
+            box.innerHTML =
+                '<h3 style="margin:0 0 .2rem;font-size:1rem;">Fix address &amp; buy label</h3>'
+                + '<div style="color:var(--text-secondary);font-size:.8rem;margin-bottom:.4rem;">Order #' + escapeHtml(order.order_number) + '</div>'
+                + (order.tracking_number
+                    ? '<div style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);border-radius:8px;padding:.6rem .7rem;font-size:.8rem;margin-bottom:.6rem;">This order already has tracking (' + escapeHtml(order.tracking_number) + '). Void that label in Shippo before buying another.</div>'
+                    : '')
+                + field('rl-name', 'Name', order.customer_name)
+                + field('rl-street1', 'Street address', order.ship_line1)
+                + field('rl-street2', 'Apt / Suite (optional)', order.ship_line2)
+                + '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:.5rem;">'
+                +   '<div>' + field('rl-city', 'City', order.ship_city) + '</div>'
+                +   '<div>' + field('rl-state', 'State', order.ship_state) + '</div>'
+                +   '<div>' + field('rl-zip', 'ZIP', order.ship_zip) + '</div>'
+                + '</div>'
+                + '<div id="rl-msg" style="display:none;font-size:.8rem;margin-top:.75rem;border-radius:8px;padding:.6rem .7rem;line-height:1.5;"></div>'
+                + '<div style="display:flex;gap:.5rem;margin-top:1rem;">'
+                +   '<button id="rl-check" style="flex:1;background:transparent;border:1px solid var(--border);color:var(--text-primary);padding:.65rem;border-radius:8px;font-size:.85rem;cursor:pointer;">Check address</button>'
+                +   '<button id="rl-buy" style="flex:1;background:#34d399;border:none;color:#09090b;padding:.65rem;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;">Buy label</button>'
+                + '</div>'
+                + '<button id="rl-cancel" style="width:100%;background:transparent;border:none;color:var(--text-secondary);padding:.5rem;font-size:.8rem;cursor:pointer;margin-top:.4rem;">Close</button>';
+
+            const msg = box.querySelector('#rl-msg');
+            const say = (text, tone) => {
+                msg.style.display = '';
+                msg.style.background = tone === 'bad' ? 'rgba(239,68,68,.12)' : tone === 'good' ? 'rgba(52,211,153,.12)' : 'rgba(148,163,184,.12)';
+                msg.style.border = '1px solid ' + (tone === 'bad' ? 'rgba(239,68,68,.3)' : tone === 'good' ? 'rgba(52,211,153,.3)' : 'var(--border)');
+                msg.innerHTML = text;
+            };
+            const read = () => ({
+                name: box.querySelector('#rl-name').value,
+                street1: box.querySelector('#rl-street1').value,
+                street2: box.querySelector('#rl-street2').value,
+                city: box.querySelector('#rl-city').value,
+                state: box.querySelector('#rl-state').value,
+                zip: box.querySelector('#rl-zip').value,
+                country: order.ship_country || 'US',
+                email: order.email || '',
+            });
+            const call = async (action) => {
+                const res = await fetch('/api/admin-relabel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                    body: JSON.stringify({ action, order: order.order_number, address: read() }),
+                });
+                return { ok: res.ok, data: await res.json().catch(() => ({})) };
+            };
+
+            const btnCheck = box.querySelector('#rl-check');
+            const btnBuy = box.querySelector('#rl-buy');
+
+            btnCheck.onclick = async () => {
+                btnCheck.disabled = true; btnCheck.textContent = 'Checking…';
+                try {
+                    const { data } = await call('validate');
+                    if (data.error) say(escapeHtml(data.error), 'bad');
+                    else if (data.valid && !data.suggestion) say('The carrier recognises this address. Safe to buy.', 'good');
+                    else {
+                        let html = data.valid
+                            ? 'The carrier recognises this address, but writes it slightly differently:'
+                            : 'The carrier does <strong>not</strong> recognise this address.';
+                        if (data.messages && data.messages.length) {
+                            html += '<div style="margin-top:.4rem;opacity:.85;">' + data.messages.map(escapeHtml).join('<br>') + '</div>';
+                        }
+                        if (data.suggestion) {
+                            const s = data.suggestion;
+                            html += '<div style="margin-top:.5rem;padding:.5rem .6rem;background:var(--bg-secondary);border-radius:6px;">'
+                                + escapeHtml([s.street1, s.street2].filter(Boolean).join(', ')) + '<br>'
+                                + escapeHtml(s.city + ', ' + s.state + ' ' + s.zip) + '</div>'
+                                /* Filling the boxes rather than buying straight from the
+                                   suggestion: the admin still sees what they are paying for. */
+                                + '<button id="rl-use" style="margin-top:.5rem;background:transparent;border:1px solid var(--border);color:var(--text-primary);padding:.4rem .7rem;border-radius:6px;font-size:.78rem;cursor:pointer;">Use this address</button>';
+                        }
+                        say(html, data.valid ? '' : 'bad');
+                        const use = box.querySelector('#rl-use');
+                        if (use) use.onclick = () => {
+                            const s = data.suggestion;
+                            ['street1', 'street2', 'city', 'state', 'zip'].forEach((k) => { box.querySelector('#rl-' + k).value = s[k] || ''; });
+                            say('Filled in. Check it, then buy the label.', '');
+                        };
+                    }
+                } catch (e) { say(escapeHtml(String(e.message || e)), 'bad'); }
+                btnCheck.disabled = false; btnCheck.textContent = 'Check address';
+            };
+
+            btnBuy.onclick = async () => {
+                btnBuy.disabled = true; btnBuy.textContent = 'Buying…';
+                try {
+                    const { data } = await call('buy');
+                    if (data.error) say(escapeHtml(data.error), 'bad');
+                    else {
+                        say('Label bought — ' + escapeHtml(data.provider + ' ' + data.service)
+                            + (data.cost ? ' ($' + data.cost + ')' : '') + '.<br>Tracking <strong>' + escapeHtml(data.tracking) + '</strong>'
+                            + (data.labelUrl ? '<br><a href="' + escapeHtml(data.labelUrl) + '" target="_blank" rel="noopener" style="color:inherit;">Open the label PDF →</a>' : '')
+                            + (data.test ? '<br><em>Test-mode label — this tracking number is not real.</em>' : '')
+                            + (data.warning ? '<br><strong>' + escapeHtml(data.warning) + '</strong>' : ''), 'good');
+                        btnBuy.style.display = 'none';
+                        loadDashboard();
+                    }
+                } catch (e) { say(escapeHtml(String(e.message || e)), 'bad'); }
+                btnBuy.disabled = false; btnBuy.textContent = 'Buy label';
+            };
+
+            box.querySelector('#rl-cancel').onclick = close;
+        };
+
         // ─── Warnings computation ─────────────────────────────────────────────
         function computeWarnings({ products, sizeRows, orders, labelFailures }) {
             const warnings = []; // { sev: 'critical'|'warning'|'info', icon, label, detail, action, flash? }
@@ -4820,8 +4963,19 @@
                 warnings.push({
                     sev: 'critical', icon: '💳', flash: true,
                     label: `${activeLabelFails.length} shipping label${activeLabelFails.length !== 1 ? 's' : ''} FAILED to purchase — check your ${[...new Set(activeLabelFails.map(f => f.source === 'veeqo' ? 'Veeqo' : 'Shippo'))].join(' & ')} payment method`,
-                    detail: `${names.join(' · ')}${activeLabelFails.length > 3 ? ` · +${activeLabelFails.length - 3} more` : ''} — latest error: ${String(latest.error || 'unknown').slice(0, 120)}. These orders were paid but have no label; buy labels manually or fix the card and re-buy.`,
-                    action: `<a onclick="navigateTo('receipts')">Go to Receipts →</a> &nbsp; <a onclick="clearLabelFailures()">Mark resolved ✓</a>`
+                    /* The reason, then the fix, in that order. This used to end
+                       "buy labels manually", which was the only instruction
+                       available and also the worst one — the usual cause is a
+                       shopper's typo in their own street, and correcting that
+                       by hand in another company's dashboard is four chances to
+                       ship to the wrong house. */
+                    detail: `${names.join(' · ')}${activeLabelFails.length > 3 ? ` · +${activeLabelFails.length - 3} more` : ''} — latest error: ${String(latest.error || 'unknown').slice(0, 120)}. Paid, but no label yet. ${/address/i.test(String(latest.error || '')) ? 'That error is the delivery address, not your card — correct it below and buy the label here.' : 'Fix the card on your carrier account if it was declined, then buy the label here.'}`,
+                    /* One button per failed order rather than one for the list:
+                       each needs its own address looked at, and a single
+                       "retry all" would spend money on the ones still wrong. */
+                    action: activeLabelFails.slice(-3).reverse().map(f =>
+                        `<a onclick="fixShippingLabel('${String(f.order || '').replace(/'/g, '')}')">Fix &amp; buy #${f.order || '?'} →</a>`
+                    ).join(' &nbsp; ') + ` &nbsp; <a onclick="navigateTo('receipts')">Receipts</a> &nbsp; <a onclick="clearLabelFailures()">Mark resolved ✓</a>`
                 });
             }
 

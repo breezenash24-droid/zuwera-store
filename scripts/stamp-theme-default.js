@@ -124,6 +124,18 @@ function classesFor(base) {
           '<body class="' + MARK_OPEN + ' ' + classes + '"$1>');
       }
 
+      /* AND TELL THE PRE-PAINT BLOCK, which runs in <head> where <body> — and
+         therefore the class above — does not exist yet. It used to fall back to
+         a hardcoded 'super-light' when the visitor had nothing stored, while
+         this script stamped whatever the database actually said. On a dark-
+         default store those two answers were opposites, and the pre-paint one
+         was written with !important, so the page kept a white ground under the
+         dark theme's near-white text. One default, published where both can
+         read it. */
+      next = next.replace(/<html\b([^>]*)>/i, (tag, attrs) =>
+        '<html' + String(attrs).replace(/\s*data-zw-theme-default="[^"]*"/i, '')
+          + ' data-zw-theme-default="' + String(mode.base) + '">');
+
       /* Never write something that would corrupt the page. */
       if ((next.match(/<body\b/gi) || []).length !== (html.match(/<body\b/gi) || []).length) {
         console.log('[stamp-theme-default] body count changed in ' + page + ' — skipped.');

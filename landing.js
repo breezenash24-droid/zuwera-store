@@ -112,6 +112,13 @@
      later applies the global theme (race-proof via the zw-theme-applied event). */
   var _slug = '', _preview = false, pageTheme = null, _tag = '';
   function lpApplyTheme(mode) {
+    /* The engine first, so a landing page can be set to ANY theme the store has
+       — not just the three built-ins. The coercion below turns every id it does
+       not recognise into 'light' and paints the built-in light palette, so a
+       custom theme chosen in the builder's Pages tab arrived here as a
+       different theme entirely. Passing false for persist: a per-page override
+       must not become the visitor's global choice. */
+    if (window.ZWTheme && window.ZWTheme.apply(mode, false)) return;
     var resolved = mode === 'dark' ? 'dark' : mode === 'super-light' ? 'super-light' : 'light';
     if (!document.body) return;
     document.body.classList.toggle('light-mode', resolved !== 'dark');
