@@ -1069,7 +1069,11 @@
 
         .form-input.error, .form-select.error, .form-textarea.error {
             border-color: var(--error);
-            background-color: rgba(239, 68, 68, 0.1);
+            /* Opaque, because .form-select is a <select> and its list opens in
+               a window with nothing behind it — a 10% red there composites
+               against the browser's canvas, not this panel. Same colour on the
+               page, still itself off it. */
+            background-color: color-mix(in srgb, var(--error) 10%, var(--bg-secondary));
         }
 
         .form-textarea {

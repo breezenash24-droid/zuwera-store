@@ -51,9 +51,19 @@ console.log('  the fit finder is drawn on two different surfaces');
   /* The resting controls. A wash keyed to a fixed colour is invisible on half
      the surfaces this form appears on. */
   const resting = /\.zwf-field input,\.zwf-field select\{[^']*\}/.exec(code);
+  /* This asked for var(--cNN) exactly, which pinned a SPELLING rather than the
+     property the file is about — so it failed the day the select moved to
+     --field-bg, a token that follows the surface just as closely and is the
+     only one correct for a <select>. (A rung is the foreground at N% opacity,
+     and the list a select opens has nothing behind it to be at N% of.)
+     What matters is that the fill is derived from the theme rather than
+     written down, so that is what is asked. */
   ok('the input and select take their fill from the surface',
-    resting && /background:var\(--c\d\d\)/.test(resting[0]),
+    resting && /background:var\(--(?:c\d\d|field-bg)/.test(resting[0]),
     'rgba(9,9,11,.04) is a grey box on light and nothing on dark');
+  ok('…and the select specifically takes the opaque one',
+    resting && /background:var\(--field-bg\)/.test(resting[0]),
+    'see tests/select-popup-has-a-surface.test.js — a rung here paints the dropdown cream');
   ok('…and their border too',
     resting && /border:1px solid var\(--c\d\d\)/.test(resting[0]));
 

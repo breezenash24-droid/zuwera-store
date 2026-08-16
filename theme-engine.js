@@ -405,23 +405,32 @@
       document.body.classList.toggle('super-light-mode', theme.base === 'super-light');
     }
 
-    /* THE NATIVE HALF OF THE THEME.
+    /* THE NATIVE HALF OF THE THEME, on the root element only.
      *
      * color-scheme is what the browser reads to draw the things our CSS cannot
      * reach: the option list a <select> pops up, scrollbars, date pickers,
-     * autofill. Only the pre-paint block was setting it, and only from its own
-     * guess — so the moment this function applied a different answer, every
-     * native control was left on the guess.
+     * autofill. This line covers the page's own canvas and scrollbar, which
+     * are read from :root and which no rule on body can reach.
      *
-     * The size guide showed it plainly. It is a srcdoc iframe, localStorage is
-     * unreadable in one, so the block adopted the light class the build stamped
-     * and set color-scheme: light; then the theme handed in by the product page
-     * was applied here as DARK, tokens, classes and all — and the height
-     * dropdown still opened as a white UA panel with the page's near-white text
-     * on it. Unreadable options on a correctly dark form.
+     * It does NOT carry the rest any more, and should not be made to. Setting
+     * it from script is what let it drift: this function is one of several
+     * things that set the theme class, and every other one had to remember to
+     * set this too. They did not. The size guide's applyThemeMode delegates
+     * here when the engine is present — but theme-engine.js is deferred and
+     * that call is inline, so the branch that actually runs on every open set
+     * the class, the theme-colour meta and the background, and not this.
      *
-     * It is not only the iframe: switching theme anywhere left the same
-     * mismatch, because nothing after first paint had ever set this. */
+     * base.css and storefront-cohesion.css now bind it to the class instead:
+     *
+     *     body                                     { color-scheme: dark }
+     *     body.light-mode, body.super-light-mode   { color-scheme: light }
+     *
+     * A class cannot be set without its declarations, so there is nothing left
+     * to forget. It also outranks nothing and is beaten by nothing, which
+     * matters inside the size guide's srcdoc frame: localStorage throws in
+     * there, so the pre-paint block writes a GUESS to root.style — inline, and
+     * therefore unbeatable by any stylesheet — and this function may never run
+     * to correct it, because the engine boots from the storage that throws. */
     root.style.colorScheme = theme.base === 'dark' ? 'dark' : 'light';
 
     /* TAKE BACK THE PRE-PAINT GUESS.
