@@ -46,7 +46,7 @@ function reviewUrl(item) {
 async function sendEmail({ to, subject, html, fromEmail, env, cache }) {
   return sendTransactional({
     env, cache, to, subject, html, fromEmail,
-    fromName: "Zuwera",
+    fromName: getEmailAppearance(cache, env).brand,
     replyTo: fromEmail,
   });
 }

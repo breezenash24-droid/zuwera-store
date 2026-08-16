@@ -130,7 +130,7 @@ async function markOrderStatus(orderId, fulfillmentStatus, env) {
 async function sendEmail({ to, toName, subject, html, fromEmail, env, cache }) {
   return sendTransactional({
     env, cache, to, toName, subject, html, fromEmail,
-    fromName: "Zuwera",
+    fromName: getEmailAppearance(cache, env).brand,
     replyTo: fromEmail,
   });
 }

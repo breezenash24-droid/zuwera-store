@@ -283,6 +283,18 @@ console.log('\n  every token it writes is one something reads, and pairs move to
     && !new RegExp("setProperty\\('" + t + "'").test(engine));
   ok('the engine writes everything the pre-paint block does', orphan.length === 0,
     orphan.join(', ') + ' — a token only the guess sets can never be corrected');
+
+  /* color-scheme is not a custom property, so the sweep above cannot see it —
+     and it was the one the engine had never set. It is what the browser reads
+     to draw what our CSS cannot reach: the option list a <select> pops up,
+     scrollbars, date pickers. The pre-paint block set it from a guess, nothing
+     corrected it, and the size guide's height dropdown opened as a white UA
+     panel with near-white text on a correctly dark form. */
+  ok('…including color-scheme, which is not a custom property',
+    /colorScheme/.test(src) && /root\.style\.colorScheme = theme\.base === 'dark'/.test(engine),
+    'without this every native control stays on whatever the first paint guessed');
+  ok('…and it follows the base rather than being pinned',
+    !/colorScheme = 'dark';\s*$/m.test(engine));
 }
 
 console.log('\n  the guess does not outlive the answer');

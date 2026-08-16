@@ -42,7 +42,7 @@ function bodyToParagraphs(body, a) {
 async function sendEmail({ to, subject, html, fromEmail, replyTo, env, cache }) {
   return sendTransactional({
     env, cache, to, subject, html, fromEmail,
-    fromName: "Zuwera Journal",
+    fromName: getEmailAppearance(cache, env).brand + ' Journal',
     replyTo: replyTo,
   });
 }
