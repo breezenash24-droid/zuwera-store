@@ -20,6 +20,7 @@
 
 import { cors, json, verifyAdmin } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { getEmailAppearance } from './_email-theme.js';
 
 export async function onRequestOptions({ env }) {
   return new Response(null, { status: 204, headers: cors(env) });
@@ -45,7 +46,7 @@ export async function onRequestPost({ request, env }) {
 
   const cache = await fetchSiteSettings(
     ['RESEND_API_KEY', 'BREVO_API_KEY', 'SENDGRID_API_KEY', 'LOOPS_API_KEY',
-     'LOOPS_TRANSACTIONAL_ID', 'EMAIL_FROM'], env,
+     'LOOPS_TRANSACTIONAL_ID', 'EMAIL_FROM', 'brand'], env,
   );
 
   /* Resolved the same way every real email resolves it, so this tests what the
@@ -76,9 +77,10 @@ export async function onRequestPost({ request, env }) {
   }
 
   const stamp = new Date().toISOString();
-  const subject = 'Zuwera email test — ' + stamp.slice(0, 19).replace('T', ' ');
+  const brand = getEmailAppearance(cache, env).brand;
+  const subject = brand + ' email test — ' + stamp.slice(0, 19).replace('T', ' ');
   const html = '<div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.6">'
-    + '<p>This is a test from your Zuwera admin panel.</p>'
+    + '<p>This is a test from your ' + brand + ' admin panel.</p>'
     + '<p>If you are reading it, sending works: the key is valid, the domain is '
     + 'verified for <strong>' + from + '</strong>, and this address is not being '
     + 'suppressed.</p>'
@@ -97,7 +99,7 @@ export async function onRequestPost({ request, env }) {
         Authorization: 'Bearer ' + resolveSetting('RESEND_API_KEY', env, cache),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ from: 'Zuwera <' + from + '>', to: [to], subject, html }),
+      body: JSON.stringify({ from: brand + ' <' + from + '>', to: [to], subject, html }),
     })));
   }
 
@@ -106,7 +108,7 @@ export async function onRequestPost({ request, env }) {
       method: 'POST',
       headers: { 'api-key': resolveSetting('BREVO_API_KEY', env, cache), 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sender: { name: 'Zuwera', email: from },
+        sender: { name: brand, email: from },
         to: [{ email: to }], subject, htmlContent: html,
       }),
     })));

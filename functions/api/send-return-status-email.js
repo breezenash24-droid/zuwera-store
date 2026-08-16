@@ -37,7 +37,10 @@ function statusHeadline(status, resolution) {
   }
 }
 
-function statusBody(status, resolution, r) {
+/* brand threaded in rather than read from an outer scope: this function is
+   called before any appearance object exists in it, and the copy names the
+   store. */
+function statusBody(status, resolution, r, brand) {
   const resolutionWord = resolution === 'exchange' ? 'exchange' : resolution === 'store_credit' ? 'store credit' : 'refund';
   const hasLabel = Boolean(r.labelUrl || r.trackingNumber);
 
@@ -66,7 +69,7 @@ function statusBody(status, resolution, r) {
       return `Your refund${r.orderTotal ? ` of <strong>$${Number(r.orderTotal).toFixed(2)}</strong>` : ''} has been processed back to your original payment method. Depending on your bank, it may take 3–7 business days to appear on your statement.`;
 
     case 'store_credit_issued':
-      return `Your store credit${r.orderTotal ? ` of <strong>$${Number(r.orderTotal).toFixed(2)}</strong>` : ''} has been applied to your Zuwera account. You can use it on any future order.`;
+      return `Your store credit${r.orderTotal ? ` of <strong>$${Number(r.orderTotal).toFixed(2)}</strong>` : ''} has been applied to your ${brand} account. You can use it on any future order.`;
 
     case 'completed':
       return `Your ${resolutionWord} for <strong>${r.orderLabel || 'your order'}</strong> has been fully processed. Thank you for shopping with us — we hope to see you again soon.`;
@@ -166,7 +169,7 @@ function labelSectionHtml(r, a) {
 export function buildEmail({ r, status, resolution, fromFirstName, logoUrl, appearance }) {
   const a = appearance;
   const headline = statusHeadline(status, resolution);
-  const bodyText = statusBody(status, resolution, r);
+  const bodyText = statusBody(status, resolution, r, a.brand);
   const nextSteps = nextStepsHtml(status, resolution, r, a);
   const labelSec  = labelSectionHtml(r, a);
   const adminMsg  = (r.customerMessage || '').trim();
@@ -252,7 +255,7 @@ export async function onRequestPost({ request, env }) {
     const appearance = getEmailAppearance(cache, env); appearance.logo = logoUrl;
 
     const html    = buildEmail({ r, status, resolution, fromFirstName, logoUrl, appearance });
-    const subject = `${statusHeadline(status, resolution)} — ${r.orderLabel || 'Your Zuwera Return'}`;
+    const subject = `${statusHeadline(status, resolution)} — ${r.orderLabel || ('Your ' + appearance.brand + ' Return')}`;
 
     const result = await sendEmail({ to: toEmail, toName, subject, html, fromEmail, resendKey, brevoKey, env, cache });
 

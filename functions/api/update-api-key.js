@@ -9,6 +9,10 @@
  */
 
 import { ALLOWED_KEYS, maskKey } from './_settings.js';
+/* brandName(env), not getEmailAppearance(cache, env). This alert fires when an
+   API key changed — possibly because somebody got into the panel — and it must
+   not need the database to say who it is from. env-only is the point. */
+import { brandName } from './_config.js';
 
 const ADMIN_EMAILS = ['breezenash24@gmail.com', 'nasirubreeze@zuwera.store'];
 
@@ -74,13 +78,14 @@ async function sendKeyChangeAlert(env, info) {
   try {
     const resendKey = (env.SECURITY_ALERT_RESEND_KEY || env.RESEND_API_KEY || '').trim();
     const brevoKey  = (env.SECURITY_ALERT_BREVO_KEY  || env.BREVO_API_KEY  || '').trim();
-    const from      = (env.SECURITY_ALERT_FROM || env.EMAIL_FROM || 'Zuwera Security <security@zuwera.store>').trim();
+    const brand     = brandName(env);
+    const from      = (env.SECURITY_ALERT_FROM || env.EMAIL_FROM || (brand + ' Security <security@zuwera.store>')).trim();
     const to        = (env.SECURITY_ALERT_EMAIL || '').trim() ? [env.SECURITY_ALERT_EMAIL.trim()] : ADMIN_EMAILS;
     const verb      = info.attempted ? 'change was ATTEMPTED on a locked key' : 'was changed';
-    const subject   = `${info.attempted ? '🚨' : '⚠️'} Zuwera API key ${info.attempted ? 'change attempt' : 'changed'}: ${info.keyName}`;
+    const subject   = `${info.attempted ? '🚨' : '⚠️'} ${brand} API key ${info.attempted ? 'change attempt' : 'changed'}: ${info.keyName}`;
     const html = `<div style="font-family:system-ui,-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#111">
       <h2 style="margin:0 0 12px">API key ${verb}</h2>
-      <p style="margin:0 0 16px;color:#444">A key was ${info.attempted ? 'attempted to be changed' : 'updated'} in your Zuwera admin. If this was not you, your admin session may be compromised — rotate the affected key in <strong>Cloudflare</strong> and change your password immediately.</p>
+      <p style="margin:0 0 16px;color:#444">A key was ${info.attempted ? 'attempted to be changed' : 'updated'} in your ${brand} admin. If this was not you, your admin session may be compromised — rotate the affected key in <strong>Cloudflare</strong> and change your password immediately.</p>
       <table style="border-collapse:collapse;font-size:14px">
         <tr><td style="padding:4px 14px 4px 0;color:#888">Key</td><td style="padding:4px 0"><strong>${info.keyName}</strong></td></tr>
         <tr><td style="padding:4px 14px 4px 0;color:#888">New value</td><td style="padding:4px 0"><code>${info.masked || '—'}</code></td></tr>
@@ -88,7 +93,7 @@ async function sendKeyChangeAlert(env, info) {
         <tr><td style="padding:4px 14px 4px 0;color:#888">IP</td><td style="padding:4px 0">${info.ip || 'unknown'}</td></tr>
         <tr><td style="padding:4px 14px 4px 0;color:#888">When</td><td style="padding:4px 0">${info.when}</td></tr>
       </table>
-      <p style="font-size:12px;color:#bbb;margin-top:24px;border-top:1px solid #eee;padding-top:12px">Zuwera Admin Security · automated alert · cannot be disabled from the admin panel</p>
+      <p style="font-size:12px;color:#bbb;margin-top:24px;border-top:1px solid #eee;padding-top:12px">${brand} Admin Security · automated alert · cannot be disabled from the admin panel</p>
     </div>`;
     if (resendKey) {
       await fetch('https://api.resend.com/emails', {
@@ -101,7 +106,7 @@ async function sendKeyChangeAlert(env, info) {
       await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender: { email: senderEmail, name: 'Zuwera Security' }, to: to.map(e => ({ email: e })), subject, htmlContent: html }),
+        body: JSON.stringify({ sender: { email: senderEmail, name: brand + ' Security' }, to: to.map(e => ({ email: e })), subject, htmlContent: html }),
       });
     } else {
       console.error('[update-api-key] SECURITY ALERT could not send — no env RESEND_API_KEY / BREVO_API_KEY set. Add SECURITY_ALERT_RESEND_KEY in Cloudflare.');

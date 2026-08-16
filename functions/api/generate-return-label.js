@@ -111,7 +111,13 @@ async function createShippoLabel(order, env, cache, gate) {
   };
 
   const addressTo = {
-    name:    getReturnAddressSetting('SHIPPO_FROM_NAME', env, cache, 'Zuwera Returns'),
+    /* The name that gets PRINTED ON THE LABEL, so its default has to be this
+       store's name rather than the one this code was written for. A fork that
+       has not set SHIPPO_FROM_NAME would otherwise post its customers' returns
+       to a company called Zuwera. The setting still wins — plenty of stores
+       receive returns under a different name from the one they sell under. */
+    name:    getReturnAddressSetting('SHIPPO_FROM_NAME', env, cache,
+               getEmailAppearance(cache, env).brand + ' Returns'),
     street1: getReturnAddressSetting('SHIPPO_FROM_STREET1', env, cache),
     street2: getReturnAddressSetting('SHIPPO_FROM_STREET2', env, cache),
     city:    getReturnAddressSetting('SHIPPO_FROM_CITY', env, cache),
@@ -244,7 +250,7 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
   const resolution = returnRequest?.resolution || 'return';
   const resolutionLabel = resolution === 'exchange' ? 'exchange'
     : resolution === 'store_credit' ? 'store credit' : 'refund';
-  const storeName = getReturnAddressSetting('SHIPPO_FROM_NAME', env, cache, 'Zuwera');
+  const storeName = getReturnAddressSetting('SHIPPO_FROM_NAME', env, cache, a.brand);
   const storeStreet1 = getReturnAddressSetting('SHIPPO_FROM_STREET1', env, cache);
   const storeCity = getReturnAddressSetting('SHIPPO_FROM_CITY', env, cache);
   const storeState = getReturnAddressSetting('SHIPPO_FROM_STATE', env, cache);
@@ -267,7 +273,7 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [toEmail], reply_to: fromEmail, subject, html }),
+      body: JSON.stringify({ from: `${a.brand} <${fromEmail}>`, to: [toEmail], reply_to: fromEmail, subject, html }),
     });
     if (r.ok) return;
   }
@@ -277,7 +283,7 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
       method: 'POST',
       headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sender: { name: 'Zuwera', email: fromEmail },
+        sender: { name: a.brand, email: fromEmail },
         to: [{ email: toEmail, name: toName }],
         replyTo: { email: fromEmail },
         subject, htmlContent: html,
