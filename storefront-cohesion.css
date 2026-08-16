@@ -71,7 +71,13 @@ a,button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:t
    but having it here (render-blocking) lets the header pre-paint add body.zwf-bagpanel-on
    from the cached feature state and hide #account-btn ("Nash") on the FIRST frame — before
    that deferred script loads — instead of flashing the old button for ~0.5s. */
-html body.zwf-bagpanel-on :is(#login-btn,#account-btn,#hdr-login){display:none !important}
+/* :not([data-zw-account="header"]) — the same guard storefront-features.js
+   injects. Without it these two copies of one rule disagreed for the half
+   second before that script loads: a theme asking to keep account in the
+   header had it hidden on the first frame and revealed when the module
+   arrived, which is the exact flash this render-blocking copy exists to
+   prevent, produced by the copy itself. */
+html body.zwf-bagpanel-on:not([data-zw-account="header"]) :is(#login-btn,#account-btn,#hdr-login){display:none !important}
 /* Search magnifier launcher — base style at first paint so the header pre-paint can
    render it (before storefront-features.js's runtime styles load) without it looking
    like the .nbtn text button it borrows its class from. */

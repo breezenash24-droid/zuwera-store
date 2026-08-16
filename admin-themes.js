@@ -49,6 +49,14 @@
     { key: 'ink', label: 'Panel background', kind: 'hex', help: 'Nav bars, drawers and filled panels. Normally the same as the page background — set it apart only if you want those surfaces to differ.' },
     { key: 'paper', label: 'Panel text', kind: 'hex', help: 'What sits on those panels, including the nav links and the bag icon. Must contrast with Panel background or the header goes invisible.' },
     { key: 'err', label: 'Error', kind: 'hex', help: 'Failed payments, validation, anything gone wrong.' },
+    /* These three were applied by the engine and settable by nobody — it writes
+       --zw-cream, --zw-surface and --zw-fg-hover from them, and this table had
+       no row for any of them, so an imported theme could carry them and the
+       editor could neither show nor change what it had loaded. Optional, so a
+       theme that names none of them is unchanged. */
+    { key: 'surfaceAlt', label: 'Raised surface', kind: 'hex', optional: true, help: 'Cards, wells and anything meant to sit just off the page rather than on it. Leave off and these follow the page colour.' },
+    { key: 'cream', label: 'Warm surface', kind: 'hex', optional: true, help: 'The warmer panel a few sections use behind editorial content. Off and it follows the page.' },
+    { key: 'fgHover', label: 'Hover wash', kind: 'hex', optional: true, help: 'The tint that appears under a row or link on hover. Off and it is derived from the text colour, which is right for most themes.' },
     { key: 'navBg', label: 'Header background', kind: 'hex', optional: true, help: 'Leave off and the header matches the page. Set it to give the site a header in a different colour from the page below it — a black bar over a light page, say.' },
     { key: 'navFg', label: 'Header text', kind: 'hex', optional: true, help: 'Only needed when the header has its own background.' },
     { key: 'barBg', label: 'Announcement bar', kind: 'hex', optional: true, help: 'The strip above the header. Off and it follows the page; on and it can be the loud band that carries a promotion.' },
