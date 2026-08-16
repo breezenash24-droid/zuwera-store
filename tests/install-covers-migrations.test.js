@@ -12,8 +12,17 @@
  * a database that looks fine and behaves differently. That is strictly worse
  * than one that fails to install.
  *
- * So: every migration in migrations/ must be recorded as applied by install.sql.
- * Landing 0018 without regenerating fails here, with the command to fix it.
+ * So: install.sql must never CLAIM a migration that does not exist — that is the
+ * direction which silently skips it forever, and it fails here.
+ *
+ * The other direction is reported, not failed, and the reasoning is at the
+ * assertion below: a migration install.sql does not yet record is applied by
+ * the runner instead, which is correct and self-healing. This header used to
+ * say "landing 0018 without regenerating fails here", which is what the code
+ * did before that was thought through — and reading the stale sentence rather
+ * than the output is how I came to report that a fresh install would be
+ * missing the whole pricing system. It would not. It replays six migrations
+ * instead of skipping them, and regenerating is an optimisation.
  *
  * This is a coverage check, not a correctness one. It cannot tell whether the
  * SQL above those rows actually contains 0018's column — only a diff against

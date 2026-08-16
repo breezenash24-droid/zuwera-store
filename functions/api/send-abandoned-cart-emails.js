@@ -36,7 +36,7 @@ async function sendEmail({ to, subject, html, fromEmail, env, cache }) {
   return sendTransactional({
     env, cache, to, subject, html, fromEmail,
     fromName: "Zuwera",
-    replyTo: 'orders@zuwera.store',
+    replyTo: fromEmail,
   });
 }
 

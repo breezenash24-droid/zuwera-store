@@ -81,6 +81,35 @@ console.log('\n  every appearance call can reach the env');
     [...new Set(missed)].join(', '));
 }
 
+console.log('\n  a reply goes back to the store that sent it');
+{
+  /* NOT a fork problem — a LIVE one, found while counting domain literals.
+   *
+   * Every mailer resolved its from-address properly:
+   *
+   *     const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'orders@zuwera.store';
+   *
+   * and then set the reply-to to the literal anyway. So a store that had set
+   * EMAIL_FROM sent mail FROM its own address and routed every customer reply
+   * to orders@zuwera.store — someone else's inbox, silently, on the one action
+   * a shopper takes when something has gone wrong.
+   *
+   * The from-address is already the setting, so the reply-to is the same value
+   * and never a second copy of it. */
+  const offenders = [];
+  for (const f of fs.readdirSync(API).filter((x) => x.endsWith('.js'))) {
+    const src = read(f);
+    if (/reply_?[tT]o[^,\n]*['"][^'"]*@[^'"]*['"]/.test(src)) offenders.push(f);
+  }
+  ok('no mailer hardcodes a reply-to address', offenders.length === 0,
+    offenders.join(', ') + ' — replies land in whoever wrote the literal');
+
+  const fulfil = read('_fulfil.js');
+  ok('the order confirmation replies to its own from-address',
+    /reply_to: fromEmail/.test(fulfil) && /replyTo:\s+\{ email: fromEmail \}/.test(fulfil),
+    'two providers again — one fixed and one not sends half the replies to the wrong place');
+}
+
 console.log('\n  what is still hardcoded, counted');
 {
   /* A budget, like the colour one. It went from 30 files to this, and it may

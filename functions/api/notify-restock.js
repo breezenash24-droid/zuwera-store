@@ -48,7 +48,7 @@ async function sendEmail({ to, toName, subject, html, fromEmail, env, cache }) {
   return sendTransactional({
     env, cache, to, toName, subject, html, fromEmail,
     fromName: "Zuwera",
-    replyTo: 'orders@zuwera.store',
+    replyTo: fromEmail,
   });
 }
 

@@ -1174,7 +1174,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
     body: JSON.stringify({
       from:     `${a.brand} <${fromEmail}>`,
       to:       [toEmail],
-      reply_to: 'orders@zuwera.store',
+      reply_to: fromEmail,
       subject:  fillTemplate(emailC.subject, { order: orderId }),
       html,
     }),
@@ -1204,7 +1204,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
     body: JSON.stringify({
       sender:      { name: a.brand, email: fromEmail },
       to:          [{ email: toEmail, name: toName }],
-      replyTo:     { email: 'orders@zuwera.store' },
+      replyTo:     { email: fromEmail },
       subject:     fillTemplate(emailC.subject, { order: orderId }),
       htmlContent: html,
     }),

@@ -257,7 +257,7 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [toEmail], reply_to: 'orders@zuwera.store', subject, html }),
+      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [toEmail], reply_to: fromEmail, subject, html }),
     });
     if (r.ok) return;
   }
@@ -269,7 +269,7 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
       body: JSON.stringify({
         sender: { name: 'Zuwera', email: fromEmail },
         to: [{ email: toEmail, name: toName }],
-        replyTo: { email: 'orders@zuwera.store' },
+        replyTo: { email: fromEmail },
         subject, htmlContent: html,
       }),
     });
