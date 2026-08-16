@@ -7,15 +7,20 @@
  *   theme in the admin and the engine will apply it, whatever it is called and
  *   whatever colours it holds.
  *
- *   The STYLESHEETS are not. 885 of the 1,799 colour declarations across the
- *   site are hardcoded literals — #09090b, #F0EEE9, rgba(9,9,11,.55) — sitting
+ *   The STYLESHEETS were not. 885 of the 1,799 colour declarations across the
+ *   site were hardcoded literals — #09090b, #F0EEE9, rgba(9,9,11,.55) — sitting
  *   under `body.light-mode`. Those are not "light mode"; they are the built-in
  *   Light theme's palette, written out by hand. A new theme with a light base
- *   gets them regardless of its own tokens, so it can change the page ground
+ *   got them regardless of its own tokens, so it could change the page ground
  *   and almost nothing else.
  *
- * That is a known, quantified gap and closing it is a large job. What this file
- * enforces is the part that is cheap and was silently broken: nothing may
+ * 1,268 of those were converted in place by
+ * `node scripts/tokenize-colors.js --overrides`, taking the site from 51% to
+ * 73% theme-following. This file guards both ends of that: the premise the
+ * conversion rests on (the rungs still derive, on body, from the triplet the
+ * engine writes), and a budget on what is left so it cannot grow back.
+ *
+ * It also enforces the part that was cheap and silently broken: nothing may
  * DECIDE the theme without the engine.
  *
  * Three pages carried a private copy of applyThemeMode:
@@ -85,13 +90,56 @@ console.log('\n  the engine is the thing that knows the themes');
     'a theme that is only a name can never be more than one of the built-ins');
 }
 
+console.log('\n  the premise the conversion rests on');
+{
+  /* 1,268 declarations inside light-mode blocks were rewritten from literals to
+     tokens by scripts/tokenize-colors.js --overrides. That is only value-
+     preserving because base.css says these exact things. If someone changes
+     them, every one of those rules moves at once — so the numbers the
+     conversion assumed are asserted here rather than remembered.
+
+         rgba(9,9,11,0.65)  →  var(--c65)  →  rgb(10 10 10 / 65%)
+
+     differs by 1/255 on red and green and 2/255 on blue. Nothing shows that.
+     What it buys is the case the store could not reach before: theme-engine.js
+     sets --fg-rgb inline on <body>, the ladder on <body> recomputes from it,
+     and all 1,268 follow whatever theme is actually applied. */
+  const base = fs.readFileSync(path.join(ROOT, 'base.css'), 'utf8');
+  const lightBlock = base.slice(base.indexOf('body.light-mode {'), base.indexOf('SUPER LIGHT MODE'));
+
+  ok('light mode still keys the foreground to near-black',
+    /--fg-rgb:\s*10 10 10\b/.test(lightBlock),
+    'the converted rules resolve through this — if it moves, they all move');
+  /* Every rung, not a sampled one: a single rung that stops deriving turns
+     every rule using it into a fixed colour again, silently. */
+  const rungs = [...base.matchAll(/--c(\d\d):\s*([^;]+);/g)];
+  ok('…and all ' + rungs.length + ' rungs still derive from that triplet, on body',
+    rungs.length >= 17 && rungs.every(([, n, v]) => v.trim() === 'rgb(var(--fg-rgb) / ' + Number(n) + '%)'),
+    rungs.filter(([, n, v]) => v.trim() !== 'rgb(var(--fg-rgb) / ' + Number(n) + '%)').map((r) => r[0]).join(', '));
+  ok('…declared on body, where the mode class and the engine both write',
+    base.indexOf('--c65') > base.lastIndexOf('body {', base.indexOf('--c65')),
+    'a rung declared on :root resolves against :root and inherits the finished colour');
+  ok('…and the engine writes the triplet where the ladder can see it',
+    /set\('--fg-rgb'/.test(fs.readFileSync(path.join(ROOT, 'theme-engine.js'), 'utf8')),
+    'this is the line that makes a custom theme reach all 1,268');
+
+  /* The conversion must not have leaked page-keyed colour into a panel that
+     keys its own — see PANEL_KEYED in the script. */
+  const qa = fs.readFileSync(path.join(ROOT, 'quick-add-modal.css'), 'utf8');
+  ok('the panel that keys its own foreground was left out of it',
+    !/rgb\(var\(--fg-rgb\)/.test(qa),
+    'page foreground inside a panel-keyed surface is invisible the moment a theme separates them');
+}
+
 console.log('\n  what is still hardcoded, counted honestly');
 {
-  /* Not a pass/fail on the number — it is 885 today and bringing it down is a
-     project, not a commit. This asserts the direction: the count is recorded
-     here so a change that makes it WORSE has to come and edit this line, and
-     say why. */
-  const BUDGET = 900;
+  /* Was 885. The light-mode foreground overrides are done; what is left is
+     white and cream inside light-mode blocks (entangled with the super-light
+     cascade, since a body.light-mode rule applies in super-light too), the
+     panel-keyed modal, and the genuine absolutes — accents, the semantic green
+     and red, scrims over photographs. The budget is a ratchet: a change that
+     makes it worse has to come and edit this line, and say why. */
+  const BUDGET = 490;
   const PROPS = /(^|[;{])\s*(color|background|background-color|border|border-color|border-[a-z]+-color|fill|stroke|box-shadow|outline-color)\s*:\s*([^;}]+)/gi;
   const LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(\s*\d/;
 

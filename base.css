@@ -173,9 +173,9 @@ body.light-mode {
   --bg-rgb: 240 238 233;
 
   --black:  #F0EEE9;
-  --white:  #09090b;
+  --white:  rgb(var(--fg-rgb));
   --ink:    #F0EEE9;
-  --paper:  #09090b;
+  --paper:  rgb(var(--fg-rgb));
   /* Lifted off the cream page rather than recessed into it — the same
      direction checkout.html picks for its light panels. */
   --zw-theme-surface: #FFFFFF;

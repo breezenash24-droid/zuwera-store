@@ -291,10 +291,10 @@
   }
 
   body.light-mode .cdb{
-    border-bottom-color:rgba(9,9,11,.08);
+    border-bottom-color:var(--c08);
   }
   body.super-light-mode .cdb{
-    border-bottom-color:rgba(9,9,11,.08);
+    border-bottom-color:var(--c08);
   }
 
   .notify-box{
@@ -495,12 +495,12 @@
   }
 
   body.light-mode .countdown-block{
-    border-color:rgba(9,9,11,.1);
-    background:rgba(9,9,11,.02);
+    border-color:var(--c10);
+    background:rgb(var(--fg-rgb) / 2%);
   }
   body.super-light-mode .countdown-block{
-    border-color:rgba(9,9,11,.1);
-    background:rgba(9,9,11,.02);
+    border-color:var(--c10);
+    background:rgb(var(--fg-rgb) / 2%);
   }
 
   .countdown-divider{
@@ -525,12 +525,12 @@
   }
 
   body.light-mode .notify-form input{
-    border-right-color:rgba(9,9,11,.2) !important;
-    border-bottom-color:rgba(9,9,11,.2) !important;
+    border-right-color:var(--c20) !important;
+    border-bottom-color:var(--c20) !important;
   }
   body.super-light-mode .notify-form input{
-    border-right-color:rgba(9,9,11,.2) !important;
-    border-bottom-color:rgba(9,9,11,.2) !important;
+    border-right-color:var(--c20) !important;
+    border-bottom-color:var(--c20) !important;
   }
 
   .notify-form button{

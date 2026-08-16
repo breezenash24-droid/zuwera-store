@@ -57,17 +57,45 @@ check(
     && /host\.appendChild\(discountRow\)/.test(checkout)
 );
 
+/* The card field straddles an origin boundary, and the two sides have opposite
+   rules about colour.
+ *
+ *   #stripe-card-element is OUR div. Our stylesheet reaches it, so it should be
+ *   themed like everything else — var(--paper), a rung off the ladder — and it
+ *   then follows any theme the store is put in.
+ *
+ *   What Stripe mounts INSIDE it is a cross-origin iframe. It cannot see our
+ *   document, our stylesheet or our custom properties. Its colours arrive as
+ *   literal strings in the style object handed to elements.create(), and they
+ *   have to be recomputed and pushed again whenever the theme changes, which is
+ *   what the update() call on zw-theme-applied is for.
+ *
+ * This check used to pin the exact SPELLING of the two container rules, down to
+ * `rgba(9,9,11,.36)` and the spaces around the braces. That is not the property
+ * anyone cares about, and it failed the moment those rules were tokenised —
+ * reporting a regression for a change that made the container theme-aware for
+ * the first time. So: assert the boundary, not the characters. The literals are
+ * still required where they are genuinely load-bearing, in the JS. */
+const cardContainerThemed = (src) =>
+  /body\.light-mode #stripe-card-element\s*\{[^}]*background:[^;}]+/.test(src)
+  && /body\.light-mode #stripe-card-element\s*\{[^}]*border-color:[^;}]+/.test(src)
+  /* A container whose light-mode colours are literals is pinned to one palette;
+     a var() or a ladder rung follows whatever theme is applied. */
+  && /body\.light-mode #stripe-card-element\s*\{[^}]*var\(--/.test(src);
+
 check(
   'Stripe card field uses readable light-mode colors',
   /function getStripeCardStyle/.test(checkoutPage)
+    /* Literal, and it must stay literal: the iframe cannot resolve var(). */
     && /text: isLight \? '#09090b'/.test(checkoutPage)
     && /fontWeight: '500'/.test(checkoutPage)
+    /* …and pushed again when the theme moves, since nothing else can reach in. */
     && /cardElement\.update\(\{ style: getStripeCardStyle\(\) \}\)/.test(checkoutPage)
     && /zw-theme-applied/.test(checkoutPage)
     && /function getCheckoutCardStyle/.test(index)
     && /refreshCheckoutCardTheme/.test(index)
-    && /body\.light-mode #stripe-card-element\{background:var\(--paper\);border-color:rgba\(9,9,11,.36\)\}/.test(index)
-    && /body\.light-mode #stripe-card-element \{ background:#f4f1eb; border-color:rgba\(9,9,11,\.36\); \}/.test(bag)
+    && cardContainerThemed(index)
+    && cardContainerThemed(bag)
 );
 
 check(

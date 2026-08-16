@@ -154,12 +154,12 @@ try {
       --surface: rgb(var(--fg-rgb) / 4%);
     }
     body.light-mode {
-      --abt-text: #09090b;
+      --abt-text: rgb(var(--fg-rgb));
       --abt-text-inv: #f4f1eb;
       --bg: #F0EEE9;
-      --border: rgba(9,9,11,.14);
-      --muted: rgba(9,9,11,.55);
-      --subtle: rgba(9,9,11,.06);
+      --border: var(--c14);
+      --muted: var(--c55);
+      --subtle: var(--c06);
       --surface: white;
     }
     body.super-light-mode { --bg: #FFFFFF; }

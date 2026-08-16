@@ -1653,21 +1653,21 @@ body.light-mode .review-more-btn { color: #b5566b; }
 
 body.light-mode .review-dialog {
   background: #F0EEE9;
-  border-color: rgba(9,9,11,0.1);
-  box-shadow: 0 26px 70px rgba(9,9,11,0.15);
+  border-color: var(--c10);
+  box-shadow: 0 26px 70px var(--c15);
 }
 
 body.super-light-mode .review-dialog {
   background: #FFFFFF;
-  border-color: rgba(9,9,11,0.1);
-  box-shadow: 0 26px 70px rgba(9,9,11,0.12);
+  border-color: var(--c10);
+  box-shadow: 0 26px 70px var(--c12);
 }
 
 body.light-mode .review-modal-title,
 body.light-mode .review-card-title,
 body.light-mode .review-card-author,
 body.light-mode .review-toggle-label {
-  color: #09090b;
+  color: rgb(var(--fg-rgb));
 }
 
 body.light-mode .review-modal-copy,
@@ -1677,7 +1677,7 @@ body.light-mode .review-toggle-hint,
 body.light-mode .review-card-body,
 body.light-mode .review-admin-body,
 body.light-mode .rs-metric-subtitle {
-  color: rgba(9,9,11,0.62);
+  color: rgb(var(--fg-rgb) / 62%);
 }
 
 body.light-mode .review-product-label,
@@ -1687,7 +1687,7 @@ body.light-mode .review-toolbar-label,
 body.light-mode .rs-count,
 body.light-mode .rs-metric-title,
 body.light-mode .review-card-date {
-  color: rgba(9,9,11,0.5);
+  color: var(--c50);
 }
 
 body.light-mode .review-rating-panel,
@@ -1695,70 +1695,70 @@ body.light-mode .review-toggle-card,
 body.light-mode .review-advanced-panel,
 body.light-mode .review-summary-box {
   background: none;
-  border-color: rgba(9,9,11,0.1);
+  border-color: var(--c10);
 }
 body.light-mode .size-guide-frame-shell,
 body.light-mode .review-select,
 body.light-mode .translate-btn,
 body.light-mode .review-radio-group label {
   background: #F0EEE9;
-  border-color: rgba(9,9,11,0.1);
+  border-color: var(--c10);
 }
 
 body.light-mode .size-guide-dialog {
   background: #F0EEE9;
-  border-color: rgba(9,9,11,0.12);
+  border-color: var(--c12);
 }
 
 body.light-mode .size-guide-head {
   background: #F0EEE9;
-  border-bottom-color: rgba(9,9,11,0.08);
+  border-bottom-color: var(--c08);
 }
 
 body.light-mode .size-guide-title,
 body.light-mode .size-guide-close {
-  color: #09090b;
+  color: rgb(var(--fg-rgb));
 }
 
 body.light-mode .size-guide-kicker {
-  color: rgba(9,9,11,0.58);
+  color: rgb(var(--fg-rgb) / 58%);
 }
 
 body.light-mode .size-guide-copy,
 body.light-mode .size-guide-frame-shell .size-guide-message {
-  color: rgba(9,9,11,0.68);
+  color: rgb(var(--fg-rgb) / 68%);
 }
 
 body.super-light-mode .size-guide-head {
   background: #FFFFFF;
-  border-bottom-color: rgba(9,9,11,0.08);
+  border-bottom-color: var(--c08);
 }
 body.super-light-mode .size-guide-title,
 body.super-light-mode .size-guide-close {
-  color: #09090b;
+  color: rgb(var(--fg-rgb));
 }
 body.super-light-mode .size-guide-kicker {
-  color: rgba(9,9,11,0.58);
+  color: rgb(var(--fg-rgb) / 58%);
 }
 body.super-light-mode .size-guide-copy,
 body.super-light-mode .size-guide-frame-shell .size-guide-message {
-  color: rgba(9,9,11,0.68);
+  color: rgb(var(--fg-rgb) / 68%);
 }
 
 body.light-mode .review-modal-toolbar,
 body.light-mode .review-modal-card,
 body.light-mode .rs-left {
-  border-color: rgba(9,9,11,0.08);
+  border-color: var(--c08);
 }
 
 body.light-mode .review-body-field {
-  background: rgba(9,9,11,0.03);
-  border-color: rgba(9,9,11,0.1);
-  color: #09090b;
+  background: rgb(var(--fg-rgb) / 3%);
+  border-color: var(--c10);
+  color: rgb(var(--fg-rgb));
 }
 
 body.light-mode .review-body-field::placeholder {
-  color: rgba(9,9,11,0.3);
+  color: var(--c30);
 }
 
 body.light-mode .review-body-field:focus,
@@ -1768,28 +1768,28 @@ body.light-mode .review-select:focus {
 }
 
 body.light-mode .star-selector button {
-  color: rgba(9,9,11,0.16);
+  color: rgb(var(--fg-rgb) / 16%);
 }
 
 body.light-mode .review-submit-btn {
-  background: #09090b;
+  background: rgb(var(--fg-rgb));
   color: #E8E3DC;
 }
 
 body.light-mode .review-submit-btn--ghost,
 body.light-mode .translate-btn {
   background: transparent;
-  color: #09090b;
-  border-color: rgba(9,9,11,0.12);
+  color: rgb(var(--fg-rgb));
+  border-color: var(--c12);
 }
 
 body.light-mode .review-radio-group label {
-  color: rgba(9,9,11,0.56);
+  color: rgb(var(--fg-rgb) / 56%);
 }
 
 body.light-mode .review-radio-group label:hover {
-  border-color: rgba(9,9,11,0.25);
-  color: #09090b;
+  border-color: rgb(var(--fg-rgb) / 25%);
+  color: rgb(var(--fg-rgb));
 }
 
 body.light-mode .review-radio-group input[type="radio"]:checked + label {
@@ -1800,7 +1800,7 @@ body.light-mode .review-radio-group input[type="radio"]:checked + label {
 body.light-mode .review-slider-wrap,
 body.light-mode .rs-metric-labels,
 body.light-mode .review-modal-message {
-  color: rgba(9,9,11,0.42);
+  color: rgb(var(--fg-rgb) / 42%);
 }
 
 body.light-mode .review-card-badge {
@@ -1813,44 +1813,44 @@ body.light-mode .review-admin-response {
 }
 
 body.light-mode .review-modal-classic-title {
-  color: #09090b;
+  color: rgb(var(--fg-rgb));
 }
 
 body.light-mode .review-form-note {
-  color: rgba(9,9,11,0.62);
+  color: rgb(var(--fg-rgb) / 62%);
 }
 
 body.light-mode .review-dialog--thread {
   background: #F0EEE9;
-  border-top-color: rgba(9,9,11,0.1);
+  border-top-color: var(--c10);
 }
 
 body.light-mode .review-dialog--thread .review-submit-btn--list {
-  background: #09090b;
+  background: rgb(var(--fg-rgb));
   color: #E8E3DC;
 }
 
 body.light-mode .review-dialog--thread .review-submit-btn--list:hover {
-  background: rgba(9,9,11,0.88);
+  background: rgb(var(--fg-rgb) / 88%);
 }
 
 body.light-mode .review-dialog--thread .review-select--classic,
 body.light-mode .review-dialog--thread .translate-btn--classic {
   background: #F0EEE9;
-  border-color: rgba(9,9,11,0.12);
-  color: #09090b;
+  border-color: var(--c12);
+  color: rgb(var(--fg-rgb));
 }
 
 body.light-mode .review-dialog--thread .review-summary-box {
-  border-top-color: rgba(9,9,11,0.08);
-  border-bottom-color: rgba(9,9,11,0.08);
+  border-top-color: var(--c08);
+  border-bottom-color: var(--c08);
 }
 
 body.light-mode .review-dialog--thread .review-card-date,
 body.light-mode .review-dialog--thread .review-card-badge,
 body.light-mode .review-dialog--thread .review-card-action,
 body.light-mode .review-dialog--thread .review-modal-message {
-  color: rgba(9,9,11,0.56);
+  color: rgb(var(--fg-rgb) / 56%);
 }
 
 body.light-mode .review-dialog--thread .review-card-badge {
@@ -1862,30 +1862,30 @@ body.light-mode .review-dialog--thread .review-admin-response {
 }
 
 body.light-mode .review-dialog--classic-list .review-submit-btn--legacy-list {
-  background: #09090b;
+  background: rgb(var(--fg-rgb));
   color: #E8E3DC;
 }
 
 body.light-mode .review-dialog--classic-list .review-select--legacy,
 body.light-mode .review-dialog--classic-list .translate-btn--legacy {
   background: #F0EEE9;
-  border-color: rgba(9,9,11,0.12);
-  color: #09090b;
+  border-color: var(--c12);
+  color: rgb(var(--fg-rgb));
 }
 
 body.light-mode .review-dialog--classic-list .review-summary-box {
   background: #F0EEE9;
-  border-color: rgba(9,9,11,0.08);
+  border-color: var(--c08);
 }
 
 body.light-mode .review-dialog--classic-list .rs-left {
-  border-right-color: rgba(9,9,11,0.08);
+  border-right-color: var(--c08);
 }
 
 body.light-mode .review-dialog--classic-list .review-card-title,
 body.light-mode .review-dialog--classic-list .review-card-author,
 body.light-mode .review-dialog--classic-form .review-toggle-label {
-  color: #09090b;
+  color: rgb(var(--fg-rgb));
   opacity: 1;
 }
 
@@ -1893,7 +1893,7 @@ body.light-mode .review-dialog--classic-list .review-card-body,
 body.light-mode .review-dialog--classic-list .review-admin-body,
 body.light-mode .review-dialog--classic-list .review-modal-message,
 body.light-mode .review-dialog--classic-form .review-form-note {
-  color: rgba(9,9,11,0.62);
+  color: rgb(var(--fg-rgb) / 62%);
 }
 
 body.light-mode .review-dialog--classic-list .review-card-date,
@@ -1903,12 +1903,12 @@ body.light-mode .review-dialog--classic-form .review-rating-label,
 body.light-mode .review-dialog--classic-form .review-field-label,
 body.light-mode .review-dialog--classic-form .review-rating-hint,
 body.light-mode .review-dialog--classic-form .review-toggle-hint {
-  color: rgba(9,9,11,0.56);
+  color: rgb(var(--fg-rgb) / 56%);
 }
 
 body.light-mode .review-dialog--classic-form .review-submit-btn {
   background: var(--zw-accent);
-  color: #09090b;
+  color: rgb(var(--fg-rgb));
 }
 
 body.light-mode .review-dialog--classic-form .review-submit-btn:hover {

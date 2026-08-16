@@ -137,7 +137,7 @@
 
 /* ===================== LIGHT MODE ===================== */
 body.light-mode .announcement-bar {
-  background: #09090b;
+  background: rgb(var(--fg-rgb));
   color: #F0EEE9;
   border-bottom-color: rgba(244,241,235,0.1);
 }
@@ -146,34 +146,34 @@ body.light-mode .announcement-close {
 }
 body.light-mode .nav {
   background: var(--zw-nav-bg, #F0EEE9);
-  border-bottom-color: rgba(9,9,11,0.08);
-  box-shadow: 0 1px 12px rgba(9,9,11,0.06);
+  border-bottom-color: var(--c08);
+  box-shadow: 0 1px 12px var(--c06);
 }
 body.light-mode .logo {
   filter: invert(1);
 }
 body.light-mode .nav-right button,
 body.light-mode #account-btn {
-  color: #09090b;
+  color: rgb(var(--fg-rgb));
 }
 body.light-mode .nav-right button:hover,
 body.light-mode #account-btn:hover {
   opacity: 0.65;
-  color: #09090b;
+  color: rgb(var(--fg-rgb));
 }
 body.light-mode #cart-btn {
-  border-color: rgba(9,9,11,0.2) !important;
-  color: #09090b;
+  border-color: var(--c20) !important;
+  color: rgb(var(--fg-rgb));
 }
 body.light-mode .cart-count {
-  background: #09090b;
+  background: rgb(var(--fg-rgb));
   color: #E8E3DC;
 }
 
 /* ===================== SUPER LIGHT MODE ===================== */
 /* Announcement bar stays dark in super-light (matches light-mode intent) */
 body.super-light-mode .announcement-bar {
-  background: #09090b;
+  background: rgb(var(--fg-rgb));
   color: #F0EEE9;
   border-bottom-color: rgba(244,241,235,0.1);
 }
@@ -182,27 +182,27 @@ body.super-light-mode .announcement-close {
 }
 body.super-light-mode .nav {
   background: var(--zw-nav-bg, #FFFFFF);
-  border-bottom-color: rgba(9,9,11,0.08);
-  box-shadow: 0 1px 12px rgba(9,9,11,0.08);
+  border-bottom-color: var(--c08);
+  box-shadow: 0 1px 12px var(--c08);
 }
 body.super-light-mode .logo {
   filter: invert(1);
 }
 body.super-light-mode .nav-right button,
 body.super-light-mode #account-btn {
-  color: #09090b;
+  color: rgb(var(--fg-rgb));
 }
 body.super-light-mode .nav-right button:hover,
 body.super-light-mode #account-btn:hover {
   opacity: 0.65;
-  color: #09090b;
+  color: rgb(var(--fg-rgb));
 }
 body.super-light-mode #cart-btn {
-  border-color: rgba(9,9,11,0.2) !important;
-  color: #09090b;
+  border-color: var(--c20) !important;
+  color: rgb(var(--fg-rgb));
 }
 body.super-light-mode .cart-count {
-  background: #09090b;
+  background: rgb(var(--fg-rgb));
   color: #FFFFFF;
 }
 

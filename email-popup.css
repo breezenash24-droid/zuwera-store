@@ -52,15 +52,15 @@
 body.light-mode .zwp-root[data-theme="auto"],
 body.super-light-mode .zwp-root[data-theme="auto"] {
   --zwp-bg: #ffffff;
-  --zwp-fg: #09090b;
-  --zwp-muted: rgba(9, 9, 11, .58);
-  --zwp-line: rgba(9, 9, 11, .14);
-  --zwp-field: rgba(9, 9, 11, .04);
-  --zwp-accent: #09090b;
+  --zwp-fg: rgb(var(--fg-rgb));
+  --zwp-muted: rgb(var(--fg-rgb) / 58%);
+  --zwp-line: var(--c14);
+  --zwp-field: rgb(var(--fg-rgb) / 4%);
+  --zwp-accent: rgb(var(--fg-rgb));
   --zwp-accent-fg: #F4F1EB;
-  --zwp-scrim: rgba(9, 9, 11, .42);
+  --zwp-scrim: rgb(var(--fg-rgb) / 42%);
   --zwp-shadow: 0 24px 70px rgba(0, 0, 0, .18);
-  --zwp-input-line: rgba(9, 9, 11, .28);
+  --zwp-input-line: rgb(var(--fg-rgb) / 28%);
 }
 
 /* ── scrim ────────────────────────────────────────────────────────────────── */
@@ -120,9 +120,9 @@ body.super-light-mode .zwp-root[data-theme="auto"] {
 .zwp-root[data-theme="light"] .zwp-close,
 body.light-mode .zwp-root[data-theme="auto"] .zwp-close,
 body.super-light-mode .zwp-root[data-theme="auto"] .zwp-close {
-  background: rgba(9, 9, 11, .06);
-  border-color: rgba(9, 9, 11, .18);
-  color: #09090b;
+  background: var(--c06);
+  border-color: rgb(var(--fg-rgb) / 18%);
+  color: rgb(var(--fg-rgb));
 }
 
 /* align-self matters more than it looks. .zwp-body is a flex COLUMN, so its

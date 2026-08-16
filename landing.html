@@ -197,8 +197,8 @@ try {
     body.light-mode nav#nav{ background:var(--zw-nav-bg, #F0EEE9); }
     body.super-light-mode nav#nav{ background:var(--zw-nav-bg, #FFFFFF); }
     body.light-mode .nav-logo img{ filter:invert(1); }
-    body.light-mode .nav-link{ color:#09090b; opacity:1; }
-    body.light-mode .nav-link:hover{ color:#09090b; opacity:.65; }
+    body.light-mode .nav-link{ color:rgb(var(--fg-rgb)); opacity:1; }
+    body.light-mode .nav-link:hover{ color:rgb(var(--fg-rgb)); opacity:.65; }
     @media(max-width:900px){ .nav-center{ display:none; } }
 
     /* HERO */
@@ -296,7 +296,7 @@ try {
     /* No bottom haze in light themes — the hero text is dark, so the gradient
        isn't needed for contrast and just veils a logo/graphic hero. */
     body.light-mode .lp-hero::after{ background:none; }
-    body.light-mode .lp-hero-cta{ background:#09090b; color:#fff; }
+    body.light-mode .lp-hero-cta{ background:rgb(var(--fg-rgb)); color:#fff; }
     body.light-mode .lp-cat-tile,body.light-mode .lp-card-img{ background:#ddd9d0; }
     body.light-mode .lp-cat-label{ color:#fff; }
     /* Super-light = crisp white (must override the light-mode rules above, which

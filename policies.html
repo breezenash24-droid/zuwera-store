@@ -276,7 +276,7 @@ try {
       border: 1px solid var(--border); background: rgb(var(--fg-rgb) / 2%);
       padding: 1.2rem 1.25rem; display: flex; flex-direction: column; gap: .4rem;
     }
-    body.light-mode .rail-help { background: rgba(9,9,11,0.02); }
+    body.light-mode .rail-help { background: rgb(var(--fg-rgb) / 2%); }
     .rail-help-title { font-family: var(--font-head); font-size: 1.05rem; letter-spacing: .04em; }
     .rail-help-desc { font-size: .72rem; color: var(--muted); line-height: 1.6; margin-bottom: .35rem; }
     .rail-help-btn {
@@ -286,8 +286,8 @@ try {
       padding: .55rem .9rem; transition: background .2s, color .2s;
     }
     .rail-help-btn:hover { background: var(--white); color: var(--black); }
-    body.light-mode .rail-help-btn { border-color: #09090b; color: #09090b; }
-    body.light-mode .rail-help-btn:hover { background: #09090b; color: #f4f1eb; }
+    body.light-mode .rail-help-btn { border-color: rgb(var(--fg-rgb)); color: rgb(var(--fg-rgb)); }
+    body.light-mode .rail-help-btn:hover { background: rgb(var(--fg-rgb)); color: #f4f1eb; }
 
     /* FAQ answers two-up so they fill the content width */
     #faq-container { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2.5rem; align-items: start; }
@@ -330,13 +330,13 @@ try {
       transition: color 0.2s, border-color 0.2s, background 0.2s;
     }
     .tab-btn:hover { color: var(--white); background: rgb(var(--fg-rgb) / 3%); }
-    body.light-mode .tab-btn:hover { background: rgba(9,9,11,0.03); }
+    body.light-mode .tab-btn:hover { background: rgb(var(--fg-rgb) / 3%); }
     .tab-btn.active {
       color: var(--white);
       border-left-color: var(--white);
       background: rgb(var(--fg-rgb) / 4%);
     }
-    body.light-mode .tab-btn.active { background: rgba(9,9,11,0.04); }
+    body.light-mode .tab-btn.active { background: rgb(var(--fg-rgb) / 4%); }
 
     /* SECTIONS */
     .tab-panel { display: none; }
@@ -518,45 +518,45 @@ try {
     /* LIGHT MODE */
     body.light-mode {
       --black: #F0EEE9;
-      --white: #09090b;
-      --muted: rgba(10,10,10,0.5);
-      --border: rgba(10,10,10,0.1);
+      --white: rgb(var(--fg-rgb));
+      --muted: var(--c50);
+      --border: var(--c10);
     }
     body.light-mode .nav {
       background: var(--zw-nav-bg, #F0EEE9);
-      border-bottom-color: rgba(10,10,10,0.08);
+      border-bottom-color: var(--c08);
       box-shadow: 0 1px 12px rgba(0,0,0,0.05);
     }
     body.super-light-mode .nav { background: var(--zw-nav-bg, #FFFFFF); }
     body.light-mode .policy-section p,
-    body.light-mode .policy-section ul li { color: rgba(10,10,10,0.65); }
-    body.light-mode .policy-section ul li::before { color: rgba(10,10,10,0.5); }
+    body.light-mode .policy-section ul li { color: var(--c65); }
+    body.light-mode .policy-section ul li::before { color: var(--c50); }
     body.light-mode .policy-highlight {
-      background: rgba(10,10,10,0.04);
-      border-left-color: rgba(10,10,10,0.2);
-      color: rgba(10,10,10,0.6);
+      background: rgb(var(--fg-rgb) / 4%);
+      border-left-color: var(--c20);
+      color: rgb(var(--fg-rgb) / 60%);
     }
-    body.light-mode .faq-answer { color: rgba(10,10,10,0.55); }
-    body.light-mode .tab-btn { color: rgba(10,10,10,0.4); }
-    body.light-mode .tab-btn:hover { color: #09090b; }
-    body.light-mode .tab-btn.active { color: #09090b; border-bottom-color: #09090b; }
-    body.light-mode .tab-nav { border-bottom-color: rgba(10,10,10,0.1); }
-    body.light-mode .faq-question { color: #09090b; }
-    body.light-mode .faq-icon { color: rgba(10,10,10,0.35); }
-    body.light-mode .contact-cta { border-color: rgba(10,10,10,0.1); }
-    body.light-mode .contact-cta a { background: #09090b; color: #E8E3DC; }
-    body.light-mode .nav-back { color: rgba(10,10,10,0.55); }
-    body.light-mode .nav-back:hover { color: #09090b; opacity: 1; }
-    body.light-mode .hamburger-btn { color: #09090b; }
+    body.light-mode .faq-answer { color: var(--c55); }
+    body.light-mode .tab-btn { color: var(--c40); }
+    body.light-mode .tab-btn:hover { color: rgb(var(--fg-rgb)); }
+    body.light-mode .tab-btn.active { color: rgb(var(--fg-rgb)); border-bottom-color: rgb(var(--fg-rgb)); }
+    body.light-mode .tab-nav { border-bottom-color: var(--c10); }
+    body.light-mode .faq-question { color: rgb(var(--fg-rgb)); }
+    body.light-mode .faq-icon { color: var(--c35); }
+    body.light-mode .contact-cta { border-color: var(--c10); }
+    body.light-mode .contact-cta a { background: rgb(var(--fg-rgb)); color: #E8E3DC; }
+    body.light-mode .nav-back { color: var(--c55); }
+    body.light-mode .nav-back:hover { color: rgb(var(--fg-rgb)); opacity: 1; }
+    body.light-mode .hamburger-btn { color: rgb(var(--fg-rgb)); }
     body.light-mode #mobile-menu {
       background: #F0EEE9 !important;
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
     }
-    body.light-mode .mobile-nav-link { color: rgba(9,9,11,.78); }
-    body.light-mode .mobile-nav-link:hover { color: #09090b; }
-    body.light-mode #mobile-menu-close { color: #09090b !important; }
-    body.light-mode footer { border-top-color: rgba(10,10,10,0.08); }
+    body.light-mode .mobile-nav-link { color: rgb(var(--fg-rgb) / 78%); }
+    body.light-mode .mobile-nav-link:hover { color: rgb(var(--fg-rgb)); }
+    body.light-mode #mobile-menu-close { color: rgb(var(--fg-rgb)) !important; }
+    body.light-mode footer { border-top-color: var(--c08); }
   </style>
   <link rel="stylesheet" href="storefront-cohesion.css?v=cddf04e7">
   <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
