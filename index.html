@@ -75,11 +75,12 @@ try {
   }
   if (_tt) {
     if (_tt.navBg) h.style.setProperty('--zw-nav-bg', _tt.navBg);
+    if (_tt.navFg) h.style.setProperty('--zw-nav-fg', _tt.navFg);
     if (_tt.fg) h.style.setProperty('--fg-rgb', _tt.fg);
     if (_tt.bg) h.style.setProperty('--bg-rgb', _tt.bg);
     if (_tt.ink) h.style.setProperty('--ink', _tt.ink);
     if (_tt.paper) h.style.setProperty('--paper', _tt.paper);
-    if (_tt.surface) h.style.setProperty('--surface', _tt.surface);
+    if (_tt.surface) h.style.setProperty('--zw-theme-surface', _tt.surface);
     if (_tt.accent) h.style.setProperty('--accent', _tt.accent);
     if (_tt.bg) h.style.setProperty('--black', 'rgb(' + _tt.bg + ')');
     if (_tt.fg) h.style.setProperty('--white', 'rgb(' + _tt.fg + ')');

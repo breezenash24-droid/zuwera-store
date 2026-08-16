@@ -232,6 +232,59 @@ console.log('\n  precedence');
   })());
 }
 
+console.log('\n  every token it writes is one something reads, and pairs move together');
+{
+  /* HOW A FIRST-PAINT BUG GETS IN, generalised.
+   *
+   * The block writes a handful of custom properties before the stylesheets can
+   * run. Two ways that goes wrong, and both had happened:
+   *
+   *   A PAIR SPLIT. It set --zw-nav-bg and not --zw-nav-fg. Four rules read the
+   *   second one, so a two-tone theme painted its dark bar on the first frame
+   *   while the links fell through `var(--zw-nav-fg, inherit)` to the PAGE's
+   *   foreground — dark on dark until the engine loaded. Exactly the
+   *   ground-without-text bug that started all of this, one element in.
+   *
+   *   A NAME NOTHING READS. It wrote --surface; base.css declares
+   *   --zw-theme-surface and cart.css reads that. A property written under a
+   *   name no rule asks for fails silently and permanently: nothing errors, the
+   *   value is simply never used.
+   *
+   * Neither is visible by reading the block on its own — you have to compare it
+   * against the stylesheets and against the engine. So that comparison is the
+   * test, and it is what makes the next one of these impossible rather than
+   * fixed.
+   */
+  const src = fs.readFileSync(SRC, 'utf8');
+  const written = [...src.matchAll(/setProperty\('(--[a-z-]+)'/g)].map((m) => m[1]);
+
+  const sheets = fs.readdirSync(ROOT).filter((f) => f.endsWith('.css'))
+    .map((f) => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n');
+  const pages = PAGES.map((p) => fs.readFileSync(path.join(ROOT, p), 'utf8')).join('\n');
+  const everything = sheets + pages
+    + fs.readFileSync(path.join(ROOT, 'storefront-features.js'), 'utf8');
+
+  const unread = written.filter((t) => !new RegExp('var\\(\\s*' + t + '\\b').test(everything));
+  ok('nothing is written under a name no rule reads', unread.length === 0,
+    unread.join(', ') + ' — written before first paint and never asked for');
+
+  /* Pairs, by construction: a background token and its foreground partner. */
+  const PAIRS = [['--zw-nav-bg', '--zw-nav-fg'], ['--bg-rgb', '--fg-rgb'], ['--ink', '--paper']];
+  const split = PAIRS.filter(([a, b]) =>
+    (written.includes(a) && !written.includes(b)) || (written.includes(b) && !written.includes(a)));
+  ok('a background is never painted without its foreground', split.length === 0,
+    split.map((p) => p.join(' / ')).join(', ') + ' — half a pair is how text goes invisible');
+
+  /* And the engine must still write everything the block does, or the block's
+     value survives past the moment the engine was supposed to take over. */
+  const engine = fs.readFileSync(path.join(ROOT, 'theme-engine.js'), 'utf8');
+  const orphan = written.filter((t) => t !== '--zw-notch-bar'
+    && !new RegExp("set\\('" + t + "'").test(engine)
+    && !new RegExp("setProperty\\('" + t + "'").test(engine));
+  ok('the engine writes everything the pre-paint block does', orphan.length === 0,
+    orphan.join(', ') + ' — a token only the guess sets can never be corrected');
+}
+
 console.log('\n  the guess does not outlive the answer');
 {
   const r = runPreboot({ shipped: 'super-light' });
