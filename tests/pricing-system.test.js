@@ -624,6 +624,57 @@ const row = (o) => ({
     ok('the bundle picked it up', /0022/.test(BUNDLE));
   }
 
+  console.log('\n  the register says what actually happened');
+  {
+    /* THE APPROVAL THAT RECORDED ITSELF AS A NO-OP.
+     *
+     * The register showed, one line under the other:
+     *
+     *     approved · Zuwera Raw Red    $35.00 → $35.00
+     *     proposed · Zuwera Raw Red    $40.00 → $35.00
+     *
+     * One change, described twice, once wrongly. currentPriceCents() asks the
+     * resolver what the price IS, and the approve branch called it after the
+     * PATCH that made the new row live — so "before" was the price after. The
+     * propose and supersede branches both read theirs first.
+     *
+     * Asserted by ORDER rather than by output, because the bug is entirely an
+     * ordering one: the same call, moved four lines, gives a different answer.
+     */
+    const src = fs.readFileSync(path.join(ROOT, 'functions', 'api', 'admin-prices.js'), 'utf8');
+    const approve = src.slice(src.indexOf("if (action === 'approve' || action === 'reject')"),
+                              src.indexOf("if (action === 'end'"));
+    const readBefore = approve.indexOf('currentPriceCents(');
+    const patchIt = approve.indexOf("method: 'PATCH'");
+    ok('the approve branch reads the old price before it changes it',
+      readBefore > 0 && patchIt > 0 && readBefore < patchIt,
+      'a resolver asked after the PATCH answers with the NEW price, so every approval logs from == to');
+
+    /* And the same discipline in the branch that ends a price, which had it
+       right already — kept here so the pair cannot drift apart. */
+    const end = src.slice(src.indexOf("if (action === 'end'"));
+    const endBefore = end.indexOf('currentPriceCents(');
+    const endPatch = end.indexOf("method: 'PATCH'");
+    ok('…and so does the branch that ends one', endBefore > 0 && endBefore < endPatch);
+
+    /* An approval that omits the member figures reads as though only half the
+       change went live. */
+    ok('an approval records the member movement too',
+      /action === 'approve' \? 'approved'[\s\S]{0,900}from_member_amount:/.test(src),
+      'the proposal logs it and the approval did not, so the register lost it at the moment it took effect');
+
+    /* The colourway. price_audit stores color_name and leaves it empty for an
+       all-colours change, which is indistinguishable from not recording it —
+       while the PRICES table right above says "All colours" for the same row. */
+    const ui = fs.readFileSync(path.join(ROOT, 'admin-pricing.js'), 'utf8');
+    ok('the register names the colourway through the same helper as the price table',
+      /function auditColour\(a\)/.test(ui) && /auditColour\(a\)/.test(ui.slice(ui.indexOf('function auditTable'))),
+      'two tables describing one change in two vocabularies is how they disagree');
+    ok('…and does not guess "All colours" for a row it cannot resolve',
+      /if \(a\.color_name\) return a\.color_name;\s*\n\s*return '';/.test(ui),
+      'guessing there would put the wrong colourway on a price change in the record meant to be trusted');
+  }
+
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
   process.exit(fail ? 1 : 0);
 })();

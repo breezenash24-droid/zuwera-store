@@ -496,6 +496,17 @@ export async function onRequestPost({ request, env }) {
         }
       }
 
+      /* READ THE OLD PRICE BEFORE CHANGING IT.
+         This used to run after the PATCH, and a resolver asked what the price
+         is once the new row is already approved answers with the NEW price. So
+         every approval recorded itself as a no-op — the register read
+         "approved · Zuwera Raw Red  $35.00 → $35.00" one line under
+         "proposed · Zuwera Raw Red  $40.00 → $35.00", which is the same change
+         described twice, once wrongly. The propose and supersede branches both
+         read their `before` first; this one did not, and nothing noticed
+         because the number it printed was a real price, just not that one. */
+      const before = await currentPriceCents(env, price.product_id, price.color_variant_id);
+
       const patch = action === 'approve'
         ? { status: 'approved', approved_by: actorId, approved_at: new Date().toISOString() }
         : { status: 'rejected', rejected_by: actorId, rejected_at: new Date().toISOString() };
@@ -504,14 +515,18 @@ export async function onRequestPost({ request, env }) {
         method: 'PATCH', headers: { ...h, Prefer: 'return=minimal' }, body: JSON.stringify(patch),
       });
       if (!upd.ok) return json({ ok: false, error: 'Could not update that change.' }, 502, cors(env));
-
-      const before = await currentPriceCents(env, price.product_id, price.color_variant_id);
       await writeAudit(env, {
         actor_id: actorId, actor_email: actor, action: action === 'approve' ? 'approved' : 'rejected',
         price_id: priceId, product_id: price.product_id,
         product_title: before.title, color_name: before.colorName,
         from_amount: before.cents / 100,
         to_amount: action === 'approve' ? price.amount : null,
+        /* The member figures too, so an approval says as much as the proposal
+           it approves. Without them the register showed a member price moving
+           when it was proposed and silent when it went live, which reads as
+           though only half of it happened. */
+        from_member_amount: before.memberCents ? before.memberCents / 100 : null,
+        to_member_amount: action === 'approve' ? (price.member_price ?? null) : null,
         starts_at: price.starts_at, ends_at: price.ends_at,
         self_approved: action === 'approve' ? selfApproved : false,
         note: String(body.note || '').slice(0, 500),

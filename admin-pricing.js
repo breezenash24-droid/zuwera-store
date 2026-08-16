@@ -733,6 +733,30 @@
         </tr>`).join('')}</tbody></table></div>`;
   }
 
+  /* WHICH COLOURWAY THE REGISTER LINE IS ABOUT.
+   *
+   * price_audit stores a color_name, and it is empty for an all-colours change
+   * — which is indistinguishable from "we failed to record it". The register
+   * read "approved · Zuwera Aero Pro" with no colour while the PRICES table
+   * right above it said "All colours" for the same row, so the two tables
+   * described the same change in two different vocabularies.
+   *
+   * The audit row carries price_id, and the loaded prices carry
+   * color_variant_id, so the answer is reachable without a schema change: look
+   * the price up and run it through colourName(), which is the function the
+   * PRICES table already uses. One phrasing, one implementation.
+   *
+   * Falls back to the stored name, and then to nothing. Deliberately NOT to
+   * "All colours": a row whose price has since been deleted is one we cannot
+   * speak for, and guessing there would put the wrong colourway on a
+   * price change in the one record that exists to be trusted. */
+  function auditColour(a) {
+    const p = _prices.find((x) => a.price_id && String(x.id) === String(a.price_id));
+    if (p) return colourName(p.product_id, p.color_variant_id);
+    if (a.color_name) return a.color_name;
+    return '';
+  }
+
   function auditTable() {
     return `<div style="overflow-x:auto;"><table class="products-table" style="width:100%;font-size:.82rem;">
       <thead><tr><th>When</th><th>Who</th><th>What</th><th>From</th><th>To</th><th></th></tr></thead>
@@ -740,8 +764,10 @@
         <tr>
           <td style="white-space:nowrap;color:var(--text-secondary);">${escapeHtml(String(a.at || '').replace('T', ' ').slice(0, 16))}</td>
           <td>${escapeHtml(a.actor_email || '—')}</td>
-          <td>${escapeHtml(a.action)} · ${escapeHtml(a.product_title || '')}${
-            a.color_name ? ' <span style="color:var(--text-secondary);">' + escapeHtml(a.color_name) + '</span>' : ''}</td>
+          <td>${escapeHtml(a.action)} · ${escapeHtml(a.product_title || '')}${(() => {
+            const c = auditColour(a);
+            return c ? ' <span style="color:var(--text-secondary);">' + escapeHtml(c) + '</span>' : '';
+          })()}</td>
           <td style="font-variant-numeric:tabular-nums;">${dollars(a.from_amount)}</td>
           <td style="font-variant-numeric:tabular-nums;">${dollars(a.to_amount)}</td>
           <td>${a.self_approved
