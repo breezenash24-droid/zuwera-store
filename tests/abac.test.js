@@ -374,49 +374,44 @@ console.log('\n  a limit marked ready really is');
   const adm4 = fs4.readFileSync(R4 + 'admin-main.js', 'utf8');
   const block4 = adm4.slice(adm4.indexOf('const ABAC_LIMITS'), adm4.indexOf('];', adm4.indexOf('const ABAC_LIMITS')));
 
-  /* `ready` tells an owner it is safe to switch a limit on. If it lies, the
-     first person to enable one takes that action offline for everybody — the
-     engine denies what it cannot evaluate. So the claim is checked against the
-     endpoints rather than trusted. */
-  const WIRED = {
-    refund: 'functions/api/admin-refund.js',
-    role_manage: 'functions/api/set-admin-role.js',
-    customer_export: 'functions/api/admin-export.js',
-    product_delete: 'functions/api/admin-product-delete.js',
-    /* Advisory ones share a single endpoint. Five near-copies would be five
-       places for the ctx shape to drift from what the rules read. */
-    product_price: 'functions/api/admin-guard.js',
-    bulk_edit: 'functions/api/admin-guard.js',
-    promo_create: 'functions/api/admin-guard.js',
-  };
-
+  /* THIS CHECK MOVED, and the reason is the point of it.
+   *
+   * It used to carry a hand-written map from action to endpoint, and asked
+   * whether that file contained `await decide(`. Two things were wrong with
+   * that, and adding a limit for shipping labels found both: the map had to be
+   * edited by hand or a new limit read as unwired, and "the file calls decide
+   * somewhere" is not the same question as "the file calls decide about THIS
+   * action" — admin-relabel.js called decide on an action no rule could ever
+   * name, and would have passed.
+   *
+   * tests/abac-limits-reach-something.test.js asks it by reading the code:
+   * which actions reach decide(), which the panel asks admin-guard about, and
+   * whether each gate hands over the attribute its rule reads. It also covers
+   * the two directions this one could not — a gate on an unnameable action,
+   * and two limits sharing an action where sending one attribute denies the
+   * other. One question, one answerer.
+   *
+   * What stays here is the shape of the catalogue itself, which is this file's
+   * business: the engine's own contract about what a rule looks like. */
   const entries = [...block4.matchAll(/\{ id: '([a-z_]+)', action: '([a-z_]+)'[\s\S]*?ready: (true|false)/g)]
     .map((m) => ({ id: m[1], action: m[2], ready: m[3] === 'true' }));
   ok('the limits parse', entries.length >= 10, entries.length + ' found');
 
-  const lying = entries.filter((e) => {
-    if (!e.ready) return false;
-    const file = WIRED[e.action];
-    if (!file) return true;                       // claims ready, no endpoint known
-    const src = fs4.readFileSync(R4 + file, 'utf8');
-    return !/await decide\(/.test(src);
-  });
-  ok('nothing claims to be enforced that is not', lying.length === 0,
-    lying.map((e) => e.id).join(', ') + ' — marked ready but the endpoint does not call decide()');
-
-  /* And the reverse: an endpoint that DOES pass context while its limit still
-     says "not enforced yet" tells an owner to leave off a limit that works. */
-  const silent = Object.entries(WIRED).filter(([action, file]) => {
-    const src = fs4.readFileSync(R4 + file, 'utf8');
-    return /await decide\(/.test(src) && entries.some((e) => e.action === action && !e.ready);
-  });
-  ok('…and nothing enforced is still labelled unenforced', silent.length === 0,
-    silent.map(([a]) => a).join(', '));
+  /* Every rule the engine will ever evaluate names an action and an attribute,
+     because checkRule matches on the first and reads the second — and a rule
+     missing either denies rather than doing nothing. */
+  const malformed = [...block4.matchAll(/\{ id: '([a-z_]+)'([\s\S]*?)(?=\n\s*\{ id: '|$)/g)]
+    /* [A-Za-z_.] — attribute paths are camelCase (resource.itemCount), and a
+       lowercase-only class reported the one limit that uses one as malformed. */
+    .filter((m) => !/action:\s*'[a-z_]+'/.test(m[2]) || !/attr:\s*'[A-Za-z_.]+'/.test(m[2]) || !/op:\s*'[a-z]+'/.test(m[2]))
+    .map((m) => m[1]);
+  ok('every limit names an action, an attribute and an operator', malformed.length === 0,
+    malformed.join(', ') + ' — the engine denies on any of the three missing');
 
   /* The unit trap. The panel asks for dollars; Stripe deals in cents. A limit
      written as "$500" compared against 50000 refuses every refund over five
      dollars — and looks exactly like the limit working. */
-  const refund = fs4.readFileSync(R4 + WIRED.refund, 'utf8');
+  const refund = fs4.readFileSync(R4 + 'functions/api/admin-refund.js', 'utf8');
   ok('the refund amount is converted to the unit the panel asks for',
     /amountCents\) \/ 100/.test(refund),
     'passing cents against a dollar limit refuses almost everything, and looks correct');
@@ -427,7 +422,7 @@ console.log('\n  a limit marked ready really is');
   /* The limit that matters most. Without it, anyone who can manage roles can
      grant a role above their own — including to themselves — and every other
      limit becomes advisory, since they can simply promote past it. */
-  const roles = fs4.readFileSync(R4 + WIRED.role_manage, 'utf8');
+  const roles = fs4.readFileSync(R4 + 'functions/api/set-admin-role.js', 'utf8');
   ok('granting a role is checked against the limits', /await decide\(/.test(roles));
   ok('…on the role being GRANTED, which is the thing to constrain',
     /resource: \{ role: String\(nextRole/.test(roles),

@@ -6841,7 +6841,29 @@
         // changing the amount actually means what it says instead of only
         // applying to codes minted from now on. The code itself and its
         // usageCount are preserved — only the terms change.
+        /* BOTH numbers, always, and zero for the one that does not apply.
+           A discount is either a percentage or an amount, so the obvious
+           wiring sends only the relevant field — and that is a trap. Two
+           limits share the action `promo_create`, and the engine denies on an
+           attribute it cannot read: send only `percent` and the fixed-amount
+           limit refuses every percentage coupon, send only `amount` and the
+           percentage limit refuses every fixed one. Each rule then refuses the
+           kind of coupon it was never about, and looks like it is working.
+           Zero passes any "no more than" limit, which is the correct reading —
+           a percentage coupon really does discount $0 flat. */
+        function promoResource(type, value) {
+            const isFixed = String(type) === 'fixed';
+            return { percent: isFixed ? 0 : Number(value) || 0,
+                     amount:  isFixed ? Number(value) || 0 : 0 };
+        }
         async function referralSyncExistingCodes(value) {
+            /* Not a creation, but it rewrites the terms of every referral code
+               already in circulation — so it is the same decision at a larger
+               scale, and skipping it would leave the limit enforceable only on
+               the path nobody uses to give away more money. */
+            if (!await zwGuard('promo_create', promoResource(value.friendType, value.friendValue))) {
+                return 0;
+            }
             const { data: rows, error } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
             if (error) throw error;
             const cfg = (rows && rows[0] && rows[0].value) || {};
@@ -7014,6 +7036,9 @@
             const type = document.getElementById('bn-new-type').value === 'fixed' ? 'fixed' : 'percent';
             const value = Number(document.getElementById('bn-new-value').value) || 0;
             if (value <= 0) throw new Error('Give the new coupon an amount above 0.');
+            if (!await zwGuard('promo_create', promoResource(type, value))) {
+                throw new Error('A limit on your account stopped that coupon.');
+            }
             const { data: rows, error } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
             if (error) throw error;
             const cfg = (rows && rows[0] && rows[0].value) || {};
@@ -10874,10 +10899,25 @@ function escapeAttr(value) {
               label: 'Items in one refund', unit: 'items', value: 5, ready: true, sealed: true,
               say: (v) => 'refund more than ' + v + ' items at once',
               help: 'Refuse a refund covering more items than this, whatever it is worth. A ten-item refund is a different kind of decision from a large one.' },
+            /* The other way money leaves. Two endpoints buy labels against the
+               store's carrier account — admin-relabel (a failed outbound label,
+               re-bought) and generate-return-label (a prepaid return) — and
+               until this existed neither could be capped, so a store could
+               refuse a $600 refund and not a $600 label.
+               Checked between the carrier's quote and the purchase, which is
+               the only moment the price is known and nothing has been spent. */
+            { id: 'label_max', action: 'ship_label', attr: 'resource.amount', op: 'lte', kind: 'number',
+              label: 'Buying a shipping label', unit: '$', value: 40, ready: true, sealed: true,
+              say: (v) => 'buy a shipping label costing more than $' + v,
+              help: 'Refuse a label priced above this. Asked after the carrier quotes and before the card is charged, so a refusal costs nothing.' },
             { id: 'discount_max', action: 'promo_create', attr: 'resource.percent', op: 'lte', kind: 'number',
               label: 'Discount codes', unit: '%', value: 30, ready: true, sealed: false,
               say: (v) => 'create a discount code worth more than ' + v + '%',
-              help: 'Refuse promo codes worth more than this.' },
+              help: 'Refuse percentage promo codes worth more than this. Set the one below for flat-amount codes — a cap on percentages alone is a cap somebody can walk around with "$500 off".' },
+            { id: 'discount_fixed_max', action: 'promo_create', attr: 'resource.amount', op: 'lte', kind: 'number',
+              label: 'Flat-amount discount codes', unit: '$', value: 100, ready: true, sealed: false,
+              say: (v) => 'create a discount code worth more than $' + v + ' flat',
+              help: 'Refuse flat-amount promo codes above this. The percentage limit cannot see these — 100% and $500 off are the same generosity written two ways.' },
             { id: 'order_edit_max', action: 'order_edit', attr: 'resource.total', op: 'lte', kind: 'number',
               label: 'Editing an order', unit: '$', value: 1000, ready: false, sealed: false,
               needs: 'there is no manual order edit — every write to an order goes through refund or returns, and those are gated already',

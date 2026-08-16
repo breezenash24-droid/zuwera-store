@@ -13,7 +13,7 @@
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { shipFromValue, shipFromKeys, SHIP_FROM_FIELDS } from './_ship-from.js';
-import { cors, json, verifyAdminCan, getCommerceBundle, setSetting } from './_commerce.js';
+import { cors, json, verifyAdminCan, decide, limitError, limitResponse, getCommerceBundle, setSetting } from './_commerce.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
 
 async function fetchOrder(orderId, env) {
@@ -93,7 +93,7 @@ function shippoMessages(shipment) {
     .join('; ');
 }
 
-async function createShippoLabel(order, env, cache) {
+async function createShippoLabel(order, env, cache, gate) {
   const shippoKey = resolveSetting('SHIPPO_API_KEY', env, cache);
   if (!shippoKey) throw new Error('SHIPPO_API_KEY not configured');
 
@@ -158,6 +158,16 @@ async function createShippoLabel(order, env, cache) {
       : 'No shipping rates available from Shippo. Confirm the customer shipping address and the Zuwera Shippo return address are complete.');
   }
   const chosenRate = rates[0];
+
+  /* The store's own limits, asked between the quote and the purchase — the only
+     window in which the price is known and the money has not moved. This
+     endpoint had no limit check at all, while admin-relabel.js, which buys the
+     same kind of label from the same carrier account, had one. Two ways to
+     spend the store's money and only one of them could be capped.
+     Quoting is free, so a refusal here costs nothing. */
+  if (gate) await gate({ amount: Number(chosenRate.amount) || null,
+                         carrier: String(chosenRate.provider || ''),
+                         service: String((chosenRate.servicelevel && chosenRate.servicelevel.name) || '') });
 
   // 3. Purchase label
   const txResp = await fetch('https://api.goshippo.com/transactions/', {
@@ -417,7 +427,17 @@ export async function onRequestPost({ request, env }) {
           amount: '',
           currency: '',
         }
-      : await createShippoLabel(order, env, cache);
+      /* A manual label is somebody typing in a tracking number for a label they
+         bought elsewhere. No money moves through this store, so there is
+         nothing here for a spending limit to be about — the branch above is
+         deliberately not gated. */
+      : await createShippoLabel(order, env, cache, async ({ amount, carrier, service }) => {
+          const verdict = await decide(env, accessToken, 'return_process', {
+            action: 'ship_label',
+            resource: { amount, carrier, service, orderId: String(orderId || ''), returnId },
+          });
+          if (!verdict.allow) throw limitError(verdict);
+        });
 
     // Fire email and DB update in parallel
     await Promise.allSettled([
@@ -436,6 +456,13 @@ export async function onRequestPost({ request, env }) {
       service:        label.service,
     });
   } catch (e) {
+    /* A limit refusing is not a failure of this endpoint and must not be
+       recorded as one. Falling through would write "label generation failed"
+       onto the return request, show the customer-facing recovery advice, and
+       leave a red mark on a request where nothing went wrong — somebody
+       decided. It also has to be a 403, not a 500, or the panel cannot tell a
+       refusal it may ask about from a breakage it may only retry. */
+    if (e && e.limitVerdict) return limitResponse(e, {});
     const message = e.message || 'Unknown error';
     console.error('[return-label] Error:', message);
     let updatedRequest = null;
