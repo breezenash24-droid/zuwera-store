@@ -453,9 +453,24 @@
             const ml = document.getElementById('mobThemeLabel'); if (ml) ml.textContent = labels[themeMode] + ' mode';
             localStorage.setItem('theme', themeMode);
 
-            // Save theme to Supabase for main site only after auth has loaded.
-            // Read-modify-write so it never clobbers the sibling modal_accent field.
-            if (typeof sb !== 'undefined' && sb && currentUser?.id) saveThemeSettings({ mode: themeMode });
+            /* THIS BUTTON THEMES THE ADMIN, AND ONLY THE ADMIN.
+             *
+             * It used to also write site_settings.theme.mode, which the
+             * storefront reads — so putting your own dashboard into dark mode
+             * re-themed the shop for every customer, and nothing on screen said
+             * so. It predated the theme engine, when there was one theme
+             * setting and this was it.
+             *
+             * There are two controls now and they are for different audiences:
+             * this one for the person working in the panel, and Appearance →
+             * Themes for the store. Sharing a key meant the last one touched
+             * won, which is how a store came to have theme.mode = "dark" and a
+             * super-light default at the same time.
+             *
+             * The admin's own preference lives in localStorage above. That
+             * makes it per-browser rather than per-account, which is the right
+             * trade for a chrome preference — and it is where this already
+             * READ from on load, so the two halves now agree. */
 
             // Sync theme to embedded analytics iframe
             const frame = document.getElementById('analyticsFrame');
