@@ -22,7 +22,12 @@
    (.4s/.45s/.6s/.72s + assorted beziers) should migrate to tokens whenever
    the code that uses them is touched. Every animation needs a
    prefers-reduced-motion: reduce escape hatch. */
-html{background:#09090b;color-scheme:dark light;text-size-adjust:100%;-webkit-text-size-adjust:100%}
+/* `dark light` is not "dark, with light available" — it is "either of these,
+   you choose", and the browser chooses from the visitor's OS setting. So the
+   shipped dark page told every visitor on a light desktop to draw its
+   scrollbars, dropdowns and autofill in light. The page has a theme; it is
+   dark until a class says otherwise, and this says so. */
+html{background:#09090b;color-scheme:dark;text-size-adjust:100%;-webkit-text-size-adjust:100%}
 html:has(body.light-mode){background:#F0EEE9;color-scheme:light}
 html:has(body.super-light-mode){background:#FFFFFF;color-scheme:light}
 html::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--zw-notch-bar,#09090b);z-index:9990;pointer-events:none}
@@ -629,7 +634,10 @@ body.super-light-mode #payment-modal h2{ color:rgb(var(--fg-rgb)) !important; }
 body.super-light-mode #payment-modal label,
 body.super-light-mode #payment-modal p{ color:var(--c50) !important; }
 body.super-light-mode #payment-modal input,
-body.super-light-mode #payment-modal select{ background:rgb(var(--fg-rgb) / 4%) !important; border-color:var(--c12) !important; color:rgb(var(--fg-rgb)) !important; }
+body.super-light-mode #payment-modal select{ background:var(--field-bg) !important; border-color:var(--c12) !important; color:rgb(var(--fg-rgb)) !important; }
+/* Its rows, in every mode — the expiry-month and card-type lists open in their
+   own window, which our page colour does not reach. */
+#payment-modal select option{ background-color:var(--field-bg); color:rgb(var(--fg-rgb)); }
 body.super-light-mode #payment-modal #pay-submit{ background:rgb(var(--fg-rgb)) !important; color:var(--zw-cream) !important; }
 
 body.super-light-mode #payment-success{ background: var(--ink) !important; }
@@ -4848,4 +4856,28 @@ body {
   --c65:  rgb(var(--fg-rgb) / 65%);
   --c70:  rgb(var(--fg-rgb) / 70%);
   --c80:  rgb(var(--fg-rgb) / 80%);
+
+  /* A rung is a colour only once something is behind it, and a <select>'s
+     drop-down opens in its own window where nothing is. See base.css for the
+     full account; these are the two washes composited against the page so
+     they survive being lifted out of it. */
+  --field-bg:      color-mix(in srgb, rgb(var(--fg-rgb))  6%, rgb(var(--bg-rgb)));
+  --field-bg-lift: color-mix(in srgb, rgb(var(--fg-rgb)) 12%, rgb(var(--bg-rgb)));
 }
+
+/* The native half of the theme, bound to the class rather than set by script,
+   so no code path can set one without the other. See base.css. This copy is
+   the one that matters most: every storefront page loads this file, and only
+   product.html and bag.html load base.css.
+
+   This is not a duplicate of the html:has(…) rules at the top, though it looks
+   like one. Those set :root, and :root is also where the pre-paint block
+   writes an INLINE color-scheme — which beats any stylesheet. Inside the size
+   guide's srcdoc frame that inline value is a guess (localStorage throws in
+   there, so the block falls back to the class the build stamped), the parent
+   then hands the real theme in as a class, and nothing ever corrects :root.
+   A rule on body outranks nothing and is beaten by nothing, so the controls
+   come out right even when the root is still holding the guess. */
+body { color-scheme: dark; }
+body.light-mode,
+body.super-light-mode { color-scheme: light; }

@@ -324,9 +324,20 @@
   box-shadow: 0 0 0 3px rgba(248,145,165,0.08);
 }
 
+/* Was #09090b on #f4f1eb — legible, but only ever the dark theme. On a light
+   page the sort list opened as a black panel over cream. Tokens follow. */
 .review-select option {
-  background: #09090b;
-  color: #f4f1eb;
+  background-color: var(--field-bg);
+  color: rgb(var(--fg-rgb));
+}
+
+/* The chevron is a data: URI, so it cannot take currentColor and had to be
+   drawn in one theme's cream. That is invisible on light mode's #F0EEE9, and
+   a select with no visible arrow does not read as a select at all. */
+body.light-mode .review-select {
+  background-image:
+    linear-gradient(180deg, rgb(var(--fg-rgb) / 5%), rgb(var(--fg-rgb) / 2%)),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'><path d='M1 1l5 5 5-5' stroke='%2309090b' stroke-width='1.5' fill='none' opacity='0.45'/></svg>");
 }
 
 .review-rating-panel {
@@ -1701,7 +1712,10 @@ body.light-mode .size-guide-frame-shell,
 body.light-mode .review-select,
 body.light-mode .translate-btn,
 body.light-mode .review-radio-group label {
-  background: #F0EEE9;
+  /* background-color, not the shorthand: .review-select carries its chevron in
+     background-image, and the shorthand was resetting it to none — which is
+     why light mode had no arrow to re-colour in the first place. */
+  background-color: #F0EEE9;
   border-color: var(--c10);
 }
 

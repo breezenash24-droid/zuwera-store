@@ -99,9 +99,25 @@ console.log('\n  it moves with the mode, like every other colour');
   /* base.css is what renders before any theme is applied, and what renders for
      a store with no custom theme at all. It has to carry the same three
      answers the built-ins do. */
-  const rootBlock  = base.slice(0, base.indexOf('body.light-mode'));
-  const lightBlock = base.slice(base.indexOf('body.light-mode'), base.indexOf('body.super-light-mode'));
-  const superBlock = base.slice(base.indexOf('body.super-light-mode'));
+  /* Cut on the rule OPENING, not on the bare class name. Slicing at
+     `indexOf('body.light-mode')` meant any other mention of the class — a
+     grouped selector, a comment, a later rule — silently redefined where each
+     block started, and the test then reported the wrong block's colour as this
+     one's answer. Adding `body.light-mode, body.super-light-mode {
+     color-scheme: light }` above these rules was enough to make it claim light
+     had no surface and super-light's was #FFFFFF: two confident failures, both
+     about rules that were correct. A selector is a selector when a `{` follows
+     it. */
+  const openAt = (cls) => {
+    const m = new RegExp('(?:^|[};/\\n])\\s*' + cls.replace('.', '\\.') + '\\s*\\{', 'm').exec(base);
+    if (!m) throw new Error('no rule opens with ' + cls + ' in base.css');
+    return m.index;
+  };
+  const lightAt = openAt('body.light-mode');
+  const superAt = openAt('body.super-light-mode');
+  const rootBlock  = base.slice(0, lightAt);
+  const lightBlock = base.slice(lightAt, superAt);
+  const superBlock = base.slice(superAt);
 
   const pick = (b) => (b.match(/--zw-theme-surface:\s*(#[0-9A-Fa-f]{6})/) || [])[1];
   const d = pick(rootBlock), l = pick(lightBlock), s = pick(superBlock);

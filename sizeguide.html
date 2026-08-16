@@ -405,7 +405,10 @@ try {
     .calc-input, .calc-select {
       width: 100%;
       min-width: 0;
-      background: rgb(var(--fg-rgb) / 4%);
+      /* Opaque on purpose: this is a <select>, and its list opens in a window
+         with nothing behind it, so a translucent wash comes out near-white in
+         there. See the note beside --field-bg in base.css. */
+      background: var(--field-bg);
       border: 1px solid var(--border);
       color: var(--text);
       padding: 0.75rem 1rem;
@@ -425,14 +428,22 @@ try {
       padding-right: 2.5rem;
       cursor: pointer;
     }
+    /* --ink/--paper both flip with the theme, so this pair was never
+       unreadable — but it was a THIRD answer to "what colour is a field",
+       needing a per-mode override further down to stay in step. One token,
+       and the two overrides below it go away. */
     .calc-select option {
-      background: var(--ink);
-      color: var(--paper);
+      background-color: var(--field-bg);
+      color: rgb(var(--fg-rgb));
     }
     .calc-input:focus, .calc-select:focus {
       outline: none;
       border-color: var(--c40);
-      background: var(--c06);
+      /* Focus is exactly when the list is open, so this is the background the
+         popup paints itself with. It has to be opaque too. background-color
+         rather than the shorthand, which was resetting background-image and
+         taking the dropdown arrow away for as long as the field was focused. */
+      background-color: var(--field-bg-lift);
     }
     .calc-toggles {
       display: flex;
@@ -931,20 +942,21 @@ try {
     }
     body.light-mode .nav { background: var(--zw-nav-bg, #F0EEE9); border-bottom-color: var(--c08); }
     body.super-light-mode .nav { background: var(--zw-nav-bg, #FFFFFF); }
-    body.super-light-mode .calc-select option { background: var(--ink); color: rgb(var(--fg-rgb)); }
     body.light-mode .flogo img { filter: none; }
     body.light-mode .calculator { background: rgb(var(--fg-rgb) / 2%); }
     body.light-mode .focused-guide-note { background: rgb(var(--fg-rgb) / 3%); }
+    /* Only the things that genuinely differ in light mode are left here. The
+       backgrounds are not among them any more: --field-bg is declared on body
+       beside the class that moves it, so it recomputes on its own and these
+       overrides were re-answering a question already answered. The arrow
+       stays, because a data: URI cannot hold currentColor. */
     body.light-mode .calc-input, body.light-mode .calc-select {
-      background-color: rgb(var(--fg-rgb) / 4%);
       color: rgb(var(--fg-rgb));
     }
     body.light-mode .calc-select {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2309090b' stroke-width='1.5' fill='none' opacity='0.4'/%3E%3C/svg%3E");
     }
-    body.light-mode .calc-select option { background: var(--ink); color: rgb(var(--fg-rgb)); }
     body.light-mode .calc-input:focus, body.light-mode .calc-select:focus {
-      background: var(--c06);
       border-color: var(--c40);
     }
     body.light-mode thead tr { background: rgb(var(--fg-rgb) / 4%); }

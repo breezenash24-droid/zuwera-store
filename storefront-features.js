@@ -376,7 +376,15 @@
        * --c06 and --c15 are the same faint wash, derived from --fg-rgb, so they
        * are near-black on a light surface and near-white on a dark one. One
        * declaration, correct on both. */
-      '.zwf-field input,.zwf-field select{width:100%;padding:.7rem .8rem;background:var(--c06);border:1px solid var(--c15);border-radius:3px;color:inherit;font-family:var(--fb,inherit);font-size:.95rem;outline:none}',
+      /* --field-bg, not --c06. A rung is the foreground at 6% opacity, which
+         is only a colour once the page is behind it — and a <select>'s list
+         opens in its own window, where the page is not. 6% white composited
+         against the browser's canvas is cream, `color:inherit` is the dark
+         theme's near-white, and that is the unreadable height dropdown. */
+      '.zwf-field input,.zwf-field select{width:100%;padding:.7rem .8rem;background:var(--field-bg);border:1px solid var(--c15);border-radius:3px;color:inherit;font-family:var(--fb,inherit);font-size:.95rem;outline:none}',
+      /* The rows themselves, ground and text together — because the popup is
+         drawn by the browser and inherits our colour without our surface. */
+      '.zwf-field select option{background-color:var(--field-bg);color:rgb(var(--fg-rgb))}',
       '.zwf-seg{display:flex;gap:.5rem}',
       '.zwf-seg button{flex:1;padding:.6rem .3rem;background:var(--c06);border:1px solid var(--c15);border-radius:3px;color:inherit;font-family:var(--fm,inherit);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}',
       /* THE FILLED ONES INVERT, and the previous note here had it half right.

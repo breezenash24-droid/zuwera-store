@@ -137,9 +137,44 @@ body {
   --border:       var(--c10);
   --border-soft:  var(--c08);
   --muted:        var(--c50);
+
+  /* ── Opaque twins, for surfaces the page does not paint ─────────────────
+     Every rung above is the foreground colour at some opacity, which only
+     becomes a colour once something is behind it. On the page that is the
+     page. In a <select>'s drop-down it is not: the list opens in its own
+     window, and the only thing behind it is the browser's canvas — so a rung
+     used as a field background composites against WHITE in there, whatever
+     the page is doing an inch above it.
+
+     The fit finder's height field was `background: var(--c06); color:
+     inherit`, and it opened as a cream panel carrying the dark theme's
+     near-white text. Six unreadable rows hanging under a correctly dark
+     control. color-scheme could not save it, because an author background on
+     a <select> is what the popup paints itself with.
+
+     These are those same two washes composited against the page instead of
+     left translucent: identical in place, and still themselves when lifted
+     out of it. Anything that renders in its own window — a <select> and its
+     <option>s — takes one of these, never a rung. */
+  --field-bg:      color-mix(in srgb, rgb(var(--fg-rgb))  6%, rgb(var(--bg-rgb)));
+  --field-bg-lift: color-mix(in srgb, rgb(var(--fg-rgb)) 12%, rgb(var(--bg-rgb)));
 }
 
 body {
+  /* ── The half of the theme the browser draws ────────────────────────────
+     color-scheme decides how the browser paints what our CSS never sees: the
+     window a <select> opens, scrollbars, date pickers, autofill. It was set
+     from JavaScript, and by more than one script, so every code path that set
+     the theme class WITHOUT also setting this left the browser drawing the
+     previous theme. The size guide is the clearest case: its applyThemeMode
+     delegates to the engine when the engine is there, and theme-engine.js is
+     `defer`red, so the fallback branch — classes, theme-colour, background,
+     and no color-scheme — is the one that actually runs on every open.
+
+     Here it is a declaration of the theme rather than a consequence of one:
+     the class IS the theme, and nothing can now set one without the other.
+     The light half is at the bottom of the mode blocks below. */
+  color-scheme: dark;
   background: var(--black);
   color: var(--white);
   font-family: var(--font-body);
@@ -192,3 +227,14 @@ body.super-light-mode {
      one at all. Light mode's #FFFFFF here would be invisible. */
   --zw-theme-surface: #F5F5F5;
 }
+
+/* The light half of the color-scheme declaration on body, kept here at the
+   bottom of the mode blocks rather than folded into them, so that both halves
+   of the answer sit in one place and neither can be read without the other.
+
+   Both classes are named even though super-light always carries light-mode
+   too. Every path that sets it does set both today — but this is the one
+   declaration whose absence is invisible until somebody opens a dropdown, and
+   naming the class costs nothing. */
+body.light-mode,
+body.super-light-mode { color-scheme: light; }
