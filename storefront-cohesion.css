@@ -114,8 +114,21 @@ body.light-mode .zw-hdr-bag:hover,body.super-light-mode .zw-hdr-bag:hover{border
   --zw-ink:#09090b;
   --zw-paper:#f4f1eb;
   --zw-page:#F0EEE9;
+  /* --zw-cream is the LABEL on a foreground-coloured surface: the text on a
+     primary button, whose background is rgb(var(--fg-rgb)). It was written out
+     as #E8E3DC in eighteen places and read through this name in two, so moving
+     it meant finding all twenty. Now it is one line, and theme-engine.js can
+     set it from a theme's own `cream`. */
   --zw-cream:#E8E3DC;
+  /* A panel lifted off a dark page — cards, skeletons, review boxes. Note this
+     is NOT --zw-theme-surface (#111113 in base.css); they are two different
+     surfaces that have both always been called "surface", and unifying them
+     would be a visible change rather than a rename. */
   --zw-surface:#0f0f0f;
+  /* The hover state of a foreground-coloured button. It existed as #1a1a1a in
+     some places and #1b1b1d in others — one role, two spellings, three parts in
+     255 apart, which is how you can tell nobody chose the difference. */
+  --zw-fg-hover:#1a1a1a;
   --zw-accent:#F891A5;
   --zw-danger:#c0392b;
   --zw-line-dark:var(--c10);
@@ -385,8 +398,8 @@ body.light-mode .zw-saved-item-btn--primary{
 }
 
 body.light-mode .zw-saved-item-btn--primary:hover{
-  background:#1b1b1d;
-  border-color:#1b1b1d;
+  background:var(--zw-fg-hover);
+  border-color:var(--zw-fg-hover);
 }
 
 body.light-mode .cart-shell-footer{
@@ -617,7 +630,7 @@ body.super-light-mode #payment-modal label,
 body.super-light-mode #payment-modal p{ color:var(--c50) !important; }
 body.super-light-mode #payment-modal input,
 body.super-light-mode #payment-modal select{ background:rgb(var(--fg-rgb) / 4%) !important; border-color:var(--c12) !important; color:rgb(var(--fg-rgb)) !important; }
-body.super-light-mode #payment-modal #pay-submit{ background:rgb(var(--fg-rgb)) !important; color:#E8E3DC !important; }
+body.super-light-mode #payment-modal #pay-submit{ background:rgb(var(--fg-rgb)) !important; color:var(--zw-cream) !important; }
 
 body.super-light-mode #payment-success{ background: var(--ink) !important; }
 
@@ -629,7 +642,7 @@ body.super-light-mode #payment-success{ background: var(--ink) !important; }
 #cookie-banner,
 body.light-mode #cookie-banner,
 body.super-light-mode #cookie-banner{
-  background:#0f0f0f !important;
+  background:var(--zw-surface) !important;
   color:rgba(244,241,235,.72) !important;
   border-top:1px solid rgba(244,241,235,.12) !important;
 }
@@ -1028,7 +1041,7 @@ body.light-mode .zw-test-mode-banner{
 
 :is(.add-to-cart-btn,.pcard-add-btn,.product-add-btn,.auth-submit-btn,.btn-primary,#checkout-btn,#pay-submit,.quick-add-review-confirm,.collection-review-confirm,.notify-form button,.cookie-accept):hover:not(:disabled):not(.disabled){
   opacity:1;
-  background:#E8E3DC !important;
+  background:var(--zw-cream) !important;
   transform:translateY(-1px);
 }
 
@@ -1038,7 +1051,7 @@ body.light-mode :is(.add-to-cart-btn,.pcard-add-btn,.product-add-btn,.auth-submi
 }
 
 body.light-mode :is(.add-to-cart-btn,.pcard-add-btn,.product-add-btn,.auth-submit-btn,.btn-primary,#checkout-btn,#pay-submit,.quick-add-review-confirm,.collection-review-confirm,.notify-form button,.cookie-accept):hover:not(:disabled):not(.disabled){
-  background:#1a1a1a !important;
+  background:var(--zw-fg-hover) !important;
   color:var(--zw-cream) !important;
 }
 

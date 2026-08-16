@@ -131,6 +131,49 @@ console.log('\n  the premise the conversion rests on');
     'page foreground inside a panel-keyed surface is invisible the moment a theme separates them');
 }
 
+console.log('\n  the named roles');
+{
+  /* Three colours were spelled out by hand across eighty-odd declarations while
+     a name for each already sat in :root, used a handful of times. Naming them
+     is only half the job: a name nothing can set is still a fixed colour with a
+     nicer label, which is exactly what these were. */
+  const coh = fs.readFileSync(path.join(ROOT, 'storefront-cohesion.css'), 'utf8');
+  const engine = fs.readFileSync(path.join(ROOT, 'theme-engine.js'), 'utf8');
+
+  for (const [tok, val] of [['--zw-cream', '#E8E3DC'], ['--zw-surface', '#0f0f0f'], ['--zw-fg-hover', '#1a1a1a']]) {
+    ok(tok + ' still defaults to the literal it replaced',
+      new RegExp(tok + ':\\s*' + val + ';', 'i').test(coh),
+      'every one of its uses resolves through this, so the default IS the old behaviour');
+  }
+  ok('…and a theme can now set all three',
+    /set\('--zw-cream', t\.cream\)/.test(engine)
+    && /set\('--zw-surface', t\.surfaceAlt\)/.test(engine)
+    && /set\('--zw-fg-hover', t\.fgHover\)/.test(engine));
+
+  /* The built-ins must not carry them, or this stops being a no-op. set() calls
+     removeProperty for a falsy value, so an absent token leaves the :root
+     default in charge — which is the entire reason the four shipped themes
+     render identically after the rename. */
+  const builtins = engine.slice(engine.indexOf('var BUILTINS'), engine.indexOf('function mergeTokens'));
+  ok('…while the built-in themes carry none of them, so nothing moved today',
+    !/\bcream:/.test(builtins) && !/\bsurfaceAlt:/.test(builtins) && !/\bfgHover:/.test(builtins));
+
+  /* Two different reds. Wiring one to the other would repaint every error state
+     while looking like plumbing. */
+  ok('--zw-danger is left out of it',
+    !/set\('--zw-danger'/.test(engine),
+    '--zw-danger is #c0392b and --err is #ef4444; they are not the same colour');
+
+  /* A product colour is not a UI colour. The swatch map says what a black
+     t-shirt looks like, and a black t-shirt is black in every theme. */
+  for (const page of ['bag.html', 'checkout.html', 'account.html']) {
+    const src = fs.readFileSync(path.join(ROOT, page), 'utf8');
+    ok(page + ' keeps its product swatches literal',
+      !/'black':\s*'var\(/.test(src),
+      'the colour swatch map is data about garments, not about the page');
+  }
+}
+
 console.log('\n  what is still hardcoded, counted honestly');
 {
   /* Was 885, now 400. Two passes got here:
@@ -151,7 +194,7 @@ console.log('\n  what is still hardcoded, counted honestly');
 
      The budget is a ratchet: a change that makes it worse has to edit this
      line, and say why. */
-  const BUDGET = 410;
+  const BUDGET = 380;
   const PROPS = /(^|[;{])\s*(color|background|background-color|border|border-color|border-[a-z]+-color|fill|stroke|box-shadow|outline-color)\s*:\s*([^;}]+)/gi;
   const LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(\s*\d/;
 

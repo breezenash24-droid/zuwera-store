@@ -322,8 +322,8 @@ body.light-mode #cart-items-list li {
 body.light-mode .cart-favorites { border-top-color: var(--c08); }
 body.light-mode .summary-row { border-bottom-color: var(--c07); color: var(--c65); }
 body.light-mode .summary-row.total { border-top-color: var(--c12); color: rgb(var(--fg-rgb)); }
-body.light-mode #checkout-btn { background: rgb(var(--fg-rgb)); color: #E8E3DC; }
-body.light-mode #checkout-btn:hover { background: #1a1a1a; opacity: 1; }
+body.light-mode #checkout-btn { background: rgb(var(--fg-rgb)); color: var(--zw-cream); }
+body.light-mode #checkout-btn:hover { background: var(--zw-fg-hover); opacity: 1; }
 body.light-mode .summary-value { opacity: 1; color: var(--c65); }
 body.light-mode .cart-bag-section h2,
 body.light-mode .cart-favorites h2,
@@ -348,10 +348,10 @@ body.light-mode .zw-saved-item-btn--primary,
 body.super-light-mode .zw-saved-item-btn--primary {
   background: rgb(var(--fg-rgb));
   border-color: rgb(var(--fg-rgb));
-  color: #E8E3DC;
+  color: var(--zw-cream);
 }
 body.light-mode .zw-saved-item-btn--primary:hover,
-body.super-light-mode .zw-saved-item-btn--primary:hover { background: #1a1a1a; }
+body.super-light-mode .zw-saved-item-btn--primary:hover { background: var(--zw-fg-hover); }
 /* Card text + image on light grounds — base colors are near-white (dark theme),
    which is what made the subtitle/price invisible on the white bag page. */
 body.light-mode .zw-saved-item,

@@ -455,7 +455,7 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
    MODALS (AUTH/ACCOUNT)
 */
 .mbox {
-  background:#0f0f0f; border:1px solid var(--c08);
+  background:var(--zw-surface); border:1px solid var(--c08);
   border-top:2px solid #F891A5; padding:2.6rem 2.4rem 2.2rem;
   width:min(420px,92vw); position:relative; animation:modalIn .2s ease;
 }
@@ -599,10 +599,10 @@ body.light-mode .mclose:hover {background:var(--c10)}
 body.light-mode .fgroup input {background:rgb(var(--fg-rgb) / 3%);border-color:var(--c10);color:rgb(var(--fg-rgb))}
 body.light-mode .fgroup input::placeholder {color:rgb(var(--fg-rgb) / 18%)}
 body.light-mode .fgroup label {color:var(--c55)}
-body.light-mode .auth-submit-btn {background:rgb(var(--fg-rgb));color:#E8E3DC;border-color:rgb(var(--fg-rgb))}
-body.light-mode .auth-submit-btn:hover {background:#1a1a1a;border-color:#1a1a1a}
-body.light-mode .review-submit-btn {background:rgb(var(--fg-rgb));color:#E8E3DC;border-color:rgb(var(--fg-rgb))}
-body.light-mode .review-submit-btn:hover {background:#1a1a1a;border-color:#1a1a1a}
+body.light-mode .auth-submit-btn {background:rgb(var(--fg-rgb));color:var(--zw-cream);border-color:rgb(var(--fg-rgb))}
+body.light-mode .auth-submit-btn:hover {background:var(--zw-fg-hover);border-color:var(--zw-fg-hover)}
+body.light-mode .review-submit-btn {background:rgb(var(--fg-rgb));color:var(--zw-cream);border-color:rgb(var(--fg-rgb))}
+body.light-mode .review-submit-btn:hover {background:var(--zw-fg-hover);border-color:var(--zw-fg-hover)}
 body.light-mode .atab {color:var(--c45)}
 body.light-mode .atabs {border-bottom-color:var(--c08)}
 body.light-mode .auth-brand {border-bottom-color:var(--c06)}
@@ -651,12 +651,12 @@ body.light-mode .mbox { border-top-color: rgb(var(--fg-rgb)) !important; }
 body.light-mode .atab.active { color: rgb(var(--fg-rgb)); }
 body.light-mode .atab.active::after { background: rgb(var(--fg-rgb)); }
 body.light-mode .fgroup input:focus { border-color: rgb(var(--fg-rgb)); box-shadow: 0 0 0 3px var(--c06); }
-body.light-mode .auth-submit-btn:hover { background: #1a1a1a; color: #E8E3DC; }
+body.light-mode .auth-submit-btn:hover { background: var(--zw-fg-hover); color: var(--zw-cream); }
 body.light-mode .alink a:hover { color: rgb(var(--fg-rgb)); border-color: rgb(var(--fg-rgb)); }
 body.light-mode .star-picker span.active { color: rgb(var(--fg-rgb)); }
 body.light-mode .star-picker span:hover { color: var(--c35); }
-body.light-mode .review-submit-btn { background: rgb(var(--fg-rgb)); color: #E8E3DC; }
-body.light-mode .review-submit-btn:hover { background: #1a1a1a; }
+body.light-mode .review-submit-btn { background: rgb(var(--fg-rgb)); color: var(--zw-cream); }
+body.light-mode .review-submit-btn:hover { background: var(--zw-fg-hover); }
 body.light-mode .rs-rating,
 body.light-mode .rs-stars { color: rgb(var(--fg-rgb)); }
 body.light-mode .rs-metric-fill { background: rgb(var(--fg-rgb)); }
@@ -682,7 +682,7 @@ body.light-mode #payment-modal input,
 body.light-mode #payment-modal select { background: rgb(var(--fg-rgb) / 4%) !important; border-color: var(--c12) !important; color: rgb(var(--fg-rgb)) !important; }
 body.light-mode #payment-modal #payment-close { color: var(--c35) !important; }
 body.light-mode #payment-modal #pay-divider { color: var(--c35) !important; }
-body.light-mode #payment-modal #pay-submit { background: rgb(var(--fg-rgb)) !important; color: #E8E3DC !important; }
+body.light-mode #payment-modal #pay-submit { background: rgb(var(--fg-rgb)) !important; color: var(--zw-cream) !important; }
 body.light-mode #payment-modal #pay-error { color: #c0392b !important; }
 body.light-mode #stripe-card-element { background: #f4f1eb !important; border-color: rgb(var(--fg-rgb) / 36%) !important; }
 body.light-mode #stripe-card-element.StripeElement--focus { border-color: rgb(var(--fg-rgb) / 62%) !important; }
@@ -714,7 +714,7 @@ body.light-mode #account-modal .mbox > div[style*="border-top"] { border-top-col
 body.light-mode .review-modal-card { border-bottom-color: var(--c08) !important; }
 body.light-mode .review-card-body { color: var(--c70) !important; }
 /* Toast */
-body.light-mode #toast { background: rgb(var(--fg-rgb)); color: #E8E3DC; }
+body.light-mode #toast { background: rgb(var(--fg-rgb)); color: var(--zw-cream); }
 
 /* Toast notification */
 #toast {
@@ -785,7 +785,7 @@ body.light-mode #mobile-menu-btn svg { stroke: rgb(var(--fg-rgb)) !important; }
 }
 body.light-mode #cart-btn.desktop-bag-btn #cartCount {
   background: rgb(var(--fg-rgb));
-  color: #E8E3DC;
+  color: var(--zw-cream);
 }
 .nav .nav-right {
   gap: .4rem;
@@ -5136,7 +5136,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 <!-- PAYMENT MODAL                                                     -->
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <div id="payment-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" aria-hidden="true">
-  <div style="max-width:480px;margin:3rem auto;background:#0f0f0f;border:1px solid var(--c08);padding:2.5rem 2rem;position:relative">
+  <div style="max-width:480px;margin:3rem auto;background:var(--zw-surface);border:1px solid var(--c08);padding:2.5rem 2rem;position:relative">
     <button class="mclose" style="position:absolute;top:.9rem;right:.9rem" id="payment-close" aria-label="Close checkout">&#215;</button>
     <h2 id="payment-modal-title" style="font-family:var(--font-head);font-size:1.4rem;letter-spacing:.12em;margin-bottom:.3rem">Secure Checkout</h2>
     <p style="font-size:.7rem;color:var(--c30);letter-spacing:.08em;margin-bottom:1.5rem">Powered by Stripe - 256-bit SSL encryption</p>

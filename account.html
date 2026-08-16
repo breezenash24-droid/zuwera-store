@@ -365,7 +365,7 @@ try {
     body.light-mode .zw-btn { border-color: rgb(var(--fg-rgb) / 18%); color: rgb(var(--fg-rgb) / 60%); }
     body.light-mode .zw-btn:hover { border-color: rgb(var(--fg-rgb)); color: rgb(var(--fg-rgb)); }
     body.light-mode .zw-btn.primary { background: rgb(var(--fg-rgb)); color: #f4f1eb; border-color: rgb(var(--fg-rgb)); }
-    body.light-mode .zw-btn.primary:hover { background: #1a1a1a; border-color: #1a1a1a; }
+    body.light-mode .zw-btn.primary:hover { background: var(--zw-fg-hover); border-color: var(--zw-fg-hover); }
     .zw-status { font-size: .68rem; color: var(--c40); font-family: var(--fm); }
     body.light-mode .zw-status { color: var(--c40); }
     .zw-badge {
@@ -645,9 +645,9 @@ try {
       display: inline-block; font-family: var(--fm); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
       background: var(--ink); border: 1px solid var(--ink); padding: .85rem 1.8rem; color: var(--paper); transition: all .2s;
     }
-    .auth-wall-btn:hover { background: #1a1a1a; border-color: #1a1a1a; }
+    .auth-wall-btn:hover { background: var(--zw-fg-hover); border-color: var(--zw-fg-hover); }
     body.light-mode .auth-wall-btn { background: rgb(var(--fg-rgb)); border-color: rgb(var(--fg-rgb)); color: #f4f1eb; }
-    body.light-mode .auth-wall-btn:hover { background: #1a1a1a; border-color: #1a1a1a; }
+    body.light-mode .auth-wall-btn:hover { background: var(--zw-fg-hover); border-color: var(--zw-fg-hover); }
 
     /* -- RETURNS TAB -- */
     .ret-form-stack { display: flex; flex-direction: column; gap: .9rem; }
@@ -779,7 +779,7 @@ try {
 <script src="header-scroll.js?v=fe320725" defer></script>
 <link rel="stylesheet" href="quick-add-modal.css?v=d096a535">
 <style>
-  #toast { position:fixed; bottom:calc(1.5rem + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%) translateY(10px); background:#0f0f0f; color:rgb(var(--fg-rgb) / 90%); padding:.5rem 1.2rem; font-size:.72rem; letter-spacing:.08em; opacity:0; transition:opacity .3s, transform .3s; pointer-events:none; z-index:9999; white-space:nowrap; }
+  #toast { position:fixed; bottom:calc(1.5rem + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%) translateY(10px); background:var(--zw-surface); color:rgb(var(--fg-rgb) / 90%); padding:.5rem 1.2rem; font-size:.72rem; letter-spacing:.08em; opacity:0; transition:opacity .3s, transform .3s; pointer-events:none; z-index:9999; white-space:nowrap; }
   #toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
   body.light-mode #toast { background:#F0EEE9; color:rgb(var(--fg-rgb)); }
   body.super-light-mode #toast { background:#FFFFFF; color:rgb(var(--fg-rgb)); }

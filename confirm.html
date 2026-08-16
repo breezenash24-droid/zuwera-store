@@ -161,7 +161,7 @@ try {
   /* ── Card ── */
   .card {
     width: min(440px, 100%);
-    background: #0f0f0f;
+    background: var(--zw-surface);
     border: 1px solid var(--c08);
     border-top: 2px solid var(--pink);
     padding: 3rem 2.6rem 2.6rem;
@@ -241,7 +241,7 @@ try {
     transition: background .2s, color .2s, transform .15s;
     margin-top: .5rem;
   }
-  .btn-primary:hover { background: #E8E3DC; color: var(--black); transform: translateY(-1px); }
+  .btn-primary:hover { background: var(--zw-cream); color: var(--black); transform: translateY(-1px); }
   .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
 
   .btn-ghost {
@@ -320,8 +320,8 @@ try {
   body.light-mode .brand { color: rgb(var(--fg-rgb)); border-bottom-color: var(--c06); }
   body.light-mode .state-sub { color: var(--c40); }
   body.light-mode .spinner { border-color: var(--c10); border-top-color: rgb(var(--fg-rgb)); }
-  body.light-mode .btn-primary { background: rgb(var(--fg-rgb)); color: #E8E3DC; }
-  body.light-mode .btn-primary:hover { background: #1a1a1a; }
+  body.light-mode .btn-primary { background: rgb(var(--fg-rgb)); color: var(--zw-cream); }
+  body.light-mode .btn-primary:hover { background: var(--zw-fg-hover); }
   body.light-mode .btn-ghost { color: var(--c40); border-color: var(--c15); }
   body.light-mode .btn-ghost:hover { border-color: rgb(var(--fg-rgb)); color: rgb(var(--fg-rgb)); }
   body.light-mode .fgroup label { color: rgb(var(--fg-rgb) / 38%); }

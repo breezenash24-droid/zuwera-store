@@ -416,7 +416,7 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   --paper:#f4f1eb;
   --paper-hover:#e2dfd9;   /* paper darkened ~4% for hover states */
   --paper-active:#cac7c1;  /* paper darkened ~10% for active/pressed */
-  --cream:#E8E3DC;          /* lighter cream — light-mode button text */
+  --cream:var(--zw-cream);          /* lighter cream — light-mode button text */
   --warm:#e8e2d8;
   --dim:rgba(9,9,11,0.4);
   --line:rgba(9,9,11,0.1);
@@ -1366,7 +1366,7 @@ font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
 .wallet-chip__label{display:inline-flex;align-items:center;gap:.2rem;letter-spacing:.05em}
 .wallet-chip__brand{font-weight:700}
 .mbox{
-  background:#0f0f0f;
+  background:var(--zw-surface);
   border:1px solid var(--c08);
   border-top:2px solid var(--gold);
   padding:2.6rem 2.4rem 2.2rem;
@@ -1542,7 +1542,7 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
 /* returns-modal layout — overlay is transparent (see .modal rule), content lives inside .ret-inner-box */
 #returns-modal{ align-items:flex-start; justify-content:center; }
 .ret-inner-box{
-  background:#0f0f0f;
+  background:var(--zw-surface);
   border:1px solid var(--c10);
   width:min(960px,96vw);
   max-height:88dvh;
@@ -1984,7 +1984,7 @@ body.light-mode .fgroup input{background:rgb(var(--fg-rgb) / 3%);border-color:va
 body.light-mode .fgroup input::placeholder{color:rgb(var(--fg-rgb) / 18%)}
 body.light-mode .fgroup label{color:var(--c55)}
 body.light-mode .auth-submit-btn,body.light-mode .btn-primary{background:rgb(var(--fg-rgb));color:#f4f1eb;border-color:rgb(var(--fg-rgb))}
-body.light-mode .auth-submit-btn:hover,body.light-mode .btn-primary:hover{background:#1a1a1a;border-color:#1a1a1a}
+body.light-mode .auth-submit-btn:hover,body.light-mode .btn-primary:hover{background:var(--zw-fg-hover);border-color:var(--zw-fg-hover)}
 body.light-mode .atab{color:var(--c45)}
 body.light-mode .atabs{border-bottom-color:var(--c08)}
 body.light-mode .auth-brand{border-bottom-color:var(--c06)}
@@ -2015,7 +2015,7 @@ body.light-mode .rate-opt:hover{border-color:rgb(var(--fg-rgb) / 22%)}
 body.light-mode .rate-opt.selected{border-color:var(--c45);background:rgb(var(--fg-rgb) / 5%)}
 body.light-mode .rate-meta{color:var(--c55)}
 body.light-mode #pay-submit{background:var(--ink);color:var(--cream);border-color:var(--ink)}
-body.light-mode #pay-submit:hover{background:#1a1a1a;border-color:#1a1a1a}
+body.light-mode #pay-submit:hover{background:var(--zw-fg-hover);border-color:var(--zw-fg-hover)}
 body.light-mode .psecure{color:var(--c55)}
 body.light-mode #stripe-card-element{background:var(--paper);border-color:rgb(var(--fg-rgb) / 36%)}
 body.light-mode #stripe-card-element.StripeElement--focus{background:var(--paper);border-color:rgb(var(--fg-rgb) / 62%)}

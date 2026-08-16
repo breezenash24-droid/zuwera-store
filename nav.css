@@ -167,7 +167,7 @@ body.light-mode #cart-btn {
 }
 body.light-mode .cart-count {
   background: rgb(var(--fg-rgb));
-  color: #E8E3DC;
+  color: var(--zw-cream);
 }
 
 /* ===================== SUPER LIGHT MODE ===================== */

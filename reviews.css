@@ -111,7 +111,7 @@
 /* ===================== REVIEW MODAL ===================== */
 /* Fully self-contained — does NOT rely on .mbox for any property */
 .review-mbox {
-  background: #0f0f0f;
+  background: var(--zw-surface);
   border: 1px solid var(--c08);
   border-top: 2px solid var(--zw-msoc,var(--zw-accent));
   position: relative;
@@ -157,7 +157,7 @@
   position: sticky;
   top: 0;
   z-index: 6;
-  background: #0f0f0f;
+  background: var(--zw-surface);
 }
 body.light-mode #review-modal .review-mbox-hd { background: var(--ink); }
 body.super-light-mode #review-modal .review-mbox-hd { background: var(--ink); }
@@ -344,7 +344,7 @@ body.super-light-mode #review-modal .review-mbox-hd { background: var(--ink); }
 
 /* Fully self-contained — does NOT rely on .mbox for any property */
 .review-list-mbox {
-  background: #0f0f0f;
+  background: var(--zw-surface);
   border: 1px solid var(--c08);
   border-top: 2px solid var(--zw-msoc,var(--zw-accent));
   position: relative;
@@ -582,9 +582,9 @@ body.light-mode .review-mbox .review-body-field { background: rgb(var(--fg-rgb) 
 body.light-mode .review-mbox .review-body-field:focus { border-color: rgb(var(--fg-rgb)); box-shadow: 0 0 0 3px var(--c06); }
 body.light-mode .review-mbox .review-body-field::placeholder { color: rgb(var(--fg-rgb) / 25%); }
 body.light-mode .review-mbox .review-submit-btn,
-body.light-mode .review-list-mbox .review-submit-btn { background: rgb(var(--fg-rgb)); color: #E8E3DC; }
+body.light-mode .review-list-mbox .review-submit-btn { background: rgb(var(--fg-rgb)); color: var(--zw-cream); }
 body.light-mode .review-mbox .review-submit-btn:hover,
-body.light-mode .review-list-mbox .review-submit-btn:hover { background: #1a1a1a; color: #E8E3DC; }
+body.light-mode .review-list-mbox .review-submit-btn:hover { background: var(--zw-fg-hover); color: var(--zw-cream); }
 body.light-mode .review-mbox .star-selector button { color: var(--c15); }
 body.light-mode .review-mbox .star-selector button.lit { color: rgb(var(--fg-rgb)); }
 body.light-mode .review-mbox .star-selector button.hover { color: var(--c55); }

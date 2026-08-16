@@ -16,7 +16,7 @@
   background:
     radial-gradient(circle at top left, rgba(248,145,165,0.16), transparent 30%),
     linear-gradient(180deg, rgb(var(--fg-rgb) / 3.5%), rgb(var(--fg-rgb) / 1.5%)),
-    #0f0f0f;
+    var(--zw-surface);
   box-shadow: 0 28px 80px rgba(0,0,0,0.45);
 }
 
@@ -27,7 +27,7 @@
 .review-dialog--thread {
   background:
     linear-gradient(180deg, rgb(var(--fg-rgb) / 2.8%), rgb(var(--fg-rgb) / 1.2%)),
-    #0f0f0f;
+    var(--zw-surface);
   border-top-width: 1px;
 }
 
@@ -53,7 +53,7 @@
   border: 1px solid var(--c12);
   background:
     linear-gradient(180deg, rgb(var(--fg-rgb) / 2.8%), rgb(var(--fg-rgb) / 1%)),
-    #0f0f0f;
+    var(--zw-surface);
   box-shadow: 0 28px 80px rgba(0,0,0,0.45);
 }
 
@@ -1038,7 +1038,7 @@ body.light-mode .review-more-btn { color: #b5566b; }
 }
 
 .review-dialog--thread {
-  background: #0f0f0f;
+  background: var(--zw-surface);
   border-top-width: 1px;
 }
 
@@ -1773,7 +1773,7 @@ body.light-mode .star-selector button {
 
 body.light-mode .review-submit-btn {
   background: rgb(var(--fg-rgb));
-  color: #E8E3DC;
+  color: var(--zw-cream);
 }
 
 body.light-mode .review-submit-btn--ghost,
@@ -1827,7 +1827,7 @@ body.light-mode .review-dialog--thread {
 
 body.light-mode .review-dialog--thread .review-submit-btn--list {
   background: rgb(var(--fg-rgb));
-  color: #E8E3DC;
+  color: var(--zw-cream);
 }
 
 body.light-mode .review-dialog--thread .review-submit-btn--list:hover {
@@ -1863,7 +1863,7 @@ body.light-mode .review-dialog--thread .review-admin-response {
 
 body.light-mode .review-dialog--classic-list .review-submit-btn--legacy-list {
   background: rgb(var(--fg-rgb));
-  color: #E8E3DC;
+  color: var(--zw-cream);
 }
 
 body.light-mode .review-dialog--classic-list .review-select--legacy,

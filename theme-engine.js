@@ -272,6 +272,34 @@
        one thing each. */
     set('--accent', t.accent);
 
+    /* THE NAMED ROLES, now reachable by a theme.
+     *
+     * storefront-cohesion.css has always declared --zw-cream, --zw-surface and
+     * --zw-fg-hover as :root constants, and nothing ever set them, so they were
+     * names for fixed colours rather than roles a theme could fill. Eighty-four
+     * declarations that used to spell those colours out by hand now read
+     * through them, which is what makes setting them here worth anything: one
+     * assignment moves every primary-button label, every lifted dark panel, and
+     * every button hover on the site.
+     *
+     * OPTIONAL, and that is the whole safety story. The four built-in themes do
+     * not carry `cream`, `surfaceAlt` or `fgHover`, so set() is handed nothing,
+     * writes nothing, and the :root defaults stand — the built-ins render
+     * exactly as they did before this change, to the byte. A theme made in the
+     * admin or brought in by the importer can carry them and take control.
+     *
+     * --zw-accent is wired to the accent a theme already has, which is safe for
+     * a different reason: its :root default and the built-ins' accent are the
+     * same #F891A5, so the assignment is a no-op until a theme changes it.
+     *
+     * --zw-danger is NOT wired to t.err on purpose. They are two different reds
+     * — #c0392b and #ef4444 — and pointing one at the other is a visible change
+     * to every error state dressed up as plumbing. */
+    set('--zw-cream', t.cream);
+    set('--zw-surface', t.surfaceAlt);
+    set('--zw-fg-hover', t.fgHover);
+    set('--zw-accent', t.accent);
+
     /* ── Price colours ──────────────────────────────────────────────────────
        A markdown is a claim a store makes, and stores want to make it in their
        own palette — green for a saving reads as a bargain, red reads as urgent,
