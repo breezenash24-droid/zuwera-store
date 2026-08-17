@@ -80,6 +80,8 @@ try {
   (function () {
     var go = function () {
       if (!document.body) return false;
+      document.removeEventListener('readystatechange', go);
+      if (h.hasAttribute('data-zw-theme')) return true;
       if (_known) {
         document.body.classList.toggle('light-mode', _light);
         document.body.classList.toggle('super-light-mode', _base === 'super-light');
@@ -92,7 +94,7 @@ try {
       }
       return true;
     };
-    if (!go()) document.addEventListener('readystatechange', go, { once: false });
+    if (!go()) document.addEventListener('readystatechange', go);
   }());
   var _ground = !_known ? ''
               : (_tt && _tt.bg) ? ('rgb(' + _tt.bg + ')')

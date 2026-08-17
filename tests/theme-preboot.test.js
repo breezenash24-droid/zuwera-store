@@ -69,8 +69,16 @@ console.log('  fourteen copies, one source');
 /* ── Run the real block, against a DOM small enough to inspect ─────────────── */
 
 function runPreboot({ stored = null, themeModes = null, shipped = null, landing = null,
-                     bodyClasses = '', storageThrows = false, stampId = null } = {}) {
+                     bodyClasses = '', storageThrows = false, stampId = null,
+                     /* The one-time migration that clears a theme choice the
+                        legacy settings row invented on the visitor's behalf. It
+                        runs once per browser, ever, so the DEFAULT here is
+                        "already run" — that is what every load but the first
+                        looks like, and it is the state the precedence tests are
+                        about. Pass false to exercise the migration itself. */
+                     resetDone = true } = {}) {
   const store = {};
+  if (resetDone) store.zw_theme_choice_reset = '1';
   if (stored) store.zw_theme_mode = stored;
   if (themeModes) store.zw_theme_modes = JSON.stringify(themeModes);
 
@@ -87,6 +95,12 @@ function runPreboot({ stored = null, themeModes = null, shipped = null, landing 
        that line silently never runs. Without this the suite would have gone
        green on a block that painted no colours at all. */
     removeAttribute(k) { delete this._attrs[k]; },
+    /* Same trap as removeAttribute above, and it cost eleven assertions: the
+       block asks `h.hasAttribute('data-zw-theme')` to stand down once
+       theme-engine.js has applied a theme, and a stub without the method throws
+       into the block's OWN try/catch — so every line after it silently did
+       nothing and the failures pointed at the code rather than at this object. */
+    hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k); },
     style: { _props: {}, setProperty(k, v) { this._props[k] = v; } },
   };
   /* Pre-seeded with whatever stamp-theme-default.js baked onto <body> at build
@@ -103,6 +117,11 @@ function runPreboot({ stored = null, themeModes = null, shipped = null, landing 
     createElement: () => ({ id: '', textContent: '' }),
     querySelector: () => null,
     addEventListener: () => {},
+    /* The class toggle detaches itself after one successful run, because
+       readystatechange fires at 'interactive' and again at 'complete' and the
+       second run put a stale class back on a body whose tokens the engine had
+       already moved. */
+    removeEventListener: () => {},
   };
   const win = landing ? { __zwLM: () => landing } : {};
 
@@ -113,6 +132,16 @@ function runPreboot({ stored = null, themeModes = null, shipped = null, landing 
     getItem: (k) => {
       if (storageThrows) throw new Error('storage is not available');
       return Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null;
+    },
+    /* Writable, so the one-time reset actually takes effect here rather than
+       throwing into a catch and being tested as a no-op. */
+    setItem: (k, v) => {
+      if (storageThrows) throw new Error('storage is not available');
+      store[k] = String(v);
+    },
+    removeItem: (k) => {
+      if (storageThrows) throw new Error('storage is not available');
+      delete store[k];
     },
   });
 
@@ -150,6 +179,7 @@ function runPreboot({ stored = null, themeModes = null, shipped = null, landing 
     tokens,
     tokenCss: tokenEl ? tokenEl.textContent : '',
     stamp: htmlEl.getAttribute('data-zw-theme-stamp'),
+    store,
   };
 }
 
@@ -402,6 +432,30 @@ console.log('\n  nothing decides the theme behind the block’s back');
     }
   }
   ok('no page carries its own theme default any more', rogue.length === 0, rogue.join('; '));
+}
+
+console.log('\n  the one-time reset of an invented choice');
+{
+  /* Six pages used to apply the legacy site_settings.theme row through
+     ZWTheme.apply(mode) with the remember flag omitted, recording it in
+     zw_theme_mode as if the visitor had picked it. Fixing those writers does
+     nothing for the browsers that already ran them, so the choice is cleared
+     once, here, before anything reads it. */
+  const first = runPreboot({ resetDone: false, stored: 'dark', shipped: 'super-light' });
+  ok('a first run clears the stored choice', first.store.zw_theme_mode === undefined,
+    'got ' + JSON.stringify(first.store.zw_theme_mode));
+  ok('…and the page then follows the store’s baked default', first.base === 'super-light');
+  ok('…and marks itself so it never repeats', first.store.zw_theme_choice_reset === '1');
+
+  /* The important half: it is a migration, not a policy. A choice made AFTER
+     it has run has to survive, or the theme switcher stops working. */
+  const later = runPreboot({ stored: 'dark', shipped: 'super-light' });
+  ok('a later run leaves a real choice alone', later.store.zw_theme_mode === 'dark');
+  ok('…and honours it over the baked default', later.base === 'dark');
+
+  /* Storage that throws must not take the rest of the block down with it. */
+  const blocked = runPreboot({ resetDone: false, storageThrows: true, shipped: 'light' });
+  ok('unreadable storage still resolves a base', blocked.base === 'light');
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

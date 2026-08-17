@@ -366,11 +366,21 @@
        data: every custom theme collapses to one of three names, and feeding
        that name back in asks for a theme that may not exist. Ask the engine
        which theme is actually applied instead — it is the only thing that
-       knows. The class read stays as the fallback for pages without it. */
-    if (window.ZWTheme) { applyThemeMode(window.ZWTheme.current()); return; }
+       knows. The class read stays as the fallback for pages without it.
+
+       false, because RE-APPLYING WHAT IS ALREADY ON IS NOT A CHOICE. Both calls
+       here derive the mode from the page's own current state — the engine's
+       applied theme, or the body classes — and then handed it back with the
+       remember flag defaulted to TRUE, writing it into zw_theme_mode as though
+       somebody had picked it. Once written it is read first on every later
+       load and outranks the store's configured default, which is the same
+       mechanism that let the legacy settings row pin a whole storefront. A
+       function whose job is "keep the colour in step" must not be able to
+       change what the colour will be tomorrow. */
+    if (window.ZWTheme) { applyThemeMode(window.ZWTheme.current(), false); return; }
     var m = document.body && document.body.classList.contains('super-light-mode') ? 'super-light'
           : document.body && document.body.classList.contains('light-mode') ? 'light' : 'dark';
-    applyThemeMode(m);
+    applyThemeMode(m, false);
   };
 
   function applySettingsRows(rows) {
@@ -587,7 +597,14 @@
              || localStorage.getItem('zw_homepage_theme_mode')
              || 'super-light';
       } catch(_) {}
-      applyThemeMode(mode);
+      /* false. A BACK BUTTON IS NOT A CHOICE.
+         Restoring from the back/forward cache re-renders a page that is already
+         themed; it says nothing about what this visitor wants. With the flag
+         defaulted the read above became a WRITE — and note the `|| 'super-light'`
+         at the end of it: a visitor who had never picked anything got
+         'super-light' recorded as their pick the first time they pressed Back,
+         after which the store's own default could never reach them again. */
+      applyThemeMode(mode, false);
     }
   });
 
