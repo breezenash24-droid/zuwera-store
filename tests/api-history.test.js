@@ -117,7 +117,23 @@ console.log('\n  recording a run');
   ok('the run is recorded', /rpc\/record_api_status/.test(API));
   /* After the answer is built, and after the response goes out. A page that got
      slower in order to remember how fast it used to be would be a poor trade. */
-  ok('…after the response is assembled', API.indexOf('const built = {') < API.indexOf('recordRun(env, built)'));
+  /* BOTH LANDMARKS FIRST, then the ordering.
+     This read `API.indexOf('const built = {') < API.indexOf('recordRun(env, built)')`
+     and the file says `const built = await runChecks(...)` — so the left side
+     was -1, and -1 is less than every real index. The assertion passed because
+     the thing it was looking for was missing, which is the one outcome it
+     should never have accepted. It had never checked the ordering.
+     A comparison of two indexOf results is only meaningful once both are known
+     to be >= 0, so that is asserted separately and first — a failure there says
+     "the landmark moved", which is a different problem from "the order is
+     wrong" and wants a different fix. */
+  const builtAt = API.indexOf('const built = await runChecks');
+  const recordAt = API.indexOf('recordRun(env, built)');
+  ok('both landmarks are still in the file',
+    builtAt >= 0 && recordAt >= 0,
+    'built@' + builtAt + ' record@' + recordAt);
+  ok('…after the response is assembled',
+    builtAt >= 0 && recordAt > builtAt);
   ok('…and outlives the response via waitUntil, so the write is not cut off',
     /waitUntil\(write\)/.test(API));
   ok('…falling back to awaiting it where waitUntil is absent',
