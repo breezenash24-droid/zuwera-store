@@ -33,7 +33,7 @@ import { normalizeStateCode, resolveTax } from './_tax.js';
 
 import { messagesFrom, shippedMessages } from './_messages.js';
 import { resolveVariantPrice } from './_variant-price.js';
-import { fetchPricingContext, resolvePrice, shopperFor } from './_price-resolution.js';
+import { fetchPricingContext, resolvePrice, shopperFor, isWholesaleBuyer, wholesaleMinimumCents } from './_price-resolution.js';
 /* A rejection the shopper caused and can fix, tagged with the status it should
    actually carry.
 
@@ -319,7 +319,7 @@ export async function verifyAccessToken(accessToken, env) {
    permits overselling, so the unsafe value must be the one you have to ask for
    — a caller that omits it gets the guard, not a store quietly taking orders it
    cannot fill. */
-export async function resolveCatalogItems(items, env, isMember, limitToStock = true, say = shippedMessages) {
+export async function resolveCatalogItems(items, env, isMember, limitToStock = true, say = shippedMessages, isWholesale = false) {
   if (!Array.isArray(items) || items.length === 0) throw cartError('Missing cart items.', 400);
   if (items.length > 25) throw cartError('Cart has too many line items.', 400);
 
@@ -334,7 +334,10 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
     env,
     items.map((i) => String(i?.productId || i?.id || '').trim()).filter(Boolean)
   );
-  const shopper = shopperFor({ isMember });
+  /* Wholesale rides the same resolver as every other group — see shopperFor.
+     Defaulted false so every existing caller keeps pricing retail until it
+     passes a value it has proved server-side. */
+  const shopper = shopperFor({ isMember, isWholesale });
 
   const resolved = [];
   for (const raw of items) {
@@ -674,6 +677,30 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
   const verifiedUser = await verifyAccessToken(accessToken, env);
   const isMember = Boolean(verifiedUser?.id);
 
+  /* The wholesale account, read from the PROFILE with the service key, for the
+     user this token just proved. Never from the request — this is the till, and
+     a client-supplied "I am wholesale" would be a self-service trade discount.
+
+     Unreadable means retail. That is the direction that cannot go wrong: it
+     prices exactly as it did before this feature existed, and a buyer who is
+     wrongly charged retail complains, where one wrongly charged trade does
+     not. */
+  let wholesaleProfile = null;
+  if (verifiedUser && verifiedUser.id) {
+    try {
+      const k = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY;
+      if (k) {
+        const rows = await fetch(
+          env.SUPABASE_URL + '/rest/v1/profiles?select=wholesale&id=eq.'
+            + encodeURIComponent(verifiedUser.id) + '&limit=1',
+          { headers: { apikey: k, Authorization: 'Bearer ' + k }, cache: 'no-store' }
+        ).then((r) => (r.ok ? r.json() : []));
+        wholesaleProfile = (rows && rows[0]) || null;
+      }
+    } catch (_) { wholesaleProfile = null; }
+  }
+  const isWholesale = isWholesaleBuyer(wholesaleProfile);
+
   /* ── Whose order is this? ─────────────────────────────────────────────────
      Not "whose browser is this", which is what it used to mean.
 
@@ -739,8 +766,28 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
      charged $40. */
   const chargeAsMember = isMember && memberPricingOn;
 
-  const catalogItems = await resolveCatalogItems(items, env, chargeAsMember, limitToStock, say);
+  const catalogItems = await resolveCatalogItems(items, env, chargeAsMember, limitToStock, say, isWholesale);
   const subtotalCents = catalogItems.reduce((sum, item) => sum + item.amount * item.quantity, 0);
+
+  /* The account's own minimum, checked on the GOODS before shipping, tax or a
+     promo code. All three of those would let a buyer reach a minimum without
+     buying more — and the minimum is not about the total, it is about whether
+     the order is worth picking, packing and invoicing.
+     Checked here rather than in the browser for the reason everything else in
+     this file is: the browser can be told, but the till has to refuse. */
+  const minOrderCents = wholesaleMinimumCents(wholesaleProfile);
+  if (minOrderCents > 0 && subtotalCents < minOrderCents) {
+    const short = ((minOrderCents - subtotalCents) / 100).toFixed(2);
+    /* cartError, not a bare Error — this is a refusal the buyer caused and can
+       fix, so it has to answer 400 rather than joining "Stripe is down" in the
+       500 bucket. Same reason out-of-stock does. */
+    throw cartError(
+      'Your account has a $' + (minOrderCents / 100).toFixed(2) + ' minimum. '
+      + 'Add $' + short + ' more to place this order.',
+      400
+    );
+  }
+
   const shipping = await resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env, deliveryMethod, say });
 
   const promotion = await getPromotionForCode(env, promoCode);

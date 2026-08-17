@@ -32,7 +32,7 @@
  */
 
 import { verifyAccessToken } from './_cart-pricing.js';
-import { fetchPricingContext, resolvePrice, shopperFor } from './_price-resolution.js';
+import { fetchPricingContext, resolvePrice, shopperFor, isWholesaleBuyer } from './_price-resolution.js';
 import { getSetting, sanitizeCommerceConfig } from './_commerce.js';
 
 const CORS = (env) => ({
@@ -93,6 +93,23 @@ export async function onRequestGet({ request, env }) {
 
     const isMember = Boolean(user && user.id) && memberPricingOn;
 
+    /* Read from the PROFILE, with the service key, for the user the token just
+       proved. Never from the request: a caller that accepted "I am wholesale"
+       would let anyone price their own basket at trade, which is the member-flag
+       hole above with a much larger discount on it.
+       A failed read means retail — the safe direction, and the same reason
+       fetchPricingContext falls back to the catalogue rather than to zero. */
+    let isWholesale = false;
+    if (user && user.id) {
+      try {
+        const rows = await fetch(
+          `${env.SUPABASE_URL}/rest/v1/profiles?select=wholesale&id=eq.${encodeURIComponent(user.id)}&limit=1`,
+          { headers: H, cache: 'no-store' }
+        ).then((r) => (r.ok ? r.json() : []));
+        isWholesale = isWholesaleBuyer(rows && rows[0]);
+      } catch (_) { isWholesale = false; }
+    }
+
     const inList = `in.(${ids.join(',')})`;
     const [productRows, variantRows] = await Promise.all([
       fetch(`${env.SUPABASE_URL}/rest/v1/products?select=id,current_price,member_price,msrp&id=${inList}`,
@@ -105,7 +122,7 @@ export async function onRequestGet({ request, env }) {
     if (!products.length) return json({ ok: false, error: 'No such product.' }, 404, headers);
 
     const ctx = await fetchPricingContext(env, ids);
-    const shopper = shopperFor({ isMember });
+    const shopper = shopperFor({ isMember, isWholesale });
     const now = Date.now();
 
     /* Resolved TWICE: once as this shopper, once as a member.

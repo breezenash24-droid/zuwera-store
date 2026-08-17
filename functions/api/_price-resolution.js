@@ -313,10 +313,53 @@ export async function fetchPricingContext(env, productIds) {
  * working it out again. Region and channel are stubs with honest defaults; the
  * day a second channel exists they become real without the resolver changing.
  */
-export function shopperFor({ isMember, region, channel }) {
+export function shopperFor({ isMember, isWholesale, region, channel }) {
+  const groups = [];
+  if (isMember) groups.push('member');
+  /* Wholesale is a GROUP, not a mode. That is the whole design: a wholesale
+     price list is a price_lists row with customer_group='wholesale', and
+     listApplies() above already refuses a list whose group the shopper is not
+     in — so being wholesale makes those lists available and changes nothing
+     else. No parallel catalogue, no second checkout, no duplicate stock.
+     A buyer can be both; a wholesale account that is also a member sees
+     whichever list has the higher priority, which is the axis a merchant
+     already thinks in. */
+  if (isWholesale) groups.push('wholesale');
   return {
-    groups: isMember ? ['member'] : [],
+    groups,
     region: region || 'US',
     channel: channel || 'web',
   };
+}
+
+/**
+ * Is this profile an approved wholesale buyer?
+ *
+ * SERVER SIDE ONLY, and it takes the profile row rather than a flag from the
+ * request. A caller that accepted `isWholesale` from the browser would let
+ * anyone price their own basket at wholesale by editing one JSON field — the
+ * same shape of hole as trusting a client-sent member flag, with a bigger
+ * discount attached.
+ *
+ * `applied` and `suspended` are deliberately NOT wholesale. An application is
+ * a request, and a suspension has to actually stop the prices or it is a note.
+ */
+export function isWholesaleBuyer(profile) {
+  const w = profile && profile.wholesale;
+  if (!w || typeof w !== 'object') return false;
+  return String(w.status || '') === 'approved';
+}
+
+/**
+ * The minimum this buyer must spend, in cents. 0 for everyone else.
+ *
+ * Per ACCOUNT rather than per store, because it is a term of a particular
+ * relationship — a first order from an unknown boutique and a standing order
+ * from a chain are not the same commitment, and one number for both is either
+ * too high to open an account or too low to be worth shipping.
+ */
+export function wholesaleMinimumCents(profile) {
+  if (!isWholesaleBuyer(profile)) return 0;
+  const n = Number(profile.wholesale.min_order_cents);
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
 }
