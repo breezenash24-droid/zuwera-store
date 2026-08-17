@@ -80,7 +80,10 @@ console.log('\n  promise 2 — it deletes nothing');
   /* The switch drafts. If this ever reaches for a delete, one confirm click
      destroys the catalogue. */
   ok('switching hides by setting Draft', /update\(\{\s*status:\s*'Draft'\s*\}\)/.test(SWITCH));
-  ok('…and never deletes a product row', !/\.delete\(/.test(SWITCH),
+  /* Anchored to a Supabase call. A bare /\.delete\(/ matched `bank.delete(id)` —
+     a Set operation on the list of shelved product ids — and reported the switch
+     as destroying products. The subject is a table write, so the needle says so. */
+  ok('…and never deletes a product row', !/sb\s*\.from\([^)]*\)\s*\.delete\(/.test(SWITCH),
     'a preset switch must be reversible');
   ok('the confirm says so in words', /Nothing is deleted/.test(SWITCH),
     'the person clicking it cannot read the source');
