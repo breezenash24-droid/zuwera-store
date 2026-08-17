@@ -118,7 +118,11 @@ console.log('\n  how many places decide what theme the store is in');
     /row\.value && row\.value\.mode\) \|\| ''/.test(row) && !/=== 'super-light' \? 'super-light' : 'light'/.test(row),
     'coercing here means an imported or custom theme lands as whichever built-in it falls through to');
   ok('…and an absent value applies nothing rather than defaulting',
-    /if \(mode\) applyThemeMode\(mode\)/.test(row),
+    /* The property is the `if (mode)` guard, not the argument list. This read
+       `applyThemeMode\(mode\)` exactly, so adding the explicit remember flag —
+       which is what stops a legacy row being written down as the visitor's
+       choice — broke an assertion about something else entirely. */
+    /if \(mode\) applyThemeMode\(mode[,)]/.test(row),
     'a missing setting is not an instruction to switch to light');
 
   /* THE ADMIN'S CHROME IS NOT THE SHOP'S THEME.

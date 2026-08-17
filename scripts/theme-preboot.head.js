@@ -55,6 +55,29 @@
 try {
   var h = document.documentElement;
 
+  /* AM I A BUILDER PREVIEW? Answered from the URL, on every page.
+   *
+   * This flag used to be set in storefront.js — and only index.html and
+   * drop001.html load that file. So on the product and landing previews it was
+   * undefined, and storefront-theme.js's legacy-theme path reads it as
+   * `apply(mode, !window.__ZW_BUILDER_PREVIEW__)`, i.e. `apply(mode, TRUE)`.
+   * The second argument means REMEMBER.
+   *
+   * So opening a product or landing page in the page builder wrote
+   * zw_theme_mode into the real localStorage — the builder was silently
+   * choosing the visitor's theme for them, from a legacy settings row, and the
+   * preboot then honoured that choice on every page forever after. It is why a
+   * store whose default is white renders dark everywhere except the homepage,
+   * which is the one page that skips the fetch entirely.
+   *
+   * Every preview iframe carries ?builder=1 — index, drop001, product and
+   * landing alike — so the URL is the one signal all four share. Set here
+   * because this block is inlined into all fourteen pages and runs before any
+   * script that reads it. */
+  try {
+    if (/[?&]builder=1(?:&|$)/.test(location.search)) window.__ZW_BUILDER_PREVIEW__ = true;
+  } catch (_) {}
+
   /* What this visitor chose. A landing page narrows the question — it can carry
      its own theme per slug — and defines __zwLM above this block when it does. */
   var _sel = '';

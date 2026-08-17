@@ -12,6 +12,9 @@
    block is inline on the render-blocking path of fourteen pages. */
 try {
   var h = document.documentElement;
+  try {
+    if (/[?&]builder=1(?:&|$)/.test(location.search)) window.__ZW_BUILDER_PREVIEW__ = true;
+  } catch (_) {}
   var _sel = '';
   try { _sel = (typeof window.__zwLM === 'function' ? (window.__zwLM() || '') : ''); } catch (_) {}
   if (!_sel) {
