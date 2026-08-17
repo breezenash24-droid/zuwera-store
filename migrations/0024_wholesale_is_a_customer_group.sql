@@ -66,6 +66,20 @@ set search_path = public
 as $$
 begin
   if tg_op = 'UPDATE' and new.wholesale is distinct from old.wholesale then
+    -- A server-side connection: the SQL editor, a migration, or a Worker using
+    -- the service key. auth.uid() is null for all three, so every check below
+    -- would refuse them — and until the admin screen exists those are the ONLY
+    -- ways to grant an account. A guard that blocks the sole provisioning path
+    -- is not a guard, it is an outage nobody can route around.
+    -- Safe because none of these roles is ever reachable from a browser: the
+    -- anon and authenticated roles are what a shopper's request arrives as, and
+    -- neither is listed.
+    if auth.uid() is null
+       and current_user in ('postgres', 'service_role', 'supabase_admin')
+    then
+      return new;
+    end if;
+
     if not public.current_user_is_super_admin()
        and not exists (
          select 1 from public.profiles p
@@ -81,7 +95,9 @@ begin
 
   -- An INSERT carrying a wholesale account is the same grant by another route.
   if tg_op = 'INSERT' and new.wholesale is not null then
-    if not public.current_user_is_super_admin() then
+    if not public.current_user_is_super_admin()
+       and not (auth.uid() is null and current_user in ('postgres', 'service_role', 'supabase_admin'))
+    then
       new.wholesale := null;
     end if;
   end if;
