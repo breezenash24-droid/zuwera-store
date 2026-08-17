@@ -11,7 +11,7 @@
   var SUPABASE_URL = window.SUPABASE_URL || window.SUPA_URL || 'https://qfgnrsifcwdubkolsgsq.supabase.co';
   var SUPABASE_ANON = window.SUPABASE_ANON || window.SUPA_ANON || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
-  function applyThemeMode(mode) {
+  function applyThemeMode(mode, remember) {
     /* theme-engine.js owns the palette when it is on the page: it knows every
        configured theme, not just these three, and it paints the colour tokens
        as well as the body class. Delegating rather than duplicating means the
@@ -20,7 +20,15 @@
        by the line below. Falls through to the original path when the engine
        is absent, so a page that has not loaded it still themes correctly. */
     if (window.ZWTheme) {
-      if (window.ZWTheme.apply(mode, !window.__ZW_BUILDER_PREVIEW__)) return;
+      /* REMEMBER means "this is the visitor's choice". Default yes — the theme
+         switcher, the size guide and a dozen other callers are a person picking
+         a theme, and a preview never is. A caller with a third answer passes it:
+         the LEGACY settings row passes false, because a stale value written
+         years ago by the admin panel's own dark/light toggle is nobody's choice
+         and must not become one. Remembering it is what pinned zw_theme_mode to
+         'dark' in every browser that ever opened a product page. */
+      var _remember = (remember === undefined) ? !window.__ZW_BUILDER_PREVIEW__ : !!remember;
+      if (window.ZWTheme.apply(mode, _remember)) return;
 
       /* ── The theme asked for does not exist ────────────────────────────────
          This is not hypothetical and it is not rare: an import once replaced
@@ -436,7 +444,8 @@
            coercion this replaced — anything unknown becomes 'light' — was the
            fifth copy of that ternary today. */
         var mode = (row.value && row.value.mode) || '';
-        if (mode) applyThemeMode(mode);
+        /* false: apply it for this page view, never write it down. */
+        if (mode) applyThemeMode(mode, false);
       }
       if (row.key === 'brand') {
         // Publish the store name for anything building a document title. It was

@@ -16,7 +16,11 @@ const ROOT = path.resolve(__dirname, '..');
 let pass = 0, fail = 0;
 const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { fail++; console.log('  ✗ ' + n + (e ? '  — ' + e : '')); } };
 
-const ADMIN = fs.readFileSync(path.join(ROOT, 'admin-main.js'), 'utf8');
+/* Line endings normalised on read. admin-main.js is CRLF on disk, and the
+   slice below hunts for a needle containing '\n' — so indexOf returned -1,
+   slice(-1, …) lifted one character, and every assertion about `loader` was
+   checking an empty string while the suite reported green. */
+const ADMIN = fs.readFileSync(path.join(ROOT, 'admin-main.js'), 'utf8').replace(/\r\n/g, '\n');
 
 console.log('\n  pinning integrations\n');
 

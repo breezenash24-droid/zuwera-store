@@ -50,7 +50,11 @@ const SRC = [];
     else if (/\.(js|css|html|sql)$/.test(e.name) && !/\.min\./.test(e.name)) SRC.push(p);
   }
 }(ROOT, 0));
-const HAY = SRC.map((p) => fs.readFileSync(p, 'utf8')).join('\n \n');
+/* Line endings normalised, or every needle containing a newline reads as
+   MISSING against a CRLF file and the scan is noise. The question here is
+   whether the landmark exists in the SOURCE; whether a given suite reads it in
+   a way that can find it is asked separately below. */
+const HAY = SRC.map((p) => fs.readFileSync(p, 'utf8').replace(/\r\n/g, '\n')).join('\n \n');
 
 /* The test file's own escapes are literal characters once it runs. */
 const unescape = (s) => s.replace(/\\n/g, '\n').replace(/\\t/g, '\t')
@@ -84,7 +88,18 @@ console.log('\n  every ordering landmark still exists');
          inspects the SPACE rather than the 0, and every `< 0` absence check
          matched anyway. Keeping the whitespace inside the lookahead is what
          makes it mean "not compared against zero". */
-      if (!/\.indexOf\([^)]*\)\s*[<>](?!\s*0\b)/.test(line)) continue;
+      /* TWO SHAPES, ONE ROOT CAUSE — indexOf returning -1 and nobody checking.
+         A comparison between positions, and a needle whose position feeds a
+         SLICE. `slice(-1, …)` never throws; it quietly lifts one character, so
+         the suite either asserts against an empty string or dies far from the
+         cause. Not hypothetical: renaming applyThemeMode's signature made
+         `SRC.indexOf('function applyThemeMode(mode)')` return -1 and
+         theme-missing.test.js crashed with "applyThemeMode is not defined".
+         Unlike a comparison there is nothing to exempt here — -1 is never a
+         slice bound anybody wanted. */
+      const isOrdering = /\.indexOf\([^)]*\)\s*[<>](?!\s*0\b)/.test(line);
+      const isSlice = /\.slice\(/.test(line) && /\.indexOf\(/.test(line);
+      if (!isOrdering && !isSlice) continue;
       const re = /\.indexOf\((['"`])((?:[^'"`\\]|\\.)+)\1\)/g;
       let m;
       while ((m = re.exec(line))) {

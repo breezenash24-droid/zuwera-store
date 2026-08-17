@@ -214,7 +214,12 @@ console.log('\n  themes are data');
      That gap is the half-and-half page: see theme-missing.test.js. The engine's
      PRESENCE is the guard now, not whether it recognises the request. */
   ok('the old applier delegates instead of duplicating',
-    /if \(window\.ZWTheme\) \{[\s\S]{0,80}?ZWTheme\.apply\(mode/.test(st));
+    /* Comments stripped first. The window was 80 characters, so documenting WHY
+       the call passes what it passes pushed the call out of range and failed an
+       assertion about delegation. Prose between two statements does not change
+       which statement runs. */
+    /if \(window\.ZWTheme\) \{[\s\S]{0,400}?ZWTheme\.apply\(mode/
+      .test(st.replace(/\/\*[\s\S]*?\*\//g, '')));
   ok('…including when the engine cannot honour the request',
     !/window\.ZWTheme && window\.ZWTheme\.get\(mode\)/.test(st),
     'a theme that was deleted or overwritten must not fall through to the string path');

@@ -39,8 +39,19 @@ const ADMIN = fs.readFileSync(path.join(ROOT, 'admin-themes.js'), 'utf8');
 
 /* The real function, lifted out and run against a body whose class changes we
    can watch. Sliced to its own closing brace. */
-const fnStart = SRC.indexOf('function applyThemeMode(mode)');
-const fnEnd = SRC.indexOf('\n  }', SRC.indexOf("dispatchEvent(new CustomEvent('zw-theme-applied'", fnStart)) + 4;
+/* Matched on the NAME, not the full argument list. This read
+   `'function applyThemeMode(mode)'`, so adding a second parameter made indexOf
+   return -1, slice(-1, …) lifted one character, and the suite CRASHED with
+   "applyThemeMode is not defined" — a lift that found nothing, which is the
+   failure this repo keeps re-learning. Guarded as well as loosened: a bad lift
+   should say so here rather than throw thirty lines later. */
+const fnStart = SRC.indexOf('function applyThemeMode(');
+const evAt = SRC.indexOf("dispatchEvent(new CustomEvent('zw-theme-applied'", fnStart);
+const fnEnd = evAt < 0 ? -1 : SRC.indexOf('\n  }', evAt) + 4;
+if (fnStart < 0 || fnEnd <= fnStart) {
+  throw new Error('could not lift applyThemeMode from storefront-theme.js — start='
+    + fnStart + ' end=' + fnEnd + '; it has been renamed or reshaped');
+}
 const FN = SRC.slice(fnStart, fnEnd);
 
 function harness({ engine }) {
