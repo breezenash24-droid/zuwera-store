@@ -956,6 +956,10 @@ try {
       <button class="acct-tab" data-tab="saved">Saved Items</button>
       <button class="acct-tab" data-tab="returns">Returns</button>
       <button class="acct-tab" data-tab="rewards" id="acct-tab-rewards" style="display:none">Rewards</button>
+      <!-- Label follows the state: "Trade Account" once there is one to look
+           at, "Wholesale" while it is still a thing to ask for. Set by
+           wholesale-apply.js, which is also what reveals it. -->
+      <button class="acct-tab" data-tab="trade" id="acct-tab-trade" style="display:none">Wholesale</button>
       <button class="acct-tab" data-tab="profile">Profile</button>
     </nav>
 
@@ -1005,6 +1009,11 @@ try {
     <div class="acct-panel" id="panel-rewards">
       <div class="zw-loading" id="rewards-loading" role="status" aria-live="polite">Loading your rewards…</div>
       <div id="rewards-content"></div>
+    </div>
+
+    <!-- TRADE / WHOLESALE — rendered by wholesale-apply.js -->
+    <div class="acct-panel" id="panel-trade">
+      <div id="trade-content"></div>
     </div>
 
     <!-- PROFILE -->
@@ -2298,6 +2307,9 @@ document.addEventListener('DOMContentLoaded', function() { _sb = window.sb; init
      DOMContentLoaded, and a deferred script is not guaranteed to have run by
      the time that fires on a page this size. -->
 <script src="return-reasons.js?v=cbcedfa6"></script>
+<!-- Trade account panel. Defers because it needs `sb` and the DOM, and it
+     reveals its own tab — nothing on this page has to know it exists. -->
+<script src="wholesale-apply.js?v=1" defer></script>
 <script>
   /* Both return forms ask the question the same way because they get their
      options and their show/hide from the same function. Written per-form they

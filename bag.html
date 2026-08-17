@@ -583,6 +583,10 @@ body.super-light-mode .zw-fav-size-picker{background: var(--ink) !important;bord
     <div class="cart-summary">
       <h2>Summary</h2>
       <div class="summary-row"><span>Subtotal</span><span class="summary-value" id="summary-subtotal">-</span></div>
+      <!-- Trade minimum, for accounts that have one. Hidden for everybody else,
+           and hidden rather than emptied so it takes no space in the summary of
+           the retail shopper who will never see it. -->
+      <div id="wholesale-minimum" hidden></div>
       <div class="summary-row">
         <div>
           <div>Shipping</div>
@@ -837,6 +841,10 @@ body.super-light-mode .zw-fav-size-picker{background: var(--ink) !important;bord
      refreshed, which is why a bag could hold 3 of something with 1 in stock. -->
 <script src="customer-messages.js?v=2c5164d0"></script>
 <script src="stock-rules.js?v=efc11b57"></script>
+<!-- Before the summary code that calls it. Classic script, so it defines
+     window.ZWWholesaleMinimum synchronously and the first recalculation can
+     already reach it. -->
+<script src="wholesale-minimum.js?v=1"></script>
 <script>
 /* ===================== CORE SETUP ===================== */
 // window.sb set by supabase-client.js (deferred) before DOMContentLoaded fires
@@ -1043,6 +1051,16 @@ function updateCartSummary(subtotal) {
   }
   const subtotalEl = document.getElementById('summary-subtotal');
   if (subtotalEl) subtotalEl.textContent = subtotal > 0 ? '$' + subtotal.toFixed(2) : '-';
+  /* Painted on every recalculation, including the one where the bag empties —
+     a shopper who removes the item that got them over the line needs to be
+     told they are under it again, and that is exactly the update a "render it
+     once" version would miss. Rounded to cents here because the till compares
+     integers and a float carried through is how a bag says "reached" about an
+     order the server then refuses by one penny. */
+  if (window.ZWWholesaleMinimum) {
+    window.ZWWholesaleMinimum.paint(
+      document.getElementById('wholesale-minimum'), Math.round(subtotal * 100));
+  }
   if (subtotal === 0) {
     const sh = document.getElementById('summary-shipping');
     const tx = document.getElementById('summary-tax');
