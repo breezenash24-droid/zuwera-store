@@ -11,6 +11,10 @@ import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { returnEligibility, reconcileReturnItems, spokenForOn, returnWindowFrom } from './_returns.js';
 import { orderNo } from './_order-no.js';
 import { messagesFrom } from './_messages.js';
+/* Default import: the file is UMD so the storefront can load it as a classic
+   script and reach window.ZWReturnReasons. A named ESM import of a CommonJS
+   module is what broke here — one vocabulary, two consumers, one file. */
+import ZWReturnReasons from '../../return-reasons.js';
 
 // ─── Loops subscriber sync ─────────────────────────────────────────────────────
 // Called after save_profile — syncs the customer into Loops if they consented to marketing.
@@ -184,7 +188,23 @@ export async function onRequestPost({ request, env }) {
         orderId: String(body.orderId || '').trim(),
         orderLabel: String(body.orderLabel || '').trim(),
         resolution: String(body.resolution || 'return').trim(),
-        reason: String(body.reason || '').trim(),
+        /* Normalised server-side against the shared vocabulary, so an unknown
+           code becomes null rather than being stored and counted. A category
+           that anything can write into is a free-text box with extra steps —
+           which is the thing this replaced. */
+        ...ZWReturnReasons.normalise({
+          reasonCode: body.reasonCode, fitCode: body.fitCode, reason: body.reason,
+        }),
+        /* Declared here, not only assigned below. They are stamped from the
+           matched order a few lines on — which means a request that matched no
+           order was missing them entirely, and every reader had to cope with a
+           shape that varied. Empty defaults give one shape. The typecheck found
+           this: adding the spread above made the literal's type concrete enough
+           for it to see four assignments to properties that did not exist. */
+        customerEmail: '',
+        customerName: '',
+        orderTotal: 0,
+        orderCreatedAt: '',
         notes: String(body.notes || '').trim(),
         status: 'requested',
         createdAt: new Date().toISOString(),
