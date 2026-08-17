@@ -807,7 +807,31 @@ console.log('\n  a limit says whether it can be walked around');
 
   // the call sites
   ok('a bulk status change is asked about', /zwGuard\('bulk_edit', \{ count: ids\.length/.test(adm));
-  ok('…after the confirm, before the write', adm.indexOf("zwGuard('bulk_edit'") > adm.indexOf('Set ${ids.length} product'));
+
+  /* Scoped to the handler. This compared two file-wide indexOf results, so the
+     moment a SECOND bulk action started calling zwGuard('bulk_edit') the first
+     occurrence moved to whichever handler happens to be earlier in the file and
+     the comparison stopped describing either of them. Ordering assertions have
+     to be bounded to the thing whose order they are about. */
+  const bulkFn = (name) => {
+    const a = adm.indexOf('window.' + name + ' = async function');
+    if (a < 0) return '';
+    const b = adm.indexOf('\n        };', a);
+    return b > a ? adm.slice(a, b) : '';
+  };
+  for (const [name, confirmNeedle] of [
+    ['prodBulkStatus', 'Set ${ids.length} product'],
+    /* Banking is a bulk write too, and it moves products off the storefront. */
+    ['prodBulkBank', 'Move ' + "' + n + '" + ' product'],
+  ]) {
+    const fn = bulkFn(name);
+    const g = fn.indexOf("zwGuard('bulk_edit'");
+    const c = fn.indexOf(confirmNeedle);
+    const w = fn.indexOf("sb.from('products').update");
+    ok(name + ': the guard sits after the confirm and before the write',
+      fn && g > 0 && c > 0 && w > 0 && c < g && g < w,
+      'confirm=' + c + ' guard=' + g + ' write=' + w + ' (len ' + fn.length + ')');
+  }
   ok('a price change is measured, not guessed', /percent_change: Math\.round\(pct \* 100\) \/ 100/.test(adm));
   /* Halving a price is as much a decision as doubling it. */
   ok('…and it is the size of the move, either direction', /Math\.abs\(\(now - was\) \/ was\)/.test(adm));

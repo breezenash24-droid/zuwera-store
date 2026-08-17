@@ -1177,6 +1177,12 @@
                             <option value="Coming Soon">Coming Soon</option>
                             <option value="Sold Out">Sold Out</option>
                         </select>
+                        <!-- The clean slate. Banking used to happen only as a side
+                             effect of switching to a preset; this puts products away
+                             directly, which is what you want before building a lineup
+                             you do not want the old catalogue sitting next to. -->
+                        <button class="btn btn-secondary btn-sm" data-req-edit="products" onclick="prodBulkBank()"
+                                title="Take these off the storefront and out of the way. Nothing is deleted.">🗄 Move to bank</button>
                         <button class="btn btn-secondary btn-sm" data-ro-ok onclick="prodBulkExport()">⬇ Export selected</button>
                         <button class="btn btn-secondary btn-sm" data-ro-ok onclick="prodBulkClear()" style="margin-left:auto;">Clear</button>
                     </div>
