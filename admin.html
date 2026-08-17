@@ -1102,6 +1102,20 @@
                             <span style="font-size:.72rem;color:var(--text-secondary);">Snapshot which products are live (and their order) + your product-page layout, then switch the whole site in one click.</span>
                         </div>
                         <div id="productPresetChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>
+                        <!-- Named HERE rather than in a prompt(). A browser that has
+                             suppressed dialogs — which Chrome offers after a few, and
+                             this panel shows a confirm() on every switch — makes
+                             prompt() return null, which the handler read as "cancelled"
+                             and abandoned in total silence. Indistinguishable from the
+                             button not working. -->
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+                            <input type="text" id="prodPresetName" class="form-input" maxlength="40"
+                                   placeholder="Name for a new preset, e.g. Launch"
+                                   style="max-width:260px;" data-req-edit="products">
+                            <span style="font-size:.72rem;color:var(--text-secondary);">
+                                Captures whichever products are <strong>live right now</strong>, and their order.
+                            </span>
+                        </div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <button type="button" class="btn btn-secondary btn-sm" data-req-edit="products" onclick="saveProductPreset()">+ Save current as…</button>
                             <button type="button" class="btn btn-secondary btn-sm" id="prodPresetUpdate" data-req-edit="products" disabled onclick="updateProductPreset()">Update</button>

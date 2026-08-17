@@ -9045,8 +9045,23 @@
         }
 
         window.saveProductPreset = async function() {
-            const name = (prompt('Name this preset (e.g. “Drop 001”, “Holiday”)') || '').trim();
-            if (!name) return;
+            /* Read from the panel, not from prompt(). A browser that has suppressed
+               dialogs returns null, which this read as 'cancelled' and abandoned
+               silently — the button appeared to do nothing at all. An empty name now
+               SAYS so instead of returning quietly. */
+            const nameEl = document.getElementById('prodPresetName');
+            const name = ((nameEl && nameEl.value) || '').trim();
+            if (!name) {
+                showToast('Give the preset a name first.', 'error');
+                if (nameEl) nameEl.focus();
+                return;
+            }
+            /* A second preset under an existing name is two chips that look the same
+               and switch to different lineups. */
+            if ((_productPresets.presets || []).some(function (x) { return (x.name || '').toLowerCase() === name.toLowerCase(); })) {
+                showToast('There is already a preset called “' + name + '”.', 'error');
+                return;
+            }
             try {
                 const products = _snapshotLiveLineup();
                 const productPage = await _currentProductPageLayout();
@@ -9055,6 +9070,7 @@
                 _productPresets.activePreset = id;
                 await _saveProductPresetsState();
                 try { await logAdminAudit('product_preset.create', 'site_settings', id, { name, count: products.length }); } catch (_) {}
+                if (nameEl) nameEl.value = '';
                 renderProductPresets();
                 showToast('Saved preset “' + name + '” (' + products.length + ' products)', 'success');
             } catch (e) { showToast('Could not save preset: ' + e.message, 'error'); }
@@ -9077,9 +9093,30 @@
         window.renameProductPreset = async function() {
             const p = _prodPresetById(_productPresets.activePreset);
             if (!p) return;
-            const name = (prompt('Rename preset', p.name) || '').trim();
-            if (!name || name === p.name) return;
-            try { p.name = name; await _saveProductPresetsState(); renderProductPresets(); showToast('Renamed', 'success'); }
+            /* Same trap as saving: a suppressed prompt() returns null and the rename
+               vanished without a word. The panel's own field carries the new name, and
+               is pre-filled with the current one so it reads as a rename. */
+            const nameEl = document.getElementById('prodPresetName');
+            let name = ((nameEl && nameEl.value) || '').trim();
+            if (!name) {
+                if (nameEl) { nameEl.value = p.name; nameEl.focus(); nameEl.select(); }
+                showToast('Edit the name in the box, then press Rename.', 'error');
+                return;
+            }
+            /* Unchanged is not an error, but it must not look like nothing happened
+               either — the old bare `return` here is the same silence being fixed. */
+            if (name === p.name) {
+                if (nameEl) nameEl.value = '';
+                showToast('That is already its name.');
+                return;
+            }
+            try {
+                p.name = name;
+                await _saveProductPresetsState();
+                if (nameEl) nameEl.value = '';
+                renderProductPresets();
+                showToast('Renamed to “' + name + '”', 'success');
+            }
             catch (e) { showToast('Could not rename: ' + e.message, 'error'); }
         };
 
@@ -9091,6 +9128,7 @@
                 _productPresets.presets = _productPresets.presets.filter(x => x.id !== p.id);
                 _productPresets.activePreset = null;
                 await _saveProductPresetsState();
+                if (nameEl) nameEl.value = '';
                 renderProductPresets();
                 showToast('Deleted “' + p.name + '”', 'info');
             } catch (e) { showToast('Could not delete: ' + e.message, 'error'); }
