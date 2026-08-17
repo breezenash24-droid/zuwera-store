@@ -527,7 +527,39 @@
         '</div>'
       : '';
 
-    host.innerHTML = notice + state.modes.map(function (m, i) {
+    /* WHAT "DEFAULT" ACTUALLY MEANS, said once at the top.
+     *
+     * A pill reading "Default" on one card does not tell anybody that this is
+     * the theme every first-time visitor, every incognito window and every
+     * cleared browser gets — and that it is therefore the shop's real colour,
+     * whatever the person looking at the panel happens to see. A store owner
+     * whose own browser had a theme stored read the panel as describing their
+     * view of it.
+     *
+     * The deploy caveat is the other half, and it is the one that gets people.
+     * scripts/stamp-theme-default.js bakes this choice into every page's <html>
+     * and <body> AT BUILD TIME, so first paint keeps using the previous default
+     * until the next deploy. theme-engine.js corrects it a moment later, which
+     * means the symptom is not "the setting did not save" but "the setting
+     * saved and the first frame still shows the old one" — indistinguishable
+     * from a bug unless somebody says so here.
+     */
+    var def = state.modes.filter(function (m) { return m.id === state.default; })[0];
+    var explain = '<div style="border:1px solid var(--border);border-radius:8px;padding:14px 16px;'
+      + 'margin-bottom:16px;font-size:.85rem;line-height:1.65;">'
+      + '<div style="margin-bottom:.35rem;">A first-time visitor sees '
+      + (def
+          ? '<strong>' + esc(def.label) + '</strong> — this is your shop\'s colour to anyone '
+            + 'who has not chosen one.'
+          : '<strong>nothing set</strong>, so the stylesheet\'s own default is used.')
+      + '</div>'
+      + '<div style="color:var(--text-secondary);">'
+      + 'Changing it takes effect immediately for shoppers, but the very first frame of a page is '
+      + 'baked in at build time — so until the next deploy, a cold load still flashes the previous '
+      + 'default before correcting itself.'
+      + '</div></div>';
+
+    host.innerHTML = explain + notice + state.modes.map(function (m, i) {
       var isDefault = state.default === m.id;
       return '<div style="border:1px solid var(--border);border-radius:8px;padding:16px;background:var(--bg-primary);">' +
         '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;cursor:pointer;" onclick="themeToggle(\'' + esc(m.id) + '\')">' +
