@@ -367,6 +367,11 @@
     /* The member caveat starts hidden in the markup, so its visibility has to
        be settled once after every render — not only when a field is touched. */
     if (_pick) window.pricingRefreshCurrent();
+    /* Settled once after every render, for the same reason as the line above:
+       the note lives in an empty div in the markup, so a form that has just
+       been drawn shows the select without saying who it charges — and the
+       first paint is exactly when somebody is deciding. */
+    if (_pick) window.pricingRefreshList();
     /* Re-paint the sold block if it was already open. render() rewrites the
        whole panel, so without this, picking a product after loading it threw the
        figures away and put the button back. */
@@ -585,9 +590,66 @@
     return l ? (l.name || l.code) : String(code);
   }
 
+  /* WHO A LIST CHARGES, in the words a merchant would use.
+     The dropdown used to read "Wholesale" and "Default" and say nothing about
+     the difference, which is the entire difference: one changes the price for
+     everybody who visits the shop, the other for a handful of approved trade
+     accounts. Proposing into the wrong one is silent both ways — a markdown
+     nobody sees, or a trade price handed to every shopper. */
+  window.pricingAudience = function (l) {
+    if (!l) return 'everyone';
+    const bits = [];
+    const g = String(l.customer_group || '').toLowerCase();
+    if (g === 'wholesale') bits.push('approved trade buyers only');
+    else if (g === 'member') bits.push('members only');
+    else if (g) bits.push(g + 's only');
+    else bits.push('everyone');
+    if (l.region) bits.push('in ' + l.region);
+    if (l.channel) bits.push('on ' + l.channel);
+    return bits.join(' ');
+  };
+
+  function listNote() {
+    const sel = $('pricing-list');
+    const l = _lists.find((x) => String(x.id) === String(sel && sel.value));
+    if (!l) return '';
+    const broad = !l.customer_group;
+    const pct = Number(l.rule_percent_off);
+    const hasRule = Number.isFinite(pct) && pct > 0;
+    return '<div style="border:1px solid ' + (broad ? 'rgba(251,191,36,.45)' : 'var(--border)')
+      + ';background:' + (broad ? 'rgba(251,191,36,.08)' : 'transparent')
+      + ';border-radius:6px;padding:.5rem .7rem;margin-top:.4rem;font-size:.78rem;line-height:1.55;">'
+      + 'This price is charged to <strong>' + escapeHtml(window.pricingAudience(l)) + '</strong>.'
+      + (broad ? ' Everyone who visits the shop sees it.' : ' No other shopper is affected.')
+      /* A row beats the list's percentage rule for this one product, which is
+         the intended escape hatch and a surprise if nobody says so. */
+      + (hasRule
+          ? '<br><span style="color:var(--text-secondary);">This list is set to '
+            + escapeHtml(String(pct)) + '% off the catalogue. A price set here <strong>replaces</strong> '
+            + 'that rule for this product only — the rest of the catalogue keeps it.</span>'
+          : '')
+      + '</div>';
+  }
+
+  window.pricingRefreshList = function () {
+    const host = $('pricing-list-note');
+    if (host) host.innerHTML = listNote();
+  };
+
   function proposeForm() {
-    const lists = _lists.filter((l) => l.active !== false)
-      .map((l) => `<option value="${escapeAttr(l.id)}">${escapeHtml(l.name || l.code)}</option>`).join('');
+    const active = _lists.filter((l) => l.active !== false);
+    /* THE BROADEST LIST IS PRESELECTED, not the highest-priority one.
+       _lists arrives ordered by priority DESC, so the first <option> was
+       whichever list is most specialised — Wholesale, at priority 100. A
+       merchant proposing an ordinary markdown who never opened the dropdown was
+       silently pricing for trade buyers alone, and the confirmation says
+       "Proposed" either way. Defaulting to the everyone-list makes the
+       dangerous choice the one you have to actually make. */
+    const preferred = active.find((l) => !l.customer_group) || active[0];
+    const lists = active
+      .map((l) => `<option value="${escapeAttr(l.id)}"${
+        preferred && String(l.id) === String(preferred.id) ? ' selected' : ''
+      }>${escapeHtml(l.name || l.code)} — ${escapeHtml(window.pricingAudience(l))}</option>`).join('');
 
     if (!_pick) {
       return `<div style="border:1px solid var(--border);border-radius:8px;padding:1.25rem;color:var(--text-secondary);font-size:.85rem;line-height:1.7;">
@@ -613,8 +675,9 @@
 
         <div id="pricing-current" style="margin-top:.7rem;">${currentLine()}</div>
 
-        <label class="form-label" style="margin-top:.7rem;">Price list</label>
-        <select id="pricing-list" class="form-input">${lists}</select>
+        <label class="form-label" style="margin-top:.7rem;">Price list — who this price is for</label>
+        <select id="pricing-list" class="form-input" onchange="pricingRefreshList()">${lists}</select>
+        <div id="pricing-list-note"></div>
 
         <!-- All three figures the product form has. Member price was missing,
              so this screen could express two of the three — and the missing one
