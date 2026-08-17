@@ -75,7 +75,7 @@ async function loadSiteSettings() {
         if (cartNote) cartNote.innerHTML = 'Standard 5-7 days<br>Free on orders over $' + thresh;
       } else if (row.key === 'theme') {
         const mode = row.value && row.value.mode === 'dark' ? 'dark' : row.value && row.value.mode === 'super-light' ? 'super-light' : 'light';
-        if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
+        if (window.__zwApplyLegacyTheme) window.__zwApplyLegacyTheme(mode);
         else {
           document.body.classList.toggle('light-mode', mode === 'light');
           if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();

@@ -113,7 +113,11 @@ console.log('\n  how many places decide what theme the store is in');
    * ternary — which meant an imported theme could not arrive through it at all.
    */
   const st = fs.readFileSync(path.join(ROOT, 'storefront-theme.js'), 'utf8');
-  const row = st.slice(st.indexOf("if (row.key === 'theme')"), st.indexOf("if (row.key === 'brand')"));
+  /* The row-reading branch plus the entry point it now delegates to. The
+     "absent value applies nothing" guard moved into __zwApplyLegacyTheme when
+     six other files were pointed at it — same property, different address. */
+  const row = st.slice(st.indexOf("if (row.key === 'theme')"), st.indexOf("if (row.key === 'brand')"))
+    + st.slice(st.indexOf('window.__zwApplyLegacyTheme'), st.indexOf('window.__zwApplyLegacyTheme') + 900);
   ok('the settings row hands the stored value to the engine, not a guess at it',
     /row\.value && row\.value\.mode\) \|\| ''/.test(row) && !/=== 'super-light' \? 'super-light' : 'light'/.test(row),
     'coercing here means an imported or custom theme lands as whichever built-in it falls through to');
@@ -122,7 +126,7 @@ console.log('\n  how many places decide what theme the store is in');
        `applyThemeMode\(mode\)` exactly, so adding the explicit remember flag —
        which is what stops a legacy row being written down as the visitor's
        choice — broke an assertion about something else entirely. */
-    /if \(mode\) applyThemeMode\(mode[,)]/.test(row),
+    /if \(!mode\) return/.test(row),
     'a missing setting is not an instruction to switch to light');
 
   /* THE ADMIN'S CHROME IS NOT THE SHOP'S THEME.

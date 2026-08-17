@@ -1,10 +1,30 @@
 (function() {
   'use strict';
 
-  // Immediately set notch bar color from localStorage to minimize theme FOUC
+  /* The notch strip — the band above the header on a phone with a safe area.
+     It reads the base that was ALREADY RESOLVED, rather than guessing again.
+
+     This used to be `localStorage.getItem('zw_theme_mode') || 'dark'`, which is
+     a second answer to the question the pre-paint block in <head> has already
+     settled from the visitor's choice, the cached theme record and the baked
+     default. On a store whose default is light and a visitor who has never
+     picked anything — every first load, and every load after a cache clear —
+     that read returns nothing, falls back to 'dark', and paints #09090b over
+     the #FFFFFF the pre-paint block had just set. This file is deferred on all
+     sixteen pages, so it always runs second and always wins.
+
+     The result is a black band across the top of a white site, above the
+     header, on the first load only. `data-zw-base` is the resolved answer;
+     `data-zw-theme-default` is what the build baked, and is what a page with no
+     pre-paint block still has. 'dark' stays last because it is what base.css
+     ships, not because it is a likely answer. */
   try {
-      var _nm = localStorage.getItem('zw_theme_mode') || 'dark';
-      document.documentElement.style.setProperty('--zw-notch-bar',
+      var _h = document.documentElement;
+      var _nm = _h.getAttribute('data-zw-base')
+             || localStorage.getItem('zw_theme_mode')
+             || _h.getAttribute('data-zw-theme-default')
+             || 'dark';
+      _h.style.setProperty('--zw-notch-bar',
         _nm === 'super-light' ? '#FFFFFF' : _nm === 'light' ? '#F0EEE9' : '#09090b');
   } catch(_) {}
 
@@ -306,6 +326,41 @@
   }
 
   window.__zwApplyAdminTheme = applyThemeMode;
+
+  /* THE LEGACY THEME ROW, WITH ONE ANSWERER ─────────────────────────────────
+     site_settings.theme.mode predates the theme engine, and SEVEN files read
+     it: this one, about, drop001, journal, policies, sizeguide, product-main
+     and storefront. This file's copy deferred to the engine and passed
+     remember:false. The other six called __zwApplyAdminTheme(mode) directly,
+     which meant two things:
+
+       · no configured() deference, so the legacy value was applied even when
+         the engine already had the store's real theme list; and
+
+       · the second argument omitted, so `remember` defaulted to TRUE and
+         ZWTheme.apply wrote the value into zw_theme_mode.
+
+     The second is the one that does lasting damage. Once written, chosenId()
+     returns it on every subsequent load of every page and outranks the store's
+     configured default forever — so a single visit to the privacy policy page
+     pinned the whole storefront to whatever the admin's own light/dark toggle
+     last wrote, and no amount of changing the default in the Themes panel could
+     take it back. Traced live: policies.html painted the store's theme
+     correctly at first frame, then called ZWTheme.apply('dark', true) 619ms
+     later, and the engine's own answer arriving afterwards no longer
+     disagreed with the "choice" that had just been invented on its behalf.
+
+     The guard belongs to the ROW, not to the caller, so it lives here and the
+     callers ask for it by name. */
+  window.__zwApplyLegacyTheme = function (mode) {
+    if (!mode) return;
+    /* The engine knows the store's own themes. This row is the fallback for
+       when it does not, which is the only case it was ever meant to cover. */
+    if (window.ZWTheme && window.ZWTheme.configured && window.ZWTheme.configured()) return;
+    /* false: apply it for this page view, never write it down. A value the
+       admin panel wrote years ago is nobody's choice. */
+    applyThemeMode(mode, false);
+  };
   window.__zwSyncThemeColor = function() {
     /* Reading the mode back off the body classes is lossy once themes are
        data: every custom theme collapses to one of three names, and feeding
@@ -439,13 +494,12 @@
            system, or every store carries whatever its admin last set forever.
            Applied only when the engine has nothing from the store, which is
            exactly the case this row exists to cover. */
-        if (window.ZWTheme && window.ZWTheme.configured && window.ZWTheme.configured()) return;
         /* Handed over as-is so the engine can recognise a custom id. The
            coercion this replaced — anything unknown becomes 'light' — was the
-           fifth copy of that ternary today. */
-        var mode = (row.value && row.value.mode) || '';
-        /* false: apply it for this page view, never write it down. */
-        if (mode) applyThemeMode(mode, false);
+           fifth copy of that ternary today. The deference and the never-remember
+           now live in __zwApplyLegacyTheme, so this file reads the row the same
+           way the other six do. */
+        window.__zwApplyLegacyTheme((row.value && row.value.mode) || '');
       }
       if (row.key === 'brand') {
         // Publish the store name for anything building a document title. It was

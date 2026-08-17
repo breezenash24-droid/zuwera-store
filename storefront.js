@@ -2631,7 +2631,7 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
            Appearance setting could put light-mode on a body still carrying the
            engine's dark tokens — near-black text on a near-black ground. */
         if (window.__zwSetPageTheme) window.__zwSetPageTheme(mode);
-        else if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
+        else if (window.__zwApplyLegacyTheme) window.__zwApplyLegacyTheme(mode);
         // Persist the resolved mode so the synchronous <head> flash-prevention
         // script (which reads zw_homepage_theme_mode || zw_theme_mode before first
         // paint) renders the correct background on the NEXT load — no dark flash.
