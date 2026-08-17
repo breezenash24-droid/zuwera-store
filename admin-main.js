@@ -8962,6 +8962,42 @@
             const rows = _allProducts.filter(p => ids.has(String(p.id)));
             zwExportCSV('products-selected-{date}.csv', rows, PRODUCT_CSV_COLUMNS);
         };
+        /* Put the selection away: off the storefront and out of every working
+           view, in one action. Banking was only reachable by switching to a
+           preset, which meant the only way to get a clean slate was to publish
+           an empty shop first — the same "you have to do it live" problem the
+           preset bench fixed one level up.
+
+           Draft + banked, in that order, because the bank is derived from the
+           status: a product that is not Draft is not banked no matter what the
+           list says, so writing the list first would be a no-op until the status
+           landed. */
+        window.prodBulkBank = async function () {
+            const ids = prodSelectedIds();
+            if (!ids.length) return;
+            const n = ids.length;
+            if (!confirm('Move ' + n + ' product' + (n === 1 ? '' : 's') + ' to the bank?\n\n'
+                + 'They come off the storefront and out of the product list, so you can build from a clean slate.\n\n'
+                + 'Nothing is deleted — images, prices, stock and reviews are untouched, and “Unbank” brings them back.')) return;
+            if (!await zwGuard('bulk_edit', { count: n, status: 'Draft' })) return;
+            try {
+                const { error } = await sb.from('products').update({ status: 'Draft' }).in('id', ids);
+                if (error) throw error;
+                ids.forEach(id => { const p = _allProducts.find(p => String(p.id) === id); if (p) p.status = 'Draft'; });
+                const bank = new Set(_productPresets.banked || []);
+                ids.forEach(id => bank.add(String(id)));
+                _productPresets.banked = Array.from(bank);
+                await _saveProductPresetsState();
+                await logAdminAudit('product.bank', 'products', ids.join(','), { count: n });
+                prodBulkClear();
+                renderProductPresets();
+                renderProducts();
+                showToast(n + ' product' + (n === 1 ? '' : 's') + ' moved to the bank.', 'success');
+            } catch (err) {
+                showToast('Could not move to the bank: ' + err.message, 'error');
+            }
+        };
+
         window.prodBulkStatus = async function(status) {
             if (!status) return;
             const ids = prodSelectedIds();
@@ -9199,8 +9235,18 @@
             const members = (p.products || []).map(x => String(x.id));
             const all = (_allProducts || []).filter(x => (x.status || 'Draft') !== 'Legacy');
             const inOrder = members.map(id => all.find(x => String(x.id) === id)).filter(Boolean);
-            const rest = all.filter(x => members.indexOf(String(x.id)) < 0)
-                .sort((a, b) => String(a.title || '').localeCompare(String(b.title || '')));
+            /* Banked products are split out. "Work from a completely clean slate
+               without having to look at those products at all" is the whole point
+               of the bank, and listing them under "Everything else" put the old
+               catalogue straight back in front of you.
+
+               Collapsed, not removed. A preset you cannot add a banked product to
+               would make the bank a one-way door, and then the only way back would
+               be to unbank first — which is exactly the detour this avoids. */
+            const notMember = all.filter(x => members.indexOf(String(x.id)) < 0);
+            const byTitle = (a, b) => String(a.title || '').localeCompare(String(b.title || ''));
+            const rest = notMember.filter(x => !_isBanked(x)).sort(byTitle);
+            const banked = notMember.filter(_isBanked).sort(byTitle);
 
             const row = (x, idx, isMember) => {
                 const id = String(x.id);
@@ -9232,7 +9278,14 @@
                     : '<div style="font-size:.78rem;color:var(--text-secondary);padding:6px 0;">Nothing in it yet — this preset clears the storefront.</div>')
                 + '<div style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin:12px 0 4px;">Everything else</div>'
                 + (rest.length ? rest.map(x => row(x, -1, false)).join('')
-                               : '<div style="font-size:.78rem;color:var(--text-secondary);">Every product is in this preset.</div>')
+                               : '<div style="font-size:.78rem;color:var(--text-secondary);">'
+                                 + (banked.length ? 'Nothing outside the bank — a clean slate.' : 'Every product is in this preset.')
+                                 + '</div>')
+                + (banked.length
+                    ? '<details style="margin-top:10px;"><summary style="cursor:pointer;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);">'
+                      + 'In the bank · ' + banked.length + ' <span style="text-transform:none;letter-spacing:0;opacity:.7;">(click to show)</span></summary>'
+                      + '<div style="margin-top:4px;opacity:.75;">' + banked.map(x => row(x, -1, false)).join('') + '</div></details>'
+                    : '')
                 + '<div style="display:flex;gap:8px;margin-top:12px;">'
                 + '<button type="button" class="btn btn-primary btn-sm" data-req-edit="products" onclick="savePresetContents()">Save contents</button>'
                 + '<button type="button" class="btn btn-secondary btn-sm" onclick="toggleProductPresetEditor()">Close</button>'

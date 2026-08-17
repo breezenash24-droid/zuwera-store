@@ -129,6 +129,37 @@ console.log('\n  the bank keeps out of the way without hiding');
   ok('the chip is hidden until there is a bank', /btn\.style\.display = n \? '' : 'none'/.test(MAIN));
 }
 
+console.log('\n  a clean slate is reachable directly');
+{
+  /* Banking used to happen only as a side effect of switching to a preset, so
+     the only way to clear the decks was to publish an empty shop first — the
+     same "you have to do it live" problem the bench fixes one level up. */
+  const BANKBULK = lift('prodBulkBank');
+  ok('the products table can bank a selection', /prodBulkBank\(\)/.test(HTML));
+  ok('…without going through a preset', BANKBULK.length > 300, String(BANKBULK.length));
+  /* The bank is DERIVED from the status, so a list write before the status
+     write would be a no-op until the status landed. */
+  const st = BANKBULK.indexOf("update({ status: 'Draft' })");
+  const bk = BANKBULK.indexOf('_productPresets.banked = Array.from(bank)');
+  ok('it drafts before it banks', st >= 0 && bk > st, 'status=' + st + ' bank=' + bk);
+  ok('…and says nothing is deleted', /Nothing is deleted/.test(BANKBULK));
+  ok('…and is gated like the other bulk writes', /zwGuard\('bulk_edit'/.test(BANKBULK));
+
+  /* The editor is the other place the old catalogue was in your face. */
+  ok('the editor separates banked from everything else',
+    /notMember\.filter\(x => !_isBanked\(x\)\)/.test(EDITOR)
+      && /notMember\.filter\(_isBanked\)/.test(EDITOR),
+    'listing them under "Everything else" puts the shelved catalogue straight back');
+  ok('…and collapses them rather than dropping them',
+    /<details/.test(EDITOR) && /In the bank/.test(EDITOR),
+    'a preset you cannot add a banked product to makes the bank a one-way door');
+  /* Collapsed <details> keeps its inputs in the DOM, so a ticked banked product
+     still reaches the save. */
+  ok('a ticked banked product is still read on save',
+    /querySelectorAll\('#presetEditor input\[type="checkbox"\]'\)/.test(lift('_readPresetEditorSelection')),
+    'the read must not be scoped to the open sections');
+}
+
 console.log('\n  there is a way back out');
 {
   ok('a banked row offers Unbank instead of Archive', /unbankProduct\('\$\{productId\}'\)/.test(MAIN));

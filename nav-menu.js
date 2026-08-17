@@ -59,7 +59,23 @@
         if (t) { tags[t.toLowerCase()] = t; if (sub) addTag(t.toLowerCase(), sub); }
       });
     });
-    return { byGender: byGender, tags: tags, byTag: byTag };
+    /* AUTO-HIDE IS A COMPARISON, AND AN EMPTY SHOP HAS NOTHING TO COMPARE.
+     *
+     * Items with no products behind them are hidden, which is right when SOME
+     * categories have stock and others do not — a "Women" link leading to an
+     * empty page is a dead end. It is wrong when the catalogue is empty
+     * altogether: then every item hides at once and the header loses its whole
+     * navigation, which does not read as "no stock", it reads as a broken site.
+     *
+     * That case is now reachable on purpose. An empty product preset takes the
+     * entire lineup off the storefront in one click, and the first thing it did
+     * was strip MEN / WOMEN / NEW out of the header.
+     *
+     * `empty` says the taxonomy was built and found nothing, which resolveItem
+     * treats the way it already treats a taxonomy it has not loaded yet: show
+     * the item, without a mega-menu. One question, one existing answer. */
+    var empty = !Object.keys(byGender).length && !Object.keys(tags).length;
+    return { byGender: byGender, tags: tags, byTag: byTag, empty: empty };
   }
 
   // Normalize any raw item to { label, url, columns:[{heading,links:[{text,url}]}] }.
@@ -74,7 +90,10 @@
       var set = (tax && tax.byGender[String(gender).toLowerCase()]) || null;
       // Top link → the gender landing page; mega-menu links → the filtered PLP.
       var landing = item.url || ('landing.html?page=' + encodeURIComponent(String(gender).toLowerCase()));
-      if (!tax) return { label: label, url: landing, columns: [] };
+      /* Not loaded yet, or loaded and completely empty — both mean "there is
+         nothing here to choose between", so the item stands with no mega-menu
+         rather than vanishing. */
+      if (!tax || tax.empty) return { label: label, url: landing, columns: [] };
       if (!set) return null; // no products for this gender — hide it
       var avail = {}; Object.keys(set).forEach(function (s) { avail[s.toLowerCase()] = s; });
       var base = 'drop001.html?gender=' + encodeURIComponent(gender);
@@ -102,7 +121,7 @@
       // tag-filtered PLP.
       var tagName = item.tag || label;
       var tlanding = item.url || ('landing.html?tag=' + encodeURIComponent(tagName));
-      if (!tax) return { label: label, url: tlanding, columns: [] };
+      if (!tax || tax.empty) return { label: label, url: tlanding, columns: [] };
       var tset = (tax && tax.byTag && tax.byTag[String(tagName).toLowerCase()]) || null;
       if (!tset) return null; // no products for this tag -> hide it
       var tbase = 'drop001.html?tag=' + encodeURIComponent(tagName);
