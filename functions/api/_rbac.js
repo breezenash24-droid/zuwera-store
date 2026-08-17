@@ -31,7 +31,7 @@ export const ROLE_LABELS = {
 export const PAGE_IDS = [
   'dashboard', 'analytics', 'finance', 'products', 'legacy', 'sizecharts',
   'reviews', 'questions', 'bundles', 'loyalty', 'journal', 'subscribers', 'emails', 'popup', 'commerce', 'meta', 'orders', 'receipts', 'shipping', 'returns', 'users',
-  'website', 'settings', 'tax', 'apis', 'audit', 'flags', 'pricing'
+  'website', 'settings', 'tax', 'apis', 'audit', 'flags', 'pricing', 'wholesale'
 ];
 
 // The action capability a page grants when set to 'edit'. Pages without an entry
@@ -62,7 +62,13 @@ export const PAGE_WRITE_PERM = {
      product SAYS. They shared a permission only because price was a column on
      the product form; a content editor fixing a typo in a description should
      not also be able to take 40% off it. */
-  pricing: 'pricing_write'
+  pricing: 'pricing_write',
+  /* The same capability as pricing, because it is the same decision. Granting
+     somebody a wholesale account is deciding what they are charged — it just
+     spends the discount on a customer rather than on a product. Splitting it
+     into its own permission would let a role hand out trade pricing while being
+     barred from setting a price. */
+  wholesale: 'pricing_write'
 };
 
 // Preset access maps (page -> level) for each role. super_admin is special (all).
@@ -96,10 +102,10 @@ export const ROLE_PRESET_LEVELS = {
   manager: {
     dashboard: V, analytics: V, finance: E, products: E, legacy: E, sizecharts: E,
     reviews: E, questions: E, bundles: E, loyalty: E, journal: E, subscribers: E, emails: E, popup: E, commerce: E, meta: E, orders: V, receipts: E, shipping: E, returns: E,
-    users: E, website: E, settings: E, tax: E, audit: V, flags: E, pricing: E
+    users: E, website: E, settings: E, tax: E, audit: V, flags: E, pricing: E, wholesale: E
   },
   finance: {
-    dashboard: V, analytics: V, finance: E, orders: V, receipts: V, tax: E, audit: V, pricing: E
+    dashboard: V, analytics: V, finance: E, orders: V, receipts: V, tax: E, audit: V, pricing: E, wholesale: E
   },
   fulfillment: {
     dashboard: V, products: V, orders: V, receipts: E, shipping: E, returns: E

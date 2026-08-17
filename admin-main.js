@@ -1081,6 +1081,8 @@
                 loadShippingOptionCard();
             } else if (page === 'pricing') {
                 if (typeof window.pricingLoadData === 'function') window.pricingLoadData();
+            } else if (page === 'wholesale') {
+                if (typeof window.wholesaleLoadData === 'function') window.wholesaleLoadData();
             } else if (page === 'orders') {
                 if (typeof window.ordersLoadData === 'function') window.ordersLoadData();
             } else if (page === 'receipts') {
