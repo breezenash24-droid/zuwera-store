@@ -108,10 +108,16 @@ console.log('  no select is painted with something you can see through');
       const bg = bgOf(r.body);
       if (!bg) continue;
       const why = translucent(bg);
-      /* `background: none` on a select that is styled to look like a link is a
-         deliberate choice and has no popup surface to get wrong — the browser
-         draws the list from color-scheme, which is asserted below. */
-      if (why && why !== 'transparent' && !/^none\b/.test(bg)) {
+      /* `transparent` USED TO BE EXEMPT HERE, on the reasoning that it has no
+         popup surface to get wrong. That reasoning was wrong, and the guest
+         returns page proved it: `background: transparent` on a <select> is
+         still an AUTHOR background, so Chromium paints the popup from it —
+         transparent over the popup's own white canvas is a white panel, and
+         `color: inherit` puts the dark theme's near-white text on it. Exactly
+         the bug this file was written for, waved through by its own exception.
+         `none` stays exempt: it is the shorthand reset, and a select carrying
+         it has appearance:none and draws no native popup chrome at all. */
+      if (why && !/^none\b/.test(bg)) {
         bad.push(file + ' → ' + r.sel + '  {' + bg + '}  is ' + why);
       }
     }

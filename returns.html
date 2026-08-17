@@ -355,11 +355,23 @@ try {
     .guest-item-name { display: block; font-weight: 600; }
     .guest-item-variant { display: block; font-size: .8rem; color: var(--muted); margin-top: .2rem; }
 
+    /* The select and the textarea share everything except their background, so
+       they no longer share a rule. A <select>'s list opens in its own window;
+       `transparent` there is still an AUTHOR background, so Chromium paints the
+       popup with it — transparent over that window's white canvas is a white
+       panel, and `color: inherit` puts the dark theme's near-white on top. A
+       textarea has no popup and transparent is right for it.
+       Split rather than overridden: a later rule would fix the rendering and
+       still leave `background: transparent` sitting on a select in the source,
+       which is the thing anyone reading it — or scanning for it — has to trust. */
     .guest-return select, .guest-return textarea {
       width: 100%; padding: .8rem .9rem; border: 1px solid var(--border);
-      background: transparent; color: inherit; font: inherit; font-size: .9rem;
+      color: inherit; font: inherit; font-size: .9rem;
       border-radius: 3px;
     }
+    .guest-return textarea { background: transparent; }
+    .guest-return select { background: var(--field-bg); }
+    .guest-return select option { background-color: var(--field-bg); color: rgb(var(--fg-rgb)); }
     .guest-return select:focus-visible, .guest-return textarea:focus-visible {
       outline: 2px solid currentColor; outline-offset: 1px;
     }
