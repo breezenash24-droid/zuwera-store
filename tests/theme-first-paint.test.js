@@ -51,6 +51,9 @@ function coldPaint(html, cache, choice) {
        without this throws inside the block's own try/catch, which swallows it
        and silently paints nothing — a test that would pass by doing nothing. */
     getAttribute: (k) => (k in attrs ? attrs[k] : null),
+    /* Same reason as setAttribute above: a missing method throws into the
+       block's own catch and every later line is skipped without a word. */
+    removeAttribute: (k) => { delete attrs[k]; },
     classList: { toggle: () => {} },
   };
 
@@ -59,17 +62,28 @@ function coldPaint(html, cache, choice) {
   if (choice) store.zw_theme_mode = choice;
 
   const listeners = [];
+  /* WHERE THE TOKENS ACTUALLY LAND NOW.
+     The block used to set them as properties on <html>, and this stub read them
+     back off that object. Both were wrong in the same direction: base.css
+     declares every one of those tokens on `body.light-mode`, and a declaration
+     on the nearer ancestor beats an inherited one from <html>, so the values
+     this test was reading were being discarded by the stylesheet the instant it
+     loaded. theme-engine.js documents exactly that trap at the top of apply().
+     The block now emits a rule at a specificity that wins, so the stub has to
+     read the rule — otherwise the harness models a browser that does not exist
+     and the suite goes green on a page that paints the built-in palette. */
+  const styles = [];
   const win = {
     localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: () => {} },
     document: {
       documentElement: h,
       body: null,                       // THE point: no body during <head>
-      head: { appendChild: () => {} },
-      createElement: () => ({ style: {}, setAttribute: () => {} }),
+      head: { appendChild: (el) => styles.push(el) },
+      createElement: () => ({ style: {}, setAttribute: () => {}, id: '', textContent: '' }),
       addEventListener: (n, f) => listeners.push(f),
       querySelector: () => null,
     },
-    JSON, Object, Array, String, Number, parseInt, parseFloat,
+    JSON, Object, Array, String, Number, parseInt, parseFloat, isFinite,
   };
 
   /* The theme block, lifted whole out of the page between its markers.
@@ -85,7 +99,24 @@ function coldPaint(html, cache, choice) {
   new Function('h', 'localStorage', 'document', 'window', 'try{' + src + '}catch(e){throw e}')
     (h, win.localStorage, win.document, win);
 
-  return { props, attrs, listeners, doc: win.document };
+  /* Fold the token rule into the same view of the first frame. Only the tokens
+     element: the ground element carries `background … !important` for a
+     different job, and merging that would overwrite the ground this stub
+     already recorded with a value spelled differently. */
+  const tokenEl = styles.filter((el) => el.id === 'zw-preboot-tokens')[0];
+  if (tokenEl && tokenEl.textContent) {
+    for (const chunk of String(tokenEl.textContent).split('}')) {
+      const open = chunk.indexOf('{');
+      if (open < 0) continue;
+      for (const decl of chunk.slice(open + 1).split(';')) {
+        const c = decl.indexOf(':');
+        if (c < 0) continue;
+        props[decl.slice(0, c).trim()] = decl.slice(c + 1).trim();
+      }
+    }
+  }
+
+  return { props, attrs, listeners, styles, doc: win.document };
 }
 
 const themeCache = {
@@ -178,7 +209,16 @@ console.log('\n  nothing painted when there is nothing cached');
 
 console.log('\n  every storefront page got it');
 {
-  const missing = PAGES.filter((p) => !fs.readFileSync(path.join(ROOT, p), 'utf8').includes("h.style.setProperty('--fg-rgb'"));
+  /* This used to grep every page for the literal string
+     `h.style.setProperty('--fg-rgb'` — the exact mechanism that turned out to
+     be the bug. An assertion written against a spelling passes for as long as
+     the spelling survives and says nothing about whether the colour arrives, so
+     it went green through the entire period when none of these tokens reached
+     the first frame. Run the block instead and look at the result. */
+  const missing = PAGES.filter((p) => {
+    const { props } = coldPaint(fs.readFileSync(path.join(ROOT, p), 'utf8'), themeCache, 'light');
+    return props['--fg-rgb'] !== LIGHT.fg;
+  });
   ok('all ' + PAGES.length + ' pages paint the tokens', missing.length === 0, 'missing: ' + missing.join(', '));
 
   const noClass = PAGES.filter((p) => !fs.readFileSync(path.join(ROOT, p), 'utf8').includes("classList.toggle('light-mode'"));

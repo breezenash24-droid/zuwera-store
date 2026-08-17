@@ -69,16 +69,24 @@ console.log('  fourteen copies, one source');
 /* ── Run the real block, against a DOM small enough to inspect ─────────────── */
 
 function runPreboot({ stored = null, themeModes = null, shipped = null, landing = null,
-                     bodyClasses = '', storageThrows = false } = {}) {
+                     bodyClasses = '', storageThrows = false, stampId = null } = {}) {
   const store = {};
   if (stored) store.zw_theme_mode = stored;
   if (themeModes) store.zw_theme_modes = JSON.stringify(themeModes);
 
   const styles = [];
   const htmlEl = {
-    _attrs: shipped ? { 'data-zw-theme-default': shipped } : {},
+    _attrs: Object.assign({},
+      shipped ? { 'data-zw-theme-default': shipped } : {},
+      /* The id of the theme the BUILD baked into this page as CSS. */
+      stampId ? { 'data-zw-theme-stamp': stampId } : {}),
     setAttribute(k, v) { this._attrs[k] = v; },
     getAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k) ? this._attrs[k] : null; },
+    /* A stub that is missing a method the block calls does not fail loudly — the
+       call throws, the block's own try/catch swallows it, and everything AFTER
+       that line silently never runs. Without this the suite would have gone
+       green on a block that painted no colours at all. */
+    removeAttribute(k) { delete this._attrs[k]; },
     style: { _props: {}, setProperty(k, v) { this._props[k] = v; } },
   };
   /* Pre-seeded with whatever stamp-theme-default.js baked onto <body> at build
@@ -109,6 +117,27 @@ function runPreboot({ stored = null, themeModes = null, shipped = null, landing 
   });
 
   const ground = styles.filter((s) => s.id === 'zw-preboot-ground')[0] || null;
+
+  /* The theme's tokens arrive as a RULE now, not as properties on <html>.
+     They had to: base.css declares every one of them on `body.light-mode`, so
+     an inherited value from <html> was overridden the moment the stylesheet
+     landed and the page painted the BUILT-IN palette instead of the store's.
+     Reading them back off htmlEl.style here would be checking a writer against
+     another writer — the assertion and the code agreeing with each other while
+     both are wrong about the stylesheet. */
+  const tokenEl = styles.filter((s) => s.id === 'zw-preboot-tokens')[0] || null;
+  const tokens = {};
+  if (tokenEl && tokenEl.textContent) {
+    for (const chunk of String(tokenEl.textContent).split('}')) {
+      const open = chunk.indexOf('{');
+      if (open < 0) continue;
+      for (const decl of chunk.slice(open + 1).split(';')) {
+        const c = decl.indexOf(':');
+        if (c > 0) tokens[decl.slice(0, c).trim()] = decl.slice(c + 1).trim();
+      }
+    }
+  }
+
   return {
     base: htmlEl.getAttribute('data-zw-base'),
     light: classes.has('light-mode'),
@@ -117,7 +146,10 @@ function runPreboot({ stored = null, themeModes = null, shipped = null, landing 
     lightGround: !!ground,
     groundCss: ground ? ground.textContent : '',
     htmlBg: htmlEl.style.background || '',
-    fg: htmlEl.style._props['--fg-rgb'] || '',
+    fg: tokens['--fg-rgb'] || '',
+    tokens,
+    tokenCss: tokenEl ? tokenEl.textContent : '',
+    stamp: htmlEl.getAttribute('data-zw-theme-stamp'),
   };
 }
 
@@ -213,6 +245,38 @@ console.log('\n  knowing nothing is not the same as knowing dark');
   ok('a real choice still overrules the stamp', chose.base === 'dark' && !chose.light);
   const attr = runPreboot({ bodyClasses: stamped, shipped: 'dark' });
   ok('…as does an explicit build default', attr.base === 'dark' && !attr.light);
+}
+
+console.log('\n  the theme the build baked in');
+{
+  /* stamp-theme-default.js writes the store's default theme into every page as
+     a real stylesheet rule, so a visitor with nothing stored gets the right
+     colours, type scale and density on the FIRST frame — no localStorage, no
+     network, no theme-engine.js. The whole block hangs off one attribute, and
+     the only question this block answers is when to take that attribute away.
+
+     It is the right answer for a visitor who has said nothing and the wrong one
+     for a visitor who picked something else, and "something else" is decided by
+     ID, never by base: two themes can share a base and share nothing else. */
+  const keeps = runPreboot({ stampId: 'imported-x', bodyClasses: 'zw-theme-stamp light-mode super-light-mode' });
+  ok('a visitor who has said nothing keeps the baked theme',
+    keeps.stamp === 'imported-x', 'got ' + JSON.stringify(keeps.stamp));
+
+  const same = runPreboot({ stampId: 'imported-x', stored: 'imported-x',
+    themeModes: { default: 'imported-x', modes: [{ id: 'imported-x', base: 'light', tokens: { fg: '1 1 1', bg: '2 2 2' } }] } });
+  ok('a visitor who picked the default keeps it too', same.stamp === 'imported-x');
+
+  const differs = runPreboot({ stampId: 'imported-x', stored: 'dark' });
+  ok('a visitor who picked another theme drops it',
+    differs.stamp === null,
+    'the baked palette would otherwise sit under the theme they chose');
+
+  /* The trap this guards: a same-base comparison would have kept the baked
+     block here, and the visitor would get their theme's class with the OTHER
+     theme's colours underneath it. */
+  const sameBase = runPreboot({ stampId: 'imported-x', stored: 'midnight', themeModes: CUSTOM_DARK });
+  ok('…even when the two themes share a base', sameBase.stamp === null,
+    'compared by base rather than id, this would wrongly keep the bake');
 }
 
 console.log('\n  precedence');

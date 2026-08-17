@@ -70,11 +70,24 @@ try {
      colours. Absent on a first visit, in a private window, and after a clear —
      which is exactly when getting this wrong is most visible. */
   var _rec = null;
+  var _id = '';
   try {
     var _tc = JSON.parse(localStorage.getItem('zw_theme_modes') || 'null');
-    var _id = _sel || (_tc && _tc.default) || '';
+    _id = _sel || (_tc && _tc.default) || '';
     _rec = (_tc && _tc.modes && _tc.modes.filter(function (x) { return x && x.id === _id; })[0]) || null;
   } catch (_) {}
+
+  /* THE BAKED DEFAULT, AND THE ONE MOMENT TO STOP BELIEVING IT.
+     stamp-theme-default.js writes the store's default theme into the page as a
+     real stylesheet rule, scoped to html[data-zw-theme-stamp], so a visitor
+     with nothing stored gets the right colours, scale and density on the first
+     frame without waiting for theme-engine.js to arrive over the network.
+     It is the whole answer for that visitor and the wrong answer for a visitor
+     who picked something else — and removing this one attribute is what says
+     so, before a single rule has been matched. Compared by ID, not by base:
+     two themes can share a base and share nothing else. */
+  var _stamp = h.getAttribute('data-zw-theme-stamp') || '';
+  if (_stamp && _id && _id !== _stamp) h.removeAttribute('data-zw-theme-stamp');
 
   /* THE BASE. Everything below reads this and nothing below re-decides it.
      _known tracks whether it was actually LEARNED or merely fallen back to —
@@ -162,6 +175,44 @@ try {
      previous theme's colour until the engine loads. Set on <html>; the engine
      later sets them on <body>, which is nearer, so nothing here fights it. */
   if (_tt) {
+    /* WHERE A TOKEN HAS TO BE WRITTEN TO SURVIVE.
+     *
+     * These used to be set on <html>, and every one of them was thrown away the
+     * instant the stylesheet loaded. base.css declares --fg-rgb, --paper, --ink
+     * and the rest on `body.light-mode` / `body.super-light-mode`, and a
+     * declaration on the nearer ancestor beats an inherited one from <html>.
+     * theme-engine.js documents exactly this at the top of apply() — "setting
+     * the triplet on :root would lose to that class every time, and a custom
+     * theme's colours would be silently replaced by the built-in light ones" —
+     * and then this file went and set them on :root.
+     *
+     * So a custom theme's colours never survived to first paint. They arrived
+     * only when theme-engine.js had downloaded and set the same tokens as
+     * inline styles on <body>. That file is deferred and cache-busted, so every
+     * deploy guarantees one cold fetch of it, which is precisely why the first
+     * load after a deploy looked wrong and a refresh fixed it.
+     *
+     * A rule wins where a root property lost: html[data-zw-preboot] body is
+     * (0,1,2) against the built-in block's (0,1,1), and theme-engine.js still
+     * outranks both because an inline style beats any selector. Same shape as
+     * the baked default above, one source of authority, three tiers.
+     *
+     * Removed by theme-engine.js the moment it applies the real theme — a
+     * pre-paint guess must never outlive the answer it stood in for. */
+    var _d = '';
+    var _rd = '';
+    /* Values come from this visitor's own localStorage, but they are being
+       written into a stylesheet, so anything that could close the declaration
+       or the element is dropped rather than escaped. */
+    var _put = function (p, v) {
+      /* Falsy is UNSET, matching theme-engine.js set(). A 0 that means
+         something — motion — is handled on its own below. */
+      if (!v) return;
+      v = String(v);
+      if (/[{}<>;]/.test(v)) return;
+      _d += p + ':' + v + ';';
+    };
+
     /* THE NAV IS A PAIR AND HAS TO MOVE AS ONE.
        This set --zw-nav-bg and not --zw-nav-fg, and four rules read the second
        one. A two-tone theme paints a dark bar over a light page, so on the
@@ -169,10 +220,10 @@ try {
        `color: var(--zw-nav-fg, inherit)` to the PAGE's foreground — dark text
        on a dark bar, until theme-engine.js loaded and set the other half. The
        same ground-without-text mistake as the page itself, one element in. */
-    if (_tt.navBg) h.style.setProperty('--zw-nav-bg', _tt.navBg);
-    if (_tt.navFg) h.style.setProperty('--zw-nav-fg', _tt.navFg);
-    if (_tt.fg) h.style.setProperty('--fg-rgb', _tt.fg);
-    if (_tt.bg) h.style.setProperty('--bg-rgb', _tt.bg);
+    _put('--zw-nav-bg', _tt.navBg);
+    _put('--zw-nav-fg', _tt.navFg);
+    _put('--fg-rgb', _tt.fg);
+    _put('--bg-rgb', _tt.bg);
     /* A DEFAULT for --zw-nav-fg when the theme names none.
        Without one the header falls through `color: var(--zw-nav-fg, …)` to
        whatever the page hands down — and on the light modes that is --paper,
@@ -184,17 +235,47 @@ try {
        .nav-link colour, product carries none and inherits, and patching each
        dialect is how this reached three pages and missed the rest. This runs
        before the first frame on all fourteen. */
-    if (!_tt.navFg && _tt.fg && _light) h.style.setProperty('--zw-nav-fg', 'rgb(' + _tt.fg + ')');
-    if (_tt.ink) h.style.setProperty('--ink', _tt.ink);
-    if (_tt.paper) h.style.setProperty('--paper', _tt.paper);
+    if (!_tt.navFg && _tt.fg && _light) _put('--zw-nav-fg', 'rgb(' + _tt.fg + ')');
+    _put('--ink', _tt.ink);
+    _put('--paper', _tt.paper);
     /* --zw-theme-surface, which is the name base.css declares and cart.css
        reads. This wrote `--surface`, a name nothing on the storefront has ever
        looked at, so a custom theme's panel colour simply did not arrive before
        the engine ran. A token written under the wrong name fails silently and
        forever — nothing errors, the value is just never asked for. */
-    if (_tt.surface) h.style.setProperty('--zw-theme-surface', _tt.surface);
-    if (_tt.accent) h.style.setProperty('--accent', _tt.accent);
-    if (_tt.bg) h.style.setProperty('--black', 'rgb(' + _tt.bg + ')');
-    if (_tt.fg) h.style.setProperty('--white', 'rgb(' + _tt.fg + ')');
+    _put('--zw-theme-surface', _tt.surface);
+    _put('--accent', _tt.accent);
+    _put('--zw-accent', _tt.accent);
+    _put('--err', _tt.err);
+    _put('--zw-bar-bg', _tt.barBg);
+    _put('--zw-bar-fg', _tt.barFg);
+    /* SHAPE AND SPACING, not just colour. A custom theme carries a type scale
+       and a density, and leaving them to theme-engine.js meant the first frame
+       was laid out at the built-in 1.0 and then RELAID OUT when the real value
+       arrived. A palette that changes late is a flicker; a type scale that
+       changes late moves every line on the page. */
+    _put('--zw-radius', _tt.radius);
+    _put('--zw-density', _tt.density);
+    _put('--zw-ease', _tt.ease);
+    if (_tt.bg) _put('--black', 'rgb(' + _tt.bg + ')');
+    if (_tt.fg) _put('--white', 'rgb(' + _tt.fg + ')');
+
+    /* --zw-type-scale is read where it is DECLARED, not where it is used:
+       base.css computes --text-hero and its siblings in :root as
+       `calc(clamp(…) * var(--zw-type-scale, 1))`. Putting it on body would
+       change nothing, which is why theme-engine.js sets it on root too. */
+    var _sc = parseFloat(_tt.typeScale);
+    if (isFinite(_sc) && _sc > 0) _rd += '--zw-type-scale:' + _sc + ';';
+    var _mo = parseFloat(_tt.motion);
+    if (isFinite(_mo) && _mo >= 0) _rd += '--zw-motion:' + _mo + ';';
+
+    if (_d || _rd) {
+      h.setAttribute('data-zw-preboot', '1');
+      var _ts = document.createElement('style');
+      _ts.id = 'zw-preboot-tokens';
+      _ts.textContent = (_rd ? 'html[data-zw-preboot]{' + _rd + '}' : '')
+        + (_d ? 'html[data-zw-preboot] body{' + _d + '}' : '');
+      document.head.appendChild(_ts);
+    }
   }
 } catch (_) {}

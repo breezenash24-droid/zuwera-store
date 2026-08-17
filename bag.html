@@ -20,11 +20,14 @@ try {
     } catch (_) {}
   }
   var _rec = null;
+  var _id = '';
   try {
     var _tc = JSON.parse(localStorage.getItem('zw_theme_modes') || 'null');
-    var _id = _sel || (_tc && _tc.default) || '';
+    _id = _sel || (_tc && _tc.default) || '';
     _rec = (_tc && _tc.modes && _tc.modes.filter(function (x) { return x && x.id === _id; })[0]) || null;
   } catch (_) {}
+  var _stamp = h.getAttribute('data-zw-theme-stamp') || '';
+  if (_stamp && _id && _id !== _stamp) h.removeAttribute('data-zw-theme-stamp');
   var _known = true;
   var _base = (_rec && _rec.base) || '';
   if (!_base && (_sel === 'dark' || _sel === 'light' || _sel === 'super-light')) _base = _sel;
@@ -73,17 +76,44 @@ try {
     }
   }
   if (_tt) {
-    if (_tt.navBg) h.style.setProperty('--zw-nav-bg', _tt.navBg);
-    if (_tt.navFg) h.style.setProperty('--zw-nav-fg', _tt.navFg);
-    if (_tt.fg) h.style.setProperty('--fg-rgb', _tt.fg);
-    if (_tt.bg) h.style.setProperty('--bg-rgb', _tt.bg);
-    if (!_tt.navFg && _tt.fg && _light) h.style.setProperty('--zw-nav-fg', 'rgb(' + _tt.fg + ')');
-    if (_tt.ink) h.style.setProperty('--ink', _tt.ink);
-    if (_tt.paper) h.style.setProperty('--paper', _tt.paper);
-    if (_tt.surface) h.style.setProperty('--zw-theme-surface', _tt.surface);
-    if (_tt.accent) h.style.setProperty('--accent', _tt.accent);
-    if (_tt.bg) h.style.setProperty('--black', 'rgb(' + _tt.bg + ')');
-    if (_tt.fg) h.style.setProperty('--white', 'rgb(' + _tt.fg + ')');
+    var _d = '';
+    var _rd = '';
+    var _put = function (p, v) {
+      if (!v) return;
+      v = String(v);
+      if (/[{}<>;]/.test(v)) return;
+      _d += p + ':' + v + ';';
+    };
+    _put('--zw-nav-bg', _tt.navBg);
+    _put('--zw-nav-fg', _tt.navFg);
+    _put('--fg-rgb', _tt.fg);
+    _put('--bg-rgb', _tt.bg);
+    if (!_tt.navFg && _tt.fg && _light) _put('--zw-nav-fg', 'rgb(' + _tt.fg + ')');
+    _put('--ink', _tt.ink);
+    _put('--paper', _tt.paper);
+    _put('--zw-theme-surface', _tt.surface);
+    _put('--accent', _tt.accent);
+    _put('--zw-accent', _tt.accent);
+    _put('--err', _tt.err);
+    _put('--zw-bar-bg', _tt.barBg);
+    _put('--zw-bar-fg', _tt.barFg);
+    _put('--zw-radius', _tt.radius);
+    _put('--zw-density', _tt.density);
+    _put('--zw-ease', _tt.ease);
+    if (_tt.bg) _put('--black', 'rgb(' + _tt.bg + ')');
+    if (_tt.fg) _put('--white', 'rgb(' + _tt.fg + ')');
+    var _sc = parseFloat(_tt.typeScale);
+    if (isFinite(_sc) && _sc > 0) _rd += '--zw-type-scale:' + _sc + ';';
+    var _mo = parseFloat(_tt.motion);
+    if (isFinite(_mo) && _mo >= 0) _rd += '--zw-motion:' + _mo + ';';
+    if (_d || _rd) {
+      h.setAttribute('data-zw-preboot', '1');
+      var _ts = document.createElement('style');
+      _ts.id = 'zw-preboot-tokens';
+      _ts.textContent = (_rd ? 'html[data-zw-preboot]{' + _rd + '}' : '')
+        + (_d ? 'html[data-zw-preboot] body{' + _d + '}' : '');
+      document.head.appendChild(_ts);
+    }
   }
 } catch (_) {}
 /* /zw:preboot */

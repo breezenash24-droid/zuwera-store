@@ -447,6 +447,23 @@
     var preboot = document.getElementById('zw-preboot-ground');
     if (preboot && preboot.parentNode) preboot.parentNode.removeChild(preboot);
 
+    /* The same rule applied to the two OTHER stand-ins, for the same reason.
+     *
+     * The pre-paint block writes the cached theme's tokens as a stylesheet
+     * rule, and the build bakes the store's default theme as another. Both are
+     * outranked by the inline styles set above, so leaving them would look
+     * harmless — right up to the first token this theme does NOT carry. set()
+     * REMOVES a property whose value is empty, and removing an inline property
+     * uncovers whatever selector was underneath. That is the stand-in, still
+     * holding a colour from a theme nobody is wearing.
+     *
+     * Attributes rather than elements for these two, because that is what the
+     * rules are scoped to — one removal switches a whole block off. */
+    root.removeAttribute('data-zw-preboot');
+    root.removeAttribute('data-zw-theme-stamp');
+    var pretok = document.getElementById('zw-preboot-tokens');
+    if (pretok && pretok.parentNode) pretok.parentNode.removeChild(pretok);
+
     // The notch/status bar and the browser chrome colour follow the page.
     var pageColor = t.bg ? 'rgb(' + t.bg + ')' : '#09090b';
     root.style.backgroundColor = pageColor;
