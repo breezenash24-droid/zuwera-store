@@ -170,6 +170,61 @@ export function pickPrice({ rows, lists, productId, colorVariantId, shopper, now
  * showing that", and an answer that cannot say where the figure came from turns
  * into an afternoon of reading tables.
  */
+/**
+ * The best RULE this shopper qualifies for, priced against the catalogue.
+ *
+ * Same selection as pickPrice(): only lists this shopper is in, highest
+ * priority first, ties broken deterministically so two lists that could both
+ * apply never resolve differently between two runs of the same request.
+ *
+ * Priced off the REGULAR catalogue figure, never the member one. Stacking a
+ * trade percentage on top of a member price is two discounts for one
+ * entitlement, and it is the shape that sells a $250 colourway for $35 — the
+ * same failure the all-or-nothing rule in _variant-price.js exists to prevent.
+ * A rule list states the terms this group buys on, not a further reduction on
+ * whatever the shopper had already earned.
+ */
+function ruleFor({ lists, shopper, base }) {
+  const eligible = (lists || [])
+    .filter((l) => l && listApplies(l, shopper))
+    .filter((l) => {
+      const p = Number(l.rule_percent_off);
+      return Number.isFinite(p) && p > 0 && p < 100;
+    })
+    .sort((a, b) => (Number(b.priority) || 0) - (Number(a.priority) || 0)
+      || String(a.id).localeCompare(String(b.id)));
+
+  const list = eligible[0];
+  if (!list) return null;
+
+  const from = base.regularCents;
+  if (!(from > 0)) return null;
+
+  const priceCents = Math.round(from * (1 - Number(list.rule_percent_off) / 100));
+  /* A rule that computes to nothing is a rule that was mis-entered, and the
+     catalogue price is a real number somebody chose. Identical reasoning to the
+     zero-amount row below, and the same answer: fall back rather than sell it
+     for nought. The CHECK in 0025 makes this unreachable from the panel; it is
+     here for the row that arrives another way. */
+  if (!(priceCents > 0) || priceCents >= from) return null;
+
+  return {
+    priceCents,
+    regularCents: from,
+    /* No member figure: this price already IS the group's terms, and quoting a
+       member price beside it would invite the stacking the comment above
+       refuses. */
+    memberCents: 0,
+    usingMember: false,
+    compareAtCents: base.msrpCents || from,
+    source: 'price_rule',
+    priceListCode: String(list.code || ''),
+    priceId: '',
+    rulePercentOff: Number(list.rule_percent_off),
+    startsAt: '', endsAt: '',
+  };
+}
+
 export function resolvePrice({ product, variant, rows, lists, shopper, now }) {
   const s = shopper || {};
   const isMember = Array.isArray(s.groups) && s.groups.map(String).includes('member');
@@ -186,6 +241,16 @@ export function resolvePrice({ product, variant, rows, lists, shopper, now }) {
   });
 
   if (!row) {
+    /* NO ROW NAMED THIS PRODUCT — so a RULE gets its turn (0025).
+       A list can say "trade is 40% off" instead of carrying a row per product,
+       which is the difference between pricing a catalogue and maintaining one.
+       It runs here, after pickPrice() has found nothing, because an explicit
+       row is a decision somebody made and had approved and a rule is only what
+       applies when nobody made one — the same "more specific wins" that lets a
+       row naming a colour beat a row that does not. */
+    const ruled = ruleFor({ lists, shopper: s, base });
+    if (ruled) return ruled;
+
     return {
       priceCents: base.priceCents,
       regularCents: base.regularCents,
@@ -298,7 +363,13 @@ export async function fetchPricingContext(env, productIds) {
   const [rows, lists] = await Promise.all([
     get(`prices?select=${COLS},member_price${where}`)
       .then((r) => r || get(`prices?select=${COLS}${where}`)),
-    get('price_lists?select=id,code,name,channel,region,customer_group,priority,active&active=eq.true'),
+    /* rule_percent_off is named explicitly, and it has to be: a column left out
+       of this select is undefined by the time ruleFor() reads it, so the rule
+       simply never fires and every trade buyer is charged retail with nothing
+       logged. The failure is invisible at the only place it could be noticed.
+       tests/price-list-rules.test.js asserts the select and the reader name the
+       same column. */
+    get('price_lists?select=id,code,name,channel,region,customer_group,priority,active,rule_percent_off&active=eq.true'),
   ]);
 
   if (!rows || !lists) return empty;

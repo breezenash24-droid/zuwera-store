@@ -121,12 +121,34 @@
         + 'the ordinary price. Turn it back on under Pricing.</div>';
     }
     const l = _list.lists[0] || {};
-    return '<div style="border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;'
-      + 'margin-bottom:1.2rem;font-size:.8rem;color:var(--text-secondary);line-height:1.6;">'
-      + 'Wholesale prices come from the <strong>' + escapeHtml(l.name || l.code || 'Wholesale')
-      + '</strong> price list (priority ' + (Number(l.priority) || 0) + '). '
-      + 'Set the actual prices under <strong>Pricing</strong> — choose that list when you propose one.'
-      + '</div>';
+    const pct = Number(l.rule_percent_off);
+    const hasRule = Number.isFinite(pct) && pct > 0;
+    return '<div style="border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;'
+      + 'margin-bottom:1.2rem;font-size:.82rem;line-height:1.65;">'
+
+      + '<div style="font-weight:600;margin-bottom:.5rem;">How trade prices are worked out</div>'
+
+      /* THE RULE FIRST, because it is the answer for almost every store.
+         A row per product is the exception — and the trap, since a product
+         added next month gets no row and is quietly sold at retail. */
+      + '<label class="form-label" style="margin-top:.2rem;">Trade discount off the catalogue price</label>'
+      + '<div style="display:flex;gap:.5rem;align-items:center;max-width:340px;">'
+      + '<input id="wh-rule" type="number" min="0.01" max="99.99" step="0.01" class="form-input"'
+      + ' value="' + (hasRule ? escapeAttr(String(pct)) : '') + '" placeholder="e.g. 40">'
+      + '<span style="color:var(--text-secondary);">% off</span>'
+      + '<button class="btn btn-secondary btn-sm" style="white-space:nowrap;" onclick="wholesaleSaveRule(this)">Save</button>'
+      + '</div>'
+      + '<div style="color:var(--text-secondary);margin-top:.4rem;">'
+      + (hasRule
+          ? 'Every product is ' + escapeHtml(String(pct)) + '% off for approved trade buyers, including ones you add later.'
+          : 'Leave blank to price product by product instead. Be aware that anything you add afterwards then has '
+            + 'no trade price and quietly sells at full retail.')
+      + '</div>'
+
+      + '<div style="color:var(--text-secondary);margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border);">'
+      + 'A price set on a specific product under <strong>Pricing</strong> always beats this rule — '
+      + 'choose the <strong>' + escapeHtml(l.name || l.code || 'Wholesale') + '</strong> list when you propose one.'
+      + '</div></div>';
   }
 
   function accountsTable() {
@@ -224,6 +246,19 @@
          credit that was never extended. */
       + '<br><br>Payment terms are <strong>recorded on the account, not billed</strong> — checkout still '
       + 'takes payment at the till. Use them for your own records until invoicing exists.</div>'
+
+      /* A LEGAL CLAIM, ASKED FOR IN ITS OWN WORDS.
+         Inferred from the Tax ID it would zero the tax on every account
+         carrying a VAT number or an EIN for invoicing, none of which is a
+         resale certificate. */
+      + '<label style="display:flex;gap:.55rem;align-items:flex-start;margin-top:.9rem;cursor:pointer;">'
+      + '<input id="wh-exempt" type="checkbox"' + (a.resaleExempt ? ' checked' : '')
+      + ' style="margin-top:.2rem;flex:none;">'
+      + '<span><span style="font-size:.85rem;">Resale certificate on file — do not charge sales tax</span>'
+      + '<span style="display:block;font-size:.75rem;color:var(--text-secondary);line-height:1.5;margin-top:.15rem;">'
+      + 'Only applies while the account is Approved. Suspend it, remove it, or untick this and tax is '
+      + 'charged again from the next order. Put the certificate number in Tax ID above.'
+      + '</span></span></label>'
 
       + '<label class="form-label" style="margin-top:.7rem;">Notes</label>'
       + '<textarea id="wh-notes" class="form-input" rows="2">' + escapeHtml(a.notes || '') + '</textarea>'
@@ -337,6 +372,7 @@
         minOrder: $('wh-min') ? $('wh-min').value : '',
         terms: $('wh-terms') ? $('wh-terms').value : 'prepaid',
         notes: $('wh-notes') ? $('wh-notes').value : '',
+        resaleExempt: !!($('wh-exempt') && $('wh-exempt').checked),
       });
       _list = res.list || _list;
       _edit = null;
@@ -364,6 +400,28 @@
     } catch (err) {
       note(err.message || 'Could not remove that account.', 'error');
       if (btn) { btn.disabled = false; btn.textContent = 'Remove wholesale'; }
+    }
+  };
+
+  window.wholesaleSaveRule = async function (btn) {
+    const el = $('wh-rule');
+    const raw = el ? String(el.value).trim() : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    try {
+      const res = await api('POST', { action: 'set-rule', percentOff: raw === '' ? null : raw });
+      _list = res.list || _list;
+      _flash = {
+        msg: res.percentOff === null
+          ? 'Trade discount removed. Wholesale is now priced product by product under Pricing.'
+          : 'Approved trade buyers now pay ' + res.percentOff + '% off the catalogue price, on every product '
+            + 'including ones you add later.',
+        kind: 'ok',
+      };
+      render();
+    } catch (err) {
+      _flash = { msg: err.message || 'Could not save that rule.', kind: 'error' };
+      render();
+      if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
     }
   };
 

@@ -101,6 +101,11 @@ export function buildWholesale(fields, prev, actor) {
     min_order_cents: minimumCents(fields.minOrder),
     terms: TERMS.includes(String(fields.terms)) ? String(fields.terms) : 'prepaid',
     notes: text(fields.notes, 1000),
+    /* Whether a resale certificate is on file. Stored on the account so the
+       page can show its own state, while the thing that actually zeroes tax is
+       the tax_exemptions row syncExemption() writes — one flag, two places,
+       and the row is the one _tax.js reads. */
+    resale_exempt: fields.resaleExempt === true || fields.resaleExempt === 'true',
   };
   /* Stamped the first time it becomes approved and never rewritten, so
      re-saving an approved account does not keep moving the date it was granted.
@@ -124,7 +129,7 @@ async function wholesaleList(env) {
   const h = H(env);
   if (!h) return null;
   const rows = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/price_lists?select=id,code,name,priority,active,region,channel&customer_group=eq.wholesale`,
+    `${env.SUPABASE_URL}/rest/v1/price_lists?select=id,code,name,priority,active,region,channel,rule_percent_off&customer_group=eq.wholesale`,
     { headers: h, cache: 'no-store' },
   ).then((r) => (r.ok ? r.json() : [])).catch(() => []);
   const list = Array.isArray(rows) ? rows : [];
@@ -133,6 +138,76 @@ async function wholesaleList(env) {
     active: list.some((l) => l.active !== false),
     lists: list,
   };
+}
+
+/**
+ * File or withdraw this buyer's resale certificate.
+ *
+ * ── The gap this closes ─────────────────────────────────────────────────────
+ *
+ * _tax.js has always read public.tax_exemptions and zeroed the tax for a
+ * matching, unrevoked, unexpired certificate. The machinery worked. Nothing
+ * could ever put a row in it — no endpoint, no screen — so every wholesale
+ * order was charged sales tax it did not owe. Migration 0011 names the cost
+ * itself: "an over-collection is money taken from a customer who did not owe
+ * it, which is worse than the under-collection everyone worries about."
+ *
+ * ── Why it is a separate switch, not a consequence of the Tax ID ────────────
+ *
+ * Charging nobody tax is a legal claim about a document somebody is holding,
+ * not a formatting side effect of a field. A Tax ID is recorded on plenty of
+ * accounts that hold no resale certificate — VAT numbers, EINs for invoicing —
+ * and inferring an exemption from one would zero the tax on all of them.
+ * So the certificate is asked for in its own words, and only ever filed for an
+ * APPROVED account: a suspended trade buyer buying at retail owes retail tax.
+ *
+ * Revocation is a revoked_at stamp, never a delete. A certificate that applied
+ * to orders already taken has to stay readable, because the question a tax
+ * authority asks is "why was this order not charged" and the answer has to
+ * still exist.
+ */
+async function syncExemption(env, { customerId, email, exempt, certificate, company, actorId }) {
+  const h = H(env);
+  if (!h) return;
+  const base = env.SUPABASE_URL + '/rest/v1/';
+  const live = `${base}tax_exemptions?user_id=eq.${encodeURIComponent(customerId)}&revoked_at=is.null`;
+
+  if (!exempt) {
+    await fetch(live, {
+      method: 'PATCH', headers: { ...h, Prefer: 'return=minimal' },
+      body: JSON.stringify({ revoked_at: new Date().toISOString() }),
+    }).catch(() => {});
+    return;
+  }
+
+  /* Already on file → update it in place rather than stacking a second live
+     certificate for the same buyer. Two matching rows is not twice as exempt;
+     it is an audit trail that cannot say which one was applied. */
+  const existing = await fetch(live + '&select=id&limit=1', { headers: h, cache: 'no-store' })
+    .then((r) => (r.ok ? r.json() : [])).catch(() => []);
+
+  const record = {
+    user_id: customerId,
+    email: email || null,
+    certificate: certificate || null,
+    business_name: company || null,
+    /* Empty means every state. Most certificates are state-specific, and
+       narrowing them is the next thing this wants — but claiming a narrower
+       scope than the admin stated would under-apply an exemption they filed. */
+    states: [],
+    revoked_at: null,
+    created_by: actorId || null,
+  };
+
+  if (Array.isArray(existing) && existing[0]) {
+    await fetch(`${base}tax_exemptions?id=eq.${encodeURIComponent(existing[0].id)}`, {
+      method: 'PATCH', headers: { ...h, Prefer: 'return=minimal' }, body: JSON.stringify(record),
+    }).catch(() => {});
+    return;
+  }
+  await fetch(`${base}tax_exemptions`, {
+    method: 'POST', headers: { ...h, Prefer: 'return=minimal' }, body: JSON.stringify(record),
+  }).catch(() => {});
 }
 
 export async function onRequestGet({ request, env }) {
@@ -209,6 +284,7 @@ export async function onRequestGet({ request, env }) {
         enforcedCents: wholesaleMinimumCents(p),
         terms: w.terms || 'prepaid',
         notes: w.notes || '',
+        resaleExempt: w.resale_exempt === true,
         approvedAt: w.approved_at || null,
         approvedBy: w.approved_by || '',
       };
@@ -264,6 +340,57 @@ export async function onRequestPost({ request, env }) {
       return json({ ok: true, created: true, list: await wholesaleList(env) }, 200, cors(env));
     }
 
+    /* The list's RULE — "trade is 40% off" instead of a row per product.
+       Not put through propose → approve like a price row: a row is a decision
+       about one product and each deserves its own signature, while this is one
+       decision taken once, recorded in the audit log below. Sending it through
+       the row workflow would mean approving a change to prices that do not
+       exist yet, on products that do not exist yet. */
+    if (action === 'set-rule') {
+      const existing = await wholesaleList(env);
+      const target = existing && existing.lists && existing.lists[0];
+      if (!target) return json({ ok: false, error: 'Create the wholesale price list first.' }, 400, cors(env));
+
+      const raw = body.percentOff;
+      let pct = null;
+      if (raw !== '' && raw !== null && raw !== undefined) {
+        const n = Number(raw);
+        if (!Number.isFinite(n) || n <= 0 || n >= 100) {
+          return json({ ok: false, error: 'Give a discount between 0 and 100 percent, or leave it blank for none.' }, 400, cors(env));
+        }
+        pct = Math.round(n * 100) / 100;
+      }
+
+      const upd = await fetch(`${base}price_lists?id=eq.${encodeURIComponent(target.id)}`, {
+        method: 'PATCH', headers: { ...h, Prefer: 'return=minimal' },
+        body: JSON.stringify({ rule_percent_off: pct }),
+      });
+      if (!upd.ok) {
+        const detail = await upd.text().catch(() => '');
+        return json({ ok: false, error: 'Could not save that rule. ' + detail.slice(0, 200) }, 502, cors(env));
+      }
+
+      await fetch(`${base}admin_audit_log`, {
+        method: 'POST', headers: { ...h, Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          admin_user_id: admin?.id || null,
+          admin_email: actor,
+          action: 'wholesale.rule',
+          resource_type: 'price_lists',
+          resource_id: String(target.id),
+          metadata: {
+            percentOff: pct,
+            was: target.rule_percent_off ?? null,
+            summary: pct === null
+              ? 'Wholesale percentage rule removed'
+              : 'Wholesale priced at ' + pct + '% off the catalogue',
+          },
+        }),
+      }).catch(() => {});
+
+      return json({ ok: true, percentOff: pct, list: await wholesaleList(env) }, 200, cors(env));
+    }
+
     const customerId = text(body.customerId, 64);
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(customerId)) {
       return json({ ok: false, error: 'Pick a customer first.' }, 400, cors(env));
@@ -298,6 +425,21 @@ export async function onRequestPost({ request, env }) {
       const detail = await upd.text().catch(() => '');
       return json({ ok: false, error: 'Could not save that account. ' + detail.slice(0, 200) }, 502, cors(env));
     }
+
+    /* The certificate follows the account. Only an APPROVED account with the
+       box ticked holds a live exemption — revoking, suspending, or unticking
+       all withdraw it, because each of those means this buyer is paying retail
+       terms again and retail terms include the tax. */
+    await syncExemption(env, {
+      customerId,
+      email: profile.email || '',
+      exempt: action !== 'revoke'
+        && String(body.status) === 'approved'
+        && (body.resaleExempt === true || body.resaleExempt === 'true'),
+      certificate: text(body.taxId, 60),
+      company: text(body.company, 120),
+      actorId: admin?.id || null,
+    });
 
     /* Written server-side, in the same request, for the same reason the price
        register is: an admin who can grant a trade discount should not also be
