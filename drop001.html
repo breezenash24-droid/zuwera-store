@@ -35,6 +35,13 @@ try {
   try {
     if (/[?&]builder=1(?:&|$)/.test(location.search)) window.__ZW_BUILDER_PREVIEW__ = true;
   } catch (_) {}
+  try {
+    if (!localStorage.getItem('zw_theme_choice_reset')) {
+      localStorage.setItem('zw_theme_choice_reset', '1');
+      localStorage.removeItem('zw_theme_mode');
+      localStorage.removeItem('zw_homepage_theme_mode');
+    }
+  } catch (_) {}
   var _sel = '';
   try { _sel = (typeof window.__zwLM === 'function' ? (window.__zwLM() || '') : ''); } catch (_) {}
   if (!_sel) {
@@ -2665,7 +2672,7 @@ function updateCountdown() {
           }
           else if (row.key === 'theme' && row.value) {
             const mode = row.value.mode === 'dark' ? 'dark' : row.value.mode === 'super-light' ? 'super-light' : 'light';
-            if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
+            if (window.__zwApplyLegacyTheme) window.__zwApplyLegacyTheme(mode);
             else document.body.classList.toggle('light-mode', mode === 'light');
           }
           else if (row.key === 'brand' && row.value && row.value.favicon) {

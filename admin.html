@@ -1118,6 +1118,13 @@
                         </div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <button type="button" class="btn btn-secondary btn-sm" data-req-edit="products" onclick="saveProductPreset()">+ Save current as…</button>
+                            <!-- An empty preset holds no products, so switching to it takes
+                                 the whole lineup off the storefront. It deletes nothing:
+                                 products go to Draft, and it deliberately captures no
+                                 product-page layout so switching leaves every setting
+                                 exactly as it was. -->
+                            <button type="button" class="btn btn-secondary btn-sm" data-req-edit="products" onclick="saveEmptyProductPreset()"
+                                    title="A preset with no products in it. Switching to it hides the whole lineup without deleting anything.">+ Save empty</button>
                             <button type="button" class="btn btn-secondary btn-sm" id="prodPresetUpdate" data-req-edit="products" disabled onclick="updateProductPreset()">Update</button>
                             <button type="button" class="btn btn-secondary btn-sm" id="prodPresetRename" data-req-edit="products" disabled onclick="renameProductPreset()">Rename</button>
                             <button type="button" class="btn btn-secondary btn-sm" id="prodPresetDelete" data-req-edit="products" disabled onclick="deleteProductPreset()">Delete</button>

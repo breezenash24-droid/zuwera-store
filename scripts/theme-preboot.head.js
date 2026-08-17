@@ -78,6 +78,35 @@ try {
     if (/[?&]builder=1(?:&|$)/.test(location.search)) window.__ZW_BUILDER_PREVIEW__ = true;
   } catch (_) {}
 
+  /* ── ONE-TIME RESET OF A CHOICE NOBODY MADE ────────────────────────────────
+   *
+   * Six pages used to apply the legacy site_settings.theme row through
+   * ZWTheme.apply(mode) with `remember` left to default — which is TRUE. So a
+   * value the admin panel's own light/dark chrome toggle wrote, possibly years
+   * ago, was recorded in zw_theme_mode as though this visitor had picked it.
+   *
+   * Once written it is read FIRST, here and in theme-engine.js, on every page,
+   * forever. It outranks the store's configured default, so the Themes panel
+   * stops having any visible effect and the shop renders in a theme nobody
+   * selected. Fixing the six writers stops it happening again; it does nothing
+   * for the browsers that already ran the old code, and those are the only
+   * browsers anybody has been testing in.
+   *
+   * So: cleared exactly once, marked so it never repeats. Somebody who really
+   * did pick a theme picks it again — the alternative is a store that can never
+   * show its own default to anyone who has already visited it.
+   *
+   * Placed here rather than in storefront-theme.js because that file is
+   * deferred, and a reset that lands after the key has been read is a reset
+   * that takes an extra page load to matter. */
+  try {
+    if (!localStorage.getItem('zw_theme_choice_reset')) {
+      localStorage.setItem('zw_theme_choice_reset', '1');
+      localStorage.removeItem('zw_theme_mode');
+      localStorage.removeItem('zw_homepage_theme_mode');
+    }
+  } catch (_) {}
+
   /* What this visitor chose. A landing page narrows the question — it can carry
      its own theme per slug — and defines __zwLM above this block when it does. */
   var _sel = '';

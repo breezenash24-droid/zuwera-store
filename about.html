@@ -14,6 +14,13 @@ try {
   try {
     if (/[?&]builder=1(?:&|$)/.test(location.search)) window.__ZW_BUILDER_PREVIEW__ = true;
   } catch (_) {}
+  try {
+    if (!localStorage.getItem('zw_theme_choice_reset')) {
+      localStorage.setItem('zw_theme_choice_reset', '1');
+      localStorage.removeItem('zw_theme_mode');
+      localStorage.removeItem('zw_homepage_theme_mode');
+    }
+  } catch (_) {}
   var _sel = '';
   try { _sel = (typeof window.__zwLM === 'function' ? (window.__zwLM() || '') : ''); } catch (_) {}
   if (!_sel) {
@@ -611,7 +618,7 @@ try {
         if (row.key === 'about_page') applyAbout(v);
         else if (row.key === 'theme') {
           var mode = v && v.mode === 'light' ? 'light' : v && v.mode === 'super-light' ? 'super-light' : 'dark';
-          if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
+          if (window.__zwApplyLegacyTheme) window.__zwApplyLegacyTheme(mode);
         } else if (row.key === 'brand') {
           if (v && v.favicon) { if (window.__zwApplyFavicon) window.__zwApplyFavicon(v.favicon); else { var lk = document.querySelector('link[rel="icon"]'); if (lk) lk.href = v.favicon; } }
         }

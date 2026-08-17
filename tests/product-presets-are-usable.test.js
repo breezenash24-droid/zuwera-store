@@ -37,9 +37,17 @@ const HTML = read('admin.html');
 /* Bounded to each handler, so an assertion about saving cannot be satisfied by
    something in renaming. */
 function handler(name) {
-  const a = MAIN.indexOf('window.' + name + ' = async function');
+  let a = -1, end = '\n        };';
+  for (const [start, close] of [
+    ['window.' + name + ' = async function', '\n        };'],
+    ['async function ' + name + '(', '\n        }'],
+    ['function ' + name + '(', '\n        }'],
+  ]) {
+    a = MAIN.indexOf(start);
+    if (a >= 0) { end = close; break; }
+  }
   if (a < 0) throw new Error(name + ' not found — it has been renamed');
-  const b = MAIN.indexOf('\n        };', a);
+  const b = MAIN.indexOf(end, a);
   if (b <= a) throw new Error('could not bound ' + name);
   /* Comments stripped. The assertions below check that prompt() is GONE, and the
      comments explaining why it went mention it by name — a scanner that cannot
@@ -50,12 +58,19 @@ function handler(name) {
 
 console.log('\n  product presets can actually be created\n');
 
-const SAVE = handler('saveProductPreset');
+/* THE CREATE PATH, not one function.
+   These checks are about a property — "the name comes from the page and an
+   empty one is reported" — and that property is kept by saveProductPreset
+   together with the two helpers it delegates to. Pinning them to whichever
+   function happened to hold the code broke all six the moment a second caller
+   (the empty preset) made sharing it the obvious thing to do. The property did
+   not change; only its address did. */
+const SAVE = handler('saveProductPreset') + handler('_newPresetName') + handler('_createProductPreset');
 const RENAME = handler('renameProductPreset');
 
 console.log('  the handlers were lifted');
 {
-  ok('save was found', SAVE.length > 200, String(SAVE.length));
+  ok('the create path was found', SAVE.length > 400, String(SAVE.length));
   ok('rename was found', RENAME.length > 200, String(RENAME.length));
 }
 
@@ -104,8 +119,12 @@ console.log('\n  switching still explains itself');
      the copy names the count. If IT is suppressed the switch simply does not
      happen, which is the safe direction — unlike a silent create. */
   ok('the switch still confirms', /confirm\(/.test(SWITCH));
+  /* Matched on the counts being IN the message rather than on its wording — the
+     previous version required the literal phrases "publishes the preset" and
+     "hides the rest", so rewriting the copy to cover the empty case broke a
+     check whose subject had not changed. */
   ok('…and says how many it publishes and hides',
-    /publishes the preset/.test(SWITCH) && /hides the rest/.test(SWITCH));
+    /publishes ' \+ plural\(wanted\.length/.test(SWITCH) && /hides ' \+ plural\(toHide\.length/.test(SWITCH));
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

@@ -9011,9 +9011,19 @@
             const list = _productPresets.presets || [];
             const active = _productPresets.activePreset;
             wrap.innerHTML = list.length
-                ? list.map(p => '<button type="button" class="btn btn-sm ' + (p.id === active ? 'btn-primary' : 'btn-secondary') +
-                    '" data-req-edit="products" onclick="switchProductPreset(\'' + p.id + '\')">' + escapeHtml(p.name) +
-                    ' <span style="opacity:.55;font-weight:600;">' + ((p.products || []).length) + '</span></button>').join('')
+                ? list.map(p => {
+                    /* A bare "0" next to a chip reading "Orig 11" looks like a preset
+                       that failed to capture anything. An empty preset is a deliberate
+                       thing, so it says what it is. */
+                    const n = (p.products || []).length;
+                    const badge = n || 'empty';
+                    const tip = n
+                        ? n + ' product' + (n === 1 ? '' : 's') + ' — switching publishes them and hides the rest'
+                        : 'No products — switching takes the whole lineup off the storefront. Nothing is deleted.';
+                    return '<button type="button" class="btn btn-sm ' + (p.id === active ? 'btn-primary' : 'btn-secondary') +
+                    '" data-req-edit="products" title="' + escapeHtml(tip) + '" onclick="switchProductPreset(\'' + p.id + '\')">' + escapeHtml(p.name) +
+                    ' <span style="opacity:.55;font-weight:600;">' + badge + '</span></button>';
+                  }).join('')
                 : '<span style="font-size:.78rem;color:var(--text-secondary)">None yet — set your products live the way you want, then “Save current as…”.</span>';
             const on = !!_prodPresetById(active);
             ['prodPresetUpdate', 'prodPresetRename', 'prodPresetDelete'].forEach(id => {
@@ -9044,35 +9054,68 @@
             if (error) throw error;
         }
 
-        window.saveProductPreset = async function() {
-            /* Read from the panel, not from prompt(). A browser that has suppressed
-               dialogs returns null, which this read as 'cancelled' and abandoned
-               silently — the button appeared to do nothing at all. An empty name now
-               SAYS so instead of returning quietly. */
+        /* The name for a NEW preset, or '' with the reason already on screen.
+           Read from the panel, not from prompt(). A browser that has suppressed
+           dialogs returns null, which the old code read as 'cancelled' and
+           abandoned silently — the button appeared to do nothing at all. An
+           empty name now SAYS so instead of returning quietly. */
+        function _newPresetName() {
             const nameEl = document.getElementById('prodPresetName');
             const name = ((nameEl && nameEl.value) || '').trim();
             if (!name) {
                 showToast('Give the preset a name first.', 'error');
                 if (nameEl) nameEl.focus();
-                return;
+                return '';
             }
             /* A second preset under an existing name is two chips that look the same
                and switch to different lineups. */
             if ((_productPresets.presets || []).some(function (x) { return (x.name || '').toLowerCase() === name.toLowerCase(); })) {
                 showToast('There is already a preset called “' + name + '”.', 'error');
-                return;
+                return '';
             }
+            return name;
+        }
+
+        async function _createProductPreset(name, empty) {
+            const products = empty ? [] : _snapshotLiveLineup();
+            /* An EMPTY preset deliberately captures no layout. Its whole promise is
+               "this takes the products off the storefront and changes nothing else",
+               and a captured product_page would be written back over whatever the
+               layout has become by the time anyone switches to it. */
+            const productPage = empty ? null : await _currentProductPageLayout();
+            const id = 'pp' + Date.now().toString(36);
+            _productPresets.presets.push({ id, name, products, productPage, empty: !!empty, savedAt: new Date().toISOString() });
+            /* "Active" means the storefront currently matches this preset. Saving the
+               live lineup makes that true by definition; saving an empty one while
+               products are still live does not, and highlighting it would put a lit
+               chip next to a shop that is still full. */
+            if (!empty || !_snapshotLiveLineup().length) _productPresets.activePreset = id;
+            await _saveProductPresetsState();
+            try { await logAdminAudit('product_preset.create', 'site_settings', id, { name, count: products.length, empty: !!empty }); } catch (_) {}
+            const nameEl = document.getElementById('prodPresetName');
+            if (nameEl) nameEl.value = '';
+            renderProductPresets();
+            return products.length;
+        }
+
+        window.saveProductPreset = async function() {
+            const name = _newPresetName();
+            if (!name) return;
             try {
-                const products = _snapshotLiveLineup();
-                const productPage = await _currentProductPageLayout();
-                const id = 'pp' + Date.now().toString(36);
-                _productPresets.presets.push({ id, name, products, productPage, savedAt: new Date().toISOString() });
-                _productPresets.activePreset = id;
-                await _saveProductPresetsState();
-                try { await logAdminAudit('product_preset.create', 'site_settings', id, { name, count: products.length }); } catch (_) {}
-                if (nameEl) nameEl.value = '';
-                renderProductPresets();
-                showToast('Saved preset “' + name + '” (' + products.length + ' products)', 'success');
+                const n = await _createProductPreset(name, false);
+                showToast('Saved preset “' + name + '” (' + n + ' products)', 'success');
+            } catch (e) { showToast('Could not save preset: ' + e.message, 'error'); }
+        };
+
+        /* A preset with nothing in it. Switching to it drafts every live product,
+           which is how you clear the storefront without deleting a single product,
+           image, price or setting. */
+        window.saveEmptyProductPreset = async function() {
+            const name = _newPresetName();
+            if (!name) return;
+            try {
+                await _createProductPreset(name, true);
+                showToast('Saved empty preset “' + name + '” — switching to it hides every product without deleting anything.', 'success');
             } catch (e) { showToast('Could not save preset: ' + e.message, 'error'); }
         };
 
@@ -9082,7 +9125,11 @@
             if (!confirm('Update “' + p.name + '” to match what’s live now (products + layout)?')) return;
             try {
                 p.products = _snapshotLiveLineup();
-                p.productPage = await _currentProductPageLayout();
+                /* An empty preset that has just captured products is no longer an
+                   empty preset, and should start carrying a layout like any other.
+                   One that is still empty keeps its promise not to touch settings. */
+                if (p.products.length) p.empty = false;
+                p.productPage = p.empty ? null : await _currentProductPageLayout();
                 p.savedAt = new Date().toISOString();
                 await _saveProductPresetsState();
                 renderProductPresets();
@@ -9128,7 +9175,11 @@
                 _productPresets.presets = _productPresets.presets.filter(x => x.id !== p.id);
                 _productPresets.activePreset = null;
                 await _saveProductPresetsState();
-                if (nameEl) nameEl.value = '';
+                /* No clearing of the name field here. This function never reads it,
+                   and the line that used to do so referenced an undeclared `nameEl`
+                   — a ReferenceError thrown AFTER the delete had already been saved,
+                   so the preset went but the panel reported failure and kept showing
+                   the chip until a reload. */
                 renderProductPresets();
                 showToast('Deleted “' + p.name + '”', 'info');
             } catch (e) { showToast('Could not delete: ' + e.message, 'error'); }
@@ -9141,13 +9192,54 @@
             const p = _prodPresetById(id);
             if (!p) return;
             const wanted = p.products || [];
-            if (!confirm('Switch the live site to “' + p.name + '”?\n\nThis publishes the preset’s ' + wanted.length + ' product' + (wanted.length !== 1 ? 's' : '') + ' (and hides the rest)' + (p.productPage ? ' and applies its product-page layout' : '') + '.')) return;
+            /* Worked out ONCE, above the confirm, and reused by the update below.
+               Counting what gets hidden in two places is how the message and the
+               action drift apart. */
+            const wantedIds = wanted.map(x => String(x.id));
+            const wantedSet = new Set(wantedIds);
+            const toHide = (_allProducts || [])
+                .filter(pr => { const s = pr.status || 'Draft'; return !wantedSet.has(String(pr.id)) && s !== 'Legacy' && s !== 'Draft'; })
+                .map(pr => String(pr.id));
+
+            /* Can you get back? A product that is hidden and appears in no other
+               preset has no one-click way home — you would have to find it in the
+               table and set it Live again. Worth knowing BEFORE, not after. */
+            const covered = new Set();
+            (_productPresets.presets || []).forEach(o => {
+                if (o.id === id) return;
+                (o.products || []).forEach(x => covered.add(String(x.id)));
+            });
+            const orphans = toHide.filter(x => !covered.has(x)).length;
+            const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+
+            let msg;
+            if (!wanted.length) {
+                /* An empty preset. "Publishes 0 products" is technically true and
+                   tells you nothing about what is going to happen. */
+                if (!toHide.length) {
+                    showToast('Nothing is live right now, so “' + p.name + '” is already what the storefront shows.');
+                    return;
+                }
+                msg = 'Switch the live site to “' + p.name + '”?\n\n'
+                    + 'This takes ' + plural(toHide.length, 'product') + ' off the storefront.\n\n'
+                    + 'Nothing is deleted. They go back to Draft with their images, prices and stock intact, '
+                    + 'and no settings change.';
+            } else {
+                msg = 'Switch the live site to “' + p.name + '”?\n\n'
+                    + 'This publishes ' + plural(wanted.length, 'product')
+                    + (toHide.length ? ' and hides ' + plural(toHide.length, 'other') : '')
+                    + (p.productPage ? ', and applies its product-page layout' : '') + '.\n\n'
+                    + 'Nothing is deleted — hidden products go back to Draft.';
+            }
+            if (orphans) {
+                msg += '\n\n' + orphans + ' of them ' + (orphans === 1 ? 'is' : 'are')
+                    + ' in no other preset, so there is no one-click way to bring '
+                    + (orphans === 1 ? 'it' : 'them') + ' back.';
+            }
+            if (!confirm(msg)) return;
             const chips = document.getElementById('productPresetChips');
             if (chips) chips.style.opacity = '.5';
             try {
-                const wantedIds = wanted.map(x => String(x.id));
-                const wantedSet = new Set(wantedIds);
-
                 // 1. Publish the preset's products in order (preserve each saved status).
                 for (let i = 0; i < wanted.length; i++) {
                     const { error } = await sb.from('products')
@@ -9156,9 +9248,7 @@
                     if (error) throw error;
                 }
                 // 2. Hide everything else that's currently visible — never touch Legacy.
-                const toHide = (_allProducts || [])
-                    .filter(pr => { const s = pr.status || 'Draft'; return !wantedSet.has(String(pr.id)) && s !== 'Legacy' && s !== 'Draft'; })
-                    .map(pr => String(pr.id));
+                //    Computed above the confirm, so what was promised is what happens.
                 if (toHide.length) {
                     const { error } = await sb.from('products').update({ status: 'Draft' }).in('id', toHide);
                     if (error) throw error;

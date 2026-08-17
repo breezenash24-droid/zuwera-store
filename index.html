@@ -15,6 +15,13 @@ try {
   try {
     if (/[?&]builder=1(?:&|$)/.test(location.search)) window.__ZW_BUILDER_PREVIEW__ = true;
   } catch (_) {}
+  try {
+    if (!localStorage.getItem('zw_theme_choice_reset')) {
+      localStorage.setItem('zw_theme_choice_reset', '1');
+      localStorage.removeItem('zw_theme_mode');
+      localStorage.removeItem('zw_homepage_theme_mode');
+    }
+  } catch (_) {}
   var _sel = '';
   try { _sel = (typeof window.__zwLM === 'function' ? (window.__zwLM() || '') : ''); } catch (_) {}
   if (!_sel) {

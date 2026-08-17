@@ -88,8 +88,15 @@ console.log('\n  the legacy row is applied but never written down');
     /remember === undefined\) \? !window\.__ZW_BUILDER_PREVIEW__/.test(THEME),
     'the theme switcher and the size guide ARE choices and must keep persisting');
 
+  /* The legacy row now has ONE entry point (__zwApplyLegacyTheme) that seven
+     readers call, because six of them were calling applyThemeMode with the
+     argument omitted and silently persisting the row. The property asserted
+     here is unchanged — that path passes false — but it no longer lives inline
+     in applySettingsRows, so this matches on the behaviour rather than on the
+     statement that used to carry it. */
   ok('the legacy settings row passes false',
-    /if \(mode\) applyThemeMode\(mode, false\)/.test(THEME),
+    /applyThemeMode\(mode,\s*false\)/.test(THEME)
+      && /window\.__zwApplyLegacyTheme\s*=\s*function/.test(THEME),
     'a stale row from an old admin toggle is nobody\'s choice');
 
   /* The specific regression: the old expression, if it comes back, re-enables
