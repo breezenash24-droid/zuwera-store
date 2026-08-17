@@ -181,6 +181,31 @@ try {
   (function () {
     var go = function () {
       if (!document.body) return false;
+      /* RUN ONCE, AND NEVER AFTER THE ENGINE HAS SPOKEN.
+       *
+       * This was registered with { once: false }, and readystatechange fires
+       * more than once — 'interactive' and then 'complete'. Deferred scripts run
+       * BEFORE readyState becomes 'interactive', so theme-engine.js has already
+       * applied a theme by the time the first of those fires, and the second
+       * lands even later. Traced live on the policy page:
+       *
+       *     +456ms [interactive] toggle(light-mode, true)   <- this block
+       *     +466ms [interactive] toggle(light-mode, true)   <- theme-engine
+       *     +573ms [complete]    toggle(light-mode, true)   <- this block, again
+       *     +619ms               apply('dark')              <- legacy row
+       *
+       * The engine sets the theme's TOKENS as inline styles on <body> and the
+       * CLASSES together, so they always agree — until this block puts a stale
+       * class back on its own. Then the two halves of the header come from
+       * different themes: body.super-light-mode pins the bar to #FFFFFF through
+       * an !important literal, while the inline --fg-rgb is still the dark
+       * theme's 244 241 235. White bar, near-white links, and a logo that
+       * inverts the wrong way. Present, focusable, clickable, invisible.
+       *
+       * The listener is detached on the first successful run, and the engine's
+       * own marker is honoured if it got there first. */
+      document.removeEventListener('readystatechange', go);
+      if (h.hasAttribute('data-zw-theme')) return true;
       if (_known) {
         document.body.classList.toggle('light-mode', _light);
         document.body.classList.toggle('super-light-mode', _base === 'super-light');
@@ -193,7 +218,7 @@ try {
       }
       return true;
     };
-    if (!go()) document.addEventListener('readystatechange', go, { once: false });
+    if (!go()) document.addEventListener('readystatechange', go);
   }());
 
   /* The ground. Dark is left alone deliberately: it is what base.css already

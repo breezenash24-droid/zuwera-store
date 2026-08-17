@@ -145,7 +145,12 @@ console.log('\n  reading the mode back off the body is lossy');
      feeding that name back in asks for a theme that may not exist — which is
      how a page could re-enter the broken state on its own. */
   ok('the colour sync asks the engine which theme is applied',
-    /if \(window\.ZWTheme\) \{ applyThemeMode\(window\.ZWTheme\.current\(\)\); return; \}/.test(SRC));
+    /* The `, false` is new and deliberate: re-applying what is already on is not
+       a choice, and with the flag omitted this line wrote the current theme into
+       zw_theme_mode where it outranked the store's default on every later load.
+       Matched loosely on the remember flag so that fix does not read as a
+       regression in the thing this assertion is actually about. */
+    /if \(window\.ZWTheme\) \{ applyThemeMode\(window\.ZWTheme\.current\(\)[^)]*\); return; \}/.test(SRC));
   ok('…and still reads the classes when there is no engine',
     /classList\.contains\('super-light-mode'\) \? 'super-light'/.test(SRC));
 }

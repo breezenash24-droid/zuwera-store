@@ -54,10 +54,22 @@ function coldPaint(html, cache, choice) {
     /* Same reason as setAttribute above: a missing method throws into the
        block's own catch and every later line is skipped without a word. */
     removeAttribute: (k) => { delete attrs[k]; },
+    /* And again, for the marker theme-engine.js sets when it applies a theme —
+       the block reads it to avoid putting a stale class back over the engine's
+       answer. Third method added to this stub for the same reason; a missing one
+       is swallowed by the block's own catch. */
+    hasAttribute: (k) => k in attrs,
     classList: { toggle: () => {} },
   };
 
   const store = {};
+  /* These cases are all about a RETURNING visitor, so the one-time reset of a
+     choice the legacy settings row invented has already happened. Said out loud
+     rather than left to chance: without the marker the reset fires and clears
+     `choice`, and the suite would only have kept passing because the stub's
+     localStorage had no removeItem and the call threw into a catch. A test that
+     passes because a method is missing is not testing what it says. */
+  store.zw_theme_choice_reset = '1';
   if (cache) store.zw_theme_modes = JSON.stringify(cache);
   if (choice) store.zw_theme_mode = choice;
 
@@ -74,13 +86,21 @@ function coldPaint(html, cache, choice) {
      and the suite goes green on a page that paints the built-in palette. */
   const styles = [];
   const win = {
-    localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: () => {} },
+    localStorage: {
+      getItem: (k) => (k in store ? store[k] : null),
+      setItem: (k, v) => { store[k] = String(v); },
+      removeItem: (k) => { delete store[k]; },
+    },
     document: {
       documentElement: h,
       body: null,                       // THE point: no body during <head>
       head: { appendChild: (el) => styles.push(el) },
       createElement: () => ({ style: {}, setAttribute: () => {}, id: '', textContent: '' }),
       addEventListener: (n, f) => listeners.push(f),
+      /* The class toggle detaches itself once it has run, so that the second
+         readystatechange ('complete') cannot re-apply a class the engine has
+         already moved past. */
+      removeEventListener: () => {},
       querySelector: () => null,
     },
     JSON, Object, Array, String, Number, parseInt, parseFloat, isFinite,
