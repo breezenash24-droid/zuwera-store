@@ -18,13 +18,26 @@
    ──────────────────────────────────────────────────────────────────────────── */
 
 .zwp-root {
-  /* Dark by default — matches the storefront's own default. */
+  /* Dark by default — matches the storefront's own default.
+     Pinned throughout, and for the same reason the light block below is: --bg
+     and --fg here are constants, so a --muted or a --field derived from the
+     PAGE's --fg-rgb is a colour that moves against a background that does not.
+     On a light page those resolved dark — dark sub-copy and a dark field on
+     this dark panel — which is the identical fault as the light popup, just
+     pointing the other way and therefore only visible in the other theme. */
+  /* ONE token decides this panel's polarity, and everything else derives from
+     it. Not the page's --fg-rgb: the background beside it is a constant, so a
+     foreground that follows the page is a colour that moves against one that
+     does not. Not a pile of rgba() literals either — those would pin the panel
+     shut, and a custom theme could never reach it.
+     A theme that wants to restyle the popup moves this one triplet. */
+  --zwp-fg-rgb: 244 241 235;
   --zwp-bg: #09090b;
-  --zwp-fg: #F4F1EB;
-  --zwp-muted: rgb(var(--fg-rgb) / 60%);
-  --zwp-line: rgb(var(--fg-rgb) / 16%);
-  --zwp-field: var(--c06);
-  --zwp-accent: #F4F1EB;
+  --zwp-fg: rgb(var(--zwp-fg-rgb));
+  --zwp-muted: rgb(var(--zwp-fg-rgb) / 60%);
+  --zwp-line: rgb(var(--zwp-fg-rgb) / 16%);
+  --zwp-field: rgb(var(--zwp-fg-rgb) / 6%);
+  --zwp-accent: rgb(var(--zwp-fg-rgb));
   --zwp-accent-fg: #09090b;
   --zwp-scrim: rgba(9, 9, 11, .68);
   --zwp-radius: 0px;
@@ -47,20 +60,34 @@
    and .zwp-open, applied a reflow later, is what actually fades it in. */
 .zwp-root.zwp-mount { display: block; }
 
-/* Light + super-light storefront themes, and the admin's explicit choice. */
+/* Light + super-light storefront themes, and the admin's explicit choice.
+ *
+ * THE PANEL PINS ITS OWN BACKGROUND, SO IT PINS ITS OWN TEXT.
+ * --zwp-bg is the constant #ffffff, but every foreground here used to be
+ * rgb(var(--fg-rgb)) — the PAGE's foreground, which is near-white whenever the
+ * page is carrying dark tokens. The first selector is the admin's explicit
+ * "light" choice and carries no body class at all, so a light popup on a dark
+ * page drew near-white text on a white card: a headline, a label and a
+ * "No thanks" that were all technically present and none of them visible.
+ *
+ * The same trap the cookie banner's Accept button fell into, and it is why
+ * these are literals now. A surface only borrows a token when something
+ * guarantees the two agree; #ffffff guarantees nothing.
+ */
 .zwp-root[data-theme="light"],
 body.light-mode .zwp-root[data-theme="auto"],
 body.super-light-mode .zwp-root[data-theme="auto"] {
+  --zwp-fg-rgb: 9 9 11;
   --zwp-bg: #ffffff;
-  --zwp-fg: rgb(var(--fg-rgb));
-  --zwp-muted: rgb(var(--fg-rgb) / 58%);
-  --zwp-line: var(--c14);
-  --zwp-field: rgb(var(--fg-rgb) / 4%);
-  --zwp-accent: rgb(var(--fg-rgb));
+  --zwp-fg: rgb(var(--zwp-fg-rgb));
+  --zwp-muted: rgb(var(--zwp-fg-rgb) / 58%);
+  --zwp-line: rgb(var(--zwp-fg-rgb) / 14%);
+  --zwp-field: rgb(var(--zwp-fg-rgb) / 4%);
+  --zwp-accent: rgb(var(--zwp-fg-rgb));
   --zwp-accent-fg: #F4F1EB;
-  --zwp-scrim: rgb(var(--fg-rgb) / 42%);
+  --zwp-scrim: rgb(var(--zwp-fg-rgb) / 42%);
   --zwp-shadow: 0 24px 70px rgba(0, 0, 0, .18);
-  --zwp-input-line: rgb(var(--fg-rgb) / 28%);
+  --zwp-input-line: rgb(var(--zwp-fg-rgb) / 28%);
 }
 
 /* ── scrim ────────────────────────────────────────────────────────────────── */

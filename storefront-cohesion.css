@@ -661,11 +661,21 @@ body.super-light-mode #cookie-banner{
   border-top:1px solid rgba(244,241,235,.12) !important;
 }
 #cookie-banner a{ color:#f4f1eb !important; }
-/* Accept = filled light button; Decline = ghost — fixed so both read on the dark bar. */
+/* Accept = filled light button; Decline = ghost.
+   A SURFACE THAT PINS ITS BACKGROUND MUST PIN ITS TEXT.
+   This pinned the background to #f4f1eb and took the text from --fg-rgb, and
+   the first selector carries no body class — so it applies in dark mode too,
+   where --fg-rgb IS 244 241 235. That is #f4f1eb. The label was drawn in
+   exactly its own background colour: an Accept button with nothing written on
+   it, on every dark-theme load, for as long as the rule has existed. The
+   comment above it claimed the opposite.
+   The background here is a constant, so the text has to be one as well.
+   Deriving it from a token whose polarity flips with the page is what made a
+   fixed background and a moving foreground meet in the middle. */
 #cookie-banner button:first-child,
 body.light-mode #cookie-banner button:first-child,
 body.super-light-mode #cookie-banner button:first-child{
-  background:#f4f1eb !important; color:rgb(var(--fg-rgb)) !important; border:none !important;
+  background:#f4f1eb !important; color:#09090b !important; border:none !important;
 }
 #cookie-banner button:last-child,
 body.light-mode #cookie-banner button:last-child,
