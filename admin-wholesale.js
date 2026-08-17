@@ -36,6 +36,16 @@
      live out here or typing is interrupted by its own results arriving. */
   let _searchFocus = false;
   let _searchValue = '';
+  /* CONFIRMATION GOES WHERE THE BUTTON WAS.
+     Creating the price list worked and read as if nothing had happened: the
+     only acknowledgement was one grey line in #wholesale-note at the very
+     BOTTOM of the page, while the button that was pressed sits at the top. The
+     banner did change — from a yellow box to a quiet grey sentence — but a
+     warning disappearing is not a confirmation, it is an absence, and an
+     absence is exactly what "it didn't do anything" looks like.
+     So a result is shown where the action was taken, and it survives the
+     re-render that follows it. */
+  let _flash = null;        // { msg, kind }
 
   const $ = (id) => document.getElementById(id);
   const money = (cents) => '$' + (Number(cents || 0) / 100).toFixed(2);
@@ -234,10 +244,20 @@
       + '</div></div>';
   }
 
+  function flashBox() {
+    if (!_flash) return '';
+    const good = _flash.kind !== 'error';
+    return '<div style="border:1px solid ' + (good ? 'rgba(34,197,94,.45)' : 'rgba(239,68,68,.45)')
+      + ';background:' + (good ? 'rgba(34,197,94,.10)' : 'rgba(239,68,68,.10)')
+      + ';border-radius:8px;padding:.75rem .9rem;margin-bottom:1rem;font-size:.85rem;line-height:1.6;">'
+      + escapeHtml(_flash.msg) + '</div>';
+  }
+
   function render() {
     const body = $('wholesale-body');
     if (!body) return;
-    body.innerHTML = listBanner()
+    body.innerHTML = flashBox()
+      + listBanner()
       + '<div class="zw-eyebrow" style="margin:0 0 .6rem;">Trade accounts</div>'
       + accountsTable()
       + editPanel()
@@ -352,10 +372,13 @@
     try {
       const res = await api('POST', { action: 'ensure-list' });
       _list = res.list || _list;
+      _flash = {
+        msg: res.created
+          ? 'Wholesale price list created. Nothing is discounted yet — set the actual prices under Pricing and choose the Wholesale list when you propose one.'
+          : 'That list already existed, so nothing changed.',
+        kind: 'ok',
+      };
       render();
-      note(res.created
-        ? 'Created. Set wholesale prices under Pricing — choose the Wholesale list when you propose one.'
-        : 'That list already existed.');
     } catch (err) {
       note(err.message || 'Could not create the price list.', 'error');
       if (btn) { btn.disabled = false; btn.textContent = 'Create the wholesale price list'; }
