@@ -174,11 +174,7 @@
           </div>
           <div class="zw-hub-field">
             <label>Reason</label>
-            <select id="zw-return-reason-code">
-              <option value="">Choose one…</option>
-              ${(window.ZWReturnReasons ? window.ZWReturnReasons.REASONS : [])
-                .map((r) => `<option value="${r.code}">${r.label}</option>`).join('')}
-            </select>
+            <select id="zw-return-reason-code"><option value="">Choose one…</option></select>
           </div>
           <!-- Only for a fit return, and asked about the GARMENT rather than
                the shopper — "too small" reads both ways and the two point at
@@ -186,11 +182,7 @@
                from, so it is the one that has to be unambiguous. -->
           <div class="zw-hub-field" id="zw-return-fit-wrap" style="display:none;">
             <label>How did it fit?</label>
-            <select id="zw-return-fit">
-              <option value="">Choose one…</option>
-              ${(window.ZWReturnReasons ? window.ZWReturnReasons.FITS : [])
-                .map((r) => `<option value="${r.code}">${r.label}</option>`).join('')}
-            </select>
+            <select id="zw-return-fit"><option value="">Choose one…</option></select>
           </div>
           <div class="zw-hub-field">
             <label>Anything else? <span style="opacity:.6;font-weight:400;">(optional)</span></label>
@@ -316,6 +308,9 @@
 
   async function submitReturnRequest() {
     const status = document.getElementById('zw-return-status');
+    /* Options and the show/hide of the fit question come from the shared
+       vocabulary, so both return forms behave identically by construction. */
+    try { window.ZWReturnReasons?.wireForm({ reasonSelect: 'zw-return-reason-code', fitSelect: 'zw-return-fit', fitWrap: 'zw-return-fit-wrap' }); } catch (_) {}
     const orderSelect = document.getElementById('zw-return-order');
     const reason = document.getElementById('zw-return-reason');
     const resolution = document.getElementById('zw-return-resolution');
