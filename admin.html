@@ -172,11 +172,15 @@
            security boundary. */
         const ZW_RBAC = {
             super_admin: ['*'],
-            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','bundles','loyalty','journal','subscribers','emails','popup','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
-            finance: ['dashboard','analytics','finance','orders','receipts','tax','audit','refund','export'],
+            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','bundles','loyalty','journal','subscribers','emails','popup','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','pricing','wholesale','refund','return_process','product_write','order_write','user_manage','builder_edit','pricing_write','bulk_actions','export'],
+            finance: ['dashboard','analytics','finance','orders','receipts','tax','audit','pricing','wholesale','refund','pricing_write','export'],
             fulfillment: ['dashboard','products','orders','receipts','shipping','returns','order_write','return_process','product_write','bulk_actions','export'],
             content: ['dashboard','products','sizecharts','reviews','questions','bundles','loyalty','journal','popup','website','settings','product_write','builder_edit','export'],
-            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','bundles','journal','subscribers','emails','popup','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
+            /* 'apis' is deliberately absent — see the exception in
+               tests/rbac-mirror-agrees.test.js. Every other page the server
+               grants a viewer is listed here, and the test fails if that stops
+               being true. */
+            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','bundles','loyalty','journal','subscribers','emails','popup','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','pricing','wholesale','export']
         };
         const ZW_ROLE_LABELS = {
             super_admin:'Super Admin', manager:'Manager', finance:'Finance',
@@ -185,8 +189,8 @@
         // Preset access maps (page -> 'view'|'edit') — mirror of ROLE_PRESET_LEVELS
         // in functions/api/_rbac.js. Drives the "preset" button in the access matrix.
         const ZW_ROLE_PRESET_LEVELS = {
-            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',bundles:'edit',loyalty:'edit',journal:'edit',subscribers:'edit',emails:'edit',popup:'edit',commerce:'edit',meta:'edit',orders:'view',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
-            finance:{dashboard:'view',analytics:'view',finance:'edit',orders:'view',receipts:'view',tax:'edit',audit:'view'},
+            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',bundles:'edit',loyalty:'edit',journal:'edit',subscribers:'edit',emails:'edit',popup:'edit',commerce:'edit',meta:'edit',orders:'view',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit',pricing:'edit',wholesale:'edit'},
+            finance:{dashboard:'view',analytics:'view',finance:'edit',orders:'view',receipts:'view',tax:'edit',audit:'view',pricing:'edit',wholesale:'edit'},
             fulfillment:{dashboard:'view',products:'view',orders:'view',receipts:'edit',shipping:'edit',returns:'edit'},
             content:{dashboard:'view',products:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',bundles:'edit',journal:'edit',website:'edit',settings:'edit',popup:'view'}
         };
@@ -219,6 +223,7 @@
             /* Catalogue */
             { id:'products',   icon:'👟', label:'Products',    title:'Product Inventory',   group:'catalogue',     mobile:'Products', kw:'inventory stock sku catalog items drop jackets variants colors' },
             { id:'pricing',    icon:'🏦', label:'Pricing',     title:'Pricing',             group:'catalogue', searchLabel:'Pricing / Price lists / Scheduled prices / Approvals', kw:'price pricing price list scheduled sale effective date approval approve propose audit history who changed markdown wholesale members tier channel region' },
+            { id:'wholesale',  icon:'🏭', label:'Wholesale',   title:'Wholesale',           group:'catalogue', searchLabel:'Wholesale / Trade accounts / Minimum order / Net terms', kw:'wholesale trade account b2b bulk reseller stockist minimum order net terms prepaid net30 company tax id approve suspend price list customer group' },
             { id:'sizecharts', icon:'📏', label:'Size Charts', title:'Size Charts',         group:'catalogue', kw:'size guide measurements fit chart sizing' },
             { id:'reviews',    icon:'⭐', label:'Reviews',     title:'Customer Reviews',    group:'catalogue', kw:'ratings testimonials stars moderate feedback' },
             { id:'questions',  icon:'❓', label:'Q&A',         title:'Product Q&A',         group:'catalogue', kw:'questions answers product qa moderate ask reply' },
@@ -1021,6 +1026,25 @@
                     </div>
                     <div id="pricing-body"></div>
                     <script src="admin-pricing.js?v=d825616e"></script>
+                </div>
+
+                <!-- Wholesale Page — rendered by admin-wholesale.js -->
+                <div id="wholesale" class="page">
+                    <div class="products-header">
+                        <div>
+                            <h2>Wholesale</h2>
+                            <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;max-width:720px;line-height:1.65;">
+                                Trade buyers are ordinary customers in a different <strong>customer group</strong>, not a
+                                second shop. Approving somebody here puts them in that group; a price list for the group
+                                is what actually charges them less.
+                                <br><br>
+                                Both halves are needed. An approved buyer with no wholesale price list pays the normal
+                                price and nothing reports a problem — so this page says which half is missing.
+                            </p>
+                        </div>
+                    </div>
+                    <div id="wholesale-body"></div>
+                    <script src="admin-wholesale.js?v=1"></script>
                 </div>
 
                 <!-- Feature Flags Page -->
