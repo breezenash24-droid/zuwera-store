@@ -173,6 +173,18 @@ try {
     if (_tt.navFg) h.style.setProperty('--zw-nav-fg', _tt.navFg);
     if (_tt.fg) h.style.setProperty('--fg-rgb', _tt.fg);
     if (_tt.bg) h.style.setProperty('--bg-rgb', _tt.bg);
+    /* A DEFAULT for --zw-nav-fg when the theme names none.
+       Without one the header falls through `color: var(--zw-nav-fg, …)` to
+       whatever the page hands down — and on the light modes that is --paper,
+       which resolves to a SURFACE (#f5f5f5). Near-white links on a white bar.
+       Only on the first load after a deploy, because that is the one time the
+       stylesheet carrying the corrected fallback is not already in cache; on
+       every later load it arrives fast enough that nobody sees the gap.
+       Set here rather than per page: index and landing carry their own inline
+       .nav-link colour, product carries none and inherits, and patching each
+       dialect is how this reached three pages and missed the rest. This runs
+       before the first frame on all fourteen. */
+    if (!_tt.navFg && _tt.fg && _light) h.style.setProperty('--zw-nav-fg', 'rgb(' + _tt.fg + ')');
     if (_tt.ink) h.style.setProperty('--ink', _tt.ink);
     if (_tt.paper) h.style.setProperty('--paper', _tt.paper);
     /* --zw-theme-surface, which is the name base.css declares and cart.css
