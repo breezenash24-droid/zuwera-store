@@ -8842,7 +8842,20 @@
             let list = _allProducts;
             // "all" never shows Legacy — those live in the Legacy section
             if (_prodStatusFilter === 'all') {
-                list = list.filter(p => (p.status || 'Draft').toLowerCase() !== 'legacy');
+                /* …nor the bank. Switching to an empty preset puts the whole
+                   lineup away, and leaving eleven shelved products in the default
+                   view mixed in with the ones actually being worked on is the
+                   clutter the bank exists to remove. Not silent: the count sits on
+                   the Bank chip and a line under the filter bar says how many are
+                   hidden, so "All" is a view rather than a claim. */
+                list = list.filter(p => (p.status || 'Draft').toLowerCase() !== 'legacy' && !_isBanked(p));
+            } else if (_prodStatusFilter === 'banked') {
+                list = list.filter(_isBanked);
+            } else if (_prodStatusFilter === 'draft') {
+                /* Draft means "I am still working on this". A shelved product is
+                   also Draft in the database, but it is not what anybody means by
+                   that word, so it stays in the bank. */
+                list = list.filter(p => (p.status || 'Draft') === 'Draft' && !_isBanked(p));
             } else {
                 list = list.filter(p => (p.status || 'Draft').toLowerCase().replace(/\s+/g, '-') === _prodStatusFilter);
             }
@@ -8987,7 +9000,14 @@
            just shows whatever's live, so an older store with no presets still works.
            Stored in site_settings.product_presets (admins have RLS write access, same
            as feature_flags etc.). */
-        let _productPresets = { presets: [], activePreset: null };
+        let _productPresets = { presets: [], activePreset: null, banked: [] };
+        /* WHICH preset the admin is EDITING, which is not the same question as
+           which one the storefront is wearing. Everything used to act on
+           activePreset, so the only preset you could change was the one already
+           live — you had to publish a lineup to the real shop in order to build
+           it. Not persisted: it is a cursor in this screen, not a fact about the
+           store. */
+        let _selectedPreset = null;
 
         async function loadProductPresets() {
             try {
@@ -8996,20 +9016,109 @@
                 _productPresets = {
                     presets: Array.isArray(v && v.presets) ? v.presets : [],
                     activePreset: (v && v.activePreset) || null,
+                    banked: Array.isArray(v && v.banked) ? v.banked.map(String) : [],
                 };
-            } catch (_) { _productPresets = { presets: [], activePreset: null }; }
+            } catch (_) { _productPresets = { presets: [], activePreset: null, banked: [] }; }
+            if (!_prodPresetById(_selectedPreset)) _selectedPreset = _productPresets.activePreset;
             renderProductPresets();
+            /* The table is drawn before this resolves — loadProducts() renders and
+               THEN loads the presets — so the first paint of the list does not know
+               which products are banked and shows them all. Redraw now that it does.
+               Guarded on the catalogue being in memory so this is a no-op when the
+               presets happen to load first. */
+            if ((_allProducts || []).length) renderProducts();
         }
+
+        /* ── The bank ───────────────────────────────────────────────────────────
+           Products a preset switch took off the storefront. They are still Draft
+           in the database — deliberately, because product visibility is decided in
+           several places with a mix of allow-lists and deny-lists, and a NEW
+           status is a chance for a shelved product to appear in the shop. The
+           worst outcome here is not an untidy admin table; it is a product you
+           thought was put away being on sale.
+
+           So the bank is admin-only metadata: a list of ids beside the presets.
+           Membership is DERIVED rather than stored as truth —
+
+               banked  ==  in the list  AND  still Draft
+
+           — which makes it self-healing. Set a banked product Live by any route
+           at all (the row menu, a bulk action, another preset, the API) and it
+           leaves the bank on its own, with nothing to remember to update. A flag
+           that has to be maintained in every place a status can change is a flag
+           that will be wrong. */
+        /* One way to change the filter, so the chip highlight, the table and the
+           bank note cannot disagree about which view is showing. The note's
+           "show the bank" link needs it too, and a second copy of this that only
+           set the variable would leave the chips lit on the wrong one. */
+        window.setProductFilter = function (f) {
+            _prodStatusFilter = f || 'all';
+            document.querySelectorAll('.prod-filter-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.f === _prodStatusFilter);
+            });
+            renderProducts();
+            renderBankChip();
+        };
+
+        function _isBanked(p) {
+            if (!p) return false;
+            if ((p.status || 'Draft') !== 'Draft') return false;
+            return (_productPresets.banked || []).indexOf(String(p.id)) > -1;
+        }
+        function _bankedProducts() { return (_allProducts || []).filter(_isBanked); }
+
+        /* Out of the bank, back into Draft where it is worked on like anything
+           else. Deliberately does NOT publish: taking something off a shelf is
+           not the same as putting it in the window, and a button that quietly
+           made products live would be the destructive default this whole panel
+           exists to avoid. To publish, set it Live or put it in a preset. */
+        window.unbankProduct = async function (productId) {
+            const ids = productId ? [String(productId)] : _bankedProducts().map(p => String(p.id));
+            if (!ids.length) return;
+            if (!productId && !confirm('Take all ' + ids.length + ' products out of the bank?\n\nThey go back to Draft in the normal list. Nothing is published.')) return;
+            try {
+                const keep = new Set(ids);
+                _productPresets.banked = (_productPresets.banked || []).filter(x => !keep.has(String(x)));
+                await _saveProductPresetsState();
+                renderProductPresets();
+                renderProducts();
+                showToast(ids.length === 1 ? 'Out of the bank — it is a Draft again.'
+                    : ids.length + ' products are out of the bank.', 'success');
+            } catch (e) { showToast('Could not empty the bank: ' + e.message, 'error'); }
+        };
 
         function _prodPresetById(id) {
             return (_productPresets.presets || []).find(p => p.id === id) || null;
         }
 
+        /* The bank's two indicators, kept in step with the table. */
+        function renderBankChip() {
+            const n = _bankedProducts().length;
+            const btn = document.getElementById('prodBankBtn');
+            const cnt = document.getElementById('prodBankCount');
+            const note = document.getElementById('prodBankNote');
+            if (cnt) cnt.textContent = n ? String(n) : '';
+            /* The chip appears only when there is a bank, so a store that never
+               switches a preset never learns the word. */
+            if (btn) btn.style.display = n ? '' : 'none';
+            if (note) {
+                const hidden = n && _prodStatusFilter === 'all';
+                note.style.display = hidden ? '' : 'none';
+                note.innerHTML = hidden
+                    ? escapeHtml(String(n)) + ' product' + (n === 1 ? ' is' : 's are') + ' in the bank and hidden here — '
+                      + '<a href="#" onclick="setProductFilter(\'banked\');return false;" style="color:var(--accent,#F891A5);">show the bank</a>'
+                    : '';
+            }
+            if (n === 0 && _prodStatusFilter === 'banked') setProductFilter('all');
+        }
+
         function renderProductPresets() {
+            renderBankChip();
             const wrap = document.getElementById('productPresetChips');
             if (!wrap) return;
             const list = _productPresets.presets || [];
             const active = _productPresets.activePreset;
+            if (!_prodPresetById(_selectedPreset)) _selectedPreset = active;
             wrap.innerHTML = list.length
                 ? list.map(p => {
                     /* A bare "0" next to a chip reading "Orig 11" looks like a preset
@@ -9020,17 +9129,161 @@
                     const tip = n
                         ? n + ' product' + (n === 1 ? '' : 's') + ' — switching publishes them and hides the rest'
                         : 'No products — switching takes the whole lineup off the storefront. Nothing is deleted.';
-                    return '<button type="button" class="btn btn-sm ' + (p.id === active ? 'btn-primary' : 'btn-secondary') +
-                    '" data-req-edit="products" title="' + escapeHtml(tip) + '" onclick="switchProductPreset(\'' + p.id + '\')">' + escapeHtml(p.name) +
-                    ' <span style="opacity:.55;font-weight:600;">' + badge + '</span></button>';
+                    /* LIVE and SELECTED are two different things and the chip shows
+                       both: the dot means the storefront is wearing it, the outline
+                       means it is the one being edited. They are usually the same
+                       and the whole point is that they do not have to be. */
+                    const isLive = p.id === active;
+                    const isSel = p.id === _selectedPreset;
+                    return '<button type="button" class="btn btn-sm ' + (isSel ? 'btn-primary' : 'btn-secondary') +
+                    '" data-req-edit="products" title="' + escapeHtml(tip + (isLive ? ' · live on the storefront now' : '')) + '"'
+                    + (isSel ? ' style="outline:2px solid var(--accent,#F891A5);outline-offset:2px;"' : '')
+                    + ' onclick="selectProductPreset(\'' + p.id + '\')">'
+                    + (isLive ? '<span title="live now" style="color:#22c55e;">●</span> ' : '')
+                    + escapeHtml(p.name)
+                    + ' <span style="opacity:.55;font-weight:600;">' + badge + '</span></button>';
                   }).join('')
                 : '<span style="font-size:.78rem;color:var(--text-secondary)">None yet — set your products live the way you want, then “Save current as…”.</span>';
-            const on = !!_prodPresetById(active);
-            ['prodPresetUpdate', 'prodPresetRename', 'prodPresetDelete'].forEach(id => {
+            /* Everything acts on the SELECTED preset now, which is what makes a
+               preset editable without publishing it first. */
+            const sel = _prodPresetById(_selectedPreset);
+            ['prodPresetUpdate', 'prodPresetRename', 'prodPresetDelete', 'prodPresetEdit'].forEach(id => {
                 const b = document.getElementById(id);
-                if (b) b.disabled = !on;
+                if (b) b.disabled = !sel;
             });
+            const go = document.getElementById('prodPresetGoLive');
+            if (go) {
+                go.disabled = !sel || _selectedPreset === active;
+                go.textContent = sel && _selectedPreset === active ? '● Live now' : '▶ Make live';
+                go.title = !sel ? 'Pick a preset first'
+                    : _selectedPreset === active ? 'The storefront is already showing this preset'
+                    : 'Publish “' + sel.name + '” to the storefront';
+            }
+            /* Guarded: a missing element here would throw out of renderProductPresets
+               and take the chips, the buttons and the bank note with it. */
+            const ed = document.getElementById('presetEditor');
+            if (ed && ed.style.display !== 'none') renderPresetEditor();
         }
+
+        /* Selecting is not publishing. Nothing about the storefront changes here. */
+        window.selectProductPreset = function (id) {
+            if (!_prodPresetById(id)) return;
+            _selectedPreset = id;
+            renderProductPresets();
+        };
+
+        window.makeProductPresetLive = function () {
+            if (_selectedPreset) switchProductPreset(_selectedPreset);
+        };
+
+        window.toggleProductPresetEditor = function () {
+            const el = document.getElementById('presetEditor');
+            if (!el) return;
+            const open = el.style.display === 'none';
+            el.style.display = open ? '' : 'none';
+            if (open) renderPresetEditor();
+        };
+
+        /* ── Composing a preset off-stage ───────────────────────────────────────
+           A checkbox per product, and the preset's own order for the ones in it.
+           Nothing here touches products.status, so the storefront is untouched
+           until "Make live" — which is the whole request: a way to build a lineup
+           without customers watching you do it. Legacy is excluded; it is the
+           retired shelf and a preset should not be able to resurrect from it by
+           accident. */
+        function renderPresetEditor() {
+            const el = document.getElementById('presetEditor');
+            const p = _prodPresetById(_selectedPreset);
+            if (!el) return;
+            if (!p) { el.innerHTML = ''; return; }
+            const members = (p.products || []).map(x => String(x.id));
+            const all = (_allProducts || []).filter(x => (x.status || 'Draft') !== 'Legacy');
+            const inOrder = members.map(id => all.find(x => String(x.id) === id)).filter(Boolean);
+            const rest = all.filter(x => members.indexOf(String(x.id)) < 0)
+                .sort((a, b) => String(a.title || '').localeCompare(String(b.title || '')));
+
+            const row = (x, idx, isMember) => {
+                const id = String(x.id);
+                const banked = _isBanked(x) ? ' <span style="font-size:.68rem;opacity:.6;">in bank</span>' : '';
+                const st = (x.status || 'Draft');
+                return '<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;'
+                    + (isMember ? 'background:rgba(248,145,165,.08);' : '') + '">'
+                    + '<input type="checkbox" data-pp-id="' + escapeHtml(id) + '"' + (isMember ? ' checked' : '') + '>'
+                    + '<span style="flex:1;font-size:.82rem;">' + escapeHtml(x.title || x.sku || id)
+                    + ' <span style="opacity:.5;">' + escapeHtml(x.colorway || '') + '</span>' + banked + '</span>'
+                    + '<span style="font-size:.68rem;opacity:.55;">' + escapeHtml(st) + '</span>'
+                    + (isMember
+                        ? '<span style="display:flex;gap:2px;">'
+                          + '<button type="button" class="btn btn-secondary btn-sm" style="padding:1px 6px;" onclick="movePresetMember(event,' + idx + ',-1)">↑</button>'
+                          + '<button type="button" class="btn btn-secondary btn-sm" style="padding:1px 6px;" onclick="movePresetMember(event,' + idx + ',1)">↓</button>'
+                          + '</span>'
+                        : '')
+                    + '</label>';
+            };
+
+            el.innerHTML =
+                '<div style="border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;background:rgba(0,0,0,.18);">'
+                + '<div style="font-size:.8rem;font-weight:600;margin-bottom:2px;">Contents of “' + escapeHtml(p.name) + '”</div>'
+                + '<div style="font-size:.72rem;color:var(--text-secondary);margin-bottom:10px;">'
+                + 'Tick what belongs in this preset and put it in order. <strong>Nothing here changes the storefront</strong> — press “Make live” when you want it published.</div>'
+                + (inOrder.length
+                    ? '<div style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin:8px 0 4px;">In this preset · in order</div>'
+                      + inOrder.map((x, i) => row(x, i, true)).join('')
+                    : '<div style="font-size:.78rem;color:var(--text-secondary);padding:6px 0;">Nothing in it yet — this preset clears the storefront.</div>')
+                + '<div style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin:12px 0 4px;">Everything else</div>'
+                + (rest.length ? rest.map(x => row(x, -1, false)).join('')
+                               : '<div style="font-size:.78rem;color:var(--text-secondary);">Every product is in this preset.</div>')
+                + '<div style="display:flex;gap:8px;margin-top:12px;">'
+                + '<button type="button" class="btn btn-primary btn-sm" data-req-edit="products" onclick="savePresetContents()">Save contents</button>'
+                + '<button type="button" class="btn btn-secondary btn-sm" onclick="toggleProductPresetEditor()">Close</button>'
+                + '</div></div>';
+        }
+
+        /* Reorder within the preset. Reads the CURRENT checkbox state first so a
+           tick made just before pressing ↑ is not thrown away by the re-render. */
+        window.movePresetMember = function (ev, idx, dir) {
+            if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+            const p = _prodPresetById(_selectedPreset);
+            if (!p) return;
+            const picked = _readPresetEditorSelection();
+            const j = idx + dir;
+            if (j < 0 || j >= picked.length) return;
+            const t = picked[idx]; picked[idx] = picked[j]; picked[j] = t;
+            p.products = picked.map(id => {
+                const was = (p.products || []).find(x => String(x.id) === id);
+                return { id, status: (was && was.status) || 'Live' };
+            });
+            renderPresetEditor();
+        };
+
+        /* Ticked boxes, in the order they appear — members first, in preset order. */
+        function _readPresetEditorSelection() {
+            const boxes = document.querySelectorAll('#presetEditor input[type="checkbox"]');
+            const out = [];
+            boxes.forEach(b => { if (b.checked) out.push(String(b.dataset.ppId)); });
+            return out;
+        }
+
+        window.savePresetContents = async function () {
+            const p = _prodPresetById(_selectedPreset);
+            if (!p) return;
+            const picked = _readPresetEditorSelection();
+            try {
+                p.products = picked.map(id => {
+                    /* Keep the status this preset had recorded — a Sold Out item
+                       should come back Sold Out, not silently promoted to Live. */
+                    const was = (p.products || []).find(x => String(x.id) === id);
+                    return { id, status: (was && was.status) || 'Live' };
+                });
+                if (p.products.length) p.empty = false;
+                p.savedAt = new Date().toISOString();
+                await _saveProductPresetsState();
+                try { await logAdminAudit('product_preset.edit', 'site_settings', p.id, { name: p.name, count: p.products.length }); } catch (_) {}
+                renderProductPresets();
+                showToast('Saved “' + p.name + '” — ' + p.products.length + ' product'
+                    + (p.products.length === 1 ? '' : 's') + '. Not live yet.', 'success');
+            } catch (e) { showToast('Could not save contents: ' + e.message, 'error'); }
+        };
 
         // Snapshot the current live lineup: visible products (not Draft, not Legacy),
         // in sort_order, each with its real status so a Sold Out item stays Sold Out.
@@ -9120,7 +9373,7 @@
         };
 
         window.updateProductPreset = async function() {
-            const p = _prodPresetById(_productPresets.activePreset);
+            const p = _prodPresetById(_selectedPreset);
             if (!p) return;
             if (!confirm('Update “' + p.name + '” to match what’s live now (products + layout)?')) return;
             try {
@@ -9138,7 +9391,7 @@
         };
 
         window.renameProductPreset = async function() {
-            const p = _prodPresetById(_productPresets.activePreset);
+            const p = _prodPresetById(_selectedPreset);
             if (!p) return;
             /* Same trap as saving: a suppressed prompt() returns null and the rename
                vanished without a word. The panel's own field carries the new name, and
@@ -9168,12 +9421,17 @@
         };
 
         window.deleteProductPreset = async function() {
-            const p = _prodPresetById(_productPresets.activePreset);
+            const p = _prodPresetById(_selectedPreset);
             if (!p) return;
             if (!confirm('Delete preset “' + p.name + '”? Your live products don’t change — this only removes the saved snapshot.')) return;
             try {
                 _productPresets.presets = _productPresets.presets.filter(x => x.id !== p.id);
-                _productPresets.activePreset = null;
+                /* Only if the deleted one was the one the storefront is wearing.
+                   Now that a preset can be edited without being live, clearing
+                   activePreset unconditionally would report the shop as showing
+                   "no preset" because you tidied up a different one. */
+                if (_productPresets.activePreset === p.id) _productPresets.activePreset = null;
+                _selectedPreset = _productPresets.activePreset;
                 await _saveProductPresetsState();
                 /* No clearing of the name field here. This function never reads it,
                    and the line that used to do so referenced an undeclared `nameEl`
@@ -9258,8 +9516,19 @@
                     const { error } = await sb.from('site_settings').upsert({ key: 'product_page', value: p.productPage }, { onConflict: 'key' });
                     if (error) throw error;
                 }
-                // 4. Mark active + persist.
+                // 4. Mark active + bank what was put away + persist.
+                /* The bank is what the products table reads to keep shelved items
+                   out of the Draft view. Union with whatever was already banked,
+                   minus everything this preset just published — a product cannot
+                   be on the storefront and in the bank at once, and the derived
+                   test (_isBanked) would drop it anyway; removing it here keeps
+                   the stored list from growing stale entries forever. */
+                const bank = new Set(_productPresets.banked || []);
+                toHide.forEach(x => bank.add(String(x)));
+                wantedIds.forEach(x => bank.delete(String(x)));
+                _productPresets.banked = Array.from(bank);
                 _productPresets.activePreset = id;
+                _selectedPreset = id;
                 await _saveProductPresetsState();
                 try { await logAdminAudit('product_preset.switch', 'products', id, { name: p.name, published: wanted.length, hidden: toHide.length }); } catch (_) {}
 
@@ -9419,7 +9688,9 @@
                         <div class="action-buttons">
                             <button class="btn btn-secondary btn-sm" onclick="editProduct('${productId}')">Edit</button>
                             <button class="btn btn-secondary btn-sm" onclick="duplicateProduct('${productId}')">Dupe</button>
-                            <button class="btn btn-secondary btn-sm" onclick="archiveProduct('${productId}')" style="background:rgba(68,64,60,.4);border-color:rgba(168,162,158,.3);color:#a8a29e;">Archive</button>
+                            ${_isBanked(product)
+                                ? `<button class="btn btn-secondary btn-sm" onclick="unbankProduct('${productId}')" title="Put it back in the normal Draft list. It is not published.">↩ Unbank</button>`
+                                : `<button class="btn btn-secondary btn-sm" onclick="archiveProduct('${productId}')" style="background:rgba(68,64,60,.4);border-color:rgba(168,162,158,.3);color:#a8a29e;">Archive</button>`}
                             <button class="btn btn-danger btn-sm" onclick="openDeleteModal('${productId}')">Delete</button>
                         </div>
                     </td>
@@ -9635,12 +9906,7 @@
         });
 
         document.querySelectorAll('.prod-filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.prod-filter-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                _prodStatusFilter = btn.dataset.f;
-                renderProducts();
-            });
+            btn.addEventListener('click', () => { setProductFilter(btn.dataset.f); });
         });
 
         document.querySelectorAll('th[data-sort]').forEach(th => {
