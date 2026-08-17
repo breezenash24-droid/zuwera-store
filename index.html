@@ -466,9 +466,25 @@ html{scroll-behavior:smooth;font-size:16px;background:var(--ink);overscroll-beha
    bleed at its source, so no separate cover element is needed. */
 html::before{display:none!important}
 html:has(body.super-light-mode)::before{background:#FFFFFF!important}
+/* --paper IS A SURFACE AT :root AND A FOREGROUND UNDER THE LIGHT CLASSES.
+   storefront-cohesion.css declares `:root { --paper: var(--zw-paper) }` — cream,
+   #f4f1eb, a panel colour — and then `body.light-mode { --paper: rgb(var(--fg-rgb)) }`,
+   which is text. One name, two opposite jobs, and which one you get depends on
+   whether a class has matched yet.
+   This page used it as TEXT in 29 rules and as a SURFACE in 37. So on any frame
+   where neither the light classes nor the build's baked block are in effect, the
+   page, the announcement bar, the wordmark and the hero headline all painted
+   CREAM — on a white ground — while the 37 surface uses went dark. A perfectly
+   inverted header, which is what "the header loads wrong on first paint" has
+   been all along.
+   The page-level text rules below name --fg-rgb instead. That token has exactly
+   one meaning in every theme and at every stage: the foreground. It is what the
+   whole alpha ladder is built from, so it cannot be the odd one out.
+   The surface uses of --paper are left alone — they are correct, and a blanket
+   swap would set text to its own background on the buttons that use it. */
 body{
   background:var(--ink);
-  color:var(--paper);
+  color:rgb(var(--fg-rgb));
   font-family:var(--fb);
   font-weight:300;
   overflow-x:clip;
@@ -496,7 +512,7 @@ body::after{
    ANNOUNCEMENT
 ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
 #bar{
-  background:var(--ink);color:var(--paper);border-bottom:1px solid var(--c10);
+  background:var(--ink);color:rgb(var(--fg-rgb));border-bottom:1px solid var(--c10);
   padding:.45rem 2rem;
   display:flex;align-items:center;justify-content:center;gap:1.5rem;
   font-family:var(--fm);font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;
@@ -531,7 +547,7 @@ nav#nav.scrolled{
 .nav-logo{
   font-family:var(--fw);font-weight:900;font-style:italic;
   font-size:1.6rem;letter-spacing:.12em;
-  color:var(--paper);
+  color:rgb(var(--fg-rgb));
 }
 .nav-logo img{height:50px;width:auto;display:block;transition:filter .35s;filter:none}
 .nav-center{
@@ -699,7 +715,7 @@ html.zw-boot-white #zw-boot{background:#FFFFFF!important}
   font-family:var(--fw);font-weight:900;font-style:italic;
   font-size:clamp(5rem,14vw,14rem);
   line-height:.88;letter-spacing:-.01em;
-  color:var(--paper);
+  color:rgb(var(--fg-rgb));
   opacity:0;animation:up .9s cubic-bezier(.22,1,.36,1) .35s forwards;
 }
 .hero-h1 em{font-style:normal;color:transparent;-webkit-text-stroke:2px rgb(var(--fg-rgb) / 85%)}
