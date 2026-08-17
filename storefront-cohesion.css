@@ -4813,6 +4813,32 @@ html:not([data-zw-nav-fg-unset]) :is(#nav, .nav, .zw-nav, .co-header) :is(.nav-l
   color: var(--zw-nav-fg, inherit);
 }
 
+/* ── The fallback, on the two light modes ─────────────────────────────────
+   `inherit` above means "whatever the page gives you", and on the light modes
+   the page gives you --paper. That token is doing two contradictory jobs: 17
+   rules in this file use it as a BACKGROUND and 22 use it as TEXT, and
+   body.super-light-mode resolves it to #f5f5f5 for the background reading. So
+   the header drew MEN / WOMEN / NEW in near-white on a white bar — present,
+   focusable, clickable, and invisible.
+
+   Only the FALLBACK changes. `var(--zw-nav-fg, …)` still prefers a header
+   text colour a theme actually set; this decides what happens when none is,
+   which was the case that was wrong. Paired with the bar's own ground rather
+   than inherited from a page-level token, because a header's text and its
+   background have to move together — the whole class of bug this replaces.
+
+   The token conflict itself is NOT fixed here. Splitting --paper into a
+   surface and a text colour touches 39 rules across three themes and wants
+   its own pass; this stops the header being unreadable today. */
+body.light-mode      :is(#nav, .nav, .zw-nav, .co-header),
+body.super-light-mode :is(#nav, .nav, .zw-nav, .co-header) {
+  color: var(--zw-nav-fg, rgb(var(--fg-rgb)));
+}
+html:not([data-zw-nav-fg-unset]) body.light-mode :is(#nav, .nav, .zw-nav, .co-header) :is(.nav-link, .nbtn, .zw-hdr-action, .zw-nav-btn, .nav-logo, .nav-logo-link, .zw-nav-logo),
+html:not([data-zw-nav-fg-unset]) body.super-light-mode :is(#nav, .nav, .zw-nav, .co-header) :is(.nav-link, .nbtn, .zw-hdr-action, .zw-nav-btn, .nav-logo, .nav-logo-link, .zw-nav-logo) {
+  color: var(--zw-nav-fg, rgb(var(--fg-rgb)));
+}
+
 /* ════════════════════════════════════════════════════════════════════════
    TOKEN FOUNDATION — the palette and the alpha ladder, on every page.
 
