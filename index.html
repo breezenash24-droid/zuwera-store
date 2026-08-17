@@ -78,6 +78,7 @@ try {
     if (_tt.navFg) h.style.setProperty('--zw-nav-fg', _tt.navFg);
     if (_tt.fg) h.style.setProperty('--fg-rgb', _tt.fg);
     if (_tt.bg) h.style.setProperty('--bg-rgb', _tt.bg);
+    if (!_tt.navFg && _tt.fg && _light) h.style.setProperty('--zw-nav-fg', 'rgb(' + _tt.fg + ')');
     if (_tt.ink) h.style.setProperty('--ink', _tt.ink);
     if (_tt.paper) h.style.setProperty('--paper', _tt.paper);
     if (_tt.surface) h.style.setProperty('--zw-theme-surface', _tt.surface);
@@ -513,12 +514,19 @@ nav#nav.scrolled{
    duplicated here at 1.7rem/900 and, being later in source order, would override it. */
 .nav-link{
   text-transform:uppercase;line-height:1;
-  color: var(--paper);text-decoration:none;transition:color .2s;opacity:.92;
+  /* --zw-nav-fg, then the page foreground — NOT --paper.
+     This rule is INLINE, so it paints before storefront-cohesion.css arrives.
+     On a cached load that gap is invisible; on the first load after a deploy
+     nothing is cached and the header renders from this rule alone. --paper is
+     the token that means a surface on the light modes (#f5f5f5), so the links
+     came out near-white on a white bar for exactly one page view per deploy.
+     Same fallback the stylesheet uses, so the two cannot disagree. */
+  color: var(--zw-nav-fg, rgb(var(--fg-rgb)));text-decoration:none;transition:color .2s;opacity:.92;
   /* Bigger click/tap target — padding makes the hitbox extend well beyond the
      glyphs. Negative vertical margin keeps the taller box from growing the nav. */
   display:inline-flex;align-items:center;padding:.6rem .7rem;margin:-.6rem 0;
 }
-.nav-link:hover{color:var(--paper);opacity:1}
+.nav-link:hover{color:var(--zw-nav-fg, rgb(var(--fg-rgb)));opacity:1}
 .nav-right{display:flex;align-items:center;gap:.4rem}
 .nbtn{
 font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;

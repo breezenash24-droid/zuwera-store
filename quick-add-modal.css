@@ -67,7 +67,20 @@
    white) — so the contained photo floats on the modal surface. Using --paper
    here (a foreground token) is what painted dark bars in light themes. */
 .quick-add-review-media{position:relative;background:var(--ink);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y pinch-zoom}
-.quick-add-review-media img{width:100%;height:100%;object-fit:cover;object-position:center center;display:block}
+/* STACKED, not laid out in a row.
+   The container is display:flex, and during a colourway switch or a slide the
+   outgoing image is still in the DOM alongside the incoming one. Two flex
+   children at width:100% each shrink to share the box, so both render squeezed
+   and cropped — the right half of one beside the left half of the next, which
+   is what "the images are cut off horizontally" was.
+   Absolute positioning takes them out of the flex flow so they overlap instead,
+   which is what the slide animations below already assume: they animate
+   transform and opacity, and an element sliding in was never meant to make room
+   for itself. */
+/* img AND video: the animation rules below name both, so a colourway with a
+   video would have had the same two-in-a-row problem and been missed by a fix
+   that only mentioned images. */
+.quick-add-review-media :is(img,video){position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;display:block}
 .quick-add-review-media :is(img,video).zw-img-in{animation:qaImgIn .4s cubic-bezier(.22,.61,.36,1) both}
 .quick-add-review-media :is(img,video).zw-slide-next{animation:qaSlideNext .4s cubic-bezier(.22,.61,.36,1) both}
 .quick-add-review-media :is(img,video).zw-slide-prev{animation:qaSlidePrev .4s cubic-bezier(.22,.61,.36,1) both}
