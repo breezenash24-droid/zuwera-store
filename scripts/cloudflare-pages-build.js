@@ -70,6 +70,7 @@ const files = [
   'product-cart.js',
   'quick-add-modal.css',
   'quick-add-modal.js',
+  'return-reasons.js',
   'reviews-vibe.css',
   'reviews.css',
   'reviews.js',

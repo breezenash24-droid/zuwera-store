@@ -56,6 +56,12 @@ function exportsOf(src) {
     }
   }
   if (/^\s*export\s+default/m.test(src)) add('default');
+  /* A CommonJS file supplies a default when imported from ESM — `module.exports`
+     IS the default binding. return-reasons.js is UMD on purpose: the storefront
+     loads it as a classic script to reach window.ZWReturnReasons, and a Worker
+     imports the same file so there is one vocabulary rather than two. Without
+     this, the checker reported a working import as broken. */
+  if (/\bmodule\.exports\s*=/.test(src)) add('default');
   return names;
 }
 

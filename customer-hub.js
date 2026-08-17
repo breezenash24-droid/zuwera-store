@@ -174,7 +174,27 @@
           </div>
           <div class="zw-hub-field">
             <label>Reason</label>
-            <input id="zw-return-reason" type="text" placeholder="Wrong size, damaged item, changed mind">
+            <select id="zw-return-reason-code">
+              <option value="">Choose one…</option>
+              ${(window.ZWReturnReasons ? window.ZWReturnReasons.REASONS : [])
+                .map((r) => `<option value="${r.code}">${r.label}</option>`).join('')}
+            </select>
+          </div>
+          <!-- Only for a fit return, and asked about the GARMENT rather than
+               the shopper — "too small" reads both ways and the two point at
+               opposite fixes. This is the field the size chart is corrected
+               from, so it is the one that has to be unambiguous. -->
+          <div class="zw-hub-field" id="zw-return-fit-wrap" style="display:none;">
+            <label>How did it fit?</label>
+            <select id="zw-return-fit">
+              <option value="">Choose one…</option>
+              ${(window.ZWReturnReasons ? window.ZWReturnReasons.FITS : [])
+                .map((r) => `<option value="${r.code}">${r.label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="zw-hub-field">
+            <label>Anything else? <span style="opacity:.6;font-weight:400;">(optional)</span></label>
+            <input id="zw-return-reason" type="text" placeholder="The specifics help us fix it">
           </div>
         </div>
         <div class="zw-hub-field">
@@ -308,6 +328,11 @@
         orderLabel: label,
         resolution: resolution?.value || 'return',
         reason: reason?.value || '',
+        /* The code and the free text both travel. The code is what can be
+           counted; the note is where the useful specifics live, and dropping
+           it to gain a category would be a bad trade. */
+        reasonCode: document.getElementById('zw-return-reason-code')?.value || '',
+        fitCode: document.getElementById('zw-return-fit')?.value || '',
         notes: notes?.value || '',
       });
       if (status) status.textContent = 'Request submitted.';
