@@ -1122,20 +1122,46 @@
                              had to put a lineup in front of customers in order to
                              build it. A chip now SELECTS; only "Make live" switches. -->
                         <div id="presetEditor" style="display:none;margin-bottom:12px;"></div>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <button type="button" class="btn btn-primary btn-sm" id="prodPresetGoLive" data-req-edit="products" disabled onclick="makeProductPresetLive()">▶ Make live</button>
-                            <button type="button" class="btn btn-secondary btn-sm" id="prodPresetEdit" data-req-edit="products" disabled onclick="toggleProductPresetEditor()">Edit contents</button>
-                            <button type="button" class="btn btn-secondary btn-sm" data-req-edit="products" onclick="saveProductPreset()">+ Save current as…</button>
+                        <!-- Colour is the consequence, not decoration. GREEN is the only
+                             button a customer can see the result of; AMBER overwrites
+                             something you already saved; RED removes. Everything else is
+                             neutral because it changes nothing outside this panel. The
+                             strip underneath spells the same thing out in words on hover,
+                             focus or click — a row of seven verbs with no object is not
+                             self-explanatory however it is coloured. -->
+                        <div class="zw-preset-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                            <button type="button" class="btn btn-sm" id="prodPresetGoLive" data-req-edit="products" disabled onclick="makeProductPresetLive()"
+                                    style="background:#16a34a;border-color:#16a34a;color:#fff;font-weight:700;"
+                                    data-help="PUBLISHES to the storefront. This preset's products go live in this order and everything else moves to the bank. The only button here customers can see the result of.">▶ Make live</button>
+                            <span aria-hidden="true" style="width:1px;height:22px;background:var(--border);margin:0 2px;"></span>
+                            <button type="button" class="btn btn-sm" id="prodPresetEdit" data-req-edit="products" disabled onclick="toggleProductPresetEditor()"
+                                    style="background:transparent;border:1px solid var(--accent,#F891A5);color:var(--accent,#F891A5);"
+                                    data-help="Choose which products belong to the selected preset, and their order. Nothing reaches the storefront until you press Make live.">Edit contents</button>
+                            <button type="button" class="btn btn-secondary btn-sm" data-req-edit="products" onclick="saveProductPreset()"
+                                    data-help="Creates a NEW preset from whatever is live on the storefront right now, under the name in the box above.">+ Save current as…</button>
                             <!-- An empty preset holds no products, so switching to it takes
                                  the whole lineup off the storefront. It deletes nothing:
                                  products go to Draft, and it deliberately captures no
                                  product-page layout so switching leaves every setting
                                  exactly as it was. -->
                             <button type="button" class="btn btn-secondary btn-sm" data-req-edit="products" onclick="saveEmptyProductPreset()"
-                                    title="A preset with no products in it. Switching to it hides the whole lineup without deleting anything.">+ Save empty</button>
-                            <button type="button" class="btn btn-secondary btn-sm" id="prodPresetUpdate" data-req-edit="products" disabled onclick="updateProductPreset()">Update</button>
-                            <button type="button" class="btn btn-secondary btn-sm" id="prodPresetRename" data-req-edit="products" disabled onclick="renameProductPreset()">Rename</button>
-                            <button type="button" class="btn btn-secondary btn-sm" id="prodPresetDelete" data-req-edit="products" disabled onclick="deleteProductPreset()">Delete</button>
+                                    data-help="Creates a NEW preset with no products in it, under the name in the box above. Making it live clears the storefront without deleting anything.">+ Save empty</button>
+                            <button type="button" class="btn btn-sm" id="prodPresetUpdate" data-req-edit="products" disabled onclick="updateProductPreset()"
+                                    style="background:transparent;border:1px solid #d97706;color:#f59e0b;"
+                                    data-help="OVERWRITES the selected preset with whatever is live on the storefront right now. What it held before is gone.">Update</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="prodPresetRename" data-req-edit="products" disabled onclick="renameProductPreset()"
+                                    data-help="Renames the selected preset to the name in the box above. Nothing else changes.">Rename</button>
+                            <button type="button" class="btn btn-sm" id="prodPresetDelete" data-req-edit="products" disabled onclick="deleteProductPreset()"
+                                    style="background:transparent;border:1px solid #dc2626;color:#ef4444;"
+                                    data-help="REMOVES the selected preset. Your products are not touched — only the saved snapshot goes.">Delete</button>
+                        </div>
+                        <!-- What the button under the cursor actually does. Filled from
+                             data-help on hover, keyboard focus and click, so it works
+                             the same whether you point, tab or press. The resting text
+                             is the one thing worth knowing before touching anything. -->
+                        <div id="presetHelp" role="status" aria-live="polite"
+                             style="margin-top:10px;font-size:.76rem;line-height:1.5;color:var(--text-secondary);min-height:2.3em;border-left:2px solid var(--border);padding:2px 0 2px 10px;">
+                            <span style="color:#22c55e;">▶ Make live</span> is the only button here that changes what customers see. Everything else edits presets only.
                         </div>
                     </div>
                     <!-- Back-in-stock demand (from sold-out size notify signups) -->
