@@ -675,5 +675,78 @@ console.log('\n  the popup validation copy is editable and no longer written twi
     /msgField\(/.test(src));
 }
 
+/* ── The four tones a message can wear ───────────────────────────────────────
+   The editor offered Normal / Positive / Alert. Anything else you typed lit no
+   chip at all, so the panel had a custom state it could not name and no way
+   back to it once one of the three had been clicked.
+
+   Two bugs sat underneath that, both from treating '' as "unset" when it is
+   in fact the value of Normal (inherit the surrounding text):
+
+     - saving:  `if (color && color !== def.color)` dropped an empty string, so
+                choosing Normal on a message that ships red saved nothing.
+     - reading: `savedColor_ || def.color` replaced a stored empty with the
+                default, so even a stored Normal came back as the old colour.
+
+   Between them, Normal was unselectable on every message whose default is not
+   already Normal. */
+console.log('\n  a message can be Normal, Positive, Alert or Custom');
+{
+  const admin = fs.readFileSync(path.join(ROOT, 'admin-main.js'), 'utf8').replace(/\r\n/g, '\n');
+
+  ok('Custom is offered as a tone', admin.includes("chip('Custom', null,"));
+  ok('...and is not faked as a palette entry',
+    !M.PALETTE.some((p) => p.name === 'Custom'),
+    'paletteName() maps a value to a role in both directions and Custom has no value to give it');
+  ok('the three real roles are still the palette',
+    M.PALETTE.map((p) => p.name).join(',') === 'Normal,Positive,Alert');
+
+  /* One function answers "which tone is this?", so the lit chip is a view of
+     the box rather than a memory of the last click. */
+  ok('one function decides which chip is lit', /function cmToneOf\(/.test(admin));
+  ok('...and it reads the box, not the click',
+    admin.includes('const syncTone = ()') && admin.includes('cmToneOf(colorEl ? colorEl.value.trim()'));
+  ok('typing a colour re-lights the chips', /paint\(\);\s*syncTone\(\);/.test(admin),
+    'otherwise Custom never lights up on its own');
+
+  /* Normal is the empty string. Both halves of the round trip must keep it. */
+  ok('an empty colour is saved as a real choice',
+    admin.includes('if (colourEl && color !== def.color) entry.color = color;'),
+    "`color &&` dropped Normal on the floor");
+  ok('...and is read back rather than replaced by the default',
+    admin.includes('const colr = hasColor ? entry.color : def.color;'));
+  /* The module's own loader has always mapped a stored empty to inherit; only
+     the admin's write refused to produce one. Read it directly rather than
+     borrowing a `src` from an unrelated block above. */
+  const mod = fs.readFileSync(path.join(ROOT, 'customer-messages.js'), 'utf8');
+  ok('...and the loader has always understood one', mod.includes("c === ''"));
+
+  /* The preview is the only place a store owner checks this, so it has to
+     show inherit rather than the colour Normal was chosen INSTEAD of. */
+  ok('the preview shows Normal as inherit',
+    admin.includes("preview.style.color = (colorEl && colorEl.value.trim()) || '';"),
+    'falling back to def.color previewed the shipped red for a plain message');
+
+  /* A native picker cannot hold var(--red,#dc2626) or an rgba(). */
+  /* Anchored to the MARKUP. Matching the bare class name passed even when the
+     input was renamed, because the same string appears in the querySelector
+     that wires it up — a check that a thing is referenced, not that it exists. */
+  ok('there is a colour picker for the custom case',
+    admin.includes('<input type=\"color\" class=\"cm-color-pick\"')
+      && admin.includes("querySelector('.cm-color-pick')"));
+  ok('...and it only writes when actually used',
+    /pickEl\.addEventListener\('input'/.test(admin)
+      && admin.includes('colorEl.value = pickEl.value;'),
+    'seeding it back into the box would flatten a CSS variable to a hex on open');
+  ok('...and the text box stays the authority',
+    admin.includes("class=\"form-input cm-color\""),
+    'it is the only control that can hold var() or rgba()');
+
+  /* Clicking Custom must not invent or destroy a value. */
+  ok('choosing Custom keeps what is in the box', admin.includes('colorEl.focus();')
+    && admin.includes('if (c === null) {'),
+    'blanking it would throw away the value you came to edit');
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

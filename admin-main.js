@@ -5970,8 +5970,15 @@
                        defaults. */
                     const saved_ = entry && entry.text !== undefined && entry.text !== null ? entry.text : '';
                     const text = saved_ || def.text;
-                    const savedColor_ = entry && entry.color !== undefined && entry.color !== null ? entry.color : '';
-                    const colr = savedColor_ || def.color;
+                    /* AN EXPLICIT "NORMAL" IS NOT THE SAME AS "UNSET".
+                       Normal is the empty string — it means "inherit the
+                       surrounding text" — so `savedColor_ || def.color` threw
+                       away a stored Normal and showed the default instead. On any
+                       message whose default is Alert or Positive that made Normal
+                       impossible to choose: pick it, save, reopen, and the old
+                       colour is back. Presence decides, not truthiness. */
+                    const hasColor = !!(entry && entry.color !== undefined && entry.color !== null);
+                    const colr = hasColor ? entry.color : def.color;
                     const tokens = M.PLACEHOLDERS[key] || [];
 
                     /* The tokens are BUTTONS, not something to type. Writing
@@ -6003,7 +6010,7 @@
                        scrolling to one button at the bottom to change a single
                        sentence is its own small tax, and a per-row save means a
                        mistake in one message cannot block saving the rest. */
-                    const swatch = colr || def.color || 'transparent';
+                    const swatch = colr || 'transparent';
                     return ''
                         + '<div class="form-group" style="margin-bottom:18px" data-cm-key="' + esc(key) + '">'
                         +   '<label class="form-label" style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">'
@@ -6081,7 +6088,7 @@
                    the browser does with any colour it cannot parse. */
                 if (colorEl && swatchEl) {
                     colorEl.addEventListener('input', () => {
-                        swatchEl.style.background = colorEl.value.trim() || def.color || 'transparent';
+                        swatchEl.style.background = colorEl.value.trim() || 'transparent';
                     });
                 }
                 /* The finished sentence, filled in and coloured, updating as it
@@ -6098,7 +6105,12 @@
                     if (!preview) return;
                     const raw = (textEl && textEl.value.trim()) || def.text;
                     preview.textContent = M.render(raw) || '(nothing)';
-                    preview.style.color = (colorEl && colorEl.value.trim()) || def.color || '';
+                    /* No fallback to def.color here: the box is pre-filled with
+                       the default, so an EMPTY box means Normal (inherit) was
+                       chosen rather than nothing being set. Falling back
+                       previewed the shipped red for a message a shopper would
+                       actually see in plain text. */
+                    preview.style.color = (colorEl && colorEl.value.trim()) || '';
                 };
                 paint();
 
@@ -6106,19 +6118,60 @@
                     el.addEventListener('input', () => {
                         if (note) { note.textContent = ''; note.style.color = 'var(--text-secondary)'; }
                         paint();
+                        syncTone();
                     });
                 });
+
+                /* ONE FUNCTION DECIDES WHICH CHIP IS LIT, and it reads the box.
+                   The old version lit whichever chip had just been clicked, so
+                   the highlight was a record of the last click rather than a
+                   description of the value — type over it afterwards and three
+                   chips still claimed to be selected. Now the box is the truth
+                   and the chips are a view of it, which is also what makes
+                   Custom light up on its own when you type your own colour. */
+                const pickEl = row.querySelector('.cm-color-pick');
+                const syncTone = () => {
+                    const tone = cmToneOf(colorEl ? colorEl.value.trim() : '');
+                    row.querySelectorAll('.cm-swatch-btn').forEach((b) => {
+                        const on = b.getAttribute('data-tone') === tone;
+                        b.style.borderColor = on ? 'var(--accent,#F891A5)' : 'var(--border)';
+                        if (b.getAttribute('data-tone') === 'Custom') {
+                            const dot = b.querySelector('.cm-chip-dot');
+                            if (dot) dot.style.background = on ? ((colorEl && colorEl.value.trim()) || '#888888') : 'transparent';
+                        }
+                    });
+                };
+                syncTone();
 
                 row.querySelectorAll('.cm-swatch-btn').forEach((btn) => {
                     btn.addEventListener('click', () => {
                         if (!colorEl) return;
-                        colorEl.value = btn.getAttribute('data-color');
+                        const c = btn.getAttribute('data-color');
+                        /* Custom carries no colour of its own. Clicking it keeps
+                           whatever is in the box and puts the cursor there —
+                           blanking it would throw away the value you came to
+                           edit, and seeding a colour would invent a choice. */
+                        if (c === null) {
+                            colorEl.focus();
+                            colorEl.select();
+                            syncTone();
+                            return;
+                        }
+                        colorEl.value = c;
                         colorEl.dispatchEvent(new Event('input', { bubbles: true }));
-                        row.querySelectorAll('.cm-swatch-btn').forEach((b) => {
-                            b.style.borderColor = (b === btn) ? 'var(--accent,#F891A5)' : 'var(--border)';
-                        });
                     });
                 });
+
+                /* Writes on use only. Its value is seeded so the picker opens
+                   somewhere sensible, but nothing copies that back — otherwise
+                   opening a row whose colour is var(--red,#dc2626) would flatten
+                   it to a hex without anyone touching it. */
+                if (pickEl && colorEl) {
+                    pickEl.addEventListener('input', () => {
+                        colorEl.value = pickEl.value;
+                        colorEl.dispatchEvent(new Event('input', { bubbles: true }));
+                    });
+                }
 
                 row.querySelectorAll('.cm-token').forEach((btn) => {
                     btn.addEventListener('click', () => {
@@ -6153,19 +6206,44 @@
             const esc = (str) => String(str == null ? '' : str)
                 .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
             const recommended = M.paletteName ? M.paletteName(def.color) : null;
-            const chips = (M.PALETTE || []).map((p) => {
-                const on = String(current || def.color) === p.value;
-                return '<button type="button" class="cm-swatch-btn" data-color="' + esc(p.value) + '"'
-                    + ' title="' + esc(p.note) + '"'
-                    + ' style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;cursor:pointer;'
-                    +   'font-size:.72rem;background:transparent;color:var(--text-primary);'
-                    +   'border:1px solid ' + (on ? 'var(--accent,#F891A5)' : 'var(--border)') + '">'
-                    +   '<span style="width:10px;height:10px;border-radius:50%;border:1px solid var(--border);background:'
-                    +     esc(p.value || 'transparent') + '"></span>'
-                    +   esc(p.name)
-                    +   (p.name === recommended ? '<span style="opacity:.5;font-size:.66rem">recommended</span>' : '')
-                    + '</button>';
-            }).join('');
+            const tone = cmToneOf(current);
+
+            const chip = (name, value, note, dot, on) => ''
+                + '<button type="button" class="cm-swatch-btn" data-tone="' + esc(name) + '"'
+                +   (value === null ? '' : ' data-color="' + esc(value) + '"')
+                +   ' title="' + esc(note) + '"'
+                +   ' style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;cursor:pointer;'
+                +     'font-size:.72rem;background:transparent;color:var(--text-primary);'
+                +     'border:1px solid ' + (on ? 'var(--accent,#F891A5)' : 'var(--border)') + '">'
+                +   '<span class="cm-chip-dot" style="width:10px;height:10px;border-radius:50%;border:1px solid var(--border);background:'
+                +     esc(dot) + '"></span>'
+                +   esc(name)
+                +   (name === recommended ? '<span style="opacity:.5;font-size:.66rem">recommended</span>' : '')
+                + '</button>';
+
+            const chips = (M.PALETTE || []).map((p) =>
+                chip(p.name, p.value, p.note, p.value || 'transparent', p.name === tone)).join('')
+                /* CUSTOM IS THE ABSENCE OF A MATCH, so it is a chip here and NOT
+                   an entry in ZWMessages.PALETTE. That list maps a value to a
+                   meaning in both directions — paletteName() answers "which role
+                   is this colour?" — and Custom has no value to give it. Adding
+                   it there would need a fourth role colour that means "no
+                   particular role", which is a contradiction the storefront
+                   would then have to render.
+
+                   Before this, typing your own colour simply left every chip
+                   unlit: the panel had a custom state and no way to say so, and
+                   no way back to it once you had clicked one of the three. */
+                + chip('Custom', null, 'any CSS colour you like',
+                       tone === 'Custom' ? (current || '#888888') : 'transparent',
+                       tone === 'Custom');
+
+            /* The text box stays the authority. It is the only one of the three
+               controls that can hold var(--red,#dc2626) or an rgba(), which is
+               what the shipped values ARE — a native picker cannot represent
+               either and would flatten them to an opaque hex. */
+            const pick = /^#[0-9a-fA-F]{6}$/.test(String(current || '').trim())
+                ? String(current).trim() : '#888888';
 
             return ''
                 + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0 0">'
@@ -6173,9 +6251,25 @@
                 +   '<input type="text" class="form-input cm-color" aria-label="Custom colour"'
                 +     ' style="flex:0 1 190px;min-width:140px;padding:4px 8px;font-size:.75rem"'
                 +     ' value="' + esc(current) + '" placeholder="or any CSS colour">'
+                /* Seeded but never read back on its own. It writes only when a
+                   person actually uses it, so opening a row whose colour is a
+                   CSS variable cannot silently rewrite it to this fallback. */
+                +   '<input type="color" class="cm-color-pick" aria-label="Pick a colour"'
+                +     ' value="' + esc(pick) + '"'
+                +     ' style="width:30px;height:26px;flex:none;padding:0;border:1px solid var(--border);'
+                +     'border-radius:5px;background:transparent;cursor:pointer">'
                 +   '<span class="cm-swatch" title="Colour preview" style="width:22px;height:22px;flex:none;border:1px solid var(--border);border-radius:5px;background:'
-                +     esc(current || def.color || 'transparent') + '"></span>'
+                +     esc(current || 'transparent') + '"></span>'
                 + '</div>';
+        }
+
+        /* WHICH TONE A VALUE IS — asked in one place so the lit chip and the box
+           cannot disagree. Normal is the empty string (inherit), so this matches
+           the exact value rather than treating empty as "nothing chosen". */
+        function cmToneOf(value) {
+            const M = window.ZWMessages;
+            const n = M && M.paletteName ? M.paletteName(value) : null;
+            return n || 'Custom';
         }
 
 
@@ -6488,7 +6582,8 @@
             const M = window.ZWMessages;
             const def = (M && M.DEFAULTS[key]) || { text: '', color: '' };
             const text = String(row.querySelector('.cm-text')?.value || '').trim();
-            const color = String(row.querySelector('.cm-color')?.value || '').trim();
+            const colourEl = row.querySelector('.cm-color');
+            const color = String(colourEl?.value || '').trim();
             const entry = {};
             /* Only a CHANGE is stored. The boxes are pre-filled with the shipped
                wording so they can be edited in place, so most of them will come
@@ -6497,7 +6592,13 @@
                a later improvement to the shipped copy would never reach a store
                that had once pressed Save. */
             if (text && text !== def.text) entry.text = text;
-            if (color && color !== def.color) entry.color = color;
+            /* Compared to the default rather than tested for truth, because ''
+               IS a colour choice here — Normal, i.e. inherit. The old `color &&`
+               dropped it on the floor, so choosing Normal on a message that
+               ships red saved nothing and the red came straight back. The loader
+               has always understood a stored empty string (c === '' -> inherit);
+               only the write refused to produce one. */
+            if (colourEl && color !== def.color) entry.color = color;
             return { row, entry };
         }
 
