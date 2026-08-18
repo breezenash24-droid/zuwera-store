@@ -299,20 +299,37 @@
       if (nt === was) return;
       var id = 'ite' + (++pendSeq);
       pending[id] = { el: el, was: was };
+      var anchorAttr = el.getAttribute('data-zw-was');
       var msg;
       if (field) {
         msg = { type: 'ZW_CHROME_TEXT', id: id, field: field, newText: nt };
       } else if (sec) {
-        msg = { type: 'ZW_INLINE_TEXT', id: id, sectionId: sec, oldText: was, newText: nt };
+        /* BEING IN A SECTION IS A PREFERENCE, NOT AN EXCLUSION.
+
+           A section owns only the strings it has settings for. The release
+           section, for instance, has four — eyebrow, title, notify_label and the
+           launch date — while "LAUNCHING IN", "DAYS", "No spam, ever." and the
+           button are plain markup with no field behind them. That is the normal
+           case, not the exception: most words inside a section are template copy.
+
+           Sending the section id alone meant the builder could only answer "no
+           field holds that" and reject, which visibly snapped the words back and
+           put the majority of the page out of reach. The page and path travel
+           with it so the builder can fall through to an override in the same
+           round trip: a real section field still wins, and everything else lands
+           somewhere instead of nowhere. */
+        msg = {
+          type: 'ZW_INLINE_TEXT', id: id, sectionId: sec, oldText: was, newText: nt,
+          page: pageKey(), path: elPath(el), was: anchorAttr != null ? anchorAttr : was
+        };
       } else {
         /* data-zw-was is the ORIGINAL, kept by applyOverrides when it painted an
            earlier override. Editing twice must not record the first edit as the
            text being replaced, or the override stops matching the template and
            silently stops applying. */
-        var anchor = el.getAttribute('data-zw-was');
         msg = {
           type: 'ZW_TEXT_OVERRIDE', id: id, page: pageKey(), path: elPath(el),
-          was: anchor != null ? anchor : was, newText: nt
+          was: anchorAttr != null ? anchorAttr : was, newText: nt
         };
       }
       try { window.parent.postMessage(msg, location.origin); } catch (_) {}

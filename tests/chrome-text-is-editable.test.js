@@ -48,17 +48,30 @@ function lift(name) {
   throw new Error('unbalanced: ' + name);
 }
 
+let sections = [];
 const sandbox = {
   chromeNav: null, chromeBar: null, chromeCopy: {}, chromeDirty: false,
   markDirty() {}, showErr() {}, console,
+  curSections: () => sections, curApply() {}, curDirty() {}, openEditor() {}, selId: null,
 };
 vm.createContext(sandbox);
 vm.runInContext(
   'var markChromeDirty = function(){ chromeDirty = true; };\n' +
-  [lift('applyChromeField'), lift('applyTextOverride')].join('\n') +
+  [lift('applyChromeField'), lift('applyTextOverride'),
+   lift('_zwNormText'), lift('_zwLoose'), lift('_zwStringSlots'), lift('applyInlineText')].join('\n') +
   '\nvar sendChrome = function(){};',
   sandbox
 );
+
+/* Exactly what the message dispatcher does: prefer a section field, fall
+   through to an override when no field holds the text. */
+function canvasEdit(d) {
+  let r = sandbox.applyInlineText(d.sectionId, d.oldText, d.newText);
+  if (r && !r.ok && r.canOverride && d.path) {
+    r = sandbox.applyTextOverride(d.page, d.path, d.was != null ? d.was : d.oldText, d.newText);
+  }
+  return r;
+}
 const setState = (nav, bar, copy) => {
   sandbox.chromeNav = nav; sandbox.chromeBar = bar; sandbox.chromeCopy = copy;
   sandbox.chromeDirty = false;
@@ -118,6 +131,55 @@ console.log('\nCopy nobody owns gets an override, anchored to the original');
     sandbox.chromeCopy['/about']['h1:0'].now === 'Our story' &&
     sandbox.chromeCopy['/']['h1:0'].now === 'Welcome',
     'the same element path means different things on different pages');
+}
+
+console.log('\nTemplate copy INSIDE a section still gets saved');
+{
+  /* THE REGRESSION THIS EXISTS FOR. Being inside a section was treated as
+     final, so text the section had no field for was refused — and the preview
+     snapped the words straight back. That is most of the page: the release
+     section is settings-driven for four strings (eyebrow, title, notify_label,
+     launch date) while "LAUNCHING IN", "DAYS", "No spam, ever." and the button
+     are plain markup with nothing behind them. A section is a PREFERENCE now,
+     not an exclusion. */
+  sections = [{ id: 'rel', settings: { eyebrow: 'Zuwera Release 001', notify_label: 'Get Early Access' } }];
+  setState([], {}, {});
+  const r = canvasEdit({ sectionId: 'rel', oldText: 'No spam, ever.', newText: 'We never share it.',
+                         page: '/', path: 'p.notify-hint:2', was: 'No spam, ever.' });
+  ok('markup with no field falls through to an override', r.ok === true,
+    'this is the edit that used to be rejected and visibly reverted');
+  ok('and it is stored as page copy', sandbox.chromeCopy['/']['p.notify-hint:2'].now === 'We never share it.');
+  ok('anchored to the template words', sandbox.chromeCopy['/']['p.notify-hint:2'].was === 'No spam, ever.');
+
+  /* A real field must still win, or the same string is stored twice and the two
+     copies can disagree — the fault this whole area keeps producing. */
+  setState([], {}, {});
+  sections = [{ id: 'rel', settings: { notify_label: 'Get Early Access' } }];
+  const r2 = canvasEdit({ sectionId: 'rel', oldText: 'Get Early Access', newText: 'Early access',
+                          page: '/', path: 'p.notify-label:0', was: 'Get Early Access' });
+  ok('a section field still wins over an override',
+    r2.ok === true && sections[0].settings.notify_label === 'Early access');
+  ok('...and no override is written for it', !sandbox.chromeCopy['/']);
+
+  /* End to end for the uppercase case: CSS-transformed text matched loosely
+     must land in the field, not become a stray override beside it. */
+  setState([], {}, {});
+  sections = [{ id: 'rel', settings: { notify_label: 'Get Early Access' } }];
+  canvasEdit({ sectionId: 'rel', oldText: 'GET EARLY ACCESS', newText: 'Join up',
+               page: '/', path: 'p.notify-label:0', was: 'GET EARLY ACCESS' });
+  ok('an uppercase-styled label still reaches its field',
+    sections[0].settings.notify_label === 'Join up' && !sandbox.chromeCopy['/']);
+
+  setState([], {}, {});
+  sections = [];
+  ok('a section that no longer exists does not lose the words',
+    canvasEdit({ sectionId: 'gone', oldText: 'Some words', newText: 'Other words',
+                 page: '/', path: 'p:0', was: 'Some words' }).ok === true);
+
+  ok('the dispatcher wires the fall-through', /r\.canOverride&&d\.path\) r=applyTextOverride/.test(B));
+  ok('and the preview sends the path alongside the section id',
+    /type: 'ZW_INLINE_TEXT', id: id, sectionId: sec[\s\S]{0,160}path: elPath\(el\)/.test(COPY),
+    'without it the builder has nothing to fall through to');
 }
 
 console.log('\nThe preview asks the right owner');

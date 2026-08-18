@@ -2307,7 +2307,7 @@ function _zwStringSlots(root){
    words, nothing was marked dirty, and the change was gone at publish time. */
 function applyInlineText(secId,oldText,newText){
   const s=curSections().find(x=>x.id===secId);
-  if(!s||!s.settings) return {ok:false,reason:'That block has no saved settings, so its text cannot be edited here.'};
+  if(!s||!s.settings) return {ok:false,canOverride:true,reason:'That block has no saved settings.'};
   const target=_zwNormText(oldText);
   if(!target) return {ok:false,reason:'Could not read the original text.'};
 
@@ -2316,7 +2316,11 @@ function applyInlineText(secId,oldText,newText){
      loose pass so an exact field always wins over a near neighbour. */
   let hit=slots.find(sl=>_zwNormText(sl.holder[sl.key])===target)
         || slots.find(sl=>_zwLoose(sl.holder[sl.key])===_zwLoose(target));
-  if(!hit) return {ok:false,reason:'This text is not one of the block’s saved fields — it comes from the page template, so editing it here would not survive Publish.'};
+  /* NOT a refusal -- an invitation to try the other store. Most words inside a
+     section are template markup with no settings field behind them, so this
+     branch is the common case, and answering 'no' here is what snapped the
+     majority of the page's text back to what it was. */
+  if(!hit) return {ok:false,canOverride:true,reason:'No saved field holds that text.'};
 
   hit.holder[hit.key]=newText;
   curApply(); curDirty();
@@ -2411,7 +2415,13 @@ window.addEventListener('message',function(e){
   if(d.type==='ZW_CHROME_TEXT'&&d.field){ _answerCanvasEdit(d,applyChromeField(d.field,d.newText)); return; }
   if(d.type==='ZW_TEXT_OVERRIDE'&&d.path){ _answerCanvasEdit(d,applyTextOverride(d.page,d.path,d.was,d.newText)); return; }
   if(d.type==='ZW_INLINE_TEXT'&&d.sectionId){
-    _answerCanvasEdit(d,applyInlineText(d.sectionId,d.oldText,d.newText));
+    let r=applyInlineText(d.sectionId,d.oldText,d.newText);
+    /* A section field is preferred, not required. When none holds this text it
+       is template copy, which is precisely what text_overrides exists for --
+       so fall through rather than reject. Same round trip: the preview sent
+       the page and path with the section id for exactly this. */
+    if(r&&!r.ok&&r.canOverride&&d.path) r=applyTextOverride(d.page,d.path,d.was!=null?d.was:d.oldText,d.newText);
+    _answerCanvasEdit(d,r);
     return;
   }
   if(d.type==='ZW_INLINE_FONT'&&d.sectionId){ applyInlineFont(d.sectionId,d.which,d.value); return; }
