@@ -160,6 +160,57 @@ console.log('\n  a clean slate is reachable directly');
     'the read must not be scoped to the open sections');
 }
 
+console.log('\n  an empty preset looks empty');
+{
+  /* The candidate list sat open directly under the words "Contents of X", so a
+     preset holding nothing displayed eleven products beneath the heading naming
+     its own contents. It meant "things you could add"; it read as "what is in
+     here". Reported exactly that way: "I started with an empty preset, it should
+     remove all of the products from below". */
+  ok('the picker is shut until asked for',
+    EDITOR.includes('<details style="margin-top:12px;"') && EDITOR.includes('+ Add products'),
+    'an empty preset must not list the whole catalogue under its own contents');
+  ok('...and says how many are outside the preset', EDITOR.includes('not in this preset'));
+
+  /* A re-render would drop ticks made before it was shut; <details> keeps its
+     inputs in the DOM, which is why this is a disclosure and not a state flag. */
+  ok('shutting it cannot lose a tick',
+    lift('_readPresetEditorSelection').includes("querySelectorAll('#presetEditor input[type=\"checkbox\"]')"),
+    'the read walks the whole panel, so the picker must stay in the DOM when closed');
+  ok('the heading no longer promises a list that is not shown',
+    !EDITOR.includes('Tick what belongs in this preset') && EDITOR.includes('+ Add products</strong>'));
+}
+
+console.log('\n  the buttons say what they do');
+{
+  /* Seven verbs with no object - "Update" what, with what, and does the shop
+     move? Colour carries the cost; the strip carries the meaning. */
+  const helps = (HTML.match(/data-help="/g) || []).length;
+  ok('every preset action carries an explanation', helps >= 7, 'found ' + helps);
+  ok('there is somewhere to show it', HTML.includes('id="presetHelp"'));
+  ok('...and it is announced to screen readers', HTML.includes('aria-live="polite"'));
+
+  const BIND = lift('bindPresetHelp');
+  ok('hover, focus and click all explain',
+    BIND.includes("'mouseenter'") && BIND.includes("'focus'") && BIND.includes("'click'"),
+    'a title attribute answers only the first of those');
+  /* Four of the seven start disabled and fire no pointer events of their own. */
+  ok('a disabled button can still be explained',
+    BIND.includes('.zw-preset-actions') && BIND.includes('mousemove'),
+    'otherwise the four that start disabled are the four you can never get help for');
+  ok('...and says why it is disabled rather than describing what it will not do',
+    BIND.includes('pick a preset first'));
+  ok('binding twice does not stack listeners', BIND.includes('box.dataset.bound'),
+    'renderProductPresets runs on every change');
+
+  /* Colour is the consequence. Only one of these is visible to a customer. */
+  ok('Make live is the only one coloured as publishing', HTML.includes('#16a34a'));
+  ok('overwriting is warned in amber', HTML.includes('#d97706'));
+  ok('removing is red', HTML.includes('#dc2626'));
+  ok('the resting text names the one customers see',
+    HTML.includes('is the only button here that changes what customers see'));
+}
+
 console.log('\n  there is a way back out');
 {
   ok('a banked row offers Unbank instead of Archive', /unbankProduct\('\$\{productId\}'\)/.test(MAIN));

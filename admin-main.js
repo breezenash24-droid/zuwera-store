@@ -9150,6 +9150,7 @@
 
         function renderProductPresets() {
             renderBankChip();
+            bindPresetHelp();
             const wrap = document.getElementById('productPresetChips');
             if (!wrap) return;
             const list = _productPresets.presets || [];
@@ -9199,6 +9200,46 @@
                and take the chips, the buttons and the bank note with it. */
             const ed = document.getElementById('presetEditor');
             if (ed && ed.style.display !== 'none') renderPresetEditor();
+        }
+
+        /* WHAT THIS BUTTON DOES, in words, next to the button.
+           Seven buttons in a row reading Make live / Edit contents / Save current
+           as / Save empty / Update / Rename / Delete are seven verbs with no
+           object: "Update" what, with what, and does the shop move? Colour says
+           how much a button costs you; this says what it is for. Bound to hover,
+           focus AND click so pointing, tabbing and pressing all explain the same
+           thing — a tooltip only answers the first of those. */
+        function bindPresetHelp() {
+            const box = document.getElementById('presetHelp');
+            if (!box || box.dataset.bound) return;
+            box.dataset.bound = '1';
+            const resting = box.innerHTML;
+            const show = (el) => {
+                const t = el && el.getAttribute('data-help');
+                if (!t) return;
+                /* Says so rather than explaining an action that will not happen —
+                   a disabled button with a confident description reads as broken. */
+                const off = el.disabled ? ' <em style="opacity:.8;">(pick a preset first)</em>' : '';
+                box.innerHTML = '<strong>' + escapeHtml(el.textContent.trim()) + '</strong> — '
+                    + escapeHtml(t) + off;
+            };
+            const rest = () => { box.innerHTML = resting; };
+            document.querySelectorAll('.zw-preset-actions [data-help]').forEach((b) => {
+                /* A disabled button fires no pointer events, so the listener goes on
+                   the button AND the row — otherwise the four that start disabled
+                   are the four you can never get an explanation for. */
+                b.addEventListener('mouseenter', () => show(b));
+                b.addEventListener('focus', () => show(b));
+                b.addEventListener('click', () => show(b));
+            });
+            const row = document.querySelector('.zw-preset-actions');
+            if (row) {
+                row.addEventListener('mousemove', (e) => {
+                    const b = e.target && e.target.closest ? e.target.closest('[data-help]') : null;
+                    if (b) show(b);
+                });
+                row.addEventListener('mouseleave', rest);
+            }
         }
 
         /* Selecting is not publishing. Nothing about the storefront changes here. */
@@ -9271,16 +9312,29 @@
                 '<div style="border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;background:rgba(0,0,0,.18);">'
                 + '<div style="font-size:.8rem;font-weight:600;margin-bottom:2px;">Contents of “' + escapeHtml(p.name) + '”</div>'
                 + '<div style="font-size:.72rem;color:var(--text-secondary);margin-bottom:10px;">'
-                + 'Tick what belongs in this preset and put it in order. <strong>Nothing here changes the storefront</strong> — press “Make live” when you want it published.</div>'
+                + 'What is in this preset, in the order it will appear. Use <strong>+ Add products</strong> to put more in. '
+                + '<strong>Nothing here changes the storefront</strong> — press “Make live” when you want it published.</div>'
                 + (inOrder.length
                     ? '<div style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin:8px 0 4px;">In this preset · in order</div>'
                       + inOrder.map((x, i) => row(x, i, true)).join('')
                     : '<div style="font-size:.78rem;color:var(--text-secondary);padding:6px 0;">Nothing in it yet — this preset clears the storefront.</div>')
-                + '<div style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin:12px 0 4px;">Everything else</div>'
-                + (rest.length ? rest.map(x => row(x, -1, false)).join('')
-                               : '<div style="font-size:.78rem;color:var(--text-secondary);">'
-                                 + (banked.length ? 'Nothing outside the bank — a clean slate.' : 'Every product is in this preset.')
-                                 + '</div>')
+                /* THE PICKER IS SHUT UNTIL ASKED FOR.
+                   It used to sit open under the heading "Contents of X", so an
+                   EMPTY preset showed eleven products directly beneath the words
+                   naming its contents. The list meant "candidates"; it read as
+                   "what is in here". An empty preset should look empty.
+
+                   A <details> rather than a re-render, so the checkboxes stay in
+                   the DOM while it is shut and a tick survives closing it —
+                   _readPresetEditorSelection() walks the whole panel and would
+                   otherwise silently drop anything the user had chosen. */
+                + (rest.length
+                    ? '<details style="margin-top:12px;"><summary style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px dashed var(--border);border-radius:6px;font-size:.76rem;color:var(--text-secondary);">'
+                      + '+ Add products <span style="opacity:.6;">· ' + rest.length + ' not in this preset</span></summary>'
+                      + '<div style="margin-top:6px;">' + rest.map(x => row(x, -1, false)).join('') + '</div></details>'
+                    : '<div style="font-size:.78rem;color:var(--text-secondary);margin-top:12px;">'
+                      + (banked.length ? 'Nothing outside the bank — a clean slate.' : 'Every product is in this preset.')
+                      + '</div>')
                 + (banked.length
                     ? '<details style="margin-top:10px;"><summary style="cursor:pointer;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);">'
                       + 'In the bank · ' + banked.length + ' <span style="text-transform:none;letter-spacing:0;opacity:.7;">(click to show)</span></summary>'
