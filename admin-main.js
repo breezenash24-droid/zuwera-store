@@ -893,7 +893,24 @@
                 const saved = sessionStorage.getItem('zw_admin_page');
                 if (saved && ADMIN_PAGES.some(p => p.id === saved)) startPage = saved;
             } catch(_) {}
+            /* A #hash beats the remembered page: it is an explicit request from
+               whoever sent the link, and the remembered page is only a default.
+
+               This exists because the admin had no hash routing at all, while
+               other tools linked into it as though it did — builder.html has
+               pointed at /admin.html#fonts for as long as it has had a
+               read-only Typography block, and that link has always dropped
+               people on the dashboard instead. A deep link that silently lands
+               somewhere else is the same failure as a button that silently
+               saves nothing. */
+            const hashPage = zwPageFromHash();
+            if (hashPage) startPage = hashPage;
             navigateTo(startPage);
+            /* Same tab, hash changed (a second link, or the back button). */
+            window.addEventListener('hashchange', () => {
+                const p = zwPageFromHash();
+                if (p) navigateTo(p);
+            });
         }
 
         function showAccessDenied(errorMsg = null) {
@@ -1008,6 +1025,33 @@
                     navigateTo(link.dataset.page);
                 });
             });
+        }
+
+        /* #hash → admin page id, or null if the hash names nothing real.
+
+           ALIASES exist because a link is written where the reader is, not
+           where the page ended up. Typography, the announcement bar and the
+           navigation menu are all sections OF the Appearance page rather than
+           pages of their own, and things link to them by the name on the
+           heading. Resolving those here means a stale link lands on the right
+           page instead of silently on the dashboard — and it costs one entry
+           per alias to keep an old link honest after a section moves. */
+        const ZW_HASH_ALIASES = {
+            fonts: 'website', typography: 'website', appearance: 'website',
+            announcement: 'website', nav: 'website', navigation: 'website',
+            theme: 'website', themes: 'website',
+        };
+        function zwPageFromHash() {
+            let h = '';
+            try { h = String(location.hash || '').replace(/^#/, '').trim().toLowerCase(); } catch (_) { return null; }
+            if (!h) return null;
+            const id = ZW_HASH_ALIASES[h] || h;
+            if (typeof ADMIN_PAGES === 'undefined') return null;
+            if (!ADMIN_PAGES.some(p => p.id === id)) return null;
+            /* Permission is navigateTo's call, not ours — it already redirects
+               to the first allowed page. Returning the id keeps that one
+               decision in one place. */
+            return id;
         }
 
         function navigateTo(page) {
