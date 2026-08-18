@@ -2304,12 +2304,45 @@ function showToast(msg) {
     // tagging needed). Gated to preview mode; the live store is untouched.
     window.__zwTextEditMode = false;
     (function initInlineTextEdit() {
-      var EDITABLE = /^(H[1-6]|P|SPAN|A|LI|BLOCKQUOTE|SUMMARY|STRONG|EM|DIV|BUTTON)$/;
+      /* WHAT COUNTS AS TEXT YOU CAN CLICK.
+         This was a short allow-list, and everything it forgot was simply not
+         editable, with no indication why: LABEL, SMALL, FIGCAPTION, TD/TH,
+         DT/DD, B/I, TIME and the rest below. The list now covers everything
+         that carries copy, and the decision that actually matters is made by
+         isTextLeaf() rather than by tag name. */
+      var EDITABLE = /^(H[1-6]|P|SPAN|A|LI|BLOCKQUOTE|SUMMARY|STRONG|EM|DIV|BUTTON|LABEL|SMALL|FIGCAPTION|CAPTION|LEGEND|DT|DD|TD|TH|B|I|U|S|MARK|ABBR|CITE|TIME|CODE|Q|SUB|SUP|ADDRESS|PRE|OUTPUT|DATA)$/;
+      /* A leaf is an element with no ELEMENT child that itself holds text.
+         The old test asked querySelector('h1..h6,p,a,button,li,span'), which
+         omitted div -- so a div wrapping divs read as a leaf and was editable
+         as one block, while a div wrapping a single span was refused. Asking
+         about text instead of about tags gets both right. */
+      function isTextLeaf(el){
+        if (!el || !el.children) return false;
+        for (var i = 0; i < el.children.length; i++) {
+          if ((el.children[i].textContent || '').trim()) return false;
+        }
+        return true;
+      }
+      /* Climb from whatever was under the cursor to the nearest thing worth
+         editing. Clicking the padding of a <label>, or a bare text node, used
+         to land on an element the allow-list rejected and do nothing at all --
+         the single biggest reason text 'was not editable'. */
+      function editableFrom(node, sec){
+        var el = (node && node.nodeType === 3) ? node.parentElement : node;
+        while (el && el !== sec && el !== document.body) {
+          if (EDITABLE.test(el.tagName) && (el.textContent || '').trim() && isTextLeaf(el)) return el;
+          el = el.parentElement;
+        }
+        return null;
+      }
       var FONTS_HEAD = [['','Default font'],['barlow-condensed','Barlow Condensed'],['oswald','Oswald'],['bebas-neue','Bebas Neue'],['anton','Anton'],['league-gothic','League Gothic'],['michroma','Michroma'],['montserrat','Montserrat'],['syne','Syne'],['archivo-black','Archivo Black'],['teko','Teko'],['righteous','Righteous'],['playfair-display','Playfair Display'],['cinzel','Cinzel'],['futura','Futura'],['futura-100-demibold','Futura 100 Demibold']];
       var FONTS_BODY = [['','Default font'],['barlow','Barlow'],['inter','Inter'],['dm-sans','DM Sans'],['outfit','Outfit'],['manrope','Manrope'],['poppins','Poppins'],['lato','Lato'],['roboto','Roboto'],['work-sans','Work Sans'],['mulish','Mulish'],['futura','Futura']];
       var st = document.createElement('style');
       st.textContent =
-        'body.zw-text-edit [data-zw-sec] :is(h1,h2,h3,h4,h5,h6,p,span,a,li,blockquote,summary){cursor:text}'
+        'body.zw-text-edit [data-zw-sec] :is(h1,h2,h3,h4,h5,h6,p,span,a,li,blockquote,summary,label,small,figcaption,dt,dd,td,th,b,i,time,button,div){cursor:text}'
+      + '.zw-ite-rej{position:fixed;z-index:2147483001;max-width:280px;background:#2a1113;border:1px solid #e07060;color:#f4b8a0;border-radius:7px;padding:.45rem .6rem;font-family:system-ui,-apple-system,sans-serif;font-size:.72rem;line-height:1.45;box-shadow:0 8px 26px rgba(0,0,0,.55)}'
+      + '@keyframes zw-ite-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}'
+      + '.zw-ite-shake{animation:zw-ite-shake .22s ease 2}'
       + 'body.zw-text-edit .zw-ite-hi{outline:2px dashed rgba(248,145,165,.7);outline-offset:2px;border-radius:2px}'
       + 'body.zw-text-edit [contenteditable="true"]{outline:2px solid rgba(248,145,165,.95);outline-offset:2px;border-radius:2px;cursor:text}'
       + '#zw-ite-bar{position:fixed;z-index:2147483000;background:#141416;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:.4rem .5rem;display:flex;gap:.45rem;align-items:center;box-shadow:0 8px 26px rgba(0,0,0,.55);font-family:system-ui,-apple-system,sans-serif}'
@@ -2329,7 +2362,15 @@ function showToast(msg) {
         return '';
       }
       function isHeading(el){ return /^H[1-6]$/.test(el.tagName); }
-      function txt(el){ return (el.innerText || '').replace(/ /g,' ').replace(/[ \t]+\n/g,'\n').replace(/\s+$/,''); }
+      /* textContent, NOT innerText. innerText returns the RENDERED text, and
+         Chrome applies text-transform to it -- so a label styled
+         `text-transform:uppercase` (index.html:917 does exactly that to
+         .notify-label) read back as 'GET EARLY ACCESS' while the setting held
+         'Get Early Access'. The builder maps an edit to its field by matching
+         the OLD text, so that mismatch meant the field was never found and the
+         edit was dropped: typed changes survived in the preview and then
+         vanished on publish. */
+      function txt(el){ return (el.textContent || '').replace(/\u00a0/g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\s+$/, ''); }
 
       function placeBar(el){
         if (!bar) return;
@@ -2358,14 +2399,44 @@ function showToast(msg) {
       }
       function hideBar(){ if (bar) { bar.remove(); bar = null; } }
 
+      /* AN EDIT IS NOT SAVED UNTIL THE BUILDER SAYS IT IS.
+         Committing used to fire the message and move on. The builder maps the
+         text back to a settings field and, when it cannot find one, drops the
+         edit -- so the preview went on showing words that were never stored,
+         and the loss only surfaced later as "I published and my change wasn't
+         there". Each commit now waits for an answer, and puts the old words
+         back if the answer is no. */
+      var pending = {}, pendSeq = 0;
       function commit(){
         if (!editing) return;
-        var el = editing, sec = secOf, nt = txt(el);
+        var el = editing, sec = secOf, nt = txt(el), was = origText;
         el.contentEditable = 'false'; editing = null; hideBar();
-        if (nt !== origText && sec) {
-          try { window.parent.postMessage({ type: 'ZW_INLINE_TEXT', sectionId: sec, oldText: origText, newText: nt }, location.origin); } catch (_) {}
-        }
+        if (nt === was || !sec) return;
+        var id = 'ite' + (++pendSeq);
+        pending[id] = { el: el, was: was };
+        try { window.parent.postMessage({ type: 'ZW_INLINE_TEXT', id: id, sectionId: sec, oldText: was, newText: nt }, location.origin); } catch (_) {}
       }
+      function flashRejected(el, reason){
+        var n = document.createElement('div');
+        n.className = 'zw-ite-rej';
+        n.textContent = reason || 'This text is not stored as an editable field, so it could not be saved.';
+        document.body.appendChild(n);
+        var r = el.getBoundingClientRect();
+        n.style.top = Math.max(6, r.bottom + 8) + 'px';
+        n.style.left = Math.max(6, Math.min(r.left, window.innerWidth - 6 - n.offsetWidth)) + 'px';
+        el.classList.add('zw-ite-shake');
+        setTimeout(function(){ el.classList.remove('zw-ite-shake'); }, 700);
+        setTimeout(function(){ n.remove(); }, 4200);
+      }
+      window.addEventListener('message', function(e){
+        if (e.origin !== location.origin) return;
+        var d = e.data;
+        if (!d || d.type !== 'ZW_INLINE_TEXT_RESULT' || !pending[d.id]) return;
+        var p = pending[d.id]; delete pending[d.id];
+        if (d.ok) return;
+        p.el.textContent = p.was;   // the preview stops showing what was not kept
+        flashRejected(p.el, d.reason);
+      });
       function cancel(){
         if (!editing) return;
         editing.innerText = origText; editing.contentEditable = 'false'; editing = null; hideBar();
@@ -2375,10 +2446,7 @@ function showToast(msg) {
       document.addEventListener('mousemove', function(e){
         if (!window.__zwTextEditMode || editing) { if (hovered) { hovered.classList.remove('zw-ite-hi'); hovered = null; } return; }
         var sec = e.target.closest && e.target.closest('[data-zw-sec]');
-        var el = sec ? e.target : null;
-        var ok = el && EDITABLE.test(el.tagName) && (el.textContent || '').trim() &&
-                 !(el.querySelector && el.querySelector('h1,h2,h3,h4,h5,h6,p,a,button,li,span'));
-        var t = ok ? el : null;
+        var t = sec ? editableFrom(e.target, sec) : null;
         if (t === hovered) return;
         if (hovered) hovered.classList.remove('zw-ite-hi');
         hovered = t; if (hovered) hovered.classList.add('zw-ite-hi');
@@ -2389,11 +2457,10 @@ function showToast(msg) {
         var sec = e.target.closest && e.target.closest('[data-zw-sec]');
         if (!sec) return;
         e.preventDefault(); e.stopPropagation();
-        var el = e.target;
+        var el = editableFrom(e.target, sec);
+        if (!el) return;
         if (editing === el) return;
         if (editing) commit();
-        if (!EDITABLE.test(el.tagName) || !(el.textContent || '').trim()) return;
-        if (el.querySelector && el.querySelector('h1,h2,h3,h4,h5,h6,p,a,button,li,span')) return; // container, not a leaf
         if (hovered) { hovered.classList.remove('zw-ite-hi'); hovered = null; }
         editing = el; secOf = sec.getAttribute('data-zw-sec'); origText = txt(el);
         el.contentEditable = 'true'; el.focus();

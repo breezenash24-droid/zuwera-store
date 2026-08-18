@@ -289,7 +289,9 @@ body{display:flex;flex-direction:column}
 #imgZoom .iz-hint{position:fixed;top:14px;left:0;right:0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);pointer-events:none}
 
 /* ── OVERLAYS ── */
-#toast{position:fixed;bottom:1.1rem;left:50%;transform:translateX(-50%) translateY(6px);background:var(--sf);border:1px solid var(--bd);color:#f4f1eb;padding:.35rem .85rem;font-family:'IBM Plex Mono',monospace;font-size:.56rem;letter-spacing:.09em;opacity:0;transition:.15s;pointer-events:none;z-index:300;border-radius:2px;white-space:nowrap}
+#toast{position:fixed;bottom:1.1rem;left:50%;transform:translateX(-50%) translateY(6px);background:var(--sf);border:1px solid var(--bd);color:#f4f1eb;padding:.35rem .85rem;font-family:'IBM Plex Mono',monospace;font-size:.56rem;letter-spacing:.09em;opacity:0;transition:.15s;pointer-events:none;z-index:300;border-radius:2px;/* Was white-space:nowrap. These messages now explain WHY an edit could not
+   be saved, which does not fit on one line at any sane window width. */
+  max-width:min(520px,90vw);white-space:normal;text-align:center;line-height:1.6}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.ok{border-color:#6fcf6f;color:#6fcf6f}
 #toast.err{border-color:#e07060;color:#e07060}
@@ -2268,17 +2270,53 @@ let textEditMode=false;
 function sendTextEditMode(){ try{ document.getElementById('pvIframe').contentWindow.postMessage({type:'ZW_TEXT_EDIT_MODE',on:textEditMode}, location.origin); }catch(_){} }
 
 function _zwNormText(s){ return String(s==null?'':s).replace(/\r\n/g,'\n').replace(/ /g,' ').trim(); }
+/* Looser comparison for the second pass: case and run-of-whitespace differences
+   only. Enough to survive a stored "Get Early Access" being read off a heading
+   that renders it in caps, without being so loose that it hits a neighbouring
+   field. */
+function _zwLoose(s){ return _zwNormText(s).toLowerCase().replace(/\s+/g,' '); }
+
+/* Every string anywhere in the settings tree, with the object that holds it.
+   The old search looked at top-level strings and then one level into arrays of
+   objects, so anything nested deeper -- a slide inside a group, an item inside
+   a column -- simply had no field to find, and the edit was dropped. Depth is
+   capped because settings come back from the database and a cycle here would
+   hang the builder. */
+function _zwStringSlots(root){
+  const out=[]; const seen=new Set();
+  (function walk(node,depth){
+    if(!node||typeof node!=='object'||depth>8||seen.has(node)) return;
+    seen.add(node);
+    for(const k of Object.keys(node)){
+      const v=node[k];
+      if(typeof v==='string') out.push({holder:node,key:k});
+      else if(v&&typeof v==='object') walk(v,depth+1);
+    }
+  })(root,0);
+  return out;
+}
+
+/* Map an on-canvas edit back to the settings field that produced it.
+   Returns {ok} — and the CALLER MUST TELL THE PREVIEW. Returning quietly on a
+   miss is what made this feel like data loss: the iframe kept showing the new
+   words, nothing was marked dirty, and the change was gone at publish time. */
 function applyInlineText(secId,oldText,newText){
-  const s=curSections().find(x=>x.id===secId); if(!s||!s.settings)return;
-  const target=_zwNormText(oldText); if(!target)return;
-  const g=s.settings; let done=false;
-  // 1) top-level string fields
-  for(const k of Object.keys(g)){ if(typeof g[k]==='string'&&_zwNormText(g[k])===target){ g[k]=newText; done=true; break; } }
-  // 2) string props inside arrays of objects (buttons, items, stats, slides, cards…)
-  if(!done){ for(const k of Object.keys(g)){ if(Array.isArray(g[k])){ for(const it of g[k]){ if(it&&typeof it==='object'){ for(const kk of Object.keys(it)){ if(typeof it[kk]==='string'&&_zwNormText(it[kk])===target){ it[kk]=newText; done=true; break; } } } if(done)break; } } if(done)break; } }
-  if(!done)return;            // couldn't map the text back to a field — ignore
+  const s=curSections().find(x=>x.id===secId);
+  if(!s||!s.settings) return {ok:false,reason:'That block has no saved settings, so its text cannot be edited here.'};
+  const target=_zwNormText(oldText);
+  if(!target) return {ok:false,reason:'Could not read the original text.'};
+
+  const slots=_zwStringSlots(s.settings);
+  /* Exact first, then case/whitespace-insensitive. Two passes rather than one
+     loose pass so an exact field always wins over a near neighbour. */
+  let hit=slots.find(sl=>_zwNormText(sl.holder[sl.key])===target)
+        || slots.find(sl=>_zwLoose(sl.holder[sl.key])===_zwLoose(target));
+  if(!hit) return {ok:false,reason:'This text is not one of the block’s saved fields — it comes from the page template, so editing it here would not survive Publish.'};
+
+  hit.holder[hit.key]=newText;
   curApply(); curDirty();
   if(selId===secId){ const cur=curSections().find(x=>x.id===secId); if(cur)openEditor(cur); }
+  return {ok:true};
 }
 function applyInlineFont(secId,which,value){
   const s=curSections().find(x=>x.id===secId); if(!s||!s.settings)return;
@@ -2352,7 +2390,15 @@ window.addEventListener('message',function(e){
   if(e.origin!==location.origin)return;
   const d=e.data||{};
   if(d.type==='ZW_MOVE_POS'&&d.sectionId){ applyMovePos(d.sectionId,d.pos_x,d.pos_y); return; }
-  if(d.type==='ZW_INLINE_TEXT'&&d.sectionId){ applyInlineText(d.sectionId,d.oldText,d.newText); return; }
+  if(d.type==='ZW_INLINE_TEXT'&&d.sectionId){
+    const r=applyInlineText(d.sectionId,d.oldText,d.newText)||{ok:false};
+    /* Always answer. The preview reverts the words on a rejection, so silence
+       here would leave it showing an edit that was never stored. */
+    try{ document.getElementById('pvIframe').contentWindow.postMessage(
+      {type:'ZW_INLINE_TEXT_RESULT',id:d.id,ok:!!r.ok,reason:r.reason}, location.origin); }catch(_){}
+    if(!r.ok&&typeof toast==='function') toast(r.reason||'That text could not be saved','err');
+    return;
+  }
   if(d.type==='ZW_INLINE_FONT'&&d.sectionId){ applyInlineFont(d.sectionId,d.which,d.value); return; }
   if(d.type==='ZW_SECTION_CLICKED'&&d.sectionId){
     if(typeof secStore!=='undefined'&&secStore)return;      // homepage sections only
