@@ -812,6 +812,10 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
   renderLP();  // always called — sections will show even if DB was unavailable
   updateLyBtn();  // show which saved layout (if any) is open in the editor
   setPvMode('desk');
+  /* Not awaited: the nav, the bar and page copy are chrome around the page,
+     so the section editor must not wait on three settings reads to open. The
+     preview gets them the moment they land. */
+  loadChrome().then(sendChrome).catch(()=>{});
   /* Paints the segmented control to match the default mode and tells the
      iframe. Silent: a toast on page load announces a choice nobody made.
 
@@ -2183,7 +2187,8 @@ function renderSeoTab(container){
 async function saveSeo(){
   try{
     const token=await getAccessToken();if(!token)throw new Error('Session expired');
-    const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},false);
+    const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},false)
+        && await saveChrome(false);
     if(ok){
       toast('SEO settings saved','ok');
       sendCfg();
@@ -2386,17 +2391,27 @@ function applyMovePos(secId,posX,posY){
 
 // On-canvas WYSIWYG: the preview iframe posts ZW_SECTION_CLICKED when a section
 // is clicked in the canvas — select + open its editor here. Same-origin gated.
+/* Every on-canvas edit gets an answer, whatever kind it was. `was` goes back
+   too so the preview can keep its anchor to the ORIGINAL template text and a
+   second edit does not record the first one as the thing it replaced. */
+function _answerCanvasEdit(d,r){
+  r=r||{ok:false};
+  try{ document.getElementById('pvIframe').contentWindow.postMessage(
+    {type:'ZW_INLINE_TEXT_RESULT',id:d.id,ok:!!r.ok,reason:r.reason,was:r.was}, location.origin); }catch(_){}
+  if(!r.ok&&typeof toast==='function') toast(r.reason||'That text could not be saved','err');
+}
+
 window.addEventListener('message',function(e){
   if(e.origin!==location.origin)return;
   const d=e.data||{};
   if(d.type==='ZW_MOVE_POS'&&d.sectionId){ applyMovePos(d.sectionId,d.pos_x,d.pos_y); return; }
+  /* Text outside any section. Answered exactly like a section edit, because
+     the preview reverts the words on a rejection and would otherwise be left
+     showing something that was never stored. */
+  if(d.type==='ZW_CHROME_TEXT'&&d.field){ _answerCanvasEdit(d,applyChromeField(d.field,d.newText)); return; }
+  if(d.type==='ZW_TEXT_OVERRIDE'&&d.path){ _answerCanvasEdit(d,applyTextOverride(d.page,d.path,d.was,d.newText)); return; }
   if(d.type==='ZW_INLINE_TEXT'&&d.sectionId){
-    const r=applyInlineText(d.sectionId,d.oldText,d.newText)||{ok:false};
-    /* Always answer. The preview reverts the words on a rejection, so silence
-       here would leave it showing an edit that was never stored. */
-    try{ document.getElementById('pvIframe').contentWindow.postMessage(
-      {type:'ZW_INLINE_TEXT_RESULT',id:d.id,ok:!!r.ok,reason:r.reason}, location.origin); }catch(_){}
-    if(!r.ok&&typeof toast==='function') toast(r.reason||'That text could not be saved','err');
+    _answerCanvasEdit(d,applyInlineText(d.sectionId,d.oldText,d.newText));
     return;
   }
   if(d.type==='ZW_INLINE_FONT'&&d.sectionId){ applyInlineFont(d.sectionId,d.which,d.value); return; }
@@ -3223,6 +3238,124 @@ function setTheme(t){pvTheme=t;document.querySelectorAll('#thTog button').forEac
 
 let _sendT2;
 function schedSend(){clearTimeout(_sendT2);_sendT2=setTimeout(sendCfg,350);}
+/* ── TEXT THAT NO PAGE SECTION OWNS ──────────────────────────────────────────
+   Three kinds, and they are stored in three different places on purpose.
+
+     nav labels   -> site_settings.nav_menu[i].label
+     bar message  -> site_settings.announcement_bar.message
+     everything   -> site_settings.text_overrides, keyed by page + element path
+       else
+
+   The first two already had owners before the builder could edit them, so the
+   builder writes to those owners. It does NOT keep its own copy: an announcement
+   message settable in two places that disagree is a fault this codebase has
+   already had to remove once, and re-adding it here would be the same mistake
+   with a nicer interface.
+
+   All three are DRAFTS. Nothing typed on the canvas reaches a shopper until
+   Publish, exactly like a section edit -- which is why they are held here in
+   memory and pushed into the preview, rather than written to the live keys and
+   read back. The draft keys are also kept out of the site_settings public-read
+   policy (migration 0026), so unpublished copy is not sitting behind a REST call
+   whose key name ships in the JavaScript. */
+let chromeNav = null;       // array, mirrors nav_menu
+let chromeBar = null;       // object, mirrors announcement_bar
+let chromeCopy = {};        // { "<page>": { "<path>": {was, now} } }
+let chromeDirty = false;
+
+function markChromeDirty(){ chromeDirty = true; markDirty(); }
+
+/* Push the drafts into the preview. Separate messages rather than one blob
+   because three different modules consume them, each of which re-renders only
+   its own part -- and nav-menu.js re-rendering on a bar edit would drop an open
+   mega-menu. */
+function sendChrome(){
+  const ifr=document.getElementById('pvIframe');
+  if(!ifr||!ifr.contentWindow) return;
+  const post=(m)=>{ try{ ifr.contentWindow.postMessage(m,location.origin); }catch(_){}; };
+  if(Array.isArray(chromeNav)) post({type:'ZW_NAV_PREVIEW',items:chromeNav});
+  if(chromeBar) post({type:'ZW_BAR_PREVIEW',value:chromeBar});
+  post({type:'ZW_TEXT_OVERRIDES',value:chromeCopy||{}});
+}
+
+/* Load the draft if there is one, otherwise what is live. A draft is only ever
+   absent because nothing has been edited yet. */
+async function loadChrome(){
+  const pick=(d,l)=>(d!==undefined&&d!==null)?d:l;
+  const [navD,navL,barD,barL,cpD,cpL]=await Promise.all([
+    fetchSettingAuthed('nav_menu_draft'), fetchSettingAuthed('nav_menu'),
+    fetchSettingAuthed('announcement_bar_draft'), fetchSettingAuthed('announcement_bar'),
+    fetchSettingAuthed('text_overrides_draft'), fetchSettingAuthed('text_overrides'),
+  ]);
+  const nav=pick(navD,navL);
+  chromeNav=Array.isArray(nav)?nav:[];
+  const bar=pick(barD,barL);
+  chromeBar=(bar&&typeof bar==='object')?bar:{};
+  const cp=pick(cpD,cpL);
+  chromeCopy=(cp&&typeof cp==='object'&&!Array.isArray(cp))?cp:{};
+}
+
+/* An edit to a NAMED field: nav.<i>.label or bar.message. No text matching --
+   the preview tagged the element with the exact field it came from, so there is
+   nothing to look up and nothing to get wrong. */
+function applyChromeField(field,newText){
+  const s=String(field||'');
+  let m=/^nav\.(\d+)\.label$/.exec(s);
+  if(m){
+    const i=Number(m[1]);
+    if(!Array.isArray(chromeNav)||!chromeNav[i]) return {ok:false,reason:'That navigation item no longer exists.'};
+    chromeNav[i].label=newText;
+    markChromeDirty(); sendChrome();
+    return {ok:true};
+  }
+  if(s==='bar.message'){
+    if(!chromeBar||typeof chromeBar!=='object') chromeBar={};
+    chromeBar.message=newText;
+    markChromeDirty(); sendChrome();
+    return {ok:true};
+  }
+  return {ok:false,reason:'That text is not a field the builder knows how to save.'};
+}
+
+/* An edit to copy nothing owns. `was` is the ORIGINAL template text and is kept
+   as the anchor: an override applies on the live site only while the element
+   still says `was`, so template copy that changes on a deploy makes the override
+   stop applying instead of rewriting whatever moved into its place. */
+function applyTextOverride(page,path,was,newText){
+  if(!path) return {ok:false,reason:'Could not identify that element on the page.'};
+  const pg=String(page||'/');
+  if(!chromeCopy||typeof chromeCopy!=='object') chromeCopy={};
+  if(!chromeCopy[pg]) chromeCopy[pg]={};
+  const orig=(chromeCopy[pg][path]&&chromeCopy[pg][path].was)||was||'';
+  if(String(newText)===String(orig)){
+    delete chromeCopy[pg][path];              // back to the original: stop overriding
+    if(!Object.keys(chromeCopy[pg]).length) delete chromeCopy[pg];
+  }else{
+    chromeCopy[pg][path]={was:orig,now:newText};
+  }
+  markChromeDirty(); sendChrome();
+  return {ok:true,was:orig};
+}
+
+/* Written on Save Draft and on Publish. `pub` is what promotes each draft to
+   the live key it shadows (DRAFT_TO_LIVE in save-page-builder.js). */
+async function saveChrome(pub){
+  if(!chromeDirty&&!pub) return true;
+  const put=async(key,value)=>{
+    const token=await getAccessToken(); if(!token) throw new Error('Session expired');
+    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({accessToken:token,key,value,published:!!pub})});
+    if(!res.ok){const j=await res.json().catch(()=>({}));throw new Error(j.error||('HTTP '+res.status));}
+  };
+  try{
+    await put('nav_menu_draft',Array.isArray(chromeNav)?chromeNav:[]);
+    await put('announcement_bar_draft',chromeBar||{});
+    await put('text_overrides_draft',chromeCopy||{});
+    chromeDirty=false;
+    return true;
+  }catch(e){ showErr('Chrome text: '+e.message); return false; }
+}
+
 function sendCfg(){
   const cfg={sections,theme:pvTheme,themeSettings,navSettings,seoSettings,_v:Date.now()+'-'+Math.random()};
   // localStorage is the seed channel: it survives an iframe reload (the preview
@@ -3237,6 +3370,7 @@ function sendCfg(){
     const ifr=document.getElementById('pvIframe');
     if(ifr&&ifr.contentWindow) ifr.contentWindow.postMessage(Object.assign({type:'ZW_BUILDER_CONFIG'},cfg),location.origin);
   }catch(e){}
+  sendChrome();   // the nav, the bar and page copy travel with everything else
 }
 
 function scrollPreviewTo(id){
@@ -3370,7 +3504,8 @@ async function publishPage(skipLayoutGuard){
     if(!confirm(`You're editing “${cur?cur.name:'this layout'}”, but “${act?act.name:'another layout'}” is currently live.\n\nPublishing will REPLACE the live homepage with this design and make it the active layout. Continue?`))return;
   }
   status('Publishing…');dotCls('y');
-  const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},true);
+  const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},true)
+        && await saveChrome(true);   // promotes each *_draft onto the live key
   if(ok){lastSaved=clone(sections);dirty=false;status('Published ✓');dotCls('g');toast('Published! Changes are live.','ok');
     // Warm the homepage hero flash-prevention cache (same origin) so the admin's
     // next homepage visit paints correctly via the synchronous <head> bootstrap:

@@ -16,10 +16,23 @@ import { supabaseUrl, supabaseAnonKey } from './_config.js';
 // theme_modes is here so the builder's Design tab can edit themes in place. It
 // is the same list the admin's Appearance → Themes writes; two screens, one key,
 // because the alternative is two half-lists that disagree about what a theme is.
-const ALLOWED_KEYS = ['page_builder','builder_theme','builder_nav','builder_history','builder_templates','builder_layouts','page_builder_published','landing_pages','landing_pages_published','scheduled_publish','product_page','collection_page','product_page_draft','collection_page_draft','theme_modes'];
+// The three *_draft keys below carry text edited on the canvas that no page
+// section owns: the nav labels, the announcement bar, and copy baked into a
+// page template. They are drafts for the same reason section edits are --
+// nothing typed in the builder reaches a shopper until Publish -- and the
+// draft halves are deliberately NOT in the site_settings public-read policy
+// (migration 0026 says why): the preview receives them over postMessage from
+// the builder, never by reading the database.
+const ALLOWED_KEYS = ['page_builder','builder_theme','builder_nav','builder_history','builder_templates','builder_layouts','page_builder_published','landing_pages','landing_pages_published','scheduled_publish','product_page','collection_page','product_page_draft','collection_page_draft','theme_modes','nav_menu_draft','announcement_bar_draft','text_overrides_draft'];
 
 // Draft key → the live key it publishes to.
-const DRAFT_TO_LIVE = { product_page_draft: 'product_page', collection_page_draft: 'collection_page' };
+const DRAFT_TO_LIVE = {
+  product_page_draft: 'product_page',
+  collection_page_draft: 'collection_page',
+  nav_menu_draft: 'nav_menu',
+  announcement_bar_draft: 'announcement_bar',
+  text_overrides_draft: 'text_overrides',
+};
 
 function cors(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -88,7 +101,25 @@ export async function onRequestPost({ request, env }) {
     // use that as the payload so the data isn't double-nested under {value:{...}}.
     const { accessToken: _a, key: _k, published: _p, value: explicitValue, ...rest } = body;
     const payload = explicitValue !== undefined ? explicitValue : rest;
-    const value = { ...payload, updated_at: new Date().toISOString(), published: !!published };
+    // Keys whose value IS the data, stored exactly as given.
+    //
+    // The spread below is wrong for both shapes these keys use. nav_menu is an
+    // ARRAY, and { ...['Men','Women'] } is { '0': 'Men', '1': 'Women' } -- an
+    // object nav-menu.js would reject outright (it tests Array.isArray). And
+    // text_overrides is keyed BY PAGE PATH, so merging updated_at/published
+    // into it invents two pages called 'updated_at' and 'published'.
+    //
+    // The meta fields exist so the builder's own configs can record when they
+    // were written; these keys are read by the storefront, which wants the
+    // data and nothing else.
+    const VERBATIM = new Set([
+      'nav_menu', 'nav_menu_draft',
+      'announcement_bar', 'announcement_bar_draft',
+      'text_overrides', 'text_overrides_draft',
+    ]);
+    const value = VERBATIM.has(key)
+      ? payload
+      : { ...payload, updated_at: new Date().toISOString(), published: !!published };
 
     // Build rows to upsert
     const rows = [{ key, value }];

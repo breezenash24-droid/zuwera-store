@@ -168,7 +168,19 @@
     barEl.style.opacity = '1';
     barEl.style.pointerEvents = '';
     if (navEl) { navEl.style.transform = ''; navEl.style.removeProperty('z-index'); }
-    if (textEl) textEl.textContent = text;
+    if (textEl) {
+      textEl.textContent = text;
+      /* Builder preview only: name the field behind the message so editing it
+         on the canvas writes announcement_bar.message rather than being matched
+         by its text. The bar is chrome -- it belongs to no page section -- so
+         without this it would fall through to a page-copy override and be
+         stored twice, which is the fault this codebase already had to remove
+         from the bar once. */
+      if (window.__ZW_BUILDER_PREVIEW__) {
+        textEl.setAttribute('data-zw-field', 'bar.message');
+        textEl.setAttribute('data-zw-field-label', 'the announcement bar');
+      }
+    }
 
     // Clickable bar (optional link). The whole bar acts as a link; keyboard-accessible.
     barEl.onclick = null; barEl.onkeydown = null;
@@ -292,6 +304,18 @@
       .catch(function () {});
   }
 
+  /* Draft copy for the bar arrives from the builder over postMessage, for the
+     same reason the nav's does: announcement_bar_draft is not in the
+     public-read policy, so unpublished promo copy is not fetchable by anyone
+     who reads this file for the key name. */
+  if (window.__ZW_BUILDER_PREVIEW__) {
+    window.addEventListener('message', function (e) {
+      if (e.origin !== location.origin) return;
+      var d = e.data;
+      if (!d || d.type !== 'ZW_BAR_PREVIEW' || !d.value || typeof d.value !== 'object') return;
+      try { apply(d.value); } catch (_) {}
+    });
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();
