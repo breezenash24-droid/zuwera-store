@@ -2688,16 +2688,28 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
     }
 
 
-    // Apply builder_theme overrides to bar bg/color â€” only when builder is NOT active
-    // (when active, themeSettings are already merged into the published config above)
+    /* THE BAR'S COLOUR IS THE THEME'S, ON ALL FOURTEEN PAGES.
+
+       This used to also read bt.bar_bg / bt.bar_text_color and push them onto
+       #bar as inline overrides. Those two came from fields in the page
+       builder's Design tab, and they were a second colour system: --zw-bar-bg
+       and --zw-bar-fg are already set pre-paint on every page from the theme's
+       barBg/barFg, so the only thing these could achieve was making the
+       homepage's bar disagree with the other thirteen.
+
+       The fields are gone. The reader had to go with them -- a stale value
+       left in builder_theme would otherwise keep overriding the theme with no
+       control anywhere to see it or clear it. That is the bug that was just
+       removed, running backwards. */
     if (!window.__zwPageBuilderActive && settings.builder_theme) {
       try {
         const bt = typeof settings.builder_theme === 'string' ? JSON.parse(settings.builder_theme) : settings.builder_theme;
-        const bar = document.getElementById('bar');
-        if (bar) {
-          if (bt.bar_bg) bar.style.setProperty('--zw-bar-bg', bt.bar_bg);
-          if (bt.bar_text_color) bar.style.setProperty('--zw-bar-fg', bt.bar_text_color);
-        }
+        /* accent_color is LEFT ALONE, deliberately. It has three readers -- here,
+           storefront.js:899, and product-main.js -- and no writer anywhere: no
+           editor has set it for a long time. Dropping it would be right for the
+           same reason as the bar, but unlike the bar it would visibly change the
+           live accent for whatever value is already saved. That is a decision to
+           take on purpose, not a side effect of tidying the bar. */
         if (bt.accent_color) {
           document.documentElement.style.setProperty('--gold', bt.accent_color);
           document.documentElement.style.setProperty('--zw-accent', bt.accent_color);

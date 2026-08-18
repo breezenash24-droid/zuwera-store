@@ -44,7 +44,9 @@ console.log('\n  the storefront looks live on one page\n');
 
 console.log('  the chrome panels moved');
 {
-  ['set-jump-chrome', 'Announcement Bar', 'Header Scroll Behavior', 'Navigation Menu'].forEach((n) => {
+  /* All five, not four. Product Cards moved with the block but was not
+     asserted, and a move nobody checks is a move that can quietly come back. */
+  ['set-jump-chrome', 'Announcement Bar', 'Header Scroll Behavior', 'Product Cards', 'Navigation Menu'].forEach((n) => {
     ok(n + ' is on Appearance', pageOf(n) === 'website', 'found on #' + pageOf(n));
   });
   /* The move must not have swallowed the section after it. */

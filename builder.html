@@ -12,7 +12,11 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;background:#0f0f11;color:#f4f1eb;font-family:'Barlow',sans-serif;font-size:13px}
-:root{--bg:#0f0f11;--sf:#17171b;--sf2:#1e1e24;--bd:rgba(255,255,255,.08);--mu:rgba(244,241,235,.42);--ac:#F891A5}
+:root{--bg:#0f0f11;--sf:#17171b;--sf2:#1e1e24;--bd:rgba(255,255,255,.08);--mu:rgba(244,241,235,.42);--ac:#F891A5;
+  /* One width for the list AND the editor that covers it, so the preview
+     never changes size depending on what is open. 292px fits four tabs
+     across; the editor used to be a separate 300px column beside it. */
+  --lp-w:292px}
 body{display:flex;flex-direction:column}
 
 /* ── TOPBAR ── */
@@ -44,20 +48,20 @@ body{display:flex;flex-direction:column}
 .more-tog{margin:.1rem .35rem .2rem}
 .more-tog button{flex:1}
 /* Design sub-tabs (Appearance | Navigation) */
-.design-subtabs{display:flex;gap:.3rem;padding:.6rem .7rem .2rem}
-.dsub{flex:1;background:var(--sf2);border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;padding:.4rem;cursor:pointer;border-radius:3px;transition:.1s}
-.dsub.on{background:var(--ac);color:#0f0f11;border-color:var(--ac);font-weight:600}
 
-.layout{display:flex;flex:1;overflow:hidden}
+.layout{display:flex;flex:1;overflow:hidden;position:relative}
 
 /* ── LEFT PANEL (tabs) ── */
-.lp{width:260px;flex-shrink:0;background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}
+.lp{width:var(--lp-w);flex-shrink:0;background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}
 /* Six tabs don't fit on one line in the ~335px editor panel (COLLECTION is the
    long one) — a single flex row crammed + clipped them. A 3-col grid lays them
    out as two tidy rows of three, equal width, no clipping, and it scales as tabs
    are added. */
-.lp-tabs{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--bd);flex-shrink:0}
-.lp-tab{background:none;border:none;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.05em;text-transform:uppercase;padding:.6rem .3rem;cursor:pointer;transition:.1s;border-bottom:2px solid transparent;white-space:nowrap;min-width:0}
+.lp-tabs{display:grid;grid-template-columns:repeat(4,1fr);flex-shrink:0}
+.lp-tabs+.lp-tabsec{border-top:1px solid var(--bd)}
+.lp-tabs:last-of-type{border-bottom:1px solid var(--bd)}
+.lp-tabsec{font-family:'IBM Plex Mono',monospace;font-size:.44rem;letter-spacing:.16em;text-transform:uppercase;color:var(--mu);opacity:.7;padding:.42rem .6rem .1rem;flex-shrink:0}
+.lp-tab{background:none;border:none;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.53rem;letter-spacing:.03em;text-transform:uppercase;padding:.5rem .15rem;cursor:pointer;transition:.1s;border-bottom:2px solid transparent;white-space:nowrap;min-width:0}
 .lp-tab.on{color:#f4f1eb;border-bottom-color:var(--ac)}
 .lp-tab:hover:not(.on){color:rgba(244,241,235,.7)}
 .lp-content{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0}
@@ -67,6 +71,11 @@ body{display:flex;flex-direction:column}
 .lp-bar-title{font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mu);flex:1;white-space:nowrap}
 .lp-float-btn{background:transparent;border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.08em;text-transform:uppercase;padding:.26rem .55rem;cursor:pointer;border-radius:2px;transition:.1s;white-space:nowrap}
 .lp-float-btn:hover{border-color:var(--ac);color:var(--ac)}
+.pv-modes{display:inline-flex;gap:2px;background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:2px;flex-shrink:0}
+.pvm{background:transparent;border:0;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.09em;text-transform:uppercase;padding:.26rem .6rem;cursor:pointer;border-radius:999px;transition:.1s;white-space:nowrap}
+.pvm:hover:not(.on){color:#f4f1eb}
+.pvm.on{background:var(--ac);color:#0f0f11;font-weight:600}
+.pvm:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
 .lp.float{position:fixed;top:64px;left:24px;width:320px;height:72vh;z-index:400;border:1px solid var(--bd);border-radius:9px;box-shadow:0 18px 52px rgba(0,0,0,.62);resize:both;overflow:hidden}
 .lp.float .lp-bar{cursor:grab}
 .lp.float .lp-bar:active{cursor:grabbing}
@@ -114,8 +123,22 @@ body{display:flex;flex-direction:column}
 .tmpl-btn.danger:hover{border-color:#e07060;color:#e07060}
 
 /* ── EDITOR PANEL ── */
-.ed{width:300px;flex-shrink:0;background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;transition:width .2s}
-.ed.hidden{width:0;border-right:none}
+/* THE EDITOR COVERS THE SECTION LIST. IT DOES NOT PUSH THE PREVIEW.
+   It used to be a third flex column, 300px, flex-shrink:0. Added to the
+   260px list that made 560px of chrome, so on a 1440px laptop the preview
+   got ~880px -- and the storefront has 19 `max-width:900px` rules. Opening a
+   section to edit it therefore dropped the *Desktop* preview across the
+   site's own mobile breakpoint, silently, while the readout still said
+   1280px. You cannot check your work in a frame that changes layout when you
+   start working.
+   Out of flow, same left edge and same width as the list, so the preview
+   keeps its width no matter what is open. Sliding rather than snapping keeps
+   the swap legible. */
+.ed{position:absolute;left:0;top:0;bottom:0;width:var(--lp-w);z-index:60;background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;box-shadow:6px 0 22px rgba(0,0,0,.42);transition:transform .18s ease,opacity .18s ease}
+.ed.hidden{transform:translateX(-100%);opacity:0;pointer-events:none;box-shadow:none}
+/* Floated list -> it is out of flow at its own coordinates, so the editor has
+   no list to cover; sit where the list would have been. */
+.lp.float ~ .ed{box-shadow:0 18px 52px rgba(0,0,0,.62);border-radius:0 9px 9px 0}
 .ed-hd{padding:.52rem .8rem .42rem;border-bottom:1px solid var(--bd);display:flex;align-items:flex-start;gap:.42rem;flex-shrink:0}
 .ed-tp{font-family:'IBM Plex Mono',monospace;font-size:.47rem;letter-spacing:.13em;text-transform:uppercase;color:var(--ac)}
 .ed-nm{font-size:.68rem;font-weight:600;letter-spacing:.02em}
@@ -183,9 +206,6 @@ body{display:flex;flex-direction:column}
 .rte-btn:hover{color:#f4f1eb;border-color:rgba(255,255,255,.2)}
 .pad-grid{display:grid;grid-template-columns:1fr 1fr;gap:.38rem}
 .nav-link-item{background:var(--bg);border:1px solid var(--bd);border-radius:2px;padding:.4rem .5rem;display:flex;align-items:center;gap:.4rem;margin-bottom:.25rem}
-.nav-link-drag{color:var(--mu);cursor:grab;font-size:.6rem;opacity:.3}
-.nav-link-txt{flex:1;background:var(--sf2);border:1px solid var(--bd);color:#f4f1eb;font-family:'Barlow',sans-serif;font-size:.72rem;padding:.3rem .45rem;border-radius:2px;outline:none}
-.nav-link-url{flex:1;background:var(--sf2);border:1px solid var(--bd);color:#f4f1eb;font-family:'IBM Plex Mono',monospace;font-size:.6rem;padding:.3rem .45rem;border-radius:2px;outline:none}
 .nav-link-rm{background:none;border:none;cursor:pointer;color:rgba(224,112,96,.5);font-size:.7rem;padding:0;transition:.1s}
 .nav-link-rm:hover{color:rgba(224,112,96,.9)}
 
@@ -332,16 +352,17 @@ body{display:flex;flex-direction:column}
       </div>
       <div class="fhint" style="margin:0 .35rem .3rem">Site theme follows Appearance, so the homepage moves with the rest of the store. The other three pin this page to one scheme for ever.</div>
       <div class="more-div"></div>
+      <div class="more-sec">Look at it</div>
       <button class="more-item" onclick="window.open('/','_blank')">🌐 View live site</button>
       <button class="more-item" onclick="copyHomepageDraftLink()">🔗 Copy homepage draft link</button>
       <button class="more-item" onclick="showQrModal()">📱 Preview on phone (QR)</button>
-      <button class="more-item" onclick="openLayouts()">🗂 Page layouts…</button>
-      <button class="more-item" onclick="lpTab('history')">🕘 Version history</button>
-      <button class="more-item" onclick="lpTab('templates')">🗂 Templates</button>
-      <button class="more-item" onclick="openSchedulePublish()">⏰ Schedule publish…</button>
       <div class="more-div"></div>
+      <div class="more-sec">Publish &amp; back up</div>
+      <button class="more-item" onclick="openSchedulePublish()">⏰ Schedule publish…</button>
       <button class="more-item" onclick="exportCfg()">⬇ Export backup (JSON)</button>
       <button class="more-item" onclick="importCfg()">⬆ Import backup (JSON)</button>
+      <div class="more-div"></div>
+      <div class="more-sec">Cannot be undone</div>
       <button class="more-item danger" onclick="revertChanges()">↺ Revert all changes</button>
       <div class="more-div"></div>
       <button class="more-item" onclick="showKb()">⌨ Keyboard shortcuts</button>
@@ -361,13 +382,30 @@ body{display:flex;flex-direction:column}
     <span class="lp-bar-title">Editor</span>
     <button class="lp-float-btn" id="lpFloatBtn" onclick="toggleFloat()" title="Detach this panel so you can move and resize it">⤢ Float</button>
   </div>
+  <!-- TWO GROUPS, BECAUSE THESE ARE TWO KINDS OF THING.
+       Six tabs used to sit in one `repeat(3,1fr)` grid -- which wrapped to two
+       rows anyway, so the split was already being drawn, just arbitrarily and
+       between Product and Collection. The real line is elsewhere: Home,
+       Landing, Product and Collection are PLACES in the store; Design, SEO,
+       History and Templates apply to all of them. Design drifted into
+       duplicating the admin's Appearance page precisely because nothing said
+       it wasn't scoped to a page.
+       History and Templates are here rather than buried in the More menu:
+       they were always full tabs (lpTab('history')/lpTab('templates')), just
+       ones you could only reach through a dropdown of twelve items. -->
+  <div class="lp-tabsec">Page</div>
   <div class="lp-tabs">
-    <button class="lp-tab on" onclick="lpTab('content')" id="tab-content" title="Homepage sections">Content</button>
-    <button class="lp-tab" onclick="lpTab('pages')"   id="tab-pages" title="Men / Women landing pages">Pages</button>
+    <button class="lp-tab on" onclick="lpTab('content')" id="tab-content" title="The homepage and its sections">Home</button>
+    <button class="lp-tab" onclick="lpTab('pages')"   id="tab-pages" title="Men / Women landing pages">Landing</button>
     <button class="lp-tab" onclick="lpTab('product')" id="tab-product" title="What shows under a product">Product</button>
     <button class="lp-tab" onclick="lpTab('collection')" id="tab-collection" title="The release / all-products listing page">Collection</button>
-    <button class="lp-tab" onclick="lpTab('design')"  id="tab-design" title="Theme & navigation">Design</button>
-    <button class="lp-tab" onclick="lpTab('settings')" id="tab-settings" title="SEO & metadata">Settings</button>
+  </div>
+  <div class="lp-tabsec">Whole site</div>
+  <div class="lp-tabs">
+    <button class="lp-tab" onclick="lpTab('design')"  id="tab-design" title="Theme, buttons, layout, logo">Design</button>
+    <button class="lp-tab" onclick="lpTab('settings')" id="tab-settings" title="SEO &amp; metadata">SEO</button>
+    <button class="lp-tab" onclick="lpTab('history')" id="tab-history" title="Earlier published versions">History</button>
+    <button class="lp-tab" onclick="lpTab('templates')" id="tab-templates" title="Saved section templates">Templates</button>
   </div>
   <div class="lp-content" id="lpContent"></div>
   <div class="lp-footer" id="lpFooter" style="display:none">
@@ -393,9 +431,21 @@ body{display:flex;flex-direction:column}
   <div class="pv-bar">
     <span>Preview</span>
     <span style="font-size:.45rem;opacity:.4" id="autoLbl">auto-updating</span>
-    <button id="selModeBtn" class="lp-float-btn" onclick="toggleSelectMode()" style="margin-left:.5rem;background:var(--sf2);border-color:rgba(255,255,255,.25);color:#f4f1eb" title="On: click a section in the preview to edit it. Off: links and buttons work normally.">🎯 Click to select: Off</button>
-    <button id="textEditBtn" class="lp-float-btn" onclick="toggleTextEdit()" style="margin-left:.4rem;background:var(--sf2);border-color:rgba(255,255,255,.25);color:#f4f1eb" title="On: click any text in the preview to edit it in place and change its font. Off: preview behaves normally.">✏️ Edit text: Off</button>
-    <button id="moveModeBtn" class="lp-float-btn" onclick="toggleMoveMode()" style="margin-left:.4rem;background:var(--sf2);border-color:rgba(255,255,255,.25);color:#f4f1eb" title="On: drag a color block's content around inside the block (snaps to center). Off: preview behaves normally.">✥ Move: Off</button>
+    <!-- ONE CHOICE, ONE CONTROL.
+         These were three independent on/off buttons that happened to be
+         mutually exclusive. The exclusion was enforced by hand in three
+         places, the last of which re-wrapped window.toggleSelectMode after
+         the fact to catch the case the other two missed -- a monkey-patch
+         that existed only because a radio group had been built out of three
+         booleans. All three also defaulted to Off, so out of the box clicking
+         anything in the preview did nothing and the tool looked broken.
+         Four segments, one of them always on, Select by default. -->
+    <div class="pv-modes" id="pvModes" role="radiogroup" aria-label="What clicking the preview does" style="margin-left:.5rem">
+      <button type="button" class="pvm" role="radio" data-mode="browse" onclick="setCanvasMode('browse')" title="The preview behaves like the real site: links and buttons work.">Browse</button>
+      <button type="button" class="pvm" role="radio" data-mode="select" onclick="setCanvasMode('select')" title="Click a section in the preview to open its editor.">Select</button>
+      <button type="button" class="pvm" role="radio" data-mode="text"   onclick="setCanvasMode('text')"   title="Click any text in the preview to edit it in place and change its font.">Text</button>
+      <button type="button" class="pvm" role="radio" data-mode="move"   onclick="setCanvasMode('move')"   title="Drag a colour block's content around inside the block (snaps to centre).">Move</button>
+    </div>
     <span id="pvDims" style="margin-left:auto">—</span>
   </div>
   <div class="pv-wrap">
@@ -760,6 +810,19 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
   renderLP();  // always called — sections will show even if DB was unavailable
   updateLyBtn();  // show which saved layout (if any) is open in the editor
   setPvMode('desk');
+  /* Paints the segmented control to match the default mode and tells the
+     iframe. Silent: a toast on page load announces a choice nobody made.
+
+     DEFERRED ON PURPOSE. `canvasMode` is declared with let, far below this
+     line. init() normally suspends at its first await long enough for the
+     rest of the script to finish evaluating -- but the try block opens with
+     a synchronous getSb(), so if that throws, the catch and everything after
+     it run DURING evaluation, while canvasMode is still in its temporal dead
+     zone, and the builder dies on the exact path meant to survive the DB
+     being unavailable. This repo has already shipped one hotfix branch for
+     that shape (hotfix/builder-product-tab-tdz). setTimeout(0) cannot run
+     before evaluation completes, so it cannot be caught by it. */
+  setTimeout(()=>setCanvasMode(canvasMode,true),0);
   document.getElementById('pvIframe').addEventListener('load',sendCfg);
   setInterval(()=>{if(dirty)saveDraft(true);},60000);
   document.addEventListener('keydown',onKey);
@@ -813,8 +876,6 @@ function toggleFloat(){
 })();
 
 // ── LEFT PANEL TABS ───────────────────────────────────────────────────────
-let designSub='theme';
-function setDesignSub(s){designSub=s;renderLP();}
 function lpTab(name){
   curTab=name;
   document.querySelectorAll('.lp-tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+name));
@@ -1361,11 +1422,20 @@ function reloadCollectionPreview(){
   f.src=collectionPreviewUrl()+'&_cb='+Date.now();
 }
 
-function renderDesignTab(container){
-  container.innerHTML='<div class="design-subtabs"><button class="dsub'+(designSub==='theme'?' on':'')+'" onclick="setDesignSub(\'theme\')">Appearance</button><button class="dsub'+(designSub==='nav'?' on':'')+'" onclick="setDesignSub(\'nav\')">Navigation</button></div><div id="designSub"></div>';
-  const sub=container.querySelector('#designSub');
-  if(designSub==='nav')renderNavTab(sub); else renderThemeTab(sub);
-}
+/* ── DESIGN TAB ─────────────────────────────────────────────────────────────
+   One pane, no sub-tabs. There used to be two: "Appearance" and "Navigation".
+
+   The Navigation half held exactly one control that did anything — the logo,
+   which moved into this pane. Its link editor wrote builder_nav.links, and the
+   storefront stopped rendering that array a long time ago (storefront.js:875
+   records why: it raced with the mobile menu and overwrote it). The editor
+   outlived its renderer, so adding a link, pressing Save and getting a green
+   "Navigation saved" toast changed nothing, anywhere, ever.
+
+   The other sub-tab was called "Appearance" — the same name as the admin page
+   that owns this now. That collision is what let the announcement bar get
+   edited in two places with two different storage keys. */
+function renderDesignTab(container){ renderThemeTab(container); }
 
 // ── SECTION EDITING CONTEXT ───────────────────────────────────────────────
 // The SAME section system (SECT_DEFS/buildForm/openEditor/addSec/…) edits BOTH
@@ -1397,8 +1467,6 @@ function renderLP(){
   else if(curTab==='pages'){renderPagesTab(el);}
   else if(curTab==='product'){renderProductTab(el);}
   else if(curTab==='collection'){renderCollectionTab(el);}
-  else if(curTab==='theme'){renderThemeTab(el);}
-  else if(curTab==='nav'){renderNavTab(el);}
   else if(curTab==='seo'){renderSeoTab(el);}
   else if(curTab==='history'){renderHistoryTab(el);}
   else if(curTab==='templates'){renderTemplatesTab(el);}
@@ -1464,21 +1532,53 @@ function renderThemeTab(container){
     ${sel2('content_width','Content Max Width',g.content_width||'1100',[['900','Narrow (900px)'],['1100','Standard (1100px)'],['1200','Wide (1200px)'],['1400','Full Width (1400px)']])}
     ${sel2('section_spacing','Section Spacing',g.section_spacing||'md',[['sm','Compact'],['md','Standard (default)'],['lg','Spacious'],['xl','Extra Spacious']])}
     <div class="fdiv"></div>
-    <div class="tab-hd" style="margin-top:.2rem">Announcement Bar</div>
-    ${f2('bar_text','Bar Text',g.bar_text||'')}
-    ${sel2('bar_mode','Bar Mode',g.bar_mode||'on',[['on','Always On'],['scroll','Hide on Scroll'],['off','Off']])}
-    ${colorF2('bar_bg','Bar Background',g.bar_bg||'#09090b')}
-    ${colorF2('bar_text_color','Bar Text Color',g.bar_text_color||'#f4f1eb')}
+    <div class="tab-hd" style="margin-top:.2rem">Logo</div>
+    <div class="field"><label>Logo Image URL</label><input data-k="logo_url" value="${he(navSettings.logo_url||'')}"></div>
+    <div class="fdiv"></div>
+    <!-- WHAT USED TO BE HERE, AND WHY IT ISN'T.
+
+         An Announcement Bar block sat here with four fields. Two of them —
+         bar_text and bar_mode — appeared exactly once in the whole repository:
+         in this template. Nothing read them. You could write a promo message,
+         press Save Theme Settings, watch the toast go green, and the bar on the
+         site never changed, because the live bar reads site_settings
+         .announcement_bar (announcement-bar.js:35) and always has.
+
+         The other two — bar_bg and bar_text_color — were worse than dead. They
+         worked, on the homepage only, by overriding --zw-bar-bg/--zw-bar-fg
+         after load. Those tokens are set pre-paint on all fourteen pages from
+         the theme's barBg/barFg. So the two fields here were a second colour
+         system whose only possible effect was to make the homepage's bar
+         disagree with every other page's.
+
+         This file already fixed that same shape once, for the theme gallery
+         above: "four of those pickers were also a second colour system … the
+         same colour could be set in two places and the two could disagree."
+         The bar was the leftover. -->
+    <div class="tab-hd" style="margin-top:.2rem">Edited in Admin</div>
+    <div class="fhint" style="margin:-.15rem 0 .45rem">The announcement bar and the navigation menu apply to every page, not just this one, so they live with the rest of the site's appearance — where there is now a live preview too.</div>
+    <a href="/admin.html#website" target="_blank" rel="noopener" class="apply-btn" style="display:block;text-align:center;text-decoration:none">Announcement bar &amp; navigation &nbsp;→</a>
     <div class="fdiv"></div>
     <div class="tab-hd" style="margin-top:.2rem">Custom CSS</div>
     <div class="field"><label>Additional CSS (applied site-wide)</label><textarea id="custom_css" rows="6" style="font-family:'IBM Plex Mono',monospace;font-size:.6rem" placeholder="/* your CSS */">${he(g.custom_css||'')}</textarea></div>
-    <button onclick="saveTheme()" class="apply-btn" style="margin-top:.3rem">💾 Save Theme Settings</button>
+    <button onclick="saveDesign()" class="apply-btn" style="margin-top:.3rem">💾 Save Design</button>
   </div>`;
   renderTypoMirror();   // fills the read-only Typography block from site_settings.fonts
   renderThemeGallery(); // the picker + its customise panel, above
   // wire events — update themeSettings and auto-preview on every change/input
   container.querySelectorAll('input,select,textarea').forEach(el=>{
-    const sync=()=>{const k=el.dataset.k||el.id;if(k)themeSettings[k]=el.type==='checkbox'?el.checked:el.value;schedSend();};
+    const k=el.dataset.k||el.id;
+    /* The logo is the one field in this pane that does NOT belong to
+       builder_theme. The storefront reads it as cfg.navSettings.logo_url
+       (storefront.js:869), so it has to keep landing in navSettings — routing
+       it to themeSettings with everything else would save it to a key the site
+       never looks at, which is precisely the bug this pane just lost. */
+    const sync=()=>{
+      if(!k) return;
+      if(k==='logo_url') navSettings.logo_url=el.value;
+      else themeSettings[k]=el.type==='checkbox'?el.checked:el.value;
+      schedSend();
+    };
     el.addEventListener('change',sync);
     el.addEventListener('input',sync);
   });
@@ -1679,41 +1779,27 @@ async function renderTypoMirror(){
   }
 }
 
-async function saveTheme(){
+/* ONE button for this pane, and it saves both keys it can write.
+
+   There were two — "Save Theme Settings" and "Save Navigation" — because there
+   were two sub-tabs. Splitting a save button per sub-tab is how the logo ends
+   up saved by one button and the colours by another, in a builder that also has
+   a global Save Draft and a Publish. This pane writes builder_theme and (for
+   the logo alone) builder_nav, so one press writes both.
+
+   Both are attempted before either can throw, and the toast only fires if both
+   landed: a half-save that reports success is the thing that teaches you not to
+   trust the button. */
+async function saveDesign(){
   try{
     const token=await getAccessToken();if(!token)throw new Error('Session expired');
-    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'builder_theme',value:themeSettings})});
-    if(!res.ok)throw new Error(await res.text());
-    toast('Theme saved','ok');sendCfg();
-  }catch(e){showErr(e.message);}
-}
-
-// ── NAV TAB ───────────────────────────────────────────────────────────────
-function renderNavTab(container){
-  const g=navSettings;
-  const links=(g.links||[{text:'Jackets',url:'/drop001.html?category=Jackets'},{text:'T-Shirts',url:'/drop001.html?category=T-Shirts'},{text:'About',url:'/#about'}]);
-  container.innerHTML=`<div class="tab-pane">
-    <div class="tab-hd">Logo</div>
-    <div class="field"><label>Logo Image URL</label><input data-k="logo_url" value="${he(g.logo_url||'')}"></div>
-    <div class="fdiv"></div>
-    <div class="tab-hd" style="margin-top:.2rem">Navigation Links</div>
-    <div id="navLinkList">${links.map((l,i)=>`<div class="nav-link-item" data-idx="${i}"><span class="nav-link-drag">⠿</span><input class="nav-link-txt" placeholder="Label" value="${he(l.text||'')}" onchange="updateNavLink(${i},'text',this.value)"><input class="nav-link-url" placeholder="/url" value="${he(l.url||'')}" onchange="updateNavLink(${i},'url',this.value)"><button class="nav-link-rm" onclick="removeNavLink(${i})">✕</button></div>`).join('')}</div>
-    <button onclick="addNavLink()" class="add-item-btn" style="margin-top:.3rem">+ Add Link</button>
-    <button onclick="saveNav()" class="apply-btn" style="margin-top:.5rem">💾 Save Navigation</button>
-  </div>`;
-  container.querySelector('[data-k="logo_url"]')?.addEventListener('change',e=>navSettings.logo_url=e.target.value);
-}
-
-function updateNavLink(i,k,v){if(!navSettings.links)navSettings.links=[];navSettings.links[i]=navSettings.links[i]||{};navSettings.links[i][k]=v;}
-function addNavLink(){if(!navSettings.links)navSettings.links=[];navSettings.links.push({text:'',url:''});renderLP();}
-function removeNavLink(i){navSettings.links.splice(i,1);renderLP();}
-
-async function saveNav(){
-  try{
-    const token=await getAccessToken();if(!token)throw new Error('Session expired');
-    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'builder_nav',value:navSettings})});
-    if(!res.ok)throw new Error(await res.text());
-    toast('Navigation saved','ok');sendCfg();
+    const put=async(key,value)=>{
+      const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:key,value:value})});
+      if(!res.ok)throw new Error(await res.text());
+    };
+    await put('builder_theme',themeSettings);
+    await put('builder_nav',navSettings);
+    toast('Design saved','ok');sendCfg();
   }catch(e){showErr(e.message);}
 }
 
@@ -2167,25 +2253,12 @@ async function persistTemplates(){try{const token=await getAccessToken();if(!tok
 // ── EDITOR ────────────────────────────────────────────────────────────────
 function selectSec(id){selId=id;const s=curSections().find(x=>x.id===id);if(s)openEditor(s);}
 
-// Click-to-select mode (default OFF so preview links/buttons work normally).
-// When ON, clicking a section in the canvas selects it for editing.
-let selectMode=false;
+/* DERIVED, NOT SET. These three booleans are recomputed by setCanvasMode()
+   from one `canvasMode` value and are assigned nowhere else -- see the note
+   there. Each used to own its own toggle and default to false, which is why
+   the builder opened in a state where clicking the preview did nothing. */
+let selectMode=true;
 function sendSelectMode(){ try{ document.getElementById('pvIframe').contentWindow.postMessage({type:'ZW_SELECT_MODE',on:selectMode}, location.origin); }catch(_){} }
-function toggleSelectMode(){
-  selectMode=!selectMode;
-  const b=document.getElementById('selModeBtn');
-  if(b){
-    b.textContent='🎯 Click to select: '+(selectMode?'On':'Off');
-    b.classList.toggle('on',selectMode);
-    // Light up clearly when on; neutral-but-visible when off.
-    b.style.background=selectMode?'var(--ac)':'var(--sf2)';
-    b.style.color=selectMode?'#0f0f11':'#f4f1eb';
-    b.style.borderColor=selectMode?'var(--ac)':'rgba(255,255,255,.25)';
-    b.style.fontWeight=selectMode?'600':'';
-  }
-  sendSelectMode();
-  if(typeof toast==='function') toast(selectMode?'Click a section in the preview to edit it':'Preview links are clickable again');
-}
 
 // ── Inline text editing on the canvas ─────────────────────────────────────
 // When ON, clicking any text in the preview makes it editable in place and
@@ -2193,21 +2266,6 @@ function toggleSelectMode(){
 // setting that held that text and update it (works for every section type).
 let textEditMode=false;
 function sendTextEditMode(){ try{ document.getElementById('pvIframe').contentWindow.postMessage({type:'ZW_TEXT_EDIT_MODE',on:textEditMode}, location.origin); }catch(_){} }
-function _styleModeBtn(b,on){ if(!b)return; b.classList.toggle('on',on); b.style.background=on?'var(--ac)':'var(--sf2)'; b.style.color=on?'#0f0f11':'#f4f1eb'; b.style.borderColor=on?'var(--ac)':'rgba(255,255,255,.25)'; b.style.fontWeight=on?'600':''; }
-function toggleTextEdit(){
-  textEditMode=!textEditMode;
-  // Only one canvas-click mode at a time.
-  if(textEditMode){
-    if(selectMode){ selectMode=false; const sb=document.getElementById('selModeBtn'); if(sb)sb.textContent='🎯 Click to select: Off'; _styleModeBtn(sb,false); sendSelectMode(); }
-    if(moveMode){ moveMode=false; const mb=document.getElementById('moveModeBtn'); if(mb)mb.textContent='✥ Move: Off'; _styleModeBtn(mb,false); sendMoveMode(); }
-  }
-  const b=document.getElementById('textEditBtn');
-  if(b){ b.textContent='✏️ Edit text: '+(textEditMode?'On':'Off'); _styleModeBtn(b,textEditMode); }
-  sendTextEditMode();
-  if(typeof toast==='function') toast(textEditMode?'Click any text in the preview to edit it':'Text editing off');
-}
-// Keep the select toggle from leaving text-edit on (mutual exclusion both ways).
-(function(){ const _origToggleSel=window.toggleSelectMode; window.toggleSelectMode=function(){ if(!selectMode){ if(textEditMode){ textEditMode=false; const b=document.getElementById('textEditBtn'); if(b){b.textContent='✏️ Edit text: Off';_styleModeBtn(b,false);} sendTextEditMode(); } if(moveMode){ moveMode=false; const mb=document.getElementById('moveModeBtn'); if(mb){mb.textContent='✥ Move: Off';_styleModeBtn(mb,false);} sendMoveMode(); } } return _origToggleSel.apply(this,arguments); }; })();
 
 function _zwNormText(s){ return String(s==null?'':s).replace(/\r\n/g,'\n').replace(/ /g,' ').trim(); }
 function applyInlineText(secId,oldText,newText){
@@ -2232,19 +2290,54 @@ function applyInlineFont(secId,which,value){
 
 // ── Drag-to-position color block content on the canvas ────────────────────
 let moveMode=false;
-function sendMoveMode(){ try{ document.getElementById('pvIframe').contentWindow.postMessage({type:'ZW_MOVE_MODE',on:moveMode}, location.origin); }catch(_){} }
-function toggleMoveMode(){
-  moveMode=!moveMode;
-  // Only one canvas-click mode at a time.
-  if(moveMode){
-    if(selectMode){ selectMode=false; const sb=document.getElementById('selModeBtn'); if(sb)sb.textContent='🎯 Click to select: Off'; _styleModeBtn(sb,false); sendSelectMode(); }
-    if(textEditMode){ textEditMode=false; const tb=document.getElementById('textEditBtn'); if(tb)tb.textContent='✏️ Edit text: Off'; _styleModeBtn(tb,false); sendTextEditMode(); }
-  }
-  const b=document.getElementById('moveModeBtn');
-  if(b){ b.textContent='✥ Move: '+(moveMode?'On':'Off'); _styleModeBtn(b,moveMode); }
-  sendMoveMode();
-  if(typeof toast==='function') toast(moveMode?'Drag a color block’s content to move it (snaps to center)':'Move mode off','ok');
+
+/* ── WHAT A CLICK ON THE PREVIEW DOES ───────────────────────────────────────
+   ONE variable, four values, and the three booleans below it are derived --
+   never assigned anywhere else. That is the whole point: while each mode owned
+   its own boolean and its own toggle, "only one at a time" was a rule three
+   separate functions had to remember, and the third of them was a wrapper
+   monkey-patched around window.toggleSelectMode to cover what the other two
+   forgot. A rule enforced in N places is a rule that is wrong in one of them.
+   Here it cannot be: setting the mode recomputes all three from it.
+
+   The iframe is told all three every time, including the falses. It keeps no
+   opinion of its own about which mode is off, so a message that only announced
+   the winner would leave the loser's handlers attached. */
+const CANVAS_MODES=['browse','select','text','move'];
+let canvasMode='select';
+function setCanvasMode(m,silent){
+  if(CANVAS_MODES.indexOf(m)<0) m='select';
+  canvasMode=m;
+  selectMode   = (m==='select');
+  textEditMode = (m==='text');
+  moveMode     = (m==='move');
+  document.querySelectorAll('#pvModes .pvm').forEach(b=>{
+    const on=b.dataset.mode===m;
+    b.classList.toggle('on',on);
+    b.setAttribute('aria-checked',String(on));
+    b.tabIndex = on ? 0 : -1;
+  });
+  sendSelectMode(); sendTextEditMode(); sendMoveMode();
+  if(silent) return;
+  if(typeof toast==='function') toast({
+    browse:'Preview links and buttons work normally',
+    select:'Click a section in the preview to edit it',
+    text:'Click any text in the preview to edit it',
+    move:'Drag a colour block’s content to move it (snaps to centre)',
+  }[m],'ok');
 }
+/* Arrow keys inside a radiogroup, as a radiogroup is expected to behave. */
+document.addEventListener('keydown',e=>{
+  if(!/^Arrow(Left|Right)$/.test(e.key)) return;
+  const host=document.getElementById('pvModes');
+  if(!host||!host.contains(document.activeElement)) return;
+  e.preventDefault();
+  const i=CANVAS_MODES.indexOf(canvasMode);
+  const n=(i+(e.key==='ArrowRight'?1:CANVAS_MODES.length-1))%CANVAS_MODES.length;
+  setCanvasMode(CANVAS_MODES[n]);
+  host.querySelector('.pvm[data-mode="'+CANVAS_MODES[n]+'"]')?.focus();
+});
+function sendMoveMode(){ try{ document.getElementById('pvIframe').contentWindow.postMessage({type:'ZW_MOVE_MODE',on:moveMode}, location.origin); }catch(_){} }
 function applyMovePos(secId,posX,posY){
   const s=curSections().find(x=>x.id===secId); if(!s||!s.settings)return;
   s.settings.pos_x=Math.max(0,Math.min(100,Math.round(posX)));
@@ -2331,7 +2424,6 @@ let _curG={};
 const HEAD_KEYS={heading:1,title:1}, BODY_KEYS={body:1,subtext:1,content:1};
 const fontFor=k=>HEAD_KEYS[k]?hfont(_curG):(BODY_KEYS[k]?bfont(_curG):'');
 const f=(k,l,v='',type='text',ph='')=>`<div class="field"><label>${l}</label><input type="${type}" data-f="${k}" value="${he(v)}" placeholder="${ph}"></div>`+fontFor(k);
-const f2=(k,l,v='')=>`<div class="field"><label>${l}</label><input data-k="${k}" value="${he(v)}"></div>`;
 const ta=(k,l,v='',ph='')=>`<div class="field"><label>${l}</label><textarea data-f="${k}" placeholder="${ph}">${he(v)}</textarea></div>`+fontFor(k);
 const sel=(k,l,v,opts)=>`<div class="field"><label>${l}</label><select data-f="${k}">${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select></div>`;
 const sel2=(k,l,v,opts)=>`<div class="field"><label>${l}</label><select data-k="${k}">${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select></div>`;
@@ -2372,7 +2464,6 @@ const platFields=(g,dLg='grid',dMd='grid',dSm='swipe')=>{
    fills the hex; typing a valid #rrggbb updates the swatch. Clearing the hex
    box clears the setting (reverts the section to its mode background). */
 const colorF=(k,l,v='')=>`<div class="field"><label>${l}</label><div style="display:flex;gap:.35rem;align-items:center"><input type="color" data-f="${k}" value="${v||'#09090b'}" oninput="this.nextElementSibling.value=this.value"><input type="text" data-f="${k}" value="${he(v)}" placeholder="#hex or blank" style="flex:1" oninput="const x=this.value.trim();if(/^#[0-9a-f]{6}$/i.test(x))this.previousElementSibling.value=x"></div></div>`;
-const colorF2=(k,l,v='')=>`<div class="field"><label>${l}</label><div style="display:flex;gap:.35rem;align-items:center"><input type="color" data-k="${k}" value="${v||'#09090b'}" oninput="this.nextElementSibling.value=this.value"><input type="text" data-k="${k}" value="${he(v)}" placeholder="#hex" style="flex:1" oninput="if(/^#[0-9a-f]{6}$/i.test(this.value.trim()))this.previousElementSibling.value=this.value.trim()"></div></div>`;
 /* Section background, with the choice that was missing.
 
    A colour picker can only produce an absolute colour, so every section
@@ -3008,6 +3099,39 @@ function addSec(type){
 }
 
 // ── PREVIEW ───────────────────────────────────────────────────────────────
+/* MEASURE THE FRAME, DO NOT LABEL IT.
+   This readout used to be a lookup table -- desk always said '1280px —
+   Desktop' regardless of how wide the iframe actually was. Tablet and Mobile
+   are pinned to 768/390 by setPvMode so their labels happened to be true, but
+   Desktop is `width:100%;max-width:1280px` inside whatever space is left, so
+   the one mode that could not know its own width was the one asserting it.
+   That is how a preview lies: not by rendering wrong, but by rendering a
+   narrow viewport under a label that says wide.
+   The storefront's main breakpoint is 900px (19 rules), so a Desktop preview
+   below it is showing the mobile layout and says so. */
+const PV_BREAK = 900;
+function pvMeasure(){
+  const out=document.getElementById('pvDims'); if(!out) return;
+  const f=document.getElementById('pvIframe'); if(!f) return;
+  /* After layout: the panel that just opened or closed has to settle first. */
+  requestAnimationFrame(()=>{
+    const w=Math.round(f.getBoundingClientRect().width);
+    if(!w) return;
+    const name={desk:'Desktop',tab:'Tablet',mob:'Mobile'}[pvMode]||pvMode;
+    const narrow = pvMode==='desk' && w < PV_BREAK;
+    out.textContent = w+'px — '+(narrow?'mobile layout':name);
+    out.title = narrow
+      ? 'The window is too narrow to preview the desktop layout: below '+PV_BREAK+'px the storefront switches to its mobile layout, so this is not what a desktop visitor sees.'
+      : 'Actual width of the preview viewport.';
+    out.style.color = narrow ? '#e07060' : '';
+    out.style.opacity = narrow ? '1' : '';
+  });
+}
+/* The width also changes without setPvMode: window resize, and the editor
+   opening or closing back when it was a flex column. Measuring on resize keeps
+   the number honest in every one of those. */
+window.addEventListener('resize',pvMeasure);
+
 function setPvMode(m){
   pvMode=m;
   document.querySelectorAll('#pvTog button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
@@ -3030,7 +3154,7 @@ function setPvMode(m){
     iframe.style.width='100%';
     iframe.style.height='100%';
   }
-  document.getElementById('pvDims').textContent={desk:'1280px — Desktop',tab:'768px — Tablet',mob:'390px — Mobile'}[m]||m;
+  pvMeasure();
   syncPlatTabs();   // keep the editor's device tabs in step with the preview device
 }
 // Per-device layout tabs (in platFields): show one device's controls at a time and
