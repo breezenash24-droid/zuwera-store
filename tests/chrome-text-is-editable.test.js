@@ -182,6 +182,70 @@ console.log('\nTemplate copy INSIDE a section still gets saved');
     'without it the builder has nothing to fall through to');
 }
 
+console.log('\nAn override survives the classes that come and go');
+{
+  /* scroll-reveal.js puts zw-reveal on everything it watches and zw-revealed on
+     each element as it scrolls into view. Baking classes into the key meant the
+     same paragraph had one identity above the fold and another once you had
+     scrolled to it — so an override saved while revealed silently stopped
+     matching, and the text "just didn't update". */
+  const REVEAL = read('scroll-reveal.js');
+  ok('scroll-reveal really does add classes at runtime',
+    /classList\.add\('zw-revealed'\)/.test(REVEAL) && /classList\.add\('zw-reveal'\)/.test(REVEAL),
+    'if this ever stops being true the volatile list can shrink');
+  for (const c of ['zw-revealed', 'zw-reveal', 'active', 'open', 'visible', 'is-open', 'has-x'])
+    ok(c + ' is excluded from an element path', new RegExp(
+      'VOLATILE_CLASS[\\s\\S]{0,400}').test(COPY) && (function () {
+        const m = COPY.match(/var VOLATILE_CLASS = (\/.*\/);/);
+        return m ? new RegExp(m[1].slice(1, -1)).test(c) : false;
+      })());
+  ok('class order cannot change the key', /\.sort\(\)\.slice\(0, 2\)/.test(COPY),
+    'a renderer emitting the same classes in another order must not produce another key');
+
+  /* The real rescue: a second, class-free identity. Safe to match loosely only
+     because applying still requires the text to equal `was`. */
+  ok('a class-free path is computed too', COPY.includes('function loosePath'));
+  ok('and sent with the edit', (COPY.match(/loose: loosePath\(el\)/g) || []).length === 2,
+    'both the section fall-through and the plain override need it');
+  ok('the builder stores it', /loose:loose\|\|prevLoose\|\|''/.test(B));
+  ok('an existing override does not lose it', /const prevLoose=/.test(B));
+  ok('the storefront falls back to it', /byLoose\[loosePath\(el\)\]/.test(COPY));
+  ok('...but the text check still guards every apply',
+    /norm\(el\.textContent\) !== norm\(entry\.was\)\) continue/.test(COPY),
+    'loose matching is only safe because finding the wrong element gets you nothing');
+
+  setState([], {}, {});
+  sandbox.applyTextOverride('/', 'p.a:0', 'Was', 'Now', 'p:0');
+  ok('the loose form is written alongside the path',
+    sandbox.chromeCopy['/']['p.a:0'].loose === 'p:0');
+}
+
+console.log('\nThe published copy cannot overwrite the draft');
+{
+  /* The preview fetches published overrides while the builder pushes the draft
+     in. If the response lands second it reinstates the published words — which
+     reads as "my edit did not take", intermittently, depending on the network. */
+  ok('a draft marks itself authoritative', /function setOverrides\(next, fromDraft\)/.test(COPY));
+  ok('and later server values are ignored', /if \(draftPushed && !fromDraft\) return;/.test(COPY));
+  ok('the builder push counts as a draft', /setOverrides\(d\.value, true\)/.test(COPY));
+  ok('so does a ?zwpreview= link', /setOverrides\(p\.text_overrides, true\)/.test(COPY));
+  ok('the plain fetch does not', /setOverrides\(v\);/.test(COPY));
+}
+
+console.log('\nSaving writes only what changed');
+{
+  ok('dirtiness is per key', COPY !== null && /const chromeDirtyKeys = new Set\(\)/.test(B),
+    'three POSTs on every save, each re-verifying the session, for one edited word');
+  for (const [fn, key] of [['nav', "markChromeDirty\\('nav'\\)"], ['bar', "markChromeDirty\\('bar'\\)"],
+                           ['copy', "markChromeDirty\\('copy'\\)"]])
+    ok('the ' + fn + ' edit marks only itself', new RegExp(key).test(B));
+  ok('Save Draft writes just those', /const want = pub \? \['nav','bar','copy'\] : \[\.\.\.chromeDirtyKeys\]/.test(B));
+  ok('Publish still writes all three', /pub \? \['nav','bar','copy'\]/.test(B),
+    'a draft saved an hour ago still has to be promoted');
+  ok('and they go in parallel', /await Promise\.all\(want\.map/.test(B));
+  ok('nothing dirty means no request at all', /if\(!want\.length\) return true;/.test(B));
+}
+
 console.log('\nThe preview asks the right owner');
 {
   ok('a named field beats a section', COPY.indexOf("closest('[data-zw-field]')") < COPY.indexOf("closest('[data-zw-sec]')"),
