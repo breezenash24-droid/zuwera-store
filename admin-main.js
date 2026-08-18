@@ -1079,6 +1079,11 @@
             } else if (page === 'shipping') {
                 if (typeof window.shipLoadData === 'function') window.shipLoadData();
                 loadShippingOptionCard();
+                /* Campus hand-delivery moved here from Coupons. It is drawn by
+                   commerce-admin.js, which used to draw it only when the coupons
+                   page was opened — so without this a store owner who never goes
+                   to Coupons has no way to switch hand-delivery on at all. */
+                if (typeof window.zwRenderLocalDelivery === 'function') window.zwRenderLocalDelivery();
             } else if (page === 'pricing') {
                 if (typeof window.pricingLoadData === 'function') window.pricingLoadData();
             } else if (page === 'wholesale') {
@@ -1089,6 +1094,11 @@
                 if (typeof window.receiptsLoadData === 'function') window.receiptsLoadData();
             } else if (page === 'returns') {
                 if (typeof loadReturnsPage === 'function') loadReturnsPage();
+                /* The Return Shipments panel moved here from Shipping, so its data
+                   has to be fetched here too. Without this it renders its Loading…
+                   row and stays there until somebody happens to open Shipping — a
+                   panel that only works if you visited another page first. */
+                if (typeof window.retShipLoad === 'function') window.retShipLoad();
                 if (typeof loadReturnAddressCard === 'function') loadReturnAddressCard();
                 if (typeof loadReturnWindowCard === 'function') loadReturnWindowCard();
             } else if (page === 'apis') {

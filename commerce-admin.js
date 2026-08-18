@@ -61,7 +61,10 @@
     document.head.appendChild(style);
   }
 
-  async function loadCommerceData() {
+  /* opts is accepted and unused: the Shipping page calls this just to fill
+     state.config before painting the delivery card, and passing an option the
+     function does not declare would be a silent no-op that reads as intent. */
+  async function loadCommerceData(opts) {
     if (!window.sb) throw new Error('Supabase client not available.');
     const { data, error } = await window.sb
       .from('site_settings').select('key,value').eq('key', 'commerce_config');
@@ -160,8 +163,33 @@
     mountCommerceStyles();
     const mount = $('commerceMount');
     if (!mount) return;
-    mount.innerHTML = renderPromotions() + renderLocalDelivery();
+    /* Coupons renders coupons. The hand-delivery card goes to its own mount on
+       the Shipping page, which is where a delivery method belongs. */
+    mount.innerHTML = renderPromotions();
+    paintLocalDelivery();
     bindCommerceEvents();
+  }
+
+  /* Paint the card wherever its mount is, and bind it. Exposed so the SHIPPING
+     page can ask for it directly: a store owner who never opens Coupons still
+     has to be able to turn hand-delivery on, and before this the card only
+     existed once the coupons page had been visited. */
+  window.zwRenderLocalDelivery = async function () {
+    const host = $('shipLocalDeliveryMount');
+    if (!host) return;
+    /* The card reads state.config, so it needs the config. Loading is cheap and
+       idempotent; rendering a stale card would show the wrong ZIPs. */
+    if (!state.config || !state.config.localDelivery) {
+      try { await loadCommerceData({ silent: true }); } catch (_) { /* card renders from defaults */ }
+    }
+    paintLocalDelivery();
+  };
+
+  function paintLocalDelivery() {
+    const host = $('shipLocalDeliveryMount');
+    if (!host) return;
+    host.innerHTML = renderLocalDelivery();
+    bindLocalDeliveryEvents();
   }
 
   function renderLocalDelivery() {
@@ -281,13 +309,21 @@
     return true;
   }
 
-  function bindCommerceEvents() {
+  /* Bound where the card is drawn, not where the coupons page is drawn. The
+     save still goes through saveSettings(), which writes the whole
+     commerce_config blob — syncFromDom() only reads the ld* fields when they
+     are on the page, so saving from Shipping cannot blank the promotions and
+     saving from Coupons cannot blank the delivery ZIPs. */
+  function bindLocalDeliveryEvents() {
     $('ldSaveBtn')?.addEventListener('click', async () => {
       const st = $('ldStatus');
       if (st) st.textContent = 'Saving…';
       const ok = await saveSettings('Campus delivery saved.');
       if (st) st.textContent = ok ? 'Saved.' : 'Could not save.';
     });
+  }
+
+  function bindCommerceEvents() {
     $('commerceAddPromoBtn')?.addEventListener('click', () => {
       syncFromDom();
       state.config.promotions = [
