@@ -162,7 +162,8 @@ if (notClaimed.length) {
  * schema.sql is gitignored: it is the input, not the artifact.
  *
  * Lower this number when you regenerate. It only ever goes down. */
-/* 6 → 7 for migration 0024 (wholesale), 7 → 8 for 0025 (price list rules).
+/* 6 → 7 for migration 0024 (wholesale), 7 → 8 for 0025 (price list rules),
+   8 → 9 for 0026 (text_overrides on the public-read allow-list).
    This is the budget WORKING, not failing: it made the cost of adding a
    migration visible at the moment of adding one, which is the only moment
    anybody is thinking about install.sql. The rule stays 'it only goes down' —
@@ -174,7 +175,7 @@ if (notClaimed.length) {
    can quietly fix. It is one command, recorded in scripts/build-install-sql.js,
    and every migration past 0017 is a thing a NEW project does not get until
    somebody runs it. That is the real cost this number is counting. */
-const DRIFT_BUDGET = 8;
+const DRIFT_BUDGET = 9;
 ok('install.sql has not fallen further behind', notClaimed.length <= DRIFT_BUDGET,
   notClaimed.length + ' migrations post-date the snapshot (budget ' + DRIFT_BUDGET + ') — '
   + 'regenerate it, then lower DRIFT_BUDGET to ' + notClaimed.length);

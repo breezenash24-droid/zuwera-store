@@ -40,7 +40,12 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
 const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g, '\n');
 
 const B = read('builder.html');
-const SF = read('storefront.js');
+/* The editor moved out of storefront.js — that file is the HOMEPAGE's script,
+   so an editor living in it could only ever work on the homepage preview,
+   while the nav and the announcement bar (the two things most in need of
+   inline editing) appear on every page. It is zw-copy.js now, which every
+   storefront page loads. */
+const SF = read('zw-copy.js');
 
 /* ── Lift the mapping out of builder.html and run it for real ─────────────── */
 function lift(name) {
@@ -154,6 +159,8 @@ console.log('\nThe preview is told, every time');
   ok('and shows why', SF.includes('flashRejected'));
   ok('a commit waits for the answer instead of assuming', /pending\[id\] = \{ el: el, was: was \}/.test(SF));
   ok('the reply is origin-checked', /ZW_INLINE_TEXT_RESULT/.test(SF) && /e\.origin !== location\.origin/.test(SF));
+  ok('the editor is not shipped to shoppers', /if \(window\.__ZW_BUILDER_PREVIEW__\) initEditor\(\);/.test(SF),
+    'it is in a file every storefront page loads, so the guard is what keeps it out of a shopper’s page');
 }
 
 console.log('\nMore of the text can be clicked');
@@ -170,10 +177,13 @@ console.log('\nMore of the text can be clicked');
     'the old check omitted div, so div-of-divs read as a leaf and div-of-span did not');
   ok('the old tag-list leaf check is gone',
     !SF.includes("querySelector('h1,h2,h3,h4,h5,h6,p,a,button,li,span')"));
-  ok('the text is read unrendered', /function txt\(el\)\{ return \(el\.textContent/.test(SF),
+  ok('the text is read unrendered', /function txt\(el\)\s*\{\s*return \(el\.textContent/.test(SF),
     'innerText applies text-transform, which is what broke the mapping');
+  /* No [data-zw-sec] qualifier any more: the nav and the bar are chrome, so
+     they sit OUTSIDE every section, and a rule scoped to sections could never
+     have put a text cursor on them. */
   ok('the cursor hints at everything that is editable',
-    /body\.zw-text-edit \[data-zw-sec\][^']*label,small/.test(SF));
+    /body\.zw-text-edit [^']*label,small/.test(SF) && !/zw-text-edit \[data-zw-sec\]/.test(SF));
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

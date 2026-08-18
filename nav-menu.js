@@ -143,7 +143,23 @@
   }
 
   function resolveAll() {
-    return (navCfg || []).map(resolveItem).filter(Boolean);
+    /* Carry the index in nav_menu through to the rendered item. resolveItem can
+       drop an item (a gender with no products disappears), so the position on
+       screen is NOT the position in the stored array -- and an inline edit that
+       wrote back by screen position would rename the wrong link. */
+    return (navCfg || []).map(function (it, i) {
+      var r = resolveItem(it);
+      if (r) r._i = i;
+      return r;
+    }).filter(Boolean);
+  }
+
+  /* Builder preview only: name the exact field behind each label so an on-canvas
+     edit writes to nav_menu[i].label instead of being matched by its text. The
+     attribute never reaches a shopper. */
+  function fieldAttr(n) {
+    if (!window.__ZW_BUILDER_PREVIEW__ || typeof n._i !== 'number') return '';
+    return ' data-zw-field="nav.' + n._i + '.label" data-zw-field-label="the navigation menu"';
   }
 
   // Ensure the desktop nav-link host exists. index/landing have
@@ -169,8 +185,8 @@
     if (!host) return;
     host.innerHTML = items.map(function (n) {
       var top = n.url
-        ? '<a href="' + esc(n.url) + '" class="nav-link">' + esc(n.label) + '</a>'
-        : '<button type="button" class="nav-link zw-navtrigger">' + esc(n.label) + '</button>';
+        ? '<a href="' + esc(n.url) + '" class="nav-link"' + fieldAttr(n) + '>' + esc(n.label) + '</a>'
+        : '<button type="button" class="nav-link zw-navtrigger"' + fieldAttr(n) + '>' + esc(n.label) + '</button>';
       if (!n.columns.length) return '<div class="zw-navitem">' + top + '</div>';
       var mega = '<div class="zw-mega">' + n.columns.map(function (c) {
         var links = c.links.map(function (l) { return '<a href="' + esc(l.url) + '">' + esc(l.text) + '</a>'; }).join('');
@@ -185,7 +201,7 @@
     if (!host) return;
     // Hamburger menu: every item is a plain link straight to its page.
     host.innerHTML = items.map(function (n) {
-      return '<a href="' + esc(n.url || '#') + '" class="mobile-nav-link zw-mobile-primary-link">' + esc(n.label) + '</a>';
+      return '<a href="' + esc(n.url || '#') + '" class="mobile-nav-link zw-mobile-primary-link"' + fieldAttr(n) + '>' + esc(n.label) + '</a>';
     }).join('');
   }
 
@@ -291,6 +307,19 @@
     } catch (_) {}
   }
 
+  /* The builder holds the nav DRAFT in memory and pushes it in here. It is not
+     fetched: nav_menu_draft is deliberately absent from the site_settings
+     public-read policy (migration 0026), so unpublished labels are not sitting
+     behind a REST call whose key name ships in this file. */
+  if (window.__ZW_BUILDER_PREVIEW__) {
+    window.addEventListener('message', function (e) {
+      if (e.origin !== location.origin) return;
+      var d = e.data;
+      if (!d || d.type !== 'ZW_NAV_PREVIEW' || !Array.isArray(d.items)) return;
+      navCfg = d.items;
+      render();
+    });
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
