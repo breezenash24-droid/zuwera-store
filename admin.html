@@ -1137,6 +1137,14 @@
                             <button type="button" class="btn btn-sm" id="prodPresetEdit" data-req-edit="products" disabled onclick="toggleProductPresetEditor()"
                                     style="background:transparent;border:1px solid var(--accent,#F891A5);color:var(--accent,#F891A5);"
                                     data-help="Choose which products belong to the selected preset, and their order. Nothing reaches the storefront until you press Make live.">Edit contents</button>
+                            <!-- Filters the product list below to this preset alone. A
+                                 view, not a change: the shop keeps selling whatever it
+                                 was selling. This is what "work from a clean slate"
+                                 needs, and the bank cannot provide it - bank membership
+                                 is derived from Draft, so it can only hide things that
+                                 are already off the storefront. -->
+                            <button type="button" class="btn btn-secondary btn-sm" id="prodPresetOnly" data-ro-ok disabled onclick="setProductFilter('preset')"
+                                    data-help="Filters the product list below to just this preset's products, so you can build without the rest of the catalogue in the way. A view only — nothing is saved and the storefront keeps selling whatever it was selling.">◧ Show only this below</button>
                             <button type="button" class="btn btn-secondary btn-sm" data-req-edit="products" onclick="saveProductPreset()"
                                     data-help="Creates a NEW preset from whatever is live on the storefront right now, under the name in the box above.">+ Save current as…</button>
                             <!-- An empty preset holds no products, so switching to it takes
@@ -1185,6 +1193,11 @@
                         <!-- Products a preset switch took off the storefront. Still
                              Draft in the database; kept out of the other views so
                              "Draft" keeps meaning "still being worked on". -->
+                        <!-- The workspace view: only what is in the preset being
+                             edited. A VIEW, not a state - nothing is written and the
+                             storefront does not move, which is what separates it from
+                             the bank below. Hidden until a preset is selected. -->
+                        <button class="prod-filter-btn" data-f="preset" id="prodPresetFilterBtn" style="display:none;">◧ <span id="prodPresetFilterLabel">In preset</span></button>
                         <button class="prod-filter-btn" data-f="banked" id="prodBankBtn" style="display:none;">🗄 Bank <span id="prodBankCount" style="opacity:.6;font-weight:700;"></span></button>
                         <label for="prodCategoryFilter" style="margin-left:auto;font-size:.78rem;color:var(--text-secondary);font-weight:600;letter-spacing:.02em;">Product type</label>
                         <select id="prodCategoryFilter" class="form-input" style="width:auto;min-width:160px;padding:6px 10px;font-size:.82rem;">

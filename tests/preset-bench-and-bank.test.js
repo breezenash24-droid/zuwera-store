@@ -211,6 +211,56 @@ console.log('\n  the buttons say what they do');
     HTML.includes('is the only button here that changes what customers see'));
 }
 
+/* ── Clearing the WORKSPACE is not clearing the SHOP ────────────────────────
+   Asked three times in three different ways: work on a preset without it going
+   on the site; work from a clean slate without looking at the other products;
+   an empty preset should make them disappear into a section.
+
+   The bank cannot answer it. Bank membership is DERIVED from Draft, deliberately
+   — a product hidden from the admin while still on sale is the one outcome worse
+   than a cluttered table — so the bank can only ever hide what is already off the
+   storefront. "Clear my table while I build" and "take these off sale" are two
+   different questions and only the second one has a state behind it.
+
+   So the first is a VIEW: filter the list to the preset being edited, write
+   nothing, leave the shop alone. */
+console.log('\n  the table can show just the preset being built');
+{
+  ok('there is a workspace view', FILTER.includes("_prodStatusFilter === 'preset'"));
+  ok('...driven by the selection, not the live preset',
+    FILTER.includes('_prodPresetById(_selectedPreset)'),
+    'the point is to build one that is NOT live');
+  ok('...and it is reachable from the preset panel', HTML.includes("setProductFilter('preset')"));
+  ok('...and from a chip named after the preset', HTML.includes('prodPresetFilterLabel'));
+
+  /* It changes nothing. That is the whole distinction from the bank. */
+  const FILT = FILTER.slice(FILTER.indexOf("_prodStatusFilter === 'preset'"),
+                            FILTER.indexOf("_prodStatusFilter === 'banked'"));
+  ok('it writes nothing', !FILT.includes('sb.from(') && !FILT.includes('status:'),
+    'a view that edits is a state change wearing a filter as a disguise');
+
+  /* A filter that removes a LIVE product from the only table you look at is how
+     you stop knowing what you are selling. */
+  const CHIP = lift('renderBankChip');
+  ok('it says how many it is hiding', CHIP.includes('hidden from this view'));
+  ok('...and calls out the ones still on sale separately',
+    CHIP.includes('still live on the storefront'),
+    'the total alone does not tell you whether you have lost sight of a live product');
+  ok('...and says the shop has not moved', CHIP.includes('Nothing here changes the shop'));
+  ok('an empty preset says so rather than looking broken',
+    CHIP.includes('has nothing in it yet, so there is nothing to show'));
+  ok('there is a way back to the full list', CHIP.includes('Show all'));
+
+  /* The view is defined by the selection, so both have to move together. */
+  ok('changing preset redraws the view',
+    lift('selectProductPreset').includes("if (_prodStatusFilter === 'preset') renderProducts();"),
+    'otherwise it lists the previous preset under the new name');
+  ok('saving contents redraws it too',
+    lift('savePresetContents').includes("if (_prodStatusFilter === 'preset') renderProducts();"));
+  ok('the chip disappears with the selection', CHIP.includes("if (!sel && _prodStatusFilter === 'preset')"),
+    'a filter pinned to nothing would show an empty table with no way to read why');
+}
+
 console.log('\n  there is a way back out');
 {
   ok('a banked row offers Unbank instead of Archive', /unbankProduct\('\$\{productId\}'\)/.test(MAIN));
