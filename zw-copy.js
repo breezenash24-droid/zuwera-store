@@ -115,12 +115,44 @@
           if (kids[i].tagName === node.tagName) { if (kids[i] === node) idx = sibs; sibs++; }
         }
       }
-      parts.unshift(node.tagName.toLowerCase() + (cls ? '.' + cls : '') + (sibs > 1 ? ':' + idx : ''));
+      /* The index is ALWAYS written, never only when there are siblings.
+         Conditional on sibs > 1, an element is `div` while it is an only child
+         and `div:0` the moment a sibling appears -- and the builder preview
+         injects elements the live page does not have, so the same element
+         genuinely had two different identities in the two places an override
+         is written and read. That alone stopped saved overrides matching. */
+      parts.unshift(node.tagName.toLowerCase() + (cls ? '.' + cls : '') + ':' + idx);
       node = node.parentElement;
     }
     return parts.join('>');
   }
   function loosePath(el) { return elPath(el, true); }
+
+  /* Strip volatile classes out of a path that was ALREADY STORED.
+
+     Overrides saved before those classes were excluded have them baked into the
+     key — live data looks like
+
+         #about>div.zw-reveal.zw-revealed:0>h2.about-h2
+
+     and no element ever computes that again, so the override is inert. Fixing
+     elPath only helps edits made from now on; every override saved before it is
+     silently dead until the key is read the same way it is now written. So the
+     stored side gets normalised too, and the two are compared normalised. */
+  function normStoredPath(p) {
+    return String(p || '').split('>').map(function (seg) {
+      if (seg.charAt(0) === '#') return seg;
+      var idx = '', m = /:(\d+)$/.exec(seg);
+      if (m) { idx = ':' + m[1]; seg = seg.slice(0, m.index); }
+      var bits = seg.split('.');
+      var tag = bits.shift();
+      var cls = bits.filter(function (c) { return c && !VOLATILE_CLASS.test(c); }).sort().slice(0, 2);
+      /* A stored segment with no index was written when the element had no
+         siblings, which means index 0. Spelling it out is what lets an old key
+         line up with a path that now always carries one. */
+      return tag + (cls.length ? '.' + cls.join('.') : '') + (idx || ':0');
+    }).join('>');
+  }
 
   /* One pass over the leaves, matching each against the stored paths.
 
@@ -136,10 +168,17 @@
     var keys = Object.keys(map);
     if (!keys.length) return;
 
-    var byLoose = {};
+    /* Three indexes, widest last. The normalised one is what rescues overrides
+       stored before volatile classes were excluded from the key; the loose one
+       rescues anything else that changes class later. Both are safe to be this
+       permissive because the text check below still has to pass. */
+    var byNorm = {}, byLoose = {};
     for (var k = 0; k < keys.length; k++) {
       var e = map[keys[k]];
-      if (e && e.loose && !byLoose[e.loose]) byLoose[e.loose] = e;
+      if (!e) continue;
+      var n = normStoredPath(keys[k]);
+      if (!byNorm[n]) byNorm[n] = e;
+      if (e.loose && !byLoose[e.loose]) byLoose[e.loose] = e;
     }
 
     applying = true;
@@ -148,7 +187,8 @@
       for (var i = 0; i < els.length; i++) {
         var el = els[i];
         if (!isTextLeaf(el)) continue;
-        var entry = map[elPath(el)] || byLoose[loosePath(el)];
+        var p = elPath(el);
+        var entry = map[p] || byNorm[p] || byLoose[loosePath(el)];
         if (!entry || typeof entry.now !== 'string') continue;
         if (norm(el.textContent) === norm(entry.now)) {
           /* Already showing the override. Keep the anchor so a second edit knows

@@ -182,6 +182,76 @@ console.log('\nTemplate copy INSIDE a section still gets saved');
     'without it the builder has nothing to fall through to');
 }
 
+console.log('\nAn element path means the same thing in both places it is used');
+{
+  /* An override is WRITTEN in the builder preview and READ on the live page,
+     and those two DOMs are not identical — the preview injects elements the
+     live page has never had. Anything in the key that depends on what is
+     around the element therefore has to be written the same way in both.
+
+     The index was not. It was emitted only when an element had siblings, so
+     the same element was `div` as an only child and `div:0` once a sibling
+     appeared. Live data caught this: every stored key carries `:0` on a
+     wrapper that, on the plain page, is an only child and computes no index at
+     all — so not one of them could ever match. */
+  const LIVE_KEYS = [
+    '#about>div.zw-reveal.zw-revealed:0>h2.about-h2',
+    '#drop001>div.drop-inner:1>div.zw-reveal.zw-revealed:0>div.drop-title>span',
+  ];
+  ok('the index is always written', /\+ ':' \+ idx\);/.test(COPY) && !/sibs > 1 \? ':' \+ idx/.test(COPY));
+  ok('and a stored key without one is read as zero', /\(idx \|\| ':0'\)/.test(COPY));
+
+  /* Run the real normaliser over the real keys. */
+  const box = { console };
+  vm.createContext(box);
+  vm.runInContext(
+    COPY.slice(COPY.indexOf('var VOLATILE_CLASS'), COPY.indexOf('function loosePath')) +
+    COPY.slice(COPY.indexOf('function normStoredPath'), COPY.indexOf('/* One pass over the leaves')),
+    box
+  );
+  const normed = LIVE_KEYS.map(box.normStoredPath);
+  ok('the volatile classes come out of a stored key',
+    normed.every((p) => !/zw-reveal|zw-revealed/.test(p)), normed.join(' | '));
+  ok('every segment ends up carrying an index',
+    normed.every((p) => p.split('>').every((s) => s[0] === '#' || /:\d+$/.test(s))), normed.join(' | '));
+  ok('and the about heading normalises to what the page computes',
+    normed[0] === '#about>div:0>h2.about-h2:0', normed[0]);
+  ok('an already-clean key is left alone', box.normStoredPath('#a>p.copy:2') === '#a>p.copy:2');
+}
+
+console.log('\nOne line of a multi-line field goes to the field');
+{
+  /* A setting holding "Release\n001" is rendered as `Release<br><span>001</span>`.
+     Clicking the span reports "001", which equals no field, so the whole thing
+     fell through to a page override — which then fought the renderer for the
+     same words, and the number appeared not to save. Live data had exactly
+     this: an override with was:"001" sitting beside a title setting containing
+     it. */
+  sections = [{ id: 'rel', settings: { title: 'Release\n001', eyebrow: 'Drop' } }];
+  setState([], {}, {});
+  const r = canvasEdit({ sectionId: 'rel', oldText: '001', newText: '002',
+                         page: '/', path: 'div.drop-title:0>span:0', was: '001' });
+  ok('the matching line is replaced', r.ok && sections[0].settings.title === 'Release\n002');
+  ok('...and the other line survives', sections[0].settings.title.split('\n')[0] === 'Release');
+  ok('...and no override is written to fight the renderer', !sandbox.chromeCopy['/'],
+    'storefront.js rewrites the title from settings on every push');
+
+  sections = [{ id: 'rel', settings: { title: 'Release\n001' } }];
+  setState([], {}, {});
+  canvasEdit({ sectionId: 'rel', oldText: 'RELEASE', newText: 'Drop',
+               page: '/', path: 'p:0', was: 'RELEASE' });
+  ok('a CSS-uppercased line matches too', sections[0].settings.title === 'Drop\n001');
+
+  /* A whole-field match must still beat a line match, or editing a one-line
+     field could rewrite a line of a different one. */
+  sections = [{ id: 'rel', settings: { a: 'Release\n001', b: 'Release' } }];
+  setState([], {}, {});
+  canvasEdit({ sectionId: 'rel', oldText: 'Release', newText: 'Drop',
+               page: '/', path: 'p:0', was: 'Release' });
+  ok('a whole-field match still wins over a line match',
+    sections[0].settings.b === 'Drop' && sections[0].settings.a === 'Release\n001');
+}
+
 console.log('\nAn override survives the classes that come and go');
 {
   /* scroll-reveal.js puts zw-reveal on everything it watches and zw-revealed on
