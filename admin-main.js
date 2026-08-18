@@ -482,6 +482,10 @@
         // ── Modal accent (site_settings.theme.modal_accent = 'a'|'b'|'c') ──────
         // Read-modify-write on the shared theme blob so the light/dark toggle and
         // the accent control never overwrite each other's field.
+        /* Appearance saves refresh the preview, because the whole reason the
+           preview is there is that these are the settings you cannot picture
+           from the form. Guarded on the function existing, so a save from a
+           page with no preview is a no-op rather than a throw. */
         async function saveThemeSettings(patch) {
             if (!(typeof sb !== 'undefined' && sb && currentUser?.id)) return false;
             let cur = {};
@@ -1014,7 +1018,12 @@
                 if (!firstAllowed || firstAllowed.id === page) return;
                 page = firstAllowed.id;
             }
-            if (page === 'website') { setTimeout(loadWebsiteSettings, 100); setTimeout(loadFonts, 120); setTimeout(loadEmailSettings, 140); }
+            if (page === 'website') {
+                setTimeout(loadWebsiteSettings, 100); setTimeout(loadFonts, 120); setTimeout(loadEmailSettings, 140);
+                /* Last, and only here: an iframe of the whole storefront on every
+                   admin login is a page load nobody asked for. */
+                setTimeout(function () { if (window.zwPreviewOpen) window.zwPreviewOpen(); }, 200);
+            }
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             const pageEl = document.getElementById(page);
             if (!pageEl) { console.warn('navigateTo: no element for page', page); return; }
@@ -1178,10 +1187,10 @@
         // findable by name OR alias (kw) in the ⌘K search, even if it lives several
         // cards down inside a page.
         const ZW_SEARCH_FEATURES = [
-            {icon:'📣',main:'Announcement Bar',sub:'Settings · Storefront chrome',kw:'banner promo top bar message marquee scrolling link clickable pages',page:'settings',el:'settAnnouncementBarMessage'},
-            {icon:'🧭',main:'Header Scroll Behavior',sub:'Settings · Storefront chrome',kw:'header sticky auto hide pin nav scroll adidas always visible per page override returns',page:'settings',el:'settHeaderDefault'},
-            {icon:'🎨',main:'Product Cards (Add to Bag vs Color swatches)',sub:'Settings · Storefront chrome',kw:'product card swatch swatches color colour chips nike hover preview add to bag button cta grid homepage collection toggle',page:'settings',el:'settCardCta'},
-            {icon:'🧭',main:'Navigation Menu (header links & mega-menu)',sub:'Settings · Storefront chrome',kw:'navigation nav menu header links mega menu dropdown hover categories men women top level columns editable customize what is listed',page:'settings',el:'navMenuEditor'},
+            {icon:'📣',main:'Announcement Bar',sub:'Appearance · Storefront chrome',kw:'banner promo top bar message marquee scrolling link clickable pages',page:'website',el:'settAnnouncementBarMessage'},
+            {icon:'🧭',main:'Header Scroll Behavior',sub:'Appearance · Storefront chrome',kw:'header sticky auto hide pin nav scroll adidas always visible per page override returns',page:'website',el:'settHeaderDefault'},
+            {icon:'🎨',main:'Product Cards (Add to Bag vs Color swatches)',sub:'Appearance · Storefront chrome',kw:'product card swatch swatches color colour chips nike hover preview add to bag button cta grid homepage collection toggle',page:'website',el:'settCardCta'},
+            {icon:'🧭',main:'Navigation Menu (header links & mega-menu)',sub:'Appearance · Storefront chrome',kw:'navigation nav menu header links mega menu dropdown hover categories men women top level columns editable customize what is listed',page:'website',el:'navMenuEditor'},
             {icon:'🔐',main:'Early Access',sub:'Settings · Store rules',kw:'members early access window gate exclusive presale drop',page:'settings',el:'earlyAccessEnabled'},
             {icon:'🚚',main:'Free Shipping & Rates',sub:'Settings · Store rules',kw:'free shipping threshold standard rate delivery days cost',page:'settings',el:'settFreeThreshold'},
             {icon:'↩',main:'Return Window (days)',sub:'Settings · Store rules',kw:'return days member nonmember refund window policy',page:'settings',el:'settReturnMember'},
@@ -9257,6 +9266,98 @@
             return (_productPresets.presets || []).find(p => p.id === id) || null;
         }
 
+        /* ── The storefront preview on Appearance ────────────────────────────
+           Every control on that page changes something a shopper sees, and the
+           only way to check one used to be: save, leave the admin, go and look.
+
+           ?builder=1 IS THE SAFETY PROPERTY, not a routing detail. It sets
+           __ZW_BUILDER_PREVIEW__ in the pre-paint block on all fourteen pages,
+           which is what makes storefront-theme.js pass remember:false. The
+           iframe shares an origin — and therefore localStorage — with the real
+           storefront, so without it, merely opening this panel would write
+           zw_theme_mode and pin every visitor to whatever was being previewed.
+           That has already happened here once.
+
+           The preview previews. It never remembers. */
+        let _pvWidth = 0;             // 0 = fit the panel
+        let _pvLoaded = false;
+
+        function pvUrl() {
+            const sel = document.getElementById('pvPage');
+            const path = (sel && sel.value) || '/';
+            /* Cache-busted per load: the storefront is served with far-future
+               caching on its assets, and a preview that shows the previous save
+               is worse than no preview — you would trust it. */
+            return path + (path.indexOf('?') > -1 ? '&' : '?') + 'builder=1&pv=' + Date.now();
+        }
+
+        function pvApplyWidth() {
+            const wrap = document.getElementById('pvFrameWrap');
+            if (!wrap) return;
+            wrap.style.width = _pvWidth ? _pvWidth + 'px' : '100%';
+            wrap.style.maxWidth = '100%';
+            document.querySelectorAll('#zw-sf-preview .pv-w').forEach((b) => {
+                b.setAttribute('aria-pressed', String(Number(b.dataset.w) === _pvWidth));
+            });
+        }
+
+        function pvLoad() {
+            const f = document.getElementById('pvFrame');
+            const st = document.getElementById('pvStatus');
+            if (!f) return;
+            if (st) st.textContent = 'Loading…';
+            f.src = pvUrl();
+            _pvLoaded = true;
+        }
+
+        /* Called after anything on this page saves. Guarded on the panel existing
+           and on the checkbox, so a save from a page without a preview is a no-op
+           rather than an error, and somebody who finds the reload distracting can
+           switch it off without losing the preview itself. */
+        window.zwPreviewRefresh = function () {
+            const box = document.getElementById('pvAuto');
+            if (!box || !box.checked || !_pvLoaded) return;
+            pvLoad();
+        };
+
+        function pvInit() {
+            const root = document.getElementById('zw-sf-preview');
+            if (!root || root.dataset.bound) return;
+            root.dataset.bound = '1';
+
+            document.getElementById('pvReload')?.addEventListener('click', pvLoad);
+            document.getElementById('pvPage')?.addEventListener('change', pvLoad);
+            document.getElementById('pvOpen')?.addEventListener('click', () => {
+                /* Without builder=1. Opening a real tab is the one case where you
+                   DO want the storefront exactly as a visitor gets it. */
+                const sel = document.getElementById('pvPage');
+                window.open((sel && sel.value) || '/', '_blank', 'noopener');
+            });
+            document.querySelectorAll('#zw-sf-preview .pv-w').forEach((b) => {
+                b.addEventListener('click', () => { _pvWidth = Number(b.dataset.w) || 0; pvApplyWidth(); });
+            });
+
+            const f = document.getElementById('pvFrame');
+            if (f) {
+                f.addEventListener('load', () => {
+                    const st = document.getElementById('pvStatus');
+                    if (st) {
+                        const sel = document.getElementById('pvPage');
+                        const name = sel && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : 'page';
+                        st.textContent = name + ' · reloaded ' + new Date().toLocaleTimeString();
+                    }
+                });
+            }
+            pvApplyWidth();
+        }
+
+        /* Loaded when Appearance is opened, not on admin boot: an iframe of the
+           whole storefront on every admin login is a page load nobody asked for. */
+        window.zwPreviewOpen = function () {
+            pvInit();
+            if (!_pvLoaded) pvLoad();
+        };
+
         /* The bank's two indicators, kept in step with the table. */
         function renderBankChip() {
             const n = _bankedProducts().length;
@@ -14448,6 +14549,7 @@ function escapeAttr(value) {
             if (typeof window.updateAnnEmptyWarn === 'function') window.updateAnnEmptyWarn();
             if (!message && mode !== 'off') showToast('Saved — but the bar is HIDDEN because the Message is empty. Add a message to turn it on.', 'error');
             else showToast('Announcement saved!', 'success');
+            if (window.zwPreviewRefresh) window.zwPreviewRefresh();
         }
     });
 
@@ -14466,6 +14568,7 @@ function escapeAttr(value) {
         else {
             await logAdminAudit('settings.update', 'site_settings', 'header_behavior', { mode, overrides: Object.keys(pages).length });
             showToast('Header behavior saved!', 'success');
+            if (window.zwPreviewRefresh) window.zwPreviewRefresh();
         }
     });
 
@@ -14536,6 +14639,7 @@ function escapeAttr(value) {
             window._zwNavMenu = clean;
             await logAdminAudit('settings.update', 'site_settings', 'nav_menu', { items: clean.length });
             showToast('Navigation saved!', 'success');
+            if (window.zwPreviewRefresh) window.zwPreviewRefresh();
         }
     });
 
@@ -14812,6 +14916,15 @@ function escapeAttr(value) {
 
     // Load settings when Settings page is shown
     document.querySelector('[data-page="settings"]')?.addEventListener('click', () => {
+        setTimeout(loadSettings, 100);
+    });
+    /* …and when APPEARANCE is shown, because the Storefront chrome panels moved
+       there. loadSettings() populates them from site_settings, and it only ever
+       ran on a Settings click — so after the move the announcement bar, header
+       behaviour, product cards and nav menu would render empty on Appearance
+       unless you happened to open Settings first. An empty field is not a
+       missing value; it looks like a setting you never made. */
+    document.querySelector('[data-page="website"]')?.addEventListener('click', () => {
         setTimeout(loadSettings, 100);
     });
 
