@@ -8950,6 +8950,25 @@
                    the Bank chip and a line under the filter bar says how many are
                    hidden, so "All" is a view rather than a claim. */
                 list = list.filter(p => (p.status || 'Draft').toLowerCase() !== 'legacy' && !_isBanked(p));
+            } else if (_prodStatusFilter === 'preset') {
+                /* THE WORKSPACE VIEW — what is in the preset being edited, and
+                   nothing else.
+
+                   The bank cannot answer this. Bank membership is derived from
+                   Draft, on purpose: a product hidden from the admin while still
+                   on sale is the one outcome worse than a cluttered table. So the
+                   bank can only ever hide things that are already off the shop,
+                   and 'clear my workspace while I build' is a different question
+                   from 'take these off the storefront'.
+
+                   This is the second one: a VIEW, not a state. Nothing is written,
+                   the storefront does not move, and the note under the chips says
+                   how many products it is not showing and how many of those are
+                   live — because a filter that hides a live product without
+                   saying so is how you lose track of what you are selling. */
+                const sel = _prodPresetById(_selectedPreset);
+                const ids = new Set(((sel && sel.products) || []).map(x => String(x.id)));
+                list = list.filter(p => ids.has(String(p.id)));
             } else if (_prodStatusFilter === 'banked') {
                 list = list.filter(_isBanked);
             } else if (_prodStatusFilter === 'draft') {
@@ -9238,13 +9257,45 @@
             /* The chip appears only when there is a bank, so a store that never
                switches a preset never learns the word. */
             if (btn) btn.style.display = n ? '' : 'none';
+
+            /* The workspace chip, named after the preset it shows, so it reads as
+               'In Nash' rather than as a mode. */
+            const sel = _prodPresetById(_selectedPreset);
+            const pbtn = document.getElementById('prodPresetFilterBtn');
+            const plabel = document.getElementById('prodPresetFilterLabel');
+            if (pbtn) pbtn.style.display = sel ? '' : 'none';
+            if (plabel && sel) plabel.textContent = 'In ' + sel.name;
+            if (!sel && _prodStatusFilter === 'preset') { setProductFilter('all'); return; }
+
             if (note) {
-                const hidden = n && _prodStatusFilter === 'all';
-                note.style.display = hidden ? '' : 'none';
-                note.innerHTML = hidden
-                    ? escapeHtml(String(n)) + ' product' + (n === 1 ? ' is' : 's are') + ' in the bank and hidden here — '
-                      + '<a href="#" onclick="setProductFilter(\'banked\');return false;" style="color:var(--accent,#F891A5);">show the bank</a>'
-                    : '';
+                let html = '';
+                if (_prodStatusFilter === 'preset' && sel) {
+                    /* A VIEW THAT HIDES A LIVE PRODUCT MUST SAY SO.
+                       This one hides things that are still on sale — that is the
+                       point, it is a workspace — but a filter that quietly removes
+                       a live product from the only table you look at is how you
+                       stop knowing what you are selling. The live count is called
+                       out separately from the total for exactly that reason. */
+                    const ids = new Set(((sel.products) || []).map(x => String(x.id)));
+                    const hidden = (_allProducts || []).filter(p => !ids.has(String(p.id))
+                        && (p.status || 'Draft') !== 'Legacy');
+                    const liveHidden = hidden.filter(p => { const st = p.status || 'Draft'; return st !== 'Draft'; }).length;
+                    const inIt = ids.size;
+                    html = (inIt
+                            ? 'Showing the ' + inIt + ' product' + (inIt === 1 ? '' : 's') + ' in <strong>' + escapeHtml(sel.name) + '</strong>. '
+                            : '<strong>' + escapeHtml(sel.name) + '</strong> has nothing in it yet, so there is nothing to show. ')
+                        + hidden.length + ' other' + (hidden.length === 1 ? ' is' : 's are') + ' hidden from this view'
+                        + (liveHidden
+                            ? ' — <strong style="color:#f59e0b">' + liveHidden + ' of them still live on the storefront</strong>'
+                            : '')
+                        + '. Nothing here changes the shop. '
+                        + '<a href="#" onclick="setProductFilter(&quot;all&quot;);return false;" style="color:var(--accent,#F891A5);">Show all</a>';
+                } else if (n && _prodStatusFilter === 'all') {
+                    html = escapeHtml(String(n)) + ' product' + (n === 1 ? ' is' : 's are') + ' in the bank and hidden here — '
+                        + '<a href="#" onclick="setProductFilter(&quot;banked&quot;);return false;" style="color:var(--accent,#F891A5);">show the bank</a>';
+                }
+                note.style.display = html ? '' : 'none';
+                note.innerHTML = html;
             }
             if (n === 0 && _prodStatusFilter === 'banked') setProductFilter('all');
         }
@@ -9285,7 +9336,7 @@
             /* Everything acts on the SELECTED preset now, which is what makes a
                preset editable without publishing it first. */
             const sel = _prodPresetById(_selectedPreset);
-            ['prodPresetUpdate', 'prodPresetRename', 'prodPresetDelete', 'prodPresetEdit'].forEach(id => {
+            ['prodPresetUpdate', 'prodPresetRename', 'prodPresetDelete', 'prodPresetEdit', 'prodPresetOnly'].forEach(id => {
                 const b = document.getElementById(id);
                 if (b) b.disabled = !sel;
             });
@@ -9348,6 +9399,10 @@
             if (!_prodPresetById(id)) return;
             _selectedPreset = id;
             renderProductPresets();
+            /* The workspace view is defined by the selection, so changing the
+               selection changes what it shows. Without this the table went on
+               listing the previous preset's products under the new one's name. */
+            if (_prodStatusFilter === 'preset') renderProducts();
         };
 
         window.makeProductPresetLive = function () {
@@ -9488,6 +9543,7 @@
                 await _saveProductPresetsState();
                 try { await logAdminAudit('product_preset.edit', 'site_settings', p.id, { name: p.name, count: p.products.length }); } catch (_) {}
                 renderProductPresets();
+                if (_prodStatusFilter === 'preset') renderProducts();
                 showToast('Saved “' + p.name + '” — ' + p.products.length + ' product'
                     + (p.products.length === 1 ? '' : 's') + '. Not live yet.', 'success');
             } catch (e) { showToast('Could not save contents: ' + e.message, 'error'); }
