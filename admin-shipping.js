@@ -178,6 +178,12 @@
                       }).join('');
                     }
 
+                    /* Exposed because the markup it fills now lives on the RETURNS
+                       page. shipLoadData() still calls it — a Shipping visit loads
+                       everything as before — but Returns has to be able to load it
+                       without going via Shipping first, or the panel is empty for
+                       anyone who lands on Returns directly. */
+                    window.retShipLoad = retShipLoad;
                     async function retShipLoad() {
                       try {
                         const { data: { session } } = await sb.auth.getSession();

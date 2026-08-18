@@ -952,6 +952,57 @@
 
                     <!-- Returns JS -->
                     <script src="admin-returns-ui.js?v=d8174ddc"></script>
+                  <!-- Return Shipments -->
+                  <div style="margin-top:32px;">
+                    <div style="margin-bottom:20px;">
+                      <h3 style="margin:0 0 4px;font-size:1rem;font-weight:700;">Return Shipments</h3>
+                      <p style="margin:0;color:var(--text-secondary);font-size:.85rem;">Return labels sent and packages in transit back to you.</p>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:24px;">
+                      <div class="zw-card">
+                        <p class="zw-eyebrow">Total Returns</p>
+                        <p id="ret-ship-total" class="zw-stat-value">—</p>
+                      </div>
+                      <div class="zw-card">
+                        <p class="zw-eyebrow">Labels Sent</p>
+                        <p id="ret-ship-labels" class="dash-stat-blue" style="font-size:24px;font-weight:700;color:#38bdf8;">—</p>
+                      </div>
+                      <div class="zw-card">
+                        <p class="zw-eyebrow">In Transit</p>
+                        <p id="ret-ship-transit" class="dash-stat-orange" style="font-size:24px;font-weight:700;color:#f59e0b;">—</p>
+                      </div>
+                      <div class="zw-card">
+                        <p class="zw-eyebrow">Items Received</p>
+                        <p id="ret-ship-received" class="dash-stat-green" style="font-size:24px;font-weight:700;color:#34d399;">—</p>
+                      </div>
+                    </div>
+
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
+                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+                        <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin:0;">Return Requests</p>
+                        <input id="ret-ship-search" type="text" placeholder="Search customer, order, tracking…" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:13px;color:var(--text-primary);width:260px;">
+                      </div>
+                      <div style="overflow-x:auto;">
+                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                          <thead>
+                            <tr class="zw-divider-2">
+                              <th class="zw-th">Date</th>
+                              <th class="zw-th">Customer</th>
+                              <th class="zw-th">Order</th>
+                              <th class="zw-th">Reason</th>
+                              <th class="zw-th">Carrier / Tracking</th>
+                              <th class="zw-th">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody id="ret-ship-tbody">
+                            <tr class="empty-row"><td colspan="6">Loading…</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
 
                 <!-- Audit Log Page -->
@@ -2928,57 +2979,28 @@
                     <div id="ship-pagination" style="display:flex;gap:8px;justify-content:center;margin-top:16px;"></div>
                   </div>
 
-                  <!-- Return Shipments -->
-                  <div style="margin-top:32px;">
-                    <div style="margin-bottom:20px;">
-                      <h3 style="margin:0 0 4px;font-size:1rem;font-weight:700;">Return Shipments</h3>
-                      <p style="margin:0;color:var(--text-secondary);font-size:.85rem;">Return labels sent and packages in transit back to you.</p>
-                    </div>
+                  <!-- Campus hand-delivery. It lived on the Coupons page, where it
+                       was the only thing that was not a discount: it decides whether
+                       an order gets a shipping label and a tracking email, it is a
+                       delivery option at checkout, and Orders lists it as a
+                       fulfilment method. Filed under Coupons it was a shipping
+                       setting nobody would think to look for.
+                       Rendered by commerce-admin.js into this mount. -->
+                  <div id="shipLocalDeliveryMount" style="margin-top:32px;"></div>
 
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:24px;">
-                      <div class="zw-card">
-                        <p class="zw-eyebrow">Total Returns</p>
-                        <p id="ret-ship-total" class="zw-stat-value">—</p>
-                      </div>
-                      <div class="zw-card">
-                        <p class="zw-eyebrow">Labels Sent</p>
-                        <p id="ret-ship-labels" class="dash-stat-blue" style="font-size:24px;font-weight:700;color:#38bdf8;">—</p>
-                      </div>
-                      <div class="zw-card">
-                        <p class="zw-eyebrow">In Transit</p>
-                        <p id="ret-ship-transit" class="dash-stat-orange" style="font-size:24px;font-weight:700;color:#f59e0b;">—</p>
-                      </div>
-                      <div class="zw-card">
-                        <p class="zw-eyebrow">Items Received</p>
-                        <p id="ret-ship-received" class="dash-stat-green" style="font-size:24px;font-weight:700;color:#34d399;">—</p>
-                      </div>
-                    </div>
-
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
-                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
-                        <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin:0;">Return Requests</p>
-                        <input id="ret-ship-search" type="text" placeholder="Search customer, order, tracking…" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:13px;color:var(--text-primary);width:260px;">
-                      </div>
-                      <div style="overflow-x:auto;">
-                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-                          <thead>
-                            <tr class="zw-divider-2">
-                              <th class="zw-th">Date</th>
-                              <th class="zw-th">Customer</th>
-                              <th class="zw-th">Order</th>
-                              <th class="zw-th">Reason</th>
-                              <th class="zw-th">Carrier / Tracking</th>
-                              <th class="zw-th">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody id="ret-ship-tbody">
-                            <tr class="empty-row"><td colspan="6">Loading…</td></tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
+                  <!-- Return Shipments MOVED to the Returns page.
+                       Return labels and packages coming back are half of one
+                       workflow whose other half (approve, refund, exchange)
+                       was already on Returns. Splitting it across two pages
+                       meant nobody could answer "where is this return up to?"
+                       from either of them. -->
+                  <div style="margin-top:32px;padding:14px 16px;border:1px dashed var(--border);border-radius:10px;">
+                    <p style="margin:0;font-size:.85rem;color:var(--text-secondary);">
+                      Return labels and inbound packages now live with the rest of the
+                      return they belong to &mdash;
+                      <a href="#" onclick="showPage('returns');return false;" style="color:var(--accent,#F891A5);">open Returns</a>.
+                    </p>
                   </div>
-
                   <script src="admin-shipping.js?v=facda8db"></script>
                 </div>
 
