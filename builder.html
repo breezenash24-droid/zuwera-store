@@ -2413,14 +2413,14 @@ window.addEventListener('message',function(e){
      the preview reverts the words on a rejection and would otherwise be left
      showing something that was never stored. */
   if(d.type==='ZW_CHROME_TEXT'&&d.field){ _answerCanvasEdit(d,applyChromeField(d.field,d.newText)); return; }
-  if(d.type==='ZW_TEXT_OVERRIDE'&&d.path){ _answerCanvasEdit(d,applyTextOverride(d.page,d.path,d.was,d.newText)); return; }
+  if(d.type==='ZW_TEXT_OVERRIDE'&&d.path){ _answerCanvasEdit(d,applyTextOverride(d.page,d.path,d.was,d.newText,d.loose)); return; }
   if(d.type==='ZW_INLINE_TEXT'&&d.sectionId){
     let r=applyInlineText(d.sectionId,d.oldText,d.newText);
     /* A section field is preferred, not required. When none holds this text it
        is template copy, which is precisely what text_overrides exists for --
        so fall through rather than reject. Same round trip: the preview sent
        the page and path with the section id for exactly this. */
-    if(r&&!r.ok&&r.canOverride&&d.path) r=applyTextOverride(d.page,d.path,d.was!=null?d.was:d.oldText,d.newText);
+    if(r&&!r.ok&&r.canOverride&&d.path) r=applyTextOverride(d.page,d.path,d.was!=null?d.was:d.oldText,d.newText,d.loose);
     _answerCanvasEdit(d,r);
     return;
   }
@@ -3271,9 +3271,16 @@ function schedSend(){clearTimeout(_sendT2);_sendT2=setTimeout(sendCfg,350);}
 let chromeNav = null;       // array, mirrors nav_menu
 let chromeBar = null;       // object, mirrors announcement_bar
 let chromeCopy = {};        // { "<page>": { "<path>": {was, now} } }
-let chromeDirty = false;
+/* WHICH of the three changed, not merely THAT something did.
 
-function markChromeDirty(){ chromeDirty = true; markDirty(); }
+   Each of these is a separate POST to /api/save-page-builder, and every one of
+   them re-verifies the session and re-reads the profile server-side before it
+   writes. Saving all three on every Save Draft meant three sequential round
+   trips of that when a single word had been edited -- and the 60-second autosave
+   repeated it. Renaming a nav label should not rewrite the announcement bar. */
+const chromeDirtyKeys = new Set();
+
+function markChromeDirty(which){ chromeDirtyKeys.add(which); markDirty(); }
 
 /* Push the drafts into the preview. Separate messages rather than one blob
    because three different modules consume them, each of which re-renders only
@@ -3315,13 +3322,13 @@ function applyChromeField(field,newText){
     const i=Number(m[1]);
     if(!Array.isArray(chromeNav)||!chromeNav[i]) return {ok:false,reason:'That navigation item no longer exists.'};
     chromeNav[i].label=newText;
-    markChromeDirty(); sendChrome();
+    markChromeDirty('nav'); sendChrome();
     return {ok:true};
   }
   if(s==='bar.message'){
     if(!chromeBar||typeof chromeBar!=='object') chromeBar={};
     chromeBar.message=newText;
-    markChromeDirty(); sendChrome();
+    markChromeDirty('bar'); sendChrome();
     return {ok:true};
   }
   return {ok:false,reason:'That text is not a field the builder knows how to save.'};
@@ -3331,7 +3338,7 @@ function applyChromeField(field,newText){
    as the anchor: an override applies on the live site only while the element
    still says `was`, so template copy that changes on a deploy makes the override
    stop applying instead of rewriting whatever moved into its place. */
-function applyTextOverride(page,path,was,newText){
+function applyTextOverride(page,path,was,newText,loose){
   if(!path) return {ok:false,reason:'Could not identify that element on the page.'};
   const pg=String(page||'/');
   if(!chromeCopy||typeof chromeCopy!=='object') chromeCopy={};
@@ -3341,29 +3348,43 @@ function applyTextOverride(page,path,was,newText){
     delete chromeCopy[pg][path];              // back to the original: stop overriding
     if(!Object.keys(chromeCopy[pg]).length) delete chromeCopy[pg];
   }else{
-    chromeCopy[pg][path]={was:orig,now:newText};
+    /* `loose` is the class-free form of the same path, stored so the storefront
+       can still find the element when a class changes under it -- scroll-reveal
+       adds zw-revealed as you scroll, which alone was enough to stop an override
+       matching. Kept from any previous entry so an old override does not lose it. */
+    const prevLoose=chromeCopy[pg][path]&&chromeCopy[pg][path].loose;
+    chromeCopy[pg][path]={was:orig,now:newText,loose:loose||prevLoose||''};
   }
-  markChromeDirty(); sendChrome();
+  markChromeDirty('copy'); sendChrome();
   return {ok:true,was:orig};
 }
 
 /* Written on Save Draft and on Publish. `pub` is what promotes each draft to
    the live key it shadows (DRAFT_TO_LIVE in save-page-builder.js). */
 async function saveChrome(pub){
-  if(!chromeDirty&&!pub) return true;
-  const put=async(key,value)=>{
-    const token=await getAccessToken(); if(!token) throw new Error('Session expired');
-    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({accessToken:token,key,value,published:!!pub})});
-    if(!res.ok){const j=await res.json().catch(()=>({}));throw new Error(j.error||('HTTP '+res.status));}
+  /* Publish writes all three whatever changed in THIS session: a draft saved an
+     hour ago still has to be promoted onto its live key. Save Draft writes only
+     what was touched. */
+  const want = pub ? ['nav','bar','copy'] : [...chromeDirtyKeys];
+  if(!want.length) return true;
+  const KEYS = {
+    nav:  ['nav_menu_draft',        () => Array.isArray(chromeNav) ? chromeNav : []],
+    bar:  ['announcement_bar_draft',() => chromeBar || {}],
+    copy: ['text_overrides_draft',  () => chromeCopy || {}],
   };
   try{
-    await put('nav_menu_draft',Array.isArray(chromeNav)?chromeNav:[]);
-    await put('announcement_bar_draft',chromeBar||{});
-    await put('text_overrides_draft',chromeCopy||{});
-    chromeDirty=false;
+    const token=await getAccessToken(); if(!token) throw new Error('Session expired');
+    /* In parallel. They are independent keys, and doing them one after another
+       made saving take as long as the slowest three round trips added up. */
+    await Promise.all(want.map(async (k)=>{
+      const [key,get]=KEYS[k];
+      const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({accessToken:token,key,value:get(),published:!!pub})});
+      if(!res.ok){const j=await res.json().catch(()=>({}));throw new Error(j.error||('HTTP '+res.status));}
+    }));
+    chromeDirtyKeys.clear();
     return true;
-  }catch(e){ showErr('Chrome text: '+e.message); return false; }
+  }catch(e){ showErr('Page text: '+e.message); return false; }
 }
 
 function sendCfg(){

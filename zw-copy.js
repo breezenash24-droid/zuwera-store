@@ -70,21 +70,44 @@
     return true;
   }
 
-  /* A stable-enough identity for an element that has no id.
+  /* CLASSES THAT ARE NOT PART OF AN ELEMENT'S IDENTITY.
 
-     Classes are included because they survive re-ordering, and the index is
-     included because classes are not unique. The editor's OWN transient classes
-     are stripped first — without that, an element's path changes while you hover
-     it, and the override you just saved would never match again. */
-  function elPath(el) {
+     A class in the path has to mean the same thing every time the page is
+     rendered, and these do not — they are added and removed while you are
+     looking at the page.
+
+     scroll-reveal.js is the one that actually broke this: it puts zw-reveal on
+     everything it watches and zw-revealed on each element as it scrolls into
+     view. So the same paragraph is `p.notify-hint` above the fold and
+     `p.notify-hint.zw-revealed` once you have scrolled to it. An override saved
+     while it was revealed then failed to match the un-revealed page, and the
+     text silently did not update — which is exactly how this was reported. */
+  var VOLATILE_CLASS = /^(zw-(ite|sel|hover|reveal|revealed)|active|open|show|shown|visible|hidden|selected|current|in-view|is-[\w-]+|has-[\w-]+)$/;
+
+  /* Two identities per element, and both are stored.
+
+     `path` keeps the class names, because they make a key legible and keep two
+     sibling paragraphs apart. `loose` is tag and position only, and is what
+     rescues an override when a class changes anyway — a redesign, a new state
+     class, anything I have not thought of.
+
+     Matching loosely is safe here ONLY because applying an override also
+     requires the element's text to equal `was`. The text check is the real
+     guard; the path just finds candidates. */
+  function elPath(el, noClasses) {
     if (!el || el.nodeType !== 1) return '';
     if (el.id) return '#' + el.id;
     var parts = [], node = el, guard = 0;
     while (node && node.nodeType === 1 && node !== document.body && guard++ < 12) {
       if (node.id) { parts.unshift('#' + node.id); break; }
-      var cls = (node.getAttribute('class') || '').trim().split(/\s+/)
-        .filter(function (c) { return c && !/^zw-(ite|sel|hover)/.test(c) && c !== 'zw-ite-shake'; })
-        .slice(0, 2).join('.');
+      var cls = '';
+      if (!noClasses) {
+        cls = (node.getAttribute('class') || '').trim().split(/\s+/)
+          .filter(function (c) { return c && !VOLATILE_CLASS.test(c); })
+          /* Sorted, not in attribute order: a renderer that emits the same
+             classes in a different order must not produce a different key. */
+          .sort().slice(0, 2).join('.');
+      }
       var idx = 0, sibs = 0;
       if (node.parentElement) {
         var kids = node.parentElement.children;
@@ -97,22 +120,35 @@
     }
     return parts.join('>');
   }
+  function loosePath(el) { return elPath(el, true); }
 
-  /* One pass over the leaves. Cheaper than resolving each stored path back to an
-     element, and it cannot resolve a path to the wrong node by accident. */
+  /* One pass over the leaves, matching each against the stored paths.
+
+     Two indexes, tried in order: the exact path, then the class-free one. The
+     loose index is what keeps an override working when a class changes under it
+     — and it is safe to be that permissive because an override is applied only
+     when the element's text still equals `was`. Finding the wrong element gets
+     you nothing; the text check refuses it. */
   function applyOverrides() {
     if (!overrides || applying || !document.body) return;
     var map = overrides[pageKey()];
     if (!map) return;
     var keys = Object.keys(map);
     if (!keys.length) return;
+
+    var byLoose = {};
+    for (var k = 0; k < keys.length; k++) {
+      var e = map[keys[k]];
+      if (e && e.loose && !byLoose[e.loose]) byLoose[e.loose] = e;
+    }
+
     applying = true;
     try {
       var els = document.body.querySelectorAll('*');
       for (var i = 0; i < els.length; i++) {
         var el = els[i];
         if (!isTextLeaf(el)) continue;
-        var entry = map[elPath(el)];
+        var entry = map[elPath(el)] || byLoose[loosePath(el)];
         if (!entry || typeof entry.now !== 'string') continue;
         if (norm(el.textContent) === norm(entry.now)) {
           /* Already showing the override. Keep the anchor so a second edit knows
@@ -128,7 +164,18 @@
     } catch (_) {} finally { applying = false; }
   }
 
-  function setOverrides(next) {
+  /* Once the builder has handed us a draft, the PUBLISHED copy from the server
+     is stale by definition and must never replace it.
+
+     Without this the fetch below races the builder's push: the preview iframe
+     starts its request, the builder posts the draft on iframe load, and if the
+     response lands second it silently reinstates the published words. Which
+     reads exactly like "my edit did not take" — intermittently, depending on
+     how fast the network was. */
+  var draftPushed = false;
+  function setOverrides(next, fromDraft) {
+    if (draftPushed && !fromDraft) return;
+    if (fromDraft) draftPushed = true;
     overrides = next && typeof next === 'object' ? next : null;
     applyOverrides();
   }
@@ -161,7 +208,7 @@
        there so an unpublished preview shows unpublished words. */
     if (window.__zwPreviewReady && window.__zwPreviewReady.then) {
       window.__zwPreviewReady.then(function (p) {
-        if (p && p.text_overrides) setOverrides(p.text_overrides);
+        if (p && p.text_overrides) setOverrides(p.text_overrides, true);
       }).catch(function () {});
     }
     if (window.__ZW_BUILDER_PREVIEW__) initEditor();
@@ -320,7 +367,8 @@
            somewhere instead of nowhere. */
         msg = {
           type: 'ZW_INLINE_TEXT', id: id, sectionId: sec, oldText: was, newText: nt,
-          page: pageKey(), path: elPath(el), was: anchorAttr != null ? anchorAttr : was
+          page: pageKey(), path: elPath(el), loose: loosePath(el),
+          was: anchorAttr != null ? anchorAttr : was
         };
       } else {
         /* data-zw-was is the ORIGINAL, kept by applyOverrides when it painted an
@@ -329,7 +377,7 @@
            silently stops applying. */
         msg = {
           type: 'ZW_TEXT_OVERRIDE', id: id, page: pageKey(), path: elPath(el),
-          was: anchorAttr != null ? anchorAttr : was, newText: nt
+          loose: loosePath(el), was: anchorAttr != null ? anchorAttr : was, newText: nt
         };
       }
       try { window.parent.postMessage(msg, location.origin); } catch (_) {}
@@ -362,7 +410,7 @@
       }
       /* Draft copy pushed from the builder. It never comes from the database:
          the draft keys are not publicly readable, on purpose. */
-      if (d.type === 'ZW_TEXT_OVERRIDES' && d.value) { setOverrides(d.value); return; }
+      if (d.type === 'ZW_TEXT_OVERRIDES' && d.value) { setOverrides(d.value, true); return; }
       if (d.type === 'ZW_INLINE_TEXT_RESULT' && pending[d.id]) {
         var p = pending[d.id]; delete pending[d.id];
         if (d.ok) { if (d.was != null) p.el.setAttribute('data-zw-was', d.was); return; }
