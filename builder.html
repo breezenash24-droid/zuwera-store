@@ -2312,20 +2312,47 @@ function applyInlineText(secId,oldText,newText){
   if(!target) return {ok:false,reason:'Could not read the original text.'};
 
   const slots=_zwStringSlots(s.settings);
+  const commit=()=>{
+    curApply(); curDirty();
+    if(selId===secId){ const cur=curSections().find(x=>x.id===secId); if(cur)openEditor(cur); }
+    return {ok:true};
+  };
+
   /* Exact first, then case/whitespace-insensitive. Two passes rather than one
      loose pass so an exact field always wins over a near neighbour. */
   let hit=slots.find(sl=>_zwNormText(sl.holder[sl.key])===target)
         || slots.find(sl=>_zwLoose(sl.holder[sl.key])===_zwLoose(target));
+  if(hit){ hit.holder[hit.key]=newText; return commit(); }
+
+  /* ONE LINE OF A MULTI-LINE FIELD.
+
+     A setting holding "Release\n001" is rendered as two elements -- the release
+     section builds `Release<br><span>001</span>` from it. Click the span and the
+     old text is "001", which equals no field, so the whole edit fell through to
+     a page override that then fought the renderer for the same words: storefront
+     .js rewrites the title from settings on every push, the override rewrites it
+     back, and the number appears not to save.
+
+     Whichever line matched gets replaced and the field is rejoined, so the edit
+     lands where the text actually comes from. This is not a rare shape: any
+     setting a renderer splits across elements has it. */
+  for(const sl of slots){
+    const v=sl.holder[sl.key];
+    if(typeof v!=='string'||v.indexOf('\n')<0) continue;
+    const lines=v.split('\n');
+    let li=lines.findIndex(l=>_zwNormText(l)===target);
+    if(li<0) li=lines.findIndex(l=>_zwLoose(l)===_zwLoose(target));
+    if(li<0) continue;
+    lines[li]=newText;
+    sl.holder[sl.key]=lines.join('\n');
+    return commit();
+  }
+
   /* NOT a refusal -- an invitation to try the other store. Most words inside a
      section are template markup with no settings field behind them, so this
      branch is the common case, and answering 'no' here is what snapped the
      majority of the page's text back to what it was. */
-  if(!hit) return {ok:false,canOverride:true,reason:'No saved field holds that text.'};
-
-  hit.holder[hit.key]=newText;
-  curApply(); curDirty();
-  if(selId===secId){ const cur=curSections().find(x=>x.id===secId); if(cur)openEditor(cur); }
-  return {ok:true};
+  return {ok:false,canOverride:true,reason:'No saved field holds that text.'};
 }
 function applyInlineFont(secId,which,value){
   const s=curSections().find(x=>x.id===secId); if(!s||!s.settings)return;
