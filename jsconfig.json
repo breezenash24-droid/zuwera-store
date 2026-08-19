@@ -42,6 +42,6 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["functions/**/*.js"],
+  "include": ["functions/**/*.js", "functions/**/*.d.ts"],
   "exclude": ["node_modules", "dist", "tests", "scripts"]
 }

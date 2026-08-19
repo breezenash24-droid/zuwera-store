@@ -1,5 +1,20 @@
 {
   "version": 1,
-  "include": ["/api/*", "/product/*"],
+  "include": [
+    "/api/*",
+    "/product/*",
+    "/",
+    "/about",
+    "/account",
+    "/bag",
+    "/checkout",
+    "/confirm",
+    "/drop001",
+    "/journal",
+    "/landing",
+    "/policies",
+    "/returns",
+    "/sizeguide"
+  ],
   "exclude": []
 }
