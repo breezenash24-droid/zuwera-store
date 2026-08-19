@@ -71,13 +71,30 @@ body{display:flex;flex-direction:column}
 .lp-bar-title{font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mu);flex:1;white-space:nowrap}
 .lp-float-btn{background:transparent;border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.08em;text-transform:uppercase;padding:.26rem .55rem;cursor:pointer;border-radius:2px;transition:.1s;white-space:nowrap}
 .lp-float-btn:hover{border-color:var(--ac);color:var(--ac)}
-.hdrcfg{display:flex;flex-direction:column;gap:.4rem;text-align:left;background:var(--sf2);border:1px solid var(--bd);border-radius:5px;padding:.6rem .7rem;cursor:pointer;transition:.12s;color:inherit;font:inherit}
-.hdrcfg:hover{border-color:rgba(255,255,255,.24)}
-.hdrcfg.on{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac) inset}
-.hdrcfg-hd{display:flex;align-items:center;gap:.5rem}
-.hdrcfg-name{font-size:.72rem;font-weight:600;letter-spacing:.02em;color:#f4f1eb}
-.hdrcfg-tick{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:.46rem;letter-spacing:.12em;text-transform:uppercase;color:#0f0f11;background:var(--ac);border-radius:999px;padding:.14rem .45rem}
-.hdrcfg-note{font-size:.6rem;line-height:1.55;color:var(--mu)}
+/* The header-layout gallery. Two columns where there is room, so most of the
+   arrangements are on screen at once instead of one tall column you scroll
+   past — comparing them is the entire point of a picker. */
+.hdrcfg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));gap:.55rem;padding:.85rem 1rem 1rem;overflow-y:auto}
+.hdrcfg{display:flex;flex-direction:column;gap:.5rem;text-align:left;background:var(--sf2);border:1px solid var(--bd);border-radius:6px;padding:.65rem .7rem .7rem;cursor:pointer;transition:border-color .12s,background .12s;color:inherit;font:inherit}
+.hdrcfg:hover{border-color:rgba(255,255,255,.26);background:rgba(255,255,255,.028)}
+/* Chosen in this modal but NOT yet applied — the border says "this is what
+   Apply will use", which is a different claim from "this is what the site
+   uses", and the two need to be tellable apart at a glance. */
+.hdrcfg.sel{border-color:var(--ac);background:rgba(248,145,165,.055)}
+.hdrcfg-hd{display:flex;align-items:center;gap:.4rem}
+.hdrcfg-name{font-size:.72rem;font-weight:600;letter-spacing:.01em;color:#f4f1eb}
+.hdrcfg-cur{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:.44rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mu);border:1px solid var(--bd);border-radius:999px;padding:.12rem .4rem;white-space:nowrap;flex:none}
+.hdrcfg-mark{width:14px;height:14px;border-radius:50%;background:var(--ac);color:#0f0f11;font-size:.52rem;line-height:1;display:flex;align-items:center;justify-content:center;flex:none}
+.hdrcfg-hd .hdrcfg-mark:not(.hdrcfg-cur + .hdrcfg-mark){margin-left:auto}
+.hdrcfg-note{font-size:.6rem;line-height:1.5;color:var(--mu)}
+.hdrcfg-ft{display:flex;align-items:center;gap:.55rem;padding:.65rem 1rem;border-top:1px solid var(--bd)}
+.hdrcfg-ft p{margin:0;flex:1;font-size:.56rem;line-height:1.55;color:var(--mu)}
+.hdrcfg-btn{font-family:'IBM Plex Mono',monospace;font-size:.52rem;letter-spacing:.09em;text-transform:uppercase;padding:.36rem .7rem;border-radius:2px;cursor:pointer;font-weight:600;border:1px solid var(--bd);background:transparent;color:var(--mu);transition:.12s;flex:none}
+.hdrcfg-btn:hover{border-color:rgba(255,255,255,.22);color:#f4f1eb}
+.hdrcfg-btn.go{background:#f4f1eb;color:#0f0f11;border-color:#f4f1eb}
+.hdrcfg-btn.go:hover{background:#fff;color:#0f0f11}
+.hdrcfg-btn:disabled{opacity:.38;cursor:default}
+.hdrcfg-btn.go:disabled:hover{background:#f4f1eb}
 .pv-modes{display:inline-flex;gap:2px;background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:2px;flex-shrink:0}
 .pvm{background:transparent;border:0;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.09em;text-transform:uppercase;padding:.26rem .6rem;cursor:pointer;border-radius:999px;transition:.1s;white-space:nowrap}
 .pvm:hover:not(.on){color:#f4f1eb}
@@ -498,22 +515,27 @@ body{display:flex;flex-direction:column}
 </div>
 
 <!-- HEADER LAYOUT -->
-<!-- Every tile is drawn by ZWHeaderLayouts.miniature() from the same slot data
-     the storefront rearranges the real header with, so a picture here cannot
-     promise an arrangement the site will not produce. The list scrolls: seeing
-     them one after another IS the feature. -->
+<!-- Every tile is drawn by ZWHeaderLayouts.miniature() from the same four
+     placement values the storefront hands to theme-engine.js, so a picture here
+     cannot promise an arrangement the site will not produce.
+
+     Choosing a tile does NOT change anything. Apply does. A picker that acted
+     on the first click meant you could not look through the options without
+     changing the header ten times on the way. -->
 <div class="mover" id="hdrCfgModal" onclick="if(event.target===this)closeHeaderCfg()">
-  <div class="mbox" style="width:min(680px,94vw);max-height:86vh;display:flex;flex-direction:column">
+  <div class="mbox" style="width:min(760px,94vw);max-height:86vh;display:flex;flex-direction:column">
     <div class="mbox-hd">
       <div>
         <h3>Header layout</h3>
-        <p>Where the logo, the categories and the actions sit. Scroll for every arrangement.</p>
+        <p>Where the logo, the categories and the actions sit. Pick one, then apply it.</p>
       </div>
       <button class="mx" onclick="closeHeaderCfg()">&times;</button>
     </div>
-    <div id="hdrCfgList" style="padding:.85rem 1rem 1rem;overflow-y:auto;display:flex;flex-direction:column;gap:.55rem"></div>
-    <div style="padding:.6rem 1rem;border-top:1px solid var(--bd);font-size:.58rem;color:var(--mu);line-height:1.6">
-      Position only &mdash; colours, sizes and fonts stay with the theme. Nothing is live until you press Publish.
+    <div id="hdrCfgList" class="hdrcfg-grid"></div>
+    <div class="hdrcfg-ft">
+      <p>Position only &mdash; colours, sizes and fonts stay with the theme. Applying updates the preview; nothing is live until you press Publish.</p>
+      <button type="button" class="hdrcfg-btn" onclick="closeHeaderCfg()">Cancel</button>
+      <button type="button" class="hdrcfg-btn go" id="hdrCfgApply" onclick="applyHeaderCfg()">Apply layout</button>
     </div>
   </div>
 </div>
@@ -3467,10 +3489,22 @@ function applyTextOverride(page,path,was,newText,loose){
    the same rule as everything else typed in here: nothing reaches a shopper
    until Publish.
 
-   The picker draws itself from ZWHeaderLayouts, which is also what rearranges
-   the real header -- one definition, two readers. Nothing about a layout is
-   described twice, so nothing about it can disagree. */
+   The picker draws itself from ZWHeaderLayouts, which is also what the
+   storefront reads -- one definition, two readers. Nothing about a layout is
+   described twice, so nothing about it can disagree.
+
+   A layout is four placement values, and the STOREFRONT ALREADY UNDERSTOOD
+   THEM: storefront-cohesion.css has implemented header placement for all five
+   nav dialects for a while, and theme-engine.js writes the attributes. This
+   picker names combinations of those values. It does not move any markup --
+   the version that did could not shift the categories at all (they are centred
+   by absolute positioning) and stacked other parts underneath them. */
 let chromeHeader = '';
+
+/* What the gallery has highlighted. Separate from chromeHeader on purpose:
+   chromeHeader is the store's arrangement, this is only what you are looking
+   at. Nothing crosses from one to the other until Apply. */
+let hdrCfgSel = '';
 
 function openHeaderCfg(){
   const L=window.ZWHeaderLayouts;
@@ -3480,11 +3514,23 @@ function openHeaderCfg(){
     const st=document.createElement('style'); st.id='zwhlCss'; st.textContent=L.css;
     document.head.appendChild(st);
   }
+  hdrCfgSel = chromeHeader || 'classic';
+  paintHeaderCfg();
+  document.getElementById('hdrCfgModal').classList.add('open');
+}
+
+function paintHeaderCfg(){
+  const L=window.ZWHeaderLayouts;
+  const host=document.getElementById('hdrCfgList');
+  const cur=chromeHeader||'classic';
   host.innerHTML=L.list.map(l=>{
-    const on = (chromeHeader||'classic')===l.id;
-    return '<button type="button" class="hdrcfg'+(on?' on':'')+'" data-lay="'+he(l.id)+'">'
+    const sel=hdrCfgSel===l.id, on=cur===l.id;
+    return '<button type="button" class="hdrcfg'+(sel?' sel':'')+'" data-lay="'+he(l.id)+'"'
+      + ' aria-pressed="'+(sel?'true':'false')+'">'
       + '<span class="hdrcfg-hd"><span class="hdrcfg-name">'+he(l.name)+'</span>'
-      + (on?'<span class="hdrcfg-tick">in use</span>':'')+'</span>'
+      + (on?'<span class="hdrcfg-cur">Current</span>':'')
+      + (sel?'<span class="hdrcfg-mark" aria-hidden="true">&#10003;</span>':'')
+      + '</span>'
       + L.miniature(l)
       + '<span class="hdrcfg-note">'+he(l.note)+'</span></button>';
   }).join('');
@@ -3494,18 +3540,33 @@ function openHeaderCfg(){
   host.querySelectorAll('.hdrcfg').forEach(b=>{
     b.addEventListener('click',()=>pickHeaderLayout(b.dataset.lay));
   });
-  document.getElementById('hdrCfgModal').classList.add('open');
+  const go=document.getElementById('hdrCfgApply');
+  const same=hdrCfgSel===cur;
+  go.disabled=same;
+  go.textContent=same?'Already applied':'Apply layout';
 }
+
 function closeHeaderCfg(){ document.getElementById('hdrCfgModal').classList.remove('open'); }
 
+/* Highlight only. This used to save, mark the draft dirty and repaint the
+   preview on the first click, which meant browsing the gallery rewrote the
+   header once per tile you looked at. */
 function pickHeaderLayout(id){
   if(!window.ZWHeaderLayouts||!window.ZWHeaderLayouts.byId(id)) return;
-  chromeHeader=id;
+  hdrCfgSel=id;
+  paintHeaderCfg();
+}
+
+function applyHeaderCfg(){
+  const L=window.ZWHeaderLayouts;
+  const l=L&&L.byId(hdrCfgSel);
+  if(!l) return;
+  if((chromeHeader||'classic')===l.id){ closeHeaderCfg(); return; }
+  chromeHeader=l.id;
   markChromeDirty('header');
   sendChrome();
-  openHeaderCfg();          // repaint so the tick moves to what you just chose
-  const l=window.ZWHeaderLayouts.byId(id);
-  toast('Header: '+l.name+' — preview updated','ok');
+  closeHeaderCfg();
+  toast('Header: '+l.name+' — preview updated, not yet live','ok');
 }
 
 /* An override and a section field must never both own the same words.
@@ -4028,6 +4089,6 @@ function onKey(e){
 
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 </script>
-<script src="/header-layouts.js"></script>
+<script src="/header-layouts.js?v=63f9f6b5"></script>
 </body>
 </html>

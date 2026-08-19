@@ -1,230 +1,280 @@
 /* ────────────────────────────────────────────────────────────────────────────
-   header-layouts.js — WHERE things sit in the header, not what they look like.
+   header-layouts.js — WHERE the header's three parts sit, as a named choice.
 
-   The header has always had exactly one arrangement: logo left, category links
-   centred, actions right. Every other arrangement a shop might want — a centred
-   logo, the account button on the far left, the links pushed left with the logo
-   in the middle — needed markup edits on fourteen pages.
+   ── THIS FILE USED TO MOVE THE DOM. IT WAS WRONG. ───────────────────────────
 
-   A layout here is nothing but POSITION. Three slots, and which items sit in
-   each, in order:
+   The first version of this picker found the logo, the categories and each
+   action button and appendChild'd them into slot wrappers it created. It did
+   not work, and the way it failed is worth keeping written down, because the
+   reason was not a detail:
 
-       { left: ['logo'], center: ['links'], right: ['search','account','bag'] }
+     .nav-center is `position:absolute; left:0; right:0; margin:0 auto`.
 
-   No colours, no sizes, no fonts. Those belong to the theme, which already owns
-   them, and mixing the two is how a "layout" quietly becomes a second styling
-   system nobody can find the switch for.
+   The categories are centred by being taken OUT OF FLOW and stretched across
+   the whole bar. Move that element into a "left" wrapper and it does not go
+   left — it stays exactly where it was, because an absolutely positioned box
+   is placed against its containing block, not against its parent's layout. So:
 
-   ── ONE DEFINITION, TWO READERS ─────────────────────────────────────────────
+     - "Categories beside the logo" and "Everything right" moved nothing at all;
+       every part measured at its original x.
+     - Every layout that centred something else put that thing UNDERNEATH the
+       still-centred categories. elementFromPoint over the logo returned a
+       category link, which is the whole of "you cannot click any of the
+       buttons".
 
-   The builder draws a miniature of each layout in its picker; the storefront
-   rearranges the real header. Both read the SAME array below, and the miniature
-   is generated FROM the slots rather than drawn by hand — so a tile cannot
-   promise an arrangement the applier does not produce. A picker whose pictures
-   disagree with the result is worse than no picker.
+   Four of ten arrangements were unclickable and two were silently no-ops.
 
-   ── ITEMS ARE FOUND, NOT ASSUMED ────────────────────────────────────────────
+   ── WHAT THIS FILE DOES NOW ─────────────────────────────────────────────────
 
-   This storefront has more than one header dialect: index.html and product.html
-   ship `.nav-right` with `.nbtn` buttons, other pages get `.zw-hdr-group` with
-   `.zw-hdr-action`. Each item therefore has a LIST of candidate selectors and
-   the first one present wins. An item that does not exist on a page is skipped,
-   never faked — a layout is a preference about the things that are there.
+   The storefront already had a header placement system, and it is a good one.
+   `storefront-cohesion.css` implements placement for all five nav dialects with
+   `order`, one auto margin, and the same absolute-centring trick — including a
+   mobile fallback and a documented two-row mode. `theme-engine.js` drives it by
+   writing four attributes on <html>:
+
+       data-zw-hdr-logo      left | center | right
+       data-zw-hdr-links     left | center | right | none
+       data-zw-hdr-actions   left | center | right
+       data-zw-hdr-linksrow  1 | 2
+
+   That vocabulary is the definition of what a header can do here. A layout in
+   this file is therefore nothing but a NAME for four of those values, and
+   applying one calls the single writer that already exists rather than
+   becoming a second one. Nothing is moved, created or hidden.
+
+   ── THE PICTURE CANNOT DISAGREE WITH THE RESULT ─────────────────────────────
+
+   The builder draws a tile per layout. Both the tile and the storefront read
+   `zones(spec)` — one function that says which parts land in which zone — so a
+   tile cannot promise an arrangement the stylesheet would not produce. That
+   was the intent of the first version too; it just described the arrangement in
+   a vocabulary the page did not share.
+
+   ── ONLY ARRANGEMENTS THE STYLESHEET CAN ACTUALLY MAKE ──────────────────────
+
+   Two parts in the same outer zone is not expressible: centring is absolute, so
+   two centred parts overlap, and `margin-left:auto` on two right-hand parts
+   pushes them apart instead of grouping them. `conflict()` states that rule and
+   a test holds every shipped layout to it — the picker offers no arrangement
+   that the header cannot hold.
    ──────────────────────────────────────────────────────────────────────────── */
 (function () {
   'use strict';
 
-  /* An item that is in no slot is HIDDEN from the header rather than left where
-     it was — "the account button lives in the bag panel" is a real arrangement,
-     and it is expressed by leaving `account` out. */
-  var ITEMS = {
-    logo:    { label: 'Logo',       sel: ['.nav-logo', '.zw-hdr-logo', '.nav-brand'] },
-    links:   { label: 'Categories', sel: ['#nav-category-links', '.nav-center', '.zw-hdr-nav'] },
-    search:  { label: 'Search',     sel: ['.zwf-search-btn'] },
-    account: { label: 'Account',    sel: ['#account-btn', '#login-btn', '.zw-hdr-account'] },
-    bag:     { label: 'Bag',        sel: ['#cart-btn', '.zw-hdr-bag', '.nav-cart'] },
-    menu:    { label: 'Menu',       sel: ['.hamburger-btn', '#mobile-menu-btn'] },
+  var PARTS = ['logo', 'links', 'actions'];
+  var SPOTS = ['left', 'center', 'right'];
+
+  var PART_LABEL = {
+    logo:    'Logo',
+    links:   'Categories',
+    actions: 'Search, account and bag',
   };
 
-  /* The order here is the order they appear in the picker, and it runs from the
-     most familiar to the least, so the first thing you see is the one you
-     already have. */
+  /* Most familiar first: the first tile you see is the arrangement you already
+     have, so the gallery reads as "and here is what else it could be". */
   var LAYOUTS = [
     { id: 'classic', name: 'Classic',
       note: 'Logo left, categories centred, actions right. What the site uses today.',
-      slots: { left: ['logo'], center: ['links'], right: ['search', 'account', 'bag', 'menu'] } },
-
-    { id: 'account-in-bag', name: 'Account in the bag panel',
-      note: 'Same as Classic, but the account button is left out of the header — you reach your account from inside the bag panel.',
-      slots: { left: ['logo'], center: ['links'], right: ['search', 'bag', 'menu'] } },
+      spec: { logo: 'left', links: 'center', actions: 'right', linksRow: 1 } },
 
     { id: 'links-left', name: 'Categories beside the logo',
-      note: 'Logo and categories together on the left, everything else on the right.',
-      slots: { left: ['logo', 'links'], center: [], right: ['search', 'account', 'bag', 'menu'] } },
+      note: 'Categories sit next to the logo on the left, actions stay right.',
+      spec: { logo: 'left', links: 'left', actions: 'right', linksRow: 1 } },
 
     { id: 'logo-center', name: 'Centred logo',
       note: 'Categories move left and the logo takes the middle.',
-      slots: { left: ['links'], center: ['logo'], right: ['search', 'account', 'bag', 'menu'] } },
+      spec: { logo: 'center', links: 'left', actions: 'right', linksRow: 1 } },
 
-    { id: 'logo-center-split', name: 'Centred logo, split actions',
-      note: 'Categories and search on the left, logo centred, account and bag on the right.',
-      slots: { left: ['links', 'search'], center: ['logo'], right: ['account', 'bag', 'menu'] } },
+    { id: 'stacked', name: 'Centred logo, categories below',
+      note: 'The logo has the first row to itself and the categories run along a second row underneath.',
+      spec: { logo: 'center', links: 'center', actions: 'right', linksRow: 2 } },
 
-    { id: 'account-first', name: 'Account on the far left',
-      note: 'Account leads the header, then the logo; categories stay centred.',
-      slots: { left: ['account', 'logo'], center: ['links'], right: ['search', 'bag', 'menu'] } },
-
-    { id: 'actions-left', name: 'Actions on the left',
-      note: 'Search, account and bag lead; the logo is centred and categories sit right.',
-      slots: { left: ['search', 'account', 'bag'], center: ['logo'], right: ['links', 'menu'] } },
+    { id: 'links-row', name: 'Categories on their own row',
+      note: 'Logo and actions share the top row; the categories run underneath, aligned left.',
+      spec: { logo: 'left', links: 'left', actions: 'right', linksRow: 2 } },
 
     { id: 'logo-right', name: 'Logo on the right',
-      note: 'Actions lead, categories in the middle, logo closes the header.',
-      slots: { left: ['search', 'account', 'bag'], center: ['links'], right: ['logo', 'menu'] } },
+      note: 'Actions lead the header, categories stay centred, the logo closes it.',
+      spec: { logo: 'right', links: 'center', actions: 'left', linksRow: 1 } },
 
-    { id: 'links-right', name: 'Everything right',
-      note: 'Logo alone on the left; categories join the actions on the right.',
-      slots: { left: ['logo'], center: [], right: ['links', 'search', 'account', 'bag', 'menu'] } },
+    { id: 'actions-left', name: 'Actions on the left',
+      note: 'Search, account and bag lead; the logo is centred and the categories close the header.',
+      spec: { logo: 'center', links: 'right', actions: 'left', linksRow: 1 } },
 
-    { id: 'stacked-center', name: 'Logo and categories centred',
-      note: 'Nothing on the left; logo and categories share the middle, actions right.',
-      slots: { left: [], center: ['logo', 'links'], right: ['search', 'account', 'bag', 'menu'] } },
+    { id: 'all-left', name: 'Everything to the left',
+      note: 'Logo, categories and actions all gather on the left and the right side stays empty.',
+      spec: { logo: 'left', links: 'left', actions: 'left', linksRow: 1 } },
+
+    { id: 'minimal', name: 'Categories in the menu',
+      note: 'The categories leave the bar for the menu drawer, which appears on desktop too. Logo left, actions right.',
+      spec: { logo: 'left', links: 'none', actions: 'right', linksRow: 1 } },
+
+    { id: 'minimal-center', name: 'Centred logo, categories in the menu',
+      note: 'Just the logo in the middle and the actions on the right; the categories live in the menu drawer.',
+      spec: { logo: 'center', links: 'none', actions: 'right', linksRow: 1 } },
   ];
-
-  var SLOTS = ['left', 'center', 'right'];
 
   function byId(id) {
     for (var i = 0; i < LAYOUTS.length; i++) if (LAYOUTS[i].id === id) return LAYOUTS[i];
     return null;
   }
 
-  /* ── The miniature ─────────────────────────────────────────────────────────
-     Built from the slots, so it cannot show an arrangement the applier would
-     not produce. Deliberately abstract — a bar for the logo, three rules for
-     the categories, a circle per action — because the question this answers is
-     WHERE things are, and drawing a realistic header would invite the reader to
-     judge the colours instead. */
-  function shape(item) {
-    if (item === 'logo') return '<span class="zwhl-logo" title="Logo"></span>';
-    if (item === 'links') return '<span class="zwhl-links" title="Categories"><i></i><i></i><i></i></span>';
-    if (item === 'menu') return '<span class="zwhl-menu" title="Menu"></span>';
-    return '<span class="zwhl-dot zwhl-' + item + '" title="' + (ITEMS[item] ? ITEMS[item].label : item) + '"></span>';
+  /* ── The one description of an arrangement ────────────────────────────────
+     Which parts land in which zone of the top row, and what (if anything) gets
+     a second row. The tiles are drawn from this and the rule below is checked
+     against it, so there is no second place where an arrangement is described.
+
+     Categories are absent from the top row in two cases, and they are different
+     cases: `none` means they are not in the bar at all (they move to the menu
+     drawer), `linksRow:2` means they are in the bar on a row of their own. */
+  function zones(spec) {
+    var s = spec || {};
+    var row2 = String(s.linksRow) === '2';
+    var z = { left: [], center: [], right: [], row2: [] };
+    PARTS.forEach(function (p) {
+      var spot = s[p];
+      if (p === 'links') {
+        if (spot === 'none') return;
+        if (row2) { z.row2.push('links'); return; }
+      }
+      if (z[spot]) z[spot].push(p);
+    });
+    z.rowAlign = SPOTS.indexOf(s.links) > -1 ? s.links : 'center';
+    z.menu = s.links === 'none';
+    return z;
   }
+
+  /* ── What the header cannot do, said out loud ─────────────────────────────
+     Both restrictions come from how the stylesheet places things, and both were
+     found the hard way:
+
+     centre  is absolute positioning against the nav, so two centred parts are
+             two boxes at the same coordinates — they overlap, and the one
+             underneath stops being clickable.
+     right   is `margin-left:auto`, and a second part taking the same margin
+             pushes the pair apart rather than grouping them.
+
+     Left may repeat: only the first element takes the leading margin, so parts
+     placed left simply sit in document order. */
+  function conflict(spec) {
+    var z = zones(spec);
+    if (z.center.length > 1) {
+      return 'two parts centred — centring is absolute, so they would sit on top of each other';
+    }
+    if (z.right.length > 1) {
+      return 'two parts on the right — they would spread apart instead of sitting together';
+    }
+    /* Measured, not theorised. A centred part is out of flow, so an in-flow
+       part beside it does not stop at the centre lane — it runs underneath.
+       Only the categories can grow (the logo and the action icons are a fixed
+       few characters wide), so the collision is always the same one: the
+       categories in flow on the same row as something centred.
+
+       Centring the CATEGORIES is the safe direction, because then the two
+       in-flow neighbours are the narrow ones. Centring the actions while the
+       categories sit in the bar was the arrangement that failed by 73px with
+       the four categories this shop has today. */
+    if (spec.actions === 'center' && !z.menu && !z.row2.length) {
+      return 'the actions are centred out of flow while the categories stay in flow beside them — a long category list runs underneath';
+    }
+    return '';
+  }
+
+  /* ── The tile ──────────────────────────────────────────────────────────────
+     Words and real glyphs rather than abstract bars. The earlier version drew
+     grey rectangles and dots, which asked the reader to decode a legend before
+     they could tell one arrangement from another — and then showed them an
+     arrangement that did not happen. Showing "ZUWERA", three category words and
+     the three actual action icons means the tile is read, not decoded. */
+  var GLYPH = {
+    search:  '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>',
+    account: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"></path></svg>',
+    bag:     '<svg viewBox="0 0 24 24" class="zwhl-bagi" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path><path d="M16 10a4 4 0 01-8 0"></path></svg>',
+    menu:    '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>',
+  };
+
+  function part(name, withMenu) {
+    if (name === 'logo') {
+      return '<span class="zwhl-p zwhl-logo" title="Logo">ZUWERA</span>';
+    }
+    if (name === 'links') {
+      return '<span class="zwhl-p zwhl-links" title="Categories"><i>Shop</i><i>New</i><i>Sale</i></span>';
+    }
+    /* The hamburger belongs to the actions group in the markup, so when the
+       categories move to the menu it appears here — which is exactly what the
+       reader needs to see to understand where the categories went. */
+    return '<span class="zwhl-p zwhl-actions" title="' + PART_LABEL.actions + '">'
+      + GLYPH.search + GLYPH.account + GLYPH.bag + (withMenu ? GLYPH.menu : '') + '</span>';
+  }
+
   function miniature(layout) {
     var l = typeof layout === 'string' ? byId(layout) : layout;
     if (!l) return '';
-    return '<span class="zwhl-bar">' + SLOTS.map(function (s) {
-      return '<span class="zwhl-slot zwhl-' + s + '">' + (l.slots[s] || []).map(shape).join('') + '</span>';
-    }).join('') + '</span>';
+    var z = zones(l.spec);
+    var row1 = SPOTS.map(function (s) {
+      return '<span class="zwhl-z zwhl-' + s + '">'
+        + z[s].map(function (p) { return part(p, z.menu && p === 'actions'); }).join('')
+        + '</span>';
+    }).join('');
+    var row2 = z.row2.length
+      ? '<span class="zwhl-row2 zwhl-a-' + z.rowAlign + '">' + z.row2.map(function (p) { return part(p, false); }).join('') + '</span>'
+      : '';
+    return '<span class="zwhl-bar">' + '<span class="zwhl-row">' + row1 + '</span>' + row2 + '</span>';
   }
 
-  /* The stylesheet for the miniatures. Shipped with the definitions so anything
-     that draws one gets the same picture without copying CSS around. */
+  /* Shipped beside the definitions so anything drawing a tile gets the same
+     picture without a copy of the CSS travelling with it. Colours come through
+     as variables with fallbacks, so the picker can sit on a light or a dark
+     panel without this file knowing which. */
   var MINI_CSS =
-    '.zwhl-bar{display:flex;align-items:center;gap:6px;width:100%;height:38px;padding:0 10px;'
-  + 'border:1px solid var(--zwhl-bd,rgba(255,255,255,.14));border-radius:4px;background:var(--zwhl-bg,rgba(255,255,255,.03));box-sizing:border-box}'
-  + '.zwhl-slot{display:flex;align-items:center;gap:6px;flex:1;min-width:0}'
+    '.zwhl-bar{display:flex;flex-direction:column;width:100%;box-sizing:border-box;'
+  + 'padding:.5rem .6rem;border:1px solid var(--zwhl-bd,rgba(255,255,255,.16));border-radius:4px;'
+  + 'background:var(--zwhl-bg,rgba(255,255,255,.045))}'
+  + '.zwhl-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:.4rem;min-height:22px}'
+  + '.zwhl-z{display:flex;align-items:center;gap:.45rem;min-width:0}'
   + '.zwhl-center{justify-content:center}.zwhl-right{justify-content:flex-end}'
-  + '.zwhl-logo{width:22px;height:12px;border-radius:2px;background:var(--zwhl-fg,#f4f1eb);flex:none}'
-  + '.zwhl-links{display:flex;gap:4px;flex:none}'
-  + '.zwhl-links i{display:block;width:14px;height:4px;border-radius:2px;background:var(--zwhl-mu,rgba(244,241,235,.5))}'
-  + '.zwhl-dot{width:9px;height:9px;border-radius:50%;background:var(--zwhl-mu,rgba(244,241,235,.5));flex:none}'
-  + '.zwhl-dot.zwhl-bag{background:var(--zwhl-ac,#F891A5)}'
-  + '.zwhl-menu{width:12px;height:9px;flex:none;border-top:2px solid var(--zwhl-mu,rgba(244,241,235,.5));border-bottom:2px solid var(--zwhl-mu,rgba(244,241,235,.5))}';
+  + '.zwhl-row2{display:flex;align-items:center;margin-top:.34rem;min-height:14px}'
+  + '.zwhl-a-left{justify-content:flex-start}.zwhl-a-center{justify-content:center}.zwhl-a-right{justify-content:flex-end}'
+  + '.zwhl-logo{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:8px;font-weight:700;'
+  + 'letter-spacing:.16em;line-height:1;white-space:nowrap;color:var(--zwhl-fg,#f4f1eb)}'
+  + '.zwhl-links{display:flex;gap:.45rem}'
+  + '.zwhl-links i{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:7px;font-style:normal;'
+  + 'font-weight:500;letter-spacing:.1em;line-height:1;white-space:nowrap;color:var(--zwhl-mu,rgba(244,241,235,.62))}'
+  + '.zwhl-actions{display:flex;align-items:center;gap:.32rem}'
+  + '.zwhl-actions svg{width:9px;height:9px;display:block;fill:none;stroke:var(--zwhl-mu,rgba(244,241,235,.62));'
+  + 'stroke-width:2;stroke-linecap:round;stroke-linejoin:round}'
+  + '.zwhl-actions svg.zwhl-bagi{stroke:var(--zwhl-ac,#F891A5)}';
 
-  /* ── Applying it to a real header ──────────────────────────────────────────
-     Slot wrappers are created once and the items MOVED into them. Nothing is
-     cloned: a cloned bag button is a bag button whose click handler and count
-     belong to a node no longer on the page. */
-  function findNav() {
-    return document.querySelector('nav#nav, header.nav, nav.nav, nav.zw-nav, .zw-hdr');
-  }
-  function findItem(nav, key) {
-    var sels = (ITEMS[key] || {}).sel || [];
-    for (var i = 0; i < sels.length; i++) {
-      var el = nav.querySelector(sels[i]);
-      if (el) return el;
-    }
-    return null;
-  }
-  function ensureSlots(nav) {
-    var made = {};
-    SLOTS.forEach(function (s) {
-      var el = nav.querySelector(':scope > .zw-hdr-slot[data-slot="' + s + '"]');
-      if (!el) {
-        el = document.createElement('div');
-        el.className = 'zw-hdr-slot';
-        el.setAttribute('data-slot', s);
-        nav.appendChild(el);
-      }
-      made[s] = el;
-    });
-    return made;
-  }
-
+  /* ── Applying it ──────────────────────────────────────────────────────────
+     One line of real work, and that is the point. theme-engine.js owns the four
+     attributes; this hands it a spec and it writes them. An override set here
+     outranks the theme's own header and survives a theme switch, so choosing a
+     theme cannot silently undo an arrangement chosen in the builder. */
   var applied = '';
   function apply(id) {
     var l = byId(id);
-    var nav = findNav();
-    if (!nav) return false;
-    if (!l) {                       // no layout chosen: leave the markup alone
-      nav.classList.remove('zw-hdr-arranged');
-      return false;
-    }
-    var slots = ensureSlots(nav);
-    SLOTS.forEach(function (s) {
-      (l.slots[s] || []).forEach(function (key) {
-        var el = findItem(nav, key);
-        if (!el) return;            // not on this page; skip rather than invent
-        el.removeAttribute('data-zw-hdr-off');
-        el.style.removeProperty('display');
-        slots[s].appendChild(el);   // appendChild MOVES, it does not copy
-      });
-    });
-    /* Anything the layout did not name is hidden rather than left floating in
-       whatever container it started in — that is what "the account button lives
-       in the bag panel" means. */
-    var named = {};
-    SLOTS.forEach(function (s) { (l.slots[s] || []).forEach(function (k) { named[k] = 1; }); });
-    Object.keys(ITEMS).forEach(function (k) {
-      if (named[k]) return;
-      var el = findItem(nav, k);
-      if (!el) return;
-      el.setAttribute('data-zw-hdr-off', '1');
-      el.style.display = 'none';
-    });
-    nav.classList.add('zw-hdr-arranged');
+    if (!l) return false;
+    if (!window.ZWTheme || typeof window.ZWTheme.setHeader !== 'function') return false;
+    window.ZWTheme.setHeader(l.spec);
     applied = l.id;
     return true;
   }
 
   window.ZWHeaderLayouts = {
-    list: LAYOUTS, items: ITEMS, slots: SLOTS,
-    byId: byId, miniature: miniature, css: MINI_CSS,
+    list: LAYOUTS, parts: PARTS, spots: SPOTS, labels: PART_LABEL,
+    byId: byId, zones: zones, conflict: conflict,
+    miniature: miniature, css: MINI_CSS,
     apply: apply, applied: function () { return applied; },
   };
 
-  /* ── Everything below runs on a real page, not in the builder's picker ─────
+  /* ── Everything below runs on a storefront page, not in the builder ────────
      The builder loads this file for `list` and `miniature` only. It has no
-     storefront nav, so findNav() returns nothing there and the boot below stops
-     before it asks the server for anything. */
-
-  /* Slot layout, scoped to .zw-hdr-arranged so a header with no chosen layout
-     is left entirely alone — the default path keeps whatever CSS it always had
-     and this file cannot regress it. */
-  var st = document.createElement('style');
-  st.textContent =
-    'nav.zw-hdr-arranged{display:flex;align-items:center;gap:0}'
-  + '.zw-hdr-arranged>.zw-hdr-slot{display:flex;align-items:center;gap:clamp(.6rem,1.6vw,1.6rem);flex:1 1 0;min-width:0}'
-  + '.zw-hdr-arranged>.zw-hdr-slot[data-slot="center"]{justify-content:center}'
-  + '.zw-hdr-arranged>.zw-hdr-slot[data-slot="right"]{justify-content:flex-end}'
-  /* The old containers become plain groups once their children have been moved
-     out; without this the centre container keeps centring an empty box and eats
-     a third of the bar. */
-  + '.zw-hdr-arranged .nav-center,.zw-hdr-arranged .nav-right,.zw-hdr-arranged .zw-hdr-group{flex:0 0 auto;min-width:0}'
-  + '.zw-hdr-arranged .zw-hdr-slot .nav-center{display:flex;align-items:center;gap:clamp(.6rem,1.6vw,1.6rem)}'
-  + '.zw-hdr-arranged [data-zw-hdr-off]{display:none!important}';
-  document.head.appendChild(st);
+     storefront nav, so the boot below stops before it asks the server for
+     anything — and, just as importantly, before it puts a data-zw-hdr attribute
+     on the BUILDER's own <html>, which would rearrange the builder's chrome. */
+  function findNav() {
+    return document.querySelector('nav#nav, header.nav, nav.nav, nav.zw-nav, .zw-hdr');
+  }
 
   var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
   var CACHE = 'zw_header_layout';
@@ -237,24 +287,11 @@
   }
 
   function bootStorefront() {
-    if (!findNav()) return;          // the builder, an admin page, anything else
+    if (!findNav()) return;
 
-    /* Cache first so a chosen layout does not visibly rearrange itself on every
+    /* Cache first so a chosen arrangement does not visibly reflow on every
        load, then confirm from the server. */
     try { var c = localStorage.getItem(CACHE); if (c) set(c); } catch (_) {}
-
-    /* nav-menu.js builds #nav-category-links AFTER this runs on most pages, and
-       the search button is injected later still. Re-applying when the nav's own
-       children change puts each item in its slot as it arrives, rather than
-       leaving whatever was late in the container it was born in. */
-    try {
-      var nav = findNav(), t = 0;
-      new MutationObserver(function () {
-        if (!applied) return;
-        clearTimeout(t);
-        t = setTimeout(function () { apply(applied); }, 40);
-      }).observe(nav, { childList: true, subtree: true });
-    } catch (_) {}
 
     fetch('https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value&key=eq.header_layout',
     { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }, cache: 'no-store' })

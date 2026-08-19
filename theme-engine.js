@@ -197,7 +197,16 @@
     else root.removeAttribute('data-zw-hide');
   }
 
+  /* The store's own header arrangement, chosen in the page builder and stored
+     as site_settings.header_layout. It OUTRANKS the theme's header, and it has
+     to be consulted here rather than written from the other side: applyHeader
+     runs again on every theme change, so an arrangement written directly onto
+     <html> would be wiped the moment a visitor switched theme. One writer, one
+     place the precedence is decided. */
+  var hdrOverride = null;
+
   function applyHeader(root, header) {
+    if (hdrOverride) header = hdrOverride;
     var attrs = ['data-zw-hdr', 'data-zw-hdr-logo', 'data-zw-hdr-links',
                  'data-zw-hdr-actions', 'data-zw-hdr-linksrow'];
     /* Nothing set means the arrangement the page shipped with, and clearing
@@ -577,6 +586,14 @@
     /* Preview without persisting — the admin editor drags a colour picker and
        wants the page to follow without committing the visitor to that theme. */
     preview: function (theme) { apply(normalise({ modes: [theme], default: theme.id }).modes[0]); },
+    /* Where the logo, the categories and the actions sit, as the four values
+       storefront-cohesion.css understands. header-layouts.js calls this with a
+       named layout's spec; null hands the decision back to the current theme.
+       Nothing else may write data-zw-hdr-* — see applyHeader. */
+    setHeader: function (spec) {
+      hdrOverride = (spec && typeof spec === 'object') ? spec : null;
+      applyHeader(document.documentElement, applied && applied.header);
+    },
     reload: function () { resolveAndApply(); },
   };
 })();
