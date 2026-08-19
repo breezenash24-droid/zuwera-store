@@ -57,7 +57,7 @@ const sandbox = {
 vm.createContext(sandbox);
 vm.runInContext(
   'var markChromeDirty = function(){ chromeDirty = true; };\n' +
-  [lift('applyChromeField'), lift('applyTextOverride'),
+  [lift('applyChromeField'), lift('applyTextOverride'), lift('clearOverrideAt'),
    lift('_zwNormText'), lift('_zwLoose'), lift('_zwStringSlots'), lift('applyInlineText')].join('\n') +
   '\nvar sendChrome = function(){};',
   sandbox
@@ -314,6 +314,61 @@ console.log('\nSaving writes only what changed');
     'a draft saved an hour ago still has to be promoted');
   ok('and they go in parallel', /await Promise\.all\(want\.map/.test(B));
   ok('nothing dirty means no request at all', /if\(!want\.length\) return true;/.test(B));
+}
+
+console.log('\nA word that shares its element with another element');
+{
+  /* The release title renders as `Release<br><span>002</span>`. The span is a
+     leaf, so "002" was editable; "Release" is a bare text node in a parent that
+     is NOT a leaf, and nothing could select it. Reported exactly that way — the
+     numbers after it are editable, the word itself is not. */
+  ok('an element’s own text nodes are found', COPY.includes('function directTextNodes'));
+  ok('and from the outer scope, not the editor',
+    COPY.indexOf('function directTextNodes') < COPY.indexOf('function initEditor'),
+    'applyOverrides needs it on a shopper page, where the editor never loads');
+  ok('the one under the cursor is identified', COPY.includes('caretRangeFromPoint'),
+    'a click targets the element, so the text node has to come from the caret');
+  ok('a whole leaf still wins over a slot',
+    /var leaf = editableFrom\(e\.target, null\);\s*\n\s*if \(leaf\) return/.test(COPY),
+    'every edit that already worked must keep working');
+  ok('the node is wrapped to be edited', COPY.includes('function wrapSlot'));
+  ok('...and unwrapped again afterwards', COPY.includes('function unwrapSlot'));
+  ok('the key names which text node', /slot = ti >= 0 \? '\|t' \+ ti : ''/.test(COPY));
+  ok('applying touches only that node', /tns\[t\]\.nodeValue = te\.now/.test(COPY),
+    'assigning textContent to the parent would flatten the <br> and the span away');
+  ok('a rejection restores only that node', /tn\.nodeValue = p\.was/.test(COPY));
+  ok('the anchor is per node too', /'data-zw-was-t' \+ ti/.test(COPY));
+  ok('a stored key keeps its slot through normalising', /cut = str\.indexOf\('\|t'\)/.test(COPY));
+}
+
+console.log('\nEvery tab publishes its page text');
+{
+  /* No page but the homepage tags its sections, so ALL the text on the landing,
+     product and collection pages is stored as page copy — and Publish returned
+     early on exactly those tabs, so saveChrome never ran where it was the only
+     place an edit could go. */
+  for (const t of ['pages', 'product', 'collection'])
+    ok('the ' + t + ' tab publishes it',
+      new RegExp("curTab==='" + t + "'\\)\\{[^}]*saveChrome\\(true\\)").test(B));
+  ok('and the pages tab saves it as a draft too',
+    /saveLandingPages\(false\); await saveChrome\(false\)/.test(B));
+}
+
+console.log('\nA field and an override never both own the same words');
+{
+  /* An override repaints on every re-render, so one left in place over an
+     element whose section field was just edited wins for ever — and the field
+     edit looks like it did nothing. Live data has that pairing already: an
+     override on the release title beside the title setting it shadows. */
+  ok('a successful field edit clears the override there', B.includes('function clearOverrideAt'));
+  ok('and it is called on exactly that path',
+    /else if\(r&&r\.ok\) clearOverrideAt\(d\.page,d\.path\)/.test(B));
+
+  setState([], {}, {});
+  sandbox.applyTextOverride('/', 'div.drop-title:0|t0', 'Release', 'Drop', '');
+  ok('an override exists first', !!sandbox.chromeCopy['/']['div.drop-title:0|t0']);
+  sandbox.clearOverrideAt('/', 'div.drop-title:0|t0');
+  ok('...and a field edit removes it', !sandbox.chromeCopy['/']);
 }
 
 console.log('\nThe preview asks the right owner');
