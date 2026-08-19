@@ -2448,6 +2448,7 @@ window.addEventListener('message',function(e){
        so fall through rather than reject. Same round trip: the preview sent
        the page and path with the section id for exactly this. */
     if(r&&!r.ok&&r.canOverride&&d.path) r=applyTextOverride(d.page,d.path,d.was!=null?d.was:d.oldText,d.newText,d.loose);
+    else if(r&&r.ok) clearOverrideAt(d.page,d.path);   // the field owns it now
     _answerCanvasEdit(d,r);
     return;
   }
@@ -3386,6 +3387,26 @@ function applyTextOverride(page,path,was,newText,loose){
   return {ok:true,was:orig};
 }
 
+/* An override and a section field must never both own the same words.
+
+   If a field edit succeeds for an element that ALSO carries an override, the
+   override wins every re-render afterwards -- storefront.js redraws the section
+   from settings, applyOverrides paints the old override straight back over it,
+   and the field edit looks like it did nothing. Live data has exactly this
+   pairing: an override on the release title sitting beside the title setting it
+   shadows. So a successful field write clears the override for that element. */
+function clearOverrideAt(page,path){
+  if(!path) return;
+  const pg=String(page||'/');
+  const m=chromeCopy&&chromeCopy[pg];
+  if(!m) return;
+  let gone=false;
+  for(const k of Object.keys(m)){ if(k===path){ delete m[k]; gone=true; } }
+  if(!gone) return;
+  if(!Object.keys(m).length) delete chromeCopy[pg];
+  markChromeDirty('copy'); sendChrome();
+}
+
 /* Written on Save Draft and on Publish. `pub` is what promotes each draft to
    the live key it shadows (DRAFT_TO_LIVE in save-page-builder.js). */
 async function saveChrome(pub){
@@ -3474,7 +3495,7 @@ async function saveDraft(auto=false){
   if(auto&&!dirty)return;
   // Manual Save Draft on the Pages tab saves the LANDING draft (the page you're
   // editing); the 60s autosave stays homepage-only (guarded by `dirty` above).
-  if(!auto && curTab==='pages'){ await saveLandingPages(false); return; }
+  if(!auto && curTab==='pages'){ await saveLandingPages(false); await saveChrome(false); return; }
   status('Saving…');dotCls('y');
   const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},false);
   if(ok){lastSaved=clone(sections);status('Saved · '+new Date().toLocaleTimeString());dotCls('g');if(!auto)toast('Draft saved','ok');lyStashCurrent();}
@@ -3551,9 +3572,14 @@ async function publishPage(skipLayoutGuard){
   // live. It used to mean "publish the homepage", which is why pressing it on
   // the Product or Collection tab appeared to do nothing — those tabs wrote
   // straight to the live key on Save instead, so Publish had nothing to do.
-  if(curTab==='pages'){ await saveLandingPages(true); return; }
-  if(curTab==='product'){ await pdpSave(true); return; }
-  if(curTab==='collection'){ await saveCollectionCfg(true); return; }
+  /* Every tab publishes the page text too. No page except the homepage tags its
+     sections, so ALL the text on the landing, product and collection pages is
+     stored as page copy -- and these three early returns meant Publish never
+     called saveChrome from the very tabs where that is the only place edits can
+     go. Edits made there saved to the draft and were never promoted. */
+  if(curTab==='pages'){ await saveLandingPages(true); await saveChrome(true); return; }
+  if(curTab==='product'){ await pdpSave(true); await saveChrome(true); return; }
+  if(curTab==='collection'){ await saveCollectionCfg(true); await saveChrome(true); return; }
   // Layout guard: publishing while editing a NON-live layout replaces the live
   // homepage with this design — make sure that's intentional. (Set Live in the
   // Layouts modal already confirmed, so it passes skipLayoutGuard=true.)

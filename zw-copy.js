@@ -70,6 +70,18 @@
     return true;
   }
 
+  /* The element's OWN text nodes, ignoring any that belong to its children.
+     applyOverrides needs this on a shopper's page, not just in the editor, so
+     it lives out here beside isTextLeaf rather than inside initEditor. */
+  function directTextNodes(el) {
+    var out = [];
+    if (!el) return out;
+    for (var n = el.firstChild; n; n = n.nextSibling) {
+      if (n.nodeType === 3 && n.nodeValue && n.nodeValue.trim()) out.push(n);
+    }
+    return out;
+  }
+
   /* CLASSES THAT ARE NOT PART OF AN ELEMENT'S IDENTITY.
 
      A class in the path has to mean the same thing every time the page is
@@ -140,6 +152,12 @@
      silently dead until the key is read the same way it is now written. So the
      stored side gets normalised too, and the two are compared normalised. */
   function normStoredPath(p) {
+    var str = String(p || ''), slot = '';
+    var cut = str.indexOf('|t');
+    if (cut > -1) { slot = str.slice(cut); str = str.slice(0, cut); }
+    return slot === '' ? _normSegs(str) : _normSegs(str) + slot;
+  }
+  function _normSegs(p) {
     return String(p || '').split('>').map(function (seg) {
       if (seg.charAt(0) === '#') return seg;
       var idx = '', m = /:(\d+)$/.exec(seg);
@@ -186,8 +204,25 @@
       var els = document.body.querySelectorAll('*');
       for (var i = 0; i < els.length; i++) {
         var el = els[i];
-        if (!isTextLeaf(el)) continue;
         var p = elPath(el);
+
+        /* Text nodes that share their element with another element -- the
+           `Release<br><span>002</span>` shape. Each is keyed `<path>|t<n>` and
+           only its own nodeValue is touched, so the <br> and the span survive
+           (assigning textContent to the parent would flatten all three). */
+        var tns = directTextNodes(el);
+        for (var t = 0; t < tns.length; t++) {
+          var key = p + '|t' + t;
+          var te = map[key] || byNorm[key] || byLoose[loosePath(el) + '|t' + t];
+          if (!te || typeof te.now !== 'string') continue;
+          var cur = norm(tns[t].nodeValue);
+          if (cur === norm(te.now)) { el.setAttribute('data-zw-was-t' + t, te.was); continue; }
+          if (cur !== norm(te.was)) continue;
+          el.setAttribute('data-zw-was-t' + t, te.was);
+          tns[t].nodeValue = te.now;
+        }
+
+        if (!isTextLeaf(el)) continue;
         var entry = map[p] || byNorm[p] || byLoose[loosePath(el)];
         if (!entry || typeof entry.now !== 'string') continue;
         if (norm(el.textContent) === norm(entry.now)) {
@@ -299,6 +334,23 @@
     document.head.appendChild(st);
 
     var editing = null, origText = '', ownerSec = '', ownerField = '', bar = null, hovered = null;
+    /* editingTi >= 0 means one text node of `editing` is being edited rather
+       than the whole element; editWrap is the temporary span around it. */
+    var editingTi = -1, editWrap = null;
+    function wrapSlot(node) {
+      editWrap = document.createElement('span');
+      editWrap.setAttribute('data-zw-tmp', '1');
+      node.parentNode.insertBefore(editWrap, node);
+      editWrap.appendChild(node);
+      editWrap.contentEditable = 'true';
+      return editWrap;
+    }
+    function unwrapSlot() {
+      if (!editWrap) return;
+      var t = document.createTextNode(editWrap.textContent || '');
+      if (editWrap.parentNode) editWrap.parentNode.replaceChild(t, editWrap);
+      editWrap = null;
+    }
 
     function isHeading(el) { return /^H[1-6]$/.test(el.tagName); }
 
@@ -315,6 +367,49 @@
         el = el.parentElement;
       }
       return null;
+    }
+
+
+    /* ── A WORD THAT SHARES ITS ELEMENT WITH ANOTHER ELEMENT ──────────────────
+
+       The release title renders as
+
+           <div class="drop-title">Release<br><span>002</span></div>
+
+       so "002" is a leaf and was editable, while "Release" is a bare text node
+       in a parent that is NOT a leaf — and nothing could select it. Reported
+       exactly that way: the numbers after it are editable, the word itself is
+       not. It is a common shape, not a quirk; any heading built as
+       `Word<br><span>other</span>` has it.
+
+       A text slot is that text node: its parent, plus which of the parent's own
+       text nodes it is. Stored as `<path>|t<n>` so the parent's other children
+       are untouched, and so the <br> survives — assigning textContent to the
+       parent would flatten all three into one string. */
+
+    /* Which text node is under the pointer. A click's target is the ELEMENT, so
+       the text node has to come from the caret position. */
+    function caretTextNode(e) {
+      try {
+        var r = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
+        if (r && r.startContainer && r.startContainer.nodeType === 3) return r.startContainer;
+      } catch (_) {}
+      return null;
+    }
+
+    /* Prefer a whole element when it is a leaf — that keeps every existing edit
+       behaving as it did. Only reach for a text slot when the element holds more
+       than text, which is the case that had no answer at all. */
+    function targetAt(e) {
+      var leaf = editableFrom(e.target, null);
+      if (leaf) return { el: leaf, ti: -1 };
+      var tn = caretTextNode(e);
+      var parent = tn && tn.parentElement;
+      if (!parent || !EDITABLE.test(parent.tagName)) return null;
+      var tns = directTextNodes(parent);
+      var i = tns.indexOf(tn);
+      if (i < 0) return null;
+      return { el: parent, ti: i, node: tn };
     }
 
     /* WHO OWNS THIS TEXT — the whole design, in one function.
@@ -380,13 +475,24 @@
     var pending = {}, pendSeq = 0;
     function commit() {
       if (!editing) return;
-      var el = editing, nt = txt(el), was = origText;
-      var sec = ownerSec, field = ownerField;
-      el.contentEditable = 'false'; editing = null; hideBar();
+      var el = editing, was = origText;
+      var sec = ownerSec, field = ownerField, ti = editingTi;
+      var nt;
+      if (ti >= 0) {
+        /* Only the wrapped text node changed; read it, then put the node back so
+           the element is exactly as it was apart from the words. */
+        nt = txt(editWrap);
+        unwrapSlot();
+      } else {
+        nt = txt(el);
+        el.contentEditable = 'false';
+      }
+      editing = null; editingTi = -1; hideBar();
       if (nt === was) return;
       var id = 'ite' + (++pendSeq);
-      pending[id] = { el: el, was: was };
-      var anchorAttr = el.getAttribute('data-zw-was');
+      pending[id] = { el: el, was: was, ti: ti };
+      var anchorAttr = el.getAttribute(ti >= 0 ? 'data-zw-was-t' + ti : 'data-zw-was');
+      var slot = ti >= 0 ? '|t' + ti : '';
       var msg;
       if (field) {
         msg = { type: 'ZW_CHROME_TEXT', id: id, field: field, newText: nt };
@@ -407,7 +513,7 @@
            somewhere instead of nowhere. */
         msg = {
           type: 'ZW_INLINE_TEXT', id: id, sectionId: sec, oldText: was, newText: nt,
-          page: pageKey(), path: elPath(el), loose: loosePath(el),
+          page: pageKey(), path: elPath(el) + slot, loose: loosePath(el) + slot,
           was: anchorAttr != null ? anchorAttr : was
         };
       } else {
@@ -416,15 +522,17 @@
            text being replaced, or the override stops matching the template and
            silently stops applying. */
         msg = {
-          type: 'ZW_TEXT_OVERRIDE', id: id, page: pageKey(), path: elPath(el),
-          loose: loosePath(el), was: anchorAttr != null ? anchorAttr : was, newText: nt
+          type: 'ZW_TEXT_OVERRIDE', id: id, page: pageKey(), path: elPath(el) + slot,
+          loose: loosePath(el) + slot, was: anchorAttr != null ? anchorAttr : was, newText: nt
         };
       }
       try { window.parent.postMessage(msg, location.origin); } catch (_) {}
     }
     function cancel() {
       if (!editing) return;
-      editing.textContent = origText; editing.contentEditable = 'false'; editing = null; hideBar();
+      if (editingTi >= 0) { if (editWrap) editWrap.textContent = origText; unwrapSlot(); }
+      else { editing.textContent = origText; editing.contentEditable = 'false'; }
+      editing = null; editingTi = -1; hideBar();
     }
     function flashRejected(el, reason) {
       var n = document.createElement('div');
@@ -453,8 +561,14 @@
       if (d.type === 'ZW_TEXT_OVERRIDES' && d.value) { setOverrides(d.value, true); return; }
       if (d.type === 'ZW_INLINE_TEXT_RESULT' && pending[d.id]) {
         var p = pending[d.id]; delete pending[d.id];
-        if (d.ok) { if (d.was != null) p.el.setAttribute('data-zw-was', d.was); return; }
-        p.el.textContent = p.was;    // stop showing what was not kept
+        if (d.ok) {
+          if (d.was != null) p.el.setAttribute(p.ti >= 0 ? 'data-zw-was-t' + p.ti : 'data-zw-was', d.was);
+          return;
+        }
+        /* Stop showing what was not kept — putting back only the one text node
+           when that is all that was edited. */
+        if (p.ti >= 0) { var tn = directTextNodes(p.el)[p.ti]; if (tn) tn.nodeValue = p.was; }
+        else p.el.textContent = p.was;
         flashRejected(p.el, d.reason);
       }
     });
@@ -464,7 +578,8 @@
         if (hovered) { hovered.classList.remove('zw-ite-hi', 'zw-ite-chrome'); hovered = null; }
         return;
       }
-      var t = editableFrom(e.target, null);
+      var got = targetAt(e);
+      var t = got ? got.el : null;
       if (t === hovered) return;
       if (hovered) hovered.classList.remove('zw-ite-hi', 'zw-ite-chrome');
       hovered = t;
@@ -478,17 +593,26 @@
 
     document.addEventListener('click', function (e) {
       if (!window.__zwTextEditMode) return;
-      var el = editableFrom(e.target, null);
-      if (!el) return;
+      var t = targetAt(e);
+      if (!t) return;
+      var el = t.el;
       e.preventDefault(); e.stopPropagation();
-      if (editing === el) return;
+      if (editing === el && editingTi === t.ti) return;
       if (editing) commit();
       if (hovered) { hovered.classList.remove('zw-ite-hi', 'zw-ite-chrome'); hovered = null; }
       var owner = ownerOf(el);
-      editing = el; origText = txt(el);
+      editing = el; editingTi = t.ti;
       ownerSec = owner.kind === 'section' ? owner.sec : '';
       ownerField = owner.kind === 'field' ? owner.field : '';
-      el.contentEditable = 'true'; el.focus();
+      if (t.ti >= 0) {
+        var node = directTextNodes(el)[t.ti];
+        if (!node) { editing = null; editingTi = -1; return; }
+        origText = txt(wrapSlot(node));
+        editWrap.focus();
+      } else {
+        origText = txt(el);
+        el.contentEditable = 'true'; el.focus();
+      }
       showBar(el, owner);
     }, true);
 

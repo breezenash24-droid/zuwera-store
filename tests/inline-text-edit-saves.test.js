@@ -157,7 +157,7 @@ console.log('\nThe preview is told, every time');
     /p\.el\.textContent = p\.was/.test(SF),
     'otherwise it keeps showing an edit that was never stored — the original bug');
   ok('and shows why', SF.includes('flashRejected'));
-  ok('a commit waits for the answer instead of assuming', /pending\[id\] = \{ el: el, was: was \}/.test(SF));
+  ok('a commit waits for the answer instead of assuming', /pending\[id\] = \{ el: el, was: was/.test(SF));
   ok('the reply is origin-checked', /ZW_INLINE_TEXT_RESULT/.test(SF) && /e\.origin !== location\.origin/.test(SF));
   ok('the editor is not shipped to shoppers', /if \(window\.__ZW_BUILDER_PREVIEW__\) initEditor\(\);/.test(SF),
     'it is in a file every storefront page loads, so the guard is what keeps it out of a shopper’s page');
