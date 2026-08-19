@@ -348,7 +348,7 @@ console.log('\nThe line under the header is a choice, and it moves nothing');
 
   ok('the module carries it on every route in',
     /function apply\(id, lines\)/.test(SRC) && /lineChoice\(d\.lines\)/.test(SRC)
-    && /\.split\('\|'\)\[5\]/.test(SRC));
+    && /var cl = parts\[5\] \|\| '';/.test(SRC));
   ok('an unknown layout id does not discard the line choice',
     /var spec = l \? l\.spec : null;/.test(SRC),
     'they are two answers and only one of them is missing');
@@ -420,6 +420,39 @@ console.log('\nIt travels like the rest of the chrome draft');
       && s.indexOf('theme-engine.js') > -1 && s.indexOf('theme-engine.js') < s.indexOf('header-layouts.js'),
       'setHeader has to exist by the time this asks for it');
   }
+}
+
+console.log('\nNothing quietly undoes the answer the document arrived with');
+{
+  const PRE3 = read('scripts/theme-preboot.head.js');
+
+  /* THE ONE THAT SURVIVED EVERY PREVIOUS FIX. theme-engine.js runs before
+     header-layouts.js, both deferred, and no theme in this store carries a
+     header — so applyHeader was reached with nothing set and cleared all five
+     attributes. That wiped the build's bake and the edge stamp on every single
+     load, and the arrangement was then restored a moment later from cache or
+     from the network. Pre-paint undone one step further along. */
+  ok('theme-engine clears only the attributes it wrote itself',
+    /function clear\(\) \{\s*if \(!hdrWritten\) return;/.test(TE),
+    'a document that arrived already knowing its arrangement has to keep it');
+  ok('...and records having written them', /hdrWritten = true;/.test(TE));
+  ok('...and a theme switch still undoes the previous theme’s placement',
+    /hdrWritten = false;/.test(TE),
+    'that is what the clearing was for, and it still has to work');
+
+  /* THE SECOND CACHE READER. The pre-paint block declined to overwrite a
+     document that already knew its arrangement; header-layouts.js then did it
+     anyway, a moment later, with the same stale value. */
+  ok('the module checks the document before applying its cache',
+    /var docAt = document\.documentElement\.getAttribute\('data-zw-hdr-at'\)/.test(SRC)
+    && /if \(!docAt \|\| \(parts\[4\] \|\| ''\) > docAt\)/.test(SRC),
+    'two readers of one cache, and only one of them was checking');
+  ok('...using the same comparison the pre-paint block uses',
+    /_hfresh = !_hb \|\| \(_hc\[4\] \|\| ''\) > _hb/.test(PRE3),
+    'two different answers to "is this cache newer" is how they disagree');
+  ok('a document that makes no claim still gets the cache',
+    /!docAt \|\|/.test(SRC),
+    'an older build stamps nothing, and the cache is then the best available');
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

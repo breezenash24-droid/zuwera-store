@@ -366,10 +366,29 @@
       if (held) { set(held.id, held.lines); held = null; }
     }
 
+    /* ── THE CACHE ONLY SPEAKS IF THE DOCUMENT DID NOT ──────────────────────
+       There are two readers of this cache — the pre-paint block in <head> and
+       this one — and for a long while only the first checked whether the cache
+       was actually the freshest answer available. So the head would correctly
+       decline to overwrite a document that already knew its arrangement, and
+       then this ran a moment later and overwrote it anyway, with the same stale
+       value, for the same reason the check existed.
+
+       That is the flash that survived every previous fix: it needed a browser
+       that had been here before, so it came and went depending on whose cache
+       was older than what the page arrived carrying.
+
+       Same comparison as the head, against the same attribute. A document with
+       no timestamp on it made no claim, and the cache is then the best thing
+       available. */
     try {
-      var c = localStorage.getItem(CACHE);
-      var cl = (localStorage.getItem(ATTRS) || '').split('|')[5] || '';
-      if (c || cl) fromServer(c, cl);
+      var parts = (localStorage.getItem(ATTRS) || '').split('|');
+      var docAt = document.documentElement.getAttribute('data-zw-hdr-at') || '';
+      if (!docAt || (parts[4] || '') > docAt) {
+        var c = localStorage.getItem(CACHE);
+        var cl = parts[5] || '';
+        if (c || cl) fromServer(c, cl);
+      }
     } catch (_) {}
 
     fetch('https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value,updated_at&key=eq.header_layout',

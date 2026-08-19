@@ -184,6 +184,24 @@ function stubFetch(value, { ok: isOk = true, throws = false } = {}) {
       'dropping these would take the whole API offline');
   }
 
+  console.log('\nThe stamp says WHEN, or it gets undone');
+  {
+    /* data-zw-hdr-at does not mean "when the page was built". It means "the
+       attributes on this element are as of this moment", and both cache readers
+       compare against it. Stamping the placement here while leaving the
+       timestamp as the BUILD left it told every returning visitor whose cache
+       post-dated that deploy that their older copy was the fresher one. */
+    const withAt = attrsFrom(GOOD, '2026-08-19T09:00:00+00:00');
+    ok('the stamp carries the row timestamp',
+      withAt['data-zw-hdr-at'] === '2026-08-19T09:00:00+00:00',
+      'without it a stale cache reads as fresher and overwrites a correct stamp');
+    ok('...read from the same column the browser caches',
+      /select=value,updated_at/.test(SRC));
+    ok('the timestamp is never written without a placement to describe',
+      !('data-zw-hdr-at' in (attrsFrom({ id: 'x', lines: 'off' }, '2026-08-19T09:00:00+00:00') || {})),
+      'it would then claim the build-time placement was current');
+  }
+
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
   process.exit(fail ? 1 : 0);
 })();

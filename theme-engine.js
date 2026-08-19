@@ -213,6 +213,11 @@
      of those returns. */
   var hdrLines = '';
 
+  /* Whether the placement attributes on <html> were put there by THIS function.
+     The build and the edge middleware are the other authors, and their work
+     must survive a theme that says nothing about the header. */
+  var hdrWritten = false;
+
   function applyHeaderLines(root) {
     if (hdrLines === 'on' || hdrLines === 'off') root.setAttribute('data-zw-hdr-lines', hdrLines);
     else root.removeAttribute('data-zw-hdr-lines');
@@ -223,18 +228,39 @@
     if (hdrOverride) header = hdrOverride;
     var attrs = ['data-zw-hdr', 'data-zw-hdr-logo', 'data-zw-hdr-links',
                  'data-zw-hdr-actions', 'data-zw-hdr-linksrow'];
-    /* Nothing set means the arrangement the page shipped with, and clearing
-       every attribute is what expresses that. Leaving a stale one behind is
-       precisely how a header keeps the previous theme's layout after a switch —
-       the attributes ARE the state, so they have to be removed, not just
-       overwritten with the ones the new theme happens to mention. */
-    if (!header) { attrs.forEach(function (a) { root.removeAttribute(a); }); return; }
+
+    /* ── CLEAR ONLY WHAT THIS FUNCTION PUT THERE ────────────────────────────
+       Switching from a theme that places the header to one that does not has to
+       undo the first theme's placement — leaving a stale attribute behind is
+       how a header keeps the previous theme's layout after a switch. That is
+       still true, and `clear()` is still how it is expressed.
+
+       But the attributes now have a SECOND author. The build bakes them onto
+       <html>, and functions/_middleware.js stamps them at the edge, precisely
+       so the first frame is right before any of this runs. This function used
+       to clear them unconditionally — and it runs on page load, before
+       header-layouts.js has had a chance to set the override, with no theme
+       carrying a header. So the sequence on every single load was: correct
+       header in the document, wiped here, then restored a moment later from
+       cache or from the network.
+
+       That is the whole pre-paint mechanism being undone one step further
+       along, and it is why the flash survived being fixed twice: for a visitor
+       with a cache it was repaired in the same tick and usually invisible, and
+       for a first-ever visitor it lasted until the fetch came back.
+
+       So a clear only happens if there is something of ours to clear. A
+       document that arrived already knowing its arrangement keeps it. */
+    function clear() {
+      if (!hdrWritten) return;
+      attrs.forEach(function (a) { root.removeAttribute(a); });
+      hdrWritten = false;
+    }
+
+    if (!header) { clear(); return; }
 
     var spec = typeof header === 'string' ? HDR_PRESETS[header] : header;
-    if (!spec || typeof spec !== 'object') {
-      attrs.forEach(function (a) { root.removeAttribute(a); });
-      return;
-    }
+    if (!spec || typeof spec !== 'object') { clear(); return; }
     // Unknown values are dropped rather than written through: an attribute the
     // stylesheet has no rule for reads as "placed" and suppresses the default.
     var logo    = HDR_SPOTS[spec.logo] ? spec.logo : 'left';
@@ -245,6 +271,7 @@
     root.setAttribute('data-zw-hdr-links', links);
     root.setAttribute('data-zw-hdr-actions', actions);
     root.setAttribute('data-zw-hdr-linksrow', String(spec.linksRow) === '2' ? '2' : '1');
+    hdrWritten = true;
   }
 
   function apply(theme) {
