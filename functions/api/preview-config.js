@@ -18,12 +18,26 @@ import { verifyPreviewToken } from './_preview.js';
 const DRAFT_KEYS = [
   'page_builder', 'landing_pages', 'builder_theme', 'builder_nav',
   'product_page_draft', 'collection_page_draft',
+  // Text edited on the canvas. Without these three, "Preview live" showed the
+  // PUBLISHED nav, bar and page copy while showing draft sections beside them --
+  // so the one button whose whole job is "show me what I have saved but not
+  // published" was the one place those edits never appeared.
+  'nav_menu_draft', 'announcement_bar_draft', 'text_overrides_draft',
 ];
 
 // Draft keys whose value the storefront expects to find under a different name.
 // The preview hands back the live key's name holding the draft's contents, so
 // the page renders through its normal path without knowing it is a preview.
-const DRAFT_ALIAS = { product_page_draft: 'product_page', collection_page_draft: 'collection_page' };
+const DRAFT_ALIAS = {
+  product_page_draft: 'product_page',
+  collection_page_draft: 'collection_page',
+  // Handed back under the live names so nav-menu.js, announcement-bar.js and
+  // zw-copy.js render a preview through the path they always use, without any
+  // of them needing to know a preview is what they are looking at.
+  nav_menu_draft: 'nav_menu',
+  announcement_bar_draft: 'announcement_bar',
+  text_overrides_draft: 'text_overrides',
+};
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {

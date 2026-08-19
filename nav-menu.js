@@ -253,6 +253,19 @@
   });
 
   function init() {
+    /* Same as the bar: a ?zwpreview= link carries the DRAFT nav, so "Preview
+       live" shows the labels you saved rather than the published ones. It wins
+       over the cache and over the fetch, and sets _navSettled so the fallback
+       is never shown behind it. */
+    if (window.__zwPreviewReady && window.__zwPreviewReady.then) {
+      window.__zwPreviewReady.then(function (pv) {
+        if (!pv || !Array.isArray(pv.nav_menu)) return;
+        window.__zwNavPreview = true;
+        navCfg = pv.nav_menu;
+        _navSettled = true;
+        render();
+      }).catch(function () {});
+    }
     navCfg = cacheGet('zw_nav_menu');
     var t = cacheGet('zw_nav_tax');
     if (t) tax = t;
@@ -291,9 +304,14 @@
         .then(function (rows) {
           var v = rows && rows[0] && rows[0].value;
           if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
-          navCfg = Array.isArray(v) ? v : [];
-          try { localStorage.setItem('zw_nav_menu', JSON.stringify(navCfg)); } catch (_) {}
+          var pub = Array.isArray(v) ? v : [];
+          try { localStorage.setItem('zw_nav_menu', JSON.stringify(pub)); } catch (_) {}
           _navSettled = true;
+          /* Cache the published nav either way, but do not paint over a draft a
+             preview link has already applied -- this response usually lands
+             second and would otherwise undo the whole point of the preview. */
+          if (window.__zwNavPreview) return;
+          navCfg = pub;
           render();
         }).catch(function () { _navSettled = true; render(); });
       fetch(SB + 'products?select=gender,subtitle,tags&status=neq.Legacy&status=neq.Draft', { headers: H })

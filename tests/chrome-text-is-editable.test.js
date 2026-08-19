@@ -371,6 +371,48 @@ console.log('\nA field and an override never both own the same words');
   ok('...and a field edit removes it', !sandbox.chromeCopy['/']);
 }
 
+console.log('\nPreview live shows what Save Draft saved');
+{
+  /* "Preview live" opens the real storefront on a ?zwpreview= token and renders
+     the DRAFT. It has its own allow-list, separate from everything else, and
+     the three new draft keys were not in it — so the button whose entire job is
+     "show me what I have saved but not published" rendered draft sections
+     around a published nav, a published bar and published page copy. */
+  const PV = read('functions/api/preview-config.js');
+  const MODE = read('preview-mode.js');
+  const keys = (PV.match(/const DRAFT_KEYS = \[([^\]]*)\]/) || [])[1] || '';
+  const list = (keys.match(/'[^']+'/g) || []).map((s) => s.slice(1, -1));
+  const alias = {};
+  ((PV.match(/const DRAFT_ALIAS = \{([\s\S]*?)\};/) || [])[1] || '')
+    .replace(/([a-z_]+):\s*'([^']+)'/g, (m, k, v) => { alias[k] = v; return m; });
+  const delivered = list.map((k) => alias[k] || k);
+
+  for (const k of ['nav_menu_draft', 'announcement_bar_draft', 'text_overrides_draft'])
+    ok(k + ' is fetched for a preview', list.includes(k));
+  for (const k of ['nav_menu', 'announcement_bar', 'text_overrides'])
+    ok('...and arrives named ' + k, delivered.includes(k),
+      'the storefront renders a preview through its normal path, so the draft has '
+      + 'to come back under the live name');
+
+  ok('the nav takes it', /pv\.nav_menu/.test(NAV) && /__zwNavPreview/.test(NAV));
+  ok('the bar takes it', /pv\.announcement_bar/.test(BAR) && /__zwBarPreview/.test(BAR));
+  ok('page copy takes it', /p\.text_overrides/.test(COPY));
+
+  /* Each module also fetches the PUBLISHED value, and that response usually
+     lands second. Without a guard it would undo the preview. */
+  ok('the published nav does not overwrite it', /if \(window\.__zwNavPreview\) return;/.test(NAV));
+  ok('nor the published bar', /if \(window\.__zwBarPreview\) return;/.test(BAR));
+  ok('nor the published copy', /if \(draftPushed && !fromDraft\) return;/.test(COPY));
+
+  ok('Preview live saves before it opens', /await saveDraft\(\);[\s\S]{0,400}preview-token/.test(B),
+    'previewing an unsaved draft shows the previous one, which looks like it worked');
+  ok('and it opens the page you are on, not always the homepage',
+    /const f=document\.getElementById\('pvIframe'\);[\s\S]{0,200}u\.pathname/.test(B),
+    'the draft you just saved was on a page the homepage preview never showed');
+  ok('the token is still the only way in', /verifyPreviewToken/.test(PV));
+  ok('and a preview still never writes anything', !/(POST|PUT|PATCH|DELETE)/.test(MODE));
+}
+
 console.log('\nThe preview asks the right owner');
 {
   ok('a named field beats a section', COPY.indexOf("closest('[data-zw-field]')") < COPY.indexOf("closest('[data-zw-sec]')"),

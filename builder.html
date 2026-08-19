@@ -3861,7 +3861,15 @@ async function openUnpublishedPreview(){
     const r=await fetch('/api/preview-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token})});
     const j=await r.json().catch(()=>null);
     if(!j||!j.ok||!j.token)throw new Error((j&&j.error)||'Could not create a preview link.');
-    const url=location.origin+'/?zwpreview='+encodeURIComponent(j.token);
+    /* The page you are LOOKING AT, not always the homepage. Preview live
+       hard-coded '/', so pressing it on the Landing, Product or Collection tab
+       opened the homepage -- and the draft you had just saved was on a page it
+       never showed you. The preview iframe already knows which page that is. */
+    let path='/';
+    try{ const f=document.getElementById('pvIframe');
+         const u=new URL(f.src,location.origin);
+         if(u.pathname&&u.pathname!=='/') path=u.pathname; }catch(_){}
+    const url=location.origin+path+'?zwpreview='+encodeURIComponent(j.token);
     if(tab)tab.location=url;else window.open(url,'_blank');
     toast('Preview opened in a new tab');
   }catch(e){

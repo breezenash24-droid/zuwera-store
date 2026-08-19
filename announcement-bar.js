@@ -288,6 +288,20 @@
   }, { passive: true });
 
   function boot() {
+    /* A ?zwpreview= link resolves to the DRAFT settings. Taking the bar from
+       there is what makes "Preview live" show the message you saved but have not
+       published -- otherwise the draft sections rendered around a published bar,
+       and the one button meant to show unpublished work was the one place this
+       edit never appeared. Last word, so it beats the fetch below whenever it
+       arrives. */
+    if (window.__zwPreviewReady && window.__zwPreviewReady.then) {
+      window.__zwPreviewReady.then(function (pv) {
+        if (!pv || !pv.announcement_bar) return;
+        window.__zwBarPreview = true;
+        window.__zwBarCfg = pv.announcement_bar;
+        apply(pv.announcement_bar);
+      }).catch(function () {});
+    }
     // Cache-first (instant), then refresh from site_settings.
     try { var c = localStorage.getItem('zw_announce_cfg'); if (c) { window.__zwBarCfg = JSON.parse(c); apply(window.__zwBarCfg); } } catch (_) {}
     fetch(REST, { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON } })
@@ -297,8 +311,11 @@
         var cfg = rows[0].value;
         if (typeof cfg === 'string') { try { cfg = JSON.parse(cfg); } catch (_) { return; } }
         if (!cfg || typeof cfg !== 'object') return;
-        window.__zwBarCfg = cfg;
         try { localStorage.setItem('zw_announce_cfg', JSON.stringify(cfg)); } catch (_) {}
+        /* Cache the published value either way, but do not paint over a draft a
+           preview link has already applied. */
+        if (window.__zwBarPreview) return;
+        window.__zwBarCfg = cfg;
         apply(cfg);
       })
       .catch(function () {});
