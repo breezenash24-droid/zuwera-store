@@ -15,25 +15,25 @@ try {
     if (/[?&]builder=1(?:&|$)/.test(location.search)) window.__ZW_BUILDER_PREVIEW__ = true;
   } catch (_) {}
   try {
-    var _b = null, _ck = {}, _i2;
+    var _b = null, _ck = {}, _i2, _kk, _m;
     for (_i2 = 0; _i2 < localStorage.length; _i2++) {
-      var _kk = localStorage.key(_i2); if (!_kk) continue;
-      var _m = _kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/); if (!_m) continue;
-      if (_m[1] === undefined) _b = localStorage.getItem(_kk); else _ck[_m[1]] = localStorage.getItem(_kk);
+      _kk = localStorage.key(_i2);
+      _m = _kk && _kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/);
+      if (_m) { if (_m[1] === undefined) _b = localStorage.getItem(_kk); else _ck[_m[1]] = localStorage.getItem(_kk); }
     }
-    var _ord = Object.keys(_ck).map(Number).sort(function (a, b) { return a - b; });
-    var _str = _ord.length ? _ord.map(function (n) { return _ck[n]; }).join('') : _b;
-    if (_str) {
-      if (_str.indexOf('base64-') === 0) {
-        var _bb = _str.slice(7).replace(/-/g, '+').replace(/_/g, '/');
-        var _by = Uint8Array.from(atob(_bb), function (c) { return c.charCodeAt(0); });
-        _str = new TextDecoder().decode(_by);
+    var _o = Object.keys(_ck).sort(), _s = _o.length ? _o.map(function (n) { return _ck[n]; }).join('') : _b;
+    if (_s) {
+      if (_s.indexOf('base64-') === 0) {
+        _s = new TextDecoder().decode(Uint8Array.from(
+          atob(_s.slice(7).replace(/-/g, '+').replace(/_/g, '/')), function (c) { return c.charCodeAt(0); }));
       }
-      var _raw = JSON.parse(_str);
-      var _se = _raw && _raw.currentSession ? _raw.currentSession : _raw;
-      if (_se && _se.user && (Number(_se.expires_at || 0) * 1000 > Date.now() || _se.refresh_token)) {
-        window.__zwSessionUser = _se.user;
+      var _r = JSON.parse(_s), _se = _r && _r.currentSession ? _r.currentSession : _r, _u = _se && _se.user;
+      if (_u && (Number(_se.expires_at || 0) * 1000 > Date.now() || _se.refresh_token)) {
+        window.__zwSessionUser = _u;
         h.classList.add('zw-authed');
+        var _md = _u.user_metadata || {};
+        var _nm = String(_md.full_name || _md.name || (_u.email || '').split('@')[0] || '').trim().split(' ')[0];
+        if (_nm) { window.__zwAcctName = _nm; h.style.setProperty('--zw-acct-name', JSON.stringify(_nm)); }
       }
     }
   } catch (_) {}
@@ -245,7 +245,7 @@ html.zw-authed #account-btn{display:inline-flex!important}
   <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
   <link rel="stylesheet" href="nav.css?v=7e04029d">
   <link rel="stylesheet" href="cart.css?v=a4e16320">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=300e6636">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=e885efd8">
 <script src="preview-mode.js?v=8e7152ff" defer></script>
 <script src="header-scroll.js?v=fe320725" defer></script>
   <link rel="stylesheet" href="quick-add-modal.css?v=dc3088fe">
@@ -550,7 +550,7 @@ body.super-light-mode .zw-fav-size-picker{background: var(--ink) !important;bord
   <div id="nav-category-links" class="nav-center"></div>
   <div class="nav-right">
     <button class="nbtn" id="login-btn">Login</button>
-    <button class="nbtn" id="account-btn" style="display:none">Account</button>
+    <button class="nbtn" id="account-btn" style="display:none" aria-label="Account"><span class="zw-acct-name"></span></button>
     <button class="nbtn" id="logout-btn" style="display:none">Sign Out</button>
     <span class="zw-hdr-group">
       <a href="bag.html" class="zw-hdr-bag" aria-label="Bag" aria-current="page">
@@ -577,8 +577,9 @@ body.super-light-mode .zw-fav-size-picker{background: var(--ink) !important;bord
 (function(){try{
   var u=window.__zwSessionUser;if(!u)return;
   var a=document.getElementById('account-btn');if(!a)return;
-  var n=(u.user_metadata&&(u.user_metadata.full_name||u.user_metadata.name))||(u.email||'').split('@')[0]||'Account';
-  a.textContent=String(n).split(' ')[0];
+  var n=window.__zwAcctName||String((u.user_metadata&&(u.user_metadata.full_name||u.user_metadata.name))||(u.email||'').split('@')[0]||'Account').split(' ')[0];
+  document.documentElement.style.setProperty('--zw-acct-name',JSON.stringify(n));
+  a.setAttribute('aria-label',n);
 }catch(_){}})()
 </script>
 
@@ -1658,7 +1659,7 @@ window.__zwOpenAuth = function(tab) {
 <script src="image-utils.js?v=3fee4aec"></script>
 <script src="pdp-gallery.js?v=1e454262" defer></script>
 <script src="quick-add-modal.js?v=26a085c4" defer></script>
-<script src="auth.js?v=0358208d" defer></script>
+<script src="auth.js?v=36b281fb" defer></script>
 <script>
 /* ── Saved items visibility + member pricing: flip as soon as auth state is known ── */
 (function() {

@@ -94,8 +94,32 @@ html body.zwf-bagpanel-on:not([data-zw-account="header"]) :is(#login-btn,#accoun
    `#account-btn{display:none!important}` in index.html and the inline styles
    the after-nav script writes are both in play, and the first frame has to be
    decided by the thing that runs earliest, not the thing that runs last. */
-html.zw-authed :is(#login-btn, #hdr-login){display:none !important}
+/* ONLY #login-btn. The two header dialects do not have the same control set:
+   index/product/bag ship a separate #account-btn, so hiding #login-btn when
+   signed in reveals it — but the .zw-hdr-group pages have NO account button at
+   all. There, #hdr-login IS the account control; it changes its label and its
+   href rather than being replaced. Hiding it left a signed-in visitor on those
+   eight pages with no way into their account, which is the mistake this
+   codebase keeps making when a selector describes markup only some pages have. */
+html.zw-authed #login-btn{display:none !important}
 html:not(.zw-authed) #account-btn{display:none !important}
+
+/* ── The name, on the first frame ──────────────────────────────────────────
+   The control stopped swapping, but its TEXT still read "Account" until a
+   script after the nav replaced it with the name. Content, not visibility, and
+   the same beat late.
+
+   So the label is a pseudo-element fed by a custom property the pre-paint block
+   sets in <head>, which means the first frame already carries the name. The
+   fallback in the var() is the signed-out word, and it differs by dialect
+   because the two controls say different things when nobody is signed in.
+
+   The element's own text node is now empty; its accessible name comes from
+   aria-label, which JS updates. Pseudo-element content is not dependable to
+   assistive technology, and a label that is invisible can afford to arrive
+   late — which is exactly the trade that does not work for the visible one. */
+#account-btn .zw-acct-name::before{content:var(--zw-acct-name, "Account")}
+#hdr-login .zw-acct-name::before{content:var(--zw-acct-name, "Login")}
 html.zw-authed body:not(.zwf-bagpanel-on) #account-btn,
 html.zw-authed body[data-zw-account="header"] #account-btn{display:inline-flex !important}
 /* Search magnifier launcher — base style at first paint so the header pre-paint can

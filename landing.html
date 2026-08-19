@@ -42,25 +42,25 @@ try {
     if (/[?&]builder=1(?:&|$)/.test(location.search)) window.__ZW_BUILDER_PREVIEW__ = true;
   } catch (_) {}
   try {
-    var _b = null, _ck = {}, _i2;
+    var _b = null, _ck = {}, _i2, _kk, _m;
     for (_i2 = 0; _i2 < localStorage.length; _i2++) {
-      var _kk = localStorage.key(_i2); if (!_kk) continue;
-      var _m = _kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/); if (!_m) continue;
-      if (_m[1] === undefined) _b = localStorage.getItem(_kk); else _ck[_m[1]] = localStorage.getItem(_kk);
+      _kk = localStorage.key(_i2);
+      _m = _kk && _kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/);
+      if (_m) { if (_m[1] === undefined) _b = localStorage.getItem(_kk); else _ck[_m[1]] = localStorage.getItem(_kk); }
     }
-    var _ord = Object.keys(_ck).map(Number).sort(function (a, b) { return a - b; });
-    var _str = _ord.length ? _ord.map(function (n) { return _ck[n]; }).join('') : _b;
-    if (_str) {
-      if (_str.indexOf('base64-') === 0) {
-        var _bb = _str.slice(7).replace(/-/g, '+').replace(/_/g, '/');
-        var _by = Uint8Array.from(atob(_bb), function (c) { return c.charCodeAt(0); });
-        _str = new TextDecoder().decode(_by);
+    var _o = Object.keys(_ck).sort(), _s = _o.length ? _o.map(function (n) { return _ck[n]; }).join('') : _b;
+    if (_s) {
+      if (_s.indexOf('base64-') === 0) {
+        _s = new TextDecoder().decode(Uint8Array.from(
+          atob(_s.slice(7).replace(/-/g, '+').replace(/_/g, '/')), function (c) { return c.charCodeAt(0); }));
       }
-      var _raw = JSON.parse(_str);
-      var _se = _raw && _raw.currentSession ? _raw.currentSession : _raw;
-      if (_se && _se.user && (Number(_se.expires_at || 0) * 1000 > Date.now() || _se.refresh_token)) {
-        window.__zwSessionUser = _se.user;
+      var _r = JSON.parse(_s), _se = _r && _r.currentSession ? _r.currentSession : _r, _u = _se && _se.user;
+      if (_u && (Number(_se.expires_at || 0) * 1000 > Date.now() || _se.refresh_token)) {
+        window.__zwSessionUser = _u;
         h.classList.add('zw-authed');
+        var _md = _u.user_metadata || {};
+        var _nm = String(_md.full_name || _md.name || (_u.email || '').split('@')[0] || '').trim().split(' ')[0];
+        if (_nm) { window.__zwAcctName = _nm; h.style.setProperty('--zw-acct-name', JSON.stringify(_nm)); }
       }
     }
   } catch (_) {}
@@ -251,7 +251,7 @@ try {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://qfgnrsifcwdubkolsgsq.supabase.co" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=300e6636">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=e885efd8">
   <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
   <script src="header-scroll.js?v=fe320725" defer></script>
   <script src="image-effects.js?v=ec67c379" defer></script>
@@ -442,7 +442,7 @@ try {
     <div class="nav-center" id="nav-category-links"></div>
     <div class="nav-right">
       <span class="zw-hdr-group">
-        <a href="/?auth=signin" class="zw-hdr-action" id="hdr-login">Login</a>
+        <a href="/?auth=signin" class="zw-hdr-action" id="hdr-login" aria-label="Login"><span class="zw-acct-name"></span></a>
         <a href="bag.html" class="zw-hdr-bag" aria-label="Bag">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 01-8 0"></path></svg>
           <span class="zw-hdr-bag-count cart-count" id="hdr-bag-count">0</span>
@@ -456,7 +456,7 @@ try {
     (function(){
       try {
         var a = document.getElementById('hdr-login');
-        if (a && window.__zwSessionUser) { var _u = window.__zwSessionUser; a.textContent = String(((_u.user_metadata && _u.user_metadata.full_name) || (_u.email || '').split('@')[0] || 'Account')).split(' ')[0]; a.href = 'account.html'; }
+        if (a && window.__zwSessionUser) { var _u = window.__zwSessionUser; var _an=window.__zwAcctName||String(((_u.user_metadata && _u.user_metadata.full_name) || (_u.email || '').split('@')[0] || 'Account')).split(' ')[0]; document.documentElement.style.setProperty('--zw-acct-name', JSON.stringify(_an)); a.setAttribute('aria-label', _an); a.href = 'account.html'; }
         var cart = JSON.parse(localStorage.getItem('cart') || '[]');
         var n = Array.isArray(cart) ? cart.reduce(function(s, it){ return s + (Number(it && (it.qty || it.quantity || it.q)) || 1); }, 0) : 0;
         document.querySelectorAll('#hdr-bag-count, .cart-count, .zw-mobile-bag-count').forEach(function(el){ el.textContent = n; });
@@ -595,7 +595,7 @@ try {
   <script src="modal-lock.js?v=fb1f304f" defer></script>
   <script src="lang.js?v=f4b70f65" defer></script>
   <script src="scroll-reveal.js?v=8333d598" defer></script>
-  <script src="auth.js?v=0358208d" defer></script>
+  <script src="auth.js?v=36b281fb" defer></script>
   <script src="customer-messages.js?v=2c5164d0"></script>
 <script src="zw-login.js?v=09e6833c" defer></script>
   <script src="/nav-menu.js?v=a1272b19" defer></script>

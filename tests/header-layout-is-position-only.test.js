@@ -507,11 +507,11 @@ console.log('\nLogin or the account name is decided before the header is parsed'
     /base64-/.test(PRE5) && /_ck\[_m\[1\]\]/.test(PRE5),
     'a parser that misses those reads a signed-in visitor as signed out');
   ok('...and publishes the user so nothing parses it a second time',
-    /window\.__zwSessionUser = _se\.user;/.test(PRE5),
+    /window\.__zwSessionUser = _u;/.test(PRE5),
     'two parses of one session is two chances to disagree about it');
 
   ok('a render-blocking rule decides which button exists',
-    /html\.zw-authed :is\(#login-btn, #hdr-login\)\{display:none !important\}/.test(CSS)
+    /html\.zw-authed #login-btn\{display:none !important\}/.test(CSS)
     && /html:not\(\.zw-authed\) #account-btn\{display:none !important\}/.test(CSS));
   ok('...at a specificity that beats the page-level rule and the inline styles',
     /html\.zw-authed body\[data-zw-account="header"\] #account-btn\{display:inline-flex !important\}/.test(CSS),
@@ -521,6 +521,72 @@ console.log('\nLogin or the account name is decided before the header is parsed'
      The fix is that pattern moved somewhere all fourteen pages get it. */
   ok('the page that already did this still agrees with the shared version',
     read('bag.html').includes("classList.add('zw-authed')"));
+}
+
+console.log('\nThe account name is on the first frame, not a beat later');
+{
+  const PRE6 = read('scripts/theme-preboot.head.js');
+  const AUTH = read('auth.js');
+
+  ok('the name is derived in <head> and published as a custom property',
+    /window\.__zwAcctName = _nm;/.test(PRE6)
+    && /setProperty\('--zw-acct-name', JSON\.stringify\(_nm\)\)/.test(PRE6),
+    'the element does not exist yet, so the value has to travel as a property');
+  ok('...quoted and escaped, because a CSS string is not a JS one',
+    /JSON\.stringify\(_nm\)/.test(PRE6),
+    'a name may contain a quote or a backslash');
+  /* Against the code with comments removed — the note beside it explains the
+     rule by quoting the field name, which is not a second derivation. */
+  ok('...derived in exactly one place',
+    (strip(PRE6).match(/full_name/g) || []).length === 1,
+    'five files each worked out "first word of the name" separately');
+
+  ok('the label is rendered by the stylesheet, with the signed-out word as fallback',
+    /#account-btn \.zw-acct-name::before\{content:var\(--zw-acct-name, "Account"\)\}/.test(CSS)
+    && /#hdr-login \.zw-acct-name::before\{content:var\(--zw-acct-name, "Login"\)\}/.test(CSS),
+    'the two dialects say different things when nobody is signed in');
+
+  /* Every control that used to carry a text label now carries the span the
+     stylesheet renders through, and an aria-label, because pseudo-element
+     content is not dependable to assistive technology. */
+  const CONTROLS = [
+    ['index.html', '#account-btn'], ['product.html', '#account-btn'], ['bag.html', '#account-btn'],
+    ['about.html', '#hdr-login'], ['account.html', '#hdr-login'], ['drop001.html', '#hdr-login'],
+    ['journal.html', '#hdr-login'], ['landing.html', '#hdr-login'], ['policies.html', '#hdr-login'],
+    ['returns.html', '#hdr-login'], ['sizeguide.html', '#hdr-login'],
+  ];
+  let spans = 0, labels = 0;
+  for (const [file, id] of CONTROLS) {
+    const s = read(file);
+    const m = new RegExp('id="' + id.slice(1) + '"[^>]*>\\s*<span class="zw-acct-name"></span>').test(s);
+    const a = new RegExp('id="' + id.slice(1) + '"[^>]*aria-label=').test(s);
+    if (m) spans++;
+    if (a) labels++;
+  }
+  ok('all ' + CONTROLS.length + ' account controls render through the span',
+    spans === CONTROLS.length, spans + '/' + CONTROLS.length);
+  ok('...and all of them keep an accessible name',
+    labels === CONTROLS.length, labels + '/' + CONTROLS.length);
+
+  /* A textContent assignment deletes the span and puts the late word back, so
+     nothing may write the visible label any more. */
+  const WRITERS = ['index.html', 'product.html', 'bag.html', 'about.html', 'drop001.html',
+                   'journal.html', 'landing.html', 'policies.html', 'returns.html',
+                   'sizeguide.html', 'auth.js'];
+  const clobbers = WRITERS.filter((f) => {
+    const s = read(f);
+    return /(?:accountBtn|[Aa])\.textContent\s*=/.test(s) && /zw-acct-name|__zwAcctName/.test(s) === false;
+  });
+  ok('no writer replaces the label any more', clobbers.length === 0, clobbers.join(', '));
+  ok('auth.js sets the property instead, for a sign-in with no reload',
+    /setProperty\('--zw-acct-name', JSON\.stringify\(name\)\)/.test(AUTH));
+
+  /* The two dialects do not have the same controls, and a rule that forgets
+     that is how one of them loses its account control entirely. */
+  ok('only #login-btn is hidden when signed in, never #hdr-login',
+    /html\.zw-authed #login-btn\{display:none !important\}/.test(CSS)
+    && !/html\.zw-authed :is\(#login-btn, #hdr-login\)/.test(CSS),
+    'the .zw-hdr-group pages have no account button — #hdr-login IS the account control');
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
