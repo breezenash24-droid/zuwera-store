@@ -4838,26 +4838,60 @@ html[data-zw-hdr-lines="off"] :is(#nav, .nav, .zw-nav):has(.zw-navitem.zw-has-me
    shrunk, so the control keeps one accessible name instead of announcing
    itself twice. The bag's count span is untouched, so it reads "Bag 2".
 
-   Two scopes, because "words" is a phone decision on most storefronts and a
-   whole-site decision on some:
-     mobile  words up to 1024px (phone and tablet), icons above
-     always  words at every width */
+   ── ONE DEVICE PER ANSWER, ON THE HEADER'S OWN BREAKPOINT ──────────────────
+
+   This used to be two scopes — "words up to 1024px" and "words everywhere" —
+   and both halves of that were wrong in a way you could only see by measuring.
+
+   1024px is nothing else's boundary. The header switches to its mobile
+   arrangement at 900px, the menu drawer appears at 900px, the announcement bar
+   changes sides at 900px. So between 901 and 1024 the store was in its DESKTOP
+   header showing its PHONE controls, and the builder's own desktop preview
+   sits in that band on an ordinary laptop window.
+
+   And "up to 1024" bundled phone and tablet into one answer while offering no
+   way to say "desktop only" — so of the eight combinations of three devices,
+   two were reachable and one of those two was on the wrong breakpoint.
+
+   The value is now a list of the devices that get words, in the vocabulary the
+   builder's own preview uses. Any subset is expressible and each device is
+   answered on the boundary the rest of the header already uses:
+
+     phone    ≤600px
+     tablet   601–900px
+     desktop  ≥901px
+
+   `mobile` and `always` are kept as ALIASES rather than migrated. HTML baked by
+   an earlier build carries them, and a store that has never opened the header
+   modal still has them in its theme — dropping them would blank the labels for
+   the moment between the page arriving and theme-engine.js normalising it. */
 html[data-zw-iconlabels] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) {
-  --zw-il: 0;   /* off unless a scope below turns it on at this width */
+  --zw-il: 0;   /* off unless a device below turns it on at this width */
 }
-@media (max-width: 1024px) {
-  html[data-zw-iconlabels="mobile"] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) { --zw-il: 1; }
+@media (max-width: 600px) {
+  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) { --zw-il: 1; }
 }
-html[data-zw-iconlabels="always"] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) { --zw-il: 1; }
+@media (min-width: 601px) and (max-width: 900px) {
+  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) { --zw-il: 1; }
+}
+@media (min-width: 901px) {
+  html:is([data-zw-iconlabels~="desktop"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) { --zw-il: 1; }
+}
 
 /* `display` cannot be driven by a custom property, so the two states are two
-   rules keyed on the same scopes rather than one clever declaration. */
-@media (max-width: 1024px) {
-  html[data-zw-iconlabels="mobile"] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) > svg { display: none; }
-  html[data-zw-iconlabels="mobile"] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn)::before { content: attr(aria-label); }
+   rules keyed on the same devices rather than one clever declaration. */
+@media (max-width: 600px) {
+  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) > svg { display: none; }
+  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn)::before { content: attr(aria-label); }
 }
-html[data-zw-iconlabels="always"] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) > svg { display: none; }
-html[data-zw-iconlabels="always"] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn)::before { content: attr(aria-label); }
+@media (min-width: 601px) and (max-width: 900px) {
+  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) > svg { display: none; }
+  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn)::before { content: attr(aria-label); }
+}
+@media (min-width: 901px) {
+  html:is([data-zw-iconlabels~="desktop"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) > svg { display: none; }
+  html:is([data-zw-iconlabels~="desktop"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn)::before { content: attr(aria-label); }
+}
 
 /* One rule for the look of the label, whichever scope revealed it.
    --zw-label-font defaults to the body font, so "match the current font" is the

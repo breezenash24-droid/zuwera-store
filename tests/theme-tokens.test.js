@@ -899,15 +899,27 @@ console.log('\n  header composition');
   for (const control of ['#cart-btn', '.zwf-search-btn', '.hamburger-btn']) {
     ok('words reach ' + control, nav.includes(control));
   }
-  ok('phone-and-tablet scope is behind a max-width, so desktop keeps its icons',
-    /@media \(max-width: 1024px\)[\s\S]{0,400}data-zw-iconlabels="mobile"/.test(nav));
+  /* One device per band, on the header's own 900px boundary. It used to be a
+     single "up to 1024px" scope — a breakpoint nothing else in the header uses,
+     so between 901 and 1024 the store was in its desktop header showing its
+     phone controls. */
+  ok('each device band is behind its own query, on the header’s own boundary',
+    /@media \(max-width: 600px\)[\s\S]{0,240}data-zw-iconlabels~="phone"/.test(nav)
+    && /@media \(min-width: 601px\) and \(max-width: 900px\)[\s\S]{0,240}data-zw-iconlabels~="tablet"/.test(nav)
+    && /@media \(min-width: 901px\)[\s\S]{0,240}data-zw-iconlabels~="desktop"/.test(nav));
+  ok('...and the older spellings still resolve, so baked HTML is not blanked',
+    /\[data-zw-iconlabels="mobile"\]/.test(nav) && /\[data-zw-iconlabels="always"\]/.test(nav));
   /* Absent must REMOVE the attribute: `[data-zw-iconlabels]` on its own matches
      the shared styling rule, so a value CSS has no scope for would still style
      a label that never appears. */
-  ok('the engine removes the attribute rather than writing an unknown scope',
+  /* Absent still removes. What changed is that "glyphs everywhere" is no longer
+     absent: it is the value 'none', a list naming no device, because it has to
+     overrule what the build baked — and a removal cannot always reach the same
+     element the bake landed on. */
+  ok('the engine removes only when nothing at all was answered',
     /removeAttribute\('data-zw-iconlabels'\)/.test(eng) &&
     /applyIconLabels\(root, t\.iconLabels\)/.test(eng) &&
-    /v === 'mobile' \|\| v === 'always'/.test(eng));
+    /if \(v\) \{ root\.setAttribute\('data-zw-iconlabels', v\); labelsWritten = true; \}/.test(eng));
   ok('the label font matches the body font until one is named',
     /var\(--zw-label-font, var\(--fb, inherit\)\)/.test(nav) &&
     /set\('--zw-label-font', t\.labelFont\)/.test(eng));

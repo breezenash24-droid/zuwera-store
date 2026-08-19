@@ -234,8 +234,7 @@ try {
            build baked from a theme that says otherwise. That is the only way
            the choice shows on the first frame rather than a beat later. */
         if (_hc[5] === 'on' || _hc[5] === 'off') h.setAttribute(_H + '-lines', _hc[5]);
-        if (_hc[7] === 'mobile' || _hc[7] === 'always') h.setAttribute(_il, _hc[7]);
-        else if (_hc[7] === 'icons') h.removeAttribute(_il);
+        if (/^(none|(phone|tablet|desktop)( (phone|tablet|desktop))*)$/.test(_hc[7] || '')) h.setAttribute(_il, _hc[7]);
         /* Where the account control lives hides a button that is IN the header,
            so it has to land before the header is parsed — here, and nowhere
            later. It belongs on <body> and the build bakes it there, but <body>

@@ -85,8 +85,7 @@ try {
           });
         }
         if (_hc[5] === 'on' || _hc[5] === 'off') h.setAttribute(_H + '-lines', _hc[5]);
-        if (_hc[7] === 'mobile' || _hc[7] === 'always') h.setAttribute(_il, _hc[7]);
-        else if (_hc[7] === 'icons') h.removeAttribute(_il);
+        if (/^(none|(phone|tablet|desktop)( (phone|tablet|desktop))*)$/.test(_hc[7] || '')) h.setAttribute(_il, _hc[7]);
         if (_hc[6] === 'header' || _hc[6] === 'bag') h.setAttribute(_ia, _hc[6]);
       }
     }

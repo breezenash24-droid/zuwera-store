@@ -270,11 +270,59 @@
   var EXTRAS = {
     lines:      { on: 1, off: 1 },
     account:    { bag: 1, header: 1 },
-    iconLabels: { icons: 1, mobile: 1, always: 1 },
+    // iconLabels is not an enum — see deviceList below.
   };
   var EXTRA_KEYS = ['lines', 'account', 'iconLabels'];
 
+  /* ── The one answer that is genuinely per-device ──────────────────────────
+     The other two are whole-site questions: a phone shows the divider rule
+     too, and the bag panel carries the account link at every width, so giving
+     either a per-device answer would be three controls to express something
+     nobody varies.
+
+     Words instead of glyphs is different — it IS usually a phone decision and
+     occasionally a whole-site one — so it carries a list of the devices that
+     get words, in the vocabulary the builder's own preview already uses. Any
+     subset is expressible, which the two scopes it replaces could not manage:
+     they offered "phone and tablet together" or "everywhere", and no way to
+     say desktop alone.
+
+     Order is normalised so two equal answers are the same string — otherwise
+     'tablet phone' and 'phone tablet' would compare as different and mark the
+     draft dirty on every repaint. */
+  var DEVICES = ['phone', 'tablet', 'desktop'];
+  /* What the theme token has always used, and what earlier builds baked into
+     the HTML. Read, never written: everything this file emits is a device list,
+     and the stylesheet keeps the old spellings working as aliases so a page
+     that arrives carrying one is not blank until the engine rewrites it. */
+  var LEGACY = { mobile: 'phone tablet', always: 'phone tablet desktop', icons: 'none' };
+
+  /* 'none' rather than '' for "glyphs everywhere", and the distinction is the
+     three-state rule the rest of these answers keep: '' means the builder did
+     not answer and the theme still owns the question, while 'none' is an
+     answer — it has to be able to overrule a theme that asks for words, and an
+     empty string cannot tell the difference between the two.
+
+     It is written as a value rather than by removing the attribute because the
+     build bakes this attribute too: a value that names no device overrules a
+     baked one that does, where removing it would depend on reaching an element
+     the earliest writer cannot always reach. */
+  function deviceList(v) {
+    if (Array.isArray(v)) v = v.join(' ');
+    var s = String(v == null ? '' : v).trim().toLowerCase();
+    if (!s) return '';
+    if (LEGACY[s]) return LEGACY[s];
+    if (s === 'none') return 'none';
+    var want = s.split(/[\s,]+/);
+    var out = [];
+    for (var i = 0; i < DEVICES.length; i++) {
+      if (want.indexOf(DEVICES[i]) > -1) out.push(DEVICES[i]);
+    }
+    return out.length ? out.join(' ') : '';
+  }
+
   function extraChoice(name, v) {
+    if (name === 'iconLabels') return deviceList(v);
     var t = EXTRAS[name];
     return (t && t[v]) ? v : '';
   }
@@ -322,6 +370,7 @@
     miniature: miniature, css: MINI_CSS,
     lineChoice: lineChoice, extraChoice: extraChoice, extras: extras,
     extraKeys: EXTRA_KEYS, extraValues: EXTRAS,
+    devices: DEVICES, deviceList: deviceList,
     apply: apply, applied: function () { return applied; },
     lines: function () { return appliedExtras.lines; },
     settings: function () { return extras(appliedExtras); },

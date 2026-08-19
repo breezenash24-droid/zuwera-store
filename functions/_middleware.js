@@ -101,13 +101,14 @@ export function attrsFrom(value, updatedAt) {
      this one, and a document that carries it in both places is a document
      whose two writers cannot disagree with each other. */
   if (value.account === 'header' || value.account === 'bag') out['data-zw-account'] = value.account;
-  if (value.iconLabels === 'mobile' || value.iconLabels === 'always') {
-    out['data-zw-iconlabels'] = value.iconLabels;
-  } else if (value.iconLabels === 'icons') {
-    /* An explicit "glyphs, please" has to be able to REMOVE what the build
-       baked from a theme that asked for words. null is the instruction to
-       remove; absent means the row said nothing and the bake stands. */
-    out['data-zw-iconlabels'] = null;
+  /* The devices that show words, as the stylesheet matches them. 'none' names
+     no device and is how an explicit "glyphs everywhere" overrules a value the
+     build baked — a removal would depend on the bake being the only other
+     writer, which it is not. Validated as a list so a junk value cannot land
+     on the element and be read as a scope nobody wrote. */
+  if (typeof value.iconLabels === 'string'
+      && /^(none|(phone|tablet|desktop)( (phone|tablet|desktop))*)$/.test(value.iconLabels.trim())) {
+    out['data-zw-iconlabels'] = value.iconLabels.trim();
   }
 
   return Object.keys(out).length ? out : null;

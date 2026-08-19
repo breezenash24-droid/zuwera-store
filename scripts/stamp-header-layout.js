@@ -104,7 +104,13 @@ function fetchLayout() {
             at: at,
             lines: pick('lines', ['on', 'off']),
             account: pick('account', ['bag', 'header']),
-            iconLabels: pick('iconLabels', ['icons', 'mobile', 'always']),
+            /* A list of the devices that show words, matched by the stylesheet
+               with ~=. 'none' names no device and is the explicit "glyphs"
+               answer; anything else unrecognised bakes nothing. */
+            iconLabels: (function () {
+              const v = String(o.iconLabels || '').trim();
+              return /^(none|(phone|tablet|desktop)( (phone|tablet|desktop))*)$/.test(v) ? v : '';
+            })(),
           };
           const any = chosen.id || chosen.lines || chosen.account || chosen.iconLabels;
           resolve(any ? chosen : null);
@@ -199,7 +205,7 @@ if (!process.env.CF_PAGES && !process.argv.includes('--local')) process.exit(0);
         /* 'icons' is an answer meaning "no words", and the way to bake it is to
            leave the attribute off — which stripping OURS above has already
            done. Only the two scopes the stylesheet knows get written. */
-        if (labels === 'mobile' || labels === 'always') keep += ' data-zw-iconlabels="' + labels + '"';
+        if (labels) keep += ' data-zw-iconlabels="' + labels + '"';
         /* On <html> as well as <body>. The stylesheet reads it from either,
            because the pre-paint block in <head> can only write this one — and
            it is the only writer early enough to beat the header's first paint.
@@ -239,7 +245,7 @@ if (!process.env.CF_PAGES && !process.argv.includes('--local')) process.exit(0);
           + ', row ' + spec.linksRow + ')' : 'no arrangement')
       + (lines ? ', divider lines ' + lines : '')
       + (account ? ', account in the ' + (account === 'header' ? 'header' : 'bag panel') : '')
-      + (labels ? ', controls as ' + (labels === 'icons' ? 'icons' : 'words (' + labels + ')') : '')
+      + (labels ? ', controls as ' + (labels === 'none' ? 'icons everywhere' : 'words on ' + labels) : '')
       + ' baked; ' + changed + ' page(s) updated.');
   } catch (e) {
     console.log('[stamp-header-layout] skipped (' + (e && e.message) + ') — <html> unchanged.');
