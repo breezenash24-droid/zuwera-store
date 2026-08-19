@@ -4827,6 +4827,35 @@ html[data-zw-hdr-lines="off"] :is(#nav, .nav, .zw-nav):has(.zw-navitem.zw-has-me
   border-bottom-color: transparent;
 }
 
+/* ── The order the action controls sit in ──────────────────────────────────
+   Search, account and bag, in whatever sequence a store wants them. Both nav
+   dialects put these in a flex row already — .nav-right on the browse header,
+   .zw-hdr-group on the information header — so this is `order` and nothing
+   else. No markup moves, which is the rule this header has been rebuilt around
+   since the picker that tried to move it could not.
+
+   The value is the three names in sequence. CSS cannot read a position out of
+   an attribute, so rather than nine rules keyed on an index the DEFAULT is the
+   middle and only the two ends are named: whichever control the value starts
+   with goes first, whichever it ends with goes last, and the remaining one
+   stays where it is. Seven rules for all six arrangements.
+
+   The menu button is not in the list. On the information header it is not even
+   inside the group, and on the browse header it is the one control whose place
+   is structural rather than a preference — so it is pinned last wherever
+   ordering is on, and there is no way to ask for it somewhere else. */
+html[data-zw-hdr-order] :is(#nav, .nav, .zw-nav) :is(.zwf-search-btn, #login-btn, #account-btn, #hdr-login, #cart-btn, .zw-hdr-bag) {
+  order: 2;
+}
+html[data-zw-hdr-order] :is(#nav, .nav, .zw-nav) .hamburger-btn { order: 9; }
+
+html[data-zw-hdr-order^="search"] :is(#nav, .nav, .zw-nav) .zwf-search-btn { order: 1; }
+html[data-zw-hdr-order$="search"] :is(#nav, .nav, .zw-nav) .zwf-search-btn { order: 3; }
+html[data-zw-hdr-order^="account"] :is(#nav, .nav, .zw-nav) :is(#login-btn, #account-btn, #hdr-login) { order: 1; }
+html[data-zw-hdr-order$="account"] :is(#nav, .nav, .zw-nav) :is(#login-btn, #account-btn, #hdr-login) { order: 3; }
+html[data-zw-hdr-order^="bag"] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag) { order: 1; }
+html[data-zw-hdr-order$="bag"] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag) { order: 3; }
+
 /* ── Icons as words ────────────────────────────────────────────────────────
    Some storefronts say "Bag", not a bag. Driven off `aria-label`, which every
    one of these controls already carries for screen readers — so this needs no

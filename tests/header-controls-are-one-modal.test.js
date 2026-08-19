@@ -58,9 +58,10 @@ console.log('\nOne modal for the whole header\n');
   /* Per device, and any combination — the two scopes this replaces could say
      "phone and tablet together" or "everywhere", and could not say desktop
      alone. Eight combinations, two of them reachable. */
-  ok('glyphs or words is answerable per device',
-    ['hdrLbPhone', 'hdrLbTablet', 'hdrLbDesktop'].every((id) => B.includes('id="' + id + '"'))
-    && /function toggleHdrLabel\(dev\)\{/.test(B));
+  ok('glyphs or words is answerable per device, as a picture of each one',
+    /id="hdrDevs"/.test(B) && /data-dev="/.test(B)
+    && /function toggleHdrLabel\(dev\)\{/.test(B)
+    && ['phone', 'tablet', 'desktop'].every((d) => B.includes("['" + d + "',")));
   ok('...and every device is on the header’s own 900px boundary, not a second one',
     /@media \(max-width: 600px\)[\s\S]{0,240}data-zw-iconlabels~="phone"/.test(read('storefront-cohesion.css'))
     && /@media \(min-width: 601px\) and \(max-width: 900px\)[\s\S]{0,240}data-zw-iconlabels~="tablet"/.test(read('storefront-cohesion.css'))
@@ -122,7 +123,7 @@ console.log('\nOne modal for the whole header\n');
   ok('the edge stamps them too', /data-zw-iconlabels/.test(MID) && /bodyAttrsFrom/.test(MID)
     && /rw\.on\('body'/.test(MID));
   ok('the cache carries them, appended so an old tuple still reads',
-    /ATTR_FIELDS = \['lines', 'account', 'iconLabels'\]/.test(SRC)
+    /ATTR_FIELDS = \['lines', 'account', 'iconLabels', 'order'\]/.test(SRC)
     && /parts\[5 \+ fi\]/.test(SRC));
   ok('the head pre-paint reads the words/glyphs field',
     /phone\|tablet\|desktop/.test(PRE) && /h\.setAttribute\(_il, _hc\[7\]\)/.test(PRE));
@@ -214,6 +215,64 @@ console.log('\nOne modal for the whole header\n');
   ok('the save toast names it', /bag:'account menu'/.test(B));
 }
 
+/* ── 6b · the order the controls sit in ──────────────────────────────────── */
+{
+  console.log('\n  the order they sit in');
+  const CSS = read('storefront-cohesion.css');
+
+  /* `order`, on children of a flex row both dialects already have. Nothing is
+     moved — the rule this header has been rebuilt around since the picker that
+     tried to move things could not. */
+  ok('ordering is `order` on the existing row, not moved markup',
+    /html\[data-zw-hdr-order\] :is\(#nav, \.nav, \.zw-nav\) :is\(\.zwf-search-btn/.test(CSS)
+    && !/appendChild|insertBefore/.test(read('header-layouts.js').replace(/\/\*[\s\S]*?\*\//g, '')));
+  /* CSS cannot read a position out of an attribute, so the default is the
+     middle and only the two ends are named. Six arrangements, seven rules. */
+  for (const c of ['search', 'account', 'bag']) {
+    ok('  ' + c + ' has a rule for each end of the row',
+      CSS.includes('html[data-zw-hdr-order^="' + c + '"]')
+      && CSS.includes('html[data-zw-hdr-order$="' + c + '"]'));
+  }
+  ok('the menu button is pinned last rather than offered as a choice',
+    /html\[data-zw-hdr-order\] :is\(#nav, \.nav, \.zw-nav\) \.hamburger-btn \{ order: 9; \}/.test(CSS),
+    'on the information header it is not even inside the group');
+
+  /* Always all three, completed rather than rejected: a partial answer would
+     leave the stylesheet to invent a place for whatever was missing. */
+  const box = require('vm').createContext({
+    window: null, document: { readyState: 'complete', querySelector: () => null, addEventListener() {},
+      createElement: () => ({ style: {}, setAttribute() {}, appendChild() {} }), head: { appendChild() {} } },
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+    fetch: () => Promise.resolve({ ok: false }), setTimeout, clearTimeout, console,
+  });
+  box.window = box;
+  require('vm').runInContext(read('header-layouts.js'), box);
+  const H = box.ZWHeaderLayouts;
+  ok('a partial order is completed, never left partial',
+    H.controlOrder('bag') === 'bag search account');
+  ok('a duplicate does not produce a duplicate', H.controlOrder('bag bag search') === 'bag search account');
+  ok('junk is dropped rather than passed through', H.controlOrder('nonsense') === '');
+  ok('and an unanswered order stays unanswered', H.controlOrder('') === '');
+
+  /* The picture is drawn from the same module the storefront's vocabulary comes
+     from, so a chip cannot show an order the header would not produce. */
+  ok('the builder draws the cluster rather than describing it',
+    /actionsMini/.test(read('header-layouts.js')) && /L\.actionsMini\(/.test(B));
+  const mini = H.actionsMini({ order: 'bag search account', words: false, account: true });
+  ok('...in the order it is given',
+    mini.indexOf('data-c="bag"') < mini.indexOf('data-c="search"')
+    && mini.indexOf('data-c="search"') < mini.indexOf('data-c="account"'));
+  ok('...and drops the account control when it lives in the bag',
+    H.actionsMini({ order: 'search account bag', account: false }).indexOf('data-c="account"') < 0,
+    'a card that shows a control the header will not is a card that lies');
+  ok('...and shows words as words',
+    /SEARCH|Search/.test(H.actionsMini({ order: 'search account bag', words: true, account: true })));
+
+  ok('it can be dragged AND stepped with the arrows',
+    /draggable="true"/.test(B) && /data-mv="-1"/.test(B) && /function moveHdrCtl\(/.test(B),
+    'a control reachable only by a mouse gesture is a control some people cannot reach');
+}
+
 /* ── 7 · what applies at which width, said out loud ──────────────────────── */
 {
   console.log('\n  which widths each answer reaches');
@@ -229,6 +288,24 @@ console.log('\nOne modal for the whole header\n');
     /pvMode==='mob' \|\| pvMode==='tab'/.test(B) && /will not change this preview/.test(B));
   ok('...and follows the preview rather than stating it once and going stale',
     /function setPvMode\(m\)\{[\s\S]{0,200}paintHdrScope\(\)/.test(B));
+
+  /* A device viewer in the modal, and deliberately NOT a second device setting:
+     it sets pvMode, which is the toolbar's own control, so there is one answer
+     to "which device am I looking at" rather than two that can disagree. */
+  ok('both tabs carry a device viewer',
+    /id="hdrDvMob"/.test(B) && /id="hdrDvTab"/.test(B) && /id="hdrDvDesk"/.test(B)
+    && /onclick="setPvMode\('mob'\)"/.test(B));
+  ok('...and the tiles are drawn for the device you are viewing',
+    /L\.miniature\(l, hdrDevice\(\)\)/.test(B)
+    && /function hdrDevice\(\)\{ return \{mob:'phone',tab:'tablet',desk:'desktop'\}/.test(B));
+  /* And the small tile is the header a phone REALLY gets, not a guess: the
+     categories are display:none below 900 and the menu button appears. */
+  ok('a phone tile shows the compact header, categories and all layouts alike',
+    /function smallMini\(\)/.test(SRC)
+    && /device === 'phone' \|\| device === 'tablet'\) return smallMini\(\)/.test(SRC));
+  ok('...which is what the stylesheet actually does at that width',
+    /@media \(max-width:900px\)\{ \.nav-center\{ display:none !important; \} \}/.test(read('storefront-cohesion.css')),
+    'if this ever stops being true the tile starts lying about phones');
 
   /* The other two are whole-site questions, and saying so is what stops them
      growing per-device controls nobody would vary. */

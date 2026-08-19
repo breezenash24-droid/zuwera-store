@@ -167,9 +167,17 @@ console.log('\nThe picture cannot disagree with the result');
     L.list.every((l) => (L.zones(l.spec).row2.length > 0) === /zwhl-row2/.test(L.miniature(l))));
   ok('an unknown layout draws nothing', L.miniature('nope') === '');
   ok('the tile styles ship with the definitions', typeof L.css === 'string' && L.css.includes('.zwhl-bar'));
+  /* The tile is now drawn for a DEVICE, because the gallery has a viewer and a
+     phone tile has to show what a phone actually gets — every arrangement
+     collapsing to the same compact header, which is the honest picture of
+     "placement is a desktop setting". Still one drawing function. */
   ok('the builder draws from that function, not its own copy',
-    /L\.miniature\(l\)/.test(B) && !/zwhl-logo|zwhl-links/.test(BCODE),
+    /L\.miniature\(l, hdrDevice\(\)\)/.test(B) && !/zwhl-logo|zwhl-links/.test(BCODE),
     'a second drawing of the same thing is a second thing to keep in step');
+  ok('...and a small device draws the header those widths really have',
+    L.miniature('classic', 'phone') === L.miniature('stacked', 'phone'),
+    'below 900px the categories are display:none and every layout is the same bar');
+  ok('...which is not what desktop draws', L.miniature('classic') !== L.miniature('classic', 'phone'));
 }
 
 console.log('\nNothing is moved, and only one thing writes the attributes');
@@ -185,7 +193,7 @@ console.log('\nNothing is moved, and only one thing writes the attributes');
   ok('it asks theme-engine to place the header', /ZWTheme\.setHeader/.test(CODE));
   ok('theme-engine offers that entry point', /setHeader: function \(spec\)/.test(TE));
   ok('...and consults the override inside the one function that writes them',
-    /function applyHeader\(root, header\) \{\s*applyHeaderLines\(root\);\s*if \(hdrOverride\) header = hdrOverride;/.test(TE),
+    /function applyHeader\(root, header\) \{\s*applyHeaderLines\(root\);\s*applyHeaderOrder\(root\);\s*if \(hdrOverride\) header = hdrOverride;/.test(TE),
     'set from outside instead, it would be wiped by the next theme apply');
   ok('the override outranks the theme rather than the reverse',
     TE.indexOf('if (hdrOverride) header = hdrOverride;') < TE.indexOf("var spec = typeof header === 'string'"));
@@ -221,7 +229,7 @@ console.log('\nChoosing is not applying');
   ok('the button says so when there is nothing to apply', /Already applied/.test(B));
   ok('the current arrangement is marked as current, separately from the selection',
     /hdrcfg-cur/.test(B) && /hdrcfg-mark/.test(B));
-  ok('it previews at once', /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines,\s*account:chromeHdrAccount,iconLabels:chromeHdrLabels\}\)/.test(B));
+  ok('it previews at once', /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines,\s*account:chromeHdrAccount,iconLabels:chromeHdrLabels,order:chromeHdrOrder\}\)/.test(B));
 }
 
 console.log('\nA preview shows the draft, not a flash of what is live first');
@@ -256,7 +264,7 @@ console.log('\nThe arrangement is in place before the first frame');
     !L.list.some((l) => new RegExp("['\"]" + l.id + "['\"]").test(PRE)),
     'a copy of the layout table in the head is a second definition to keep in step');
   ok('it checks them against the same vocabulary theme-engine accepts',
-    /_hs\s*=\s*\{ left: 1, center: 1, right: 1 \}/.test(PRE) && /_hc\[1\] === 'none'/.test(PRE),
+    /_hs\s*=\s*\{left:1,center:1,right:1\}/.test(PRE) && /_hc\[1\] === 'none'/.test(PRE),
     'an attribute the stylesheet has no rule for still counts as placed, and suppresses the shipped arrangement');
 
   /* ── The case a cache can never fix ──────────────────────────────────────
@@ -356,10 +364,10 @@ console.log('\nThe line under the header is a choice, and it moves nothing');
   ok('the pre-paint block stamps it before the first frame',
     /_H \+ '-lines', _hc\[5\]/.test(PRE2));
   ok('...ranked by the same timestamp as the placement',
-    /if \(!_hb \|\| \(_hc\[4\] \|\| ''\) > _hb\) \{[\s\S]{0,1600}_hc\[5\] === 'on'/.test(PRE2),
+    /if \(!_hb \|\| \(_hc\[4\] \|\| ''\) > _hb\) \{[\s\S]{0,1600}_hc\[5\]==='on'/.test(PRE2),
     'one freshness test now covers all four answers rather than each repeating it');
   ok('...and stripped in a builder preview',
-    /'-lines'\][\s\S]{0,80}removeAttribute\(_H \+ s\)/.test(PRE2));
+    /'-lines','-order'\][\s\S]{0,80}removeAttribute\(_H \+ s\)/.test(PRE2));
   ok('the build bakes it too', /data-zw-hdr-lines="/.test(STAMP2));
 
   ok('the builder has a two-state control', /id="hdrLinesOn"/.test(B) && /id="hdrLinesOff"/.test(B));
@@ -369,7 +377,7 @@ console.log('\nThe line under the header is a choice, and it moves nothing');
   ok('the saved value carries both answers',
     /const out = \{ id, lines: chromeHdrLines \|\| 'on' \};/.test(B));
   ok('and the preview push carries it',
-    /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines,\s*account:chromeHdrAccount,iconLabels:chromeHdrLabels\}\)/.test(B));
+    /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines,\s*account:chromeHdrAccount,iconLabels:chromeHdrLabels,order:chromeHdrOrder\}\)/.test(B));
 }
 
 console.log('\nOne header height, whichever arrangement is chosen');
