@@ -363,7 +363,7 @@ console.log('\nThe line under the header is a choice, and it moves nothing');
   ok('...and writes it into the same draft as the arrangement',
     /function setHdrLines\(v\)\{[\s\S]{0,340}markChromeDirty\('header'\)/.test(B));
   ok('the saved value carries both answers',
-    /\{ id: chromeHeader \|\| 'classic', lines: chromeHdrLines \|\| 'on' \}/.test(B));
+    /const out = \{ id, lines: chromeHdrLines \|\| 'on' \};/.test(B));
   ok('and the preview push carries it',
     /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines\}\)/.test(B));
 }

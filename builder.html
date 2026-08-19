@@ -3643,7 +3643,19 @@ async function saveChrome(pub){
     nav:  ['nav_menu_draft',        () => Array.isArray(chromeNav) ? chromeNav : []],
     bar:  ['announcement_bar_draft',() => chromeBar || {}],
     copy: ['text_overrides_draft',  () => chromeCopy || {}],
-    header: ['header_layout_draft',  () => ({ id: chromeHeader || 'classic', lines: chromeHdrLines || 'on' })],
+    /* The RESOLVED placement travels with the name. Nothing in the browser
+       needs it — header-layouts.js resolves the name itself — but the edge does:
+       functions/_middleware.js stamps the arrangement into the HTML as it is
+       served, and it cannot import a browser file to look the name up. Writing
+       the answer here keeps the one table that owns names in one place instead
+       of growing a copy in a Worker. */
+    header: ['header_layout_draft',  () => {
+      const id = chromeHeader || 'classic';
+      const L = window.ZWHeaderLayouts, l = L && L.byId(id);
+      const out = { id, lines: chromeHdrLines || 'on' };
+      if (l) out.spec = l.spec;
+      return out;
+    }],
   };
   try{
     const token=await getAccessToken(); if(!token) throw new Error('Session expired');
