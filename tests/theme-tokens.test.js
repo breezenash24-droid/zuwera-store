@@ -764,8 +764,15 @@ console.log('\n  header composition');
     /@media \(max-width: 900px\)[\s\S]{0,600}html\[data-zw-hdr\][^{]*\{[\s\S]{0,120}flex-wrap: nowrap/.test(nav));
   ok('…including the order and margins, or the parts stay rearranged',
     /@media \(max-width: 900px\)[\s\S]{0,900}order: 0;[^}]*margin-left: 0/.test(nav));
+  /* Compared by position rather than by "within N characters of". A character
+     budget between the two makes the check hostage to how much comment sits in
+     between — add a paragraph explaining a rule and a passing test starts
+     failing while the stylesheet is unchanged. What matters is that no
+     placement rule exists ahead of the media query that is supposed to gate
+     every one of them. */
   ok('…and the desktop placements are behind a min-width, not applied everywhere',
-    /@media \(min-width: 901px\)[\s\S]{0,900}data-zw-hdr-logo="left"/.test(nav));
+    nav.indexOf('@media (min-width: 901px)') > -1
+    && nav.indexOf('data-zw-hdr-logo="left"') > nav.indexOf('@media (min-width: 901px)'));
 
   /* Hiding the links must not strand them, or those pages become unreachable
      on desktop. This used to require `.zw-mobile-menu-btn`, a class that exists

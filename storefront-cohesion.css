@@ -4569,6 +4569,16 @@ body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img)
   html[data-zw-hdr] :is(#nav, .nav, .zw-nav) {
     display: flex;
     align-items: center;
+    /* Every dialect ships `justify-content: space-between`, which is how three
+       children with no placement end up spread across the bar. Placement here
+       is expressed with ONE auto margin — "right" means margin-left:auto — and
+       space-between fights that: with nothing claiming the auto margin the
+       parts spread anyway, so an arrangement that puts everything on the left
+       came out looking exactly like the default. flex-start makes the auto
+       margins the only thing that moves anything, which is what lets the four
+       attributes fully describe the result. The placements that do name a
+       right-hand part are unchanged — the auto margin still pushes it there. */
+    justify-content: flex-start;
   }
 
   /* ── Logo ── */
@@ -4594,6 +4604,21 @@ body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img)
   }
   html[data-zw-hdr-links="right"] :is(#nav, .nav, .zw-nav) > .nav-center {
     order: 3; position: static; left: auto; right: auto; margin: 0 0 0 auto; width: auto; justify-content: flex-end;
+  }
+
+  /* A centred part is out of flow, so the categories beside it do not stop at
+     the centre lane — they run underneath it, and the thing on the bottom stops
+     being clickable. Measured on the four categories this shop ships: the
+     category strip ended 9px INSIDE a centred logo, so the arrangement was one
+     new category away from putting a link under the wordmark.
+
+     The strip's own gap is the slack. 2.4rem between four categories is 115px
+     spent on air; tightening it only when something else is centred buys back
+     ~70px and leaves the shipped, uncentred header untouched. It degrades the
+     honest way too — add enough categories and they close on the centre again,
+     which is what the layout test measures rather than assumes. */
+  html[data-zw-hdr-logo="center"][data-zw-hdr-linksrow="1"] :is(#nav, .nav, .zw-nav) > .nav-center {
+    gap: clamp(.5rem, 1.2vw, 1.2rem);
   }
 
   /* ── Actions (search, account, bag) ──
