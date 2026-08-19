@@ -1849,7 +1849,13 @@ function showToast(msg) {
                 // animating — paused, single slide, autoplay off, or scrolled out of
                 // view. Previously this rAF ran forever at 60fps even off-screen,
                 // which is what made scrolling feel glitchy.
-                if(isPaused || !autoplay || slideEls.length <= 1 || !visible){ rafId = null; el._zwHcRaf = null; return; }
+                /* __zwHoldCarousels is set while the builder is in Text mode. A slide
+                   changing under the cursor mid-sentence takes the words with it --
+                   contentEditable is on a node the carousel is about to replace -- so
+                   editing a hero was a race against the interval. Held, not paused:
+                   the shopper-facing pause button and its icon are untouched, and the
+                   carousel resumes by itself when Text mode is turned off. */
+                if(isPaused || window.__zwHoldCarousels || !autoplay || slideEls.length <= 1 || !visible){ rafId = null; el._zwHcRaf = null; return; }
                 rafId = requestAnimationFrame(tick); el._zwHcRaf = rafId;
                 const now = Date.now();
                 const dt = now - lastTick;
@@ -1874,13 +1880,19 @@ function showToast(msg) {
                 }
              };
              const startLoop = () => {
-                if(rafId == null && visible && !isPaused && autoplay && slideEls.length > 1){
+                if(rafId == null && visible && !isPaused && !window.__zwHoldCarousels && autoplay && slideEls.length > 1){
                    lastTick = Date.now();
                    rafId = requestAnimationFrame(tick);
                    el._zwHcRaf = rafId;
                 }
              };
              startLoop();
+             /* Resume when the hold lifts. The rAF loop returns rather than idling,
+                so something has to start it again. */
+             window.addEventListener('zw:carousel-hold', function(ev){
+                if(ev.detail) { const v = slideEls[curIdx] && slideEls[curIdx].querySelector('video'); if(v) v.pause(); }
+                else startLoop();
+             });
              // Suspend the loop while the carousel is off-screen so it can't compete
              // with the rest of the page's scrolling/paint work.
              if('IntersectionObserver' in window){

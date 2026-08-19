@@ -554,6 +554,15 @@
         window.__zwTextEditMode = !!d.on;
         document.body.classList.toggle('zw-text-edit', window.__zwTextEditMode);
         if (!window.__zwTextEditMode) cancel();
+        /* Hold every carousel while Text mode is on. A slide advancing under the
+           cursor takes the words with it -- the element being edited is one the
+           carousel is about to replace -- so typing into a hero was a race
+           against the interval. Separate from the shopper-facing pause button,
+           which keeps its own state and its own icon. */
+        window.__zwHoldCarousels = window.__zwTextEditMode;
+        try {
+          window.dispatchEvent(new CustomEvent('zw:carousel-hold', { detail: window.__zwTextEditMode }));
+        } catch (_) {}
         return;
       }
       /* Draft copy pushed from the builder. It never comes from the database:

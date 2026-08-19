@@ -413,6 +413,62 @@ console.log('\nPreview live shows what Save Draft saved');
   ok('and a preview still never writes anything', !/(POST|PUT|PATCH|DELETE)/.test(MODE));
 }
 
+console.log('\nAn edit made before the drafts land is not thrown away');
+{
+  /* "Save draft doesn't do anything, and on reload the draft is deleted."
+     The drafts load asynchronously. An edit arriving before they do found
+     chromeNav still null, was answered "that navigation item no longer exists",
+     reverted the words and marked nothing dirty — after which Save Draft
+     honestly had nothing to write, and a reload showed the published values
+     because no draft had ever been saved. Every symptom, one cause. */
+  ok('there is something to wait for', /let chromeReady = null;/.test(B));
+  ok('and the loader resolves it', /chromeReady = loadChrome\(\)/.test(B));
+  ok('a chrome edit waits for it', /Promise\.resolve\(chromeReady\)\.then\(\(\)=>\{\s*\n\s*_answerCanvasEdit\(d,applyChromeField/.test(B));
+}
+
+console.log('\nSaving says what it saved');
+{
+  ok('the save records which keys it wrote', /chromeSaved = want\.slice\(\)/.test(B));
+  ok('and clears that when nothing is dirty', /chromeSaved=\[\];\s*\n\s*if\(!want\.length\) return true;/.test(B));
+  ok('the toast names them', /Draft saved · '\+extra\.join/.test(B),
+    '"Draft saved" alone let a header change look saved when only the sections were');
+  ok('...and says so when only the sections went', /sections only/.test(B));
+  ok('loading says what it restored', /Draft restored/.test(B) && /chromeFound/.test(B),
+    '"my draft vanished" and "there was never a draft" look identical otherwise');
+}
+
+console.log('\nOne element, one override');
+{
+  /* The live store currently holds TWO entries anchored to the same heading —
+     one written before volatile classes came out of the key. Two entries for
+     one element means whichever the storefront matches first wins. */
+  setState([], {}, {});
+  sandbox.applyTextOverride('/', 'old>path>h2.about-h2', 'Built ForMovement.', 'I Am Inevitable.', '');
+  sandbox.applyTextOverride('/', '#about>div:0>h2.about-h2:0', 'Built ForMovement.', 'Built For Movement.', '#about>div:0>h2:0');
+  const keys = Object.keys(sandbox.chromeCopy['/']);
+  ok('writing one supersedes an older entry for the same words', keys.length === 1, keys.join(' | '));
+  ok('and the surviving one is the new key', keys[0] === '#about>div:0>h2.about-h2:0');
+
+  /* A different element that happens to be edited must NOT be swept away. */
+  setState([], {}, {});
+  sandbox.applyTextOverride('/', 'a:0', 'One', 'Uno');
+  sandbox.applyTextOverride('/', 'b:0', 'Two', 'Dos');
+  ok('a different original is left alone', Object.keys(sandbox.chromeCopy['/']).length === 2);
+}
+
+console.log('\nA carousel holds still while you type');
+{
+  const SF = read('storefront.js');
+  ok('the loop checks a hold flag', /window\.__zwHoldCarousels/.test(SF));
+  ok('and so does the restart', /!isPaused && !window\.__zwHoldCarousels/.test(SF),
+    'the rAF loop returns rather than idling, so something has to start it again');
+  ok('Text mode sets it', /window\.__zwHoldCarousels = window\.__zwTextEditMode/.test(COPY));
+  ok('and announces the change', /zw:carousel-hold/.test(COPY) && /zw:carousel-hold/.test(SF));
+  ok('the shopper-facing pause button is untouched',
+    /isPaused \|\| window\.__zwHoldCarousels/.test(SF) && /updatePauseIcon/.test(SF),
+    'a hold must not leave the pause icon lying about what it will do');
+}
+
 console.log('\nThe preview asks the right owner');
 {
   ok('a named field beats a section', COPY.indexOf("closest('[data-zw-field]')") < COPY.indexOf("closest('[data-zw-sec]')"),
