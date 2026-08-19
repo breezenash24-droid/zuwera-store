@@ -848,7 +848,10 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
   /* Not awaited: the nav, the bar and page copy are chrome around the page,
      so the section editor must not wait on three settings reads to open. The
      preview gets them the moment they land. */
-  loadChrome().then(sendChrome).catch(()=>{});
+  chromeReady = loadChrome().then(()=>{
+    sendChrome();
+    if(chromeFound.length) status('Draft restored · '+chromeFound.join(', '));
+  }).catch(()=>{});
   /* Paints the segmented control to match the default mode and tells the
      iframe. Silent: a toast on page load announces a choice nobody made.
 
@@ -2472,7 +2475,17 @@ window.addEventListener('message',function(e){
   /* Text outside any section. Answered exactly like a section edit, because
      the preview reverts the words on a rejection and would otherwise be left
      showing something that was never stored. */
-  if(d.type==='ZW_CHROME_TEXT'&&d.field){ _answerCanvasEdit(d,applyChromeField(d.field,d.newText)); return; }
+  if(d.type==='ZW_CHROME_TEXT'&&d.field){
+    /* Awaited, not applied straight away. The drafts load asynchronously, and an
+       edit made in the first moments after the builder opens would otherwise
+       find chromeNav still null and be told the item does not exist -- the words
+       reverted, nothing marked dirty, and Save Draft then honestly reported that
+       there was nothing to write. */
+    Promise.resolve(chromeReady).then(()=>{
+      _answerCanvasEdit(d,applyChromeField(d.field,d.newText));
+    });
+    return;
+  }
   if(d.type==='ZW_TEXT_OVERRIDE'&&d.path){ _answerCanvasEdit(d,applyTextOverride(d.page,d.path,d.was,d.newText,d.loose)); return; }
   if(d.type==='ZW_INLINE_TEXT'&&d.sectionId){
     let r=applyInlineText(d.sectionId,d.oldText,d.newText);
@@ -3340,6 +3353,7 @@ let chromeCopy = {};        // { "<page>": { "<path>": {was, now} } }
    trips of that when a single word had been edited -- and the 60-second autosave
    repeated it. Renaming a nav label should not rewrite the announcement bar. */
 const chromeDirtyKeys = new Set();
+let chromeSaved = [];   // what the last save actually wrote, for the toast
 
 function markChromeDirty(which){ chromeDirtyKeys.add(which); markDirty(); }
 
@@ -3359,6 +3373,13 @@ function sendChrome(){
 
 /* Load the draft if there is one, otherwise what is live. A draft is only ever
    absent because nothing has been edited yet. */
+/* Resolves when the drafts are in memory. An edit that arrives before then has
+   nothing to write into -- chromeNav is still null -- and used to be answered
+   "that navigation item no longer exists", which reverted the words and marked
+   nothing dirty. Nothing was saved and nothing said so. Edits wait for this. */
+let chromeReady = null;
+let chromeFound = [];
+
 async function loadChrome(){
   const pick=(d,l)=>(d!==undefined&&d!==null)?d:l;
   const [navD,navL,barD,barL,cpD,cpL,hdD,hdL]=await Promise.all([
@@ -3375,6 +3396,15 @@ async function loadChrome(){
   chromeBar=(bar&&typeof bar==='object')?bar:{};
   const cp=pick(cpD,cpL);
   chromeCopy=(cp&&typeof cp==='object'&&!Array.isArray(cp))?cp:{};
+  /* Which of them came from a DRAFT rather than the live key. Reported on the
+     status line, because "my draft vanished when I reloaded" and "there was no
+     draft to begin with" look identical from the outside, and they are not the
+     same problem. */
+  chromeFound=[];
+  if(navD!==undefined&&navD!==null) chromeFound.push('nav');
+  if(barD!==undefined&&barD!==null) chromeFound.push('bar');
+  if(cpD!==undefined&&cpD!==null) chromeFound.push('page text');
+  if(hdD!==undefined&&hdD!==null) chromeFound.push('header');
 }
 
 /* An edit to a NAMED field: nav.<i>.label or bar.message. No text matching --
@@ -3418,6 +3448,14 @@ function applyTextOverride(page,path,was,newText,loose){
        adds zw-revealed as you scroll, which alone was enough to stop an override
        matching. Kept from any previous entry so an old override does not lose it. */
     const prevLoose=chromeCopy[pg][path]&&chromeCopy[pg][path].loose;
+    /* Drop any OTHER entry that anchors to the same original words. Keys have
+       changed shape as this was fixed -- the live store currently holds two for
+       one heading, one written before volatile classes came out of the key --
+       and two entries for one element means whichever the storefront happens to
+       match first wins. Writing here settles it. */
+    for(const k of Object.keys(chromeCopy[pg])){
+      if(k!==path&&chromeCopy[pg][k]&&chromeCopy[pg][k].was===orig) delete chromeCopy[pg][k];
+    }
     chromeCopy[pg][path]={was:orig,now:newText,loose:loose||prevLoose||''};
   }
   markChromeDirty('copy'); sendChrome();
@@ -3497,6 +3535,7 @@ async function saveChrome(pub){
      hour ago still has to be promoted onto its live key. Save Draft writes only
      what was touched. */
   const want = pub ? ['nav','bar','copy','header'] : [...chromeDirtyKeys];
+  chromeSaved=[];
   if(!want.length) return true;
   const KEYS = {
     nav:  ['nav_menu_draft',        () => Array.isArray(chromeNav) ? chromeNav : []],
@@ -3514,6 +3553,7 @@ async function saveChrome(pub){
         body:JSON.stringify({accessToken:token,key,value:get(),published:!!pub})});
       if(!res.ok){const j=await res.json().catch(()=>({}));throw new Error(j.error||('HTTP '+res.status));}
     }));
+    chromeSaved = want.slice();
     chromeDirtyKeys.clear();
     return true;
   }catch(e){ showErr('Page text: '+e.message); return false; }
@@ -3582,7 +3622,18 @@ async function saveDraft(auto=false){
   if(!auto && curTab==='pages'){ await saveLandingPages(false); await saveChrome(false); return; }
   status('Saving…');dotCls('y');
   const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},false);
-  if(ok){lastSaved=clone(sections);status('Saved · '+new Date().toLocaleTimeString());dotCls('g');if(!auto)toast('Draft saved','ok');lyStashCurrent();}
+  if(ok){
+    lastSaved=clone(sections);
+    status('Saved · '+new Date().toLocaleTimeString());
+    dotCls('g');
+    /* Name what went with it. "Draft saved" alone is what let a header change
+       look saved when nothing outside the page config had been written -- the
+       toast was reporting the sections save and nothing else. */
+    const NAMES={nav:'navigation',bar:'announcement bar',copy:'page text',header:'header layout'};
+    const extra=chromeSaved.map(k=>NAMES[k]||k);
+    if(!auto)toast(extra.length?('Draft saved · '+extra.join(', ')):'Draft saved · sections only','ok');
+    lyStashCurrent();
+  }
   else{dotCls('r');if(!auto)toast('Save failed','err');}
   setTimeout(()=>dotCls(''),3000);
 }
