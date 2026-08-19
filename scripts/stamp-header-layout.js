@@ -109,7 +109,7 @@ function fetchLayout() {
                answer; anything else unrecognised bakes nothing. */
             order: (function () {
               const v = String(o.order || '').trim();
-              return /^(search|account|bag)( (search|account|bag))*$/.test(v) ? v : '';
+              return /^(search|account|bag|orders|saves|support)( (search|account|bag|orders|saves|support))*$/.test(v) ? v : '';
             })(),
             iconLabels: (function () {
               const v = String(o.iconLabels || '').trim();

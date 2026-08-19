@@ -87,7 +87,7 @@ try {
         if (_hc[5]==='on'||_hc[5]==='off') h.setAttribute(_H + '-lines', _hc[5]);
         if (/^(none|(phone|tablet|desktop) ?)+$/.test(_hc[7])) h.setAttribute(_il, _hc[7]);
         if (_hc[6] === 'header' || _hc[6] === 'bag') h.setAttribute(_ia, _hc[6]);
-        if (/^((search|account|bag) ?)+$/.test(_hc[8])) h.setAttribute(_H + '-order', _hc[8]);
+        if (/^[a-z ]{1,60}$/.test(_hc[8])) h.setAttribute(_H + '-order', _hc[8]);
       }
     }
   } catch (_) {}

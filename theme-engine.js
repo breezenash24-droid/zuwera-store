@@ -697,7 +697,7 @@
       hdrLines = s && (s.lines === 'on' || s.lines === 'off') ? s.lines : '';
       hdrAccount = s && (s.account === 'bag' || s.account === 'header') ? s.account : '';
       hdrLabels = (s && typeof s.iconLabels === 'string') ? s.iconLabels.trim() : '';
-      hdrOrder = (s && typeof s.order === 'string' && /^(search|account|bag)( (search|account|bag))*$/.test(s.order.trim())) ? s.order.trim() : '';
+      hdrOrder = (s && typeof s.order === 'string' && /^(search|account|bag|orders|saves|support)( (search|account|bag|orders|saves|support))*$/.test(s.order.trim())) ? s.order.trim() : '';
       hdrOverride = s && s.logo ? s : null;
       var t = (applied && applied.tokens) || {};
       applyHeader(document.documentElement, applied && applied.header);

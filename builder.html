@@ -133,6 +133,10 @@ body{display:flex;flex-direction:column}
 .hdrcfg-chip-mv button:hover:not(:disabled){color:var(--tx);background:var(--tint2)}
 .hdrcfg-chip-mv button:disabled{opacity:.25;cursor:default}
 .hdrcfg-chip.fixed{cursor:default;opacity:.55}
+.hdrcfg-where{margin-left:auto;flex:none}
+.hdrcfg-where button{font-family:'IBM Plex Mono',monospace;font-size:.44rem;letter-spacing:.09em;text-transform:uppercase;padding:.26rem .42rem;border:none;background:transparent;color:var(--mu);cursor:pointer;border-radius:2px}
+.hdrcfg-where button.on{background:var(--tx);color:var(--bg);font-weight:600}
+.hdrcfg-where-x{margin-left:auto;flex:none;color:var(--mu);font-size:.6rem;padding:.26rem .5rem}
 .hdrcfg-rows{display:flex;flex-direction:column;gap:.4rem;margin:.6rem 0 .1rem}
 .hdrcfg-row{display:flex;align-items:center;gap:.6rem}
 .hdrcfg-row input[type=checkbox]{width:15px;height:15px;accent-color:var(--ac);cursor:pointer;flex:none}
@@ -3957,6 +3961,32 @@ function setBagRowLabel(key,text){
   if(t) bagRowCfg(key).label=t; else delete bagRowCfg(key).label;
   hdrCfgMarkBag(); sendChrome();
 }
+/* Which surface a row shows on. Promoting one puts it in the header beside the
+   bag AND into the order flow below, because a control in the header without a
+   place in the order is a control whose position nobody chose. */
+function setBagRowWhere(key,where){
+  const w = where==='header' ? 'header' : 'bag';
+  const cur = bagRowCfg(key).where==='header' ? 'header' : 'bag';
+  if(cur===w) return;
+  if(w==='header') bagRowCfg(key).where='header'; else delete bagRowCfg(key).where;
+  syncHdrOrderWithRows();
+  hdrCfgMarkBag(); sendChrome(); paintHdrControls();
+  const L=window.ZWHeaderLayouts;
+  toast((L&&L.controlLabels[key]||key)+(w==='header'?' moved to the header':' moved back to the bag')+' — preview updated','ok');
+}
+/* The order list has to name exactly the controls that exist. A row promoted
+   into the header joins the end of it; a row sent back leaves it. Doing this
+   here rather than letting the order drift means the chips below always match
+   the header above them. */
+function syncHdrOrderWithRows(){
+  const L=window.ZWHeaderLayouts;
+  if(!L) return;
+  const promoted=L.promotable.filter(k=>(chromeBag&&chromeBag.rows&&chromeBag.rows[k]||{}).where==='header');
+  const keep=hdrOrderList().filter(n=>L.controls.indexOf(n)>-1||promoted.indexOf(n)>-1);
+  promoted.forEach(k=>{ if(keep.indexOf(k)<0) keep.push(k); });
+  const next=L.controlOrder(keep.join(' '));
+  if(next&&next!==chromeHdrOrder){ chromeHdrOrder=next; hdrCfgMark(); }
+}
 function setBagMail(v){
   const t=String(v||'').trim();
   if(t) bagCfg().supportEmail=t; else delete bagCfg().supportEmail;
@@ -4072,18 +4102,32 @@ function paintHdrControls(){
     host.innerHTML=BAG_ROWS.map(([key,def,note])=>{
       const r=rows[key]||{};
       const on=r.enabled!==false;
-      return '<label class="hdrcfg-row'+(on?'':' off')+'">'
+      const inHdr=r.where==='header';
+      /* The heading is not a destination, so there is nothing for a header
+         control to link to — it is the one row that cannot be moved, and it
+         says so rather than offering a switch that would do nothing. */
+      const movable=key!=='name';
+      return '<span class="hdrcfg-row'+(on?'':' off')+'">'
         + '<input type="checkbox"'+(on?' checked':'')+' data-bagrow="'+he(key)+'"'
         + ' aria-label="Show '+he(def)+'">'
         + '<input type="text" data-baglabel="'+he(key)+'" value="'+he(r.label||'')+'"'
         + ' placeholder="'+he(def)+'" title="'+he(note)+'">'
-        + '</label>';
+        + (movable
+          ? '<span class="tog hdrcfg-where" role="group" aria-label="Where '+he(def)+' shows">'
+            + '<button type="button" data-where="bag" data-k="'+he(key)+'"'+(inHdr?'':' class="on"')+'>Bag</button>'
+            + '<button type="button" data-where="header" data-k="'+he(key)+'"'+(inHdr?' class="on"':'')+'>Header</button>'
+            + '</span>'
+          : '<span class="hdrcfg-where-x" title="The heading is not a link, so it has nowhere to go in the header">—</span>')
+        + '</span>';
     }).join('');
     host.querySelectorAll('[data-bagrow]').forEach(b=>{
       b.addEventListener('change',()=>setBagRowOn(b.dataset.bagrow,b.checked));
     });
     host.querySelectorAll('[data-baglabel]').forEach(b=>{
       b.addEventListener('input',()=>setBagRowLabel(b.dataset.baglabel,b.value));
+    });
+    host.querySelectorAll('[data-where]').forEach(b=>{
+      b.addEventListener('click',()=>setBagRowWhere(b.dataset.k,b.dataset.where));
     });
   }
   const mail=document.getElementById('hdrBagMail');

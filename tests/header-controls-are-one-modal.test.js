@@ -279,6 +279,53 @@ console.log('\nOne modal for the whole header\n');
     'a control reachable only by a mouse gesture is a control some people cannot reach');
 }
 
+/* ── 6c · a row can live in the header instead ───────────────────────────── */
+{
+  console.log('\n  moving a row out of the panel');
+
+  /* The panel could hide a row and nothing else, so "hide Orders" and "put
+     Orders in the header" were the same button and only one of them existed. */
+  ok('a row says which surface it is on',
+    /where: r\.where === 'header' \? 'header' : 'bag'/.test(FEAT)
+    && /function setBagRowWhere\(key,where\)\{/.test(B));
+  ok('...and the four that have a destination can move',
+    /var HDR_ROWS = \[/.test(FEAT)
+    && ['orders', 'saves', 'account', 'support'].every((k) => new RegExp("key: '" + k + "'").test(FEAT)));
+  /* The heading is not a link. Offering to move it would be offering a switch
+     with nowhere to go. */
+  ok('...but the heading cannot, and says so instead of offering a dead switch',
+    /const movable=key!=='name';/.test(B) && /nowhere to go in the header/.test(B));
+
+  /* MEASURED, and it was wrong: the row appeared in the header and stayed in
+     the panel, which makes "move" mean "duplicate" — two routes to one page,
+     one of them in the menu the shopper opened looking for it. */
+  ok('a promoted row LEAVES the panel',
+    /var here = function \(r\) \{ return r\.enabled && r\.where !== 'header'; \};/.test(FEAT)
+    && /here\(rOrders\)/.test(FEAT) && /here\(rSupport\)/.test(FEAT));
+
+  /* Also measured, also wrong: promoted rows ignored the order entirely,
+     because this file runs when the BAG config lands and the order comes from
+     the HEADER row — a different fetch, and whichever was second had nobody
+     waiting for it. */
+  ok('the order is re-applied whenever its attribute lands',
+    /function watchActionOrder\(\)/.test(FEAT) && /attributeFilter: \['data-zw-hdr-order'\]/.test(FEAT),
+    'two fetches, and picking an order to run them in would only move the race');
+  ok('...and every validator on the way knows the promotable names',
+    ['theme-engine.js', 'functions/_middleware.js', 'scripts/stamp-header-layout.js']
+      .every((f) => /orders\|saves\|support/.test(read(f))),
+    'one that did not silently dropped the whole order');
+
+  /* One host resolver, because the search button already proved what a second
+     copy does: it handled .nav-right only, so the icon never appeared on the
+     eight .zw-hdr-group pages. */
+  ok('new controls find their host through one function, not a second copy',
+    /function actionsSlot\(\)/.test(FEAT)
+    && (FEAT.match(/\.querySelector\('\.zw-hdr-group'\)/g) || []).length === 1);
+  ok('a promoted row follows the words-or-glyphs setting like everything else',
+    /\.zwf-hdr-row/.test(read('storefront-cohesion.css')),
+    'a control that ignored it would be the one thing on the row reading differently');
+}
+
 /* ── 7 · what applies at which width, said out loud ──────────────────────── */
 {
   console.log('\n  which widths each answer reaches');
