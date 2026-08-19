@@ -309,8 +309,8 @@ console.log('\nSaving writes only what changed');
   for (const [fn, key] of [['nav', "markChromeDirty\\('nav'\\)"], ['bar', "markChromeDirty\\('bar'\\)"],
                            ['copy', "markChromeDirty\\('copy'\\)"]])
     ok('the ' + fn + ' edit marks only itself', new RegExp(key).test(B));
-  ok('Save Draft writes just those', /const want = pub \? \['nav','bar','copy','header'\] : \[\.\.\.chromeDirtyKeys\]/.test(B));
-  ok('Publish still writes every one of them', /pub \? \['nav','bar','copy','header'\]/.test(B),
+  ok('Save Draft writes just those', /const want = pub \? \['nav','bar','copy','header','bag'\] : \[\.\.\.chromeDirtyKeys\]/.test(B));
+  ok('Publish still writes every one of them', /pub \? \['nav','bar','copy','header','bag'\]/.test(B),
     'a draft saved an hour ago still has to be promoted');
   ok('and they go in parallel', /await Promise\.all\(want\.map/.test(B));
   ok('nothing dirty means no request at all', /if\(!want\.length\) return true;/.test(B));

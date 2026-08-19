@@ -12,7 +12,7 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;background:#0f0f11;color:#f4f1eb;font-family:'Barlow',sans-serif;font-size:13px}
-:root{--bg:#0f0f11;--sf:#17171b;--sf2:#1e1e24;--bd:rgba(255,255,255,.08);--mu:rgba(244,241,235,.42);--ac:#F891A5;
+:root{--bg:#0f0f11;--sf:#17171b;--sf2:#1e1e24;--tx:#f4f1eb;--bd:rgba(255,255,255,.08);--mu:rgba(244,241,235,.42);--ac:#F891A5;
   /* One width for the list AND the editor that covers it, so the preview
      never changes size depending on what is open. 292px fits four tabs
      across; the editor used to be a separate 300px column beside it. */
@@ -87,11 +87,35 @@ body{display:flex;flex-direction:column}
 .hdrcfg-mark{width:14px;height:14px;border-radius:50%;background:var(--ac);color:#0f0f11;font-size:.52rem;line-height:1;display:flex;align-items:center;justify-content:center;flex:none}
 .hdrcfg-hd .hdrcfg-mark:not(.hdrcfg-cur + .hdrcfg-mark){margin-left:auto}
 .hdrcfg-note{font-size:.6rem;line-height:1.5;color:var(--mu)}
+.hdrcfg-tabs{display:flex;gap:.15rem;padding:0 1rem;border-bottom:1px solid var(--bd);flex:none}
+.hdrcfg-tabs button{font-family:'IBM Plex Mono',monospace;font-size:.52rem;letter-spacing:.11em;text-transform:uppercase;font-weight:600;padding:.6rem .75rem;border:none;background:transparent;color:var(--mu);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.hdrcfg-tabs button:hover{color:var(--tx)}
+.hdrcfg-tabs button.on{color:var(--tx);border-bottom-color:var(--ac)}
+.hdrcfg-pane{display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+.hdrcfg-pane[hidden]{display:none}
+/* The settings pane, unlike the gallery, is a column of ordinary rows: each is
+   its own two- or three-state control that acts on click. A control with two
+   states IS its own preview — there is nothing to browse and no place to lose
+   — so making you press Apply for each would be ceremony rather than safety. */
+.hdrcfg-set{padding:.85rem 1rem;border-bottom:1px solid var(--bd)}
+.hdrcfg-set:last-child{border-bottom:none}
+.hdrcfg-set-hd{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:.4rem}
+.hdrcfg-set-hd .tog{margin-left:auto}
+.hdrcfg-rows{display:flex;flex-direction:column;gap:.4rem;margin:.6rem 0 .1rem}
+.hdrcfg-row{display:flex;align-items:center;gap:.6rem}
+.hdrcfg-row input[type=checkbox]{width:15px;height:15px;accent-color:var(--ac);cursor:pointer;flex:none}
+.hdrcfg-row input[type=text]{flex:1;min-width:0;background:var(--sf2);border:1px solid var(--bd);border-radius:4px;color:var(--tx);font:inherit;font-size:.68rem;padding:.34rem .5rem}
+.hdrcfg-row input[type=text]:focus{outline:none;border-color:var(--ac)}
+.hdrcfg-row.off input[type=text]{opacity:.45}
+.hdrcfg-mail{display:flex;align-items:center;gap:.6rem;margin-top:.7rem;font-size:.62rem;color:var(--mu)}
+.hdrcfg-mail span{flex:none}
+.hdrcfg-mail input{flex:1;min-width:0;background:var(--sf2);border:1px solid var(--bd);border-radius:4px;color:var(--tx);font:inherit;font-size:.68rem;padding:.34rem .5rem}
+.hdrcfg-mail input:focus{outline:none;border-color:var(--ac)}
 .hdrcfg-lines{display:flex;align-items:center;gap:.6rem;padding:.6rem 1rem;border-top:1px solid var(--bd);flex-wrap:wrap}
 .hdrcfg-lines-l{font-size:.7rem;font-weight:600;color:#f4f1eb}
 .hdrcfg-lines-n{flex:1;min-width:180px;font-size:.56rem;line-height:1.5;color:var(--mu)}
-.hdrcfg-lines .tog button{font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;padding:.34rem .6rem;border:none;background:transparent;color:var(--mu);cursor:pointer;border-radius:2px}
-.hdrcfg-lines .tog button.on{background:#f4f1eb;color:#0f0f11;font-weight:600}
+.hdrcfg-lines .tog button,.hdrcfg-set .tog button{font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;padding:.34rem .6rem;border:none;background:transparent;color:var(--mu);cursor:pointer;border-radius:2px}
+.hdrcfg-lines .tog button.on,.hdrcfg-set .tog button.on{background:#f4f1eb;color:#0f0f11;font-weight:600}
 .hdrcfg-ft{display:flex;align-items:center;gap:.55rem;padding:.65rem 1rem;border-top:1px solid var(--bd)}
 .hdrcfg-ft p{margin:0;flex:1;font-size:.56rem;line-height:1.55;color:var(--mu)}
 .hdrcfg-btn{font-family:'IBM Plex Mono',monospace;font-size:.52rem;letter-spacing:.09em;text-transform:uppercase;padding:.36rem .7rem;border-radius:2px;cursor:pointer;font-weight:600;border:1px solid var(--bd);background:transparent;color:var(--mu);transition:.12s;flex:none}
@@ -481,7 +505,7 @@ body{display:flex;flex-direction:column}
          I looking at, and how is it arranged -- and not inside the More menu,
          where it would be a thirteenth line of text nobody scans. -->
     <button type="button" class="lp-float-btn" id="hdrCfgBtn" onclick="openHeaderCfg()"
-            style="margin-left:.5rem" title="Choose where the logo, categories and actions sit in the header">&#9881; Header</button>
+            style="margin-left:.5rem" title="Where the logo, categories and actions sit — and what the search, account and bag controls do">&#9881; Header</button>
     <span id="pvDims" style="margin-left:auto">—</span>
   </div>
   <div class="pv-wrap">
@@ -531,23 +555,76 @@ body{display:flex;flex-direction:column}
   <div class="mbox" style="width:min(760px,94vw);max-height:86vh;display:flex;flex-direction:column">
     <div class="mbox-hd">
       <div>
-        <h3>Header layout</h3>
-        <p>Where the logo, the categories and the actions sit. Pick one, then apply it.</p>
+        <h3>Header</h3>
+        <p>Where the logo, the categories and the actions sit &mdash; and what the search, account and bag controls are.</p>
       </div>
       <button class="mx" onclick="closeHeaderCfg()">&times;</button>
     </div>
-    <div id="hdrCfgList" class="hdrcfg-grid"></div>
-    <div class="hdrcfg-lines">
-      <span class="hdrcfg-lines-l">Divider lines</span>
-      <span class="hdrcfg-lines-n">The rule under the header and under the announcement bar. Applies to every page.</span>
-      <span class="tog" role="group" aria-label="Divider lines">
-        <button type="button" id="hdrLinesOn"  onclick="setHdrLines('on')">Lines</button>
-        <button type="button" id="hdrLinesOff" onclick="setHdrLines('off')">No lines</button>
-      </span>
+    <!-- Two tabs, because these are two different questions about the same
+         bar: WHERE the three parts sit, and WHAT the action controls are. The
+         second used to be answered in two other screens — the account link was
+         a per-theme-mode token in Appearance (so you had to set it on every
+         theme) and the menu rows were on the Settings page — which is why
+         neither was findable from the thing they change. -->
+    <div class="hdrcfg-tabs" role="tablist" aria-label="Header settings">
+      <button type="button" role="tab" id="hdrTabLayout" class="on" onclick="hdrTab('layout')">Layout</button>
+      <button type="button" role="tab" id="hdrTabIcons" onclick="hdrTab('icons')">Icons &amp; account</button>
     </div>
+
+    <div id="hdrPaneLayout" class="hdrcfg-pane">
+      <div id="hdrCfgList" class="hdrcfg-grid"></div>
+      <div class="hdrcfg-lines">
+        <span class="hdrcfg-lines-l">Divider lines</span>
+        <span class="hdrcfg-lines-n">The rule under the header and under the announcement bar. Applies to every page.</span>
+        <span class="tog" role="group" aria-label="Divider lines">
+          <button type="button" id="hdrLinesOn"  onclick="setHdrLines('on')">Lines</button>
+          <button type="button" id="hdrLinesOff" onclick="setHdrLines('off')">No lines</button>
+        </span>
+      </div>
+    </div>
+
+    <div id="hdrPaneIcons" class="hdrcfg-pane" hidden>
+      <div class="hdrcfg-set">
+        <div class="hdrcfg-set-hd">
+          <span class="hdrcfg-lines-l">Search, account and bag</span>
+          <span class="tog" role="group" aria-label="Header controls">
+            <button type="button" id="hdrLbIcons"  onclick="setHdrLabels('icons')">Icons</button>
+            <button type="button" id="hdrLbMobile" onclick="setHdrLabels('mobile')">Words on phones</button>
+            <button type="button" id="hdrLbAlways" onclick="setHdrLabels('always')">Words</button>
+          </span>
+        </div>
+        <p class="hdrcfg-lines-n">Whether the controls read as glyphs or as the words beside them. The words come from the label each control already carries for screen readers, so nothing here can leave a button unnamed.</p>
+      </div>
+
+      <div class="hdrcfg-set">
+        <div class="hdrcfg-set-hd">
+          <span class="hdrcfg-lines-l">Account link</span>
+          <span class="tog" role="group" aria-label="Account link">
+            <button type="button" id="hdrAcctBag"    onclick="setHdrAccount('bag')">In the bag</button>
+            <button type="button" id="hdrAcctHeader" onclick="setHdrAccount('header')">In the header</button>
+          </span>
+        </div>
+        <p class="hdrcfg-lines-n">The bag slide-out carries an account menu, so the header's own account button is normally quiet while it is open. Keep it in the header if you would rather it stayed put &mdash; the menu below keeps its own route either way, so nobody loses their way to their account.</p>
+      </div>
+
+      <div class="hdrcfg-set">
+        <div class="hdrcfg-set-hd">
+          <span class="hdrcfg-lines-l">The account menu</span>
+          <span class="hdrcfg-lines-n" style="flex:1">Inside the bag slide-out. Untick to hide a row; type over a name to rename it.</span>
+        </div>
+        <div id="hdrBagRows" class="hdrcfg-rows"></div>
+        <label class="hdrcfg-mail">
+          <span>Support goes to</span>
+          <input type="email" id="hdrBagMail" placeholder="nasirubreeze@zuwera.store"
+                 oninput="setBagMail(this.value)">
+        </label>
+        <p class="hdrcfg-lines-n" id="hdrBagMore"></p>
+      </div>
+    </div>
+
     <div class="hdrcfg-ft">
-      <p>Position only &mdash; colours, sizes and fonts stay with the theme. Applying updates the preview; nothing is live until you press Publish.</p>
-      <button type="button" class="hdrcfg-btn" onclick="closeHeaderCfg()">Cancel</button>
+      <p id="hdrCfgFoot">Position only &mdash; colours, sizes and fonts stay with the theme. Applying updates the preview; nothing is live until you press Publish.</p>
+      <button type="button" class="hdrcfg-btn" id="hdrCfgClose" onclick="closeHeaderCfg()">Cancel</button>
       <button type="button" class="hdrcfg-btn go" id="hdrCfgApply" onclick="applyHeaderCfg()">Apply layout</button>
     </div>
   </div>
@@ -3403,7 +3480,11 @@ function sendChrome(){
   if(Array.isArray(chromeNav)) post({type:'ZW_NAV_PREVIEW',items:chromeNav});
   if(chromeBar) post({type:'ZW_BAR_PREVIEW',value:chromeBar});
   post({type:'ZW_TEXT_OVERRIDES',value:chromeCopy||{}});
-  if(chromeHeader||chromeHdrLines) post({type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines});
+  if(chromeHeader||chromeHdrLines||chromeHdrAccount||chromeHdrLabels){
+    post({type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines,
+          account:chromeHdrAccount,iconLabels:chromeHdrLabels});
+  }
+  if(chromeBag) post({type:'ZW_BAG_PREVIEW',value:chromeBag});
 }
 
 /* Load the draft if there is one, otherwise what is live. A draft is only ever
@@ -3417,15 +3498,21 @@ let chromeFound = [];
 
 async function loadChrome(){
   const pick=(d,l)=>(d!==undefined&&d!==null)?d:l;
-  const [navD,navL,barD,barL,cpD,cpL,hdD,hdL]=await Promise.all([
+  const [navD,navL,barD,barL,cpD,cpL,hdD,hdL,bgD,bgL]=await Promise.all([
     fetchSettingAuthed('nav_menu_draft'), fetchSettingAuthed('nav_menu'),
     fetchSettingAuthed('announcement_bar_draft'), fetchSettingAuthed('announcement_bar'),
     fetchSettingAuthed('text_overrides_draft'), fetchSettingAuthed('text_overrides'),
     fetchSettingAuthed('header_layout_draft'), fetchSettingAuthed('header_layout'),
+    fetchSettingAuthed('bag_panel_draft'), fetchSettingAuthed('bag_panel'),
   ]);
   const hd=pick(hdD,hdL);
+  const one=(v,allowed)=>(hd&&typeof hd==='object'&&allowed.indexOf(hd[v])>-1)?hd[v]:'';
   chromeHeader=(hd&&typeof hd==='object')?(hd.id||''):(hd||'');
-  chromeHdrLines=(hd&&typeof hd==='object'&&(hd.lines==='on'||hd.lines==='off'))?hd.lines:'';
+  chromeHdrLines=one('lines',['on','off']);
+  chromeHdrAccount=one('account',['bag','header']);
+  chromeHdrLabels=one('iconLabels',['icons','mobile','always']);
+  const bg=pick(bgD,bgL);
+  chromeBag=(bg&&typeof bg==='object'&&!Array.isArray(bg))?bg:{};
   const nav=pick(navD,navL);
   chromeNav=Array.isArray(nav)?nav:[];
   const bar=pick(barD,barL);
@@ -3441,6 +3528,7 @@ async function loadChrome(){
   if(barD!==undefined&&barD!==null) chromeFound.push('bar');
   if(cpD!==undefined&&cpD!==null) chromeFound.push('page text');
   if(hdD!==undefined&&hdD!==null) chromeFound.push('header');
+  if(bgD!==undefined&&bgD!==null) chromeFound.push('account menu');
 }
 
 /* An edit to a NAMED field: nav.<i>.label or bar.message. No text matching --
@@ -3520,10 +3608,39 @@ let chromeHeader = '';
    off is a valid choice for a store that never picked an arrangement at all. */
 let chromeHdrLines = '';
 
+/* The other two answers stored beside the arrangement, for the same reason and
+   with the same three-state meaning: '' is "not answered here", which hands the
+   question back to the theme — it is NOT the same as choosing the default.
+
+   Both used to be per-theme-mode tokens in Appearance. That is the wrong axis
+   for them: you had to answer the same question again on every theme, and a
+   store with four themes could easily give four different answers to "where
+   does the account link live". */
+let chromeHdrAccount = '';
+let chromeHdrLabels = '';
+
+/* The account menu inside the bag slide-out — site_settings.bag_panel, the same
+   key the Settings page writes. Not a copy: a value settable in two places that
+   disagree is a fault this codebase has already had to remove once, from the
+   announcement bar. */
+let chromeBag = null;
+
 /* What the gallery has highlighted. Separate from chromeHeader on purpose:
    chromeHeader is the store's arrangement, this is only what you are looking
    at. Nothing crosses from one to the other until Apply. */
 let hdrCfgSel = '';
+
+/* The rows the bag panel draws, in the order it draws them, with the labels it
+   falls back to. Read from storefront-features.js rather than invented here:
+   this list and renderBagPanel() have to name the same four things, and a
+   second list is how the builder would start offering a row the panel does not
+   draw. tests/header-controls-are-one-modal.test.js holds the two together. */
+const BAG_ROWS = [
+  ['orders',  'Orders',     'Past orders'],
+  ['saves',   'Your saves', 'Saved items, with a count'],
+  ['account', 'Account',    'Profile and details'],
+  ['support', 'Support',    'Opens an email to the address below'],
+];
 
 function openHeaderCfg(){
   const L=window.ZWHeaderLayouts;
@@ -3536,7 +3653,30 @@ function openHeaderCfg(){
   hdrCfgSel = chromeHeader || 'classic';
   paintHeaderCfg();
   paintHdrLines();
+  paintHdrControls();
+  hdrTab('layout');
   document.getElementById('hdrCfgModal').classList.add('open');
+}
+
+/* Which of the two questions you are looking at. The Apply button belongs to
+   the gallery alone — everything on the other tab acts on click — so it goes
+   away rather than sitting there disabled next to controls it has no bearing
+   on, which would read as "these have not been applied either". */
+function hdrTab(which){
+  const icons = which === 'icons';
+  document.getElementById('hdrPaneLayout').hidden = icons;
+  document.getElementById('hdrPaneIcons').hidden = !icons;
+  document.getElementById('hdrTabLayout').classList.toggle('on', !icons);
+  document.getElementById('hdrTabIcons').classList.toggle('on', icons);
+  document.getElementById('hdrCfgApply').hidden = icons;
+  /* On this tab there is nothing pending to cancel — every switch has already
+     been applied to the draft — so the button says what it does. Leaving it
+     reading "Cancel" would promise an undo that does not exist, which is worse
+     than not offering one. */
+  document.getElementById('hdrCfgClose').textContent = icons ? 'Done' : 'Cancel';
+  document.getElementById('hdrCfgFoot').textContent = icons
+    ? 'Every switch here updates the preview as you press it. Nothing is live until you press Publish.'
+    : 'Position only — colours, sizes and fonts stay with the theme. Applying updates the preview; nothing is live until you press Publish.';
 }
 
 function paintHeaderCfg(){
@@ -3589,6 +3729,103 @@ function paintHdrLines(){
   off.classList.toggle('on',cur==='off');
 }
 
+/* ── Icons & account ─────────────────────────────────────────────────────────
+   Three controls, all applying on click for the reason the divider lines do.
+   The first two write into the header draft beside the arrangement; the third
+   writes site_settings.bag_panel, which is a different key with a different
+   owner — so it is marked dirty separately and published on its own row. */
+
+function setHdrLabels(v){
+  if(['icons','mobile','always'].indexOf(v)<0 || chromeHdrLabels===v) return;
+  chromeHdrLabels=v;
+  markChromeDirty('header'); sendChrome(); paintHdrControls();
+  toast(v==='icons'?'Header controls: icons — preview updated'
+    :v==='mobile'?'Header controls: words on phones — preview updated'
+    :'Header controls: words — preview updated','ok');
+}
+
+function setHdrAccount(v){
+  if((v!=='bag'&&v!=='header') || chromeHdrAccount===v) return;
+  chromeHdrAccount=v;
+  markChromeDirty('header'); sendChrome(); paintHdrControls();
+  toast(v==='header'?'Account button stays in the header — preview updated'
+    :'Account link lives in the bag — preview updated','ok');
+}
+
+/* bag_panel is read-modify-write on an object the Settings page also edits, so
+   only the fields actually touched here are set — a whole-object replace would
+   drop the custom rows that page can add and this modal does not show. */
+function bagCfg(){ if(!chromeBag||typeof chromeBag!=='object') chromeBag={}; return chromeBag; }
+function bagRowCfg(key){
+  const c=bagCfg();
+  if(!c.rows||typeof c.rows!=='object') c.rows={};
+  if(!c.rows[key]||typeof c.rows[key]!=='object') c.rows[key]={};
+  return c.rows[key];
+}
+function setBagRowOn(key,on){
+  bagRowCfg(key).enabled=!!on;
+  markChromeDirty('bag'); sendChrome(); paintHdrControls();
+}
+function setBagRowLabel(key,text){
+  const t=String(text||'').trim();
+  /* Blank means "use the name it ships with", which is what the placeholder
+     shows — storing '' rather than the default keeps a store that never renamed
+     anything from freezing today's wording into its settings. */
+  if(t) bagRowCfg(key).label=t; else delete bagRowCfg(key).label;
+  markChromeDirty('bag'); sendChrome();
+}
+function setBagMail(v){
+  const t=String(v||'').trim();
+  if(t) bagCfg().supportEmail=t; else delete bagCfg().supportEmail;
+  markChromeDirty('bag'); sendChrome();
+}
+
+function paintHdrControls(){
+  const tog=(id,on)=>{const e=document.getElementById(id); if(e) e.classList.toggle('on',on);};
+  /* Absent means the theme still answers, and the theme's own default is icons
+     and the bag — so that is what the modal shows as current. It reflects what
+     the storefront does, not what this file has stored. */
+  const lb=chromeHdrLabels||'icons';
+  tog('hdrLbIcons',lb==='icons'); tog('hdrLbMobile',lb==='mobile'); tog('hdrLbAlways',lb==='always');
+  const ac=chromeHdrAccount||'bag';
+  tog('hdrAcctBag',ac==='bag'); tog('hdrAcctHeader',ac==='header');
+
+  const host=document.getElementById('hdrBagRows');
+  if(host){
+    const rows=(chromeBag&&chromeBag.rows)||{};
+    host.innerHTML=BAG_ROWS.map(([key,def,note])=>{
+      const r=rows[key]||{};
+      const on=r.enabled!==false;
+      return '<label class="hdrcfg-row'+(on?'':' off')+'">'
+        + '<input type="checkbox"'+(on?' checked':'')+' data-bagrow="'+he(key)+'"'
+        + ' aria-label="Show '+he(def)+'">'
+        + '<input type="text" data-baglabel="'+he(key)+'" value="'+he(r.label||'')+'"'
+        + ' placeholder="'+he(def)+'" title="'+he(note)+'">'
+        + '</label>';
+    }).join('');
+    host.querySelectorAll('[data-bagrow]').forEach(b=>{
+      b.addEventListener('change',()=>setBagRowOn(b.dataset.bagrow,b.checked));
+    });
+    host.querySelectorAll('[data-baglabel]').forEach(b=>{
+      b.addEventListener('input',()=>setBagRowLabel(b.dataset.baglabel,b.value));
+    });
+  }
+  const mail=document.getElementById('hdrBagMail');
+  if(mail && document.activeElement!==mail) mail.value=(chromeBag&&chromeBag.supportEmail)||'';
+
+  /* Custom rows are the Settings page's to add — they carry a destination and a
+     chosen icon, which is a bigger editor than this modal wants to be. Saying
+     how many there are is the difference between "this modal shows everything"
+     and a menu with rows the builder never mentioned. */
+  const more=document.getElementById('hdrBagMore');
+  if(more){
+    const n=(chromeBag&&Array.isArray(chromeBag.custom)?chromeBag.custom:[]).length;
+    more.textContent=n
+      ? n+' custom row'+(n===1?'':'s')+' added in Settings → Bag panel also show here, and are left alone by this modal.'
+      : '';
+  }
+}
+
 /* Highlight only. This used to save, mark the draft dirty and repaint the
    preview on the first click, which meant browsing the gallery rewrote the
    header once per tile you looked at. */
@@ -3636,7 +3873,7 @@ async function saveChrome(pub){
   /* Publish writes all three whatever changed in THIS session: a draft saved an
      hour ago still has to be promoted onto its live key. Save Draft writes only
      what was touched. */
-  const want = pub ? ['nav','bar','copy','header'] : [...chromeDirtyKeys];
+  const want = pub ? ['nav','bar','copy','header','bag'] : [...chromeDirtyKeys];
   chromeSaved=[];
   if(!want.length) return true;
   const KEYS = {
@@ -3654,8 +3891,19 @@ async function saveChrome(pub){
       const L = window.ZWHeaderLayouts, l = L && L.byId(id);
       const out = { id, lines: chromeHdrLines || 'on' };
       if (l) out.spec = l.spec;
+      /* Written only when answered. '' means the theme still owns the question,
+         and storing a value that happens to match today's theme would silently
+         take it away — the header would stop following a theme switch, with no
+         control anywhere saying that had happened. */
+      if (chromeHdrAccount) out.account = chromeHdrAccount;
+      if (chromeHdrLabels) out.iconLabels = chromeHdrLabels;
       return out;
     }],
+    /* A different key with a different owner: site_settings.bag_panel, which
+       Settings → Bag panel also writes. Sent whole because it is read-modify-
+       write on what was loaded, so the custom rows this modal does not show
+       travel back untouched. */
+    bag:  ['bag_panel_draft',        () => chromeBag || {}],
   };
   try{
     const token=await getAccessToken(); if(!token) throw new Error('Session expired');
@@ -3743,7 +3991,7 @@ async function saveDraft(auto=false){
     /* Name what went with it. "Draft saved" alone is what let a header change
        look saved when nothing outside the page config had been written -- the
        toast was reporting the sections save and nothing else. */
-    const NAMES={nav:'navigation',bar:'announcement bar',copy:'page text',header:'header layout'};
+    const NAMES={nav:'navigation',bar:'announcement bar',copy:'page text',header:'header layout',bag:'account menu'};
     const extra=chromeSaved.map(k=>NAMES[k]||k);
     if(!auto)toast(extra.length?('Draft saved · '+extra.join(', ')):'Draft saved · sections only','ok');
     lyStashCurrent();

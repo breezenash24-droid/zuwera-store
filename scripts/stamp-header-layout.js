@@ -62,7 +62,14 @@ const PAGES = ['404.html', 'about.html', 'account.html', 'bag.html', 'checkout.h
    on <html> survives and re-running cannot compound. */
 const OURS = ['data-zw-hdr', 'data-zw-hdr-logo', 'data-zw-hdr-links',
   'data-zw-hdr-actions', 'data-zw-hdr-linksrow', 'data-zw-hdr-at',
-  'data-zw-hdr-lines'];
+  'data-zw-hdr-lines', 'data-zw-iconlabels', 'data-zw-account'];
+
+/* data-zw-account is on <body>, because the rule it answers is written against
+   body.zwf-bagpanel-on. stamp-theme-default.js bakes it there from the store's
+   default theme; this runs AFTER that (see the postinstall order) and the
+   header modal's answer outranks the theme's, so writing it here is what makes
+   the modal's choice the one that ships. */
+const OURS_BODY = ['data-zw-account'];
 
 /* The canonical project, read rather than restated — stamping the ORIGINAL
    store's header onto a white-label build is the bug zw-config.js exists to
@@ -85,12 +92,22 @@ function fetchLayout() {
           if (!row) return resolve(null);
           let raw = row.value;
           if (typeof raw === 'string') raw = JSON.parse(raw);
+          const o = raw && typeof raw === 'object' ? raw : {};
           const id = raw && typeof raw === 'object' ? raw.id : raw;
-          const lines = raw && typeof raw === 'object' ? String(raw.lines || '') : '';
           const at = String(row.updated_at || '');
-          /* Either answer alone is worth baking: a store can turn the rule off
-             without ever choosing an arrangement. */
-          resolve(id || lines ? { id: id ? String(id) : '', at: at, lines: lines } : null);
+          const pick = (k, allowed) => (allowed.indexOf(String(o[k] || '')) > -1 ? String(o[k]) : '');
+          /* Any one answer alone is worth baking: a store can turn the rule off,
+             move the account, or ask for words without ever choosing an
+             arrangement. */
+          const chosen = {
+            id: id ? String(id) : '',
+            at: at,
+            lines: pick('lines', ['on', 'off']),
+            account: pick('account', ['bag', 'header']),
+            iconLabels: pick('iconLabels', ['icons', 'mobile', 'always']),
+          };
+          const any = chosen.id || chosen.lines || chosen.account || chosen.iconLabels;
+          resolve(any ? chosen : null);
         } catch (_) { resolve(null); }
       });
     }).on('error', () => resolve(null));
@@ -145,7 +162,9 @@ if (!process.env.CF_PAGES && !process.argv.includes('--local')) process.exit(0);
        are stripped so the pages go back to the header they ship with, rather
        than keeping whatever the previous build baked in forever. */
     const layout = chosen && chosen.id ? L.byId(chosen.id) : null;
-    const lines = chosen && (chosen.lines === 'on' || chosen.lines === 'off') ? chosen.lines : '';
+    const lines = (chosen && chosen.lines) || '';
+    const account = (chosen && chosen.account) || '';
+    const labels = (chosen && chosen.iconLabels) || '';
     if (chosen && chosen.id && !layout) {
       console.log('[stamp-header-layout] unknown layout "' + chosen.id + '" — placement cleared.');
     }
@@ -177,21 +196,50 @@ if (!process.env.CF_PAGES && !process.argv.includes('--local')) process.exit(0);
           keep += ' data-zw-hdr-at="' + chosen.at + '"';
         }
         if (lines) keep += ' data-zw-hdr-lines="' + lines + '"';
+        /* 'icons' is an answer meaning "no words", and the way to bake it is to
+           leave the attribute off — which stripping OURS above has already
+           done. Only the two scopes the stylesheet knows get written. */
+        if (labels === 'mobile' || labels === 'always') keep += ' data-zw-iconlabels="' + labels + '"';
+        /* On <html> as well as <body>. The stylesheet reads it from either,
+           because the pre-paint block in <head> can only write this one — and
+           it is the only writer early enough to beat the header's first paint.
+           Both are written so the served document cannot contradict itself. */
+        if (account) keep += ' data-zw-account="' + account + '"';
         return '<html' + keep + '>';
       });
 
+      /* <body>, for the one attribute that lives there. Same shape: strip what
+         this script wrote, then write the answer — and 'bag' bakes as the
+         attribute's ABSENCE, which the strip has already produced. Note this
+         overwrites what stamp-theme-default.js baked from the theme, on
+         purpose: the header modal outranks the theme, and it runs after. */
+      let next2 = next;
+      if (account) {
+        next2 = next.replace(/<body\b([^>]*)>/i, (tag, a) => {
+          let keep = String(a);
+          for (const attr of OURS_BODY) {
+            keep = keep.replace(new RegExp('\\s*' + attr + '="[^"]*"', 'i'), '');
+          }
+          if (account === 'header') keep += ' data-zw-account="header"';
+          return '<body' + keep + '>';
+        });
+      }
+
       // Never write something that would corrupt the page.
-      if ((next.match(/<html\b/gi) || []).length !== (html.match(/<html\b/gi) || []).length) {
-        console.log('[stamp-header-layout] html count changed in ' + page + ' — skipped.');
+      if ((next2.match(/<html\b/gi) || []).length !== (html.match(/<html\b/gi) || []).length
+        || (next2.match(/<body\b/gi) || []).length !== (html.match(/<body\b/gi) || []).length) {
+        console.log('[stamp-header-layout] tag count changed in ' + page + ' — skipped.');
         continue;
       }
-      if (next !== html) { fs.writeFileSync(file, next); changed++; }
+      if (next2 !== html) { fs.writeFileSync(file, next2); changed++; }
     }
 
     console.log('[stamp-header-layout] '
       + (layout ? 'arrangement "' + layout.id + '" (' + spec.logo + '/' + spec.links + '/' + spec.actions
           + ', row ' + spec.linksRow + ')' : 'no arrangement')
       + (lines ? ', divider lines ' + lines : '')
+      + (account ? ', account in the ' + (account === 'header' ? 'header' : 'bag panel') : '')
+      + (labels ? ', controls as ' + (labels === 'icons' ? 'icons' : 'words (' + labels + ')') : '')
       + ' baked; ' + changed + ' page(s) updated.');
   } catch (e) {
     console.log('[stamp-header-layout] skipped (' + (e && e.message) + ') — <html> unchanged.');

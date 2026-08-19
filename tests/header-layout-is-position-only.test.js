@@ -221,7 +221,7 @@ console.log('\nChoosing is not applying');
   ok('the button says so when there is nothing to apply', /Already applied/.test(B));
   ok('the current arrangement is marked as current, separately from the selection',
     /hdrcfg-cur/.test(B) && /hdrcfg-mark/.test(B));
-  ok('it previews at once', /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines\}\)/.test(B));
+  ok('it previews at once', /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines,\s*account:chromeHdrAccount,iconLabels:chromeHdrLabels\}\)/.test(B));
 }
 
 console.log('\nA preview shows the draft, not a flash of what is live first');
@@ -229,16 +229,16 @@ console.log('\nA preview shows the draft, not a flash of what is live first');
   ok('the module can tell it is inside the builder',
     /function isPreview\(\)/.test(SRC) && /__ZW_BUILDER_PREVIEW__/.test(SRC) && /__zwPreviewReady/.test(SRC));
   ok('the published arrangement is held rather than applied there',
-    /if \(preview && !draftSettled\) \{ held = \{ id: id, lines: lines \}; return; \}/.test(SRC),
+    /if \(preview && !draftSettled\) \{ held = \{ id: id, opts: opts \}; return; \}/.test(SRC),
     'it is the LOCAL value, so it always won the race and the canvas rearranged twice');
   ok('both the cache and the server go through that hold',
     (SRC.match(/fromServer\(/g) || []).length >= 3,
     'the cache is the one that arrives first, so skipping only the fetch fixes nothing');
   ok('a draft that carries no arrangement releases the held one',
-    /if \(held\) \{ set\(held\.id, held\.lines\); held = null; \}/.test(SRC),
+    /if \(held\) \{ set\(held\.id, held\.opts\); held = null; \}/.test(SRC),
     'otherwise the canvas shows neither the draft nor what is live');
   ok('a draft that never arrives releases it too',
-    /if \(preview && window\.__ZW_BUILDER_PREVIEW__\) \{[\s\S]{0,140}draftSettled\) draftDone\(null, ''\)/.test(SRC),
+    /if \(preview && window\.__ZW_BUILDER_PREVIEW__\) \{[\s\S]{0,140}draftSettled\) draftDone\(null, null\)/.test(SRC),
     'a postMessage that is never sent has no failure to catch');
   ok('the modal says it is position only', /Position only/.test(B));
   ok('...and that nothing is live until Publish', /nothing is live until you press Publish/.test(B));
@@ -248,7 +248,8 @@ console.log('\nThe arrangement is in place before the first frame');
 {
   const PRE = read('scripts/theme-preboot.head.js');
   ok('the pre-paint block stamps all four attributes',
-    ['logo', 'links', 'actions', 'linksrow'].every((a) => PRE.includes("'data-zw-hdr-" + a + "'")),
+    ['logo', 'links', 'actions', 'linksrow'].every((a) => PRE.includes("'-" + a + "'"))
+    && PRE.includes("_H + p[0]"),
     'header-layouts.js is deferred, so without this the header paints in the arrangement the MARKUP is in and then jumps');
   ok('it reads the resolved values, not a layout name',
     PRE.includes("'zw_hdr_attrs'") &&
@@ -288,26 +289,26 @@ console.log('\nThe arrangement is in place before the first frame');
   ok('it can never break the build',
     /\} catch \(e\) \{[\s\S]{0,200}<html> unchanged/.test(STAMP));
   ok('and it guards against corrupting the page',
-    /html count changed in/.test(STAMP));
+    /tag count changed in/.test(STAMP));
   ok('postinstall runs it', /stamp-header-layout\.js/.test(read('package.json')));
   ok('...after the other <html> stamper, so the two cannot interleave',
     read('package.json').indexOf('stamp-theme-default.js') < read('package.json').indexOf('stamp-header-layout.js'));
 
   ok('the pre-paint block prefers a NEWER cache over the baked answer',
-    /_hfresh = !_hb \|\| \(_hc\[4\] \|\| ''\) > _hb/.test(PRE),
+    /if \(!_hb \|\| \(_hc\[4\] \|\| ''\) > _hb\) \{/.test(PRE),
     'publishing without deploying and deploying without publishing fail in opposite directions');
   ok('...and falls back to the cache when nothing was baked',
     /!_hb \|\|/.test(PRE),
     'a local build stamps nothing, and an undated cache is still better than none');
   ok('a builder preview strips the baked arrangement as well as ignoring the cache',
-    /if \(window\.__ZW_BUILDER_PREVIEW__\) \{[\s\S]{0,320}removeAttribute\('data-zw-hdr-linksrow'\)/.test(PRE),
+    /if \(window\.__ZW_BUILDER_PREVIEW__\) \{[\s\S]{0,600}'-linksrow'[\s\S]{0,80}removeAttribute\(_H \+ s\)/.test(PRE),
     'the baked value is the published one, which is exactly what a draft preview must not show');
 
   ok('the cache is written from the published value only',
-    /remember\(id, row && row\.updated_at, lines\);/.test(SRC) && !/draftDone[\s\S]{0,200}remember\(/.test(SRC),
+    /remember\(id, row && row\.updated_at, e\);/.test(SRC) && !/draftDone[\s\S]{0,200}remember\(/.test(SRC),
     'a draft that survived into the next page load would show a shopper unpublished work');
   ok('and cleared when the store names no arrangement',
-    /if \(!l\) \{ localStorage\.removeItem\(CACHE\); localStorage\.removeItem\(ATTRS\); return; \}/.test(SRC),
+    /if \(!l && !anyExtra\(e\)\) \{ localStorage\.removeItem\(CACHE\); localStorage\.removeItem\(ATTRS\); return; \}/.test(SRC),
     'otherwise the head keeps stamping an arrangement nothing on the server still names');
 
   /* sync-preboot.js stamps this block into every storefront page and
@@ -347,15 +348,18 @@ console.log('\nThe line under the header is a choice, and it moves nothing');
     /hdrOverride = s && s\.logo \? s : null;/.test(TE));
 
   ok('the module carries it on every route in',
-    /function apply\(id, lines\)/.test(SRC) && /lineChoice\(d\.lines\)/.test(SRC)
-    && /var cl = parts\[5\] \|\| '';/.test(SRC));
+    /function apply\(id, opts\)/.test(SRC) && /draftDone\(d\.id, d\)/.test(SRC)
+    && /ce\[ATTR_FIELDS\[fi\]\] = parts\[5 \+ fi\] \|\| '';/.test(SRC));
   ok('an unknown layout id does not discard the line choice',
     /var spec = l \? l\.spec : null;/.test(SRC),
     'they are two answers and only one of them is missing');
   ok('the pre-paint block stamps it before the first frame',
-    /data-zw-hdr-lines', _hc\[5\]/.test(PRE2));
-  ok('...ranked by the same timestamp as the placement', /_hfresh && \(_hc\[5\]/.test(PRE2));
-  ok('...and stripped in a builder preview', /removeAttribute\('data-zw-hdr-lines'\)/.test(PRE2));
+    /_H \+ '-lines', _hc\[5\]/.test(PRE2));
+  ok('...ranked by the same timestamp as the placement',
+    /if \(!_hb \|\| \(_hc\[4\] \|\| ''\) > _hb\) \{[\s\S]{0,1600}_hc\[5\] === 'on'/.test(PRE2),
+    'one freshness test now covers all four answers rather than each repeating it');
+  ok('...and stripped in a builder preview',
+    /'-lines'\][\s\S]{0,80}removeAttribute\(_H \+ s\)/.test(PRE2));
   ok('the build bakes it too', /data-zw-hdr-lines="/.test(STAMP2));
 
   ok('the builder has a two-state control', /id="hdrLinesOn"/.test(B) && /id="hdrLinesOff"/.test(B));
@@ -365,7 +369,7 @@ console.log('\nThe line under the header is a choice, and it moves nothing');
   ok('the saved value carries both answers',
     /const out = \{ id, lines: chromeHdrLines \|\| 'on' \};/.test(B));
   ok('and the preview push carries it',
-    /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines\}\)/.test(B));
+    /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines,\s*account:chromeHdrAccount,iconLabels:chromeHdrLabels\}\)/.test(B));
 }
 
 console.log('\nOne header height, whichever arrangement is chosen');
@@ -448,7 +452,7 @@ console.log('\nNothing quietly undoes the answer the document arrived with');
     && /if \(!docAt \|\| \(parts\[4\] \|\| ''\) > docAt\)/.test(SRC),
     'two readers of one cache, and only one of them was checking');
   ok('...using the same comparison the pre-paint block uses',
-    /_hfresh = !_hb \|\| \(_hc\[4\] \|\| ''\) > _hb/.test(PRE3),
+    /if \(!_hb \|\| \(_hc\[4\] \|\| ''\) > _hb\) \{/.test(PRE3),
     'two different answers to "is this cache newer" is how they disagree');
   ok('a document that makes no claim still gets the cache',
     /!docAt \|\|/.test(SRC),
@@ -474,7 +478,7 @@ console.log('\nA theme with no opinion does not erase what the build baked');
   for (const [attr, bakedBy, flag] of BAKED) {
     ok(attr + ' is baked by the build', bakedBy.test(TCSS) && STAMP4.includes(attr));
     ok('...and theme-engine only removes it if it wrote it',
-      new RegExp('else if \\(' + flag + '\\) \\{[\\s\\S]{0,90}removeAttribute\\(\'' + attr + '\'\\)').test(TE),
+      new RegExp('else if \\(' + flag + ' \\|\\|[^)]*\\) \\{[\\s\\S]{0,90}removeAttribute\\(\'' + attr + '\'\\)').test(TE),
       'a theme that does not mention it is not a theme asking for it to go away');
     ok('...and records having written it',
       new RegExp(flag + ' = true;').test(TE));

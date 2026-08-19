@@ -250,38 +250,81 @@
      attributes; this hands it a spec and it writes them. An override set here
      outranks the theme's own header and survives a theme switch, so choosing a
      theme cannot silently undo an arrangement chosen in the builder. */
-  /* Whether the header and the bar draw their bottom rule. Travels with the
-     arrangement because it is stored beside it and chosen in the same place,
-     but it is NOT part of a layout: every arrangement can have it either way,
-     and a store that has chosen no arrangement can still turn it off. Putting
-     it in the layout table would have meant twenty entries instead of ten and
-     a picker where half the tiles differed by one pixel. */
-  var LINES = { on: 1, off: 1 };
-  function lineChoice(v) { return LINES[v] ? v : ''; }
+  /* ── The choices that travel WITH an arrangement but are not part of one ──
+     Three questions about the header that every arrangement can answer either
+     way, and that a store which has chosen no arrangement can still answer:
+
+       lines       does the header (and the bar) draw its bottom rule
+       account     does the account control live in the bag panel or the header
+       iconLabels  are the action controls glyphs, or words
+
+     They are stored beside the layout and chosen in the same modal, which is
+     why they travel together — but folding them INTO the layout table would
+     have meant ten entries becoming a hundred and twenty, and a picker where
+     most tiles differed by nothing you could see.
+
+     '' means "not answered here", which is different from every value in the
+     table: it hands the question back to the theme, which is where all three
+     lived before this modal existed and where they still live for a store that
+     has never opened it. */
+  var EXTRAS = {
+    lines:      { on: 1, off: 1 },
+    account:    { bag: 1, header: 1 },
+    iconLabels: { icons: 1, mobile: 1, always: 1 },
+  };
+  var EXTRA_KEYS = ['lines', 'account', 'iconLabels'];
+
+  function extraChoice(name, v) {
+    var t = EXTRAS[name];
+    return (t && t[v]) ? v : '';
+  }
+  /* Every extra off one object, validated, with the missing ones as ''. Callers
+     pass whatever they have — a settings row, a postMessage, a cache tuple —
+     and get the same shape back, so no reader has to know which fields their
+     particular source happens to carry. */
+  function extras(o) {
+    var src = (o && typeof o === 'object') ? o : {};
+    var out = {};
+    for (var i = 0; i < EXTRA_KEYS.length; i++) {
+      out[EXTRA_KEYS[i]] = extraChoice(EXTRA_KEYS[i], src[EXTRA_KEYS[i]]);
+    }
+    return out;
+  }
+  function anyExtra(e) {
+    for (var i = 0; i < EXTRA_KEYS.length; i++) if (e && e[EXTRA_KEYS[i]]) return true;
+    return false;
+  }
+  // Kept from when `lines` was the only one of these, because callers outside
+  // this file still ask about it by name.
+  function lineChoice(v) { return extraChoice('lines', v); }
 
   var applied = '';
-  var appliedLines = '';
-  function apply(id, lines) {
+  var appliedExtras = extras(null);
+  function apply(id, opts) {
     var l = byId(id);
     if (!window.ZWTheme || typeof window.ZWTheme.setHeader !== 'function') return false;
-    /* An unknown id is not a reason to drop the line choice on the floor —
-       they are two answers, and only one of them is missing. */
+    /* An unknown id is not a reason to drop the other answers on the floor —
+       they are four answers, and only one of them is missing. */
     var spec = l ? l.spec : null;
+    var e = extras(opts);
     var out = {};
     if (spec) { for (var k in spec) out[k] = spec[k]; }
-    out.lines = lineChoice(lines);
+    for (var i = 0; i < EXTRA_KEYS.length; i++) out[EXTRA_KEYS[i]] = e[EXTRA_KEYS[i]];
     window.ZWTheme.setHeader(out);
     applied = l ? l.id : '';
-    appliedLines = out.lines;
+    appliedExtras = e;
     return !!l;
   }
 
   window.ZWHeaderLayouts = {
     list: LAYOUTS, parts: PARTS, spots: SPOTS, labels: PART_LABEL,
     byId: byId, zones: zones, conflict: conflict,
-    miniature: miniature, css: MINI_CSS, lineChoice: lineChoice,
+    miniature: miniature, css: MINI_CSS,
+    lineChoice: lineChoice, extraChoice: extraChoice, extras: extras,
+    extraKeys: EXTRA_KEYS, extraValues: EXTRAS,
     apply: apply, applied: function () { return applied; },
-    lines: function () { return appliedLines; },
+    lines: function () { return appliedExtras.lines; },
+    settings: function () { return extras(appliedExtras); },
   };
 
   /* ── Everything below runs on a storefront page, not in the builder ────────
@@ -308,20 +351,34 @@
      older. Without it the two sources have no way to be ranked and one of them
      has to be trusted blindly — which breaks whenever the other is the fresh
      one. Same column, same format, on both sides. */
-  function remember(id, at, lines) {
+  /* The tuple is positional and APPEND-ONLY. Field 5 has meant `lines` since
+     before there were others, and a browser holding yesterday's five-field
+     copy still reads correctly here — a shorter tuple simply answers '' for
+     the fields it does not have, which is exactly "not chosen". Reordering it
+     would silently reinterpret every cache already in the wild. */
+  var ATTR_FIELDS = ['lines', 'account', 'iconLabels'];   // fields 5, 6, 7
+
+  function remember(id, at, opts) {
     var l = byId(id);
+    var e = extras(opts);
     try {
-      if (!l) { localStorage.removeItem(CACHE); localStorage.removeItem(ATTRS); return; }
-      localStorage.setItem(CACHE, l.id);
-      localStorage.setItem(ATTRS, [l.spec.logo, l.spec.links, l.spec.actions,
-        String(l.spec.linksRow) === '2' ? '2' : '1', at || '', lines || ''].join('|'));
+      /* A store with no arrangement can still have answered one of the other
+         three, and dropping the cache because of the missing one is what would
+         make those answers flash on every load. */
+      if (!l && !anyExtra(e)) { localStorage.removeItem(CACHE); localStorage.removeItem(ATTRS); return; }
+      if (l) localStorage.setItem(CACHE, l.id); else localStorage.removeItem(CACHE);
+      var row = l
+        ? [l.spec.logo, l.spec.links, l.spec.actions, String(l.spec.linksRow) === '2' ? '2' : '1', at || '']
+        : ['', '', '', '', at || ''];
+      for (var i = 0; i < ATTR_FIELDS.length; i++) row.push(e[ATTR_FIELDS[i]] || '');
+      localStorage.setItem(ATTRS, row.join('|'));
     } catch (_) {}
   }
 
-  function set(id, lines, isDraft) {
+  function set(id, opts, isDraft) {
     if (fromDraft && !isDraft) return;   // a draft outranks the published value
     if (isDraft) fromDraft = true;
-    apply(id, lines);
+    apply(id, opts);
   }
 
   /* Is this page being shown INSIDE the builder? Both routes are settled before
@@ -353,17 +410,17 @@
     var preview = isPreview();
     var held = null, draftSettled = false;
 
-    function fromServer(id, lines) {
-      if (preview && !draftSettled) { held = { id: id, lines: lines }; return; }
-      set(id, lines);
+    function fromServer(id, opts) {
+      if (preview && !draftSettled) { held = { id: id, opts: opts }; return; }
+      set(id, opts);
     }
-    function draftDone(id, lines) {
+    function draftDone(id, opts) {
       draftSettled = true;
-      /* A draft with neither answer in it is not a draft that says "no header"
-         — it is a builder that had nothing to send yet. Only a draft that names
-         something displaces what is live. */
-      if (id || lines) { set(id, lines, true); held = null; return; }
-      if (held) { set(held.id, held.lines); held = null; }
+      /* A draft with none of the answers in it is not a draft that says "no
+         header" — it is a builder that had nothing to send yet. Only a draft
+         that names something displaces what is live. */
+      if (id || anyExtra(extras(opts))) { set(id, opts, true); held = null; return; }
+      if (held) { set(held.id, held.opts); held = null; }
     }
 
     /* ── THE CACHE ONLY SPEAKS IF THE DOCUMENT DID NOT ──────────────────────
@@ -386,8 +443,9 @@
       var docAt = document.documentElement.getAttribute('data-zw-hdr-at') || '';
       if (!docAt || (parts[4] || '') > docAt) {
         var c = localStorage.getItem(CACHE);
-        var cl = parts[5] || '';
-        if (c || cl) fromServer(c, cl);
+        var ce = {};
+        for (var fi = 0; fi < ATTR_FIELDS.length; fi++) ce[ATTR_FIELDS[fi]] = parts[5 + fi] || '';
+        if (c || anyExtra(extras(ce))) fromServer(c, ce);
       }
     } catch (_) {}
 
@@ -399,13 +457,13 @@
         var v = row && row.value;
         if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
         var id = v && typeof v === 'object' ? v.id : v;
-        var lines = lineChoice(v && typeof v === 'object' ? v.lines : '');
+        var e = extras(v);
         /* A store that clears its arrangement has to clear the pre-paint cache
            too, or the head keeps stamping the old one before every paint and
            the header flashes an arrangement nothing on the server still names. */
-        remember(id, row && row.updated_at, lines);
-        if (!id && !lines) return;
-        fromServer(id, lines);
+        remember(id, row && row.updated_at, e);
+        if (!id && !anyExtra(e)) return;
+        fromServer(id, e);
       })
       .catch(function () {});
 
@@ -415,14 +473,14 @@
       window.__zwPreviewReady.then(function (pv) {
         var v = pv && pv.header_layout;
         var o = v && typeof v === 'object' ? v : { id: v };
-        draftDone(o.id, lineChoice(o.lines));
-      }).catch(function () { draftDone(null, ''); });
+        draftDone(o.id, o);
+      }).catch(function () { draftDone(null, null); });
     }
-    window.addEventListener('message', function (e) {
-      if (e.origin !== location.origin) return;
-      var d = e.data;
+    window.addEventListener('message', function (ev) {
+      if (ev.origin !== location.origin) return;
+      var d = ev.data;
       if (!d || d.type !== 'ZW_HEADER_LAYOUT') return;
-      draftDone(d.id, lineChoice(d.lines));
+      draftDone(d.id, d);
     });
 
     /* The canvas gets its draft by postMessage, and a message that never comes
@@ -431,7 +489,7 @@
        than the flash this replaces. Long enough that the message wins in
        practice; short enough that nobody reads the wrong header for long. */
     if (preview && window.__ZW_BUILDER_PREVIEW__) {
-      setTimeout(function () { if (!draftSettled) draftDone(null, ''); }, 1500);
+      setTimeout(function () { if (!draftSettled) draftDone(null, null); }, 1500);
     }
   }
 
