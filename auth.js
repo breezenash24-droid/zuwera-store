@@ -150,12 +150,31 @@ if (_sb?.auth?.getSession) {
 
 function updateHeaderForAuth() {
   const loggedIn = !!_currentUser;
+
+  /* ── The pre-paint block's guess, confirmed or taken back ──────────────────
+     scripts/theme-preboot.head.js decides `zw-authed` and --zw-acct-name in
+     <head>, from localStorage, so the header's first frame is right. This is
+     the pass that has actually spoken to the server, and it OWNS both of them
+     from here on.
+
+     Taking them back matters as much as setting them. Signing out without
+     reloading the page left the class in place and the name in the property —
+     so the header went on showing somebody's first name to a session that no
+     longer existed, until something happened to reload. A guess this file never
+     corrects is worse than no guess. */
+  document.documentElement.classList.toggle('zw-authed', loggedIn);
+  if (!loggedIn) document.documentElement.style.removeProperty('--zw-acct-name');
+
   if (_authEls.loginBtn)   _authEls.loginBtn.style.display   = loggedIn ? 'none' : 'inline-flex';
   if (_authEls.accountBtn) {
     _authEls.accountBtn.style.display = loggedIn ? 'inline-flex' : 'none';
     if (loggedIn) {
-      const name = _currentUser.user_metadata?.full_name || (_currentUser.email || '').split('@')[0] || 'Account';
-      _authEls.accountBtn.textContent = name.split(' ')[0];
+      const name = (_currentUser.user_metadata?.full_name || (_currentUser.email || '').split('@')[0] || 'Account').split(' ')[0];
+      /* The label is rendered from this property by storefront-cohesion.css,
+         so the header's first frame carries the name. Setting textContent
+         here would delete the span that renders it. */
+      document.documentElement.style.setProperty('--zw-acct-name', JSON.stringify(name));
+      _authEls.accountBtn.setAttribute('aria-label', name);
     }
   }
   if (_authEls.logoutBtn)  _authEls.logoutBtn.style.display  = loggedIn ? 'inline-flex' : 'none';

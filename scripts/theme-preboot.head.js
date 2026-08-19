@@ -110,26 +110,41 @@ try {
    * wrong here means being wrong for one page load in the rare case a token
    * died since the last one — against being wrong on every load, which is what
    * it replaces. */
+  /* Written densely on purpose: this file is inlined verbatim into fourteen
+     heads, comments stripped but whitespace kept, and product.html holds its
+     inline blocks to a byte budget that a page-and-a-half of formatting here
+     would spend on nothing. */
   try {
-    var _b = null, _ck = {}, _i2;
+    var _b = null, _ck = {}, _i2, _kk, _m;
     for (_i2 = 0; _i2 < localStorage.length; _i2++) {
-      var _kk = localStorage.key(_i2); if (!_kk) continue;
-      var _m = _kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/); if (!_m) continue;
-      if (_m[1] === undefined) _b = localStorage.getItem(_kk); else _ck[_m[1]] = localStorage.getItem(_kk);
+      _kk = localStorage.key(_i2);
+      _m = _kk && _kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/);
+      if (_m) { if (_m[1] === undefined) _b = localStorage.getItem(_kk); else _ck[_m[1]] = localStorage.getItem(_kk); }
     }
-    var _ord = Object.keys(_ck).map(Number).sort(function (a, b) { return a - b; });
-    var _str = _ord.length ? _ord.map(function (n) { return _ck[n]; }).join('') : _b;
-    if (_str) {
-      if (_str.indexOf('base64-') === 0) {
-        var _bb = _str.slice(7).replace(/-/g, '+').replace(/_/g, '/');
-        var _by = Uint8Array.from(atob(_bb), function (c) { return c.charCodeAt(0); });
-        _str = new TextDecoder().decode(_by);
+    var _o = Object.keys(_ck).sort(), _s = _o.length ? _o.map(function (n) { return _ck[n]; }).join('') : _b;
+    if (_s) {
+      if (_s.indexOf('base64-') === 0) {
+        _s = new TextDecoder().decode(Uint8Array.from(
+          atob(_s.slice(7).replace(/-/g, '+').replace(/_/g, '/')), function (c) { return c.charCodeAt(0); }));
       }
-      var _raw = JSON.parse(_str);
-      var _se = _raw && _raw.currentSession ? _raw.currentSession : _raw;
-      if (_se && _se.user && (Number(_se.expires_at || 0) * 1000 > Date.now() || _se.refresh_token)) {
-        window.__zwSessionUser = _se.user;
+      var _r = JSON.parse(_s), _se = _r && _r.currentSession ? _r.currentSession : _r, _u = _se && _se.user;
+      if (_u && (Number(_se.expires_at || 0) * 1000 > Date.now() || _se.refresh_token)) {
+        window.__zwSessionUser = _u;
         h.classList.add('zw-authed');
+        /* THE NAME, AS A CUSTOM PROPERTY, so the header's first frame carries it
+           rather than reading "Account" until a script after the nav gets to it;
+           storefront-cohesion.css renders the label from this.
+
+           Derived HERE and nowhere else — five files were each working out "the
+           first word of the full name, or the name, or the part of the email
+           before the @" separately, which is five chances to disagree about what
+           somebody is called. They read window.__zwAcctName now.
+
+           JSON.stringify because a CSS string has to arrive quoted and escaped,
+           and a name can legitimately contain a quote or a backslash. */
+        var _md = _u.user_metadata || {};
+        var _nm = String(_md.full_name || _md.name || (_u.email || '').split('@')[0] || '').trim().split(' ')[0];
+        if (_nm) { window.__zwAcctName = _nm; h.style.setProperty('--zw-acct-name', JSON.stringify(_nm)); }
       }
     }
   } catch (_) {}

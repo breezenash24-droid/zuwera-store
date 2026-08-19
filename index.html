@@ -16,25 +16,25 @@ try {
     if (/[?&]builder=1(?:&|$)/.test(location.search)) window.__ZW_BUILDER_PREVIEW__ = true;
   } catch (_) {}
   try {
-    var _b = null, _ck = {}, _i2;
+    var _b = null, _ck = {}, _i2, _kk, _m;
     for (_i2 = 0; _i2 < localStorage.length; _i2++) {
-      var _kk = localStorage.key(_i2); if (!_kk) continue;
-      var _m = _kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/); if (!_m) continue;
-      if (_m[1] === undefined) _b = localStorage.getItem(_kk); else _ck[_m[1]] = localStorage.getItem(_kk);
+      _kk = localStorage.key(_i2);
+      _m = _kk && _kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/);
+      if (_m) { if (_m[1] === undefined) _b = localStorage.getItem(_kk); else _ck[_m[1]] = localStorage.getItem(_kk); }
     }
-    var _ord = Object.keys(_ck).map(Number).sort(function (a, b) { return a - b; });
-    var _str = _ord.length ? _ord.map(function (n) { return _ck[n]; }).join('') : _b;
-    if (_str) {
-      if (_str.indexOf('base64-') === 0) {
-        var _bb = _str.slice(7).replace(/-/g, '+').replace(/_/g, '/');
-        var _by = Uint8Array.from(atob(_bb), function (c) { return c.charCodeAt(0); });
-        _str = new TextDecoder().decode(_by);
+    var _o = Object.keys(_ck).sort(), _s = _o.length ? _o.map(function (n) { return _ck[n]; }).join('') : _b;
+    if (_s) {
+      if (_s.indexOf('base64-') === 0) {
+        _s = new TextDecoder().decode(Uint8Array.from(
+          atob(_s.slice(7).replace(/-/g, '+').replace(/_/g, '/')), function (c) { return c.charCodeAt(0); }));
       }
-      var _raw = JSON.parse(_str);
-      var _se = _raw && _raw.currentSession ? _raw.currentSession : _raw;
-      if (_se && _se.user && (Number(_se.expires_at || 0) * 1000 > Date.now() || _se.refresh_token)) {
-        window.__zwSessionUser = _se.user;
+      var _r = JSON.parse(_s), _se = _r && _r.currentSession ? _r.currentSession : _r, _u = _se && _se.user;
+      if (_u && (Number(_se.expires_at || 0) * 1000 > Date.now() || _se.refresh_token)) {
+        window.__zwSessionUser = _u;
         h.classList.add('zw-authed');
+        var _md = _u.user_metadata || {};
+        var _nm = String(_md.full_name || _md.name || (_u.email || '').split('@')[0] || '').trim().split(' ')[0];
+        if (_nm) { window.__zwAcctName = _nm; h.style.setProperty('--zw-acct-name', JSON.stringify(_nm)); }
       }
     }
   } catch (_) {}
@@ -464,7 +464,7 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
   <link rel="preload" href="reviews.css?v=91ac9a6f" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="reviews.css?v=91ac9a6f"></noscript>
-  <link rel="stylesheet" href="storefront-cohesion.css?v=300e6636">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=e885efd8">
   <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
 <script src="header-scroll.js?v=fe320725" defer></script>
 <script src="announcement-bar.js?v=aa84f76a" defer></script>
@@ -2284,7 +2284,7 @@ try{var _nb=document.documentElement.getAttribute('data-zw-base')||'dark';docume
   </div>
   <div class="nav-right">
     <button class="nbtn" id="login-btn" onclick="return window.__zwOpenAuth ? window.__zwOpenAuth('signin') : true">Login</button>
-    <button class="nbtn" id="account-btn" onclick="window.location.href='/account.html'">Account</button>
+    <button class="nbtn" id="account-btn" onclick="window.location.href='/account.html'" aria-label="Account"><span class="zw-acct-name"></span></button>
     <button class="nbtn" id="cart-btn" aria-label="Bag" onclick="return window.__zwOpenCart ? window.__zwOpenCart() : true">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
@@ -2328,7 +2328,7 @@ try{var _nb=document.documentElement.getAttribute('data-zw-base')||'dark';docume
    BEFORE paint, mirroring what auth.js does after its async getSession (~0.5s). Without
    this the header flashed both the login AND account button (and, signed in, "Account"
    before the name) until that resolved. auth.js re-applies the same values later. */
-(function(){try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on');}catch(_){}try{var b=null,ck={},j;for(j=0;j<localStorage.length;j++){var kk=localStorage.key(j);if(!kk)continue;var mm=kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/);if(!mm)continue;if(mm[1]===undefined)b=localStorage.getItem(kk);else ck[mm[1]]=localStorage.getItem(kk);}var ord=Object.keys(ck).map(Number).sort(function(a,b){return a-b;});var str=ord.length?ord.map(function(n){return ck[n];}).join(''):b;var u=null;if(str){if(str.indexOf('base64-')===0){var bin=atob(str.slice(7).replace(/-/g,'+').replace(/_/g,'/'));str=new TextDecoder().decode(Uint8Array.from(bin,function(c){return c.charCodeAt(0);}));}var raw=JSON.parse(str);var se=raw&&raw.currentSession?raw.currentSession:raw;if(se&&se.user&&(Number(se.expires_at||0)*1000>Date.now()||se.refresh_token))u=se.user;}var i=!!u;var L=document.getElementById('login-btn'),A=document.getElementById('account-btn'),O=document.getElementById('logout-btn');if(L)L.style.display=i?'none':'inline-flex';if(A){A.style.display=i?'inline-flex':'none';if(i){var n=(u.user_metadata&&(u.user_metadata.full_name||u.user_metadata.name))||(u.email||'').split('@')[0]||'';A.textContent=(n||'').split(' ')[0];}}if(O)O.style.display=i?'inline-flex':'none';}catch(_){}})();</script>
+(function(){try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on');}catch(_){}try{var u=window.__zwSessionUser;var A=document.getElementById('account-btn'),O=document.getElementById('logout-btn'),n=window.__zwAcctName;if(A&&n)A.setAttribute('aria-label',n);if(O)O.style.display=u?'inline-flex':'none';}catch(_){}})();</script>
 
 
 <!-- MOBILE MENU MODAL -->

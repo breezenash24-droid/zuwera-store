@@ -369,14 +369,29 @@ console.log('\n  every token it writes is one something reads, and pairs move to
   ok('a background is never painted without its foreground', split.length === 0,
     split.map((p) => p.join(' / ')).join(', ') + ' — half a pair is how text goes invisible');
 
-  /* And the engine must still write everything the block does, or the block's
-     value survives past the moment the engine was supposed to take over. */
+  /* And SOMETHING must still write everything the block does, or the block's
+     value survives past the moment it was supposed to be taken over.
+
+     Two correctors, because the block now guesses at two different things. The
+     theme engine owns the colours. auth.js owns the account name, which is not
+     a theme token at all — it comes from the session, and the pass that has
+     actually spoken to the server is the one entitled to overrule a guess made
+     from localStorage. What matters is that every guess HAS an owner; requiring
+     it to be the same owner for all of them would only have pushed session
+     state into the theme engine to satisfy a test. */
   const engine = fs.readFileSync(path.join(ROOT, 'theme-engine.js'), 'utf8');
+  const auth = fs.readFileSync(path.join(ROOT, 'auth.js'), 'utf8');
+  const corrects = (src, t) => new RegExp("set\\('" + t + "'").test(src)
+    || new RegExp("setProperty\\('" + t + "'").test(src)
+    || new RegExp("removeProperty\\('" + t + "'").test(src);
   const orphan = written.filter((t) => t !== '--zw-notch-bar'
-    && !new RegExp("set\\('" + t + "'").test(engine)
-    && !new RegExp("setProperty\\('" + t + "'").test(engine));
-  ok('the engine writes everything the pre-paint block does', orphan.length === 0,
+    && !corrects(engine, t) && !corrects(auth, t));
+  ok('everything the pre-paint block guesses at has a corrector', orphan.length === 0,
     orphan.join(', ') + ' — a token only the guess sets can never be corrected');
+  /* Set is not enough for this one: a name left behind after a sign-out is a
+     header greeting a session that no longer exists. */
+  ok('...and the account name is actively cleared, not just overwritten',
+    /removeProperty\('--zw-acct-name'\)/.test(auth));
 
   /* color-scheme is not a custom property, so the sweep above cannot see it —
      and it was the one the engine had never set. It is what the browser reads
