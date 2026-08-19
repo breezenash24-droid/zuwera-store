@@ -23,7 +23,7 @@ import { supabaseUrl, supabaseAnonKey } from './_config.js';
 // draft halves are deliberately NOT in the site_settings public-read policy
 // (migration 0026 says why): the preview receives them over postMessage from
 // the builder, never by reading the database.
-const ALLOWED_KEYS = ['page_builder','builder_theme','builder_nav','builder_history','builder_templates','builder_layouts','page_builder_published','landing_pages','landing_pages_published','scheduled_publish','product_page','collection_page','product_page_draft','collection_page_draft','theme_modes','nav_menu_draft','announcement_bar_draft','text_overrides_draft'];
+const ALLOWED_KEYS = ['page_builder','builder_theme','builder_nav','builder_history','builder_templates','builder_layouts','page_builder_published','landing_pages','landing_pages_published','scheduled_publish','product_page','collection_page','product_page_draft','collection_page_draft','theme_modes','nav_menu_draft','announcement_bar_draft','text_overrides_draft','header_layout_draft'];
 
 // Draft key → the live key it publishes to.
 const DRAFT_TO_LIVE = {
@@ -32,6 +32,7 @@ const DRAFT_TO_LIVE = {
   nav_menu_draft: 'nav_menu',
   announcement_bar_draft: 'announcement_bar',
   text_overrides_draft: 'text_overrides',
+  header_layout_draft: 'header_layout',
 };
 
 function cors(body, status = 200) {
@@ -116,6 +117,7 @@ export async function onRequestPost({ request, env }) {
       'nav_menu', 'nav_menu_draft',
       'announcement_bar', 'announcement_bar_draft',
       'text_overrides', 'text_overrides_draft',
+      'header_layout', 'header_layout_draft',
     ]);
     const value = VERBATIM.has(key)
       ? payload

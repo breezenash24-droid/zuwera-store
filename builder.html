@@ -71,6 +71,13 @@ body{display:flex;flex-direction:column}
 .lp-bar-title{font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mu);flex:1;white-space:nowrap}
 .lp-float-btn{background:transparent;border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.08em;text-transform:uppercase;padding:.26rem .55rem;cursor:pointer;border-radius:2px;transition:.1s;white-space:nowrap}
 .lp-float-btn:hover{border-color:var(--ac);color:var(--ac)}
+.hdrcfg{display:flex;flex-direction:column;gap:.4rem;text-align:left;background:var(--sf2);border:1px solid var(--bd);border-radius:5px;padding:.6rem .7rem;cursor:pointer;transition:.12s;color:inherit;font:inherit}
+.hdrcfg:hover{border-color:rgba(255,255,255,.24)}
+.hdrcfg.on{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac) inset}
+.hdrcfg-hd{display:flex;align-items:center;gap:.5rem}
+.hdrcfg-name{font-size:.72rem;font-weight:600;letter-spacing:.02em;color:#f4f1eb}
+.hdrcfg-tick{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:.46rem;letter-spacing:.12em;text-transform:uppercase;color:#0f0f11;background:var(--ac);border-radius:999px;padding:.14rem .45rem}
+.hdrcfg-note{font-size:.6rem;line-height:1.55;color:var(--mu)}
 .pv-modes{display:inline-flex;gap:2px;background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:2px;flex-shrink:0}
 .pvm{background:transparent;border:0;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.09em;text-transform:uppercase;padding:.26rem .6rem;cursor:pointer;border-radius:999px;transition:.1s;white-space:nowrap}
 .pvm:hover:not(.on){color:#f4f1eb}
@@ -448,6 +455,11 @@ body{display:flex;flex-direction:column}
       <button type="button" class="pvm" role="radio" data-mode="text"   onclick="setCanvasMode('text')"   title="Click any text in the preview to edit it in place and change its font.">Text</button>
       <button type="button" class="pvm" role="radio" data-mode="move"   onclick="setCanvasMode('move')"   title="Drag a colour block's content around inside the block (snaps to centre).">Move</button>
     </div>
+    <!-- Beside the click-modes because it is the same kind of question -- what am
+         I looking at, and how is it arranged -- and not inside the More menu,
+         where it would be a thirteenth line of text nobody scans. -->
+    <button type="button" class="lp-float-btn" id="hdrCfgBtn" onclick="openHeaderCfg()"
+            style="margin-left:.5rem" title="Choose where the logo, categories and actions sit in the header">&#9881; Header</button>
     <span id="pvDims" style="margin-left:auto">—</span>
   </div>
   <div class="pv-wrap">
@@ -481,6 +493,27 @@ body{display:flex;flex-direction:column}
       <input id="mediaUrlInput" type="url" placeholder="Or paste any URL…" style="flex:1;background:var(--sf2);border:1px solid var(--bd);color:#f4f1eb;font-size:.68rem;padding:.32rem .5rem;border-radius:2px;outline:none">
       <button onclick="applyMediaUrl(document.getElementById('mediaUrlInput').value)" style="background:#f4f1eb;color:#0f0f11;border:none;font-family:'IBM Plex Mono',monospace;font-size:.52rem;letter-spacing:.09em;text-transform:uppercase;padding:.32rem .65rem;cursor:pointer;border-radius:2px;font-weight:600">Use URL</button>
       <label style="background:transparent;border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.52rem;letter-spacing:.09em;text-transform:uppercase;padding:.32rem .65rem;cursor:pointer;border-radius:2px;transition:.12s" onmouseover="this.style.borderColor='rgba(255,255,255,.22)'" onmouseout="this.style.borderColor='var(--bd)'">⬆ Upload<input type="file" accept="image/*,video/*" style="display:none" onchange="uploadFromMedia(this)"></label>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER LAYOUT -->
+<!-- Every tile is drawn by ZWHeaderLayouts.miniature() from the same slot data
+     the storefront rearranges the real header with, so a picture here cannot
+     promise an arrangement the site will not produce. The list scrolls: seeing
+     them one after another IS the feature. -->
+<div class="mover" id="hdrCfgModal" onclick="if(event.target===this)closeHeaderCfg()">
+  <div class="mbox" style="width:min(680px,94vw);max-height:86vh;display:flex;flex-direction:column">
+    <div class="mbox-hd">
+      <div>
+        <h3>Header layout</h3>
+        <p>Where the logo, the categories and the actions sit. Scroll for every arrangement.</p>
+      </div>
+      <button class="mx" onclick="closeHeaderCfg()">&times;</button>
+    </div>
+    <div id="hdrCfgList" style="padding:.85rem 1rem 1rem;overflow-y:auto;display:flex;flex-direction:column;gap:.55rem"></div>
+    <div style="padding:.6rem 1rem;border-top:1px solid var(--bd);font-size:.58rem;color:var(--mu);line-height:1.6">
+      Position only &mdash; colours, sizes and fonts stay with the theme. Nothing is live until you press Publish.
     </div>
   </div>
 </div>
@@ -3321,17 +3354,21 @@ function sendChrome(){
   if(Array.isArray(chromeNav)) post({type:'ZW_NAV_PREVIEW',items:chromeNav});
   if(chromeBar) post({type:'ZW_BAR_PREVIEW',value:chromeBar});
   post({type:'ZW_TEXT_OVERRIDES',value:chromeCopy||{}});
+  if(chromeHeader) post({type:'ZW_HEADER_LAYOUT',id:chromeHeader});
 }
 
 /* Load the draft if there is one, otherwise what is live. A draft is only ever
    absent because nothing has been edited yet. */
 async function loadChrome(){
   const pick=(d,l)=>(d!==undefined&&d!==null)?d:l;
-  const [navD,navL,barD,barL,cpD,cpL]=await Promise.all([
+  const [navD,navL,barD,barL,cpD,cpL,hdD,hdL]=await Promise.all([
     fetchSettingAuthed('nav_menu_draft'), fetchSettingAuthed('nav_menu'),
     fetchSettingAuthed('announcement_bar_draft'), fetchSettingAuthed('announcement_bar'),
     fetchSettingAuthed('text_overrides_draft'), fetchSettingAuthed('text_overrides'),
+    fetchSettingAuthed('header_layout_draft'), fetchSettingAuthed('header_layout'),
   ]);
+  const hd=pick(hdD,hdL);
+  chromeHeader=(hd&&typeof hd==='object')?(hd.id||''):(hd||'');
   const nav=pick(navD,navL);
   chromeNav=Array.isArray(nav)?nav:[];
   const bar=pick(barD,barL);
@@ -3387,6 +3424,52 @@ function applyTextOverride(page,path,was,newText,loose){
   return {ok:true,was:orig};
 }
 
+/* ── HEADER LAYOUT ───────────────────────────────────────────────────────────
+   A layout is one id. It travels with the rest of the chrome draft, so it obeys
+   the same rule as everything else typed in here: nothing reaches a shopper
+   until Publish.
+
+   The picker draws itself from ZWHeaderLayouts, which is also what rearranges
+   the real header -- one definition, two readers. Nothing about a layout is
+   described twice, so nothing about it can disagree. */
+let chromeHeader = '';
+
+function openHeaderCfg(){
+  const L=window.ZWHeaderLayouts;
+  const host=document.getElementById('hdrCfgList');
+  if(!L||!host){ toast('Header layouts unavailable','err'); return; }
+  if(!document.getElementById('zwhlCss')){
+    const st=document.createElement('style'); st.id='zwhlCss'; st.textContent=L.css;
+    document.head.appendChild(st);
+  }
+  host.innerHTML=L.list.map(l=>{
+    const on = (chromeHeader||'classic')===l.id;
+    return '<button type="button" class="hdrcfg'+(on?' on':'')+'" data-lay="'+he(l.id)+'">'
+      + '<span class="hdrcfg-hd"><span class="hdrcfg-name">'+he(l.name)+'</span>'
+      + (on?'<span class="hdrcfg-tick">in use</span>':'')+'</span>'
+      + L.miniature(l)
+      + '<span class="hdrcfg-note">'+he(l.note)+'</span></button>';
+  }).join('');
+  /* Bound here rather than written as an inline onclick: the id would have to be
+     quoted inside an attribute inside a JS string, and that nesting is exactly
+     where a stray quote turns the whole list into dead markup. */
+  host.querySelectorAll('.hdrcfg').forEach(b=>{
+    b.addEventListener('click',()=>pickHeaderLayout(b.dataset.lay));
+  });
+  document.getElementById('hdrCfgModal').classList.add('open');
+}
+function closeHeaderCfg(){ document.getElementById('hdrCfgModal').classList.remove('open'); }
+
+function pickHeaderLayout(id){
+  if(!window.ZWHeaderLayouts||!window.ZWHeaderLayouts.byId(id)) return;
+  chromeHeader=id;
+  markChromeDirty('header');
+  sendChrome();
+  openHeaderCfg();          // repaint so the tick moves to what you just chose
+  const l=window.ZWHeaderLayouts.byId(id);
+  toast('Header: '+l.name+' — preview updated','ok');
+}
+
 /* An override and a section field must never both own the same words.
 
    If a field edit succeeds for an element that ALSO carries an override, the
@@ -3413,12 +3496,13 @@ async function saveChrome(pub){
   /* Publish writes all three whatever changed in THIS session: a draft saved an
      hour ago still has to be promoted onto its live key. Save Draft writes only
      what was touched. */
-  const want = pub ? ['nav','bar','copy'] : [...chromeDirtyKeys];
+  const want = pub ? ['nav','bar','copy','header'] : [...chromeDirtyKeys];
   if(!want.length) return true;
   const KEYS = {
     nav:  ['nav_menu_draft',        () => Array.isArray(chromeNav) ? chromeNav : []],
     bar:  ['announcement_bar_draft',() => chromeBar || {}],
     copy: ['text_overrides_draft',  () => chromeCopy || {}],
+    header: ['header_layout_draft',  () => ({ id: chromeHeader || 'classic' })],
   };
   try{
     const token=await getAccessToken(); if(!token) throw new Error('Session expired');
@@ -3893,5 +3977,6 @@ function onKey(e){
 
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 </script>
+<script src="/header-layouts.js"></script>
 </body>
 </html>

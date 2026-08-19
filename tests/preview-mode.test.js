@@ -93,7 +93,7 @@ const otherEnv = { SUPABASE_SERVICE_ROLE_KEY: 'a-different-deployments-key' };
        nav, bar and page copy around draft sections — the one button whose whole
        job is showing unpublished work was where those edits never appeared. */
     ok('only draft storefront keys are readable', list.length > 0 &&
-      list.every(k => /^(page_builder|landing_pages|builder_theme|builder_nav|product_page_draft|collection_page_draft|nav_menu_draft|announcement_bar_draft|text_overrides_draft)$/.test(k)),
+      list.every(k => /^(page_builder|landing_pages|builder_theme|builder_nav|product_page_draft|collection_page_draft|nav_menu_draft|announcement_bar_draft|text_overrides_draft|header_layout_draft)$/.test(k)),
       list.join(','));
     ok('and every one of them is a draft, never a live key',
       list.every(k => /_draft$/.test(k) || /^(page_builder|landing_pages|builder_theme|builder_nav)$/.test(k)),
