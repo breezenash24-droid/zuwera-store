@@ -103,7 +103,7 @@
   }
 
   // Position the fixed bar + offset the nav so the bar sits ABOVE the header.
-  function layout(barEl, navEl, isVisible, keepSpacer) {
+  function layout(barEl, navEl, isVisible) {
     var spacerEl = document.getElementById('bar-spacer');
     if (isMobile()) {
       // Mobile: bar drops BELOW the nav — measure the real nav height into --zw-bar-top.
@@ -121,9 +121,7 @@
       // spacer is barH-1 too: for an IN-FLOW sticky nav that's what sets its rest
       // position, so it gets the same ~1px overlap as a fixed nav (not a thin 0.4px).
       if (navEl) navEl.style.top = (barH ? barH - 1 : -1) + 'px';
-      // keepSpacer: the header is carrying a static bar away, which nothing in
-      // flow asked for. The reserved height stays, so the page does not jump.
-      if (spacerEl && !(keepSpacer && !isVisible)) spacerEl.style.height = isVisible ? (barH - 1) + 'px' : '0';
+      if (spacerEl) spacerEl.style.height = isVisible ? (barH - 1) + 'px' : '0';
     }
     // Builder preview (homepage): the header height just changed — re-pad the builder
     // layout's top section so it stays clear of the header. No-op outside the builder.
@@ -268,18 +266,23 @@
       var mLast = window.scrollY, mHidden = false, mAt = Date.now() + 150;
       var mSet = function (h) { barEl.style.opacity = h ? '0' : '1'; barEl.style.pointerEvents = h ? 'none' : ''; };
       mSet(false);
-      // The header's handle on the bar. Idempotent: the header calls show() on
-      // every tick near the top of the page, not only on the frame it changes.
-      window.zwBarSetHidden = function (h) {
-        h = !!h;
-        if (h === mHidden) return;
-        mHidden = h; mSet(h);
-      };
-      // The header may already be hidden by the time this config lands — a fast
-      // scroll during load. Match it, or the bar arrives alone above a header
-      // that is not there.
-      if (!hidesItself && navEl && navEl.classList.contains('zw-nav-hidden')) window.zwBarSetHidden(true);
-      if (!hidesItself) return;   // static: it leaves only when the header does
+      if (!hidesItself) {
+        /* The header's handle. A fade, not the desktop slide: on a phone the
+           bar sits BELOW the nav, so it has a nav's height of travel before it
+           would clear the top and nothing to slide behind. .3s against the
+           header's .35s means it finishes a touch first, which is the safe
+           order — the bar is never the thing left behind. */
+        window.zwBarSetHidden = function (h) {
+          h = !!h;
+          if (h === mHidden) return;
+          mHidden = h; mSet(h);
+        };
+        // The header may already be hidden by the time this config lands — a
+        // fast scroll during load. Match it rather than arriving alone above a
+        // header that is not there.
+        if (navEl && navEl.classList.contains('zw-nav-hidden')) { mHidden = true; mSet(true); }
+        return;   // static: it leaves only when the header does
+      }
       _scrollHandler = function () {
         var y = window.scrollY;
         if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { mLast = y; return; }
@@ -302,11 +305,11 @@
     barEl.style.transform = '';
     barEl.style.willChange = '';
     var last = window.scrollY, hidden = false, at = Date.now() + 150, hideTimer = null;
-    var sync = function (h, keepSpacer) {
+    var sync = function (h) {
       clearTimeout(hideTimer);
       if (h) {
         if (navEl) navEl.style.setProperty('z-index', '231', 'important');   // nav covers the bar
-        layout(barEl, navEl, false, keepSpacer);   // nav.top → -1: header rises OVER the stationary bar
+        layout(barEl, navEl, false);   // nav.top → -1: header rises OVER the stationary bar
         hideTimer = setTimeout(function () { barEl.style.display = 'none'; try { if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); } catch (_) {} }, reduce ? 0 : 340);
       } else {
         barEl.style.display = 'flex';
@@ -316,23 +319,49 @@
         hideTimer = setTimeout(function () { if (navEl) navEl.style.removeProperty('z-index'); }, reduce ? 0 : 340);
       }
     };
-    /* The same handle as mobile, and keepSpacer is the whole difference
-       between the two reasons a bar can go. Its OWN scroll rule means the
-       strip is leaving, so the height it reserved leaves with it. The HEADER
-       taking it means nobody asked the bar to go anywhere — collapsing the
-       spacer there would jump every word on the page up by the bar's height,
-       mid-scroll, which is exactly the kind of gap this header work has spent
-       its time removing. */
-    window.zwBarSetHidden = function (h) {
-      h = !!h;
-      if (h === hidden) return;
-      hidden = h; sync(h, true);
+    /* ── Carried by the header ─────────────────────────────────────────
+       A bar the header takes with it needs a different exit from the one
+       above, and this is why: the bar's own hide is "the nav RISES and
+       COVERS the strip, then the strip is removed" — which only reads
+       right while the nav is still on screen doing the covering. When the
+       header is itself sliding away there is nothing covering anything.
+       The nav left, the bar stayed exactly where it was for another third
+       of a second, and then blinked out: the header leaving before the bar.
+
+       So a carried bar SLIDES, on the header's curve and duration, and is
+       never display:none'd — the spacer is untouched either way, nothing
+       here needs the element gone, and a transform that is still there is
+       one that can animate straight back on the way up.
+
+       translateY(-100%) is 26px of travel where the nav's is nearer 100,
+       so the bar clears the top edge a hair AFTER the header rather than
+       before it — the safe side of simultaneous, and the reason not to
+       spend anything measuring an exact rigid offset.
+
+       The nav still drops to top:-1, because -110% of the nav's own height
+       does not clear a header that starts a bar's height down the page. */
+    var carry = function (h, instant) {
+      clearTimeout(hideTimer);
+      barEl.style.display = 'flex';
+      barEl.style.transition = (instant || reduce) ? 'none'
+        : 'transform .35s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1))';
+      barEl.style.transform = h ? 'translateY(-100%)' : '';
+      if (navEl) navEl.style.top = h ? '-1px' : ((barEl.offsetHeight ? barEl.offsetHeight - 1 : 0) + 'px');
     };
-    // The header may already be hidden by the time this config lands — a fast
-    // scroll during load. Match it, or the bar arrives alone above a header
-    // that is not there.
-    if (!hidesItself && navEl && navEl.classList.contains('zw-nav-hidden')) window.zwBarSetHidden(true);
-    if (!hidesItself) return;   // static: it leaves only when the header does
+
+    if (!hidesItself) {
+      // The header's handle on the bar. Idempotent: the header calls show()
+      // on every tick near the top, not only on the frame it changes.
+      window.zwBarSetHidden = function (h) {
+        h = !!h;
+        if (h === hidden) return;
+        hidden = h; carry(h);
+      };
+      // The header may already be hidden by the time this config lands — a
+      // fast scroll during load. Match it, without sliding in from nowhere.
+      if (navEl && navEl.classList.contains('zw-nav-hidden')) { hidden = true; carry(true, true); }
+      return;   // static: it leaves only when the header does
+    }
     _scrollHandler = function () {
       var y = window.scrollY;
       if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { last = y; return; }

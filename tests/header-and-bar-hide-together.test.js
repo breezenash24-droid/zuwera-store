@@ -140,9 +140,12 @@ async function drive(opts) {
   };
   const state = () => ({
     header: w.nav.classList.contains('zw-nav-hidden') ? 'hidden' : 'shown',
-    bar: w.bar.style.display === 'none' ? 'hidden' : (parseFloat(w.bar.style.opacity || '1') === 0 ? 'faded' : 'shown'),
+    bar: w.bar.style.display === 'none' ? 'removed'
+      : /translateY\(-100%\)/.test(w.bar.style.transform || '') ? 'slid-away'
+        : parseFloat(w.bar.style.opacity || '1') === 0 ? 'faded' : 'shown',
     policy: w.bar.dataset.zwBarHide || '',
     spacer: w.spacer.style.height,
+    navTop: w.nav.style.top,
   });
   return { scroll, state, w };
 }
@@ -162,14 +165,27 @@ const settle = () => new Promise((r) => setTimeout(r, 400));   // the 340ms disp
     d.scroll(400); d.scroll(900);
     ok('AUTO-HIDE HIDES THE HEADER even though the bar never hides itself',
       d.state().header === 'hidden', 'header stayed ' + d.state().header);
+    // The header and the bar must start moving on the SAME tick. Reading this
+    // before any timer runs is the point: the fault it replaces was a bar that
+    // only left 340ms later, after the header had already gone.
+    ok('the bar starts moving on the same tick, not on a timer',
+      d.state().bar === 'slid-away', 'bar was ' + d.state().bar);
+    ok('it SLIDES rather than blinking out — display:none while the header is '
+      + 'still in flight is what read as the header leaving first',
+      d.w.bar.style.display !== 'none' && /transform/.test(d.w.bar.style.transition || ''),
+      'display=' + d.w.bar.style.display + ' transition=' + d.w.bar.style.transition);
+    ok('the nav drops to -1px so a header a bar-height down the page still clears',
+      d.state().navTop === '-1px', 'navTop=' + d.state().navTop);
     await settle();
-    ok('and the bar goes with it', d.state().bar === 'hidden', 'bar was ' + d.state().bar);
+    ok('and it is still not removed once the timers have run',
+      d.state().bar === 'slid-away', 'bar became ' + d.state().bar);
     ok('the reserved height stays, so nothing in flow jumps',
-      d.spacer === undefined || d.w.spacer.style.height === '25px', 'spacer=' + d.w.spacer.style.height);
+      d.w.spacer.style.height === '25px', 'spacer=' + d.w.spacer.style.height);
 
     d.scroll(600);
     ok('scrolling up brings the header back', d.state().header === 'shown');
     ok('…and the bar with it', d.state().bar === 'shown', 'bar was ' + d.state().bar);
+    ok('the nav returns to sitting under the bar', d.state().navTop === '25px', 'navTop=' + d.state().navTop);
   }
 
   /* ── 2 · a bar with its own rule still goes first ───────────────────────── */
