@@ -85,9 +85,19 @@ const otherEnv = { SUPABASE_SERVICE_ROLE_KEY: 'a-different-deployments-key' };
     const cfg = fs.readFileSync(R + 'functions/api/preview-config.js', 'utf8');
     const keys = (cfg.match(/const DRAFT_KEYS = \[([^\]]*)\]/) || [])[1] || '';
     const list = (keys.match(/'[^']+'/g) || []).map(s => s.slice(1, -1));
+    /* An explicit roster, not a pattern, so widening it is a decision somebody
+       had to write down. nav_menu_draft / announcement_bar_draft /
+       text_overrides_draft joined it when the builder learned to edit text
+       outside a section: they are storefront content drafts, the same class as
+       product_page_draft, and without them "Preview live" showed the published
+       nav, bar and page copy around draft sections — the one button whose whole
+       job is showing unpublished work was where those edits never appeared. */
     ok('only draft storefront keys are readable', list.length > 0 &&
-      list.every(k => /^(page_builder|landing_pages|builder_theme|builder_nav|product_page_draft|collection_page_draft)$/.test(k)),
+      list.every(k => /^(page_builder|landing_pages|builder_theme|builder_nav|product_page_draft|collection_page_draft|nav_menu_draft|announcement_bar_draft|text_overrides_draft)$/.test(k)),
       list.join(','));
+    ok('and every one of them is a draft, never a live key',
+      list.every(k => /_draft$/.test(k) || /^(page_builder|landing_pages|builder_theme|builder_nav)$/.test(k)),
+      'the live halves are public already and have no business behind a token');
     ok('no published key is exposed through it', !list.some(k => /_published$/.test(k)));
     // Strip comments — the file's own doc block names these tables to say it
     // does NOT read them, and matching prose would pass or fail for the wrong
