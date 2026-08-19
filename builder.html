@@ -12,7 +12,7 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;background:#0f0f11;color:#f4f1eb;font-family:'Barlow',sans-serif;font-size:13px}
-:root{--bg:#0f0f11;--sf:#17171b;--sf2:#1e1e24;--tx:#f4f1eb;--wn:#f4c66a;--wn-bg:rgba(244,198,106,.06);--bd:rgba(255,255,255,.08);--mu:rgba(244,241,235,.42);--ac:#F891A5;
+:root{--bg:#0f0f11;--sf:#17171b;--sf2:#1e1e24;--tx:#f4f1eb;--wn:#f4c66a;--wn-bg:rgba(244,198,106,.06);--hv:rgba(255,255,255,.26);--sel:rgba(248,145,165,.055);--tint:rgba(255,255,255,.03);--tint2:rgba(255,255,255,.08);--bd:rgba(255,255,255,.08);--mu:rgba(244,241,235,.42);--ac:#F891A5;
   /* One width for the list AND the editor that covers it, so the preview
      never changes size depending on what is open. 292px fits four tabs
      across; the editor used to be a separate 300px column beside it. */
@@ -91,6 +91,10 @@ body{display:flex;flex-direction:column}
 .hdrcfg-tabs button{font-family:'IBM Plex Mono',monospace;font-size:.52rem;letter-spacing:.11em;text-transform:uppercase;font-weight:600;padding:.6rem .75rem;border:none;background:transparent;color:var(--mu);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
 .hdrcfg-tabs button:hover{color:var(--tx)}
 .hdrcfg-tabs button.on{color:var(--tx);border-bottom-color:var(--ac)}
+.hdrcfg-dv{margin-left:auto;align-self:center}
+.hdrcfg-tabs .tog button{font-family:'IBM Plex Mono',monospace;font-size:.46rem;letter-spacing:.1em;text-transform:uppercase;padding:.28rem .5rem;border:none;background:transparent;color:var(--mu);cursor:pointer;border-radius:2px;border-bottom:none;margin-bottom:0}
+.hdrcfg-tabs .tog button.on{background:var(--tx);color:var(--bg);font-weight:600}
+.hdrcfg-dev.dv{outline:1px solid var(--ac);outline-offset:2px}
 .hdrcfg-pane{display:flex;flex-direction:column;min-height:0;overflow-y:auto}
 .hdrcfg-pane[hidden]{display:none}
 /* The settings pane, unlike the gallery, is a column of ordinary rows: each is
@@ -103,6 +107,32 @@ body{display:flex;flex-direction:column}
 .hdrcfg-set:last-child{border-bottom:none}
 .hdrcfg-set-hd{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:.4rem}
 .hdrcfg-set-hd .tog{margin-left:auto}
+/* Three device cards, each drawing the real cluster. Sized so the widest one
+   (desktop, words) sets the row and the phone card is visibly the narrow one —
+   the difference between the frames is part of what is being shown. */
+.hdrcfg-devs{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin:.7rem 0 .2rem}
+.hdrcfg-dev{display:flex;flex-direction:column;gap:.4rem;align-items:stretch;background:var(--sf2);border:1px solid var(--bd);border-radius:6px;padding:.55rem .6rem .5rem;cursor:pointer;color:inherit;font:inherit;text-align:left;transition:border-color .12s,background .12s}
+.hdrcfg-dev:hover{border-color:var(--hv)}
+.hdrcfg-dev.on{border-color:var(--ac);background:var(--sel)}
+.hdrcfg-dev-t{display:flex;align-items:center;gap:.35rem;font-family:'IBM Plex Mono',monospace;font-size:.46rem;letter-spacing:.13em;text-transform:uppercase;color:var(--mu)}
+.hdrcfg-dev.on .hdrcfg-dev-t{color:var(--tx)}
+.hdrcfg-dev-w{font-size:.44rem;letter-spacing:.1em;margin-left:auto;color:var(--mu)}
+.hdrcfg-dev.on .hdrcfg-dev-w{color:var(--ac)}
+/* The bar the cluster sits in, so a control that has moved is visibly at an
+   end of something rather than floating. */
+.hdrcfg-dev-bar{display:flex;align-items:center;justify-content:flex-end;min-height:26px;padding:.2rem .35rem;border:1px solid var(--bd);border-radius:3px;background:var(--tint);overflow:hidden}
+/* Order chips: the same glyphs again, as things you can pick up and move. */
+.hdrcfg-order{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-top:.55rem}
+.hdrcfg-chip{display:flex;align-items:center;gap:.4rem;background:var(--sf2);border:1px solid var(--bd);border-radius:5px;padding:.34rem .5rem;cursor:grab;color:inherit;font:inherit}
+.hdrcfg-chip[draggable="true"]:active{cursor:grabbing}
+.hdrcfg-chip.drag{opacity:.4}
+.hdrcfg-chip.over{border-color:var(--ac)}
+.hdrcfg-chip-n{font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;color:var(--tx)}
+.hdrcfg-chip-mv{display:flex;gap:.1rem;margin-left:.15rem}
+.hdrcfg-chip-mv button{border:none;background:transparent;color:var(--mu);cursor:pointer;font-size:.62rem;line-height:1;padding:.1rem .2rem;border-radius:2px}
+.hdrcfg-chip-mv button:hover:not(:disabled){color:var(--tx);background:var(--tint2)}
+.hdrcfg-chip-mv button:disabled{opacity:.25;cursor:default}
+.hdrcfg-chip.fixed{cursor:default;opacity:.55}
 .hdrcfg-rows{display:flex;flex-direction:column;gap:.4rem;margin:.6rem 0 .1rem}
 .hdrcfg-row{display:flex;align-items:center;gap:.6rem}
 .hdrcfg-row input[type=checkbox]{width:15px;height:15px;accent-color:var(--ac);cursor:pointer;flex:none}
@@ -571,6 +601,16 @@ body{display:flex;flex-direction:column}
     <div class="hdrcfg-tabs" role="tablist" aria-label="Header settings">
       <button type="button" role="tab" id="hdrTabLayout" class="on" onclick="hdrTab('layout')">Layout</button>
       <button type="button" role="tab" id="hdrTabIcons" onclick="hdrTab('icons')">Icons &amp; account</button>
+      <!-- Not a second device setting. It is the SAME control as the toolbar's
+           behind the modal — it sets pvMode, so the canvas moves with it and
+           there is one answer to "which device am I looking at" rather than two
+           that can disagree. The tiles follow it, which is how a phone tile can
+           show what a phone actually gets. -->
+      <span class="tog hdrcfg-dv" role="group" aria-label="Preview device">
+        <button type="button" id="hdrDvMob"  onclick="setPvMode('mob')">Phone</button>
+        <button type="button" id="hdrDvTab"  onclick="setPvMode('tab')">Tablet</button>
+        <button type="button" id="hdrDvDesk" onclick="setPvMode('desk')">Desktop</button>
+      </span>
     </div>
 
     <div id="hdrPaneLayout" class="hdrcfg-pane">
@@ -594,16 +634,28 @@ body{display:flex;flex-direction:column}
     </div>
 
     <div id="hdrPaneIcons" class="hdrcfg-pane" hidden>
+      <!-- THE PICTURE IS THE CONTROL. This tab was a column of switches, which
+           made you hold the result in your head — the same demand the first
+           version of the layout picker made, and the reason it shipped tiles
+           that lied. These three cards draw the actual cluster, in the chosen
+           order, with the words or the glyphs each device will actually get,
+           from the same renderer the storefront's own vocabulary comes from.
+           Clicking a card is what switches that device. -->
       <div class="hdrcfg-set">
         <div class="hdrcfg-set-hd">
           <span class="hdrcfg-lines-l">Search, account and bag</span>
-          <span class="tog" role="group" aria-label="Show words instead of icons on">
-            <button type="button" id="hdrLbPhone"   onclick="toggleHdrLabel('phone')">Phone</button>
-            <button type="button" id="hdrLbTablet"  onclick="toggleHdrLabel('tablet')">Tablet</button>
-            <button type="button" id="hdrLbDesktop" onclick="toggleHdrLabel('desktop')">Desktop</button>
-          </span>
+          <span class="hdrcfg-lines-n" style="flex:1">Click a device to switch it between icons and words.</span>
         </div>
-        <p class="hdrcfg-lines-n">Words instead of glyphs, per device &mdash; pick any combination, or none for icons everywhere. The words come from the label each control already carries for screen readers, so nothing here can leave a button unnamed. <span id="hdrLbNow" style="color:var(--tx)"></span></p>
+        <div class="hdrcfg-devs" id="hdrDevs"></div>
+        <p class="hdrcfg-lines-n" id="hdrLbNow"></p>
+      </div>
+
+      <div class="hdrcfg-set">
+        <div class="hdrcfg-set-hd">
+          <span class="hdrcfg-lines-l">The order they sit in</span>
+          <span class="hdrcfg-lines-n" style="flex:1">Drag a control, or use the arrows. The menu button always closes the row.</span>
+        </div>
+        <div class="hdrcfg-order" id="hdrOrder"></div>
       </div>
 
       <div class="hdrcfg-set">
@@ -614,7 +666,7 @@ body{display:flex;flex-direction:column}
             <button type="button" id="hdrAcctHeader" onclick="setHdrAccount('header')">In the header</button>
           </span>
         </div>
-        <p class="hdrcfg-lines-n">The bag slide-out carries an account menu, so the header's own account button is normally quiet while it is open. Keep it in the header if you would rather it stayed put &mdash; the menu below keeps its own route either way, so nobody loses their way to their account.</p>
+        <p class="hdrcfg-lines-n">The bag slide-out carries an account menu, so the header's own account button is normally quiet while it is open. Keep it in the header if you would rather it stayed put &mdash; the menu below keeps its own route either way, so nobody loses their way to their account. The cards above show which way you have it.</p>
       </div>
 
       <div class="hdrcfg-set">
@@ -3403,7 +3455,7 @@ function setPvMode(m){
   pvMode=m;
   // The header modal names the width its arrangement applies at, so it has to
   // follow the preview rather than stating it once and going stale.
-  try{ paintHdrScope(); }catch(_){}
+  try{ paintHdrScope(); paintHdrDevice(); if(document.getElementById('hdrCfgModal').classList.contains('open')) paintHeaderCfg(); }catch(_){}
   document.querySelectorAll('#pvTog button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
   const frame=document.getElementById('pvFrame');
   const iframe=document.getElementById('pvIframe');
@@ -3493,9 +3545,9 @@ function sendChrome(){
   if(Array.isArray(chromeNav)) post({type:'ZW_NAV_PREVIEW',items:chromeNav});
   if(chromeBar) post({type:'ZW_BAR_PREVIEW',value:chromeBar});
   post({type:'ZW_TEXT_OVERRIDES',value:chromeCopy||{}});
-  if(chromeHeader||chromeHdrLines||chromeHdrAccount||chromeHdrLabels){
+  if(chromeHeader||chromeHdrLines||chromeHdrAccount||chromeHdrLabels||chromeHdrOrder){
     post({type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines,
-          account:chromeHdrAccount,iconLabels:chromeHdrLabels});
+          account:chromeHdrAccount,iconLabels:chromeHdrLabels,order:chromeHdrOrder});
   }
   if(chromeBag) post({type:'ZW_BAG_PREVIEW',value:chromeBag});
 }
@@ -3523,7 +3575,8 @@ async function loadChrome(){
   chromeHeader=(hd&&typeof hd==='object')?(hd.id||''):(hd||'');
   chromeHdrLines=one('lines',['on','off']);
   chromeHdrAccount=one('account',['bag','header']);
-  chromeHdrLabels=one('iconLabels',['icons','mobile','always']);
+  chromeHdrLabels=(hd&&typeof hd==='object'&&typeof hd.iconLabels==='string')?hd.iconLabels:'';
+  chromeHdrOrder=(hd&&typeof hd==='object'&&typeof hd.order==='string')?hd.order:'';
   const bg=pick(bgD,bgL);
   chromeBag=(bg&&typeof bg==='object'&&!Array.isArray(bg))?bg:{};
   const nav=pick(navD,navL);
@@ -3631,6 +3684,9 @@ let chromeHdrLines = '';
    does the account link live". */
 let chromeHdrAccount = '';
 let chromeHdrLabels = '';
+/* The sequence the action controls sit in. Same three-state meaning: absent is
+   the order the pages ship with, not a stored copy of it. */
+let chromeHdrOrder = '';
 
 /* The account menu inside the bag slide-out — site_settings.bag_panel, the same
    key the Settings page writes. Not a copy: a value settable in two places that
@@ -3668,6 +3724,7 @@ function openHeaderCfg(){
   paintHdrLines();
   paintHdrControls();
   paintHdrScope();
+  paintHdrDevice();
   hdrTab('layout');
   document.getElementById('hdrCfgModal').classList.add('open');
 }
@@ -3705,7 +3762,7 @@ function paintHeaderCfg(){
       + (on?'<span class="hdrcfg-cur">Current</span>':'')
       + (sel?'<span class="hdrcfg-mark" aria-hidden="true">&#10003;</span>':'')
       + '</span>'
-      + L.miniature(l)
+      + L.miniature(l, hdrDevice())
       + '<span class="hdrcfg-note">'+he(l.note)+'</span></button>';
   }).join('');
   /* Bound here rather than written as an inline onclick: the id would have to be
@@ -3728,6 +3785,19 @@ function closeHeaderCfg(){ document.getElementById('hdrCfgModal').classList.remo
    switches to its mobile form — so a tablet preview shows the mobile header,
    and picking a tile there does nothing visible. Reading that as "the picker is
    broken" is exactly what happened the first time this feature shipped. */
+function hdrDevice(){ return {mob:'phone',tab:'tablet',desk:'desktop'}[pvMode]||'desktop'; }
+function paintHdrDevice(){
+  const d=pvMode;
+  [['hdrDvMob','mob'],['hdrDvTab','tab'],['hdrDvDesk','desk']].forEach(([id,m])=>{
+    const e=document.getElementById(id); if(e) e.classList.toggle('on',d===m);
+  });
+  /* On the icons tab the three cards ARE the viewer — all devices at once —
+     so the switch marks which one you are standing in rather than hiding the
+     other two. Seeing the phone beside the desktop is the comparison this tab
+     exists to make. */
+  const now=hdrDevice();
+  document.querySelectorAll('#hdrDevs [data-dev]').forEach(c=>c.classList.toggle('dv',c.dataset.dev===now));
+}
 function paintHdrScope(){
   const el=document.getElementById('hdrCfgScope');
   if(!el) return;
@@ -3828,6 +3898,44 @@ function setBagMail(v){
   markChromeDirty('bag'); sendChrome();
 }
 
+/* The sequence the three controls sit in. Always all three: a partial answer
+   would leave the stylesheet to invent a place for whatever was missing. */
+function hdrOrderList(){
+  const L=window.ZWHeaderLayouts;
+  return ((L&&L.controlOrder(chromeHdrOrder))||'search account bag').split(' ');
+}
+function setHdrOrder(list){
+  const L=window.ZWHeaderLayouts;
+  const next=L?L.controlOrder(list.join(' ')):list.join(' ');
+  if(!next||next===chromeHdrOrder) return;
+  chromeHdrOrder=next;
+  markChromeDirty('header'); sendChrome(); paintHdrControls();
+}
+function moveHdrCtl(name,by){
+  const list=hdrOrderList(), i=list.indexOf(name), j=i+by;
+  if(i<0||j<0||j>=list.length) return;
+  list.splice(j,0,list.splice(i,1)[0]);
+  setHdrOrder(list);
+  toast('Order: '+list.join(' → ')+' — preview updated','ok');
+}
+/* Dropping one chip onto another puts it in that chip's place, which is what
+   dragging a thing onto a thing means everywhere else. The arrows do the same
+   job for anyone not dragging — a control you can only reach with a mouse
+   gesture is a control some people cannot reach. */
+let hdrDragCtl=null;
+function hdrDragStart(e,name){ hdrDragCtl=name; e.currentTarget.classList.add('drag'); try{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',name);}catch(_){} }
+function hdrDragEnd(e){ hdrDragCtl=null; e.currentTarget.classList.remove('drag'); document.querySelectorAll('.hdrcfg-chip.over').forEach(c=>c.classList.remove('over')); }
+function hdrDragOver(e,name){ if(!hdrDragCtl||hdrDragCtl===name) return; e.preventDefault(); e.currentTarget.classList.add('over'); }
+function hdrDragLeave(e){ e.currentTarget.classList.remove('over'); }
+function hdrDrop(e,name){
+  e.preventDefault(); e.currentTarget.classList.remove('over');
+  if(!hdrDragCtl||hdrDragCtl===name) return;
+  const list=hdrOrderList();
+  list.splice(list.indexOf(name),0,list.splice(list.indexOf(hdrDragCtl),1)[0]);
+  setHdrOrder(list);
+  toast('Order: '+list.join(' → ')+' — preview updated','ok');
+}
+
 function paintHdrControls(){
   const tog=(id,on)=>{const e=document.getElementById(id); if(e) e.classList.toggle('on',on);};
   /* Absent means the theme still answers, and the theme's own default is icons
@@ -3836,15 +3944,60 @@ function paintHdrControls(){
   const L=window.ZWHeaderLayouts;
   const lb=(L?L.deviceList(chromeHdrLabels):String(chromeHdrLabels||''));
   const words=(lb&&lb!=='none')?lb.split(' '):[];
-  tog('hdrLbPhone',words.indexOf('phone')>-1);
-  tog('hdrLbTablet',words.indexOf('tablet')>-1);
-  tog('hdrLbDesktop',words.indexOf('desktop')>-1);
+  const order=hdrOrderList();
+  /* The account control is only IN the cluster when it has not moved into the
+     bag panel, so the cards draw it that way — which is how "in the bag" stops
+     being an abstract switch and becomes a control you can watch leave. */
+  const acctHere = (chromeHdrAccount||'bag')==='header';
+
+  const devs=document.getElementById('hdrDevs');
+  if(devs&&L){
+    devs.innerHTML=[['phone','Phone','≤600'],['tablet','Tablet','601–900'],['desktop','Desktop','901+']]
+      .map(([id,name,px])=>{
+        const on=words.indexOf(id)>-1;
+        return '<button type="button" class="hdrcfg-dev'+(on?' on':'')+'" data-dev="'+id+'"'
+          + ' aria-pressed="'+(on?'true':'false')+'" title="'+px+'px">'
+          + '<span class="hdrcfg-dev-t">'+he(name)+'<span class="hdrcfg-dev-w">'+(on?'Words':'Icons')+'</span></span>'
+          + '<span class="hdrcfg-dev-bar">'
+          + L.actionsMini({order:order.join(' '),words:on,account:acctHere,menu:id!=='desktop'})
+          + '</span></button>';
+      }).join('');
+    devs.querySelectorAll('[data-dev]').forEach(b=>{
+      b.addEventListener('click',()=>toggleHdrLabel(b.dataset.dev));
+    });
+  }
   const now=document.getElementById('hdrLbNow');
   if(now){
     now.textContent = !chromeHdrLabels
-      ? 'Following the theme.'
+      ? 'No answer saved yet, so the theme still decides — the cards show what it is doing.'
       : words.length ? '' : 'Icons on every device.';
   }
+
+  const ord=document.getElementById('hdrOrder');
+  if(ord&&L){
+    ord.innerHTML=order.map((c,i)=>
+      '<span class="hdrcfg-chip" draggable="true" data-ctl="'+c+'">'
+      + L.actionsMini({order:c,words:false,account:true})
+      + '<span class="hdrcfg-chip-n">'+he(L.controlLabels[c]||c)+'</span>'
+      + '<span class="hdrcfg-chip-mv">'
+      +   '<button type="button" data-mv="-1" aria-label="Move '+he(L.controlLabels[c]||c)+' earlier"'+(i===0?' disabled':'')+'>&#9664;</button>'
+      +   '<button type="button" data-mv="1" aria-label="Move '+he(L.controlLabels[c]||c)+' later"'+(i===order.length-1?' disabled':'')+'>&#9654;</button>'
+      + '</span></span>').join('')
+      + '<span class="hdrcfg-chip fixed" title="The menu button always closes the row">'
+      + '<span class="hdrcfg-chip-n">Menu</span></span>';
+    ord.querySelectorAll('[data-ctl]').forEach(chip=>{
+      const name=chip.dataset.ctl;
+      chip.addEventListener('dragstart',e=>hdrDragStart(e,name));
+      chip.addEventListener('dragend',hdrDragEnd);
+      chip.addEventListener('dragover',e=>hdrDragOver(e,name));
+      chip.addEventListener('dragleave',hdrDragLeave);
+      chip.addEventListener('drop',e=>hdrDrop(e,name));
+      chip.querySelectorAll('[data-mv]').forEach(b=>{
+        b.addEventListener('click',e=>{e.stopPropagation();moveHdrCtl(name,Number(b.dataset.mv));});
+      });
+    });
+  }
+
   const ac=chromeHdrAccount||'bag';
   tog('hdrAcctBag',ac==='bag'); tog('hdrAcctHeader',ac==='header');
 
@@ -3955,6 +4108,7 @@ async function saveChrome(pub){
          control anywhere saying that had happened. */
       if (chromeHdrAccount) out.account = chromeHdrAccount;
       if (chromeHdrLabels) out.iconLabels = chromeHdrLabels;
+      if (chromeHdrOrder) out.order = chromeHdrOrder;
       return out;
     }],
     /* A different key with a different owner: site_settings.bag_panel, which

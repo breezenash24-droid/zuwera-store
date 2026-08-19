@@ -223,6 +223,7 @@
      opinion" would take the question away from every theme the moment the modal
      was first opened, which is why these are three-state and not booleans. */
   var hdrAccount = '';
+  var hdrOrder = '';
   var hdrLabels = '';
 
   /* Whether the placement attributes on <html> were put there by THIS function.
@@ -239,6 +240,15 @@
   function applyHeaderLines(root) {
     if (hdrLines === 'on' || hdrLines === 'off') root.setAttribute('data-zw-hdr-lines', hdrLines);
     else root.removeAttribute('data-zw-hdr-lines');
+  }
+
+  /* The sequence the action controls sit in. Unconditional removal is safe here
+     for the same reason it is for the lines: no theme answers this, so the only
+     source is header-layouts.js — and it hands over what the build baked from
+     the same row, rather than a second opinion that could disagree with it. */
+  function applyHeaderOrder(root) {
+    if (hdrOrder) root.setAttribute('data-zw-hdr-order', hdrOrder);
+    else root.removeAttribute('data-zw-hdr-order');
   }
 
   /* ── Two authors, and only one of them may clear ──────────────────────────
@@ -279,6 +289,7 @@
 
   function applyHeader(root, header) {
     applyHeaderLines(root);
+    applyHeaderOrder(root);
     if (hdrOverride) header = hdrOverride;
     var attrs = ['data-zw-hdr', 'data-zw-hdr-logo', 'data-zw-hdr-links',
                  'data-zw-hdr-actions', 'data-zw-hdr-linksrow'];
@@ -686,6 +697,7 @@
       hdrLines = s && (s.lines === 'on' || s.lines === 'off') ? s.lines : '';
       hdrAccount = s && (s.account === 'bag' || s.account === 'header') ? s.account : '';
       hdrLabels = (s && typeof s.iconLabels === 'string') ? s.iconLabels.trim() : '';
+      hdrOrder = (s && typeof s.order === 'string' && /^(search|account|bag)( (search|account|bag))*$/.test(s.order.trim())) ? s.order.trim() : '';
       hdrOverride = s && s.logo ? s : null;
       var t = (applied && applied.tokens) || {};
       applyHeader(document.documentElement, applied && applied.header);

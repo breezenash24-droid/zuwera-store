@@ -62,7 +62,7 @@ const PAGES = ['404.html', 'about.html', 'account.html', 'bag.html', 'checkout.h
    on <html> survives and re-running cannot compound. */
 const OURS = ['data-zw-hdr', 'data-zw-hdr-logo', 'data-zw-hdr-links',
   'data-zw-hdr-actions', 'data-zw-hdr-linksrow', 'data-zw-hdr-at',
-  'data-zw-hdr-lines', 'data-zw-iconlabels', 'data-zw-account'];
+  'data-zw-hdr-lines', 'data-zw-iconlabels', 'data-zw-account', 'data-zw-hdr-order'];
 
 /* data-zw-account is on <body>, because the rule it answers is written against
    body.zwf-bagpanel-on. stamp-theme-default.js bakes it there from the store's
@@ -107,12 +107,16 @@ function fetchLayout() {
             /* A list of the devices that show words, matched by the stylesheet
                with ~=. 'none' names no device and is the explicit "glyphs"
                answer; anything else unrecognised bakes nothing. */
+            order: (function () {
+              const v = String(o.order || '').trim();
+              return /^(search|account|bag)( (search|account|bag))*$/.test(v) ? v : '';
+            })(),
             iconLabels: (function () {
               const v = String(o.iconLabels || '').trim();
               return /^(none|(phone|tablet|desktop)( (phone|tablet|desktop))*)$/.test(v) ? v : '';
             })(),
           };
-          const any = chosen.id || chosen.lines || chosen.account || chosen.iconLabels;
+          const any = chosen.id || chosen.lines || chosen.account || chosen.iconLabels || chosen.order;
           resolve(any ? chosen : null);
         } catch (_) { resolve(null); }
       });
@@ -171,6 +175,7 @@ if (!process.env.CF_PAGES && !process.argv.includes('--local')) process.exit(0);
     const lines = (chosen && chosen.lines) || '';
     const account = (chosen && chosen.account) || '';
     const labels = (chosen && chosen.iconLabels) || '';
+    const order = (chosen && chosen.order) || '';
     if (chosen && chosen.id && !layout) {
       console.log('[stamp-header-layout] unknown layout "' + chosen.id + '" — placement cleared.');
     }
@@ -206,6 +211,7 @@ if (!process.env.CF_PAGES && !process.argv.includes('--local')) process.exit(0);
            leave the attribute off — which stripping OURS above has already
            done. Only the two scopes the stylesheet knows get written. */
         if (labels) keep += ' data-zw-iconlabels="' + labels + '"';
+        if (order) keep += ' data-zw-hdr-order="' + order + '"';
         /* On <html> as well as <body>. The stylesheet reads it from either,
            because the pre-paint block in <head> can only write this one — and
            it is the only writer early enough to beat the header's first paint.

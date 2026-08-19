@@ -101,6 +101,13 @@ export function attrsFrom(value, updatedAt) {
      this one, and a document that carries it in both places is a document
      whose two writers cannot disagree with each other. */
   if (value.account === 'header' || value.account === 'bag') out['data-zw-account'] = value.account;
+  /* The sequence the action controls sit in. Validated here as well as at the
+     writer, because a value the stylesheet has no rule for still counts as
+     "ordered" and takes the default order away from every control at once. */
+  if (typeof value.order === 'string'
+      && /^(search|account|bag)( (search|account|bag))*$/.test(value.order.trim())) {
+    out['data-zw-hdr-order'] = value.order.trim();
+  }
   /* The devices that show words, as the stylesheet matches them. 'none' names
      no device and is how an explicit "glyphs everywhere" overrules a value the
      build baked — a removal would depend on the bake being the only other

@@ -197,14 +197,14 @@ try {
          fourteen heads and product.html's largest inline script is capped at
          8KB, so the shape that repeats a forty-byte call name per attribute is
          the shape that eventually costs a page its pre-paint. */
-      ['','-logo','-links','-actions','-linksrow','-lines'].forEach(function (s) {
+      ['','-logo','-links','-actions','-linksrow','-lines','-order'].forEach(function(s){
         h.removeAttribute(_H + s);
       });
       h.removeAttribute(_il);
       h.removeAttribute(_ia);
     } else {
       var _hc = (localStorage.getItem('zw_hdr_attrs') || '').split('|');
-      var _hs = { left: 1, center: 1, right: 1 };
+      var _hs = {left:1,center:1,right:1};
       /* values|updated_at, both from the same PostgREST column, so comparing
          them as strings is comparing the timestamps. WITH NOTHING BAKED THE
          CACHE ALWAYS APPLIES — otherwise an undated cache from a build before
@@ -216,11 +216,11 @@ try {
          under an 8KB cap, and a condition spelled out four times is the kind of
          repetition that eventually costs a page its pre-paint. */
       if (!_hb || (_hc[4] || '') > _hb) {
-        if (_hc.length >= 4 && _hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
+        if (_hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
             && _hs[_hc[2]] && (_hc[3] === '1' || _hc[3] === '2')) {
           // Pairs rather than six spelled-out calls, for the same reason.
-          [['', '1'], ['-logo', _hc[0]], ['-links', _hc[1]], ['-actions', _hc[2]],
-            ['-linksrow', _hc[3]], ['-at', _hc[4] || '']].forEach(function (p) {
+          [['','1'],['-logo',_hc[0]],['-links',_hc[1]],['-actions',_hc[2]],
+            ['-linksrow',_hc[3]],['-at',_hc[4]||'']].forEach(function(p){
             h.setAttribute(_H + p[0], p[1]);
           });
         }
@@ -233,14 +233,15 @@ try {
            'icons' is an ANSWER, not the absence of one, so it CLEARS what the
            build baked from a theme that says otherwise. That is the only way
            the choice shows on the first frame rather than a beat later. */
-        if (_hc[5] === 'on' || _hc[5] === 'off') h.setAttribute(_H + '-lines', _hc[5]);
-        if (/^(none|(phone|tablet|desktop)( (phone|tablet|desktop))*)$/.test(_hc[7] || '')) h.setAttribute(_il, _hc[7]);
+        if (_hc[5]==='on'||_hc[5]==='off') h.setAttribute(_H + '-lines', _hc[5]);
+        if (/^(none|(phone|tablet|desktop) ?)+$/.test(_hc[7])) h.setAttribute(_il, _hc[7]);
         /* Where the account control lives hides a button that is IN the header,
            so it has to land before the header is parsed — here, and nowhere
            later. It belongs on <body> and the build bakes it there, but <body>
            does not exist yet; the stylesheet takes the same answer on <html>
            and lets it outrank the bake. */
         if (_hc[6] === 'header' || _hc[6] === 'bag') h.setAttribute(_ia, _hc[6]);
+        if (/^((search|account|bag) ?)+$/.test(_hc[8])) h.setAttribute(_H + '-order', _hc[8]);
       }
     }
   } catch (_) {}

@@ -207,9 +207,28 @@
       + GLYPH.search + GLYPH.account + GLYPH.bag + (withMenu ? GLYPH.menu : '') + '</span>';
   }
 
-  function miniature(layout) {
+  /* ── What a phone and a tablet actually get ───────────────────────────────
+     One arrangement, the same for every layout, and it is not an approximation:
+     below 900px storefront-cohesion.css sets `.nav-center { display: none }`
+     and reveals the menu button, and the placement block is behind a
+     min-width:901px query. So the categories are in the drawer and the logo and
+     the actions are all that is left.
+
+     Drawn rather than described because that is the honest way to say
+     "arrangement is a desktop setting": ten tiles that are visibly the same
+     picture make the point in a way a sentence under the gallery does not. */
+  function smallMini() {
+    return '<span class="zwhl-bar zwhl-sm"><span class="zwhl-row">'
+      + '<span class="zwhl-z zwhl-left">' + part('logo') + '</span>'
+      + '<span class="zwhl-z zwhl-center"></span>'
+      + '<span class="zwhl-z zwhl-right">' + part('actions', true) + '</span>'
+      + '</span></span>';
+  }
+
+  function miniature(layout, device) {
     var l = typeof layout === 'string' ? byId(layout) : layout;
     if (!l) return '';
+    if (device === 'phone' || device === 'tablet') return smallMini();
     var z = zones(l.spec);
     var row1 = SPOTS.map(function (s) {
       return '<span class="zwhl-z zwhl-' + s + '">'
@@ -220,6 +239,36 @@
       ? '<span class="zwhl-row2 zwhl-a-' + z.rowAlign + '">' + z.row2.map(function (p) { return part(p, false); }).join('') + '</span>'
       : '';
     return '<span class="zwhl-bar">' + '<span class="zwhl-row">' + row1 + '</span>' + row2 + '</span>';
+  }
+
+  /* ── The action controls, drawn ────────────────────────────────────────────
+     The gallery tiles have always shown the arrangement as a picture. The three
+     answers ABOUT those controls — order, glyphs or words, and whether account
+     is one of them — had no picture at all, and a form of switches is a poor
+     way to answer "what will my header look like": you have to hold the result
+     in your head, which is the same demand the first version of the layout
+     picker made and the reason it shipped tiles that lied.
+
+     So the same treatment, from the same glyphs. Given what a device will
+     resolve to, this draws the cluster exactly as the header will lay it out —
+     same order, same words, same controls present — and the builder shows one
+     per device. A control that has moved is a control you can see has moved.
+
+     `words` uses the labels the controls carry for screen readers, which is
+     also where the storefront's own labels come from, so the two cannot drift. */
+  function actionsMini(opts) {
+    var o = opts || {};
+    var seq = (controlOrder(o.order) || CONTROLS.join(' ')).split(' ');
+    var words = !!o.words;
+    var out = seq.map(function (c) {
+      if (c === 'account' && o.account === false) return '';
+      var body = words
+        ? '<i class="zwhl-w">' + CONTROL_LABEL[c] + '</i>'
+        : GLYPH[c === 'search' ? 'search' : c === 'account' ? 'account' : 'bag'];
+      return '<span class="zwhl-c" data-c="' + c + '">' + body + '</span>';
+    }).join('');
+    if (o.menu) out += '<span class="zwhl-c">' + GLYPH.menu + '</span>';
+    return '<span class="zwhl-acts' + (words ? ' zwhl-words' : '') + '">' + out + '</span>';
   }
 
   /* Shipped beside the definitions so anything drawing a tile gets the same
@@ -243,7 +292,22 @@
   + '.zwhl-actions{display:flex;align-items:center;gap:.32rem}'
   + '.zwhl-actions svg{width:9px;height:9px;display:block;fill:none;stroke:var(--zwhl-mu,rgba(244,241,235,.62));'
   + 'stroke-width:2;stroke-linecap:round;stroke-linejoin:round}'
-  + '.zwhl-actions svg.zwhl-bagi{stroke:var(--zwhl-ac,#F891A5)}';
+  + '.zwhl-actions svg.zwhl-bagi{stroke:var(--zwhl-ac,#F891A5)}'
+  /* The phone/tablet bar is narrower than the frame it sits in, so a gallery
+     switched to a small device reads as a column of phone headers rather than
+     ten desktop bars that happen to look alike. */
+  + '.zwhl-bar.zwhl-sm{max-width:190px;margin:0 auto;padding:.42rem .5rem}'
+  /* The standalone cluster, drawn a size up from the tile glyphs: it is the
+     subject here rather than one part of a bar, and at 9px the difference
+     between a magnifier and a bag is a guess. */
+  + '.zwhl-acts{display:flex;align-items:center;gap:.5rem;min-height:18px}'
+  + '.zwhl-acts.zwhl-words{gap:.6rem}'
+  + '.zwhl-c{display:flex;align-items:center;line-height:1}'
+  + '.zwhl-c svg{width:14px;height:14px;display:block;fill:none;stroke:var(--zwhl-fg,#f4f1eb);'
+  + 'stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}'
+  + '.zwhl-w{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:8px;font-style:normal;'
+  + 'font-weight:600;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;'
+  + 'color:var(--zwhl-fg,#f4f1eb)}';
 
   /* ── Applying it ──────────────────────────────────────────────────────────
      One line of real work, and that is the point. theme-engine.js owns the four
@@ -272,7 +336,32 @@
     account:    { bag: 1, header: 1 },
     // iconLabels is not an enum — see deviceList below.
   };
-  var EXTRA_KEYS = ['lines', 'account', 'iconLabels'];
+  var EXTRA_KEYS = ['lines', 'account', 'iconLabels', 'order'];
+
+  /* ── The order the three action controls sit in ───────────────────────────
+     A permutation of the three, and always all three: a partial answer would
+     mean the stylesheet had to invent a place for whatever was missing, and
+     "search, then whatever you like" is not a thing anyone means. Anything
+     unrecognised, duplicated or missing is completed from the shipped order
+     rather than rejected, so a hand-edited row cannot leave a control with no
+     position at all. */
+  var CONTROLS = ['search', 'account', 'bag'];
+  var CONTROL_LABEL = { search: 'Search', account: 'Account', bag: 'Bag' };
+
+  function controlOrder(v) {
+    if (Array.isArray(v)) v = v.join(' ');
+    var s = String(v == null ? '' : v).trim().toLowerCase();
+    if (!s) return '';
+    var want = s.split(/[\s,]+/), out = [], i;
+    for (i = 0; i < want.length; i++) {
+      if (CONTROLS.indexOf(want[i]) > -1 && out.indexOf(want[i]) < 0) out.push(want[i]);
+    }
+    if (!out.length) return '';
+    for (i = 0; i < CONTROLS.length; i++) {
+      if (out.indexOf(CONTROLS[i]) < 0) out.push(CONTROLS[i]);
+    }
+    return out.join(' ');
+  }
 
   /* ── The one answer that is genuinely per-device ──────────────────────────
      The other two are whole-site questions: a phone shows the divider rule
@@ -323,6 +412,7 @@
 
   function extraChoice(name, v) {
     if (name === 'iconLabels') return deviceList(v);
+    if (name === 'order') return controlOrder(v);
     var t = EXTRAS[name];
     return (t && t[v]) ? v : '';
   }
@@ -367,10 +457,11 @@
   window.ZWHeaderLayouts = {
     list: LAYOUTS, parts: PARTS, spots: SPOTS, labels: PART_LABEL,
     byId: byId, zones: zones, conflict: conflict,
-    miniature: miniature, css: MINI_CSS,
+    miniature: miniature, css: MINI_CSS, actionsMini: actionsMini,
     lineChoice: lineChoice, extraChoice: extraChoice, extras: extras,
     extraKeys: EXTRA_KEYS, extraValues: EXTRAS,
     devices: DEVICES, deviceList: deviceList,
+    controls: CONTROLS, controlLabels: CONTROL_LABEL, controlOrder: controlOrder,
     apply: apply, applied: function () { return applied; },
     lines: function () { return appliedExtras.lines; },
     settings: function () { return extras(appliedExtras); },
@@ -405,7 +496,7 @@
      copy still reads correctly here — a shorter tuple simply answers '' for
      the fields it does not have, which is exactly "not chosen". Reordering it
      would silently reinterpret every cache already in the wild. */
-  var ATTR_FIELDS = ['lines', 'account', 'iconLabels'];   // fields 5, 6, 7
+  var ATTR_FIELDS = ['lines', 'account', 'iconLabels', 'order'];   // fields 5, 6, 7, 8
 
   function remember(id, at, opts) {
     var l = byId(id);

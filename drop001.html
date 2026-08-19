@@ -61,26 +61,27 @@ try {
   try {
     var _il='data-zw-iconlabels',_ia='data-zw-account',_H='data-zw-hdr';
     if (window.__ZW_BUILDER_PREVIEW__) {
-      ['','-logo','-links','-actions','-linksrow','-lines'].forEach(function (s) {
+      ['','-logo','-links','-actions','-linksrow','-lines','-order'].forEach(function(s){
         h.removeAttribute(_H + s);
       });
       h.removeAttribute(_il);
       h.removeAttribute(_ia);
     } else {
       var _hc = (localStorage.getItem('zw_hdr_attrs') || '').split('|');
-      var _hs = { left: 1, center: 1, right: 1 };
+      var _hs = {left:1,center:1,right:1};
       var _hb = h.getAttribute(_H + '-at') || '';
       if (!_hb || (_hc[4] || '') > _hb) {
-        if (_hc.length >= 4 && _hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
+        if (_hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
             && _hs[_hc[2]] && (_hc[3] === '1' || _hc[3] === '2')) {
-          [['', '1'], ['-logo', _hc[0]], ['-links', _hc[1]], ['-actions', _hc[2]],
-            ['-linksrow', _hc[3]], ['-at', _hc[4] || '']].forEach(function (p) {
+          [['','1'],['-logo',_hc[0]],['-links',_hc[1]],['-actions',_hc[2]],
+            ['-linksrow',_hc[3]],['-at',_hc[4]||'']].forEach(function(p){
             h.setAttribute(_H + p[0], p[1]);
           });
         }
-        if (_hc[5] === 'on' || _hc[5] === 'off') h.setAttribute(_H + '-lines', _hc[5]);
-        if (/^(none|(phone|tablet|desktop)( (phone|tablet|desktop))*)$/.test(_hc[7] || '')) h.setAttribute(_il, _hc[7]);
+        if (_hc[5]==='on'||_hc[5]==='off') h.setAttribute(_H + '-lines', _hc[5]);
+        if (/^(none|(phone|tablet|desktop) ?)+$/.test(_hc[7])) h.setAttribute(_il, _hc[7]);
         if (_hc[6] === 'header' || _hc[6] === 'bag') h.setAttribute(_ia, _hc[6]);
+        if (/^((search|account|bag) ?)+$/.test(_hc[8])) h.setAttribute(_H + '-order', _hc[8]);
       }
     }
   } catch (_) {}
