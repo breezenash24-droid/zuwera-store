@@ -11,6 +11,10 @@
    The whole config is cached in localStorage (zw_header_cfg) for instant apply,
    then refreshed from site_settings. CSS lives in storefront-cohesion.css
    (.zw-nav-hidden → translateY(-100%); reduced-motion keeps the header shown).
+
+   The header does not move alone: the announcement bar sits directly above it,
+   and the two hide as one strip. Which of them goes first is announced by
+   announcement-bar.js on the #bar element — see barPolicy() below.
    ──────────────────────────────────────────────────────────────────────────── */
 (function () {
   var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
@@ -47,22 +51,40 @@
     return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
   }
 
-  // The announcement bar (#bar, index/product only) has its OWN independent
-  // scroll-hide (storefront.js), so without coordination the header and bar can
-  // hide in either order depending on their separate thresholds — the header was
-  // observed disappearing BEFORE the bar, which reads as broken (a promo bar
-  // floating alone with nothing below it). The header should instead follow the
-  // bar: stay shown for as long as the bar is, and only start its own auto-hide
-  // once the bar has actually hidden. Queries live DOM state (not a flag from
-  // storefront.js) so it works regardless of script load order, and resolves to
-  // "not visible" on every page without a bar (no behavior change there).
-  function barIsVisible() {
+  /* The announcement bar (#bar) sits directly above the header, and the two
+     are one strip of chrome: whichever moves, the other cannot be left
+     behind. announcement-bar.js publishes which of them moves first, on the
+     element itself — this file runs BEFORE it (both deferred, this one is
+     listed first on every page), so a load-time flag would be read before it
+     was written. Live DOM state at scroll time cannot be read too early, and
+     resolves to "no bar" on every page without one.
+
+       'self'   the bar hides on its own scroll rule. Wait for it: a header
+                that goes first leaves a promo strip floating above nothing.
+       'chrome' the bar is "Always visible" and will never hide by itself.
+                Waiting for it was waiting forever — this is what made an
+                auto-hide header sit pinned on the home and product pages,
+                where the bar is on. Take the bar with us instead.
+
+     Policy is separate from visibility on purpose. Once the header has
+     carried a static bar away the bar is not visible, and asking "is it
+     showing" would then say no and strand it there on the way back up. */
+  function barPolicy() {
+    var bar = document.getElementById('bar');
+    if (!bar || !bar.dataset.zwBarHide) return '';
+    return bar.dataset.zwBarHide === 'self' ? 'self' : 'chrome';
+  }
+  function barIsShowing() {
     var bar = document.getElementById('bar');
     if (!bar) return false;
     var cs = window.getComputedStyle(bar);
     if (cs.display === 'none') return false;
     if (parseFloat(cs.opacity) === 0) return false;
     return true;
+  }
+  function setBar(hidden) {
+    if (barPolicy() !== 'chrome') return;   // the bar owns its own timing
+    try { if (typeof window.zwBarSetHidden === 'function') window.zwBarSetHidden(hidden); } catch (_) {}
   }
 
   function init() {
@@ -73,8 +95,18 @@
     var lastY = scrollY();
     var ticking = false;
 
-    function show() { nav.classList.remove(HIDDEN); }
-    function hide() { nav.classList.add(HIDDEN); }
+    /* prefers-reduced-motion: the stylesheet already neutralises the hidden
+       transform, so the class was being toggled onto a header that never
+       moved. That was harmless while nothing else read it — but the bar now
+       follows this decision, and drop001 mirrors the class onto <html> to
+       reposition its filter bar. Both would be acting on a header that is
+       still sitting there. Not hiding at all is what a reduced-motion
+       visitor already sees; now the rest of the page agrees with it. */
+    var reduce = false;
+    try { reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (_) {}
+
+    function show() { nav.classList.remove(HIDDEN); setBar(false); }
+    function hide() { nav.classList.add(HIDDEN); setBar(true); }
 
     // Let other scripts pop the header back into view — e.g. add-to-bag, so the
     // shopper sees the updated bag icon even if they'd scrolled the header away.
@@ -111,14 +143,15 @@
 
     function update() {
       ticking = false;
-      if (mode !== 'auto-hide') { show(); return; }
+      if (mode !== 'auto-hide' || reduce) { show(); return; }
       // Never hide while a modal / scroll-lock is active (modal-lock.js sets these).
       if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) return;
       var y = scrollY();
       if (y <= REVEAL_AT) { show(); lastY = y; return; }
-      // Follow the announcement bar: don't hide the header while the bar is still
-      // showing — only the bar's own scroll-hide is allowed to fire first.
-      if (barIsVisible()) { show(); lastY = y; return; }
+      // Follow a bar that hides itself: it goes first, and the header only
+      // starts once it has. A bar that does NOT hide itself is no longer a
+      // reason to stay — show()/hide() take it along.
+      if (barPolicy() === 'self' && barIsShowing()) { show(); lastY = y; return; }
       var dy = y - lastY;
       if (Math.abs(dy) < THRESH) return;
       if (dy > 0) hide(); else show();   // down → hide, up → reveal
