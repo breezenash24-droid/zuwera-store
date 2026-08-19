@@ -122,6 +122,7 @@ try {
       h.removeAttribute('data-zw-hdr-links');
       h.removeAttribute('data-zw-hdr-actions');
       h.removeAttribute('data-zw-hdr-linksrow');
+      h.removeAttribute('data-zw-hdr-lines');
     } else {
       var _hc = (localStorage.getItem('zw_hdr_attrs') || '').split('|');
       var _hs = { left: 1, center: 1, right: 1 };
@@ -131,15 +132,23 @@ try {
          this existed, or any local build that does no stamping, would be
          thrown away in favour of nothing at all. */
       var _hb = h.getAttribute('data-zw-hdr-at') || '';
-      if (_hc.length >= 4 && _hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
-          && _hs[_hc[2]] && (_hc[3] === '1' || _hc[3] === '2')
-          && (!_hb || (_hc[4] || '') > _hb)) {
+      var _hfresh = !_hb || (_hc[4] || '') > _hb;
+      if (_hfresh && _hc.length >= 4 && _hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
+          && _hs[_hc[2]] && (_hc[3] === '1' || _hc[3] === '2')) {
         h.setAttribute('data-zw-hdr', '1');
         h.setAttribute('data-zw-hdr-logo', _hc[0]);
         h.setAttribute('data-zw-hdr-links', _hc[1]);
         h.setAttribute('data-zw-hdr-actions', _hc[2]);
         h.setAttribute('data-zw-hdr-linksrow', _hc[3]);
         h.setAttribute('data-zw-hdr-at', _hc[4] || '');
+      }
+      /* Whether the header draws its bottom rule is a SEPARATE answer, ranked by
+         the same timestamp but applied on its own — a store can turn the line
+         off without ever choosing an arrangement, and folding it into the block
+         above would have thrown that away along with the placement it never
+         set. */
+      if (_hfresh && (_hc[5] === 'on' || _hc[5] === 'off')) {
+        h.setAttribute('data-zw-hdr-lines', _hc[5]);
       }
     }
   } catch (_) {}

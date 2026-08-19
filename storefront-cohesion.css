@@ -4621,6 +4621,29 @@ body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img)
     gap: clamp(.5rem, 1.2vw, 1.2rem);
   }
 
+  /* ── A centred part cannot hold the bar open ──────────────────────────────
+     Centring is absolute positioning, so the centred part leaves the flow and
+     stops contributing height. With the logo centred the bar was sized by the
+     action buttons instead, and came out 4px SHORTER than the same header with
+     the logo on the left — and if the logo is taller than the buttons it hangs
+     out of a bar that no longer measures it.
+
+     A floor fixes it without putting anything back in the flow. The default is
+     what the in-flow arrangements already measure, so the layouts that were
+     right are untouched and only the collapsing ones move. A page whose logo is
+     a small wordmark rather than an emblem can lower it by setting the
+     variable rather than by fighting this rule. */
+  html[data-zw-hdr] :is(#nav, .nav, .zw-nav) {
+    min-height: var(--zw-hdr-minh, 67px);
+  }
+
+  /* A second row should cost a row, not half a header again. The gap between
+     the rows and the bar's own bottom padding were both sized for a single-row
+     header, so a two-row one paid for the spacing twice. */
+  html[data-zw-hdr-linksrow="2"] :is(#nav, .nav, .zw-nav) {
+    padding-bottom: .35rem;
+  }
+
   /* ── Actions (search, account, bag) ──
      "bag in the centre" is the one that reads oddest on paper and is a real
      Shopify arrangement, so it gets the same three options as everything else
@@ -4666,7 +4689,7 @@ body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img)
   /* Breathing room between the two rows, and it belongs on the links rather
      than the logo — the logo's own margin would move it away from the bar's
      top edge as well, which is not what "space between the rows" means. */
-  html[data-zw-hdr-linksrow="2"] :is(#nav, .nav, .zw-nav) > .nav-center { margin-top: .75rem; }
+  html[data-zw-hdr-linksrow="2"] :is(#nav, .nav, .zw-nav) > .nav-center { margin-top: .4rem; }
   html[data-zw-hdr-linksrow="2"][data-zw-hdr-links="left"]   :is(#nav, .nav, .zw-nav) > .nav-center { justify-content: flex-start; }
   html[data-zw-hdr-linksrow="2"][data-zw-hdr-links="center"] :is(#nav, .nav, .zw-nav) > .nav-center { justify-content: center; }
   html[data-zw-hdr-linksrow="2"][data-zw-hdr-links="right"]  :is(#nav, .nav, .zw-nav) > .nav-center { justify-content: flex-end; }
@@ -4691,6 +4714,37 @@ body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img)
   html[data-zw-hdr] :is(#nav, .nav, .zw-nav) > .nav-center {
     position: absolute; left: 0; right: 0; margin: 0 auto; width: fit-content;
   }
+}
+
+/* ── The line under the header, as a choice ────────────────────────────────
+   The announcement bar and the nav each draw their own 1px bottom border, so a
+   store with the bar switched on shows TWO faint rules stacked a header apart:
+   one between the bar and the nav, one under the nav. Neither is configurable
+   and together they are what makes the top of the page read as three separate
+   strips rather than one surface.
+
+   Which of those looks right is a taste question, not a correctness one, so it
+   is a setting rather than a decision made here. Unset means what the pages
+   have always shipped — the lines — so an untouched store is unchanged.
+
+   COLOUR, NOT WIDTH. `border-bottom-color: transparent` rather than
+   `border: none`: the border keeps occupying its pixel, so turning the lines
+   off cannot move the header, the spacer under it, or the scroll offsets
+   measured from it. Removing the border instead would shift everything below
+   by 1px per line — which is exactly the kind of "slight gap" this is meant to
+   get rid of, arriving from the fix for it.
+
+   Outside the placement media query on purpose: the lines are a whole-site
+   choice and a phone shows them too. */
+html[data-zw-hdr-lines="off"] :is(#nav, .nav, .zw-nav, header.nav),
+html[data-zw-hdr-lines="off"] #bar {
+  border-bottom-color: transparent;
+}
+/* The mega panel drops the nav's border while it is open so the two read as one
+   surface. With the lines already off there is nothing to drop, and this simply
+   keeps the two rules from disagreeing about which one owns the border. */
+html[data-zw-hdr-lines="off"] :is(#nav, .nav, .zw-nav):has(.zw-navitem.zw-has-mega:hover) {
+  border-bottom-color: transparent;
 }
 
 /* ── Icons as words ────────────────────────────────────────────────────────

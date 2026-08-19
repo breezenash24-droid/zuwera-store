@@ -61,7 +61,8 @@ const PAGES = ['404.html', 'about.html', 'account.html', 'bag.html', 'checkout.h
 /* Only attributes this script wrote are ever removed, so anything hand-authored
    on <html> survives and re-running cannot compound. */
 const OURS = ['data-zw-hdr', 'data-zw-hdr-logo', 'data-zw-hdr-links',
-  'data-zw-hdr-actions', 'data-zw-hdr-linksrow', 'data-zw-hdr-at'];
+  'data-zw-hdr-actions', 'data-zw-hdr-linksrow', 'data-zw-hdr-at',
+  'data-zw-hdr-lines'];
 
 /* The canonical project, read rather than restated — stamping the ORIGINAL
    store's header onto a white-label build is the bug zw-config.js exists to
@@ -85,7 +86,11 @@ function fetchLayout() {
           let raw = row.value;
           if (typeof raw === 'string') raw = JSON.parse(raw);
           const id = raw && typeof raw === 'object' ? raw.id : raw;
-          resolve(id ? { id: String(id), at: String(row.updated_at || '') } : null);
+          const lines = raw && typeof raw === 'object' ? String(raw.lines || '') : '';
+          const at = String(row.updated_at || '');
+          /* Either answer alone is worth baking: a store can turn the rule off
+             without ever choosing an arrangement. */
+          resolve(id || lines ? { id: id ? String(id) : '', at: at, lines: lines } : null);
         } catch (_) { resolve(null); }
       });
     }).on('error', () => resolve(null));
@@ -139,9 +144,10 @@ if (!process.env.CF_PAGES && !process.argv.includes('--local')) process.exit(0);
        arrangement — which is a real answer, not a missing one. The attributes
        are stripped so the pages go back to the header they ship with, rather
        than keeping whatever the previous build baked in forever. */
-    const layout = chosen && L.byId(chosen.id);
-    if (chosen && !layout) {
-      console.log('[stamp-header-layout] unknown layout "' + chosen.id + '" — attributes cleared.');
+    const layout = chosen && chosen.id ? L.byId(chosen.id) : null;
+    const lines = chosen && (chosen.lines === 'on' || chosen.lines === 'off') ? chosen.lines : '';
+    if (chosen && chosen.id && !layout) {
+      console.log('[stamp-header-layout] unknown layout "' + chosen.id + '" — placement cleared.');
     }
     const spec = layout ? layout.spec : null;
 
@@ -170,6 +176,7 @@ if (!process.env.CF_PAGES && !process.argv.includes('--local')) process.exit(0);
              between a baked answer and a cached one without guessing. */
           keep += ' data-zw-hdr-at="' + chosen.at + '"';
         }
+        if (lines) keep += ' data-zw-hdr-lines="' + lines + '"';
         return '<html' + keep + '>';
       });
 
@@ -183,8 +190,9 @@ if (!process.env.CF_PAGES && !process.argv.includes('--local')) process.exit(0);
 
     console.log('[stamp-header-layout] '
       + (layout ? 'arrangement "' + layout.id + '" (' + spec.logo + '/' + spec.links + '/' + spec.actions
-          + ', row ' + spec.linksRow + ') baked' : 'no arrangement chosen; attributes cleared')
-      + '; ' + changed + ' page(s) updated.');
+          + ', row ' + spec.linksRow + ')' : 'no arrangement')
+      + (lines ? ', divider lines ' + lines : '')
+      + ' baked; ' + changed + ' page(s) updated.');
   } catch (e) {
     console.log('[stamp-header-layout] skipped (' + (e && e.message) + ') — <html> unchanged.');
   }

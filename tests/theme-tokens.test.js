@@ -832,8 +832,12 @@ console.log('\n  header composition');
   ok('a centred logo on a two-row header rejoins the flow',
     /data-zw-hdr-linksrow="2"\]\[data-zw-hdr-logo="center"\][^{]*\{\s*position: static; order: 1; flex: 0 0 100%/.test(nav),
     'an absolute logo has no height and overlaps the row beneath it');
+  /* Non-zero, not one exact value. What matters is that the second row is not
+     jammed against the first; the amount is a tuning decision, and pinning it
+     here meant tightening a header that measured 50% taller than the others
+     failed a test about whether the rows touch. */
   ok('...and the two rows are actually spaced apart',
-    /data-zw-hdr-linksrow="2"\] :is\(#nav, \.nav, \.zw-nav\) > \.nav-center \{ margin-top: \.75rem; \}/.test(nav));
+    /data-zw-hdr-linksrow="2"\] :is\(#nav, \.nav, \.zw-nav\) > \.nav-center \{ margin-top: (?!0)[.\d]+rem; \}/.test(nav));
   ok('hiding controls does not resize the header',
     /html\[data-zw-hide\] :is\(#nav, \.nav, \.zw-nav\) > :is\([^)]*\) \{\s*min-height: 46px;/.test(nav),
     'an empty actions group must keep the row height it had');

@@ -87,6 +87,11 @@ body{display:flex;flex-direction:column}
 .hdrcfg-mark{width:14px;height:14px;border-radius:50%;background:var(--ac);color:#0f0f11;font-size:.52rem;line-height:1;display:flex;align-items:center;justify-content:center;flex:none}
 .hdrcfg-hd .hdrcfg-mark:not(.hdrcfg-cur + .hdrcfg-mark){margin-left:auto}
 .hdrcfg-note{font-size:.6rem;line-height:1.5;color:var(--mu)}
+.hdrcfg-lines{display:flex;align-items:center;gap:.6rem;padding:.6rem 1rem;border-top:1px solid var(--bd);flex-wrap:wrap}
+.hdrcfg-lines-l{font-size:.7rem;font-weight:600;color:#f4f1eb}
+.hdrcfg-lines-n{flex:1;min-width:180px;font-size:.56rem;line-height:1.5;color:var(--mu)}
+.hdrcfg-lines .tog button{font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;padding:.34rem .6rem;border:none;background:transparent;color:var(--mu);cursor:pointer;border-radius:2px}
+.hdrcfg-lines .tog button.on{background:#f4f1eb;color:#0f0f11;font-weight:600}
 .hdrcfg-ft{display:flex;align-items:center;gap:.55rem;padding:.65rem 1rem;border-top:1px solid var(--bd)}
 .hdrcfg-ft p{margin:0;flex:1;font-size:.56rem;line-height:1.55;color:var(--mu)}
 .hdrcfg-btn{font-family:'IBM Plex Mono',monospace;font-size:.52rem;letter-spacing:.09em;text-transform:uppercase;padding:.36rem .7rem;border-radius:2px;cursor:pointer;font-weight:600;border:1px solid var(--bd);background:transparent;color:var(--mu);transition:.12s;flex:none}
@@ -532,6 +537,14 @@ body{display:flex;flex-direction:column}
       <button class="mx" onclick="closeHeaderCfg()">&times;</button>
     </div>
     <div id="hdrCfgList" class="hdrcfg-grid"></div>
+    <div class="hdrcfg-lines">
+      <span class="hdrcfg-lines-l">Divider lines</span>
+      <span class="hdrcfg-lines-n">The rule under the header and under the announcement bar. Applies to every page.</span>
+      <span class="tog" role="group" aria-label="Divider lines">
+        <button type="button" id="hdrLinesOn"  onclick="setHdrLines('on')">Lines</button>
+        <button type="button" id="hdrLinesOff" onclick="setHdrLines('off')">No lines</button>
+      </span>
+    </div>
     <div class="hdrcfg-ft">
       <p>Position only &mdash; colours, sizes and fonts stay with the theme. Applying updates the preview; nothing is live until you press Publish.</p>
       <button type="button" class="hdrcfg-btn" onclick="closeHeaderCfg()">Cancel</button>
@@ -3390,7 +3403,7 @@ function sendChrome(){
   if(Array.isArray(chromeNav)) post({type:'ZW_NAV_PREVIEW',items:chromeNav});
   if(chromeBar) post({type:'ZW_BAR_PREVIEW',value:chromeBar});
   post({type:'ZW_TEXT_OVERRIDES',value:chromeCopy||{}});
-  if(chromeHeader) post({type:'ZW_HEADER_LAYOUT',id:chromeHeader});
+  if(chromeHeader||chromeHdrLines) post({type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines});
 }
 
 /* Load the draft if there is one, otherwise what is live. A draft is only ever
@@ -3412,6 +3425,7 @@ async function loadChrome(){
   ]);
   const hd=pick(hdD,hdL);
   chromeHeader=(hd&&typeof hd==='object')?(hd.id||''):(hd||'');
+  chromeHdrLines=(hd&&typeof hd==='object'&&(hd.lines==='on'||hd.lines==='off'))?hd.lines:'';
   const nav=pick(navD,navL);
   chromeNav=Array.isArray(nav)?nav:[];
   const bar=pick(barD,barL);
@@ -3500,6 +3514,11 @@ function applyTextOverride(page,path,was,newText,loose){
    the version that did could not shift the categories at all (they are centred
    by absolute positioning) and stacked other parts underneath them. */
 let chromeHeader = '';
+/* Whether the header and the announcement bar draw their bottom rule. Stored
+   beside the arrangement because it is chosen in the same modal, but it is not
+   part of a layout: every arrangement can have it either way, and turning it
+   off is a valid choice for a store that never picked an arrangement at all. */
+let chromeHdrLines = '';
 
 /* What the gallery has highlighted. Separate from chromeHeader on purpose:
    chromeHeader is the store's arrangement, this is only what you are looking
@@ -3516,6 +3535,7 @@ function openHeaderCfg(){
   }
   hdrCfgSel = chromeHeader || 'classic';
   paintHeaderCfg();
+  paintHdrLines();
   document.getElementById('hdrCfgModal').classList.add('open');
 }
 
@@ -3547,6 +3567,27 @@ function paintHeaderCfg(){
 }
 
 function closeHeaderCfg(){ document.getElementById('hdrCfgModal').classList.remove('open'); }
+
+/* Unlike the gallery, this applies on click. A two-state toggle IS its own
+   preview — there is nothing to browse through and no way to lose your place,
+   and making you press Apply for one switch would be ceremony rather than
+   safety. Still only the draft: Publish is what reaches a shopper. */
+function setHdrLines(v){
+  if(v!=='on'&&v!=='off') return;
+  if(chromeHdrLines===v) return;
+  chromeHdrLines=v;
+  markChromeDirty('header');
+  sendChrome();
+  paintHdrLines();
+  toast(v==='off'?'Divider lines off — preview updated':'Divider lines on — preview updated','ok');
+}
+function paintHdrLines(){
+  const cur=chromeHdrLines||'on';
+  const on=document.getElementById('hdrLinesOn'), off=document.getElementById('hdrLinesOff');
+  if(!on||!off) return;
+  on.classList.toggle('on',cur==='on');
+  off.classList.toggle('on',cur==='off');
+}
 
 /* Highlight only. This used to save, mark the draft dirty and repaint the
    preview on the first click, which meant browsing the gallery rewrote the
@@ -3602,7 +3643,7 @@ async function saveChrome(pub){
     nav:  ['nav_menu_draft',        () => Array.isArray(chromeNav) ? chromeNav : []],
     bar:  ['announcement_bar_draft',() => chromeBar || {}],
     copy: ['text_overrides_draft',  () => chromeCopy || {}],
-    header: ['header_layout_draft',  () => ({ id: chromeHeader || 'classic' })],
+    header: ['header_layout_draft',  () => ({ id: chromeHeader || 'classic', lines: chromeHdrLines || 'on' })],
   };
   try{
     const token=await getAccessToken(); if(!token) throw new Error('Session expired');
@@ -4089,6 +4130,6 @@ function onKey(e){
 
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 </script>
-<script src="/header-layouts.js?v=4dc1d6c3"></script>
+<script src="/header-layouts.js?v=cf44ff47"></script>
 </body>
 </html>

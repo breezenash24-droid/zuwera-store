@@ -21,19 +21,23 @@ try {
       h.removeAttribute('data-zw-hdr-links');
       h.removeAttribute('data-zw-hdr-actions');
       h.removeAttribute('data-zw-hdr-linksrow');
+      h.removeAttribute('data-zw-hdr-lines');
     } else {
       var _hc = (localStorage.getItem('zw_hdr_attrs') || '').split('|');
       var _hs = { left: 1, center: 1, right: 1 };
       var _hb = h.getAttribute('data-zw-hdr-at') || '';
-      if (_hc.length >= 4 && _hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
-          && _hs[_hc[2]] && (_hc[3] === '1' || _hc[3] === '2')
-          && (!_hb || (_hc[4] || '') > _hb)) {
+      var _hfresh = !_hb || (_hc[4] || '') > _hb;
+      if (_hfresh && _hc.length >= 4 && _hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
+          && _hs[_hc[2]] && (_hc[3] === '1' || _hc[3] === '2')) {
         h.setAttribute('data-zw-hdr', '1');
         h.setAttribute('data-zw-hdr-logo', _hc[0]);
         h.setAttribute('data-zw-hdr-links', _hc[1]);
         h.setAttribute('data-zw-hdr-actions', _hc[2]);
         h.setAttribute('data-zw-hdr-linksrow', _hc[3]);
         h.setAttribute('data-zw-hdr-at', _hc[4] || '');
+      }
+      if (_hfresh && (_hc[5] === 'on' || _hc[5] === 'off')) {
+        h.setAttribute('data-zw-hdr-lines', _hc[5]);
       }
     }
   } catch (_) {}
@@ -384,7 +388,7 @@ try {
       .about-hero .about-side > * { animation: none !important; }
     }
   </style>
-<link rel="stylesheet" href="storefront-cohesion.css?v=bf098f17">
+<link rel="stylesheet" href="storefront-cohesion.css?v=d59717d5">
 <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
 <script src="header-scroll.js?v=fe320725" defer></script>
 <script src="mobile-menu.js?v=f7defb81" defer></script>
@@ -399,7 +403,7 @@ try {
 <!-- Applies Admin → Typography (site_settings.fonts). Without it this page
      ignored every font setting on the site — it was the only content page
      that never loaded the applier. -->
-<script src="/theme-engine.js?v=75b9c2fa" defer></script>
+<script src="/theme-engine.js?v=34c5abf6" defer></script>
 <script src="/motion.js?v=5b9cc123" defer></script>
 <script src="/icon-sets.js?v=e0ed4bcb" defer></script>
 <script src="storefront-theme.js?v=3782df36" defer></script>
@@ -657,7 +661,7 @@ try {
 </script>
 <script src="/nav-menu.js?v=a1272b19" defer></script>
 <script src="/zw-copy.js?v=a0389ca5" defer></script>
-<script src="/header-layouts.js?v=4dc1d6c3" defer></script>
+<script src="/header-layouts.js?v=cf44ff47" defer></script>
 <script src="/storefront-features.js?v=5a9b8bff" defer></script>
 <!-- The shared scroll lock. storefront-features.js used to carry its own copy;
      with that removed this is what freezes the page behind the search/bag

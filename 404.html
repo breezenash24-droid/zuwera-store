@@ -21,19 +21,23 @@ try {
       h.removeAttribute('data-zw-hdr-links');
       h.removeAttribute('data-zw-hdr-actions');
       h.removeAttribute('data-zw-hdr-linksrow');
+      h.removeAttribute('data-zw-hdr-lines');
     } else {
       var _hc = (localStorage.getItem('zw_hdr_attrs') || '').split('|');
       var _hs = { left: 1, center: 1, right: 1 };
       var _hb = h.getAttribute('data-zw-hdr-at') || '';
-      if (_hc.length >= 4 && _hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
-          && _hs[_hc[2]] && (_hc[3] === '1' || _hc[3] === '2')
-          && (!_hb || (_hc[4] || '') > _hb)) {
+      var _hfresh = !_hb || (_hc[4] || '') > _hb;
+      if (_hfresh && _hc.length >= 4 && _hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
+          && _hs[_hc[2]] && (_hc[3] === '1' || _hc[3] === '2')) {
         h.setAttribute('data-zw-hdr', '1');
         h.setAttribute('data-zw-hdr-logo', _hc[0]);
         h.setAttribute('data-zw-hdr-links', _hc[1]);
         h.setAttribute('data-zw-hdr-actions', _hc[2]);
         h.setAttribute('data-zw-hdr-linksrow', _hc[3]);
         h.setAttribute('data-zw-hdr-at', _hc[4] || '');
+      }
+      if (_hfresh && (_hc[5] === 'on' || _hc[5] === 'off')) {
+        h.setAttribute('data-zw-hdr-lines', _hc[5]);
       }
     }
   } catch (_) {}
@@ -181,7 +185,7 @@ try {
        are cached immutable, so on every repeat view the real font is ready at
        first paint with no fallback swap. Preconnects keep cold-cache cost small. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=bf098f17">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=d59717d5">
   <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=3" id="site-favicon">
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
@@ -373,7 +377,7 @@ try {
     </div>
   </div>
 
-  <script src="/theme-engine.js?v=75b9c2fa" defer></script>
+  <script src="/theme-engine.js?v=34c5abf6" defer></script>
   <script src="/motion.js?v=5b9cc123" defer></script>
   <script src="/icon-sets.js?v=e0ed4bcb" defer></script>
   <script src="storefront-theme.js?v=3782df36" defer></script>
@@ -381,7 +385,7 @@ try {
   <script src="lang.js?v=f4b70f65" defer></script>
 <script src="/nav-menu.js?v=a1272b19" defer></script>
 <script src="/zw-copy.js?v=a0389ca5" defer></script>
-<script src="/header-layouts.js?v=4dc1d6c3" defer></script>
+<script src="/header-layouts.js?v=cf44ff47" defer></script>
 <script src="email-popup.js?v=33908bad" defer></script>
 </body>
 </html>
