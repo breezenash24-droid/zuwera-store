@@ -78,6 +78,44 @@ try {
     if (/[?&]builder=1(?:&|$)/.test(location.search)) window.__ZW_BUILDER_PREVIEW__ = true;
   } catch (_) {}
 
+  /* ── WHERE THE HEADER'S PARTS SIT, BEFORE THE FIRST FRAME ──────────────────
+   *
+   * Same shape of problem as the theme, and the same answer. header-layouts.js
+   * is deferred: it cannot run until the document is parsed, so the header
+   * painted in the arrangement the MARKUP happens to be in — logo left,
+   * categories centred — and then jumped to the chosen one. On a store whose
+   * header is centred, every page load showed the wrong header first and
+   * rearranged in front of the visitor.
+   *
+   * WHAT IS CACHED IS THE ANSWER, NOT THE QUESTION. The cache holds the four
+   * placement values, not the layout's name, so this block needs to know
+   * nothing about what layouts exist or what any of them is called. Adding an
+   * arrangement never touches this file, and there is no second copy of the
+   * layout table to drift from the first.
+   *
+   * Values are checked against the same small vocabulary theme-engine.js
+   * accepts. An attribute the stylesheet has no rule for still counts as
+   * "placed" and suppresses the arrangement the page shipped with, so a junk
+   * value would produce a header with no placement at all rather than no
+   * change — the failure this guards is a blank header, not a wrong one.
+   *
+   * Not in a builder preview: there the published arrangement is exactly what
+   * must NOT be shown, and header-layouts.js holds it back for the draft. */
+  try {
+    if (!window.__ZW_BUILDER_PREVIEW__) {
+      var _hp = (localStorage.getItem('zw_hdr_attrs') || '').split('|');
+      var _hs = { left: 1, center: 1, right: 1 };
+      if (_hp.length === 4 && _hs[_hp[0]] && (_hs[_hp[1]] || _hp[1] === 'none')
+          && _hs[_hp[2]] && (_hp[3] === '1' || _hp[3] === '2')) {
+        h.setAttribute('data-zw-hdr', '1');
+        h.setAttribute('data-zw-hdr-logo', _hp[0]);
+        h.setAttribute('data-zw-hdr-links', _hp[1]);
+        h.setAttribute('data-zw-hdr-actions', _hp[2]);
+        h.setAttribute('data-zw-hdr-linksrow', _hp[3]);
+      }
+    }
+  } catch (_) {}
+
   /* ── ONE-TIME RESET OF A CHOICE NOBODY MADE ────────────────────────────────
    *
    * Six pages used to apply the legacy site_settings.theme row through

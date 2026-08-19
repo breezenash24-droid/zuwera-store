@@ -244,6 +244,38 @@ console.log('\nA preview shows the draft, not a flash of what is live first');
   ok('...and that nothing is live until Publish', /nothing is live until you press Publish/.test(B));
 }
 
+console.log('\nThe arrangement is in place before the first frame');
+{
+  const PRE = read('scripts/theme-preboot.head.js');
+  ok('the pre-paint block stamps all four attributes',
+    ['logo', 'links', 'actions', 'linksrow'].every((a) => PRE.includes("'data-zw-hdr-" + a + "'")),
+    'header-layouts.js is deferred, so without this the header paints in the arrangement the MARKUP is in and then jumps');
+  ok('it reads the resolved values, not a layout name',
+    PRE.includes("'zw_hdr_attrs'") &&
+    !L.list.some((l) => new RegExp("['\"]" + l.id + "['\"]").test(PRE)),
+    'a copy of the layout table in the head is a second definition to keep in step');
+  ok('it checks them against the same vocabulary theme-engine accepts',
+    /_hs\s*=\s*\{ left: 1, center: 1, right: 1 \}/.test(PRE) && /_hp\[1\] === 'none'/.test(PRE),
+    'an attribute the stylesheet has no rule for still counts as placed, and suppresses the shipped arrangement');
+  ok('it does not stamp inside a builder preview',
+    /if \(!window\.__ZW_BUILDER_PREVIEW__\) \{[\s\S]{0,400}zw_hdr_attrs/.test(PRE),
+    'there the published arrangement is exactly the one that must not be shown');
+
+  ok('the cache is written from the published value only',
+    /remember\(id\);/.test(SRC) && !/draftDone[\s\S]{0,200}remember\(/.test(SRC),
+    'a draft that survived into the next page load would show a shopper unpublished work');
+  ok('and cleared when the store names no arrangement',
+    /if \(!l\) \{ localStorage\.removeItem\(CACHE\); localStorage\.removeItem\(ATTRS\); return; \}/.test(SRC),
+    'otherwise the head keeps stamping an arrangement nothing on the server still names');
+
+  /* sync-preboot.js stamps this block into every storefront page and
+     theme-preboot.test.js fails the build on a single byte of drift; this only
+     checks the block actually reached them. */
+  for (const p of ['index.html', 'product.html', 'drop001.html', 'about.html', 'bag.html', 'landing.html']) {
+    ok(p + ' carries the pre-paint arrangement block', read(p).includes('zw_hdr_attrs'));
+  }
+}
+
 console.log('\nIt travels like the rest of the chrome draft');
 {
   ok('Save Draft can write it', /header: \['header_layout_draft'/.test(B));
