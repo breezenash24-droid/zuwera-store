@@ -517,7 +517,6 @@
      written from the PUBLISHED value: a draft must not survive into the next
      page load, least of all a shopper's. */
   var ATTRS = 'zw_hdr_attrs';
-  var fromDraft = false;
 
   /* The trailing field is the row's updated_at, kept so the pre-paint block can
      tell a cache that is NEWER than the build's baked answer from one that is
@@ -548,20 +547,10 @@
     } catch (_) {}
   }
 
-  function set(id, opts, isDraft) {
-    if (fromDraft && !isDraft) return;   // a draft outranks the published value
-    if (isDraft) fromDraft = true;
-    apply(id, opts);
-  }
+  /* set() and its fromDraft flag lived here: "a draft outranks the published
+     value". That is the gate's rule now, and stating it twice is how the two
+     copies would start disagreeing. */
 
-  /* Is this page being shown INSIDE the builder? Both routes are settled before
-     this file runs — `?builder=1` sets its flag in a synchronous head script and
-     `?zwpreview=` has already created its promise — so the question can be
-     answered now rather than after the first paint, which is the whole point. */
-  function isPreview() {
-    return !!(window.__ZW_BUILDER_PREVIEW__ ||
-             (window.__zwPreviewReady && window.__zwPreviewReady.then));
-  }
 
   function bootStorefront() {
     if (!findNav()) return;
@@ -580,20 +569,24 @@
        So in a preview the published value is held, not applied, until the draft
        has had its say. If the draft turns out to carry no arrangement, the held
        value is released and nothing is lost. */
-    var preview = isPreview();
-    var held = null, draftSettled = false;
+    /* THE SHARED GATE, not a copy of it. This file grew the hold first and the
+       reasoning was right, but keeping its own version meant keeping its own
+       BUGS: both it and the shared one settled on a null from the preview-LINK
+       promise, which on a ?builder=1 load resolves immediately because there is
+       no link — releasing the published arrangement a fifth of a second before
+       the builder's message arrived. Fixing that in one place and not the other
+       is exactly how this feature already lost a day. */
+    var gate = (window.ZWPreviewHold || function (f) {
+      return { preview: false, published: f, draft: function (v) { if (v != null) f(v); } };
+    })(function (v) { apply(v.id, v.opts); });
 
-    function fromServer(id, opts) {
-      if (preview && !draftSettled) { held = { id: id, opts: opts }; return; }
-      set(id, opts);
-    }
+    function fromServer(id, opts) { gate.published({ id: id, opts: opts }); }
     function draftDone(id, opts) {
-      draftSettled = true;
       /* A draft with none of the answers in it is not a draft that says "no
-         header" — it is a builder that had nothing to send yet. Only a draft
-         that names something displaces what is live. */
-      if (id || anyExtra(extras(opts))) { set(id, opts, true); held = null; return; }
-      if (held) { set(held.id, held.opts); held = null; }
+         header" — it is a builder that had nothing to send yet. Passing null
+         says so, and the gate lets the held value through instead. */
+      var named = id || anyExtra(extras(opts));
+      gate.draft(named ? { id: id, opts: opts, draft: true } : null);
     }
 
     /* ── THE CACHE ONLY SPEAKS IF THE DOCUMENT DID NOT ──────────────────────
@@ -661,9 +654,10 @@
        would leave the header showing neither the draft nor what is live — worse
        than the flash this replaces. Long enough that the message wins in
        practice; short enough that nobody reads the wrong header for long. */
-    if (preview && window.__ZW_BUILDER_PREVIEW__) {
-      setTimeout(function () { if (!draftSettled) draftDone(null, null); }, 1500);
-    }
+    /* The "a draft that never arrives must release the held value" timer used
+       to be here. It belongs to the gate now, with the same 1.5s and the same
+       reason — long enough that a message sent on load wins in practice, short
+       enough that nobody reads the wrong header for long. */
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootStorefront);

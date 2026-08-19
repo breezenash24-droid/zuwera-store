@@ -294,12 +294,25 @@ console.log('\nThe published copy cannot overwrite the draft');
 {
   /* The preview fetches published overrides while the builder pushes the draft
      in. If the response lands second it reinstates the published words — which
-     reads as "my edit did not take", intermittently, depending on the network. */
-  ok('a draft marks itself authoritative', /function setOverrides\(next, fromDraft\)/.test(COPY));
-  ok('and later server values are ignored', /if \(draftPushed && !fromDraft\) return;/.test(COPY));
-  ok('the builder push counts as a draft', /setOverrides\(d\.value, true\)/.test(COPY));
-  ok('so does a ?zwpreview= link', /setOverrides\(p\.text_overrides, true\)/.test(COPY));
-  ok('the plain fetch does not', /setOverrides\(v\);/.test(COPY));
+     reads as "my edit did not take", intermittently, depending on the network.
+
+     Four modules each grew their own answer to that. They share one now:
+     ZWPreviewHold in preview-mode.js, which also HOLDS the published value
+     rather than painting it and correcting — the published-first render was the
+     canvas showing the old page on every single load. */
+  const HOLD = read('preview-mode.js');
+  ok('one gate, rather than one answer per module', /window\.ZWPreviewHold = function \(apply\)/.test(HOLD));
+  ok('a draft marks itself authoritative', /draftWon = true;/.test(HOLD));
+  ok('and later published values are ignored', /if \(preview && draftWon\) return;/.test(HOLD));
+  ok('...and the published one is HELD until the draft answers, not painted first',
+    /if \(preview && !settled\) \{ held = v; has = true; return; \}/.test(HOLD),
+    'painting it first IS the old version of the page, shown to the person reviewing the new one');
+  ok('a draft that carries nothing releases the held value instead',
+    /if \(v === null \|\| v === undefined\) \{[\s\S]{0,140}release\(\); return;/.test(HOLD));
+  ok('a draft that never arrives releases it too', /if \(!settled\) \{ settled = true; release\(\); \}/.test(HOLD));
+  ok('the builder push counts as a draft', /gate\.draft\(d\.value\)/.test(COPY));
+  ok('so does a ?zwpreview= link', /gate\.draft\(p \? \(p\.text_overrides \|\| null\) : null\)/.test(COPY));
+  ok('the plain fetch does not', /gate\.published\(v\);/.test(COPY));
 }
 
 console.log('\nSaving writes only what changed');
@@ -394,14 +407,14 @@ console.log('\nPreview live shows what Save Draft saved');
       'the storefront renders a preview through its normal path, so the draft has '
       + 'to come back under the live name');
 
-  ok('the nav takes it', /pv\.nav_menu/.test(NAV) && /__zwNavPreview/.test(NAV));
-  ok('the bar takes it', /pv\.announcement_bar/.test(BAR) && /__zwBarPreview/.test(BAR));
+  ok('the nav takes it', /pv\.nav_menu/.test(NAV) && /gate\.draft\(/.test(NAV));
+  ok('the bar takes it', /pv\.announcement_bar/.test(BAR) && /gate\.draft\(/.test(BAR));
   ok('page copy takes it', /p\.text_overrides/.test(COPY));
 
   /* Each module also fetches the PUBLISHED value, and that response usually
      lands second. Without a guard it would undo the preview. */
-  ok('the published nav does not overwrite it', /if \(window\.__zwNavPreview\) return;/.test(NAV));
-  ok('nor the published bar', /if \(window\.__zwBarPreview\) return;/.test(BAR));
+  ok('the published nav does not overwrite it', /gate\.published\(pub\);/.test(NAV) && /gate\.draft\(/.test(NAV));
+  ok('nor the published bar', /gate\.published\(cfg\);/.test(BAR) && /gate\.draft\(/.test(BAR));
   ok('nor the published copy', /if \(draftPushed && !fromDraft\) return;/.test(COPY));
 
   ok('Preview live saves before it opens', /await saveDraft\(\);[\s\S]{0,400}preview-token/.test(B),

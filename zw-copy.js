@@ -269,11 +269,16 @@
     } catch (_) {}
   }
 
-  /* Cache first so an override does not flash the original text on every load,
-     then refresh from the server. Same shape as nav-menu.js's cache. */
+  /* Held in a preview until the draft has answered — see ZWPreviewHold. Outside
+     one, cache first so an override does not flash the original text on every
+     load, then refresh from the server. */
+  var gate = (window.ZWPreviewHold || function (f) {
+    return { preview: false, published: f, draft: function (v) { if (v != null) f(v); } };
+  })(function (v) { setOverrides(v); });
+
   try {
     var c = localStorage.getItem(CACHE);
-    if (c) overrides = JSON.parse(c);
+    if (c) gate.published(JSON.parse(c));
   } catch (_) {}
 
   function boot() {
@@ -283,8 +288,8 @@
        there so an unpublished preview shows unpublished words. */
     if (window.__zwPreviewReady && window.__zwPreviewReady.then) {
       window.__zwPreviewReady.then(function (p) {
-        if (p && p.text_overrides) setOverrides(p.text_overrides, true);
-      }).catch(function () {});
+        gate.draft(p ? (p.text_overrides || null) : null);
+      }).catch(function () { gate.draft(null); });
     }
     if (window.__ZW_BUILDER_PREVIEW__) initEditor();
   }
@@ -297,7 +302,7 @@
       if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
       if (!v) return;
       try { localStorage.setItem(CACHE, JSON.stringify(v)); } catch (_) {}
-      setOverrides(v);
+      gate.published(v);
     })
     .catch(function () {});
 
@@ -567,7 +572,7 @@
       }
       /* Draft copy pushed from the builder. It never comes from the database:
          the draft keys are not publicly readable, on purpose. */
-      if (d.type === 'ZW_TEXT_OVERRIDES' && d.value) { setOverrides(d.value, true); return; }
+      if (d.type === 'ZW_TEXT_OVERRIDES' && d.value) { gate.draft(d.value); return; }
       if (d.type === 'ZW_INLINE_TEXT_RESULT' && pending[d.id]) {
         var p = pending[d.id]; delete pending[d.id];
         if (d.ok) {

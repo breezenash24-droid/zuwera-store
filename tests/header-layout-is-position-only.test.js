@@ -234,20 +234,35 @@ console.log('\nChoosing is not applying');
 
 console.log('\nA preview shows the draft, not a flash of what is live first');
 {
-  ok('the module can tell it is inside the builder',
-    /function isPreview\(\)/.test(SRC) && /__ZW_BUILDER_PREVIEW__/.test(SRC) && /__zwPreviewReady/.test(SRC));
+  /* The hold started here and the reasoning was right, but keeping a private
+     copy meant keeping its private BUGS: both this and the shared version
+     settled on a null from the preview-LINK promise, which on a ?builder=1 load
+     resolves at once because there is no link — releasing the published
+     arrangement a fifth of a second before the builder's message arrived.
+     Fixing that in one of two copies is how this feature already lost a day. */
+  const HOLD = read('preview-mode.js');
+  ok('the gate can tell it is inside the builder',
+    /__ZW_BUILDER_PREVIEW__/.test(HOLD) && /__zwPreviewReady/.test(HOLD));
   ok('the published arrangement is held rather than applied there',
-    /if \(preview && !draftSettled\) \{ held = \{ id: id, opts: opts \}; return; \}/.test(SRC),
+    /if \(preview && !settled\) \{ held = v; has = true; return; \}/.test(HOLD)
+    && /function fromServer\(id, opts\) \{ gate\.published/.test(SRC),
     'it is the LOCAL value, so it always won the race and the canvas rearranged twice');
+  ok('...through the shared gate, not a second copy of it',
+    !/draftSettled/.test(SRC) && /window\.ZWPreviewHold/.test(SRC));
   ok('both the cache and the server go through that hold',
     (SRC.match(/fromServer\(/g) || []).length >= 3,
     'the cache is the one that arrives first, so skipping only the fetch fixes nothing');
   ok('a draft that carries no arrangement releases the held one',
-    /if \(held\) \{ set\(held\.id, held\.opts\); held = null; \}/.test(SRC),
+    /var named = id \|\| anyExtra\(extras\(opts\)\);/.test(SRC)
+    && /gate\.draft\(named \? \{ id: id, opts: opts, draft: true \} : null\);/.test(SRC)
+    && /if \(v === null \|\| v === undefined\) \{/.test(HOLD),
     'otherwise the canvas shows neither the draft nor what is live');
   ok('a draft that never arrives releases it too',
-    /if \(preview && window\.__ZW_BUILDER_PREVIEW__\) \{[\s\S]{0,140}draftSettled\) draftDone\(null, null\)/.test(SRC),
+    /if \(preview && window\.__ZW_BUILDER_PREVIEW__\) \{[\s\S]{0,200}if \(!settled\) \{ settled = true; release\(\); \}/.test(HOLD),
     'a postMessage that is never sent has no failure to catch');
+  ok('...and a null from the preview LINK does not count as one in the builder',
+    /if \(window\.__ZW_BUILDER_PREVIEW__\) return;/.test(HOLD),
+    'measured: it released the published value 200ms before the message arrived');
   ok('the modal says it is position only', /Position only/.test(B));
   ok('...and that nothing is live until Publish', /nothing is live until you press Publish/.test(B));
 }
