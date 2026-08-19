@@ -55,8 +55,20 @@ console.log('\nOne modal for the whole header\n');
 {
   ok('the header modal has a second tab for the controls',
     /id="hdrTabIcons"/.test(B) && /id="hdrPaneIcons"/.test(B) && /function hdrTab\(/.test(B));
-  ok('glyphs or words is answerable there, at all three scopes',
-    ['hdrLbIcons', 'hdrLbMobile', 'hdrLbAlways'].every((id) => B.includes('id="' + id + '"')));
+  /* Per device, and any combination — the two scopes this replaces could say
+     "phone and tablet together" or "everywhere", and could not say desktop
+     alone. Eight combinations, two of them reachable. */
+  ok('glyphs or words is answerable per device',
+    ['hdrLbPhone', 'hdrLbTablet', 'hdrLbDesktop'].every((id) => B.includes('id="' + id + '"'))
+    && /function toggleHdrLabel\(dev\)\{/.test(B));
+  ok('...and every device is on the header’s own 900px boundary, not a second one',
+    /@media \(max-width: 600px\)[\s\S]{0,240}data-zw-iconlabels~="phone"/.test(read('storefront-cohesion.css'))
+    && /@media \(min-width: 601px\) and \(max-width: 900px\)[\s\S]{0,240}data-zw-iconlabels~="tablet"/.test(read('storefront-cohesion.css'))
+    && /@media \(min-width: 901px\)[\s\S]{0,240}data-zw-iconlabels~="desktop"/.test(read('storefront-cohesion.css')),
+    'it used to switch at 1024px, which is nothing else in the header’s boundary');
+  ok('...and the old spellings still work, so baked HTML is not blanked',
+    /\[data-zw-iconlabels="mobile"\]/.test(read('storefront-cohesion.css'))
+    && /\[data-zw-iconlabels="always"\]/.test(read('storefront-cohesion.css')));
   ok('where the account link lives is answerable there',
     /id="hdrAcctBag"/.test(B) && /id="hdrAcctHeader"/.test(B));
   ok('and the four menu rows are, each with a switch and a name',
@@ -88,13 +100,18 @@ console.log('\nOne modal for the whole header\n');
     'storing today’s theme value would stop the header following a theme switch');
   ok('the engine treats absent as "the theme still answers"',
     /var v = hdrAccount \|\| \(themeValue === 'header' \? 'header' : ''\);/.test(TE)
-    && /var v = hdrLabels \|\| themeValue;/.test(TE));
+    && /var v = hdrLabels \|\| themeValue \|\| '';/.test(TE));
+  ok('...and translates the theme’s older spelling rather than teaching it to CSS',
+    /LABEL_ALIAS = \{ mobile: 'phone tablet', always: 'phone tablet desktop', icons: 'none' \}/.test(TE),
+    'one vocabulary below that line');
   ok('...and the theme editors say they are the fallback now',
     (read('admin-themes.js').match(/This is the fallback/g) || []).length >= 2,
     'a control that silently loses is worse than one that is gone');
-  ok('the module validates all three against one table',
-    /var EXTRAS = \{/.test(SRC) && /account:\s*\{ bag: 1, header: 1 \}/.test(SRC)
-    && /iconLabels:\s*\{ icons: 1, mobile: 1, always: 1 \}/.test(SRC));
+  ok('the module validates the two enums against one table',
+    /var EXTRAS = \{/.test(SRC) && /account:\s*\{ bag: 1, header: 1 \}/.test(SRC));
+  ok('...and the device list through one normaliser, order included',
+    /function deviceList\(v\)/.test(SRC) && /var DEVICES = \['phone', 'tablet', 'desktop'\]/.test(SRC),
+    'unordered, "tablet phone" and "phone tablet" would compare as different answers');
 }
 
 /* ── 3 · they reach the first frame ──────────────────────────────────────── */
@@ -108,7 +125,7 @@ console.log('\nOne modal for the whole header\n');
     /ATTR_FIELDS = \['lines', 'account', 'iconLabels'\]/.test(SRC)
     && /parts\[5 \+ fi\]/.test(SRC));
   ok('the head pre-paint reads the words/glyphs field',
-    /_hc\[7\] === 'mobile' \|\| _hc\[7\] === 'always'/.test(PRE));
+    /phone\|tablet\|desktop/.test(PRE) && /h\.setAttribute\(_il, _hc\[7\]\)/.test(PRE));
   /* It hides a button that is IN the header, so it has to land before the
      header is parsed. That rules out the after-nav block, which is where it
      first went — and <head> has no <body>, so it goes onto <html> and the
@@ -130,10 +147,14 @@ console.log('\nOne modal for the whole header\n');
 {
   ok('the engine clears on an explicit "in the bag"',
     /else if \(acctWritten \|\| hdrAccount === 'bag'\)/.test(TE));
-  ok('...and on an explicit "icons"',
-    /else if \(labelsWritten \|\| hdrLabels === 'icons'\)/.test(TE));
-  ok('the head pre-paint does the same for icons',
-    /_hc\[7\] === 'icons'.{0,60}removeAttribute\(_il\)/.test(PRE));
+  /* "Glyphs everywhere" is now the value 'none' — a list naming no device —
+     rather than a removal. It has to overrule what the build baked, and only
+     the truly absent case removes anything. */
+  ok('...and "glyphs everywhere" is a value that overrules the bake, not a removal',
+    /if \(v\) \{ root\.setAttribute\('data-zw-iconlabels', v\); labelsWritten = true; \}/.test(TE)
+    && /else if \(labelsWritten\)/.test(TE));
+  ok('the head pre-paint writes it too, rather than removing',
+    /\^\(none\|/.test(PRE));
   /* "In the bag" does not clear anything here — it WRITES 'bag' onto <html>,
      and the second stylesheet rule makes that beat a bake on <body> saying
      otherwise. Clearing would have been the wrong verb: there is a baked
@@ -141,10 +162,14 @@ console.log('\nOne modal for the whole header\n');
   ok('and "in the bag" outranks the bake rather than trying to erase it',
     /h\.setAttribute\(_ia, _hc\[6\]\)/.test(PRE)
     && /html\[data-zw-account="bag"\] body\.zwf-bagpanel-on/.test(read('storefront-cohesion.css')));
-  ok('the edge says remove with null rather than by staying silent',
-    /out\['data-zw-iconlabels'\] = null;/.test(MID) && /if \(v === null\) el\.removeAttribute\(k\)/.test(MID));
-  ok('the build bakes "icons" as the attribute’s absence',
-    /labels === 'mobile' \|\| labels === 'always'/.test(STAMP));
+  ok('the edge validates the list before it lands on the element',
+    /\^\(none\|\(phone\|tablet\|desktop\)/.test(MID),
+    'a junk value would read as a scope nobody wrote');
+  ok('...and can still remove where removal is the answer',
+    /if \(v === null\) el\.removeAttribute\(k\)/.test(MID));
+  ok('the build bakes whatever list the row names',
+    /if \(labels\) keep \+= ' data-zw-iconlabels="'/.test(STAMP)
+    && /\^\(none\|\(phone\|tablet\|desktop\)/.test(STAMP));
 }
 
 /* ── 5 · one owner for the menu ──────────────────────────────────────────── */
@@ -187,6 +212,30 @@ console.log('\nOne modal for the whole header\n');
   ok('...and says so on the status line, like the other four',
     /chromeFound\.push\('account menu'\)/.test(B));
   ok('the save toast names it', /bag:'account menu'/.test(B));
+}
+
+/* ── 7 · what applies at which width, said out loud ──────────────────────── */
+{
+  console.log('\n  which widths each answer reaches');
+  /* Arrangement is desktop-only because the stylesheet says so: below 900px
+     every placement is undone. That is a real limit — a phone bar cannot hold
+     three zones and a second row — and the gallery was silent about it, which
+     let you pick a tile on the Tablet preview and watch nothing happen. */
+  ok('placement is desktop-only in the stylesheet',
+    /@media \(max-width: 900px\)[\s\S]{0,400}html\[data-zw-hdr\] :is\(#nav[\s\S]{0,200}order: 0/.test(read('storefront-cohesion.css')));
+  ok('...and the modal says which width it applies at',
+    /Applies at 900px and up/.test(B));
+  ok('...and says it louder when you are previewing a narrower one',
+    /pvMode==='mob' \|\| pvMode==='tab'/.test(B) && /will not change this preview/.test(B));
+  ok('...and follows the preview rather than stating it once and going stale',
+    /function setPvMode\(m\)\{[\s\S]{0,200}paintHdrScope\(\)/.test(B));
+
+  /* The other two are whole-site questions, and saying so is what stops them
+     growing per-device controls nobody would vary. */
+  ok('the divider rule is outside the placement media query, so a phone shows it',
+    /^html\[data-zw-hdr-lines="off"\]/m.test(read('storefront-cohesion.css')));
+  ok('...and the modal says the non-placement answers apply at every width',
+    /apply at every width/.test(B));
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

@@ -477,8 +477,13 @@ console.log('\nA theme with no opinion does not erase what the build baked');
   ];
   for (const [attr, bakedBy, flag] of BAKED) {
     ok(attr + ' is baked by the build', bakedBy.test(TCSS) && STAMP4.includes(attr));
+    /* The clause after the flag differs by attribute and that is deliberate:
+       the account one also clears on an explicit "in the bag", while the label
+       one no longer needs to, because "glyphs everywhere" is now the value
+       'none' rather than the absence of a value. Both still refuse to clear on
+       a theme's SILENCE, which is the rule this holds. */
     ok('...and theme-engine only removes it if it wrote it',
-      new RegExp('else if \\(' + flag + ' \\|\\|[^)]*\\) \\{[\\s\\S]{0,90}removeAttribute\\(\'' + attr + '\'\\)').test(TE),
+      new RegExp('else if \\(' + flag + '[^)]*\\) \\{[\\s\\S]{0,90}removeAttribute\\(\'' + attr + '\'\\)').test(TE),
       'a theme that does not mention it is not a theme asking for it to go away');
     ok('...and records having written it',
       new RegExp(flag + ' = true;').test(TE));

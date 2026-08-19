@@ -12,7 +12,7 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;background:#0f0f11;color:#f4f1eb;font-family:'Barlow',sans-serif;font-size:13px}
-:root{--bg:#0f0f11;--sf:#17171b;--sf2:#1e1e24;--tx:#f4f1eb;--bd:rgba(255,255,255,.08);--mu:rgba(244,241,235,.42);--ac:#F891A5;
+:root{--bg:#0f0f11;--sf:#17171b;--sf2:#1e1e24;--tx:#f4f1eb;--wn:#f4c66a;--wn-bg:rgba(244,198,106,.06);--bd:rgba(255,255,255,.08);--mu:rgba(244,241,235,.42);--ac:#F891A5;
   /* One width for the list AND the editor that covers it, so the preview
      never changes size depending on what is open. 292px fits four tabs
      across; the editor used to be a separate 300px column beside it. */
@@ -97,6 +97,8 @@ body{display:flex;flex-direction:column}
    its own two- or three-state control that acts on click. A control with two
    states IS its own preview — there is nothing to browse and no place to lose
    — so making you press Apply for each would be ceremony rather than safety. */
+.hdrcfg-scope{margin:0;padding:.6rem 1rem;font-size:.6rem;line-height:1.55;color:var(--mu);border-bottom:1px solid var(--bd);flex:none}
+.hdrcfg-scope.warn{color:var(--wn);background:var(--wn-bg)}
 .hdrcfg-set{padding:.85rem 1rem;border-bottom:1px solid var(--bd)}
 .hdrcfg-set:last-child{border-bottom:none}
 .hdrcfg-set-hd{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:.4rem}
@@ -572,6 +574,14 @@ body{display:flex;flex-direction:column}
     </div>
 
     <div id="hdrPaneLayout" class="hdrcfg-pane">
+      <!-- Arrangement is a desktop question and the modal used to be silent
+           about it: below 900px every placement falls back to the header the
+           pages ship with, because a phone bar cannot hold three zones and a
+           second row without spending a third of the viewport on chrome. That
+           is a real limit of the stylesheet, not an oversight — but a gallery
+           that shows ten arrangements without mentioning it is a gallery that
+           lets you choose one on the Tablet preview and watch nothing happen. -->
+      <p class="hdrcfg-scope" id="hdrCfgScope"></p>
       <div id="hdrCfgList" class="hdrcfg-grid"></div>
       <div class="hdrcfg-lines">
         <span class="hdrcfg-lines-l">Divider lines</span>
@@ -587,13 +597,13 @@ body{display:flex;flex-direction:column}
       <div class="hdrcfg-set">
         <div class="hdrcfg-set-hd">
           <span class="hdrcfg-lines-l">Search, account and bag</span>
-          <span class="tog" role="group" aria-label="Header controls">
-            <button type="button" id="hdrLbIcons"  onclick="setHdrLabels('icons')">Icons</button>
-            <button type="button" id="hdrLbMobile" onclick="setHdrLabels('mobile')">Words on phones</button>
-            <button type="button" id="hdrLbAlways" onclick="setHdrLabels('always')">Words</button>
+          <span class="tog" role="group" aria-label="Show words instead of icons on">
+            <button type="button" id="hdrLbPhone"   onclick="toggleHdrLabel('phone')">Phone</button>
+            <button type="button" id="hdrLbTablet"  onclick="toggleHdrLabel('tablet')">Tablet</button>
+            <button type="button" id="hdrLbDesktop" onclick="toggleHdrLabel('desktop')">Desktop</button>
           </span>
         </div>
-        <p class="hdrcfg-lines-n">Whether the controls read as glyphs or as the words beside them. The words come from the label each control already carries for screen readers, so nothing here can leave a button unnamed.</p>
+        <p class="hdrcfg-lines-n">Words instead of glyphs, per device &mdash; pick any combination, or none for icons everywhere. The words come from the label each control already carries for screen readers, so nothing here can leave a button unnamed. <span id="hdrLbNow" style="color:var(--tx)"></span></p>
       </div>
 
       <div class="hdrcfg-set">
@@ -3391,6 +3401,9 @@ window.addEventListener('resize',pvMeasure);
 
 function setPvMode(m){
   pvMode=m;
+  // The header modal names the width its arrangement applies at, so it has to
+  // follow the preview rather than stating it once and going stale.
+  try{ paintHdrScope(); }catch(_){}
   document.querySelectorAll('#pvTog button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
   const frame=document.getElementById('pvFrame');
   const iframe=document.getElementById('pvIframe');
@@ -3654,6 +3667,7 @@ function openHeaderCfg(){
   paintHeaderCfg();
   paintHdrLines();
   paintHdrControls();
+  paintHdrScope();
   hdrTab('layout');
   document.getElementById('hdrCfgModal').classList.add('open');
 }
@@ -3708,6 +3722,24 @@ function paintHeaderCfg(){
 
 function closeHeaderCfg(){ document.getElementById('hdrCfgModal').classList.remove('open'); }
 
+/* Say who this tab is for, and say it louder when the preview is showing a
+   width the arrangement does not reach. Tablet is the one that catches people
+   out: the preview frame is 768px, which is BELOW the 900px where the header
+   switches to its mobile form — so a tablet preview shows the mobile header,
+   and picking a tile there does nothing visible. Reading that as "the picker is
+   broken" is exactly what happened the first time this feature shipped. */
+function paintHdrScope(){
+  const el=document.getElementById('hdrCfgScope');
+  if(!el) return;
+  const small = pvMode==='mob' || pvMode==='tab';
+  el.classList.toggle('warn', small);
+  el.textContent = small
+    ? 'Arrangement is a desktop setting, and you are previewing '
+      + (pvMode==='mob' ? 'a phone' : 'a tablet')
+      + '. Below 900px the header keeps the compact form the pages ship with — logo, menu and actions — so a tile picked here will not change this preview. It still applies on desktop.'
+    : 'Applies at 900px and up. Below that the header keeps the compact form the pages ship with; the two settings on the next tab apply at every width.';
+}
+
 /* Unlike the gallery, this applies on click. A two-state toggle IS its own
    preview — there is nothing to browse through and no way to lose your place,
    and making you press Apply for one switch would be ceremony rather than
@@ -3735,13 +3767,29 @@ function paintHdrLines(){
    writes site_settings.bag_panel, which is a different key with a different
    owner — so it is marked dirty separately and published on its own row. */
 
-function setHdrLabels(v){
-  if(['icons','mobile','always'].indexOf(v)<0 || chromeHdrLabels===v) return;
-  chromeHdrLabels=v;
+/* Per device, because this is the one answer here that genuinely varies by
+   one — "Bag" reads well on a phone and can crowd a desktop bar with four
+   categories beside it. The two other switches on this tab are whole-site
+   questions: a phone draws the divider rule too, and the bag panel carries the
+   account link at every width, so a per-device answer for either would be three
+   controls to express something nobody varies.
+
+   The value is the LIST of devices that show words, so any combination is
+   expressible. 'none' rather than empty when you clear the last one: empty
+   would mean "the theme still decides", and turning every device off is an
+   answer, not a withdrawal of one. */
+function toggleHdrLabel(dev){
+  const L=window.ZWHeaderLayouts;
+  const cur=(L?L.deviceList(chromeHdrLabels):String(chromeHdrLabels||''));
+  const on=cur==='none'?[]:(cur?cur.split(' '):[]);
+  const i=on.indexOf(dev);
+  if(i>-1) on.splice(i,1); else on.push(dev);
+  const next=on.length?(L?L.deviceList(on.join(' ')):on.join(' ')):'none';
+  if(next===chromeHdrLabels) return;
+  chromeHdrLabels=next;
   markChromeDirty('header'); sendChrome(); paintHdrControls();
-  toast(v==='icons'?'Header controls: icons — preview updated'
-    :v==='mobile'?'Header controls: words on phones — preview updated'
-    :'Header controls: words — preview updated','ok');
+  toast(next==='none'?'Header controls: icons everywhere — preview updated'
+    :'Header controls: words on '+next.split(' ').join(', ')+' — preview updated','ok');
 }
 
 function setHdrAccount(v){
@@ -3785,8 +3833,18 @@ function paintHdrControls(){
   /* Absent means the theme still answers, and the theme's own default is icons
      and the bag — so that is what the modal shows as current. It reflects what
      the storefront does, not what this file has stored. */
-  const lb=chromeHdrLabels||'icons';
-  tog('hdrLbIcons',lb==='icons'); tog('hdrLbMobile',lb==='mobile'); tog('hdrLbAlways',lb==='always');
+  const L=window.ZWHeaderLayouts;
+  const lb=(L?L.deviceList(chromeHdrLabels):String(chromeHdrLabels||''));
+  const words=(lb&&lb!=='none')?lb.split(' '):[];
+  tog('hdrLbPhone',words.indexOf('phone')>-1);
+  tog('hdrLbTablet',words.indexOf('tablet')>-1);
+  tog('hdrLbDesktop',words.indexOf('desktop')>-1);
+  const now=document.getElementById('hdrLbNow');
+  if(now){
+    now.textContent = !chromeHdrLabels
+      ? 'Following the theme.'
+      : words.length ? '' : 'Icons on every device.';
+  }
   const ac=chromeHdrAccount||'bag';
   tog('hdrAcctBag',ac==='bag'); tog('hdrAcctHeader',ac==='header');
 

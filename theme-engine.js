@@ -261,14 +261,20 @@
     else if (acctWritten || hdrAccount === 'bag') { el.removeAttribute('data-zw-account'); acctWritten = false; }
   }
 
-  /* 'mobile' and 'always' are scopes the stylesheet knows; anything else —
-     including the absent case — means icons, and the attribute is REMOVED
-     rather than set to a value CSS has no rule for, since `[data-zw-iconlabels]`
-     alone matches the shared styling rule. */
+  /* Which devices show words instead of glyphs, as the list the stylesheet
+     matches with ~=. The theme's own token predates the list and says 'mobile'
+     or 'always'; those are translated here rather than left for the stylesheet,
+     so there is one vocabulary below this line.
+
+     'none' is a value, not a removal: it names no device, so no rule matches
+     and the controls are glyphs — and unlike removing the attribute it can
+     overrule a value the build baked. Only the truly absent case removes. */
+  var LABEL_ALIAS = { mobile: 'phone tablet', always: 'phone tablet desktop', icons: 'none' };
   function applyIconLabels(root, themeValue) {
-    var v = hdrLabels || themeValue;
-    if (v === 'mobile' || v === 'always') { root.setAttribute('data-zw-iconlabels', v); labelsWritten = true; }
-    else if (labelsWritten || hdrLabels === 'icons') { root.removeAttribute('data-zw-iconlabels'); labelsWritten = false; }
+    var v = hdrLabels || themeValue || '';
+    v = LABEL_ALIAS[v] || v;
+    if (v) { root.setAttribute('data-zw-iconlabels', v); labelsWritten = true; }
+    else if (labelsWritten) { root.removeAttribute('data-zw-iconlabels'); labelsWritten = false; }
   }
 
   function applyHeader(root, header) {
@@ -679,8 +685,7 @@
          placement here. */
       hdrLines = s && (s.lines === 'on' || s.lines === 'off') ? s.lines : '';
       hdrAccount = s && (s.account === 'bag' || s.account === 'header') ? s.account : '';
-      hdrLabels = s && (s.iconLabels === 'icons' || s.iconLabels === 'mobile' || s.iconLabels === 'always')
-        ? s.iconLabels : '';
+      hdrLabels = (s && typeof s.iconLabels === 'string') ? s.iconLabels.trim() : '';
       hdrOverride = s && s.logo ? s : null;
       var t = (applied && applied.tokens) || {};
       applyHeader(document.documentElement, applied && applied.header);
