@@ -59,7 +59,7 @@ const SPOTS = { left: 1, center: 1, right: 1 };
  *  reason: an attribute the stylesheet has no rule for still reads as "placed"
  *  and suppresses the arrangement the page ships with, so a junk value would
  *  produce a header with no placement rather than no change. */
-export function attrsFrom(value) {
+export function attrsFrom(value, updatedAt) {
   if (!value || typeof value !== 'object') return null;
   const out = {};
 
@@ -71,6 +71,26 @@ export function attrsFrom(value) {
     out['data-zw-hdr-links'] = s.links;
     out['data-zw-hdr-actions'] = s.actions;
     out['data-zw-hdr-linksrow'] = String(s.linksRow) === '2' ? '2' : '1';
+
+    /* ── WITHOUT THIS LINE THE STAMP GETS UNDONE ────────────────────────────
+       data-zw-hdr-at does not describe when the page was built. It means "the
+       attributes on this element are as of this moment", and the pre-paint
+       block uses it to decide whether the visitor's cached arrangement is
+       newer than the one already on the page.
+
+       Stamping the placement here and leaving the timestamp as the BUILD left
+       it said, in effect, "this is the answer from the last deploy". Every
+       returning visitor whose cache post-dates that deploy therefore read
+       their own older copy as the fresher one and overwrote a correct stamp
+       with a stale arrangement — visibly, on load, and then the runtime fetch
+       repaired it and rewrote the cache, so it healed and came back. That is
+       the "sometimes, if you refresh enough" flash.
+
+       Written only alongside the placement, never on its own: the timestamp
+       has to describe the attributes that are actually there, and if the
+       placement could not be resolved then the ones on the element came from
+       the build and are genuinely that old. */
+    if (updatedAt) out['data-zw-hdr-at'] = String(updatedAt);
   }
   /* Independent of the placement, exactly as it is everywhere else: a store can
      turn the rule off without ever choosing an arrangement. */
@@ -84,7 +104,7 @@ async function headerAttrs(env) {
   const key = supabaseAnonKey(env);
   if (!base || !key) return null;
   const res = await fetch(
-    base + '/rest/v1/site_settings?select=value&key=eq.header_layout',
+    base + '/rest/v1/site_settings?select=value,updated_at&key=eq.header_layout',
     {
       headers: { apikey: key, Authorization: 'Bearer ' + key },
       cf: { cacheTtl: TTL, cacheEverything: true },
@@ -92,9 +112,10 @@ async function headerAttrs(env) {
   );
   if (!res.ok) return null;
   const rows = await res.json();
-  let v = rows && rows[0] && rows[0].value;
+  const row = rows && rows[0];
+  let v = row && row.value;
   if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { return null; } }
-  return attrsFrom(v);
+  return attrsFrom(v, row && row.updated_at);
 }
 
 class Stamp {
