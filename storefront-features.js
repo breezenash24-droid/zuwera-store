@@ -603,10 +603,34 @@
   // floor() gets us to the edge; it can't cover a border inside it. Panels paint
   // at z-index 989 over the nav's 220, so eating that last pixel is free and the
   // seam goes away on every page. Both panels share this so they can't drift.
+  //
+  // ── ONE CSS PIXEL IS NOT ONE PIXEL ─────────────────────────────────────────
+  //
+  // A hairline was still being reported between the header and the open panel,
+  // and it is not a gap: measured, nav.bottom is 92.0000019 and this returns 91,
+  // so the two boxes overlap and no arrangement of floor() can make them not.
+  // At a device pixel ratio of 1 the seam does not appear at all.
+  //
+  // It appears on a SCALED display. Both the nav and the panel are their own
+  // composited layers — the nav is fixed, the panel animates a transform — and
+  // each is rasterised and antialiased independently. Where their shared edge
+  // lands on a fractional device pixel, neither layer fully owns that physical
+  // row, and it renders a shade lighter than both. One CSS pixel of overlap is
+  // 1.75 physical pixels at 175% scaling, but the fractional REMAINDER is what
+  // shows, and it survives any amount of CSS-pixel overlap smaller than the
+  // rounding error at both edges.
+  //
+  // So the overlap is taken to the next whole DEVICE pixel below the header's
+  // edge, plus one more. That is under a pixel of extra coverage on an ordinary
+  // display and exactly enough on a scaled one, and it is expressed in the
+  // units the seam actually lives in rather than the ones the layout is
+  // written in.
   function headerBottom() {
     var h = headerEl();
     if (!h) return 0;
-    return Math.max(0, Math.floor(h.getBoundingClientRect().bottom) - 1);
+    var dpr = window.devicePixelRatio || 1;
+    var bottom = h.getBoundingClientRect().bottom;
+    return Math.max(0, Math.floor(bottom * dpr - 2) / dpr);
   }
 
   function syncSearchTop() {
@@ -1833,6 +1857,7 @@
     if (!(favCount > 0)) favCount = 0;
     var savesBadge = favCount ? '<span class="zwf-bag-count">' + (favCount > 99 ? '99+' : favCount) + '</span>' : '';
     var rOrders = bagRow('orders', 'Orders'), rSaves = bagRow('saves', 'Your saves'), rAccount = bagRow('account', 'Account');
+    var rName = bagRow('name', user ? String(user.name || 'My profile') : 'My profile');
     var links = user
       ? (rOrders.enabled ? '<a class="zwf-bag-link" href="/account.html#orders">' + bagIcon('orders') + esc(rOrders.label) + '</a>' : '')
         + (rSaves.enabled ? '<a class="zwf-bag-link" href="/account.html#saved">' + bagIcon('saves') + esc(rSaves.label) + savesBadge + '</a>' : '')
@@ -1851,7 +1876,14 @@
       // not back to the empty bag page it is standing in for.
       + '<a class="zwf-bag-review" href="' + (cart.length ? '/bag.html' : '/drop001.html') + '">' + (cart.length ? 'Review bag' : 'Start shopping') + '</a></div>'
       + items
-      + '<div class="zwf-bag-links"><h3>' + (user ? esc(user.name) : 'My profile') + '</h3>'
+      /* The name heading is a row like the others, and switchable like them.
+         It is the one line in this panel that is a person's name rather than a
+         label, so a store that would rather not greet people by name in a
+         slide-out has to be able to say so. Its DEFAULT depends on who is
+         looking — the name when there is one, "My profile" when there is not —
+         and a label typed in the builder replaces both. */
+      + '<div class="zwf-bag-links">'
+      + (rName.enabled ? '<h3>' + esc(rName.label) + '</h3>' : '')
       + links
       + customRows
       + supportRow

@@ -3698,6 +3698,11 @@ let chromeBag = null;
    chromeHeader is the store's arrangement, this is only what you are looking
    at. Nothing crosses from one to the other until Apply. */
 let hdrCfgSel = '';
+/* What the draft held when the modal opened, and whether anything in it has
+   been touched since. Cancel is only a real undo if there is a copy to go back
+   to. */
+let hdrCfgWas = null;
+let hdrCfgTouched = false;
 
 /* The rows the bag panel draws, in the order it draws them, with the labels it
    falls back to. Read from storefront-features.js rather than invented here:
@@ -3705,6 +3710,12 @@ let hdrCfgSel = '';
    second list is how the builder would start offering a row the panel does not
    draw. tests/header-controls-are-one-modal.test.js holds the two together. */
 const BAG_ROWS = [
+  /* The heading, which is a person's NAME when someone is signed in. It is a
+     row like the others so it can be switched off and renamed like them — a
+     store that would rather not greet people by name in a slide-out needs to be
+     able to say so, and there was no way to. Its placeholder is what the panel
+     shows to a signed-out visitor; signed in, the default is their name. */
+  ['name',    'My profile', 'The heading — a customer’s name when they are signed in'],
   ['orders',  'Orders',     'Past orders'],
   ['saves',   'Your saves', 'Saved items, with a count'],
   ['account', 'Account',    'Profile and details'],
@@ -3719,6 +3730,15 @@ function openHeaderCfg(){
     const st=document.createElement('style'); st.id='zwhlCss'; st.textContent=L.css;
     document.head.appendChild(st);
   }
+  /* What the draft held when you opened it, so Cancel is a real undo rather
+     than a door. Everything on the Icons tab writes to the live values as you
+     press it — the preview is the point — and this is what puts them back. */
+  hdrCfgWas = {
+    header: chromeHeader, lines: chromeHdrLines, account: chromeHdrAccount,
+    labels: chromeHdrLabels, order: chromeHdrOrder,
+    bag: JSON.stringify(chromeBag || {}),
+  };
+  hdrCfgTouched = false;
   hdrCfgSel = chromeHeader || 'classic';
   paintHeaderCfg();
   paintHdrLines();
@@ -3739,14 +3759,18 @@ function hdrTab(which){
   document.getElementById('hdrPaneIcons').hidden = !icons;
   document.getElementById('hdrTabLayout').classList.toggle('on', !icons);
   document.getElementById('hdrTabIcons').classList.toggle('on', icons);
-  document.getElementById('hdrCfgApply').hidden = icons;
-  /* On this tab there is nothing pending to cancel — every switch has already
-     been applied to the draft — so the button says what it does. Leaving it
-     reading "Cancel" would promise an undo that does not exist, which is worse
-     than not offering one. */
-  document.getElementById('hdrCfgClose').textContent = icons ? 'Done' : 'Cancel';
+  /* Both tabs get Apply, and it means the same thing on both. It used to be
+     hidden here because every switch wrote straight to the draft, so there was
+     nothing left to apply — but that made Cancel a lie in the other direction
+     (it closed without undoing anything) and made the two halves of one modal
+     behave differently for no reason a reader could see.
+
+     So the whole modal stages now: the preview follows every switch, because
+     watching the header change IS the point, and the draft is only written on
+     Apply. Cancel puts back what was there when you opened it. */
+  paintHdrApply();
   document.getElementById('hdrCfgFoot').textContent = icons
-    ? 'Every switch here updates the preview as you press it. Nothing is live until you press Publish.'
+    ? 'Every switch updates the preview as you press it. Apply keeps it; Cancel puts it back. Nothing is live until you press Publish.'
     : 'Position only — colours, sizes and fonts stay with the theme. Applying updates the preview; nothing is live until you press Publish.';
 }
 
@@ -3771,13 +3795,54 @@ function paintHeaderCfg(){
   host.querySelectorAll('.hdrcfg').forEach(b=>{
     b.addEventListener('click',()=>pickHeaderLayout(b.dataset.lay));
   });
-  const go=document.getElementById('hdrCfgApply');
-  const same=hdrCfgSel===cur;
-  go.disabled=same;
-  go.textContent=same?'Already applied':'Apply layout';
+  paintHdrApply();
 }
 
-function closeHeaderCfg(){ document.getElementById('hdrCfgModal').classList.remove('open'); }
+/* One button, one meaning, both tabs: it commits what the modal is showing.
+   Enabled when there is something to commit — a tile highlighted that is not
+   the current one, or anything touched on the other tab. */
+function paintHdrApply(){
+  const go=document.getElementById('hdrCfgApply');
+  if(!go) return;
+  const pending = hdrCfgTouched || hdrCfgSel!==(chromeHeader||'classic');
+  go.disabled = !pending;
+  go.textContent = pending ? 'Apply' : 'Nothing to apply';
+}
+
+/* Cancel. Restores what the draft held when the modal opened, pushes that back
+   into the preview, and closes. It does NOT unmark the draft as dirty — an
+   edit made before this modal was opened is still an edit, and clearing that
+   flag would swallow it. */
+function closeHeaderCfg(){
+  if(hdrCfgTouched&&hdrCfgWas){
+    chromeHeader=hdrCfgWas.header; chromeHdrLines=hdrCfgWas.lines;
+    chromeHdrAccount=hdrCfgWas.account; chromeHdrLabels=hdrCfgWas.labels;
+    chromeHdrOrder=hdrCfgWas.order;
+    try{ chromeBag=JSON.parse(hdrCfgWas.bag); }catch(_){ chromeBag={}; }
+    sendChrome();
+    toast('Header left as it was','ok');
+  }
+  hdrCfgTouched=false;
+  document.getElementById('hdrCfgModal').classList.remove('open');
+}
+/* Apply. Everything already reached the preview on the way in, so this is what
+   commits it to the draft — and on the layout tab it is also what moves the
+   highlighted tile from "the one you are looking at" to "the one you have". */
+function applyHeaderCfg(){
+  const L=window.ZWHeaderLayouts;
+  const l=L&&L.byId(hdrCfgSel);
+  if(l&&(chromeHeader||'classic')!==l.id){
+    chromeHeader=l.id;
+    hdrCfgMark(); sendChrome();
+    toast('Header: '+l.name+' — preview updated, not yet live','ok');
+  }
+  hdrCfgTouched=false;
+  document.getElementById('hdrCfgModal').classList.remove('open');
+}
+/* One place that says "this modal changed something", so Cancel knows there is
+   anything to put back and the draft knows it needs saving. */
+function hdrCfgMark(){ hdrCfgTouched=true; markChromeDirty('header'); paintHdrApply(); }
+function hdrCfgMarkBag(){ hdrCfgTouched=true; markChromeDirty('bag'); paintHdrApply(); }
 
 /* Say who this tab is for, and say it louder when the preview is showing a
    width the arrangement does not reach. Tablet is the one that catches people
@@ -3818,7 +3883,7 @@ function setHdrLines(v){
   if(v!=='on'&&v!=='off') return;
   if(chromeHdrLines===v) return;
   chromeHdrLines=v;
-  markChromeDirty('header');
+  hdrCfgMark();
   sendChrome();
   paintHdrLines();
   toast(v==='off'?'Divider lines off — preview updated':'Divider lines on — preview updated','ok');
@@ -3857,7 +3922,7 @@ function toggleHdrLabel(dev){
   const next=on.length?(L?L.deviceList(on.join(' ')):on.join(' ')):'none';
   if(next===chromeHdrLabels) return;
   chromeHdrLabels=next;
-  markChromeDirty('header'); sendChrome(); paintHdrControls();
+  hdrCfgMark(); sendChrome(); paintHdrControls();
   toast(next==='none'?'Header controls: icons everywhere — preview updated'
     :'Header controls: words on '+next.split(' ').join(', ')+' — preview updated','ok');
 }
@@ -3865,7 +3930,7 @@ function toggleHdrLabel(dev){
 function setHdrAccount(v){
   if((v!=='bag'&&v!=='header') || chromeHdrAccount===v) return;
   chromeHdrAccount=v;
-  markChromeDirty('header'); sendChrome(); paintHdrControls();
+  hdrCfgMark(); sendChrome(); paintHdrControls();
   toast(v==='header'?'Account button stays in the header — preview updated'
     :'Account link lives in the bag — preview updated','ok');
 }
@@ -3882,7 +3947,7 @@ function bagRowCfg(key){
 }
 function setBagRowOn(key,on){
   bagRowCfg(key).enabled=!!on;
-  markChromeDirty('bag'); sendChrome(); paintHdrControls();
+  hdrCfgMarkBag(); sendChrome(); paintHdrControls();
 }
 function setBagRowLabel(key,text){
   const t=String(text||'').trim();
@@ -3890,12 +3955,12 @@ function setBagRowLabel(key,text){
      shows — storing '' rather than the default keeps a store that never renamed
      anything from freezing today's wording into its settings. */
   if(t) bagRowCfg(key).label=t; else delete bagRowCfg(key).label;
-  markChromeDirty('bag'); sendChrome();
+  hdrCfgMarkBag(); sendChrome();
 }
 function setBagMail(v){
   const t=String(v||'').trim();
   if(t) bagCfg().supportEmail=t; else delete bagCfg().supportEmail;
-  markChromeDirty('bag'); sendChrome();
+  hdrCfgMarkBag(); sendChrome();
 }
 
 /* The sequence the three controls sit in. Always all three: a partial answer
@@ -3909,7 +3974,7 @@ function setHdrOrder(list){
   const next=L?L.controlOrder(list.join(' ')):list.join(' ');
   if(!next||next===chromeHdrOrder) return;
   chromeHdrOrder=next;
-  markChromeDirty('header'); sendChrome(); paintHdrControls();
+  hdrCfgMark(); sendChrome(); paintHdrControls();
 }
 function moveHdrCtl(name,by){
   const list=hdrOrderList(), i=list.indexOf(name), j=i+by;
@@ -4046,17 +4111,6 @@ function pickHeaderLayout(id){
   paintHeaderCfg();
 }
 
-function applyHeaderCfg(){
-  const L=window.ZWHeaderLayouts;
-  const l=L&&L.byId(hdrCfgSel);
-  if(!l) return;
-  if((chromeHeader||'classic')===l.id){ closeHeaderCfg(); return; }
-  chromeHeader=l.id;
-  markChromeDirty('header');
-  sendChrome();
-  closeHeaderCfg();
-  toast('Header: '+l.name+' — preview updated, not yet live','ok');
-}
 
 /* An override and a section field must never both own the same words.
 
