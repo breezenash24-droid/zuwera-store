@@ -286,12 +286,46 @@
     apply(id);
   }
 
+  /* Is this page being shown INSIDE the builder? Both routes are settled before
+     this file runs — `?builder=1` sets its flag in a synchronous head script and
+     `?zwpreview=` has already created its promise — so the question can be
+     answered now rather than after the first paint, which is the whole point. */
+  function isPreview() {
+    return !!(window.__ZW_BUILDER_PREVIEW__ ||
+             (window.__zwPreviewReady && window.__zwPreviewReady.then));
+  }
+
   function bootStorefront() {
     if (!findNav()) return;
 
-    /* Cache first so a chosen arrangement does not visibly reflow on every
-       load, then confirm from the server. */
-    try { var c = localStorage.getItem(CACHE); if (c) set(c); } catch (_) {}
+    /* ── Why the published arrangement is held back in a preview ─────────────
+       Everywhere else, cache-then-fetch is right: the cached value and the
+       published one agree, so applying the cache immediately avoids a reflow.
+
+       In the builder they do NOT agree — the whole reason you are looking at
+       the canvas is that the draft differs from what is live. And the published
+       value is the one that arrives first, because it is local, while the draft
+       has to be posted in. So the canvas rearranged itself to the OLD header on
+       every reload and then rearranged again a moment later. Reloading the
+       builder to check your work showed you the thing you had just changed.
+
+       So in a preview the published value is held, not applied, until the draft
+       has had its say. If the draft turns out to carry no arrangement, the held
+       value is released and nothing is lost. */
+    var preview = isPreview();
+    var held = null, draftSettled = false;
+
+    function fromServer(id) {
+      if (preview && !draftSettled) { held = id; return; }
+      set(id);
+    }
+    function draftDone(id) {
+      draftSettled = true;
+      if (id) { set(id, true); held = null; return; }
+      if (held) { set(held); held = null; }   // no draft arrangement: the live one stands
+    }
+
+    try { var c = localStorage.getItem(CACHE); if (c) fromServer(c); } catch (_) {}
 
     fetch('https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value&key=eq.header_layout',
     { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }, cache: 'no-store' })
@@ -302,7 +336,7 @@
         var id = v && typeof v === 'object' ? v.id : v;
         if (!id) return;
         try { localStorage.setItem(CACHE, id); } catch (_) {}
-        set(id);
+        fromServer(id);
       })
       .catch(function () {});
 
@@ -311,16 +345,24 @@
     if (window.__zwPreviewReady && window.__zwPreviewReady.then) {
       window.__zwPreviewReady.then(function (pv) {
         var v = pv && pv.header_layout;
-        var id = v && typeof v === 'object' ? v.id : v;
-        if (id) set(id, true);
-      }).catch(function () {});
+        draftDone(v && typeof v === 'object' ? v.id : v);
+      }).catch(function () { draftDone(null); });
     }
     window.addEventListener('message', function (e) {
       if (e.origin !== location.origin) return;
       var d = e.data;
       if (!d || d.type !== 'ZW_HEADER_LAYOUT') return;
-      set(d.id, true);
+      draftDone(d.id);
     });
+
+    /* The canvas gets its draft by postMessage, and a message that never comes
+       has no failure to catch. Without this, a builder that did not post one
+       would leave the header showing neither the draft nor what is live — worse
+       than the flash this replaces. Long enough that the message wins in
+       practice; short enough that nobody reads the wrong header for long. */
+    if (preview && window.__ZW_BUILDER_PREVIEW__) {
+      setTimeout(function () { if (!draftSettled) draftDone(null); }, 1500);
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootStorefront);

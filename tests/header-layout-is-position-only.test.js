@@ -46,7 +46,8 @@ const TE = read('theme-engine.js');
 const CSS = read('storefront-cohesion.css');
 const SAVE = read('functions/api/save-page-builder.js');
 const PV = read('functions/api/preview-config.js');
-const MIG = read('migrations/0026_text_the_builder_can_edit_anywhere.sql');
+const MIG = read('migrations/0027_the_header_arrangement_is_public.sql');
+const MIG26 = read('migrations/0026_text_the_builder_can_edit_anywhere.sql');
 
 /* Run the real file, unmodified, against a page that has no header.
 
@@ -221,6 +222,24 @@ console.log('\nChoosing is not applying');
   ok('the current arrangement is marked as current, separately from the selection',
     /hdrcfg-cur/.test(B) && /hdrcfg-mark/.test(B));
   ok('it previews at once', /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader\}\)/.test(B));
+}
+
+console.log('\nA preview shows the draft, not a flash of what is live first');
+{
+  ok('the module can tell it is inside the builder',
+    /function isPreview\(\)/.test(SRC) && /__ZW_BUILDER_PREVIEW__/.test(SRC) && /__zwPreviewReady/.test(SRC));
+  ok('the published arrangement is held rather than applied there',
+    /if \(preview && !draftSettled\) \{ held = id; return; \}/.test(SRC),
+    'it is the LOCAL value, so it always won the race and the canvas rearranged twice');
+  ok('both the cache and the server go through that hold',
+    (SRC.match(/fromServer\(/g) || []).length >= 3,
+    'the cache is the one that arrives first, so skipping only the fetch fixes nothing');
+  ok('a draft that carries no arrangement releases the held one',
+    /if \(held\) \{ set\(held\); held = null; \}/.test(SRC),
+    'otherwise the canvas shows neither the draft nor what is live');
+  ok('a draft that never arrives releases it too',
+    /if \(preview && window\.__ZW_BUILDER_PREVIEW__\) \{[\s\S]{0,140}draftSettled\) draftDone\(null\)/.test(SRC),
+    'a postMessage that is never sent has no failure to catch');
   ok('the modal says it is position only', /Position only/.test(B));
   ok('...and that nothing is live until Publish', /nothing is live until you press Publish/.test(B));
 }
@@ -232,9 +251,29 @@ console.log('\nIt travels like the rest of the chrome draft');
   ok('the endpoint permits the draft key', /'header_layout_draft'/.test(SAVE));
   ok('and stores it verbatim', /'header_layout', 'header_layout_draft',/.test(SAVE));
   ok('Preview live shows the draft', /'header_layout_draft'/.test(PV) && /header_layout_draft: 'header_layout'/.test(PV));
-  ok('the live key is publicly readable', /'header_layout'/.test(MIG.split('array[')[1] || ''));
-  ok('...and the draft key is not', !/header_layout_draft/.test(MIG.split('array[')[1] || ''),
+  /* The storefront reads this key with the anon key on every page load. Left
+     off the allow-list it returns [] forever, and the arrangement applies in
+     the builder (the draft travels by postMessage) while the live site keeps
+     the header it shipped with — which is exactly how it shipped broken. */
+  const allow = MIG.split('array[')[1] || '';
+  ok('the live key is publicly readable', /'header_layout'/.test(allow));
+  ok('...and the draft key is not', !/header_layout_draft/.test(allow),
     'a readable draft key is a REST route to unpublished work');
+
+  /* ALTER POLICY REPLACES the allow-list, so a later migration that forgets a
+     key silently revokes public read for it sitewide. This is the check that
+     caught 0026 being built on the wrong base. */
+  const keysOf = (m) => new Set(((m.split('array[')[1] || '').match(/'[a-z_]+'/g) || []));
+  const lost = [...keysOf(MIG26)].filter((k) => !keysOf(MIG).has(k));
+  ok('0027 keeps everything 0026 allowed', lost.length === 0, 'dropped: ' + lost.join(', '));
+
+  /* The addition had to be a NEW file. It was first made as an edit to 0026,
+     after 0026 had been applied — and migrations are recorded by version and
+     skipped once recorded, so the edit could never run. The file and the
+     database disagreed and nothing said so. */
+  ok('0026 is left as the version that actually ran',
+    !/header_layout/.test(MIG26),
+    'editing an applied migration cannot take effect; it needs its own version');
 
   const pages = ['index.html', 'product.html', 'drop001.html', 'about.html', 'journal.html',
                  'policies.html', 'bag.html', 'account.html', 'sizeguide.html', 'landing.html', '404.html'];

@@ -163,7 +163,10 @@ if (notClaimed.length) {
  *
  * Lower this number when you regenerate. It only ever goes down. */
 /* 6 → 7 for migration 0024 (wholesale), 7 → 8 for 0025 (price list rules),
-   8 → 9 for 0026 (text_overrides on the public-read allow-list).
+   8 → 9 for 0026 (text_overrides on the public-read allow-list),
+   9 → 10 for 0027 (header_layout on it too — which had to be its own file
+   because 0026 was edited AFTER it had been applied, and an applied version is
+   never re-run).
    This is the budget WORKING, not failing: it made the cost of adding a
    migration visible at the moment of adding one, which is the only moment
    anybody is thinking about install.sql. The rule stays 'it only goes down' —
@@ -175,7 +178,7 @@ if (notClaimed.length) {
    can quietly fix. It is one command, recorded in scripts/build-install-sql.js,
    and every migration past 0017 is a thing a NEW project does not get until
    somebody runs it. That is the real cost this number is counting. */
-const DRIFT_BUDGET = 9;
+const DRIFT_BUDGET = 10;
 ok('install.sql has not fallen further behind', notClaimed.length <= DRIFT_BUDGET,
   notClaimed.length + ' migrations post-date the snapshot (budget ' + DRIFT_BUDGET + ') — '
   + 'regenerate it, then lower DRIFT_BUDGET to ' + notClaimed.length);

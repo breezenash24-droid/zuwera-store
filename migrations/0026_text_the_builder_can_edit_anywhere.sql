@@ -61,7 +61,5 @@ using (key = any (array[
   'product_card_cta', 'feature_flags', 'fit_finder', 'integrations',
   'email_popup', 'tax_rate_overrides',
   -- copy edited on the canvas that no section owns (see above)
-  'text_overrides',
-  -- which arrangement of the header the shop uses (position only)
-  'header_layout'
+  'text_overrides'
 ]));
