@@ -15,6 +15,29 @@ try {
     if (/[?&]builder=1(?:&|$)/.test(location.search)) window.__ZW_BUILDER_PREVIEW__ = true;
   } catch (_) {}
   try {
+    var _b = null, _ck = {}, _i2;
+    for (_i2 = 0; _i2 < localStorage.length; _i2++) {
+      var _kk = localStorage.key(_i2); if (!_kk) continue;
+      var _m = _kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/); if (!_m) continue;
+      if (_m[1] === undefined) _b = localStorage.getItem(_kk); else _ck[_m[1]] = localStorage.getItem(_kk);
+    }
+    var _ord = Object.keys(_ck).map(Number).sort(function (a, b) { return a - b; });
+    var _str = _ord.length ? _ord.map(function (n) { return _ck[n]; }).join('') : _b;
+    if (_str) {
+      if (_str.indexOf('base64-') === 0) {
+        var _bb = _str.slice(7).replace(/-/g, '+').replace(/_/g, '/');
+        var _by = Uint8Array.from(atob(_bb), function (c) { return c.charCodeAt(0); });
+        _str = new TextDecoder().decode(_by);
+      }
+      var _raw = JSON.parse(_str);
+      var _se = _raw && _raw.currentSession ? _raw.currentSession : _raw;
+      if (_se && _se.user && (Number(_se.expires_at || 0) * 1000 > Date.now() || _se.refresh_token)) {
+        window.__zwSessionUser = _se.user;
+        h.classList.add('zw-authed');
+      }
+    }
+  } catch (_) {}
+  try {
     if (window.__ZW_BUILDER_PREVIEW__) {
       h.removeAttribute('data-zw-hdr');
       h.removeAttribute('data-zw-hdr-logo');
@@ -854,7 +877,7 @@ try {
       .review-label { width: 80px; }
     }
   </style>
-<link rel="stylesheet" href="storefront-cohesion.css?v=d59717d5">
+<link rel="stylesheet" href="storefront-cohesion.css?v=300e6636">
 <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
 <script src="header-scroll.js?v=fe320725" defer></script>
 <style>

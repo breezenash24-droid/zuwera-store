@@ -78,6 +78,62 @@ try {
     if (/[?&]builder=1(?:&|$)/.test(location.search)) window.__ZW_BUILDER_PREVIEW__ = true;
   } catch (_) {}
 
+  /* ── SIGNED IN OR NOT, BEFORE THE HEADER EXISTS ───────────────────────────
+   *
+   * The nav ships BOTH buttons — "Login" and the account button — and a script
+   * placed after the nav decided which to keep. Two problems with that, and the
+   * second is the one people see:
+   *
+   *   1. The markup's own answer is "Login", so that is what a signed-in
+   *      visitor's browser is free to paint while the parser is still working
+   *      its way down to the script that knows better.
+   *   2. That script sets an inline `display`, which is a normal declaration —
+   *      so anything with !important later in the cascade could still take it
+   *      back, and did.
+   *
+   * Measured on the live page while signed in: Login, then neither, then the
+   * account name, then Login again. Four states for one question that was
+   * already answerable before any of them.
+   *
+   * bag.html has done it correctly for a while: work out the session HERE, in
+   * <head>, publish it as a class, and let a render-blocking rule decide which
+   * button exists on the first frame. This is that, moved somewhere every page
+   * gets it. The rules live in storefront-cohesion.css.
+   *
+   * The NAME still has to be written by a script after the nav — it is content,
+   * not visibility — but window.__zwSessionUser is set here so that script can
+   * fill it in synchronously from an answer already worked out, rather than
+   * parsing the session a second time and disagreeing about it.
+   *
+   * This decides what the BROWSER already believes; auth.js still confirms it
+   * with the server and corrects a session that has actually expired. Being
+   * wrong here means being wrong for one page load in the rare case a token
+   * died since the last one — against being wrong on every load, which is what
+   * it replaces. */
+  try {
+    var _b = null, _ck = {}, _i2;
+    for (_i2 = 0; _i2 < localStorage.length; _i2++) {
+      var _kk = localStorage.key(_i2); if (!_kk) continue;
+      var _m = _kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/); if (!_m) continue;
+      if (_m[1] === undefined) _b = localStorage.getItem(_kk); else _ck[_m[1]] = localStorage.getItem(_kk);
+    }
+    var _ord = Object.keys(_ck).map(Number).sort(function (a, b) { return a - b; });
+    var _str = _ord.length ? _ord.map(function (n) { return _ck[n]; }).join('') : _b;
+    if (_str) {
+      if (_str.indexOf('base64-') === 0) {
+        var _bb = _str.slice(7).replace(/-/g, '+').replace(/_/g, '/');
+        var _by = Uint8Array.from(atob(_bb), function (c) { return c.charCodeAt(0); });
+        _str = new TextDecoder().decode(_by);
+      }
+      var _raw = JSON.parse(_str);
+      var _se = _raw && _raw.currentSession ? _raw.currentSession : _raw;
+      if (_se && _se.user && (Number(_se.expires_at || 0) * 1000 > Date.now() || _se.refresh_token)) {
+        window.__zwSessionUser = _se.user;
+        h.classList.add('zw-authed');
+      }
+    }
+  } catch (_) {}
+
   /* ── WHERE THE HEADER'S PARTS SIT, BEFORE THE FIRST FRAME ──────────────────
    *
    * Same shape of problem as the theme, and the same two answers.
