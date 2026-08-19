@@ -492,5 +492,36 @@ console.log('\nA theme with no opinion does not erase what the build baked');
     'injected from a deferred script it would apply after the first paint anyway');
 }
 
+console.log('\nLogin or the account name is decided before the header is parsed');
+{
+  const PRE5 = read('scripts/theme-preboot.head.js');
+
+  /* Measured on the live page while signed in, BEFORE this: Login, then
+     neither, then the name, then Login again. The nav ships both buttons and a
+     script after it picked one, so the markup's own answer — "Login" — is what
+     the browser was free to paint on the way down. */
+  ok('the session is worked out in <head>, before the nav element exists',
+    /sb-\[a-z0-9-\]\+-auth-token/.test(PRE5) && /classList\.add\('zw-authed'\)/.test(PRE5),
+    'a script placed after the nav can only correct what was already painted');
+  ok('...handling the chunked and base64 forms the SDK actually writes',
+    /base64-/.test(PRE5) && /_ck\[_m\[1\]\]/.test(PRE5),
+    'a parser that misses those reads a signed-in visitor as signed out');
+  ok('...and publishes the user so nothing parses it a second time',
+    /window\.__zwSessionUser = _se\.user;/.test(PRE5),
+    'two parses of one session is two chances to disagree about it');
+
+  ok('a render-blocking rule decides which button exists',
+    /html\.zw-authed :is\(#login-btn, #hdr-login\)\{display:none !important\}/.test(CSS)
+    && /html:not\(\.zw-authed\) #account-btn\{display:none !important\}/.test(CSS));
+  ok('...at a specificity that beats the page-level rule and the inline styles',
+    /html\.zw-authed body\[data-zw-account="header"\] #account-btn\{display:inline-flex !important\}/.test(CSS),
+    'index.html carries #account-btn{display:none!important} of its own');
+
+  /* bag.html solved this correctly a while ago and every other page did not.
+     The fix is that pattern moved somewhere all fourteen pages get it. */
+  ok('the page that already did this still agrees with the shared version',
+    read('bag.html').includes("classList.add('zw-authed')"));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

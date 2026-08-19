@@ -78,6 +78,26 @@ a,button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:t
    arrived, which is the exact flash this render-blocking copy exists to
    prevent, produced by the copy itself. */
 html body.zwf-bagpanel-on:not([data-zw-account="header"]) :is(#login-btn,#account-btn,#hdr-login){display:none !important}
+/* ── Login or the account name, decided before the header is parsed ─────────
+   The nav ships BOTH buttons and a script after it used to pick one, so a
+   signed-in visitor's browser was free to paint "Login" while the parser was
+   still on its way down to the script that knew better. Measured while signed
+   in: Login, then neither, then the name, then Login again — four states for a
+   question the browser could answer before any of them.
+
+   .zw-authed is set by the pre-paint block in <head>, before the nav element
+   exists, so these decide the FIRST frame rather than correcting it. This is
+   the pattern bag.html has used for a while; it lives here now so every page
+   gets it instead of one.
+
+   !important and a class-plus-id selector on purpose: the page-level
+   `#account-btn{display:none!important}` in index.html and the inline styles
+   the after-nav script writes are both in play, and the first frame has to be
+   decided by the thing that runs earliest, not the thing that runs last. */
+html.zw-authed :is(#login-btn, #hdr-login){display:none !important}
+html:not(.zw-authed) #account-btn{display:none !important}
+html.zw-authed body:not(.zwf-bagpanel-on) #account-btn,
+html.zw-authed body[data-zw-account="header"] #account-btn{display:inline-flex !important}
 /* Search magnifier launcher — base style at first paint so the header pre-paint can
    render it (before storefront-features.js's runtime styles load) without it looking
    like the .nbtn text button it borrows its class from. */
