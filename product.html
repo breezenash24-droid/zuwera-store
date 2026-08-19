@@ -16,16 +16,29 @@ try {
     if (/[?&]builder=1(?:&|$)/.test(location.search)) window.__ZW_BUILDER_PREVIEW__ = true;
   } catch (_) {}
   try {
-    if (!window.__ZW_BUILDER_PREVIEW__) {
-      var _hp = (localStorage.getItem('zw_hdr_attrs') || '').split('|');
+    if (window.__ZW_BUILDER_PREVIEW__) {
+      h.removeAttribute('data-zw-hdr');
+      h.removeAttribute('data-zw-hdr-logo');
+      h.removeAttribute('data-zw-hdr-links');
+      h.removeAttribute('data-zw-hdr-actions');
+      h.removeAttribute('data-zw-hdr-linksrow');
+      h.removeAttribute('data-zw-hdr-lines');
+    } else {
+      var _hc = (localStorage.getItem('zw_hdr_attrs') || '').split('|');
       var _hs = { left: 1, center: 1, right: 1 };
-      if (_hp.length === 4 && _hs[_hp[0]] && (_hs[_hp[1]] || _hp[1] === 'none')
-          && _hs[_hp[2]] && (_hp[3] === '1' || _hp[3] === '2')) {
+      var _hb = h.getAttribute('data-zw-hdr-at') || '';
+      var _hfresh = !_hb || (_hc[4] || '') > _hb;
+      if (_hfresh && _hc.length >= 4 && _hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
+          && _hs[_hc[2]] && (_hc[3] === '1' || _hc[3] === '2')) {
         h.setAttribute('data-zw-hdr', '1');
-        h.setAttribute('data-zw-hdr-logo', _hp[0]);
-        h.setAttribute('data-zw-hdr-links', _hp[1]);
-        h.setAttribute('data-zw-hdr-actions', _hp[2]);
-        h.setAttribute('data-zw-hdr-linksrow', _hp[3]);
+        h.setAttribute('data-zw-hdr-logo', _hc[0]);
+        h.setAttribute('data-zw-hdr-links', _hc[1]);
+        h.setAttribute('data-zw-hdr-actions', _hc[2]);
+        h.setAttribute('data-zw-hdr-linksrow', _hc[3]);
+        h.setAttribute('data-zw-hdr-at', _hc[4] || '');
+      }
+      if (_hfresh && (_hc[5] === 'on' || _hc[5] === 'off')) {
+        h.setAttribute('data-zw-hdr-lines', _hc[5]);
       }
     }
   } catch (_) {}
@@ -211,7 +224,7 @@ try {
 <link rel="preload" href="reviews.css?v=91ac9a6f" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="reviews.css?v=91ac9a6f"></noscript>
 <link rel="stylesheet" href="reviews-vibe.css?v=16e9b2fb">
-<link rel="stylesheet" href="storefront-cohesion.css?v=bf098f17">
+<link rel="stylesheet" href="storefront-cohesion.css?v=d59717d5">
 <script src="header-scroll.js?v=fe320725" defer></script>
 <script src="announcement-bar.js?v=aa84f76a" defer></script>
 <script src="email-popup.js?v=33908bad" defer></script>
@@ -1866,7 +1879,7 @@ body.super-light-mode { background: var(--ink) !important; }
 
 <!-- Language selector -->
 <script src="modal-lock.js?v=fb1f304f"></script>
-<script src="/theme-engine.js?v=75b9c2fa" defer></script>
+<script src="/theme-engine.js?v=34c5abf6" defer></script>
 <script src="/motion.js?v=5b9cc123" defer></script>
 <script src="/icon-sets.js?v=e0ed4bcb" defer></script>
 <script src="storefront-theme.js?v=3782df36" defer></script>
@@ -1980,6 +1993,6 @@ body.super-light-mode { background: var(--ink) !important; }
 <script src="stock-rules.js?v=efc11b57" defer></script>
 <script src="/nav-menu.js?v=a1272b19" defer></script>
 <script src="/zw-copy.js?v=a0389ca5" defer></script>
-<script src="/header-layouts.js?v=b2e86a92" defer></script>
+<script src="/header-layouts.js?v=cf44ff47" defer></script>
 </body>
 </html>

@@ -205,7 +205,21 @@
      place the precedence is decided. */
   var hdrOverride = null;
 
+  /* Whether the header and the announcement bar draw their bottom rule. NOT
+     part of the placement spec, and kept in its own variable for a reason:
+     applyHeader returns early when no arrangement is chosen, so a store that
+     wanted the lines off while keeping the header it ships with would have had
+     its answer thrown away with the placement it never set. Applied before any
+     of those returns. */
+  var hdrLines = '';
+
+  function applyHeaderLines(root) {
+    if (hdrLines === 'on' || hdrLines === 'off') root.setAttribute('data-zw-hdr-lines', hdrLines);
+    else root.removeAttribute('data-zw-hdr-lines');
+  }
+
   function applyHeader(root, header) {
+    applyHeaderLines(root);
     if (hdrOverride) header = hdrOverride;
     var attrs = ['data-zw-hdr', 'data-zw-hdr-logo', 'data-zw-hdr-links',
                  'data-zw-hdr-actions', 'data-zw-hdr-linksrow'];
@@ -591,7 +605,12 @@
        named layout's spec; null hands the decision back to the current theme.
        Nothing else may write data-zw-hdr-* — see applyHeader. */
     setHeader: function (spec) {
-      hdrOverride = (spec && typeof spec === 'object') ? spec : null;
+      var s = (spec && typeof spec === 'object') ? spec : null;
+      /* Two independent answers arriving together. `lines` stands on its own —
+         a store can turn the rule off without ever choosing an arrangement —
+         so it is not conditional on there being a placement here. */
+      hdrLines = s && (s.lines === 'on' || s.lines === 'off') ? s.lines : '';
+      hdrOverride = s && s.logo ? s : null;
       applyHeader(document.documentElement, applied && applied.header);
     },
     reload: function () { resolveAndApply(); },

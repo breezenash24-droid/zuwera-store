@@ -80,38 +80,75 @@ try {
 
   /* ── WHERE THE HEADER'S PARTS SIT, BEFORE THE FIRST FRAME ──────────────────
    *
-   * Same shape of problem as the theme, and the same answer. header-layouts.js
-   * is deferred: it cannot run until the document is parsed, so the header
-   * painted in the arrangement the MARKUP happens to be in — logo left,
-   * categories centred — and then jumped to the chosen one. On a store whose
-   * header is centred, every page load showed the wrong header first and
-   * rearranged in front of the visitor.
+   * Same shape of problem as the theme, and the same two answers.
+   * header-layouts.js is deferred: it cannot run until the document is parsed,
+   * so the header painted in the arrangement the MARKUP happens to be in —
+   * logo left, categories centred — and then jumped to the chosen one. On a
+   * store whose logo is centred, that was every page load.
+   *
+   * TWO SOURCES, AND THE ONE THAT IS NEWER WINS.
+   *
+   *   BAKED    stamp-header-layout.js writes the four attributes straight onto
+   *            <html> at build time, so the first frame is right with no
+   *            JavaScript at all — including for a first-ever visitor, which is
+   *            the case no cache can ever help with, because the whole problem
+   *            is that there is no cache. Already applied before this runs.
+   *   CACHED   what this browser last saw the server say.
+   *
+   * Neither is reliably fresher. Publishing without deploying leaves the bake
+   * stale; a visitor who has not been back since a change has a stale cache.
+   * Both carry the row's updated_at, so this compares them instead of picking a
+   * favourite — and a tie needs no work, which is the common case.
    *
    * WHAT IS CACHED IS THE ANSWER, NOT THE QUESTION. The cache holds the four
-   * placement values, not the layout's name, so this block needs to know
-   * nothing about what layouts exist or what any of them is called. Adding an
-   * arrangement never touches this file, and there is no second copy of the
-   * layout table to drift from the first.
+   * placement values, not the layout's name, so this block knows nothing about
+   * what layouts exist or what any is called. Adding an arrangement never
+   * touches this file, and there is no second copy of the layout table here to
+   * drift from the real one.
    *
    * Values are checked against the same small vocabulary theme-engine.js
    * accepts. An attribute the stylesheet has no rule for still counts as
-   * "placed" and suppresses the arrangement the page shipped with, so a junk
-   * value would produce a header with no placement at all rather than no
-   * change — the failure this guards is a blank header, not a wrong one.
+   * "placed" and suppresses the arrangement the page shipped with, so junk
+   * would produce a header with NO placement rather than no change — the
+   * failure this guards is a blank header, not a wrong one.
    *
    * Not in a builder preview: there the published arrangement is exactly what
-   * must NOT be shown, and header-layouts.js holds it back for the draft. */
+   * must NOT be shown, and header-layouts.js holds it back for the draft. So
+   * the bake is stripped as well as the cache being ignored. */
   try {
-    if (!window.__ZW_BUILDER_PREVIEW__) {
-      var _hp = (localStorage.getItem('zw_hdr_attrs') || '').split('|');
+    if (window.__ZW_BUILDER_PREVIEW__) {
+      h.removeAttribute('data-zw-hdr');
+      h.removeAttribute('data-zw-hdr-logo');
+      h.removeAttribute('data-zw-hdr-links');
+      h.removeAttribute('data-zw-hdr-actions');
+      h.removeAttribute('data-zw-hdr-linksrow');
+      h.removeAttribute('data-zw-hdr-lines');
+    } else {
+      var _hc = (localStorage.getItem('zw_hdr_attrs') || '').split('|');
       var _hs = { left: 1, center: 1, right: 1 };
-      if (_hp.length === 4 && _hs[_hp[0]] && (_hs[_hp[1]] || _hp[1] === 'none')
-          && _hs[_hp[2]] && (_hp[3] === '1' || _hp[3] === '2')) {
+      /* values|updated_at, both from the same PostgREST column, so comparing
+         them as strings is comparing the timestamps. WITH NOTHING BAKED THE
+         CACHE ALWAYS APPLIES — otherwise an undated cache from a build before
+         this existed, or any local build that does no stamping, would be
+         thrown away in favour of nothing at all. */
+      var _hb = h.getAttribute('data-zw-hdr-at') || '';
+      var _hfresh = !_hb || (_hc[4] || '') > _hb;
+      if (_hfresh && _hc.length >= 4 && _hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
+          && _hs[_hc[2]] && (_hc[3] === '1' || _hc[3] === '2')) {
         h.setAttribute('data-zw-hdr', '1');
-        h.setAttribute('data-zw-hdr-logo', _hp[0]);
-        h.setAttribute('data-zw-hdr-links', _hp[1]);
-        h.setAttribute('data-zw-hdr-actions', _hp[2]);
-        h.setAttribute('data-zw-hdr-linksrow', _hp[3]);
+        h.setAttribute('data-zw-hdr-logo', _hc[0]);
+        h.setAttribute('data-zw-hdr-links', _hc[1]);
+        h.setAttribute('data-zw-hdr-actions', _hc[2]);
+        h.setAttribute('data-zw-hdr-linksrow', _hc[3]);
+        h.setAttribute('data-zw-hdr-at', _hc[4] || '');
+      }
+      /* Whether the header draws its bottom rule is a SEPARATE answer, ranked by
+         the same timestamp but applied on its own — a store can turn the line
+         off without ever choosing an arrangement, and folding it into the block
+         above would have thrown that away along with the placement it never
+         set. */
+      if (_hfresh && (_hc[5] === 'on' || _hc[5] === 'off')) {
+        h.setAttribute('data-zw-hdr-lines', _hc[5]);
       }
     }
   } catch (_) {}

@@ -250,21 +250,38 @@
      attributes; this hands it a spec and it writes them. An override set here
      outranks the theme's own header and survives a theme switch, so choosing a
      theme cannot silently undo an arrangement chosen in the builder. */
+  /* Whether the header and the bar draw their bottom rule. Travels with the
+     arrangement because it is stored beside it and chosen in the same place,
+     but it is NOT part of a layout: every arrangement can have it either way,
+     and a store that has chosen no arrangement can still turn it off. Putting
+     it in the layout table would have meant twenty entries instead of ten and
+     a picker where half the tiles differed by one pixel. */
+  var LINES = { on: 1, off: 1 };
+  function lineChoice(v) { return LINES[v] ? v : ''; }
+
   var applied = '';
-  function apply(id) {
+  var appliedLines = '';
+  function apply(id, lines) {
     var l = byId(id);
-    if (!l) return false;
     if (!window.ZWTheme || typeof window.ZWTheme.setHeader !== 'function') return false;
-    window.ZWTheme.setHeader(l.spec);
-    applied = l.id;
-    return true;
+    /* An unknown id is not a reason to drop the line choice on the floor —
+       they are two answers, and only one of them is missing. */
+    var spec = l ? l.spec : null;
+    var out = {};
+    if (spec) { for (var k in spec) out[k] = spec[k]; }
+    out.lines = lineChoice(lines);
+    window.ZWTheme.setHeader(out);
+    applied = l ? l.id : '';
+    appliedLines = out.lines;
+    return !!l;
   }
 
   window.ZWHeaderLayouts = {
     list: LAYOUTS, parts: PARTS, spots: SPOTS, labels: PART_LABEL,
     byId: byId, zones: zones, conflict: conflict,
-    miniature: miniature, css: MINI_CSS,
+    miniature: miniature, css: MINI_CSS, lineChoice: lineChoice,
     apply: apply, applied: function () { return applied; },
+    lines: function () { return appliedLines; },
   };
 
   /* ── Everything below runs on a storefront page, not in the builder ────────
@@ -286,20 +303,25 @@
   var ATTRS = 'zw_hdr_attrs';
   var fromDraft = false;
 
-  function remember(id) {
+  /* The trailing field is the row's updated_at, kept so the pre-paint block can
+     tell a cache that is NEWER than the build's baked answer from one that is
+     older. Without it the two sources have no way to be ranked and one of them
+     has to be trusted blindly — which breaks whenever the other is the fresh
+     one. Same column, same format, on both sides. */
+  function remember(id, at, lines) {
     var l = byId(id);
     try {
       if (!l) { localStorage.removeItem(CACHE); localStorage.removeItem(ATTRS); return; }
       localStorage.setItem(CACHE, l.id);
       localStorage.setItem(ATTRS, [l.spec.logo, l.spec.links, l.spec.actions,
-        String(l.spec.linksRow) === '2' ? '2' : '1'].join('|'));
+        String(l.spec.linksRow) === '2' ? '2' : '1', at || '', lines || ''].join('|'));
     } catch (_) {}
   }
 
-  function set(id, isDraft) {
+  function set(id, lines, isDraft) {
     if (fromDraft && !isDraft) return;   // a draft outranks the published value
     if (isDraft) fromDraft = true;
-    apply(id);
+    apply(id, lines);
   }
 
   /* Is this page being shown INSIDE the builder? Both routes are settled before
@@ -331,31 +353,40 @@
     var preview = isPreview();
     var held = null, draftSettled = false;
 
-    function fromServer(id) {
-      if (preview && !draftSettled) { held = id; return; }
-      set(id);
+    function fromServer(id, lines) {
+      if (preview && !draftSettled) { held = { id: id, lines: lines }; return; }
+      set(id, lines);
     }
-    function draftDone(id) {
+    function draftDone(id, lines) {
       draftSettled = true;
-      if (id) { set(id, true); held = null; return; }
-      if (held) { set(held); held = null; }   // no draft arrangement: the live one stands
+      /* A draft with neither answer in it is not a draft that says "no header"
+         — it is a builder that had nothing to send yet. Only a draft that names
+         something displaces what is live. */
+      if (id || lines) { set(id, lines, true); held = null; return; }
+      if (held) { set(held.id, held.lines); held = null; }
     }
 
-    try { var c = localStorage.getItem(CACHE); if (c) fromServer(c); } catch (_) {}
+    try {
+      var c = localStorage.getItem(CACHE);
+      var cl = (localStorage.getItem(ATTRS) || '').split('|')[5] || '';
+      if (c || cl) fromServer(c, cl);
+    } catch (_) {}
 
-    fetch('https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value&key=eq.header_layout',
+    fetch('https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value,updated_at&key=eq.header_layout',
     { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }, cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (rows) {
-        var v = rows && rows[0] && rows[0].value;
+        var row = rows && rows[0];
+        var v = row && row.value;
         if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
         var id = v && typeof v === 'object' ? v.id : v;
+        var lines = lineChoice(v && typeof v === 'object' ? v.lines : '');
         /* A store that clears its arrangement has to clear the pre-paint cache
            too, or the head keeps stamping the old one before every paint and
            the header flashes an arrangement nothing on the server still names. */
-        remember(id);
-        if (!id) return;
-        fromServer(id);
+        remember(id, row && row.updated_at, lines);
+        if (!id && !lines) return;
+        fromServer(id, lines);
       })
       .catch(function () {});
 
@@ -364,14 +395,15 @@
     if (window.__zwPreviewReady && window.__zwPreviewReady.then) {
       window.__zwPreviewReady.then(function (pv) {
         var v = pv && pv.header_layout;
-        draftDone(v && typeof v === 'object' ? v.id : v);
-      }).catch(function () { draftDone(null); });
+        var o = v && typeof v === 'object' ? v : { id: v };
+        draftDone(o.id, lineChoice(o.lines));
+      }).catch(function () { draftDone(null, ''); });
     }
     window.addEventListener('message', function (e) {
       if (e.origin !== location.origin) return;
       var d = e.data;
       if (!d || d.type !== 'ZW_HEADER_LAYOUT') return;
-      draftDone(d.id);
+      draftDone(d.id, lineChoice(d.lines));
     });
 
     /* The canvas gets its draft by postMessage, and a message that never comes
@@ -380,7 +412,7 @@
        than the flash this replaces. Long enough that the message wins in
        practice; short enough that nobody reads the wrong header for long. */
     if (preview && window.__ZW_BUILDER_PREVIEW__) {
-      setTimeout(function () { if (!draftSettled) draftDone(null); }, 1500);
+      setTimeout(function () { if (!draftSettled) draftDone(null, ''); }, 1500);
     }
   }
 

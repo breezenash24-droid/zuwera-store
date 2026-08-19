@@ -185,7 +185,7 @@ console.log('\nNothing is moved, and only one thing writes the attributes');
   ok('it asks theme-engine to place the header', /ZWTheme\.setHeader/.test(CODE));
   ok('theme-engine offers that entry point', /setHeader: function \(spec\)/.test(TE));
   ok('...and consults the override inside the one function that writes them',
-    /function applyHeader\(root, header\) \{\n\s*if \(hdrOverride\) header = hdrOverride;/.test(TE),
+    /function applyHeader\(root, header\) \{\s*applyHeaderLines\(root\);\s*if \(hdrOverride\) header = hdrOverride;/.test(TE),
     'set from outside instead, it would be wiped by the next theme apply');
   ok('the override outranks the theme rather than the reverse',
     TE.indexOf('if (hdrOverride) header = hdrOverride;') < TE.indexOf("var spec = typeof header === 'string'"));
@@ -221,7 +221,7 @@ console.log('\nChoosing is not applying');
   ok('the button says so when there is nothing to apply', /Already applied/.test(B));
   ok('the current arrangement is marked as current, separately from the selection',
     /hdrcfg-cur/.test(B) && /hdrcfg-mark/.test(B));
-  ok('it previews at once', /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader\}\)/.test(B));
+  ok('it previews at once', /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines\}\)/.test(B));
 }
 
 console.log('\nA preview shows the draft, not a flash of what is live first');
@@ -229,16 +229,16 @@ console.log('\nA preview shows the draft, not a flash of what is live first');
   ok('the module can tell it is inside the builder',
     /function isPreview\(\)/.test(SRC) && /__ZW_BUILDER_PREVIEW__/.test(SRC) && /__zwPreviewReady/.test(SRC));
   ok('the published arrangement is held rather than applied there',
-    /if \(preview && !draftSettled\) \{ held = id; return; \}/.test(SRC),
+    /if \(preview && !draftSettled\) \{ held = \{ id: id, lines: lines \}; return; \}/.test(SRC),
     'it is the LOCAL value, so it always won the race and the canvas rearranged twice');
   ok('both the cache and the server go through that hold',
     (SRC.match(/fromServer\(/g) || []).length >= 3,
     'the cache is the one that arrives first, so skipping only the fetch fixes nothing');
   ok('a draft that carries no arrangement releases the held one',
-    /if \(held\) \{ set\(held\); held = null; \}/.test(SRC),
+    /if \(held\) \{ set\(held\.id, held\.lines\); held = null; \}/.test(SRC),
     'otherwise the canvas shows neither the draft nor what is live');
   ok('a draft that never arrives releases it too',
-    /if \(preview && window\.__ZW_BUILDER_PREVIEW__\) \{[\s\S]{0,140}draftSettled\) draftDone\(null\)/.test(SRC),
+    /if \(preview && window\.__ZW_BUILDER_PREVIEW__\) \{[\s\S]{0,140}draftSettled\) draftDone\(null, ''\)/.test(SRC),
     'a postMessage that is never sent has no failure to catch');
   ok('the modal says it is position only', /Position only/.test(B));
   ok('...and that nothing is live until Publish', /nothing is live until you press Publish/.test(B));
@@ -255,14 +255,56 @@ console.log('\nThe arrangement is in place before the first frame');
     !L.list.some((l) => new RegExp("['\"]" + l.id + "['\"]").test(PRE)),
     'a copy of the layout table in the head is a second definition to keep in step');
   ok('it checks them against the same vocabulary theme-engine accepts',
-    /_hs\s*=\s*\{ left: 1, center: 1, right: 1 \}/.test(PRE) && /_hp\[1\] === 'none'/.test(PRE),
+    /_hs\s*=\s*\{ left: 1, center: 1, right: 1 \}/.test(PRE) && /_hc\[1\] === 'none'/.test(PRE),
     'an attribute the stylesheet has no rule for still counts as placed, and suppresses the shipped arrangement');
-  ok('it does not stamp inside a builder preview',
-    /if \(!window\.__ZW_BUILDER_PREVIEW__\) \{[\s\S]{0,400}zw_hdr_attrs/.test(PRE),
-    'there the published arrangement is exactly the one that must not be shown');
+
+  /* ── The case a cache can never fix ──────────────────────────────────────
+     A first-ever visitor has nothing stored, so there is nothing to pre-paint
+     from and the header rearranges in front of them. The only answer is for
+     the arrangement to be in the document when it arrives. */
+  const STAMP = read('scripts/stamp-header-layout.js');
+  const stamper = require('../scripts/stamp-header-layout.js');
+  ok('a build step bakes the arrangement into <html>',
+    ['data-zw-hdr="1"', 'data-zw-hdr-logo="', 'data-zw-hdr-links="',
+     'data-zw-hdr-actions="', 'data-zw-hdr-linksrow="'].every((a) => STAMP.includes(a)));
+  ok('it reads the layout table rather than restating it',
+    !L.list.some((l) => new RegExp("['\"]" + l.id + "['\"]").test(strip(STAMP))),
+    'a second copy of the table is how the tile and the page start disagreeing');
+  /* The riskiest line in the whole feature: header-layouts.js is browser code
+     run under a stub here, and if it ever reaches for a DOM API the stub lacks,
+     this silently stamps nothing on the deploy and nobody sees the log. */
+  const T = stamper.loadLayouts();
+  ok('...and that table really does load in Node',
+    !!T && Array.isArray(T.list) && T.list.length === L.list.length
+      && !!T.byId('classic') && T.byId('classic').spec.logo === 'left');
+  ok('it stamps the row timestamp too', STAMP.includes('data-zw-hdr-at="'),
+    'without it the baked answer and a cached one cannot be ranked');
+  ok('it removes only attributes it wrote',
+    /const OURS = \[/.test(STAMP) && /for \(const attr of OURS\)/.test(STAMP));
+  ok('an arrangement the store no longer names is cleared, not left baked',
+    /if \(spec\) \{/.test(STAMP) && /placement cleared/.test(STAMP));
+  ok('it runs on the deploy only', /if \(!process\.env\.CF_PAGES && !process\.argv\.includes\('--local'\)\)/.test(STAMP),
+    'locally it would rewrite committed HTML on every npm install');
+  ok('it can never break the build',
+    /\} catch \(e\) \{[\s\S]{0,200}<html> unchanged/.test(STAMP));
+  ok('and it guards against corrupting the page',
+    /html count changed in/.test(STAMP));
+  ok('postinstall runs it', /stamp-header-layout\.js/.test(read('package.json')));
+  ok('...after the other <html> stamper, so the two cannot interleave',
+    read('package.json').indexOf('stamp-theme-default.js') < read('package.json').indexOf('stamp-header-layout.js'));
+
+  ok('the pre-paint block prefers a NEWER cache over the baked answer',
+    /_hfresh = !_hb \|\| \(_hc\[4\] \|\| ''\) > _hb/.test(PRE),
+    'publishing without deploying and deploying without publishing fail in opposite directions');
+  ok('...and falls back to the cache when nothing was baked',
+    /!_hb \|\|/.test(PRE),
+    'a local build stamps nothing, and an undated cache is still better than none');
+  ok('a builder preview strips the baked arrangement as well as ignoring the cache',
+    /if \(window\.__ZW_BUILDER_PREVIEW__\) \{[\s\S]{0,320}removeAttribute\('data-zw-hdr-linksrow'\)/.test(PRE),
+    'the baked value is the published one, which is exactly what a draft preview must not show');
 
   ok('the cache is written from the published value only',
-    /remember\(id\);/.test(SRC) && !/draftDone[\s\S]{0,200}remember\(/.test(SRC),
+    /remember\(id, row && row\.updated_at, lines\);/.test(SRC) && !/draftDone[\s\S]{0,200}remember\(/.test(SRC),
     'a draft that survived into the next page load would show a shopper unpublished work');
   ok('and cleared when the store names no arrangement',
     /if \(!l\) \{ localStorage\.removeItem\(CACHE\); localStorage\.removeItem\(ATTRS\); return; \}/.test(SRC),
@@ -274,6 +316,69 @@ console.log('\nThe arrangement is in place before the first frame');
   for (const p of ['index.html', 'product.html', 'drop001.html', 'about.html', 'bag.html', 'landing.html']) {
     ok(p + ' carries the pre-paint arrangement block', read(p).includes('zw_hdr_attrs'));
   }
+}
+
+console.log('\nThe line under the header is a choice, and it moves nothing');
+{
+  const PRE2 = read('scripts/theme-preboot.head.js');
+  const STAMP2 = read('scripts/stamp-header-layout.js');
+
+  /* Two rules draw it — the nav's own border and the announcement bar's — so a
+     store with the bar on shows two faint seams a header apart. */
+  ok('both rules are covered by one setting',
+    /html\[data-zw-hdr-lines="off"\][\s\S]{0,160}#bar \{\s*border-bottom-color: transparent/.test(CSS),
+    'turning off only the nav leaves the seam between the bar and the nav');
+  ok('it is turned off by COLOUR, not by removing the border',
+    !/html\[data-zw-hdr-lines="off"\][\s\S]{0,220}border-bottom: none/.test(CSS)
+    && /html\[data-zw-hdr-lines="off"\][\s\S]{0,220}border-bottom-color: transparent/.test(CSS),
+    'removing it would shift the header, and everything measured from it, by 1px per line');
+  ok('...and it is not behind the desktop-only media query',
+    CSS.indexOf('html[data-zw-hdr-lines="off"]') > CSS.indexOf('@media (max-width: 900px)'),
+    'a phone shows the same lines');
+
+  ok('theme-engine is still the only thing that writes it',
+    /root\.setAttribute\('data-zw-hdr-lines'/.test(TE) && !/setAttribute\('data-zw-hdr-lines'/.test(CODE));
+  /* The early return in applyHeader is the trap: a store that wants the line
+     off without choosing an arrangement has no placement to carry it. */
+  ok('it applies even when no arrangement is chosen',
+    /function applyHeader\(root, header\) \{\s*applyHeaderLines\(root\);/.test(TE),
+    'applyHeader returns early with no placement, and would have dropped it');
+  ok('and a spec with no placement still sets it',
+    /hdrOverride = s && s\.logo \? s : null;/.test(TE));
+
+  ok('the module carries it on every route in',
+    /function apply\(id, lines\)/.test(SRC) && /lineChoice\(d\.lines\)/.test(SRC)
+    && /\.split\('\|'\)\[5\]/.test(SRC));
+  ok('an unknown layout id does not discard the line choice',
+    /var spec = l \? l\.spec : null;/.test(SRC),
+    'they are two answers and only one of them is missing');
+  ok('the pre-paint block stamps it before the first frame',
+    /data-zw-hdr-lines', _hc\[5\]/.test(PRE2));
+  ok('...ranked by the same timestamp as the placement', /_hfresh && \(_hc\[5\]/.test(PRE2));
+  ok('...and stripped in a builder preview', /removeAttribute\('data-zw-hdr-lines'\)/.test(PRE2));
+  ok('the build bakes it too', /data-zw-hdr-lines="/.test(STAMP2));
+
+  ok('the builder has a two-state control', /id="hdrLinesOn"/.test(B) && /id="hdrLinesOff"/.test(B));
+  ok('...which says it applies to every page', /Applies to every page/.test(B));
+  ok('...and writes it into the same draft as the arrangement',
+    /function setHdrLines\(v\)\{[\s\S]{0,340}markChromeDirty\('header'\)/.test(B));
+  ok('the saved value carries both answers',
+    /\{ id: chromeHeader \|\| 'classic', lines: chromeHdrLines \|\| 'on' \}/.test(B));
+  ok('and the preview push carries it',
+    /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines\}\)/.test(B));
+}
+
+console.log('\nOne header height, whichever arrangement is chosen');
+{
+  /* Measured before this rule: 63px with the logo centred against 67px with it
+     on the left, because a centred part is absolutely positioned and stops
+     contributing height. Two-row arrangements were 96-97px against 67px. */
+  ok('a centred part cannot collapse the bar',
+    /html\[data-zw-hdr\] :is\(#nav, \.nav, \.zw-nav\) \{\s*min-height: var\(--zw-hdr-minh/.test(CSS),
+    'the bar was sized by the action buttons instead, and a taller logo hung out of it');
+  ok('a second row costs a row, not half a header again',
+    /html\[data-zw-hdr-linksrow="2"\] :is\(#nav, \.nav, \.zw-nav\) \{\s*padding-bottom:/.test(CSS),
+    'the inter-row gap and the bar padding were both sized for a single row');
 }
 
 console.log('\nIt travels like the rest of the chrome draft');
