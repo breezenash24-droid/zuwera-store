@@ -108,6 +108,9 @@
     if (isMobile()) {
       // Mobile: bar drops BELOW the nav — measure the real nav height into --zw-bar-top.
       if (navEl) navEl.style.top = '';
+      // Mobile puts the bar BELOW the nav, so the nav is at the top and has
+      // nothing to be lifted past.
+      if (navEl) navEl.style.removeProperty('--zw-nav-lift');
       if (spacerEl) spacerEl.style.height = '0';
       if (navEl) {
         var navH = Math.round(navEl.getBoundingClientRect().height);
@@ -121,6 +124,10 @@
       // spacer is barH-1 too: for an IN-FLOW sticky nav that's what sets its rest
       // position, so it gets the same ~1px overlap as a fixed nav (not a thin 0.4px).
       if (navEl) navEl.style.top = (barH ? barH - 1 : -1) + 'px';
+      // How far down the viewport the header is sitting. The hidden-header
+      // transform adds this to its own -110% so that leaving is one composited
+      // move rather than a transform racing an animated `top`.
+      if (navEl) navEl.style.setProperty('--zw-nav-lift', (barH ? barH - 1 : 0) + 'px');
       if (spacerEl) spacerEl.style.height = isVisible ? (barH - 1) + 'px' : '0';
     }
     // Builder preview (homepage): the header height just changed — re-pad the builder
@@ -338,15 +345,20 @@
        before it — the safe side of simultaneous, and the reason not to
        spend anything measuring an exact rigid offset.
 
-       The nav still drops to top:-1, because -110% of the nav's own height
-       does not clear a header that starts a bar's height down the page. */
+       Nothing here touches the nav. It used to drop the nav to top:-1 so that
+       a header sitting a bar's height down the page would clear — but `top` is
+       a layout property, so that ran the layout on every frame of the slide,
+       against a composited transform, on a different duration and curve. Two
+       motions of different lengths pulling one element is what made the header
+       read as slow and choppy. The offset lives in the hidden-header transform
+       now, as --zw-nav-lift, written by layout() above. */
     var carry = function (h, instant) {
       clearTimeout(hideTimer);
       barEl.style.display = 'flex';
       barEl.style.transition = (instant || reduce) ? 'none'
         : 'transform .35s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1))';
       barEl.style.transform = h ? 'translateY(-100%)' : '';
-      if (navEl) navEl.style.top = h ? '-1px' : ((barEl.offsetHeight ? barEl.offsetHeight - 1 : 0) + 'px');
+      barEl.style.willChange = h ? 'transform' : '';
     };
 
     if (!hidesItself) {

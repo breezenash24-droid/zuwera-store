@@ -3880,8 +3880,24 @@ nav#nav, header.nav, nav.nav, nav.zw-nav{
      slide duration for a synced push. reduced-motion is handled by the global guard. */
   transition: top .3s cubic-bezier(.32,.72,0,1), transform .35s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)), background .35s, border-color .35s, box-shadow .35s, padding .35s !important;
 }
+/* --zw-nav-lift is how far below the top of the viewport the header is sitting:
+   the announcement bar's height, written on the nav by announcement-bar.js
+   whenever a bar is above it, and absent otherwise.
+
+   It is here so that leaving is ONE property. -110% is 110% of the header's own
+   height, which does not clear a header that starts a bar's height down the
+   page — so the header used to be moved the rest of the way by animating `top`
+   as well. That is a layout property: it runs the layout for every frame of the
+   slide, next to a transform that is composited, on a different duration (.3s
+   against .35s) and a different curve. Two motions of different lengths pulling
+   one element is what read as slow and choppy.
+
+   Folding the offset into the transform makes the whole travel one composited
+   move. `top` still animates where it is genuinely a layout change — the bar's
+   own scroll-hide, where the header really does rise into the space the bar
+   vacates and STAYS there. */
 nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-nav.zw-nav-hidden{
-  transform: translateY(-110%) !important;
+  transform: translateY(calc(-110% - var(--zw-nav-lift, 0px))) !important;
 }
 @media (prefers-reduced-motion: reduce){
   nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-nav.zw-nav-hidden{ transform: none !important; }
