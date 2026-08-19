@@ -14,16 +14,22 @@
    pageKey = filename without ".html" ("/" or index → "home"). Back-compat: legacy
    `main`→home text, `product`→product text, top-level `mode`→default mode.
 
-   Behavior (matches the home/product copies):
+   Behavior:
      • desktop  = header PUSH-OUT: the bar slides up via transform while the nav
        rises (nav `top`, transitioned in cohesion) + the spacer collapses — the
-       header pushes the bar out. Reappears only at the very top. Header keeps its
-       own auto-hide (header-scroll.js). Modes: on|scroll|scrolloff|off.
+       header pushes the bar out. Reappears only at the very top.
+       Modes: on|scroll|scrolloff|off.
      • mobile/tablet (≤900px) = the bar sits BELOW the nav (via --zw-bar-top) and
        fades on scroll (scroll/scrolloff) — NOT the desktop slide.
      • prefers-reduced-motion → instant.
 
-   NOT loaded on home/product (they keep their own copies); loaded everywhere else.
+   The bar and the header hide as ONE strip, never separately: with a scroll
+   mode the bar goes first and the header follows, and with mode `on` the bar
+   has no rule of its own so the header carries it away. See the handshake in
+   apply() and its other half in header-scroll.js.
+
+   Loaded on EVERY storefront page, home and product included — they used to
+   ship their own copies of this logic and no longer do.
    ──────────────────────────────────────────────────────────────────────────── */
 (function () {
   'use strict';
@@ -97,7 +103,7 @@
   }
 
   // Position the fixed bar + offset the nav so the bar sits ABOVE the header.
-  function layout(barEl, navEl, isVisible) {
+  function layout(barEl, navEl, isVisible, keepSpacer) {
     var spacerEl = document.getElementById('bar-spacer');
     if (isMobile()) {
       // Mobile: bar drops BELOW the nav — measure the real nav height into --zw-bar-top.
@@ -115,7 +121,9 @@
       // spacer is barH-1 too: for an IN-FLOW sticky nav that's what sets its rest
       // position, so it gets the same ~1px overlap as a fixed nav (not a thin 0.4px).
       if (navEl) navEl.style.top = (barH ? barH - 1 : -1) + 'px';
-      if (spacerEl) spacerEl.style.height = isVisible ? (barH - 1) + 'px' : '0';
+      // keepSpacer: the header is carrying a static bar away, which nothing in
+      // flow asked for. The reserved height stays, so the page does not jump.
+      if (spacerEl && !(keepSpacer && !isVisible)) spacerEl.style.height = isVisible ? (barH - 1) + 'px' : '0';
     }
     // Builder preview (homepage): the header height just changed — re-pad the builder
     // layout's top section so it stays clear of the header. No-op outside the builder.
@@ -163,6 +171,9 @@
     var link = String(cfg.link || '').trim();
 
     teardownScroll();
+    // A previous apply() left a closure pointing at the bar as it was then.
+    // Drop it before deciding again, so the header can never drive a stale one.
+    window.zwBarSetHidden = null;
     barEl.style.transform = '';
     barEl.style.maxHeight = '';
     barEl.style.opacity = '1';
@@ -204,6 +215,11 @@
       if (navEl) { navEl.style.top = ''; navEl.style.removeProperty('z-index'); }
       var _offSp = document.getElementById('bar-spacer'); if (_offSp) _offSp.style.height = '0';
       document.documentElement.style.removeProperty('--zw-bar-top');
+      // Nothing here for the header to carry. Retract the handshake rather
+      // than leaving header-scroll.js reading the answer for a bar that is no
+      // longer on the page — apply() re-runs on preview and on resize.
+      delete barEl.dataset.zwBarHide;
+      window.zwBarSetHidden = null;
       return;
     }
 
@@ -216,10 +232,35 @@
       if (sp) sp.style.transition = 'height ' + dur + ' cubic-bezier(.32,.72,0,1)';
     }); });
 
-    if (mode !== 'scroll' && mode !== 'scrolloff') return;   // 'on' = static, no scroll hide
+    /* ── Which of the two moves first ──────────────────────────────────────
+       The bar and the header are one strip of chrome, driven by two files.
+       This one owns the bar, header-scroll.js owns the nav, and neither can
+       move without saying so — or the page shows a promo bar floating alone
+       above nothing, or a header that never hides at all.
+
+       So the bar publishes which of the two goes first, on the element:
+
+         'self'    the bar hides on its own scroll rule (scroll / scrolloff).
+                   The header waits for it, and only begins its own auto-hide
+                   once the bar has actually gone.
+         'chrome'  the bar is "Always visible": it has no scroll rule of its
+                   own, so it moves only when the header does.
+
+       The second case is the fault this fixes. Waiting for a bar that had no
+       intention of leaving is a deadlock, and it is the shipping default —
+       so "Auto-hide" in Settings → Header Scroll Behavior did nothing on
+       every page the bar was turned on for, which is the home page and the
+       product page. Admins were choosing between two behaviours where only
+       one of them existed.
+
+       On the element rather than in a variable because header-scroll.js runs
+       BEFORE this file — both deferred, it is listed first on every page —
+       and reads this at scroll time. Live DOM state cannot be read too early;
+       a load-time flag can. */
+    var hidesItself = (mode === 'scroll' || mode === 'scrolloff');
+    barEl.dataset.zwBarHide = hidesItself ? 'self' : 'chrome';
 
     var reduce = reduceMotion();
-    var dur = reduce ? '0s' : '0.3s';
 
     if (isMobile()) {
       // Mobile/tablet: fade (the bar is CSS-locked in place; no desktop slide).
@@ -227,6 +268,18 @@
       var mLast = window.scrollY, mHidden = false, mAt = Date.now() + 150;
       var mSet = function (h) { barEl.style.opacity = h ? '0' : '1'; barEl.style.pointerEvents = h ? 'none' : ''; };
       mSet(false);
+      // The header's handle on the bar. Idempotent: the header calls show() on
+      // every tick near the top of the page, not only on the frame it changes.
+      window.zwBarSetHidden = function (h) {
+        h = !!h;
+        if (h === mHidden) return;
+        mHidden = h; mSet(h);
+      };
+      // The header may already be hidden by the time this config lands — a fast
+      // scroll during load. Match it, or the bar arrives alone above a header
+      // that is not there.
+      if (!hidesItself && navEl && navEl.classList.contains('zw-nav-hidden')) window.zwBarSetHidden(true);
+      if (!hidesItself) return;   // static: it leaves only when the header does
       _scrollHandler = function () {
         var y = window.scrollY;
         if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { mLast = y; return; }
@@ -249,11 +302,11 @@
     barEl.style.transform = '';
     barEl.style.willChange = '';
     var last = window.scrollY, hidden = false, at = Date.now() + 150, hideTimer = null;
-    var sync = function (h) {
+    var sync = function (h, keepSpacer) {
       clearTimeout(hideTimer);
       if (h) {
         if (navEl) navEl.style.setProperty('z-index', '231', 'important');   // nav covers the bar
-        layout(barEl, navEl, false);   // nav.top → -1: header rises OVER the stationary bar
+        layout(barEl, navEl, false, keepSpacer);   // nav.top → -1: header rises OVER the stationary bar
         hideTimer = setTimeout(function () { barEl.style.display = 'none'; try { if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); } catch (_) {} }, reduce ? 0 : 340);
       } else {
         barEl.style.display = 'flex';
@@ -263,6 +316,23 @@
         hideTimer = setTimeout(function () { if (navEl) navEl.style.removeProperty('z-index'); }, reduce ? 0 : 340);
       }
     };
+    /* The same handle as mobile, and keepSpacer is the whole difference
+       between the two reasons a bar can go. Its OWN scroll rule means the
+       strip is leaving, so the height it reserved leaves with it. The HEADER
+       taking it means nobody asked the bar to go anywhere — collapsing the
+       spacer there would jump every word on the page up by the bar's height,
+       mid-scroll, which is exactly the kind of gap this header work has spent
+       its time removing. */
+    window.zwBarSetHidden = function (h) {
+      h = !!h;
+      if (h === hidden) return;
+      hidden = h; sync(h, true);
+    };
+    // The header may already be hidden by the time this config lands — a fast
+    // scroll during load. Match it, or the bar arrives alone above a header
+    // that is not there.
+    if (!hidesItself && navEl && navEl.classList.contains('zw-nav-hidden')) window.zwBarSetHidden(true);
+    if (!hidesItself) return;   // static: it leaves only when the header does
     _scrollHandler = function () {
       var y = window.scrollY;
       if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { last = y; return; }
