@@ -16,6 +16,20 @@ try {
     if (/[?&]builder=1(?:&|$)/.test(location.search)) window.__ZW_BUILDER_PREVIEW__ = true;
   } catch (_) {}
   try {
+    if (!window.__ZW_BUILDER_PREVIEW__) {
+      var _hp = (localStorage.getItem('zw_hdr_attrs') || '').split('|');
+      var _hs = { left: 1, center: 1, right: 1 };
+      if (_hp.length === 4 && _hs[_hp[0]] && (_hs[_hp[1]] || _hp[1] === 'none')
+          && _hs[_hp[2]] && (_hp[3] === '1' || _hp[3] === '2')) {
+        h.setAttribute('data-zw-hdr', '1');
+        h.setAttribute('data-zw-hdr-logo', _hp[0]);
+        h.setAttribute('data-zw-hdr-links', _hp[1]);
+        h.setAttribute('data-zw-hdr-actions', _hp[2]);
+        h.setAttribute('data-zw-hdr-linksrow', _hp[3]);
+      }
+    }
+  } catch (_) {}
+  try {
     if (!localStorage.getItem('zw_theme_choice_reset')) {
       localStorage.setItem('zw_theme_choice_reset', '1');
       localStorage.removeItem('zw_theme_mode');
@@ -1966,6 +1980,6 @@ body.super-light-mode { background: var(--ink) !important; }
 <script src="stock-rules.js?v=efc11b57" defer></script>
 <script src="/nav-menu.js?v=a1272b19" defer></script>
 <script src="/zw-copy.js?v=a0389ca5" defer></script>
-<script src="/header-layouts.js?v=e879aee5" defer></script>
+<script src="/header-layouts.js?v=b2e86a92" defer></script>
 </body>
 </html>

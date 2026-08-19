@@ -278,7 +278,23 @@
 
   var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
   var CACHE = 'zw_header_layout';
+  /* The four placement values, resolved, for the pre-paint block in <head>.
+     It stores the ANSWER rather than the layout's name so that block needs no
+     copy of the layout table — see scripts/theme-preboot.head.js. Only ever
+     written from the PUBLISHED value: a draft must not survive into the next
+     page load, least of all a shopper's. */
+  var ATTRS = 'zw_hdr_attrs';
   var fromDraft = false;
+
+  function remember(id) {
+    var l = byId(id);
+    try {
+      if (!l) { localStorage.removeItem(CACHE); localStorage.removeItem(ATTRS); return; }
+      localStorage.setItem(CACHE, l.id);
+      localStorage.setItem(ATTRS, [l.spec.logo, l.spec.links, l.spec.actions,
+        String(l.spec.linksRow) === '2' ? '2' : '1'].join('|'));
+    } catch (_) {}
+  }
 
   function set(id, isDraft) {
     if (fromDraft && !isDraft) return;   // a draft outranks the published value
@@ -334,8 +350,11 @@
         var v = rows && rows[0] && rows[0].value;
         if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
         var id = v && typeof v === 'object' ? v.id : v;
+        /* A store that clears its arrangement has to clear the pre-paint cache
+           too, or the head keeps stamping the old one before every paint and
+           the header flashes an arrangement nothing on the server still names. */
+        remember(id);
         if (!id) return;
-        try { localStorage.setItem(CACHE, id); } catch (_) {}
         fromServer(id);
       })
       .catch(function () {});
