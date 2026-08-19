@@ -398,6 +398,14 @@
     else { document.documentElement.style.removeProperty('--zw-bar-top'); }
   }, { passive: true });
 
+  /* Held in a preview until the draft has answered — see ZWPreviewHold. The bar
+     is the most conspicuous of these: it is one line of text at the very top,
+     so the published message being replaced by the draft one is the first thing
+     anyone notices about a canvas that loads the old page first. */
+  var gate = (window.ZWPreviewHold || function (f) {
+    return { preview: false, published: f, draft: function (v) { if (v != null) f(v); } };
+  })(function (cfg) { window.__zwBarCfg = cfg; apply(cfg); });
+
   function boot() {
     /* A ?zwpreview= link resolves to the DRAFT settings. Taking the bar from
        there is what makes "Preview live" show the message you saved but have not
@@ -407,14 +415,13 @@
        arrives. */
     if (window.__zwPreviewReady && window.__zwPreviewReady.then) {
       window.__zwPreviewReady.then(function (pv) {
-        if (!pv || !pv.announcement_bar) return;
-        window.__zwBarPreview = true;
-        window.__zwBarCfg = pv.announcement_bar;
-        apply(pv.announcement_bar);
-      }).catch(function () {});
+        gate.draft(pv ? (pv.announcement_bar || null) : null);
+      }).catch(function () { gate.draft(null); });
     }
-    // Cache-first (instant), then refresh from site_settings.
-    try { var c = localStorage.getItem('zw_announce_cfg'); if (c) { window.__zwBarCfg = JSON.parse(c); apply(window.__zwBarCfg); } } catch (_) {}
+    // Cache-first (instant), then refresh from site_settings. Both go through
+    // the gate, because the CACHE is the one that arrives first — skipping only
+    // the fetch would leave the preview showing the published bar anyway.
+    try { var c = localStorage.getItem('zw_announce_cfg'); if (c) gate.published(JSON.parse(c)); } catch (_) {}
     fetch(REST, { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (rows) {
@@ -422,12 +429,10 @@
         var cfg = rows[0].value;
         if (typeof cfg === 'string') { try { cfg = JSON.parse(cfg); } catch (_) { return; } }
         if (!cfg || typeof cfg !== 'object') return;
+        // Cached either way: the published value is still what the NEXT normal
+        // page load should paint from, preview or not.
         try { localStorage.setItem('zw_announce_cfg', JSON.stringify(cfg)); } catch (_) {}
-        /* Cache the published value either way, but do not paint over a draft a
-           preview link has already applied. */
-        if (window.__zwBarPreview) return;
-        window.__zwBarCfg = cfg;
-        apply(cfg);
+        gate.published(cfg);
       })
       .catch(function () {});
   }
@@ -441,7 +446,7 @@
       if (e.origin !== location.origin) return;
       var d = e.data;
       if (!d || d.type !== 'ZW_BAR_PREVIEW' || !d.value || typeof d.value !== 'object') return;
-      try { apply(d.value); } catch (_) {}
+      try { gate.draft(d.value); } catch (_) {}
     });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

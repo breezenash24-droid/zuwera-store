@@ -133,6 +133,8 @@ body{display:flex;flex-direction:column}
 .hdrcfg-chip-mv button:hover:not(:disabled){color:var(--tx);background:var(--tint2)}
 .hdrcfg-chip-mv button:disabled{opacity:.25;cursor:default}
 .hdrcfg-chip.fixed{cursor:default;opacity:.55}
+.hdrcfg-chip.gone{opacity:.4;border-style:dashed}
+.hdrcfg-chip.gone .hdrcfg-chip-n{text-decoration:line-through}
 .hdrcfg-where{margin-left:auto;flex:none}
 .hdrcfg-where button{font-family:'IBM Plex Mono',monospace;font-size:.44rem;letter-spacing:.09em;text-transform:uppercase;padding:.26rem .42rem;border:none;background:transparent;color:var(--mu);cursor:pointer;border-radius:2px}
 .hdrcfg-where button.on{background:var(--tx);color:var(--bg);font-weight:600}
@@ -660,6 +662,7 @@ body{display:flex;flex-direction:column}
           <span class="hdrcfg-lines-n" style="flex:1">Drag a control, or use the arrows. The menu button always closes the row.</span>
         </div>
         <div class="hdrcfg-order" id="hdrOrder"></div>
+        <p class="hdrcfg-lines-n" id="hdrOrderNote" style="margin:.55rem 0 0"></p>
       </div>
 
       <div class="hdrcfg-set">
@@ -4068,10 +4071,29 @@ function paintHdrControls(){
       : words.length ? '' : 'Icons on every device.';
   }
 
+  /* WHY A CHIP CAN BE GREYED. The order names every control the header COULD
+     have; it does not know which ones this store actually shows. Account is the
+     one that catches people: with the account link in the bag panel there is no
+     account control in the header, so moving its chip does nothing visible and
+     reads as "moving it deleted it". Measured — it is not deleted and never
+     was, it was never there.
+
+     So a chip says whether its control is on the page, and why not when it
+     isn't. The order is still kept for it, because turning the control back on
+     should put it where you already said it goes. */
+  const absent = {};
+  if(!acctHere) absent.account='the account link is in the bag, so there is no header control to place';
+  L.promotable.forEach(k=>{
+    const r=(chromeBag&&chromeBag.rows&&chromeBag.rows[k])||{};
+    if(r.where!=='header') absent[k]='this row is in the bag panel';
+    else if(r.enabled===false) absent[k]='this row is switched off';
+  });
+
   const ord=document.getElementById('hdrOrder');
   if(ord&&L){
     ord.innerHTML=order.map((c,i)=>
-      '<span class="hdrcfg-chip" draggable="true" data-ctl="'+c+'">'
+      '<span class="hdrcfg-chip'+(absent[c]?' gone':'')+'" draggable="true" data-ctl="'+c+'"'
+      + (absent[c]?' title="Not in the header right now — '+he(absent[c])+'"':'')+'>'
       + L.actionsMini({order:c,words:false,account:true})
       + '<span class="hdrcfg-chip-n">'+he(L.controlLabels[c]||c)+'</span>'
       + '<span class="hdrcfg-chip-mv">'
@@ -4080,6 +4102,14 @@ function paintHdrControls(){
       + '</span></span>').join('')
       + '<span class="hdrcfg-chip fixed" title="The menu button always closes the row">'
       + '<span class="hdrcfg-chip-n">Menu</span></span>';
+    const note=document.getElementById('hdrOrderNote');
+    if(note){
+      const gone=order.filter(c=>absent[c]);
+      note.textContent = gone.length
+        ? 'Struck through: ' + gone.map(c=>(L.controlLabels[c]||c)+' — '+absent[c]).join('; ')
+          + '. Their place is kept for when you turn them back on.'
+        : '';
+    }
     ord.querySelectorAll('[data-ctl]').forEach(chip=>{
       const name=chip.dataset.ctl;
       chip.addEventListener('dragstart',e=>hdrDragStart(e,name));

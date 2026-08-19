@@ -1611,6 +1611,17 @@
   function bagSupportEmail() {
     return String(bagCfg().supportEmail || '').trim() || 'nasirubreeze@zuwera.store';
   }
+  /* Held in a preview until the draft has answered — see ZWPreviewHold in
+     preview-mode.js. The published menu arriving first is what made the canvas
+     show the rows you had just switched off, on every load. */
+  var bagGate = (window.ZWPreviewHold || function (f) {
+    return { preview: false, published: f, draft: function (v) { if (v != null) f(v); } };
+  })(function (cfg) {
+    _bagCfg = cfg;
+    applyHeaderRows();
+    if (_bagPanel) renderBagPanel();
+  });
+
   // Instant apply from cache, then refresh from site_settings and re-render if open.
   function loadBagCfg() {
     var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
@@ -1622,10 +1633,9 @@
           var cfg = rows[0].value;
           if (typeof cfg === 'string') { try { cfg = JSON.parse(cfg); } catch (_) {} }
           if (!cfg || typeof cfg !== 'object') return;
-          _bagCfg = cfg;
+          // Cached either way — it is what the next NORMAL load paints from.
           try { localStorage.setItem('zw_bag_panel', JSON.stringify(cfg)); } catch (_) {}
-          applyHeaderRows();
-          if (_bagPanel) renderBagPanel();
+          bagGate.published(cfg);
         })
         .catch(function () {});
     } catch (_) {}
@@ -1641,13 +1651,11 @@
      Applied without touching the cache: a draft that survived into the next
      page load would show a shopper work nobody has published. */
   function bagPreviewCfg(cfg) {
-    if (!cfg || typeof cfg !== 'object') return;
-    _bagCfg = cfg;
-    applyHeaderRows();
-    if (_bagPanel) renderBagPanel();
+    bagGate.draft(cfg && typeof cfg === 'object' ? cfg : null);
   }
   if (window.__zwPreviewReady && window.__zwPreviewReady.then) {
-    window.__zwPreviewReady.then(function (pv) { bagPreviewCfg(pv && pv.bag_panel); }).catch(function () {});
+    window.__zwPreviewReady.then(function (pv) { bagPreviewCfg(pv && pv.bag_panel); })
+      .catch(function () { bagPreviewCfg(null); });
   }
   window.addEventListener('message', function (e) {
     if (e.origin !== location.origin) return;

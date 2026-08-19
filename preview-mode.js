@@ -21,6 +21,85 @@
    never rejecting) means a normal page load is not slowed down or broken by
    this file: consumers await a promise that is already settled.
    ──────────────────────────────────────────────────────────────────────────── */
+/* ── THE PUBLISHED VALUE IS HELD UNTIL THE DRAFT HAS HAD ITS SAY ────────────
+ *
+ * Every module that can show draft content has the same shape: apply what is
+ * cached, apply what the server publishes, and apply the draft when it turns
+ * up. On the real storefront that order is right — the cached and published
+ * values agree, so painting the cache immediately avoids a reflow.
+ *
+ * IN A PREVIEW THEY DO NOT AGREE. The whole reason anyone is looking at the
+ * canvas is that the draft differs from what is live, and the published value
+ * is the one that arrives FIRST because it is local, while the draft has to be
+ * fetched or posted in. So the preview rendered the published site and then
+ * corrected itself, on every single load — which is not a flash, it is the old
+ * version of the page being shown to someone whose job is reviewing the new
+ * one.
+ *
+ * header-layouts.js solved this for itself and the fix was right, but it stayed
+ * there: the nav, the announcement bar, page copy, the bag panel and the
+ * sections all still painted published-then-draft. One gate, so the answer
+ * cannot be right in one module and missing in five.
+ *
+ * The rule is three lines long:
+ *   · outside a preview, nothing changes at all;
+ *   · inside one, a published value is HELD, not applied;
+ *   · a draft releases the hold — by replacing it, or, if the draft turns out
+ *     to carry nothing, by letting the held value through after all.
+ *
+ * A draft that never arrives must not leave the canvas blank, so the builder's
+ * postMessage path arms a timer. The ?zwpreview= path needs none: its promise
+ * always settles.
+ */
+window.ZWPreviewHold = function (apply) {
+  var preview = !!(window.__ZW_BUILDER_PREVIEW__
+    || (window.__zwPreviewReady && window.__zwPreviewReady.then));
+  var held = null, has = false, settled = false, draftWon = false;
+
+  function release() {
+    if (!has) return;
+    var v = held; has = false; held = null;
+    apply(v);
+  }
+  /* Long enough that a message sent on load wins in practice; short enough that
+     nobody reads the wrong page for long. Only the builder needs it — a preview
+     LINK resolves through a promise that always settles. */
+  if (preview && window.__ZW_BUILDER_PREVIEW__) {
+    setTimeout(function () { if (!settled) { settled = true; release(); } }, 1500);
+  }
+
+  return {
+    preview: preview,
+    /* What the cache and the server say. Held in a preview until a draft has
+       answered, and ignored entirely once one has — a published value arriving
+       late must never paint over the draft it was standing in for. */
+    published: function (v) {
+      if (preview && draftWon) return;
+      if (preview && !settled) { held = v; has = true; return; }
+      apply(v);
+    },
+    /* The draft. null or undefined means "there is no draft for this" — which
+       is not the same as an empty draft, and is why the held value is released
+       rather than replaced.
+       ── EXCEPT IN THE BUILDER, and this cost a measurement to find. Every
+       module asks the preview-LINK promise for a draft, and on a ?builder=1
+       load that promise resolves to null immediately, because there is no link
+       — there is a postMessage still on its way. Treating that null as "no
+       draft" settled the gate and released the published value about 200ms
+       before the message arrived, which is precisely the old-page-first flash
+       the gate exists to remove, reintroduced by the gate itself. In the
+       builder only the message, or the timer, may settle it. */
+    draft: function (v) {
+      if (v === null || v === undefined) {
+        if (window.__ZW_BUILDER_PREVIEW__) return;
+        settled = true; release(); return;
+      }
+      settled = true; draftWon = true; has = false; held = null;
+      apply(v);
+    },
+  };
+};
+
 (function () {
   'use strict';
 

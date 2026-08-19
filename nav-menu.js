@@ -252,6 +252,18 @@
     if (panel && panel.classList.contains('zw-macc-panel')) panel.style.maxHeight = open ? (panel.scrollHeight + 'px') : '0px';
   });
 
+  /* Held in a preview until the draft has answered — see ZWPreviewHold in
+     preview-mode.js. Applying the cached nav straight away is right on the real
+     storefront and wrong on the canvas, where the published labels are exactly
+     what must not be shown. */
+  var gate = (window.ZWPreviewHold || function (f) {
+    return { preview: false, published: f, draft: function (v) { if (v != null) f(v); } };
+  })(function (items) {
+    navCfg = items;
+    _navSettled = true;
+    render();
+  });
+
   function init() {
     /* Same as the bar: a ?zwpreview= link carries the DRAFT nav, so "Preview
        live" shows the labels you saved rather than the published ones. It wins
@@ -259,14 +271,11 @@
        is never shown behind it. */
     if (window.__zwPreviewReady && window.__zwPreviewReady.then) {
       window.__zwPreviewReady.then(function (pv) {
-        if (!pv || !Array.isArray(pv.nav_menu)) return;
-        window.__zwNavPreview = true;
-        navCfg = pv.nav_menu;
-        _navSettled = true;
-        render();
-      }).catch(function () {});
+        gate.draft(pv && Array.isArray(pv.nav_menu) ? pv.nav_menu : null);
+      }).catch(function () { gate.draft(null); });
     }
-    navCfg = cacheGet('zw_nav_menu');
+    var cached = cacheGet('zw_nav_menu');
+    if (cached) gate.published(cached);
     var t = cacheGet('zw_nav_tax');
     if (t) tax = t;
     // If a custom nav is cached, it renders now (no flash). If not, render() holds
@@ -306,13 +315,12 @@
           if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
           var pub = Array.isArray(v) ? v : [];
           try { localStorage.setItem('zw_nav_menu', JSON.stringify(pub)); } catch (_) {}
-          _navSettled = true;
-          /* Cache the published nav either way, but do not paint over a draft a
-             preview link has already applied -- this response usually lands
-             second and would otherwise undo the whole point of the preview. */
-          if (window.__zwNavPreview) return;
-          navCfg = pub;
-          render();
+          /* Cached either way — it is what the next NORMAL load should paint
+             from. The gate decides whether it is also applied now: in a preview
+             it is held until the draft has answered, and dropped entirely once
+             one has, since this response usually lands second and would
+             otherwise undo the whole point of the preview. */
+          gate.published(pub);
         }).catch(function () { _navSettled = true; render(); });
       fetch(SB + 'products?select=gender,subtitle,tags&status=neq.Legacy&status=neq.Draft', { headers: H })
         .then(function (r) { return r.ok ? r.json() : null; })
@@ -334,8 +342,7 @@
       if (e.origin !== location.origin) return;
       var d = e.data;
       if (!d || d.type !== 'ZW_NAV_PREVIEW' || !Array.isArray(d.items)) return;
-      navCfg = d.items;
-      render();
+      gate.draft(d.items);
     });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
