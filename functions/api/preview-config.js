@@ -23,7 +23,7 @@ const DRAFT_KEYS = [
   // so the one button whose whole job is "show me what I have saved but not
   // published" was the one place those edits never appeared.
   'nav_menu_draft', 'announcement_bar_draft', 'text_overrides_draft',
-  'header_layout_draft',
+  'header_layout_draft', 'bag_panel_draft',
 ];
 
 // Draft keys whose value the storefront expects to find under a different name.
@@ -39,6 +39,7 @@ const DRAFT_ALIAS = {
   announcement_bar_draft: 'announcement_bar',
   text_overrides_draft: 'text_overrides',
   header_layout_draft: 'header_layout',
+  bag_panel_draft: 'bag_panel',
 };
 
 function json(body, status = 200) {

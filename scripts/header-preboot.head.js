@@ -55,6 +55,14 @@
        behaviour rather than the absence of it. */
     if (localStorage.getItem('zw_bp') !== '0') document.body.classList.add('zwf-bagpanel-on');
 
+    /* Where the account control lives is NOT read here, though it was for one
+       revision and the reason is worth keeping. It qualifies the class above
+       and hides a button that is IN the header — so like that class it has to
+       land before the header is parsed, and this block runs after it. It is
+       read in the <head> block instead, onto <html>, which is the only element
+       that exists that early. See storefront-cohesion.css for why the
+       stylesheet then accepts the answer on either element. */
+
     if (localStorage.getItem('zw_srch') !== '1') return;
 
     /* Dialect one: the browse header. Dialect two: the information header.

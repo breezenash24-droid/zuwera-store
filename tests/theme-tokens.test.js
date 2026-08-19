@@ -873,8 +873,13 @@ console.log('\n  header composition');
     /body\.zwf-bagpanel-on:not\(\[data-zw-account="header"\]\)/.test(feat));
   /* :not() on the same element, so ABSENT is the behaviour this always had —
      no existing store changes when this ships. */
+  /* The theme's token is now the FALLBACK — the builder's header modal answers
+     the same question and outranks it — but only 'header' has ever set the
+     attribute, and that is still the only thing that does. */
   ok('…and the default is exactly what it did before',
-    /accountIn === 'header'/.test(eng) && /removeAttribute\('data-zw-account'\)/.test(eng));
+    /applyAccount\(el, t\.accountIn\)/.test(eng)
+    && /v === 'header'.{0,80}setAttribute\('data-zw-account', 'header'\)/.test(eng)
+    && /removeAttribute\('data-zw-account'\)/.test(eng));
   /* The rule is written against body.zwf-bagpanel-on, so the attribute has to
      be on body too — the flag class lives there, not on <html>. */
   ok('…with the attribute on body, where the rule it answers is anchored',
@@ -901,7 +906,8 @@ console.log('\n  header composition');
      a label that never appears. */
   ok('the engine removes the attribute rather than writing an unknown scope',
     /removeAttribute\('data-zw-iconlabels'\)/.test(eng) &&
-    /t\.iconLabels === 'mobile' \|\| t\.iconLabels === 'always'/.test(eng));
+    /applyIconLabels\(root, t\.iconLabels\)/.test(eng) &&
+    /v === 'mobile' \|\| v === 'always'/.test(eng));
   ok('the label font matches the body font until one is named',
     /var\(--zw-label-font, var\(--fb, inherit\)\)/.test(nav) &&
     /set\('--zw-label-font', t\.labelFont\)/.test(eng));

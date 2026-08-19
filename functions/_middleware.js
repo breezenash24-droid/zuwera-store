@@ -93,10 +93,41 @@ export function attrsFrom(value, updatedAt) {
     if (updatedAt) out['data-zw-hdr-at'] = String(updatedAt);
   }
   /* Independent of the placement, exactly as it is everywhere else: a store can
-     turn the rule off without ever choosing an arrangement. */
+     turn the rule off, move the account control, or ask for words instead of
+     glyphs without ever choosing an arrangement. */
   if (value.lines === 'on' || value.lines === 'off') out['data-zw-hdr-lines'] = value.lines;
+  /* Also on <html>, and NOT a duplicate of the <body> stamp below: the
+     stylesheet reads it from either, the head pre-paint can only ever write
+     this one, and a document that carries it in both places is a document
+     whose two writers cannot disagree with each other. */
+  if (value.account === 'header' || value.account === 'bag') out['data-zw-account'] = value.account;
+  if (value.iconLabels === 'mobile' || value.iconLabels === 'always') {
+    out['data-zw-iconlabels'] = value.iconLabels;
+  } else if (value.iconLabels === 'icons') {
+    /* An explicit "glyphs, please" has to be able to REMOVE what the build
+       baked from a theme that asked for words. null is the instruction to
+       remove; absent means the row said nothing and the bake stands. */
+    out['data-zw-iconlabels'] = null;
+  }
 
   return Object.keys(out).length ? out : null;
+}
+
+/** The same, for <body>. data-zw-account's natural home is there — the rule it
+ *  qualifies is written against body.zwf-bagpanel-on — and the build bakes it
+ *  there. It is ALSO accepted on <html>, because the pre-paint block in <head>
+ *  has no <body> to write to and that block is the only writer early enough to
+ *  beat the header's first paint. Written on both here so the served document
+ *  and the cached answer agree about which element carries it.
+ *
+ *  Separate function because it is a separate HTMLRewriter selector, and
+ *  returning it mixed in with the <html> attributes is how it would end up on
+ *  the wrong element. */
+export function bodyAttrsFrom(value) {
+  if (!value || typeof value !== 'object') return null;
+  if (value.account === 'header') return { 'data-zw-account': 'header' };
+  if (value.account === 'bag') return { 'data-zw-account': null };
+  return null;
 }
 
 async function headerAttrs(env) {
@@ -115,7 +146,7 @@ async function headerAttrs(env) {
   const row = rows && rows[0];
   let v = row && row.value;
   if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { return null; } }
-  return attrsFrom(v, row && row.updated_at);
+  return { html: attrsFrom(v, row && row.updated_at), body: bodyAttrsFrom(v) };
 }
 
 class Stamp {
@@ -123,8 +154,16 @@ class Stamp {
   element(el) {
     /* setAttribute REPLACES, so the build's baked values are overwritten rather
        than joined by a second copy. Anything this does not name — the theme
-       stamp, lang — is left exactly as it was. */
-    for (const k of Object.keys(this.attrs)) el.setAttribute(k, this.attrs[k]);
+       stamp, lang — is left exactly as it was.
+
+       A null value is the instruction to REMOVE, which is not the same as not
+       naming the attribute at all: "glyphs, not words" has to be able to undo a
+       bake that says otherwise, and leaving the bake alone would make the
+       choice invisible until the runtime fetch landed. */
+    for (const k of Object.keys(this.attrs)) {
+      const v = this.attrs[k];
+      if (v === null) el.removeAttribute(k); else el.setAttribute(k, v);
+    }
   }
 }
 
@@ -152,8 +191,11 @@ export async function onRequest(context) {
     const ct = (res.headers && res.headers.get('content-type')) || '';
     if (!ct.includes('text/html')) return res;
     const attrs = await pending;
-    if (!attrs) return res;
-    return new HTMLRewriter().on('html', new Stamp(attrs)).transform(res);
+    if (!attrs || (!attrs.html && !attrs.body)) return res;
+    let rw = new HTMLRewriter();
+    if (attrs.html) rw = rw.on('html', new Stamp(attrs.html));
+    if (attrs.body) rw = rw.on('body', new Stamp(attrs.body));
+    return rw.transform(res);
   } catch (_) {
     return res;   // the page as it was, which is still a working page
   }

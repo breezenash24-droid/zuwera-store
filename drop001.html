@@ -59,29 +59,29 @@ try {
     }
   } catch (_) {}
   try {
+    var _il='data-zw-iconlabels',_ia='data-zw-account',_H='data-zw-hdr';
     if (window.__ZW_BUILDER_PREVIEW__) {
-      h.removeAttribute('data-zw-hdr');
-      h.removeAttribute('data-zw-hdr-logo');
-      h.removeAttribute('data-zw-hdr-links');
-      h.removeAttribute('data-zw-hdr-actions');
-      h.removeAttribute('data-zw-hdr-linksrow');
-      h.removeAttribute('data-zw-hdr-lines');
+      ['','-logo','-links','-actions','-linksrow','-lines'].forEach(function (s) {
+        h.removeAttribute(_H + s);
+      });
+      h.removeAttribute(_il);
+      h.removeAttribute(_ia);
     } else {
       var _hc = (localStorage.getItem('zw_hdr_attrs') || '').split('|');
       var _hs = { left: 1, center: 1, right: 1 };
-      var _hb = h.getAttribute('data-zw-hdr-at') || '';
-      var _hfresh = !_hb || (_hc[4] || '') > _hb;
-      if (_hfresh && _hc.length >= 4 && _hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
-          && _hs[_hc[2]] && (_hc[3] === '1' || _hc[3] === '2')) {
-        h.setAttribute('data-zw-hdr', '1');
-        h.setAttribute('data-zw-hdr-logo', _hc[0]);
-        h.setAttribute('data-zw-hdr-links', _hc[1]);
-        h.setAttribute('data-zw-hdr-actions', _hc[2]);
-        h.setAttribute('data-zw-hdr-linksrow', _hc[3]);
-        h.setAttribute('data-zw-hdr-at', _hc[4] || '');
-      }
-      if (_hfresh && (_hc[5] === 'on' || _hc[5] === 'off')) {
-        h.setAttribute('data-zw-hdr-lines', _hc[5]);
+      var _hb = h.getAttribute(_H + '-at') || '';
+      if (!_hb || (_hc[4] || '') > _hb) {
+        if (_hc.length >= 4 && _hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
+            && _hs[_hc[2]] && (_hc[3] === '1' || _hc[3] === '2')) {
+          [['', '1'], ['-logo', _hc[0]], ['-links', _hc[1]], ['-actions', _hc[2]],
+            ['-linksrow', _hc[3]], ['-at', _hc[4] || '']].forEach(function (p) {
+            h.setAttribute(_H + p[0], p[1]);
+          });
+        }
+        if (_hc[5] === 'on' || _hc[5] === 'off') h.setAttribute(_H + '-lines', _hc[5]);
+        if (_hc[7] === 'mobile' || _hc[7] === 'always') h.setAttribute(_il, _hc[7]);
+        else if (_hc[7] === 'icons') h.removeAttribute(_il);
+        if (_hc[6] === 'header' || _hc[6] === 'bag') h.setAttribute(_ia, _hc[6]);
       }
     }
   } catch (_) {}

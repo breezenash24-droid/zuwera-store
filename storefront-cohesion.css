@@ -77,7 +77,26 @@ a,button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:t
    header had it hidden on the first frame and revealed when the module
    arrived, which is the exact flash this render-blocking copy exists to
    prevent, produced by the copy itself. */
-html body.zwf-bagpanel-on:not([data-zw-account="header"]) :is(#login-btn,#account-btn,#hdr-login){display:none !important}
+/* THE SAME ANSWER IS ACCEPTED ON EITHER ELEMENT, and that is not sloppiness —
+   it is the only way it can arrive early enough.
+
+   The attribute belongs on <body>, because the flag class it qualifies lives
+   there. But the earliest writer is the pre-paint block in <head>, and in
+   <head> there is no <body> to write to: it is created by the very parse this
+   block is trying to get ahead of. Waiting for one puts the answer AFTER the
+   header markup, which is the wrong side of the thing it hides — the header
+   would paint with the button, and lose it a moment later.
+
+   So <html> carries the same answer from <head>, and outranks the bake on
+   <body> when it has one. Absent on <html> means the head had nothing cached
+   and the baked answer stands, which is the first-visit case.
+
+     html absent + body absent  → hidden   (the shipped behaviour)
+     html absent + body header  → shown    (the bake, from the theme)
+     html header                → shown    (the head, whatever the bake said)
+     html bag                   → hidden   (ditto, and the second rule is why) */
+html:not([data-zw-account="header"]) body.zwf-bagpanel-on:not([data-zw-account="header"]) :is(#login-btn,#account-btn,#hdr-login){display:none !important}
+html[data-zw-account="bag"] body.zwf-bagpanel-on :is(#login-btn,#account-btn,#hdr-login){display:none !important}
 /* ── Login or the account name, decided before the header is parsed ─────────
    The nav ships BOTH buttons and a script after it used to pick one, so a
    signed-in visitor's browser was free to paint "Login" while the parser was
@@ -121,6 +140,7 @@ html:not(.zw-authed) #account-btn{display:none !important}
 #account-btn .zw-acct-name::before{content:var(--zw-acct-name, "Account")}
 #hdr-login .zw-acct-name::before{content:var(--zw-acct-name, "Login")}
 html.zw-authed body:not(.zwf-bagpanel-on) #account-btn,
+html.zw-authed[data-zw-account="header"] body #account-btn,
 html.zw-authed body[data-zw-account="header"] #account-btn{display:inline-flex !important}
 /* Search magnifier launcher — base style at first paint so the header pre-paint can
    render it (before storefront-features.js's runtime styles load) without it looking

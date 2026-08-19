@@ -401,6 +401,7 @@
       '<label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-primary);margin-bottom:3px;">Account link</label>' +
       '<div style="font-size:.73rem;color:var(--text-secondary);line-height:1.5;margin-bottom:6px;">' +
         'With the slide-down bag panel switched on, the account link moves into that panel and the header button goes quiet. Keep it in the header if you would rather it stayed put — the panel keeps its own copy either way, so nobody loses the route to their account.' +
+        '<br><strong>This is the fallback.</strong> Page Builder → Header → Icons &amp; account answers the same question for the whole store, and wins wherever it has been answered; this is what applies until it has. Setting it per theme means answering it again on every theme you add.' +
       '</div>' +
       '<select onchange="themeSetToken(' + i + ',\'accountIn\',this.value)" style="width:100%;padding:7px 9px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.78rem;">' +
         [['', 'In the bag panel — the header button hides'],
@@ -416,6 +417,7 @@
       '<label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-primary);margin-bottom:3px;">Icons or words</label>' +
       '<div style="font-size:.73rem;color:var(--text-secondary);line-height:1.5;margin-bottom:6px;">' +
         'Show the search, bag and menu controls as words instead of glyphs. The wording comes from the label each control already carries for screen readers, so it stays in step with them. The bag keeps its count — it reads “Bag 2”.' +
+        '<br><strong>This is the fallback.</strong> Page Builder → Header → Icons &amp; account answers the same question for the whole store and wins wherever it has been answered; this is what applies until it has.' +
       '</div>' +
       '<select onchange="themeSetToken(' + i + ',\'iconLabels\',this.value)" style="width:100%;padding:7px 9px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.78rem;">' +
         [['off', 'Icons everywhere'],

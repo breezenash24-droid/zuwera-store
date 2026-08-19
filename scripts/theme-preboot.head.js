@@ -187,13 +187,21 @@ try {
    * must NOT be shown, and header-layouts.js holds it back for the draft. So
    * the bake is stripped as well as the cache being ignored. */
   try {
+    /* Named once and reused. This block is inlined verbatim into fourteen heads
+       and product.html's largest inline script is capped at 8KB — a
+       twelve-character attribute prefix spelled out nine times is most of a
+       line of that budget, spent on nothing. */
+    var _il='data-zw-iconlabels',_ia='data-zw-account',_H='data-zw-hdr';
     if (window.__ZW_BUILDER_PREVIEW__) {
-      h.removeAttribute('data-zw-hdr');
-      h.removeAttribute('data-zw-hdr-logo');
-      h.removeAttribute('data-zw-hdr-links');
-      h.removeAttribute('data-zw-hdr-actions');
-      h.removeAttribute('data-zw-hdr-linksrow');
-      h.removeAttribute('data-zw-hdr-lines');
+      /* A list rather than seven calls: this block is inlined verbatim into
+         fourteen heads and product.html's largest inline script is capped at
+         8KB, so the shape that repeats a forty-byte call name per attribute is
+         the shape that eventually costs a page its pre-paint. */
+      ['','-logo','-links','-actions','-linksrow','-lines'].forEach(function (s) {
+        h.removeAttribute(_H + s);
+      });
+      h.removeAttribute(_il);
+      h.removeAttribute(_ia);
     } else {
       var _hc = (localStorage.getItem('zw_hdr_attrs') || '').split('|');
       var _hs = { left: 1, center: 1, right: 1 };
@@ -202,24 +210,38 @@ try {
          CACHE ALWAYS APPLIES — otherwise an undated cache from a build before
          this existed, or any local build that does no stamping, would be
          thrown away in favour of nothing at all. */
-      var _hb = h.getAttribute('data-zw-hdr-at') || '';
-      var _hfresh = !_hb || (_hc[4] || '') > _hb;
-      if (_hfresh && _hc.length >= 4 && _hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
-          && _hs[_hc[2]] && (_hc[3] === '1' || _hc[3] === '2')) {
-        h.setAttribute('data-zw-hdr', '1');
-        h.setAttribute('data-zw-hdr-logo', _hc[0]);
-        h.setAttribute('data-zw-hdr-links', _hc[1]);
-        h.setAttribute('data-zw-hdr-actions', _hc[2]);
-        h.setAttribute('data-zw-hdr-linksrow', _hc[3]);
-        h.setAttribute('data-zw-hdr-at', _hc[4] || '');
-      }
-      /* Whether the header draws its bottom rule is a SEPARATE answer, ranked by
-         the same timestamp but applied on its own — a store can turn the line
-         off without ever choosing an arrangement, and folding it into the block
-         above would have thrown that away along with the placement it never
-         set. */
-      if (_hfresh && (_hc[5] === 'on' || _hc[5] === 'off')) {
-        h.setAttribute('data-zw-hdr-lines', _hc[5]);
+      var _hb = h.getAttribute(_H + '-at') || '';
+      /* Freshness is asked once and the four answers hang off it, rather than
+         each repeating the test: this block is inlined into fourteen heads
+         under an 8KB cap, and a condition spelled out four times is the kind of
+         repetition that eventually costs a page its pre-paint. */
+      if (!_hb || (_hc[4] || '') > _hb) {
+        if (_hc.length >= 4 && _hs[_hc[0]] && (_hs[_hc[1]] || _hc[1] === 'none')
+            && _hs[_hc[2]] && (_hc[3] === '1' || _hc[3] === '2')) {
+          // Pairs rather than six spelled-out calls, for the same reason.
+          [['', '1'], ['-logo', _hc[0]], ['-links', _hc[1]], ['-actions', _hc[2]],
+            ['-linksrow', _hc[3]], ['-at', _hc[4] || '']].forEach(function (p) {
+            h.setAttribute(_H + p[0], p[1]);
+          });
+        }
+        /* Each of the next three is a SEPARATE answer, ranked by the same
+           timestamp but applied on its own — a store can turn the rule off,
+           move the account, or ask for words without ever choosing an
+           arrangement, and folding them into the block above would throw those
+           away along with the placement they never set.
+
+           'icons' is an ANSWER, not the absence of one, so it CLEARS what the
+           build baked from a theme that says otherwise. That is the only way
+           the choice shows on the first frame rather than a beat later. */
+        if (_hc[5] === 'on' || _hc[5] === 'off') h.setAttribute(_H + '-lines', _hc[5]);
+        if (_hc[7] === 'mobile' || _hc[7] === 'always') h.setAttribute(_il, _hc[7]);
+        else if (_hc[7] === 'icons') h.removeAttribute(_il);
+        /* Where the account control lives hides a button that is IN the header,
+           so it has to land before the header is parsed — here, and nowhere
+           later. It belongs on <body> and the build bakes it there, but <body>
+           does not exist yet; the stylesheet takes the same answer on <html>
+           and lets it outrank the bake. */
+        if (_hc[6] === 'header' || _hc[6] === 'bag') h.setAttribute(_ia, _hc[6]);
       }
     }
   } catch (_) {}

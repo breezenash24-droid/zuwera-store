@@ -23,7 +23,7 @@ import { supabaseUrl, supabaseAnonKey } from './_config.js';
 // draft halves are deliberately NOT in the site_settings public-read policy
 // (migration 0026 says why): the preview receives them over postMessage from
 // the builder, never by reading the database.
-const ALLOWED_KEYS = ['page_builder','builder_theme','builder_nav','builder_history','builder_templates','builder_layouts','page_builder_published','landing_pages','landing_pages_published','scheduled_publish','product_page','collection_page','product_page_draft','collection_page_draft','theme_modes','nav_menu_draft','announcement_bar_draft','text_overrides_draft','header_layout_draft'];
+const ALLOWED_KEYS = ['page_builder','builder_theme','builder_nav','builder_history','builder_templates','builder_layouts','page_builder_published','landing_pages','landing_pages_published','scheduled_publish','product_page','collection_page','product_page_draft','collection_page_draft','theme_modes','nav_menu_draft','announcement_bar_draft','text_overrides_draft','header_layout_draft','bag_panel_draft'];
 
 // Draft key → the live key it publishes to.
 const DRAFT_TO_LIVE = {
@@ -33,6 +33,12 @@ const DRAFT_TO_LIVE = {
   announcement_bar_draft: 'announcement_bar',
   text_overrides_draft: 'text_overrides',
   header_layout_draft: 'header_layout',
+  /* The account menu inside the bag panel. site_settings.bag_panel already owns
+     these rows and the Settings page already edits them — the builder writes to
+     the SAME key rather than keeping a copy, for the reason the announcement
+     bar's message does: a value settable in two places that disagree is a fault
+     this codebase has had to remove once already. */
+  bag_panel_draft: 'bag_panel',
 };
 
 function cors(body, status = 200) {
@@ -118,6 +124,10 @@ export async function onRequestPost({ request, env }) {
       'announcement_bar', 'announcement_bar_draft',
       'text_overrides', 'text_overrides_draft',
       'header_layout', 'header_layout_draft',
+      /* bag_panel is read by storefront-features.js, which looks for `rows`,
+         `custom` and `supportEmail` and nothing else. Merging updated_at and
+         published into it would invent two rows nobody added. */
+      'bag_panel', 'bag_panel_draft',
     ]);
     const value = VERBATIM.has(key)
       ? payload

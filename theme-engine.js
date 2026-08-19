@@ -213,6 +213,18 @@
      of those returns. */
   var hdrLines = '';
 
+  /* Two more of exactly the same kind, and both were the THEME's to answer
+     before the builder's header modal existed: where the account control lives
+     when the bag panel is on, and whether the action controls read as glyphs or
+     as words.
+
+     '' means the builder did not answer, which hands the question back to the
+     theme — it does not mean "no". A control with no way to say "I have no
+     opinion" would take the question away from every theme the moment the modal
+     was first opened, which is why these are three-state and not booleans. */
+  var hdrAccount = '';
+  var hdrLabels = '';
+
   /* Whether the placement attributes on <html> were put there by THIS function.
      The build and the edge middleware are the other authors, and their work
      must survive a theme that says nothing about the header. */
@@ -227,6 +239,36 @@
   function applyHeaderLines(root) {
     if (hdrLines === 'on' || hdrLines === 'off') root.setAttribute('data-zw-hdr-lines', hdrLines);
     else root.removeAttribute('data-zw-hdr-lines');
+  }
+
+  /* ── Two authors, and only one of them may clear ──────────────────────────
+     Both of these attributes are also written by the BUILD (scripts/
+     _theme-css.js bakes them from the store's default theme so the first frame
+     is right). This function then runs twice on load — once for the cached or
+     built-in theme, once for the fetched one — and a theme whose tokens simply
+     do not MENTION these is not a theme asking for them to go away. Removing
+     them anyway un-hid the header login button for the sixty milliseconds
+     between the two applies: LOGIN appeared, vanished, and came back.
+
+     So: clear only what this function wrote — unless the BUILDER has said
+     something, which is not silence. "In the bag panel" and "icons, not words"
+     are answers, and an answer is allowed to clear a bake that disagrees with
+     it. That distinction is the whole reason these are three-state. */
+  function applyAccount(el, themeValue) {
+    if (!el || !el.setAttribute) return;
+    var v = hdrAccount || (themeValue === 'header' ? 'header' : '');
+    if (v === 'header') { el.setAttribute('data-zw-account', 'header'); acctWritten = true; }
+    else if (acctWritten || hdrAccount === 'bag') { el.removeAttribute('data-zw-account'); acctWritten = false; }
+  }
+
+  /* 'mobile' and 'always' are scopes the stylesheet knows; anything else —
+     including the absent case — means icons, and the attribute is REMOVED
+     rather than set to a value CSS has no rule for, since `[data-zw-iconlabels]`
+     alone matches the shared styling rule. */
+  function applyIconLabels(root, themeValue) {
+    var v = hdrLabels || themeValue;
+    if (v === 'mobile' || v === 'always') { root.setAttribute('data-zw-iconlabels', v); labelsWritten = true; }
+    else if (labelsWritten || hdrLabels === 'icons') { root.removeAttribute('data-zw-iconlabels'); labelsWritten = false; }
   }
 
   function applyHeader(root, header) {
@@ -430,46 +472,17 @@
     applyHeader(root, t.header);
     applyIcons(root, t.icons);
 
-    /* Icons as words. 'mobile' and 'always' are scopes the stylesheet knows;
-       anything else — including the absent case — means icons, and the
-       attribute is REMOVED rather than set to a value CSS has no rule for,
-       since `[data-zw-iconlabels]` alone matches the shared styling rule. */
-    /* Baked by the build as well (see scripts/_theme-css.js), so the removal is
-       conditional for the same reason data-zw-account's is: a theme that does
-       not mention iconLabels is not a theme asking for the words to go away, and
-       clearing it between the two applies on load flickered the header controls
-       between glyphs and labels. */
-    if (t.iconLabels === 'mobile' || t.iconLabels === 'always') {
-      root.setAttribute('data-zw-iconlabels', t.iconLabels);
-      labelsWritten = true;
-    } else if (labelsWritten) {
-      root.removeAttribute('data-zw-iconlabels');
-      labelsWritten = false;
-    }
+    // Icons as words — the builder's answer first, this theme's if it has none.
+    applyIconLabels(root, t.iconLabels);
     // Absent means "match the body font", which the CSS fallback already says.
     set('--zw-label-font', t.labelFont);
 
     /* Where the account control lives when the bag panel is on. The panel moves
        account inside itself and hides the header's button; 'header' opts out of
        the hiding half. On BODY rather than root, because the rule it answers is
-       written against body.zwf-bagpanel-on — the flag class lives there.
-
-       THE BUILD WRITES THIS TOO, and that is why the removal is conditional.
-       stamp-theme-default.js bakes data-zw-account onto <body> from the store's
-       default theme, so the first frame is right. This function then ran twice
-       on load — once for the cached or built-in theme, once for the fetched one
-       — and a theme whose tokens simply do not mention accountIn is not a theme
-       asking for the attribute to go away. Removing it anyway un-hid the header
-       login button for the sixty milliseconds between the two applies: LOGIN
-       appeared, vanished, and came back.
-
-       So the same rule as the header placement: clear only what this function
-       put there. A theme that really does move the account into the panel still
-       takes it back, because by then we wrote it. */
-    if (el && el.setAttribute) {
-      if (t.accountIn === 'header') { el.setAttribute('data-zw-account', 'header'); acctWritten = true; }
-      else if (acctWritten) { el.removeAttribute('data-zw-account'); acctWritten = false; }
-    }
+       written against body.zwf-bagpanel-on — the flag class lives there. The
+       builder's answer first, this theme's if it has none; see applyAccount. */
+    applyAccount(el, t.accountIn);
     // --black and --white are the page background and text in the original
     // naming. Kept in step with the triplets so the many rules still using them
     // agree with the ones using the ladder.
@@ -659,12 +672,24 @@
        Nothing else may write data-zw-hdr-* — see applyHeader. */
     setHeader: function (spec) {
       var s = (spec && typeof spec === 'object') ? spec : null;
-      /* Two independent answers arriving together. `lines` stands on its own —
-         a store can turn the rule off without ever choosing an arrangement —
-         so it is not conditional on there being a placement here. */
+      /* Four independent answers arriving together. Only the first is a
+         placement; the other three each stand on their own — a store can turn
+         the rule off, move the account, or ask for words without ever choosing
+         an arrangement — so none of them is conditional on there being a
+         placement here. */
       hdrLines = s && (s.lines === 'on' || s.lines === 'off') ? s.lines : '';
+      hdrAccount = s && (s.account === 'bag' || s.account === 'header') ? s.account : '';
+      hdrLabels = s && (s.iconLabels === 'icons' || s.iconLabels === 'mobile' || s.iconLabels === 'always')
+        ? s.iconLabels : '';
       hdrOverride = s && s.logo ? s : null;
+      var t = (applied && applied.tokens) || {};
       applyHeader(document.documentElement, applied && applied.header);
+      /* Applied straight away rather than waiting for the next theme apply,
+         which on a settled page never comes. The theme's own value is passed as
+         the fallback so clearing the builder's answer hands the question back
+         rather than forcing a default. */
+      applyAccount(document.body, t.accountIn);
+      applyIconLabels(document.documentElement, t.iconLabels);
     },
     reload: function () { resolveAndApply(); },
   };

@@ -258,7 +258,11 @@
          keeps its button instead of going quiet. Written as :not() on the same
          element so the default — no attribute at all — is the behaviour this
          has always had, and no existing store changes. */
-      'body.zwf-bagpanel-on:not([data-zw-account="header"]) :is(#login-btn,#account-btn,#hdr-login){display:none!important}',
+      /* Both elements, for the reason storefront-cohesion.css spells out beside
+         its copy: the pre-paint block in <head> has no <body> to write to, so
+         the same answer is accepted on <html> and outranks the bake. */
+      'html:not([data-zw-account="header"]) body.zwf-bagpanel-on:not([data-zw-account="header"]) :is(#login-btn,#account-btn,#hdr-login){display:none!important}',
+      'html[data-zw-account="bag"] body.zwf-bagpanel-on :is(#login-btn,#account-btn,#hdr-login){display:none!important}',
       '.zwf-search-bar{display:flex;align-items:center;gap:.9rem;padding:1.1rem clamp(1rem,4vw,2.5rem);border-bottom:1px solid var(--line,rgba(128,128,128,.2))}',
       '.zwf-search-bar svg{width:22px;height:22px;flex:0 0 auto;opacity:.6}',
       '.zwf-search-input{flex:1;background:none;border:none;outline:none;color:inherit;font-family:var(--fw,inherit);font-weight:700;font-size:clamp(1.1rem,3vw,1.7rem);letter-spacing:.02em}',
@@ -1579,6 +1583,30 @@
         .catch(function () {});
     } catch (_) {}
   }
+
+  /* ── The draft, in the builder's canvas ───────────────────────────────────
+     The same two routes the nav, the bar and the header arrangement use: a
+     ?zwpreview= link resolves the draft server-side, and the builder pushes
+     edits in live over postMessage. bag_panel_draft is deliberately NOT in the
+     public-read policy — an unpublished menu is not a shopper's business — so
+     the draft can only arrive by one of these, never by this file fetching it.
+
+     Applied without touching the cache: a draft that survived into the next
+     page load would show a shopper work nobody has published. */
+  function bagPreviewCfg(cfg) {
+    if (!cfg || typeof cfg !== 'object') return;
+    _bagCfg = cfg;
+    if (_bagPanel) renderBagPanel();
+  }
+  if (window.__zwPreviewReady && window.__zwPreviewReady.then) {
+    window.__zwPreviewReady.then(function (pv) { bagPreviewCfg(pv && pv.bag_panel); }).catch(function () {});
+  }
+  window.addEventListener('message', function (e) {
+    if (e.origin !== location.origin) return;
+    var d = e.data;
+    if (!d || d.type !== 'ZW_BAG_PREVIEW') return;
+    bagPreviewCfg(d.value);
+  });
 
   function bagCart() {
     try { return JSON.parse(localStorage.getItem('cart') || '[]') || []; } catch (_) { return []; }
