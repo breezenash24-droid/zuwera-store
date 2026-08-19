@@ -255,14 +255,56 @@ console.log('\nThe arrangement is in place before the first frame');
     !L.list.some((l) => new RegExp("['\"]" + l.id + "['\"]").test(PRE)),
     'a copy of the layout table in the head is a second definition to keep in step');
   ok('it checks them against the same vocabulary theme-engine accepts',
-    /_hs\s*=\s*\{ left: 1, center: 1, right: 1 \}/.test(PRE) && /_hp\[1\] === 'none'/.test(PRE),
+    /_hs\s*=\s*\{ left: 1, center: 1, right: 1 \}/.test(PRE) && /_hc\[1\] === 'none'/.test(PRE),
     'an attribute the stylesheet has no rule for still counts as placed, and suppresses the shipped arrangement');
-  ok('it does not stamp inside a builder preview',
-    /if \(!window\.__ZW_BUILDER_PREVIEW__\) \{[\s\S]{0,400}zw_hdr_attrs/.test(PRE),
-    'there the published arrangement is exactly the one that must not be shown');
+
+  /* ── The case a cache can never fix ──────────────────────────────────────
+     A first-ever visitor has nothing stored, so there is nothing to pre-paint
+     from and the header rearranges in front of them. The only answer is for
+     the arrangement to be in the document when it arrives. */
+  const STAMP = read('scripts/stamp-header-layout.js');
+  const stamper = require('../scripts/stamp-header-layout.js');
+  ok('a build step bakes the arrangement into <html>',
+    ['data-zw-hdr="1"', 'data-zw-hdr-logo="', 'data-zw-hdr-links="',
+     'data-zw-hdr-actions="', 'data-zw-hdr-linksrow="'].every((a) => STAMP.includes(a)));
+  ok('it reads the layout table rather than restating it',
+    !L.list.some((l) => new RegExp("['\"]" + l.id + "['\"]").test(strip(STAMP))),
+    'a second copy of the table is how the tile and the page start disagreeing');
+  /* The riskiest line in the whole feature: header-layouts.js is browser code
+     run under a stub here, and if it ever reaches for a DOM API the stub lacks,
+     this silently stamps nothing on the deploy and nobody sees the log. */
+  const T = stamper.loadLayouts();
+  ok('...and that table really does load in Node',
+    !!T && Array.isArray(T.list) && T.list.length === L.list.length
+      && !!T.byId('classic') && T.byId('classic').spec.logo === 'left');
+  ok('it stamps the row timestamp too', STAMP.includes('data-zw-hdr-at="'),
+    'without it the baked answer and a cached one cannot be ranked');
+  ok('it removes only attributes it wrote',
+    /const OURS = \[/.test(STAMP) && /for \(const attr of OURS\)/.test(STAMP));
+  ok('an arrangement the store no longer names is cleared, not left baked',
+    /if \(spec\) \{/.test(STAMP) && /attributes cleared/.test(STAMP));
+  ok('it runs on the deploy only', /if \(!process\.env\.CF_PAGES && !process\.argv\.includes\('--local'\)\)/.test(STAMP),
+    'locally it would rewrite committed HTML on every npm install');
+  ok('it can never break the build',
+    /\} catch \(e\) \{[\s\S]{0,200}<html> unchanged/.test(STAMP));
+  ok('and it guards against corrupting the page',
+    /html count changed in/.test(STAMP));
+  ok('postinstall runs it', /stamp-header-layout\.js/.test(read('package.json')));
+  ok('...after the other <html> stamper, so the two cannot interleave',
+    read('package.json').indexOf('stamp-theme-default.js') < read('package.json').indexOf('stamp-header-layout.js'));
+
+  ok('the pre-paint block prefers a NEWER cache over the baked answer',
+    /\(!_hb \|\| \(_hc\[4\] \|\| ''\) > _hb\)/.test(PRE),
+    'publishing without deploying and deploying without publishing fail in opposite directions');
+  ok('...and falls back to the cache when nothing was baked',
+    /!_hb \|\|/.test(PRE),
+    'a local build stamps nothing, and an undated cache is still better than none');
+  ok('a builder preview strips the baked arrangement as well as ignoring the cache',
+    /if \(window\.__ZW_BUILDER_PREVIEW__\) \{[\s\S]{0,320}removeAttribute\('data-zw-hdr-linksrow'\)/.test(PRE),
+    'the baked value is the published one, which is exactly what a draft preview must not show');
 
   ok('the cache is written from the published value only',
-    /remember\(id\);/.test(SRC) && !/draftDone[\s\S]{0,200}remember\(/.test(SRC),
+    /remember\(id, row && row\.updated_at\);/.test(SRC) && !/draftDone[\s\S]{0,200}remember\(/.test(SRC),
     'a draft that survived into the next page load would show a shopper unpublished work');
   ok('and cleared when the store names no arrangement',
     /if \(!l\) \{ localStorage\.removeItem\(CACHE\); localStorage\.removeItem\(ATTRS\); return; \}/.test(SRC),

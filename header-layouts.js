@@ -286,13 +286,18 @@
   var ATTRS = 'zw_hdr_attrs';
   var fromDraft = false;
 
-  function remember(id) {
+  /* The trailing field is the row's updated_at, kept so the pre-paint block can
+     tell a cache that is NEWER than the build's baked answer from one that is
+     older. Without it the two sources have no way to be ranked and one of them
+     has to be trusted blindly — which breaks whenever the other is the fresh
+     one. Same column, same format, on both sides. */
+  function remember(id, at) {
     var l = byId(id);
     try {
       if (!l) { localStorage.removeItem(CACHE); localStorage.removeItem(ATTRS); return; }
       localStorage.setItem(CACHE, l.id);
       localStorage.setItem(ATTRS, [l.spec.logo, l.spec.links, l.spec.actions,
-        String(l.spec.linksRow) === '2' ? '2' : '1'].join('|'));
+        String(l.spec.linksRow) === '2' ? '2' : '1', at || ''].join('|'));
     } catch (_) {}
   }
 
@@ -343,17 +348,18 @@
 
     try { var c = localStorage.getItem(CACHE); if (c) fromServer(c); } catch (_) {}
 
-    fetch('https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value&key=eq.header_layout',
+    fetch('https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value,updated_at&key=eq.header_layout',
     { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }, cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (rows) {
-        var v = rows && rows[0] && rows[0].value;
+        var row = rows && rows[0];
+        var v = row && row.value;
         if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
         var id = v && typeof v === 'object' ? v.id : v;
         /* A store that clears its arrangement has to clear the pre-paint cache
            too, or the head keeps stamping the old one before every paint and
            the header flashes an arrangement nothing on the server still names. */
-        remember(id);
+        remember(id, row && row.updated_at);
         if (!id) return;
         fromServer(id);
       })
