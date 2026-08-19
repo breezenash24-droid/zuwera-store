@@ -218,6 +218,12 @@
      must survive a theme that says nothing about the header. */
   var hdrWritten = false;
 
+  /* Same question for the two attributes the BUILD also bakes:
+     data-zw-account onto <body> and data-zw-iconlabels onto <html>. See the
+     notes beside where each is applied. */
+  var acctWritten = false;
+  var labelsWritten = false;
+
   function applyHeaderLines(root) {
     if (hdrLines === 'on' || hdrLines === 'off') root.setAttribute('data-zw-hdr-lines', hdrLines);
     else root.removeAttribute('data-zw-hdr-lines');
@@ -428,10 +434,17 @@
        anything else — including the absent case — means icons, and the
        attribute is REMOVED rather than set to a value CSS has no rule for,
        since `[data-zw-iconlabels]` alone matches the shared styling rule. */
+    /* Baked by the build as well (see scripts/_theme-css.js), so the removal is
+       conditional for the same reason data-zw-account's is: a theme that does
+       not mention iconLabels is not a theme asking for the words to go away, and
+       clearing it between the two applies on load flickered the header controls
+       between glyphs and labels. */
     if (t.iconLabels === 'mobile' || t.iconLabels === 'always') {
       root.setAttribute('data-zw-iconlabels', t.iconLabels);
-    } else {
+      labelsWritten = true;
+    } else if (labelsWritten) {
       root.removeAttribute('data-zw-iconlabels');
+      labelsWritten = false;
     }
     // Absent means "match the body font", which the CSS fallback already says.
     set('--zw-label-font', t.labelFont);
@@ -439,10 +452,23 @@
     /* Where the account control lives when the bag panel is on. The panel moves
        account inside itself and hides the header's button; 'header' opts out of
        the hiding half. On BODY rather than root, because the rule it answers is
-       written against body.zwf-bagpanel-on — the flag class lives there. */
+       written against body.zwf-bagpanel-on — the flag class lives there.
+
+       THE BUILD WRITES THIS TOO, and that is why the removal is conditional.
+       stamp-theme-default.js bakes data-zw-account onto <body> from the store's
+       default theme, so the first frame is right. This function then ran twice
+       on load — once for the cached or built-in theme, once for the fetched one
+       — and a theme whose tokens simply do not mention accountIn is not a theme
+       asking for the attribute to go away. Removing it anyway un-hid the header
+       login button for the sixty milliseconds between the two applies: LOGIN
+       appeared, vanished, and came back.
+
+       So the same rule as the header placement: clear only what this function
+       put there. A theme that really does move the account into the panel still
+       takes it back, because by then we wrote it. */
     if (el && el.setAttribute) {
-      if (t.accountIn === 'header') el.setAttribute('data-zw-account', 'header');
-      else el.removeAttribute('data-zw-account');
+      if (t.accountIn === 'header') { el.setAttribute('data-zw-account', 'header'); acctWritten = true; }
+      else if (acctWritten) { el.removeAttribute('data-zw-account'); acctWritten = false; }
     }
     // --black and --white are the page background and text in the original
     // naming. Kept in step with the triplets so the many rules still using them

@@ -455,5 +455,42 @@ console.log('\nNothing quietly undoes the answer the document arrived with');
     'an older build stamps nothing, and the cache is then the best available');
 }
 
+console.log('\nA theme with no opinion does not erase what the build baked');
+{
+  const TCSS = read('scripts/_theme-css.js');
+  const STAMP4 = read('scripts/stamp-theme-default.js');
+
+  /* Three attributes on the page are written by TWO authors: the build bakes
+     them so the first frame is right, and theme-engine writes them when a theme
+     has something to say. applyTheme ran twice on load — once for the cached or
+     built-in theme, once for the fetched one — and cleared each attribute the
+     first time round because that theme's tokens did not mention it.
+     data-zw-account was the visible one: the header login button appeared,
+     vanished and came back, sixty milliseconds apart. */
+  const BAKED = [
+    ['data-zw-account', /body\['data-zw-account'\] = 'header'/, 'acctWritten'],
+    ['data-zw-iconlabels', /html\['data-zw-iconlabels'\] = t\.iconLabels/, 'labelsWritten'],
+  ];
+  for (const [attr, bakedBy, flag] of BAKED) {
+    ok(attr + ' is baked by the build', bakedBy.test(TCSS) && STAMP4.includes(attr));
+    ok('...and theme-engine only removes it if it wrote it',
+      new RegExp('else if \\(' + flag + '\\) \\{[\\s\\S]{0,90}removeAttribute\\(\'' + attr + '\'\\)').test(TE),
+      'a theme that does not mention it is not a theme asking for it to go away');
+    ok('...and records having written it',
+      new RegExp(flag + ' = true;').test(TE));
+  }
+
+  /* The placement attributes are the third case, fixed the same way. All three
+     now share one rule, which is the point: clear only what you wrote. */
+  ok('the placement attributes follow the same rule',
+    /function clear\(\) \{\s*if \(!hdrWritten\) return;/.test(TE));
+
+  /* And the rule that reads data-zw-account has to be render-blocking, or the
+     attribute being right on the first frame buys nothing. */
+  ok('the rule it answers is in a blocking stylesheet, not injected',
+    /body\.zwf-bagpanel-on:not\(\[data-zw-account="header"\]\) :is\(#login-btn,#account-btn,#hdr-login\)/.test(CSS),
+    'injected from a deferred script it would apply after the first paint anyway');
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
