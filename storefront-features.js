@@ -475,34 +475,8 @@
   function initSearch() {
     ensureStyles();
 
-    // Launcher — sits immediately before the bag, whichever header this page uses.
-    // Three variants exist: index/product wrap actions in .nav-right with a
-    // #cart-btn; everything else groups them in .zw-hdr-group with a .zw-hdr-bag.
-    // Only .nav-right was handled before, so the icon silently never appeared on
-    // the .zw-hdr-group pages (drop001 included, despite loading this module).
-    var host = null, before = null, cls = 'nbtn';
-    var navRight = document.querySelector('.nav-right');
-    var cart = navRight && navRight.querySelector('#cart-btn');
-    if (navRight && cart) {
-      host = navRight; before = cart;                       // index, product
-    } else {
-      var group = document.querySelector('.zw-hdr-group');
-      if (group) {
-        host = group; before = group.querySelector('.zw-hdr-bag'); cls = 'zw-hdr-action';
-      } else if (navRight) {
-        // bag: no bag icon to sit before. Anchor on the hamburger instead — without
-        // it the button was appended and landed to the RIGHT of the hamburger, which
-        // is the only page where the order came out wrong. The hamburger is always
-        // the last thing in the header.
-        host = navRight;
-        before = navRight.querySelector('#mobile-menu-btn, .hamburger-btn');
-      } else {
-        // checkout: custom .co-header-right with the bag pill (#co-bag-pill).
-        // Reuse the bag-icon class so the magnifier matches it, sat just before it.
-        var coRight = document.querySelector('.co-header-right');
-        if (coRight) { host = coRight; before = coRight.querySelector('#co-bag-pill'); cls = 'co-bag-icon'; }
-      }
-    }
+    var slot = actionsSlot();
+    var host = slot.host, before = slot.before, cls = slot.cls;
     if (host) {
       // The header pre-paint snippet may have already rendered the magnifier (so it's
       // there on the first frame instead of popping in late). Reuse it if so; only
@@ -585,6 +559,40 @@
   function headerEl() {
     return document.querySelector('nav#nav, nav.nav, header.nav, nav.zw-nav');
   }
+
+  /* ── WHERE A NEW ACTION CONTROL GOES ───────────────────────────────────────
+     Anything this file adds to the header — the search launcher, and the
+     account-menu rows a store has promoted out of the bag panel — has to answer
+     the same question, and there is no single header markup to answer it
+     against. Four variants:
+
+       index, product   .nav-right with a #cart-btn
+       most pages       .zw-hdr-group with a .zw-hdr-bag
+       bag              .nav-right with no bag icon — anchor on the hamburger,
+                        or the control lands to its RIGHT, which is the one page
+                        the order used to come out wrong on
+       checkout         .co-header-right with the #co-bag-pill
+
+     This was written out once, inline, for the search button. A second copy for
+     the promoted rows is how one of them would start appearing on pages the
+     other did not — the exact fault the search icon already had, when only
+     .nav-right was handled and it silently never appeared on the eight
+     .zw-hdr-group pages. So it is one function with one answer, and the class
+     comes back with it so a new control inherits the dialect it is joining
+     rather than arriving unstyled. */
+  function actionsSlot() {
+    var navRight = document.querySelector('.nav-right');
+    var cart = navRight && navRight.querySelector('#cart-btn');
+    if (navRight && cart) return { host: navRight, before: cart, cls: 'nbtn' };
+    var group = document.querySelector('.zw-hdr-group');
+    if (group) return { host: group, before: group.querySelector('.zw-hdr-bag'), cls: 'zw-hdr-action' };
+    if (navRight) {
+      return { host: navRight, before: navRight.querySelector('#mobile-menu-btn, .hamburger-btn'), cls: 'nbtn' };
+    }
+    var coRight = document.querySelector('.co-header-right');
+    if (coRight) return { host: coRight, before: coRight.querySelector('#co-bag-pill'), cls: 'co-bag-icon' };
+    return { host: null, before: null, cls: 'nbtn' };
+  }
   function isDesktop() { return window.matchMedia('(min-width:900px)').matches; }
 
   // Where a panel's top edge goes: flush under the header. Measured rather than
@@ -603,10 +611,34 @@
   // floor() gets us to the edge; it can't cover a border inside it. Panels paint
   // at z-index 989 over the nav's 220, so eating that last pixel is free and the
   // seam goes away on every page. Both panels share this so they can't drift.
+  //
+  // ── ONE CSS PIXEL IS NOT ONE PIXEL ─────────────────────────────────────────
+  //
+  // A hairline was still being reported between the header and the open panel,
+  // and it is not a gap: measured, nav.bottom is 92.0000019 and this returns 91,
+  // so the two boxes overlap and no arrangement of floor() can make them not.
+  // At a device pixel ratio of 1 the seam does not appear at all.
+  //
+  // It appears on a SCALED display. Both the nav and the panel are their own
+  // composited layers — the nav is fixed, the panel animates a transform — and
+  // each is rasterised and antialiased independently. Where their shared edge
+  // lands on a fractional device pixel, neither layer fully owns that physical
+  // row, and it renders a shade lighter than both. One CSS pixel of overlap is
+  // 1.75 physical pixels at 175% scaling, but the fractional REMAINDER is what
+  // shows, and it survives any amount of CSS-pixel overlap smaller than the
+  // rounding error at both edges.
+  //
+  // So the overlap is taken to the next whole DEVICE pixel below the header's
+  // edge, plus one more. That is under a pixel of extra coverage on an ordinary
+  // display and exactly enough on a scaled one, and it is expressed in the
+  // units the seam actually lives in rather than the ones the layout is
+  // written in.
   function headerBottom() {
     var h = headerEl();
     if (!h) return 0;
-    return Math.max(0, Math.floor(h.getBoundingClientRect().bottom) - 1);
+    var dpr = window.devicePixelRatio || 1;
+    var bottom = h.getBoundingClientRect().bottom;
+    return Math.max(0, Math.floor(bottom * dpr - 2) / dpr);
   }
 
   function syncSearchTop() {
@@ -1560,8 +1592,22 @@
     var rows = (bagCfg().rows && typeof bagCfg().rows === 'object') ? bagCfg().rows : {};
     var r = rows[key] || {};
     var label = (r.label != null && String(r.label).trim()) ? String(r.label).trim() : def;
-    return { enabled: r.enabled !== false, label: label };
+    /* `where` is the third thing a row can say, after whether it shows and what
+       it is called: which SURFACE it shows on. 'header' lifts it out of the
+       panel and into the action row beside the bag; anything else — including
+       absent — leaves it where it has always been. */
+    return { enabled: r.enabled !== false, label: label, where: r.where === 'header' ? 'header' : 'bag' };
   }
+
+  /* The four rows that can be promoted, with everything that differs between
+     them. `name` is not here and cannot be: it is the panel's heading, not a
+     destination, and there is nothing for a header control to link to. */
+  var HDR_ROWS = [
+    { key: 'orders',  def: 'Orders',     icon: 'orders', href: '/account.html#orders' },
+    { key: 'saves',   def: 'Your saves', icon: 'saves',  href: '/account.html#saved' },
+    { key: 'account', def: 'Account',    icon: 'acct',   href: '/account.html#profile' },
+    { key: 'support', def: 'Support',    icon: 'help',   href: '' },   // mailto, built below
+  ];
   function bagSupportEmail() {
     return String(bagCfg().supportEmail || '').trim() || 'nasirubreeze@zuwera.store';
   }
@@ -1578,6 +1624,7 @@
           if (!cfg || typeof cfg !== 'object') return;
           _bagCfg = cfg;
           try { localStorage.setItem('zw_bag_panel', JSON.stringify(cfg)); } catch (_) {}
+          applyHeaderRows();
           if (_bagPanel) renderBagPanel();
         })
         .catch(function () {});
@@ -1596,6 +1643,7 @@
   function bagPreviewCfg(cfg) {
     if (!cfg || typeof cfg !== 'object') return;
     _bagCfg = cfg;
+    applyHeaderRows();
     if (_bagPanel) renderBagPanel();
   }
   if (window.__zwPreviewReady && window.__zwPreviewReady.then) {
@@ -1775,6 +1823,86 @@
     return '/' + s.replace(/^\/+/, '');
   }
 
+  /* ── ROWS THE STORE HAS MOVED INTO THE HEADER ──────────────────────────────
+     Same row, same label, same destination — a different surface. The panel
+     already knew how to hide one; what it could not do was put it anywhere
+     else, so "hide Orders" and "put Orders in the header" were the same button
+     and only one of them was reachable.
+
+     Rendered as the dialect's own action class so they look like the controls
+     they are joining, with the label on aria-label — which is where the
+     words-instead-of-glyphs rule reads from, so a promoted row follows that
+     setting with everything else rather than being a special case. */
+  function applyHeaderRows() {
+    var slot = actionsSlot();
+    if (!slot.host) return;
+    /* Cleared and rebuilt rather than diffed: this runs again whenever the
+       config lands or a builder edit arrives, and a row that was promoted and
+       then demoted has to actually leave. */
+    var existing = slot.host.querySelectorAll('.zwf-hdr-row');
+    for (var i = 0; i < existing.length; i++) existing[i].parentNode.removeChild(existing[i]);
+
+    HDR_ROWS.forEach(function (spec) {
+      var r = bagRow(spec.key, spec.def);
+      if (!r.enabled || r.where !== 'header') return;
+      var a = document.createElement('a');
+      a.className = slot.cls + ' zwf-hdr-row';
+      a.setAttribute('data-zw-row', spec.key);
+      a.setAttribute('aria-label', r.label);
+      a.href = spec.key === 'support' ? 'mailto:' + bagSupportEmail() : spec.href;
+      a.innerHTML = bagIcon(spec.icon);
+      if (slot.before) slot.host.insertBefore(a, slot.before); else slot.host.appendChild(a);
+    });
+    applyActionOrder();
+  }
+
+  /* ── ONE LIST, TWO APPLIERS, AND WHY THAT IS NOT TWO ANSWERS ───────────────
+     storefront-cohesion.css orders the three controls that exist in the markup,
+     from data-zw-hdr-order, and it can do that before this file loads — which
+     is what keeps them from shuffling on every page load.
+
+     What CSS cannot do is order a list of arbitrary length: it can name the
+     first and the last of three, and that is the whole trick. Promoted rows
+     make the list longer, and they are created HERE, so by the time the general
+     case exists this file is already running. It therefore writes `order`
+     inline on every control, from the SAME attribute the stylesheet read. When
+     no row is promoted the two agree exactly; when one is, this corrects the
+     approximation in the same breath as adding the control that made it one. */
+  var ORDER_SEL = {
+    search:  '.zwf-search-btn',
+    account: '#account-btn, #login-btn, #hdr-login',
+    bag:     '#cart-btn, .zw-hdr-bag',
+  };
+  function applyActionOrder() {
+    var raw = document.documentElement.getAttribute('data-zw-hdr-order') || '';
+    var seq = raw.trim() ? raw.trim().split(/\s+/) : [];
+    if (!seq.length) return;
+    seq.forEach(function (name, i) {
+      var sel = ORDER_SEL[name] || '[data-zw-row="' + name + '"]';
+      var els = document.querySelectorAll(sel);
+      for (var j = 0; j < els.length; j++) els[j].style.order = String(i + 1);
+    });
+  }
+
+  /* THE ATTRIBUTE ARRIVES ON ITS OWN SCHEDULE, and measurement is how that was
+     found: promoted rows appeared in the header but ignored the order entirely,
+     because this file runs when the BAG config lands and the order comes from
+     the HEADER row, which is a different fetch. Whichever is second was going
+     to be the one nobody waited for.
+
+     So rather than picking an order to run them in — which would only move the
+     race — the attribute is watched. It is written by the pre-paint block, by
+     the edge, and by theme-engine when the layout resolves, and any of those is
+     a fine moment to re-sort. */
+  function watchActionOrder() {
+    if (!window.MutationObserver) return;
+    try {
+      new MutationObserver(applyActionOrder).observe(document.documentElement, {
+        attributes: true, attributeFilter: ['data-zw-hdr-order'],
+      });
+    } catch (_) {}
+  }
+
   function buildBagPanel() {
     if (_bagOverlay) return;
     ensureStyles();
@@ -1833,13 +1961,20 @@
     if (!(favCount > 0)) favCount = 0;
     var savesBadge = favCount ? '<span class="zwf-bag-count">' + (favCount > 99 ? '99+' : favCount) + '</span>' : '';
     var rOrders = bagRow('orders', 'Orders'), rSaves = bagRow('saves', 'Your saves'), rAccount = bagRow('account', 'Account');
+    var rName = bagRow('name', user ? String(user.name || 'My profile') : 'My profile');
+    /* MOVED, not copied. A row promoted into the header leaves the panel — the
+       point of the setting is which surface it lives on, and drawing it in both
+       would make "move" mean "duplicate", which is the one reading that helps
+       nobody: two routes to the same page, one of them in a menu the shopper
+       opened looking for it. */
+    var here = function (r) { return r.enabled && r.where !== 'header'; };
     var links = user
-      ? (rOrders.enabled ? '<a class="zwf-bag-link" href="/account.html#orders">' + bagIcon('orders') + esc(rOrders.label) + '</a>' : '')
-        + (rSaves.enabled ? '<a class="zwf-bag-link" href="/account.html#saved">' + bagIcon('saves') + esc(rSaves.label) + savesBadge + '</a>' : '')
-        + (rAccount.enabled ? '<a class="zwf-bag-link" href="/account.html#profile">' + bagIcon('acct') + esc(rAccount.label) + '</a>' : '')
+      ? (here(rOrders) ? '<a class="zwf-bag-link" href="/account.html#orders">' + bagIcon('orders') + esc(rOrders.label) + '</a>' : '')
+        + (here(rSaves) ? '<a class="zwf-bag-link" href="/account.html#saved">' + bagIcon('saves') + esc(rSaves.label) + savesBadge + '</a>' : '')
+        + (here(rAccount) ? '<a class="zwf-bag-link" href="/account.html#profile">' + bagIcon('acct') + esc(rAccount.label) + '</a>' : '')
       : '<a class="zwf-bag-link" data-zw-login href="/?auth=signin&next=' + encodeURIComponent(location.pathname) + '">' + bagIcon('acct') + 'Sign in</a>';
     var rSupport = bagRow('support', 'Support');
-    var supportRow = rSupport.enabled ? '<a class="zwf-bag-link" href="mailto:' + esc(bagSupportEmail()) + '">' + bagIcon('help') + esc(rSupport.label) + '</a>' : '';
+    var supportRow = here(rSupport) ? '<a class="zwf-bag-link" href="mailto:' + esc(bagSupportEmail()) + '">' + bagIcon('help') + esc(rSupport.label) + '</a>' : '';
     // Admin-defined custom rows: label + chosen icon + preset link (bag_panel.custom).
     var customRows = (Array.isArray(bagCfg().custom) ? bagCfg().custom : [])
       .filter(function (r) { return r && r.enabled !== false && String(r.label || '').trim() && String(r.url || '').trim(); })
@@ -1851,7 +1986,14 @@
       // not back to the empty bag page it is standing in for.
       + '<a class="zwf-bag-review" href="' + (cart.length ? '/bag.html' : '/drop001.html') + '">' + (cart.length ? 'Review bag' : 'Start shopping') + '</a></div>'
       + items
-      + '<div class="zwf-bag-links"><h3>' + (user ? esc(user.name) : 'My profile') + '</h3>'
+      /* The name heading is a row like the others, and switchable like them.
+         It is the one line in this panel that is a person's name rather than a
+         label, so a store that would rather not greet people by name in a
+         slide-out has to be able to say so. Its DEFAULT depends on who is
+         looking — the name when there is one, "My profile" when there is not —
+         and a label typed in the builder replaces both. */
+      + '<div class="zwf-bag-links">'
+      + (rName.enabled ? '<h3>' + esc(rName.label) + '</h3>' : '')
       + links
       + customRows
       + supportRow
@@ -1893,6 +2035,8 @@
     document.body.classList.add('zwf-bagpanel-on');   // hides the header account button
     bagBootstrapSession();   // resolve the signed-in user from the live client (all pages)
     loadBagCfg();            // pull admin-controlled labels / support email / row toggles
+    applyHeaderRows();       // and lift into the header any row that asked to be there
+    watchActionOrder();      // and re-sort whenever the order attribute lands
 
     // The bag is wired three different ways:
     //   index    — inline onclick → window.__zwOpenCart() → location.assign('/bag.html')

@@ -226,7 +226,7 @@ console.log('\nChoosing is not applying');
   ok('there is an apply button', /id="hdrCfgApply"/.test(B) && /Apply layout/.test(B));
   ok('applying is what changes the draft',
     /function applyHeaderCfg\(\)\{[\s\S]*?markChromeDirty\('header'\)[\s\S]*?sendChrome\(\)/.test(B));
-  ok('the button says so when there is nothing to apply', /Already applied/.test(B));
+  ok('the button says so when there is nothing to apply', /Nothing to apply/.test(B));
   ok('the current arrangement is marked as current, separately from the selection',
     /hdrcfg-cur/.test(B) && /hdrcfg-mark/.test(B));
   ok('it previews at once', /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines,\s*account:chromeHdrAccount,iconLabels:chromeHdrLabels,order:chromeHdrOrder\}\)/.test(B));
@@ -373,7 +373,8 @@ console.log('\nThe line under the header is a choice, and it moves nothing');
   ok('the builder has a two-state control', /id="hdrLinesOn"/.test(B) && /id="hdrLinesOff"/.test(B));
   ok('...which says it applies to every page', /Applies to every page/.test(B));
   ok('...and writes it into the same draft as the arrangement',
-    /function setHdrLines\(v\)\{[\s\S]{0,340}markChromeDirty\('header'\)/.test(B));
+    /function setHdrLines\(v\)\{[\s\S]{0,340}hdrCfgMark\(\)/.test(B)
+    && /function hdrCfgMark\(\)\{ hdrCfgTouched=true; markChromeDirty\('header'\)/.test(B));
   ok('the saved value carries both answers',
     /const out = \{ id, lines: chromeHdrLines \|\| 'on' \};/.test(B));
   ok('and the preview push carries it',

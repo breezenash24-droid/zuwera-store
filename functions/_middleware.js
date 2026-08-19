@@ -105,7 +105,7 @@ export function attrsFrom(value, updatedAt) {
      writer, because a value the stylesheet has no rule for still counts as
      "ordered" and takes the default order away from every control at once. */
   if (typeof value.order === 'string'
-      && /^(search|account|bag)( (search|account|bag))*$/.test(value.order.trim())) {
+      && /^(search|account|bag|orders|saves|support)( (search|account|bag|orders|saves|support))*$/.test(value.order.trim())) {
     out['data-zw-hdr-order'] = value.order.trim();
   }
   /* The devices that show words, as the stylesheet matches them. 'none' names

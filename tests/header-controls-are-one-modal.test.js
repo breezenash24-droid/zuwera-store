@@ -77,18 +77,24 @@ console.log('\nOne modal for the whole header\n');
   ok('the support address too, since one row is an email link',
     /id="hdrBagMail"/.test(B) && /function setBagMail\(/.test(B));
 
-  /* Apply exists for the gallery, where you browse ten arrangements and must be
-     able to look without changing anything. A two-state switch is its own
-     preview, so Apply there would be ceremony — and leaving the button visible
-     but inert would read as "these have not been applied either". */
-  ok('the controls act on click, and Apply goes away with the gallery',
-    /getElementById\('hdrCfgApply'\)\.hidden = icons/.test(B)
-    && /function setHdrAccount\(v\)\{[\s\S]{0,200}sendChrome\(\)/.test(B));
-  ok('...and the footer says so rather than leaving you to guess',
-    /Every switch here updates the preview as you press it/.test(B));
-  ok('...and Cancel does not promise an undo it does not have',
-    /hdrCfgClose'\)\.textContent = icons \? 'Done' : 'Cancel'/.test(B),
-    'nothing on this tab is pending; it has all been applied already');
+  /* THE MODAL STAGES. Every switch reaches the PREVIEW as you press it —
+     watching the header change is the whole point of the cards — and only
+     Apply writes it to the draft. That is what makes Cancel a real undo, and
+     it is why both tabs now have the same two buttons meaning the same two
+     things. Hiding Apply on one tab made the halves behave differently for no
+     reason a reader could see, and left Cancel closing without undoing. */
+  ok('every switch reaches the preview as it is pressed',
+    /function setHdrAccount\(v\)\{[\s\S]{0,200}sendChrome\(\)/.test(B));
+  ok('...but only Apply writes it to the draft',
+    /function applyHeaderCfg\(\)\{/.test(B) && /hdrCfgTouched=false;/.test(B));
+  ok('...and Cancel puts back what the draft held when you opened it',
+    /hdrCfgWas = \{/.test(B)
+    && /function closeHeaderCfg\(\)\{[\s\S]{0,400}chromeHeader=hdrCfgWas\.header/.test(B),
+    'a Cancel that only closes is a button that lies about what it does');
+  ok('...without unmarking an edit made before the modal opened',
+    /closeHeaderCfg\(\)\{[\s\S]{0,600}\}/.test(B) && !/closeHeaderCfg[\s\S]{0,600}chromeDirtyKeys\.clear/.test(B));
+  ok('...and the footer says which button does which',
+    /Apply keeps it; Cancel puts it back/.test(B));
   ok('custom rows are named as belonging to Settings, not silently missing',
     /custom row/.test(B) && /left alone by this modal/.test(B));
 }
@@ -271,6 +277,53 @@ console.log('\nOne modal for the whole header\n');
   ok('it can be dragged AND stepped with the arrows',
     /draggable="true"/.test(B) && /data-mv="-1"/.test(B) && /function moveHdrCtl\(/.test(B),
     'a control reachable only by a mouse gesture is a control some people cannot reach');
+}
+
+/* ── 6c · a row can live in the header instead ───────────────────────────── */
+{
+  console.log('\n  moving a row out of the panel');
+
+  /* The panel could hide a row and nothing else, so "hide Orders" and "put
+     Orders in the header" were the same button and only one of them existed. */
+  ok('a row says which surface it is on',
+    /where: r\.where === 'header' \? 'header' : 'bag'/.test(FEAT)
+    && /function setBagRowWhere\(key,where\)\{/.test(B));
+  ok('...and the four that have a destination can move',
+    /var HDR_ROWS = \[/.test(FEAT)
+    && ['orders', 'saves', 'account', 'support'].every((k) => new RegExp("key: '" + k + "'").test(FEAT)));
+  /* The heading is not a link. Offering to move it would be offering a switch
+     with nowhere to go. */
+  ok('...but the heading cannot, and says so instead of offering a dead switch',
+    /const movable=key!=='name';/.test(B) && /nowhere to go in the header/.test(B));
+
+  /* MEASURED, and it was wrong: the row appeared in the header and stayed in
+     the panel, which makes "move" mean "duplicate" — two routes to one page,
+     one of them in the menu the shopper opened looking for it. */
+  ok('a promoted row LEAVES the panel',
+    /var here = function \(r\) \{ return r\.enabled && r\.where !== 'header'; \};/.test(FEAT)
+    && /here\(rOrders\)/.test(FEAT) && /here\(rSupport\)/.test(FEAT));
+
+  /* Also measured, also wrong: promoted rows ignored the order entirely,
+     because this file runs when the BAG config lands and the order comes from
+     the HEADER row — a different fetch, and whichever was second had nobody
+     waiting for it. */
+  ok('the order is re-applied whenever its attribute lands',
+    /function watchActionOrder\(\)/.test(FEAT) && /attributeFilter: \['data-zw-hdr-order'\]/.test(FEAT),
+    'two fetches, and picking an order to run them in would only move the race');
+  ok('...and every validator on the way knows the promotable names',
+    ['theme-engine.js', 'functions/_middleware.js', 'scripts/stamp-header-layout.js']
+      .every((f) => /orders\|saves\|support/.test(read(f))),
+    'one that did not silently dropped the whole order');
+
+  /* One host resolver, because the search button already proved what a second
+     copy does: it handled .nav-right only, so the icon never appeared on the
+     eight .zw-hdr-group pages. */
+  ok('new controls find their host through one function, not a second copy',
+    /function actionsSlot\(\)/.test(FEAT)
+    && (FEAT.match(/\.querySelector\('\.zw-hdr-group'\)/g) || []).length === 1);
+  ok('a promoted row follows the words-or-glyphs setting like everything else',
+    /\.zwf-hdr-row/.test(read('storefront-cohesion.css')),
+    'a control that ignored it would be the one thing on the row reading differently');
 }
 
 /* ── 7 · what applies at which width, said out loud ──────────────────────── */

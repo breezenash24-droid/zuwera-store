@@ -4844,7 +4844,7 @@ html[data-zw-hdr-lines="off"] :is(#nav, .nav, .zw-nav):has(.zw-navitem.zw-has-me
    inside the group, and on the browse header it is the one control whose place
    is structural rather than a preference — so it is pinned last wherever
    ordering is on, and there is no way to ask for it somewhere else. */
-html[data-zw-hdr-order] :is(#nav, .nav, .zw-nav) :is(.zwf-search-btn, #login-btn, #account-btn, #hdr-login, #cart-btn, .zw-hdr-bag) {
+html[data-zw-hdr-order] :is(#nav, .nav, .zw-nav) :is(.zwf-search-btn, #login-btn, #account-btn, #hdr-login, #cart-btn, .zw-hdr-bag, .zwf-hdr-row) {
   order: 2;
 }
 html[data-zw-hdr-order] :is(#nav, .nav, .zw-nav) .hamburger-btn { order: 9; }
@@ -4894,38 +4894,38 @@ html[data-zw-hdr-order$="bag"] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-b
    an earlier build carries them, and a store that has never opened the header
    modal still has them in its theme — dropping them would blank the labels for
    the moment between the page arriving and theme-engine.js normalising it. */
-html[data-zw-iconlabels] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) {
+html[data-zw-iconlabels] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) {
   --zw-il: 0;   /* off unless a device below turns it on at this width */
 }
 @media (max-width: 600px) {
-  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) { --zw-il: 1; }
+  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) { --zw-il: 1; }
 }
 @media (min-width: 601px) and (max-width: 900px) {
-  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) { --zw-il: 1; }
+  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) { --zw-il: 1; }
 }
 @media (min-width: 901px) {
-  html:is([data-zw-iconlabels~="desktop"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) { --zw-il: 1; }
+  html:is([data-zw-iconlabels~="desktop"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) { --zw-il: 1; }
 }
 
 /* `display` cannot be driven by a custom property, so the two states are two
    rules keyed on the same devices rather than one clever declaration. */
 @media (max-width: 600px) {
-  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) > svg { display: none; }
-  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn)::before { content: attr(aria-label); }
+  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) > svg { display: none; }
+  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row)::before { content: attr(aria-label); }
 }
 @media (min-width: 601px) and (max-width: 900px) {
-  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) > svg { display: none; }
-  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn)::before { content: attr(aria-label); }
+  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) > svg { display: none; }
+  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row)::before { content: attr(aria-label); }
 }
 @media (min-width: 901px) {
-  html:is([data-zw-iconlabels~="desktop"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn) > svg { display: none; }
-  html:is([data-zw-iconlabels~="desktop"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn)::before { content: attr(aria-label); }
+  html:is([data-zw-iconlabels~="desktop"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) > svg { display: none; }
+  html:is([data-zw-iconlabels~="desktop"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row)::before { content: attr(aria-label); }
 }
 
 /* One rule for the look of the label, whichever scope revealed it.
    --zw-label-font defaults to the body font, so "match the current font" is the
    behaviour when nothing is chosen rather than a setting you have to find. */
-html[data-zw-iconlabels] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn)::before {
+html[data-zw-iconlabels] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row)::before {
   font-family: var(--zw-label-font, var(--fb, inherit));
   font-size: var(--zw-label-size, .72rem);
   letter-spacing: .12em;

@@ -191,6 +191,12 @@
     account: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"></path></svg>',
     bag:     '<svg viewBox="0 0 24 24" class="zwhl-bagi" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path><path d="M16 10a4 4 0 01-8 0"></path></svg>',
     menu:    '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>',
+    /* The account-menu rows a store can promote into the header. Same shapes
+       storefront-features.js draws them with, so the tile and the header show
+       the same glyph rather than two artists' versions of one idea. */
+    orders:  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><path d="M3 6h18"></path></svg>',
+    saves:   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>',
+    support: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.1 9a3 3 0 1 1 4 2.8c-.7.3-1.1 1-1.1 1.7v.5"></path><line x1="12" y1="17.5" x2="12" y2="17.5"></line></svg>',
   };
 
   function part(name, withMenu) {
@@ -256,15 +262,27 @@
 
      `words` uses the labels the controls carry for screen readers, which is
      also where the storefront's own labels come from, so the two cannot drift. */
+  /* The names in a value, in the order given, WITHOUT completing the list.
+     controlOrder completes because an order has to place every control that
+     exists; drawing does not — the builder draws one chip per control and asks
+     for one name at a time, and completing there would put four glyphs on every
+     chip. Two callers, two genuinely different questions. */
+  function seqOf(v) {
+    var known = CONTROLS.concat(PROMOTABLE);
+    return String(v == null ? '' : v).trim().toLowerCase().split(/[\s,]+/)
+      .filter(function (n) { return known.indexOf(n) > -1; });
+  }
+
   function actionsMini(opts) {
     var o = opts || {};
-    var seq = (controlOrder(o.order) || CONTROLS.join(' ')).split(' ');
+    var seq = seqOf(o.order);
+    if (!seq.length) seq = CONTROLS.slice();
     var words = !!o.words;
     var out = seq.map(function (c) {
       if (c === 'account' && o.account === false) return '';
       var body = words
         ? '<i class="zwhl-w">' + CONTROL_LABEL[c] + '</i>'
-        : GLYPH[c === 'search' ? 'search' : c === 'account' ? 'account' : 'bag'];
+        : (GLYPH[c] || GLYPH.bag);
       return '<span class="zwhl-c" data-c="' + c + '">' + body + '</span>';
     }).join('');
     if (o.menu) out += '<span class="zwhl-c">' + GLYPH.menu + '</span>';
@@ -346,17 +364,31 @@
      rather than rejected, so a hand-edited row cannot leave a control with no
      position at all. */
   var CONTROLS = ['search', 'account', 'bag'];
-  var CONTROL_LABEL = { search: 'Search', account: 'Account', bag: 'Bag' };
+  /* Rows of the bag panel's account menu that a store can promote into the
+     header. They are optional — a header has them only if someone moved them —
+     so they are ALLOWED in an order but never added to complete one. The
+     panel's own list is the authority on what they are called; these are the
+     names the order speaks in. */
+  var PROMOTABLE = ['orders', 'saves', 'support'];
+  var CONTROL_LABEL = {
+    search: 'Search', account: 'Account', bag: 'Bag',
+    orders: 'Orders', saves: 'Saves', support: 'Support',
+  };
 
   function controlOrder(v) {
     if (Array.isArray(v)) v = v.join(' ');
     var s = String(v == null ? '' : v).trim().toLowerCase();
     if (!s) return '';
+    var known = CONTROLS.concat(PROMOTABLE);
     var want = s.split(/[\s,]+/), out = [], i;
     for (i = 0; i < want.length; i++) {
-      if (CONTROLS.indexOf(want[i]) > -1 && out.indexOf(want[i]) < 0) out.push(want[i]);
+      if (known.indexOf(want[i]) > -1 && out.indexOf(want[i]) < 0) out.push(want[i]);
     }
     if (!out.length) return '';
+    /* The three built-ins are always in the list, because they are always in
+       the header — an order that omitted one would leave the stylesheet to
+       invent a place for it. The promotable ones are not completed in: their
+       absence is the answer "this row is still in the panel". */
     for (i = 0; i < CONTROLS.length; i++) {
       if (out.indexOf(CONTROLS[i]) < 0) out.push(CONTROLS[i]);
     }
@@ -461,7 +493,8 @@
     lineChoice: lineChoice, extraChoice: extraChoice, extras: extras,
     extraKeys: EXTRA_KEYS, extraValues: EXTRAS,
     devices: DEVICES, deviceList: deviceList,
-    controls: CONTROLS, controlLabels: CONTROL_LABEL, controlOrder: controlOrder,
+    controls: CONTROLS, promotable: PROMOTABLE,
+    controlLabels: CONTROL_LABEL, controlOrder: controlOrder,
     apply: apply, applied: function () { return applied; },
     lines: function () { return appliedExtras.lines; },
     settings: function () { return extras(appliedExtras); },

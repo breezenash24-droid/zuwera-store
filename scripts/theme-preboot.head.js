@@ -241,7 +241,11 @@ try {
            does not exist yet; the stylesheet takes the same answer on <html>
            and lets it outrank the bake. */
         if (_hc[6] === 'header' || _hc[6] === 'bag') h.setAttribute(_ia, _hc[6]);
-        if (/^((search|account|bag) ?)+$/.test(_hc[8])) h.setAttribute(_H + '-order', _hc[8]);
+        /* Looser than the other checks on purpose: an unrecognised name in the
+           order is ADDITIVE, not suppressive — it matches no control, so nothing
+           moves — where an unrecognised PLACEMENT still reads as "placed" and
+           takes away the arrangement the page shipped with. */
+        if (/^[a-z ]{1,60}$/.test(_hc[8])) h.setAttribute(_H + '-order', _hc[8]);
       }
     }
   } catch (_) {}
