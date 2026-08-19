@@ -146,6 +146,7 @@ async function drive(opts) {
     policy: w.bar.dataset.zwBarHide || '',
     spacer: w.spacer.style.height,
     navTop: w.nav.style.top,
+    lift: w.nav.style._p['--zw-nav-lift'],
   });
   return { scroll, state, w };
 }
@@ -174,8 +175,15 @@ const settle = () => new Promise((r) => setTimeout(r, 400));   // the 340ms disp
       + 'still in flight is what read as the header leaving first',
       d.w.bar.style.display !== 'none' && /transform/.test(d.w.bar.style.transition || ''),
       'display=' + d.w.bar.style.display + ' transition=' + d.w.bar.style.transition);
-    ok('the nav drops to -1px so a header a bar-height down the page still clears',
-      d.state().navTop === '-1px', 'navTop=' + d.state().navTop);
+    // How the header clears a viewport it starts a bar's height down: the
+    // offset is added to the hidden transform, NOT animated as `top`. Animating
+    // top ran the layout for every frame of the slide, against a composited
+    // transform on a different duration and curve — two motions of different
+    // lengths pulling one element, which is what read as slow and choppy.
+    ok('the header leaves on ONE property: `top` is not touched',
+      d.state().navTop === '25px', 'navTop=' + d.state().navTop);
+    ok('the travel it needs is published as --zw-nav-lift for the transform',
+      d.state().lift === '25px', 'lift=' + d.state().lift);
     await settle();
     ok('and it is still not removed once the timers have run',
       d.state().bar === 'slid-away', 'bar became ' + d.state().bar);
@@ -185,7 +193,8 @@ const settle = () => new Promise((r) => setTimeout(r, 400));   // the 340ms disp
     d.scroll(600);
     ok('scrolling up brings the header back', d.state().header === 'shown');
     ok('…and the bar with it', d.state().bar === 'shown', 'bar was ' + d.state().bar);
-    ok('the nav returns to sitting under the bar', d.state().navTop === '25px', 'navTop=' + d.state().navTop);
+    ok('the nav never left its resting top through either direction',
+      d.state().navTop === '25px', 'navTop=' + d.state().navTop);
   }
 
   /* ── 2 · a bar with its own rule still goes first ───────────────────────── */
@@ -243,6 +252,23 @@ const settle = () => new Promise((r) => setTimeout(r, 400));   // the 340ms disp
       /barPolicy\(\) === 'self' && barIsShowing\(\)/.test(H));
     ok('reduced motion opts out of hiding rather than toggling a class nothing moves',
       /mode !== 'auto-hide' \|\| reduce/.test(H));
+
+    /* One name, two files. A variable the stylesheet reads under one spelling
+       and the script writes under another is a control that silently does
+       nothing, and this codebase has already lost a day to exactly that. */
+    const CSS = read('storefront-cohesion.css').replace(/\r\n/g, '\n');
+    const B = BAR_SRC.replace(/\r\n/g, '\n');
+    ok('the hidden-header transform reads the lift the bar writes',
+      /translateY\(calc\(-110% - var\(--zw-nav-lift, 0px\)\)\)/.test(CSS)
+      && /setProperty\('--zw-nav-lift'/.test(B));
+    ok('and clears it where the bar sits BELOW the nav and there is nothing to clear',
+      /removeProperty\('--zw-nav-lift'\)/.test(B));
+
+    /* `top` still animates where it is a real layout change and not a way of
+       moving something off screen: the bar's own scroll-hide, where the header
+       rises into the space the bar vacates and stays there. */
+    ok('the bar\'s own hide still raises the header into the space it leaves',
+      /layout\(barEl, navEl, false\)/.test(B));
   }
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
