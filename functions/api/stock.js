@@ -19,6 +19,7 @@
 
 import { cors, json } from './_commerce.js';
 import { fetchSiteSettings } from './_settings.js';
+import { withEdgeCache, okBody } from './_edge-cache.js';
 
 function serviceKey(env) {
   return env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_ANON_KEY || '';
@@ -28,7 +29,17 @@ export async function onRequestOptions({ env }) {
   return new Response(null, { status: 204, headers: cors(env) });
 }
 
-export async function onRequestGet({ env }) {
+export async function onRequestGet({ env, request, waitUntil }) {
+  /* Twenty seconds at the edge, and until now not one second of it was real:
+     the response carried a Cache-Control header Cloudflare never applied to a
+     Function, so every shopper's availability check was a full round trip to
+     Supabase. The window is short ON PURPOSE — stock is the one thing here that
+     must not be stale — but twenty seconds of collapsing a burst is the entire
+     reason this endpoint was split away from the catalogue. */
+  return withEdgeCache(request, waitUntil, () => buildStock(env), { shouldCache: okBody });
+}
+
+async function buildStock(env) {
   try {
     const key = serviceKey(env);
     if (!env.SUPABASE_URL || !key) return json({ ok: false, sizes: [] }, 200, cors(env));

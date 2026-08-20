@@ -99,6 +99,63 @@
     return `https://res.cloudinary.com/${cloudinaryCloudName}/video/fetch/so_0,f_jpg,q_auto,w_${safeWidth}/${encodeURI(absoluteUrl)}`;
   }
 
+  /* Pull the untransformed source back out of one of our own Cloudinary URLs.
+     The shape is /<type>/fetch/<transforms>/<encoded original>, so the original
+     is everything after the first slash that follows the transform segment.
+     Returns '' for anything that is not ours, which is what stops this touching
+     a Cloudinary URL somebody stored directly. */
+  function originalFromFetchUrl(src, kind) {
+    const url = String(src || '');
+    if (url.indexOf('res.cloudinary.com') === -1) return '';
+    const marker = '/' + kind + '/fetch/';
+    const i = url.indexOf(marker);
+    if (i === -1) return '';
+    const after = url.slice(i + marker.length);
+    const s = after.indexOf('/');
+    if (s === -1) return '';
+    let orig = after.slice(s + 1);
+    try { orig = decodeURI(orig); } catch (_) {}
+    return orig;
+  }
+
+  /* ── WHEN CLOUDINARY STOPS ANSWERING ──────────────────────────────────────
+     An over-quota or down Cloudinary is not hypothetical — it is a monthly
+     credit limit on a free plan — and what happens then differs by media type:
+
+       IMAGES  Cloudinary → wsrv.nl → the raw original. Three chances, and the
+               worst case is a full-size photo rather than a missing one.
+
+       VIDEO   Cloudinary → the raw original. Two, because there is no second
+               optimiser: images.weserv.nl answers 404 for an .mp4 (checked, it
+               is an image service). So the fallback costs bytes, not the video.
+
+     Measured on the live hero:  Cloudinary 1,239,381 b   raw from R2 5,755,657 b
+
+     Before this branch existed there was no fallback for video AT ALL — the
+     listener returned immediately for anything that was not an <img>, which was
+     correct right up until the day video started going through Cloudinary too.
+     A hero that silently fails to a black rectangle is a worse failure than a
+     hero that costs 4.6 MB.
+
+     `error` on media elements does not bubble, but it does travel down the
+     capture path, which is why this is a capture listener on the document. */
+  function videoFallback(el) {
+    if (!el) return;
+    /* Once. There is nowhere further to fall, so a second attempt could only
+       loop. */
+    if (el.dataset.zwVfb === '1') return;
+    const src = el.currentSrc || el.src || el.getAttribute('src') || '';
+    const orig = originalFromFetchUrl(src, 'video');
+    if (!orig) return;
+    el.dataset.zwVfb = '1';
+    /* The poster came from the same account and is failing for the same
+       reason. Left in place it would sit over the video that is now working. */
+    const poster = el.getAttribute('poster') || '';
+    if (poster.indexOf('res.cloudinary.com') !== -1) el.removeAttribute('poster');
+    el.src = orig;
+    try { el.load(); } catch (_) {}
+  }
+
   // Fallback chain for a broken optimized <img>: Cloudinary → wsrv.nl → the raw original.
   // Delegated capture listener (image 'error' events don't bubble). Each <img> is marked
   // so it retries at most twice and can never loop.
@@ -106,20 +163,31 @@
     if (typeof document === 'undefined') return;
     document.addEventListener('error', function (e) {
       const img = e.target;
-      if (!img || img.tagName !== 'IMG') return;
+      if (!img) return;
+      if (img.tagName === 'VIDEO') { videoFallback(img); return; }
+      /* A <source> that fails reports on itself, not on the <video> around it,
+         and a <video> with only failing sources may never report at all. */
+      if (img.tagName === 'SOURCE' && img.parentElement
+          && img.parentElement.tagName === 'VIDEO') {
+        const v = img.parentElement;
+        const orig = originalFromFetchUrl(img.getAttribute('src') || '', 'video');
+        if (orig && v.dataset.zwVfb !== '1') {
+          v.dataset.zwVfb = '1';
+          img.src = orig;
+          const poster = v.getAttribute('poster') || '';
+          if (poster.indexOf('res.cloudinary.com') !== -1) v.removeAttribute('poster');
+          try { v.load(); } catch (_) {}
+        }
+        return;
+      }
+      if (img.tagName !== 'IMG') return;
       const step = img.dataset.zwFb || '0';
       if (step === '2') return;                               // already exhausted
       const src = img.currentSrc || img.src || '';
       if (step === '0') {
         if (!fallbackProvider) return;                        // fallback turned off by config
-        if (src.indexOf('res.cloudinary.com') === -1) return; // only OUR Cloudinary output
-        const i = src.indexOf('/image/fetch/');
-        if (i === -1) return;
-        const after = src.slice(i + 13);                      // strip '/image/fetch/'
-        const s = after.indexOf('/');                         // then the transforms segment
-        if (s === -1) return;
-        let orig = after.slice(s + 1);
-        try { orig = decodeURI(orig); } catch (_) {}
+        const orig = originalFromFetchUrl(src, 'image');      // only OUR Cloudinary output
+        if (!orig) return;
         img.dataset.zwOrig = orig;
         img.dataset.zwFb = '1';
         img.src = wsrvUrl(absoluteImageUrl(orig), img.getAttribute('width') || 800);

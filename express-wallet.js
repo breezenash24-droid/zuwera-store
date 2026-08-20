@@ -51,13 +51,21 @@
   }
 
   function fetchIntegrations() {
-    return fetch(REST, {
-      headers: { apikey: ANON, Authorization: 'Bearer ' + ANON },
-      cache: 'no-store',
-    }).then(function (r) {
-      if (!r.ok) throw new Error('integrations read failed');
-      return r.json();
-    }).then(function (rows) {
+    /* The SAME site_settings row integrations.js reads, on the same page load.
+       Two modules asking one question was two round trips; the shared read in
+       zw-data.js answers both from one. The direct request stays as the
+       fallback for a page that does not load that file. */
+    var rows = window.zwSettings
+      ? window.zwSettings.get('integrations')
+          .then(function (v) { return v == null ? [] : [{ value: v }]; })
+      : fetch(REST, {
+        headers: { apikey: ANON, Authorization: 'Bearer ' + ANON },
+        cache: 'no-store',
+      }).then(function (r) {
+        if (!r.ok) throw new Error('integrations read failed');
+        return r.json();
+      });
+    return rows.then(function (rows) {
       var cfg = rows && rows[0] && rows[0].value;
       if (typeof cfg === 'string') { try { cfg = JSON.parse(cfg); } catch (_) { cfg = null; } }
       cfg = (cfg && typeof cfg === 'object') ? cfg : {};

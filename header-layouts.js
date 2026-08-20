@@ -626,9 +626,17 @@
       }
     } catch (_) {}
 
-    fetch('https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value,updated_at&key=eq.header_layout',
-    { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }, cache: 'no-store' })
-      .then(function (r) { return r.ok ? r.json() : null; })
+    /* The one shared read of site_settings (zw-data.js), rather than a twelfth
+       round trip to Supabase. This module is why that endpoint now returns
+       updated_at: it compares the row's timestamp against the one stamped on
+       the document to decide whether its pre-paint cache is still the freshest
+       thing it has, so a value without a timestamp would not do. */
+    (window.zwSettings
+      ? window.zwSettings.getWithMeta('header_layout')
+          .then(function (m) { return m.value == null && !m.updated_at ? null : [m]; })
+      : fetch('https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value,updated_at&key=eq.header_layout',
+        { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }, cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.json() : null; }))
       .then(function (rows) {
         var row = rows && rows[0];
         var v = row && row.value;

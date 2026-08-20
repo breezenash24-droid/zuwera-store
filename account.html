@@ -225,6 +225,7 @@ try {
   <link rel="manifest" href="/site.webmanifest">
   <link rel="canonical" href="https://zuwera.store/account.html">
   <script src="preview-mode.js?v=799782ba" defer></script>
+  <script src="/zw-data.js?v=244bd990" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/variant-price.js?v=46f1b9f4"></script>
   <script src="/attribution.js?v=2a299a54" defer></script>
@@ -871,7 +872,7 @@ try {
   </style>
 <link rel="stylesheet" href="storefront-cohesion.css?v=6cac1e71">
 <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
-<script src="header-scroll.js?v=1e2ba84f" defer></script>
+<script src="header-scroll.js?v=eb0c7f18" defer></script>
 <link rel="stylesheet" href="quick-add-modal.css?v=dc3088fe">
 <style>
   #toast { position:fixed; bottom:calc(1.5rem + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%) translateY(10px); background:var(--zw-surface); color:rgb(var(--fg-rgb) / 90%); padding:.5rem 1.2rem; font-size:.72rem; letter-spacing:.08em; opacity:0; transition:opacity .3s, transform .3s; pointer-events:none; z-index:9999; white-space:nowrap; }
@@ -2366,26 +2367,26 @@ async function init() {
 
 document.addEventListener('DOMContentLoaded', function() { _sb = window.sb; init(); });
 </script>
-<script src="/theme-engine.js?v=f63c3aa4" defer></script>
+<script src="/theme-engine.js?v=aa602ff9" defer></script>
 <script src="/motion.js?v=5b9cc123" defer></script>
-<script src="/icon-sets.js?v=e0ed4bcb" defer></script>
+<script src="/icon-sets.js?v=3e37271a" defer></script>
 <script src="storefront-theme.js?v=3782df36" defer></script>
-<script src="lang.js?v=f4b70f65" defer></script>
+<script src="lang.js?v=f4b70f65" async></script>
 <script src="zw-login.js?v=09e6833c" defer></script>
-<script src="/nav-menu.js?v=6f2120b1" defer></script>
-<script src="/zw-copy.js?v=07463acd" defer></script>
-<script src="/header-layouts.js?v=0544d332" defer></script>
-<script src="fit-finder.js?v=f5cdcd6f" defer></script>
+<script src="/nav-menu.js?v=404cb9b3" defer></script>
+<script src="/zw-copy.js?v=d7ba6d91" defer></script>
+<script src="/header-layouts.js?v=d2a6aa62" defer></script>
+<script src="fit-finder.js?v=4b7f5ef9" defer></script>
 <!-- Not deferred: the orders list formats a number as it renders. -->
 <script src="order-number.js?v=7a8bb114"></script>
-<script src="/storefront-features.js?v=bba83864" defer></script>
+<script src="/storefront-features.js?v=35e98223" defer></script>
 <!-- The shared scroll lock. storefront-features.js used to carry its own copy;
      with that removed this is what freezes the page behind the search/bag
      panels here, exactly as it does for every other modal. -->
 <script src="modal-lock.js?v=fb1f304f" defer></script>
-<script src="announcement-bar.js?v=9e0f1787" defer></script>
-<script src="email-popup.js?v=33908bad" defer></script>
-<script src="integrations.js?v=7f9fbde2" defer></script>
+<script src="announcement-bar.js?v=3e4cba25" defer></script>
+<script src="email-popup.js?v=33908bad" async></script>
+<script src="integrations.js?v=64801af9" defer></script>
 <!-- The return-reason vocabulary, shared with the account modal's own form in
      customer-hub.js. NOT deferred: the wiring call below runs on
      DOMContentLoaded, and a deferred script is not guaranteed to have run by

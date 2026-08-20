@@ -745,7 +745,7 @@ body{display:flex;flex-direction:column}
 <!-- Image optimiser. Without it every thumbnail in here pulled the FULL-SIZE
      original straight from Supabase Storage — a 4MB photo for a 56px preview —
      which is where this project's cached-egress bill was going. -->
-<script src="image-utils.js?v=502077fb"></script>
+<script src="image-utils.js?v=3c7f5ca4"></script>
 <script src="/supabase.min.js?v=4b6a655b"></script>
 <script src="/supabase-client.js?v=0bf64814"></script>
 <!-- Shared video-embed resolver. Loaded (not deferred) so buildForm can call
@@ -4769,6 +4769,6 @@ function onKey(e){
 
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 </script>
-<script src="/header-layouts.js?v=0544d332"></script>
+<script src="/header-layouts.js?v=d2a6aa62"></script>
 </body>
 </html>

@@ -77,24 +77,40 @@ console.log('\n  the new public endpoints leak nothing');
 console.log('\n  the storefront reads through them');
 {
   ok('the homepage early fetch hits our API, not Supabase',
-    /__zwProductsEarlyFetch=fetch\('\/api\/catalog'\)/.test(index) &&
+    /__zwProductsEarlyFetch=fetch\('\/api\/catalog\?/.test(index) &&
     /__zwSettingsEarlyFetch=fetch\('\/api\/storefront-settings'\)/.test(index));
+  /* It is not enough that it goes through our API; it has to ask for a
+     BOUNDED slice. At 8,392 bytes per product the unbounded call was heading
+     for 8 MB at a thousand products, in front of the first product a visitor
+     sees, and the homepage is the caller that fires it first. */
+  ok('…and asks for a bounded page of the grid projection',
+    /__zwProductsEarlyFetch=fetch\('\/api\/catalog\?view=list&limit=\d+&offset=0'\)/.test(index));
   ok('…and no longer ships a Supabase URL or anon key to do it',
     !/rest\/v1\/products\?select/.test(index) && !/rest\/v1\/site_settings\?select/.test(index));
   ok('the homepage fallback path uses them too',
-    /fetch\('\/api\/catalog'\)/.test(home) && /fetch\('\/api\/storefront-settings'\)/.test(home));
+    /\/api\/catalog/.test(home) && /fetch\('\/api\/storefront-settings'\)/.test(home));
+  ok('…and walks every page rather than assuming one is the catalogue',
+    /window\.zwFetchCatalog\(\{ view: 'list'/.test(home),
+    'a single response is page one, not the shop');
   ok('the collection page went from four Supabase queries to two API calls',
-    /fetch\('\/api\/catalog'\)/.test(coll) && /fetch\('\/api\/stock'\)/.test(coll));
+    /\/api\/catalog/.test(coll) && /fetch\('\/api\/stock'\)/.test(coll));
+  /* view=full here and view=list on the homepage, on purpose: this page's card
+     carousel renders every photo of a colourway as a slide, so the trimmed
+     grid projection would quietly shorten the carousels. */
+  ok('…and keeps the full projection its card carousels need',
+    /window\.zwFetchCatalog\(\{ view: 'full'/.test(coll));
   ok('…and no longer queries products, images or variants directly',
     !/rest\/v1\/products\?select=\*&order/.test(coll) &&
     !/rest\/v1\/product_images\?select=\*/.test(coll) &&
     !/rest\/v1\/color_variants\?select=\*&order/.test(coll));
 
   // Both shapes accepted, so a page cached mid-deploy still renders.
+  const broker = fs.readFileSync(R + 'zw-data.js', 'utf8');
   ok('the clients accept the old array shape as well as the new one',
-    /Array\.isArray\(_payload\) \? _payload/.test(home) &&
+    /Array\.isArray\(b\) \? b/.test(home) &&
     /Array\.isArray\(payload\) \? payload/.test(home) &&
-    /Array\.isArray\(_cat\) \? _cat/.test(coll));
+    /Array\.isArray\(b\) \? b/.test(coll) &&
+    /Array\.isArray\(body\) \? body/.test(broker));
 }
 
 /* ── the usage reader ────────────────────────────────────────────────────── */

@@ -1713,8 +1713,24 @@
   function loadBagCfg() {
     var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
     try {
-      fetch('https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value&key=eq.bag_panel', { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }, cache: 'no-store' })
-        .then(function (r) { return r.ok ? r.json() : null; })
+    /* ONE read of site_settings for the whole page, shared with every other
+       module on it - see zw-data.js. This used to be its own round trip to
+       Supabase, and twelve modules each having one is what put the last of
+       them 3.5 seconds into the page load.
+
+       The module's own request stays as the fallback, so this never depends
+       on another file having loaded first. Both paths resolve to the same
+       PostgREST row shape, and both reject rather than resolve empty when the
+       read fails - so nothing below this line changes. */
+    function zwCfgRows() {
+      if (window.zwSettings) {
+        return window.zwSettings.get('bag_panel')
+          .then(function (v) { return v == null ? [] : [{ value: v }]; });
+      }
+      return fetch('https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value&key=eq.bag_panel', { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }, cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.json() : null; });
+    }
+      zwCfgRows()
         .then(function (rows) {
           if (!rows || !rows[0]) return;
           var cfg = rows[0].value;

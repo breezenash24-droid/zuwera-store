@@ -423,8 +423,15 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    ensurePanels();
-    bindAccountTriggers();
-  });
+  /* A DOMContentLoaded listener registered AFTER that event has fired never
+     runs. With `defer` that could not happen -- deferred scripts always
+     execute before it -- so this was safe right up until the moment this file
+     stopped being one of them. Guarded now, which is also what makes it safe
+     to load out of the ordered queue at all. */
+  function boot() { ensurePanels(); bindAccountTriggers(); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else {
+    boot();
+  }
 })();
