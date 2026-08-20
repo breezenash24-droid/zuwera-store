@@ -37,6 +37,37 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
     ok('…and the brand name', !!CANON.brandName);
     ok('it loads in Node', typeof CANON === 'object');
 
+    /* ── The identifier a fork could not change ────────────────────────────
+       The Cloudinary cloud name was a literal in image-utils.js and three
+       times in index.html's <head>, and it was NOT among the things this file
+       governed. image-utils.js keeps it as the fallback when no config is
+       found, and setCloudinaryCloudName() REJECTS an empty value rather than
+       clearing it -- so a fork that never set CLOUDINARY_CLOUD_NAME resized
+       every one of its own images through the original store's account, on
+       the original's 25 monthly credits, with nothing to show for it because
+       the images loaded.
+
+       The three in <head> are worse: they run before image-utils.js is
+       fetched and read no configuration at all, so even a fork that HAD
+       configured Cloudinary correctly still sent its hero preload here. */
+    ok('…and the Cloudinary account images resize through',
+      /^[a-z0-9_-]{2,64}$/i.test(String(CANON.cloudinaryCloudName || '')),
+      String(CANON.cloudinaryCloudName));
+    const util = fs.readFileSync(path.join(ROOT, 'image-utils.js'), 'utf8');
+    ok('image-utils.js falls back to that exact name',
+      util.includes("DEFAULT_CLOUDINARY_CLOUD_NAME = '" + CANON.cloudinaryCloudName + "'"),
+      'the stamper keys on the canonical literal — a different one is never rewritten');
+    const idx = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const inHead = (idx.match(new RegExp('res\.cloudinary\.com/' + CANON.cloudinaryCloudName, 'g')) || []).length;
+    ok('…and the <head> copies use it too, so all of them get stamped',
+      inHead >= 3, inHead + ' occurrence(s) in index.html');
+    const stamp = fs.readFileSync(path.join(ROOT, 'scripts/stamp-project-config.js'), 'utf8');
+    ok('the build rewrites it like the rest',
+      /ZW_CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_CLOUD_NAME'\], from: CANON\.cloudinaryCloudName/.test(stamp));
+    ok('…and the unconfigured-build warning mentions it',
+      /ZW_CLOUDINARY_CLOUD_NAME/.test(stamp) && /25 monthly credits/.test(stamp),
+      'a fork has to be told, or it pays nothing and the original pays everything');
+
     /* The UMD wrapper exists so build scripts can require() it and the browser
        can read it. Both halves must actually work or one consumer silently
        falls back to its own copy. */
