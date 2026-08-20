@@ -152,6 +152,10 @@ body{display:flex;flex-direction:column}
 .hdrcfg-lines{display:flex;align-items:center;gap:.6rem;padding:.6rem 1rem;border-top:1px solid var(--bd);flex-wrap:wrap}
 .hdrcfg-lines-l{font-size:.7rem;font-weight:600;color:#f4f1eb}
 .hdrcfg-lines-n{flex:1;min-width:180px;font-size:.56rem;line-height:1.5;color:var(--mu)}
+/* The way back from words. Quiet on purpose: it is an undo, not a fourth device. */
+.hdrcfg-reset{margin:.45rem 0 0;background:none;border:1px solid var(--bd);border-radius:4px;padding:.3rem .55rem;font-family:'IBM Plex Mono',monospace;font-size:.46rem;letter-spacing:.13em;text-transform:uppercase;color:var(--mu);cursor:pointer;transition:border-color .12s,color .12s}
+.hdrcfg-reset:hover{border-color:var(--hv);color:var(--tx)}
+.hdrcfg-reset[hidden]{display:none}
 .hdrcfg-lines .tog button,.hdrcfg-set .tog button{font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;padding:.34rem .6rem;border:none;background:transparent;color:var(--mu);cursor:pointer;border-radius:2px}
 .hdrcfg-lines .tog button.on,.hdrcfg-set .tog button.on{background:#f4f1eb;color:#0f0f11;font-weight:600}
 .hdrcfg-ft{display:flex;align-items:center;gap:.55rem;padding:.65rem 1rem;border-top:1px solid var(--bd)}
@@ -654,6 +658,7 @@ body{display:flex;flex-direction:column}
         </div>
         <div class="hdrcfg-devs" id="hdrDevs"></div>
         <p class="hdrcfg-lines-n" id="hdrLbNow"></p>
+        <button type="button" class="hdrcfg-reset" id="hdrLbReset" hidden>Icons everywhere</button>
       </div>
 
       <div class="hdrcfg-set">
@@ -3914,18 +3919,32 @@ function paintHdrLines(){
    expressible. 'none' rather than empty when you clear the last one: empty
    would mean "the theme still decides", and turning every device off is an
    answer, not a withdrawal of one. */
-function toggleHdrLabel(dev){
+function hdrLabelDevices(){
   const L=window.ZWHeaderLayouts;
   const cur=(L?L.deviceList(chromeHdrLabels):String(chromeHdrLabels||''));
-  const on=cur==='none'?[]:(cur?cur.split(' '):[]);
-  const i=on.indexOf(dev);
-  if(i>-1) on.splice(i,1); else on.push(dev);
-  const next=on.length?(L?L.deviceList(on.join(' ')):on.join(' ')):'none';
+  return cur==='none'?[]:(cur?cur.split(' '):[]);
+}
+
+/* THE ONE WRITER. Both the cards and the reset go through it, so there is a
+   single place where this answer is normalised, staged, sent to the preview and
+   announced — and no second copy of "what does an empty list mean" to get
+   wrong. Empty is 'none', which is an answer; '' would hand the question back to
+   the theme, which is a different thing and not what either control means. */
+function setHdrLabels(devs){
+  const L=window.ZWHeaderLayouts;
+  const next=devs.length?(L?L.deviceList(devs.join(' ')):devs.join(' ')):'none';
   if(next===chromeHdrLabels) return;
   chromeHdrLabels=next;
   hdrCfgMark(); sendChrome(); paintHdrControls();
   toast(next==='none'?'Header controls: icons everywhere — preview updated'
     :'Header controls: words on '+next.split(' ').join(', ')+' — preview updated','ok');
+}
+
+function toggleHdrLabel(dev){
+  const on=hdrLabelDevices();
+  const i=on.indexOf(dev);
+  if(i>-1) on.splice(i,1); else on.push(dev);
+  setHdrLabels(on);
 }
 
 /* The account's bag-or-header answer is set by its ROW's switch now, with the
@@ -4071,11 +4090,27 @@ function paintHdrControls(){
       b.addEventListener('click',()=>toggleHdrLabel(b.dataset.dev));
     });
   }
+  /* SAY WHAT IS SAVED, ALWAYS. The words-are-on branch used to resolve to an
+     empty string, so the one state this line never described was the one
+     somebody would want described: words turned on. Three cards reading "Words"
+     and a line of prose saying nothing is how a store ends up in a state its
+     owner does not think they chose, with no sentence anywhere confirming it. */
   const now=document.getElementById('hdrLbNow');
   if(now){
     now.textContent = !chromeHdrLabels
       ? 'No answer saved yet, so the theme still decides — the cards show what it is doing.'
-      : words.length ? '' : 'Icons on every device.';
+      : !words.length ? 'Saved: icons on every device.'
+      : words.length===3 ? 'Saved: words on every device.'
+      : 'Saved: words on '+words.join(', ')+'; icons everywhere else.';
+  }
+  /* ONE PRESS BACK. Turning words off again meant finding and clicking every lit
+     card — fine when you remember doing it, useless when you do not. Hidden
+     when it would change nothing, so it never sits there as a control that does
+     nothing. */
+  const rst=document.getElementById('hdrLbReset');
+  if(rst){
+    rst.hidden = !words.length;
+    rst.onclick = () => setHdrLabels([]);
   }
 
   /* WHY A CHIP CAN BE GREYED. The order names every control the header COULD

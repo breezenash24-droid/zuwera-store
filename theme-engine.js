@@ -231,24 +231,67 @@
      must survive a theme that says nothing about the header. */
   var hdrWritten = false;
 
-  /* Same question for the two attributes the BUILD also bakes:
-     data-zw-account onto <body> and data-zw-iconlabels onto <html>. See the
-     notes beside where each is applied. */
+  /* Same question for the four other attributes the BUILD also bakes:
+     data-zw-account onto <body>, and data-zw-iconlabels, data-zw-hdr-lines and
+     data-zw-hdr-order onto <html>. See the notes beside where each is applied. */
   var acctWritten = false;
   var labelsWritten = false;
+  var linesWritten = false;
+  var orderWritten = false;
 
+  /* HAS header-layouts.js SPOKEN YET? Not the same question as "what did it
+     say", and conflating the two is what put the flash back.
+
+     Nothing answers the divider rule or the control sequence except the
+     settings row, so an empty value here has two completely different meanings
+     depending on when you ask. Before setHeader() runs it means "the row has
+     not arrived yet", and the right response is to leave the baked answer
+     alone. After it runs it means "the row does not set this", and the right
+     response is to clear a bake that has gone stale. One variable cannot say
+     both, so there are two. */
+  var hdrAnswered = false;
+
+  /* ── The same two-author problem as data-zw-account, one step earlier ──────
+     These two used to remove unconditionally, on the reasoning that no theme
+     answers them so header-layouts.js is the only source. True, and beside the
+     point: header-layouts.js is not the only WRITER. The build bakes both onto
+     <html> (scripts/stamp-header-layout.js) and the edge stamps them
+     (functions/_middleware.js), precisely so the first frame is right.
+
+     apply() runs on load from the cached theme, which is long before
+     header-layouts.js has resolved the settings row — so every load ran this
+     with both vars still empty and wiped what the document arrived knowing.
+     Measured on the live homepage, first-visit conditions:
+
+         +34ms   order="bag search account"  lines="off"   <- baked, correct
+         +1103ms order removed, lines removed              <- here
+         +1631ms both restored                             <- setHeader
+
+     Half a second of the header in MARKUP order — account, search, bag — before
+     it snapped to the configured bag, search, account. data-zw-iconlabels sat
+     two functions away and did not flash, because it already had the guard.
+
+     Note the shape is `written || answered`, not `written`: a store that
+     removes its order from the row still has to lose the baked one. */
   function applyHeaderLines(root) {
-    if (hdrLines === 'on' || hdrLines === 'off') root.setAttribute('data-zw-hdr-lines', hdrLines);
-    else root.removeAttribute('data-zw-hdr-lines');
+    if (hdrLines === 'on' || hdrLines === 'off') {
+      root.setAttribute('data-zw-hdr-lines', hdrLines);
+      linesWritten = true;
+    } else if (linesWritten || hdrAnswered) {
+      root.removeAttribute('data-zw-hdr-lines');
+      linesWritten = false;
+    }
   }
 
-  /* The sequence the action controls sit in. Unconditional removal is safe here
-     for the same reason it is for the lines: no theme answers this, so the only
-     source is header-layouts.js — and it hands over what the build baked from
-     the same row, rather than a second opinion that could disagree with it. */
+  /* The sequence the action controls sit in. Same guard, same reason. */
   function applyHeaderOrder(root) {
-    if (hdrOrder) root.setAttribute('data-zw-hdr-order', hdrOrder);
-    else root.removeAttribute('data-zw-hdr-order');
+    if (hdrOrder) {
+      root.setAttribute('data-zw-hdr-order', hdrOrder);
+      orderWritten = true;
+    } else if (orderWritten || hdrAnswered) {
+      root.removeAttribute('data-zw-hdr-order');
+      orderWritten = false;
+    }
   }
 
   /* ── Two authors, and only one of them may clear ──────────────────────────
@@ -689,6 +732,9 @@
        Nothing else may write data-zw-hdr-* — see applyHeader. */
     setHeader: function (spec) {
       var s = (spec && typeof spec === 'object') ? spec : null;
+      /* From here on, silence about the lines or the order is an ANSWER rather
+         than a row that has not arrived — see hdrAnswered. */
+      hdrAnswered = true;
       /* Four independent answers arriving together. Only the first is a
          placement; the other three each stand on their own — a store can turn
          the rule off, move the account, or ask for words without ever choosing

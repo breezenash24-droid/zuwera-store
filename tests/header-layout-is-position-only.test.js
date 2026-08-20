@@ -518,6 +518,43 @@ console.log('\nA theme with no opinion does not erase what the build baked');
   ok('the placement attributes follow the same rule',
     /function clear\(\) \{\s*if \(!hdrWritten\) return;/.test(TE));
 
+  /* ── AND THE TWO THAT WERE LEFT OUT OF IT ────────────────────────────────
+     data-zw-hdr-lines and data-zw-hdr-order sat two functions above the fix,
+     removing unconditionally, on the reasoning that no THEME answers them so
+     header-layouts.js is the only source. True, and beside the point: the build
+     and the edge both WRITE them, and apply() runs from the cached theme long
+     before header-layouts.js has resolved the row. Measured on the live
+     homepage under first-visit conditions:
+
+         +34ms   order="bag search account" lines="off"   baked, correct
+         +1103ms both removed                             applyHeader
+         +1631ms both restored                            setHeader
+
+     Half a second of the header in markup order on every load. Same bug, same
+     shape, two attributes the previous fix did not reach. */
+  for (const [attr, flag, guard] of [
+    ['data-zw-hdr-lines', 'linesWritten',
+      /function applyHeaderLines\(root\) \{[\s\S]{0,320}else if \(linesWritten \|\| hdrAnswered\) \{[\s\S]{0,90}removeAttribute/],
+    ['data-zw-hdr-order', 'orderWritten',
+      /function applyHeaderOrder\(root\) \{[\s\S]{0,320}else if \(orderWritten \|\| hdrAnswered\) \{[\s\S]{0,90}removeAttribute/],
+  ]) {
+    ok(attr + ' is baked by the build', read('scripts/stamp-header-layout.js').includes(attr));
+    ok('...and theme-engine only removes it if it wrote it or was told to', guard.test(TE),
+      'a row that has not arrived yet is not a row asking for the bake to go');
+    ok('...and records having written it', new RegExp(flag + ' = true;').test(TE));
+  }
+
+  /* WHY THERE IS A SECOND FLAG. "What did the row say" and "has the row
+     arrived" are different questions, and an empty string is the answer to both
+     — which is exactly why one variable could not carry it. Without hdrAnswered
+     the guard above would be a one-way ratchet: a store that removes its order
+     from the row would keep the baked one for as long as the deploy lived. */
+  ok('setHeader marks the question answered',
+    /setHeader: function \(spec\) \{[\s\S]{0,400}hdrAnswered = true;/.test(TE),
+    'silence after the row lands is an answer; silence before it lands is not');
+  ok('...and nothing else sets it',
+    (TE.match(/hdrAnswered = true/g) || []).length === 1);
+
   /* And the rule that reads data-zw-account has to be render-blocking, or the
      attribute being right on the first frame buys nothing. */
   ok('the rule it answers is in a blocking stylesheet, not injected',
