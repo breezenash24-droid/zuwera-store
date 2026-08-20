@@ -166,10 +166,12 @@
         <div class="zw-hub-grid">
           <div class="zw-hub-field">
             <label>Resolution</label>
+            <!-- No store credit option: there is no credit balance in this
+                 system to spend. See account.html's return form, which asks
+                 the same question and had the same problem. -->
             <select id="zw-return-resolution">
               <option value="return">Return for refund</option>
               <option value="exchange">Exchange</option>
-              <option value="store_credit">Store credit</option>
             </select>
           </div>
           <div class="zw-hub-field">

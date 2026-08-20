@@ -913,6 +913,12 @@
                             <option value="">All Types</option>
                             <option value="return">Return</option>
                             <option value="exchange">Exchange</option>
+                            <!-- Store Credit stays HERE and nowhere else. This is a
+                                 filter over returns that already exist, not a choice
+                                 about a new one — and a return settled as credit
+                                 before the option was withdrawn is exactly the thing
+                                 somebody needs to be able to find. Removing it would
+                                 hide those rows rather than fix anything. -->
                             <option value="store_credit">Store Credit</option>
                         </select>
                     </div>
@@ -951,7 +957,7 @@
                     </div>
 
                     <!-- Returns JS -->
-                    <script src="admin-returns-ui.js?v=d8174ddc"></script>
+                    <script src="admin-returns-ui.js?v=43136ed3"></script>
                   <!-- Return Shipments -->
                   <div style="margin-top:32px;">
                     <div style="margin-bottom:20px;">

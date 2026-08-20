@@ -553,11 +553,26 @@
                                              the way back looked closed. -->
                                         <div><label class="form-label">Status <span style="opacity:.5;font-weight:400">— saves as you pick</span></label>
                                             <select id="ret-detail-status-${id}" class="form-select" onchange="saveReturnDetails('${id}')">${retStatusOptions(r.status)}</select></div>
+                                        <!-- STORE CREDIT IS NOT ON THIS MENU. It was, and there is
+                                             no credit balance anywhere in the system: no ledger,
+                                             nothing in the account page that could show one, and
+                                             nothing in cart pricing or the payment intent that
+                                             could spend it. Settling a return as credit meant
+                                             telling a customer about money they had no way to
+                                             use, and the staff member doing it had no way to know
+                                             that.
+
+                                             It stays visible on a return that ALREADY carries it
+                                             — marked retired, so the row reads correctly and can
+                                             be moved to refund or exchange — and it cannot be
+                                             chosen for a new one. Building the ledger for real is
+                                             on the work queue; until it exists the honest thing
+                                             is to not offer it. -->
                                         <div><label class="form-label">Resolution <span style="opacity:.5;font-weight:400">— saves as you pick</span></label>
                                             <select id="ret-detail-resolution-${id}" class="form-select" onchange="saveReturnDetails('${id}')">
                                                 <option value="return" ${r.resolution === 'return' ? 'selected' : ''}>Return / Refund</option>
                                                 <option value="exchange" ${r.resolution === 'exchange' ? 'selected' : ''}>Exchange</option>
-                                                <option value="store_credit" ${r.resolution === 'store_credit' ? 'selected' : ''}>Store Credit</option>
+                                                ${r.resolution === 'store_credit' ? '<option value="store_credit" selected>Store Credit (retired)</option>' : ''}
                                             </select></div>
                                         <div><label class="form-label">Exchange SKU / Size</label>
                                             <input id="ret-detail-exchange-${id}" class="form-input" value="${retAttr(r.exchangeSku || '')}" placeholder="Replacement SKU or size"></div>
