@@ -4016,7 +4016,10 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
   /* Negative spread keeps the shadow strictly BELOW the panel — without it the
      blur bleeds ~20px upward onto the header (the panel is a child of the nav's
      isolated stacking context), which read as the header faintly changing colour. */
-  box-shadow:0 30px 44px -22px rgba(0,0,0,.40);
+  /* The upward 1px is the same idea as the other two panels carry, in this
+     panel's own colour: see the note in storefront-cohesion.css beside the bar's
+     state rule. The downward one is the drop shadow this always had. */
+  box-shadow:0 -1px 0 var(--ink, #09090b), 0 30px 44px -22px rgba(0,0,0,.40);
   opacity:0; visibility:hidden; pointer-events:none;
   transition:opacity .2s ease, visibility 0s linear .2s;
   z-index:219;
@@ -4937,35 +4940,32 @@ body.zwf-searching :is(nav#nav, .nav, header.nav, .zw-nav),
 :is(nav#nav, .nav, header.nav, .zw-nav):has(.zw-navitem.zw-has-mega:hover),
 :is(nav#nav, .nav, header.nav, .zw-nav):has(.zw-navitem.zw-has-mega:focus-within) {
   border-bottom-color: transparent !important;
-  /* ── AND THE BAR BLEEDS ONE PIXEL UNDER WHAT IS COVERING IT ──────────────
-     Not `none`, which is where this started. The soft 0 1px 12px shadow of the
-     light themes had to go — it painted a blurred band down onto the panel —
-     but the join needs the opposite of nothing.
+  /* ── AND NOTHING IS ADDED TO REPLACE IT ─────────────────────────────────
+     The bar also carries a soft 0 1px 12px shadow on the light themes, and it
+     is NOT touched here. It paints below the bar's box, which is where the
+     panel is, and the panel is opaque and painted above — so it is already
+     covered. Removing it bought nothing and cost something: box-shadow is in
+     this bar's transition list, so `none` fades over 350ms and draws a blurred
+     band across the join for exactly as long.
 
-     Measured, and it is the end of an argument I kept losing: no value of `top`
-     fixes this join, because the two surfaces are composited separately and the
-     panel's paint is snapped to a whole device row on its own. At scale 1.25
-     the bar's bottom is device row 83.75 — a boundary in neither layer's grid —
-     and whichever way each rounds, one device row across the full width belongs
-     to nobody:
+     It was briefly replaced by a hard 1px of the BAR's colour, to fill the
+     fraction of a device row neither surface covers. That was its own bug and
+     it is the line that was being reported: the fallback read
+     var(--zw-nav-bg, var(--ink)), and on a light theme --ink is the dark INK
+     token, not the bar. Measured on the live shop, default theme:
 
-         panel top 66.4 (floor)   row 83 entirely panel — the bar loses a row
-         panel top 67   (raw)     row 83 entirely panel — snapped down anyway
-         panel top 67.2 (round)   row 83 entirely panel — snapped down anyway
+         nav background      rgb(240, 238, 233)
+         computed shadow     rgb(18, 18, 18) 0px 1px 0px 0px
 
-     So stop placing the edge exactly and make it not matter: a hard 1px shadow,
-     no blur, no spread, in the bar's own colour, directly below its box. If the
-     panel rounds down it covers that pixel and nothing shows; if it rounds up
-     the pixel shows and it is the bar's colour, so nothing shows. There is no
-     third case and no arithmetic to get wrong.
+     A near-black hairline across the full width, directly under a cream bar, on
+     every light theme at every scale — which is why a sweep that only varied
+     the scale kept coming back clean.
 
-     A shadow rather than a pseudo-element because the nav's ::after is already
-     the mega panel's backdrop, and because a shadow cannot affect layout, hit
-     testing, or the height everything else measures off this bar.
-
-     Only while something is covering it, so a bar with nothing under it looks
-     exactly as it always has. */
-  box-shadow: 0 1px 0 var(--zw-nav-bg, var(--ink, #09090b)) !important;
+     The compensating pixel belongs to the surface whose position is uncertain,
+     painted in that surface's own colour, so it moved to the panels: an upward
+     1px shadow each draws for itself, from the same token as its background.
+     See .zwf-search-panel and .zwf-bag-panel in storefront-features.js and
+     .zw-mega above. */
 }
 
 /* ── The order the action controls sit in ──────────────────────────────────

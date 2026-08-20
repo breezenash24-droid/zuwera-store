@@ -217,13 +217,13 @@
          paint per frame, so it stays at 60fps. */
       /* Match the bag panel's theme-adaptive surface (--zw-page/--zw-ink) instead of
          the always-dark --ink, so search isn't a black panel on the super-light theme. */
-      '.zwf-search-panel{background:rgb(var(--bg-rgb, 9 9 11));color:rgb(var(--fg-rgb, 244 241 235));width:100%;max-height:min(72vh,560px);display:flex;flex-direction:column;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));box-shadow:0 22px 48px rgba(0,0,0,.22)}',
+      '.zwf-search-panel{background:rgb(var(--bg-rgb, 9 9 11));color:rgb(var(--fg-rgb, 244 241 235));width:100%;max-height:min(72vh,560px);display:flex;flex-direction:column;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));box-shadow:0 -1px 0 rgb(var(--bg-rgb, 9 9 11)),0 22px 48px rgba(0,0,0,.22)}',
       '.zwf-search.open .zwf-search-panel{transform:translate3d(0,0,0)}',
       /* ── bag panel ── shares the search panel's mechanics: no dim, no blur,
          compositor-only slide, clipped so it hides above. */
       '.zwf-bag{position:fixed;inset:0;z-index:989;display:flex;flex-direction:column;background:transparent;transition:background .3s ease,backdrop-filter .3s ease;pointer-events:none;overflow:hidden}',
       '.zwf-bag.open{pointer-events:auto;background:rgba(var(--zw-mbd-rgb),var(--zw-mbd-a));backdrop-filter:var(--zw-mbd-blur,none);-webkit-backdrop-filter:var(--zw-mbd-blur,none)}',
-      '.zwf-bag-panel{background:rgb(var(--bg-rgb, 9 9 11));color:rgb(var(--fg-rgb, 244 241 235));width:100%;max-height:min(76vh,620px);display:flex;flex-direction:column;overflow:hidden;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));box-shadow:0 22px 48px rgba(0,0,0,.18)}',
+      '.zwf-bag-panel{background:rgb(var(--bg-rgb, 9 9 11));color:rgb(var(--fg-rgb, 244 241 235));width:100%;max-height:min(76vh,620px);display:flex;flex-direction:column;overflow:hidden;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));box-shadow:0 -1px 0 rgb(var(--bg-rgb, 9 9 11)),0 22px 48px rgba(0,0,0,.18)}',
       '.zwf-bag.open .zwf-bag-panel{transform:translate3d(0,0,0)}',
       /* A parked panel must not cast a shadow. Both panels sit at -101%, so their
          bottom edge is a few px ABOVE the overlay — but the shadow (offset 22,
