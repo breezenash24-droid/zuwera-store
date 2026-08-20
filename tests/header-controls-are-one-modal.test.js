@@ -267,7 +267,7 @@ console.log('\nOne modal for the whole header\n');
      arrangement's answer never reached the search control, because every other
      control is an id and the search button is a class. */
   ok('ordering is `order` on the existing row, not moved markup',
-    /html\[data-zw-hdr-order\] \{\s*--zw-ord-search: 2; --zw-ord-account: 2; --zw-ord-login: 2; --zw-ord-bag: 2;/.test(CSS)
+    /html\[data-zw-hdr-order\] \{\s*--zw-ord-search: 2; --zw-ord-account: 2; --zw-ord-login: 2; --zw-ord-logout: 2;/.test(CSS)
     && !/appendChild|insertBefore/.test(read('header-layouts.js').replace(/\/\*[\s\S]*?\*\//g, '')));
   /* The one exception is the promoted row, which is not one of the theme's
      seven controls and so has no property of its own — and nothing else
@@ -293,11 +293,61 @@ console.log('\nOne modal for the whole header\n');
      signed in it shows the wrong order first". */
   for (const end of ['^', '$']) {
     const rule = new RegExp('html\\[data-zw-hdr-order\\' + end
-      + '="account"\\] *\\{ --zw-ord-account: (\\d); --zw-ord-login: (\\d); \\}');
+      + '="account"\\] *\\{ --zw-ord-account: (\\d); --zw-ord-login: (\\d); --zw-ord-logout: (\\d); \\}');
     const m = CSS.match(rule);
-    ok('  the account and the login button move together (' + end + '=)',
-      !!m && m[1] === m[2],
-      'one is hidden at any moment, and which one depends on the visitor');
+    ok('  account, login and logout move together (' + end + '=)',
+      !!m && m[1] === m[2] && m[2] === m[3],
+      'one role, three faces, at most one of them on screen at a time');
+  }
+
+  /* ── ORDER REACHES SIBLINGS ONLY ────────────────────────────────────────
+     `order` arranges flex ITEMS — the direct children of the row. The pages
+     built from .zw-hdr-group put SOME of the controls inside it and the rest
+     beside it, and which ones differs by page: the bag page keeps the bag in
+     the group with login, account and logout outside; drop001, policies,
+     sizeguide and landing keep #hdr-login in it with the bag outside. The group
+     has no order of its own, so it takes 0 and lands in front of everything the
+     value placed. Measured on the live bag page, signed in, value
+     "search account bag":
+
+         search 1626    bag 1708    account 1784
+
+     The one control the value puts BETWEEN the other two could not move at all.
+     Not a flash — that page never showed the chosen order. */
+  ok('the group dissolves so every control is in one row',
+    /html\[data-zw-hdr-order\] :is\(#nav, \.nav, \.zw-nav\) \.zw-hdr-group \{ display: contents; \}/.test(CSS),
+    'order cannot place a control against one that is inside a wrapper');
+  ok('...only while there is an order to apply',
+    !/^\.zw-hdr-group\{[^}]*display:contents/m.test(CSS),
+    'a header with no chosen sequence keeps the group it has always had');
+
+  /* ── AND EVERY LENGTH IS EXACT, NOT EVERY LENGTH UP TO THREE ─────────────
+     Two attribute selectors per control can name the first and the last and
+     nothing else, which is exact for three controls and only three. Promote a
+     row out of the account menu and the value grows a fourth name — CSS sees
+     the ends, both middles land on the default, DOM order breaks the tie, and
+     applyActionOrder() corrects it after the frame. Counting is trivial in
+     JavaScript and the header pre-paint block runs before the header is
+     painted, so it resolves the actual positions into the same properties.
+     Measured with "orders search account bag": search 2, account 3, bag 4 on
+     the first sample, unchanged after. */
+  {
+    const HDR = read('scripts/header-preboot.head.js');
+    ok('the sequence is resolved by counting, before the header is painted',
+      /_k = _n\[_i\]; _v = String\(_i \+ 1\);/.test(HDR)
+      && /_st\.setProperty\('--zw-ord-' \+ _k, _v\)/.test(HDR));
+    ok('...ahead of the search-control return, which is a different question',
+      HDR.indexOf("--zw-ord-") < HDR.indexOf("localStorage.getItem('zw_srch') !== '1') return"),
+      'a shop with search switched off would otherwise keep the old behaviour');
+    ok('...writing the same properties the stylesheet does, so they cannot disagree',
+      /--zw-ord-login/.test(HDR) && /--zw-ord-logout/.test(HDR) && /--zw-ord-' \+ _k/.test(HDR));
+    /* And theme-engine has to stop taking them back. It removes a property for
+       every control the theme does not order, which would put the header back
+       on the three-control approximation the moment any theme applied. */
+    ok('...and a theme that says nothing about icons leaves them alone',
+      /var ordWritten = \{\};/.test(TE)
+      && /else if \(ordWritten\[k\]\) \{ root\.style\.removeProperty\('--zw-ord-' \+ k\); ordWritten\[k\] = 0; \}/.test(TE),
+      'clear only what you wrote — the same rule as data-zw-account');
   }
 
   ok('the menu button is pinned last rather than offered as a choice',

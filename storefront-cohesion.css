@@ -4958,15 +4958,47 @@ html[data-zw-hdr-lines="off"] :is(#nav, .nav, .zw-nav):has(.zw-navitem.zw-has-me
    they were never in the old default either, and naming them here would move
    two controls no arrangement has ever mentioned. */
 html[data-zw-hdr-order] {
-  --zw-ord-search: 2; --zw-ord-account: 2; --zw-ord-login: 2; --zw-ord-bag: 2;
-  --zw-ord-menu: 9;
+  --zw-ord-search: 2; --zw-ord-account: 2; --zw-ord-login: 2; --zw-ord-logout: 2;
+  --zw-ord-bag: 2; --zw-ord-menu: 9;
 }
 html[data-zw-hdr-order^="search"]  { --zw-ord-search: 1; }
 html[data-zw-hdr-order$="search"]  { --zw-ord-search: 3; }
-html[data-zw-hdr-order^="account"] { --zw-ord-account: 1; --zw-ord-login: 1; }
-html[data-zw-hdr-order$="account"] { --zw-ord-account: 3; --zw-ord-login: 3; }
+html[data-zw-hdr-order^="account"] { --zw-ord-account: 1; --zw-ord-login: 1; --zw-ord-logout: 1; }
+html[data-zw-hdr-order$="account"] { --zw-ord-account: 3; --zw-ord-login: 3; --zw-ord-logout: 3; }
 html[data-zw-hdr-order^="bag"]     { --zw-ord-bag: 1; }
 html[data-zw-hdr-order$="bag"]     { --zw-ord-bag: 3; }
+
+/* ── ORDER ONLY REACHES SIBLINGS, AND THESE WERE NOT ALL SIBLINGS ─────────
+   `order` arranges flex ITEMS — the direct children of the row. On the pages
+   that build their header from .zw-hdr-group, the group holds SOME of the
+   controls and the rest sit beside it, so the order could never place one
+   against the other. Which ones are inside differs by page, so it is not even a
+   consistent wrongness:
+
+       bag.html            group holds the bag; login, account and logout are
+                           outside it
+       drop001, policies,  group holds #hdr-login; the bag is outside it
+       sizeguide, landing
+
+   The group has no order of its own, so it takes 0 and lands in front of
+   everything the order placed. Measured on the live bag page, signed in, with
+   the value "search account bag":
+
+       search 1626   bag 1708   account 1784
+
+   Search and bag reordered among themselves inside the group; the account, the
+   one control the value puts BETWEEN them, could not move at all. Not a flash —
+   that page simply never showed the chosen order.
+
+   display:contents drops the group's own box and promotes its children into the
+   row, which is exactly what "these are all one cluster" means. Its only job
+   was a 0.4rem gap; the row it dissolves into sets its own (0.4rem on the
+   browse header, 0.6rem on the bag page), so the controls end up EVENLY
+   spaced. That is the right answer once they are orderable: a tighter gap
+   inside a sub-cluster means nothing when the order can put another control
+   between its members. Scoped to the ordered case, so a header with no chosen
+   order keeps the group it has always had. */
+html[data-zw-hdr-order] :is(#nav, .nav, .zw-nav) .zw-hdr-group { display: contents; }
 /* A row promoted out of the account menu has no property of its own — it is not
    one of the theme's seven controls — so it keeps a rule. Nothing else declares
    `order` for it, so there is no contest to lose. Where it goes WITHIN the

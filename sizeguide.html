@@ -1179,6 +1179,17 @@ try {
 (function () {
   try {
     if (localStorage.getItem('zw_bp') !== '0') document.body.classList.add('zwf-bagpanel-on');
+    try {
+      var _o = (document.documentElement.getAttribute('data-zw-hdr-order') || '').trim();
+      if (_o) {
+        var _n = _o.split(/ +/), _st = document.documentElement.style, _i, _k, _v;
+        for (_i = 0; _i < _n.length; _i++) {
+          _k = _n[_i]; _v = String(_i + 1);
+          if (_k === 'account') { _st.setProperty('--zw-ord-login', _v); _st.setProperty('--zw-ord-logout', _v); }
+          if (_k === 'account' || _k === 'search' || _k === 'bag') _st.setProperty('--zw-ord-' + _k, _v);
+        }
+      }
+    } catch (_) {}
     if (localStorage.getItem('zw_srch') !== '1') return;
     var host = null, before = null, cls = '';
     var nr = document.querySelector('.nav-right');
