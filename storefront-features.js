@@ -681,7 +681,7 @@
     if (!h) return 0;
     var dpr = window.devicePixelRatio || 1;
     var bottom = h.getBoundingClientRect().bottom;
-    return Math.max(0, Math.floor(bottom * dpr) / dpr);
+    return Math.max(0, Math.ceil(bottom * dpr) / dpr);
   }
 
   function syncSearchTop() {

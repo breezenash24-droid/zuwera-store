@@ -238,7 +238,7 @@
        * holds the two expressions together, because they cannot share a module. */
       var bottom = nav.getBoundingClientRect().bottom;
       var dpr = window.devicePixelRatio || 1;
-      var top = Math.max(0, Math.floor(bottom * dpr) / dpr);
+      var top = Math.max(0, Math.ceil(bottom * dpr) / dpr);
       var v = top + 'px';
       if (v !== _megaTopVal) { _megaTopVal = v; document.documentElement.style.setProperty('--zw-megatop', v); }
 

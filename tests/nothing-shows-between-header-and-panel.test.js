@@ -9,6 +9,32 @@
  * There are only three ways anything can appear in that join, and this file
  * holds all three shut.
  *
+ * ── 0 · WHY THIS TOOK FOUR ATTEMPTS ─────────────────────────────────────────
+ *
+ * Because it is clean at 100% and at 200% display scaling, and I kept checking
+ * at 100%. A 60-configuration sweep — 5 themes x 3 panels x 4 device scales,
+ * screenshotting the join and classifying every device row across the width as
+ * bar, panel, scrim or page — says it plainly:
+ *
+ *     as deployed   24 of 60 with something in the join
+ *                   every single one of them at scale 1.25 or 1.5
+ *     after         0 of 60
+ *
+ * Windows at 125% is the ordinary case, not the exotic one.
+ *
+ * At those scales the bar's bottom is not on a device row at all: 67.0 CSS px
+ * is device row 83.75. No value of `top` fixes that, because the bar and the
+ * panel are composited separately and each snaps its own paint:
+ *
+ *     panel top 66.4 (floor)   row 83 entirely panel — the bar loses a row
+ *     panel top 67   (raw)     row 83 entirely panel — snapped down anyway
+ *     panel top 67.2 (round)   row 83 entirely panel — snapped down anyway
+ *
+ * So the answer is not a better number. It is ceil(), which puts the panel
+ * firmly BELOW the bar and never on it, plus one pixel of the bar painted under
+ * its own box to fill whatever fraction of a row that leaves. Either half alone
+ * still fails the sweep; together they close it.
+ *
  * ── 1 · THE TWO SURFACES MEETING ON A FRACTION OF A PIXEL ────────────────────
  *
  * A CSS pixel is not a device pixel. The search and bag panels were already
@@ -81,13 +107,23 @@ console.log('  the two surfaces meet on a whole device row, and no further');
      — one is the nav, one is the feature bundle, and neither imports — so what
      keeps them together is this check and a comment in each pointing at the
      other. */
-  const EXPR = /Math\.max\(0, Math\.floor\(bottom \* dpr\) \/ dpr\)/;
+  const EXPR = /Math\.max\(0, Math\.ceil\(bottom \* dpr\) \/ dpr\)/;
   ok('storefront-features measures the join that way', EXPR.test(FEAT));
   ok('...and nav-menu measures it identically', EXPR.test(NAV),
     'floor() on the CSS value left the mega panel meeting the bar mid-device-pixel');
   ok('...and neither reaches up into the bar',
-    !/dpr - \d/.test(FEAT) && !/dpr - \d/.test(NAV),
-    'the panel is painted ON TOP, so an overlap is a stripe, not a hidden seam');
+    !/dpr - \d/.test(FEAT) && !/dpr - \d/.test(NAV)
+    && !/Math\.floor\(bottom \* dpr\)/.test(FEAT) && !/Math\.floor\(bottom \* dpr\)/.test(NAV),
+    'the panel is painted ON TOP, so anything above the bar’s bottom is a stripe');
+  /* The bar cannot be left to end on a fraction of a device row with nothing
+     under it, so it paints one pixel of itself below its own box while a panel
+     is there. ceil() keeps the panel off the bar; the bleed fills whatever
+     fraction of a row that leaves. Neither half is enough alone. */
+  ok('...and the bar bleeds a pixel of itself under whatever covers it',
+    /box-shadow: 0 1px 0 var\(--zw-nav-bg, var\(--ink, #09090b\)\) !important;/.test(CSS),
+    'a hard 1px shadow, no blur, in the bar’s own colour');
+  ok('...only while something is covering it',
+    /body\.zwf-searching :is\(nav#nav, \.nav, header\.nav, \.zw-nav\),[\s\S]{0,2400}box-shadow: 0 1px 0 /.test(CSS));
   ok('...both reading devicePixelRatio rather than assuming 1',
     /var dpr = window\.devicePixelRatio \|\| 1;/.test(FEAT)
     && /var dpr = window\.devicePixelRatio \|\| 1;/.test(NAV));
@@ -102,7 +138,7 @@ console.log('  the two surfaces meet on a whole device row, and no further');
 
 console.log('\n  the header draws no bottom edge where a panel covers it');
 {
-  const rule = CSS.match(/body\.zwf-searching :is\(nav#nav, \.nav, header\.nav, \.zw-nav\),[\s\S]{0,320}?\}/);
+  const rule = CSS.match(/body\.zwf-searching :is\(nav#nav, \.nav, header\.nav, \.zw-nav\),[\s\S]{0,2600}?\n\}/);
   ok('one rule covers every panel', !!rule);
   ok('...the search overlay and the bag panel, which share a body class',
     !!rule && /body\.zwf-searching/.test(rule[0])
@@ -113,10 +149,11 @@ console.log('\n  the header draws no bottom edge where a panel covers it');
     !!rule && /:has\(\.zw-navitem\.zw-has-mega:hover\)/.test(rule[0])
     && /:has\(\.zw-navitem\.zw-has-mega:focus-within\)/.test(rule[0]),
     'focus-within too: the panel opens on keyboard focus as well as hover');
-  ok('...and it removes BOTH decorations, not just the border',
+  ok('...and it deals with BOTH decorations, not just the border',
     !!rule && /border-bottom-color: transparent !important;/.test(rule[0])
-    && /box-shadow: none !important;/.test(rule[0]),
-    'the shadow is 0 1px 12px — it paints downward, onto the panel');
+    && /box-shadow: 0 1px 0 /.test(rule[0])
+    && !/box-shadow: none/.test(rule[0]),
+    'the soft 0 1px 12px shadow had to go; a hard 1px of the bar takes its place');
   /* Both nav dialects, because a rule written against one of them silently does
      nothing on the eight pages that use the other. */
   for (const d of ['nav#nav', '.nav', 'header.nav', '.zw-nav']) {

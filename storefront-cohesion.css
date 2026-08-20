@@ -4937,7 +4937,35 @@ body.zwf-searching :is(nav#nav, .nav, header.nav, .zw-nav),
 :is(nav#nav, .nav, header.nav, .zw-nav):has(.zw-navitem.zw-has-mega:hover),
 :is(nav#nav, .nav, header.nav, .zw-nav):has(.zw-navitem.zw-has-mega:focus-within) {
   border-bottom-color: transparent !important;
-  box-shadow: none !important;
+  /* ── AND THE BAR BLEEDS ONE PIXEL UNDER WHAT IS COVERING IT ──────────────
+     Not `none`, which is where this started. The soft 0 1px 12px shadow of the
+     light themes had to go — it painted a blurred band down onto the panel —
+     but the join needs the opposite of nothing.
+
+     Measured, and it is the end of an argument I kept losing: no value of `top`
+     fixes this join, because the two surfaces are composited separately and the
+     panel's paint is snapped to a whole device row on its own. At scale 1.25
+     the bar's bottom is device row 83.75 — a boundary in neither layer's grid —
+     and whichever way each rounds, one device row across the full width belongs
+     to nobody:
+
+         panel top 66.4 (floor)   row 83 entirely panel — the bar loses a row
+         panel top 67   (raw)     row 83 entirely panel — snapped down anyway
+         panel top 67.2 (round)   row 83 entirely panel — snapped down anyway
+
+     So stop placing the edge exactly and make it not matter: a hard 1px shadow,
+     no blur, no spread, in the bar's own colour, directly below its box. If the
+     panel rounds down it covers that pixel and nothing shows; if it rounds up
+     the pixel shows and it is the bar's colour, so nothing shows. There is no
+     third case and no arithmetic to get wrong.
+
+     A shadow rather than a pseudo-element because the nav's ::after is already
+     the mega panel's backdrop, and because a shadow cannot affect layout, hit
+     testing, or the height everything else measures off this bar.
+
+     Only while something is covering it, so a bar with nothing under it looks
+     exactly as it always has. */
+  box-shadow: 0 1px 0 var(--zw-nav-bg, var(--ink, #09090b)) !important;
 }
 
 /* ── The order the action controls sit in ──────────────────────────────────
