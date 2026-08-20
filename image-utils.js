@@ -61,6 +61,44 @@
     return `https://res.cloudinary.com/${cloudinaryCloudName}/image/fetch/f_auto,q_auto:eco,w_${safeWidth}/${encodeURI(absoluteUrl)}`;
   }
 
+  /* ── VIDEO GOES THROUGH CLOUDINARY TOO, AND IT MATTERS MORE THAN IMAGES ────
+     Every hero IMAGE has been served through Cloudinary for a while. The hero
+     VIDEO was not — it came straight off R2 at whatever size was uploaded.
+     Measured on the live homepage's hero:
+
+         raw from R2                          3,371,102 bytes
+         video/fetch f_auto,q_auto,w_1400     1,271,347 bytes    62% less
+
+     And it is the LCP element, so those bytes are the largest paint. */
+  function optimizeVideo(url, width = 1400) {
+    const absoluteUrl = absoluteImageUrl(url);
+    if (!absoluteUrl || /^(data:|blob:)/i.test(absoluteUrl)) return absoluteUrl;
+    if (absoluteUrl.includes('cloudinary.com')) return absoluteUrl;
+    if (!/^https?:\/\//i.test(absoluteUrl)) return absoluteUrl;
+    const safeWidth = normalizeWidth(width);
+    return `https://res.cloudinary.com/${cloudinaryCloudName}/video/fetch/f_auto,q_auto,w_${safeWidth}/${encodeURI(absoluteUrl)}`;
+  }
+
+  /* The first frame of a video, as a JPEG.
+     58 KB against a 3.4 MB video — so a hero video can PAINT while it is still
+     downloading, instead of holding the largest contentful paint until enough
+     of the video has arrived to decode.
+
+     This also exists because of a real defect it replaces: the carousel emitted
+     poster="${sl.video_poster||''}", and an EMPTY poster attribute is not the
+     same as no poster attribute. The browser resolves "" against the document,
+     so every homepage load fetched https://zuwera.store/ a second time and
+     tried to decode the HTML as an image. A wasted request and a guaranteed
+     decode failure, on every visit. */
+  function videoPosterUrl(url, width = 1400) {
+    const absoluteUrl = absoluteImageUrl(url);
+    if (!absoluteUrl || /^(data:|blob:)/i.test(absoluteUrl)) return '';
+    if (!/^https?:\/\//i.test(absoluteUrl)) return '';
+    if (absoluteUrl.includes('cloudinary.com')) return '';
+    const safeWidth = normalizeWidth(width);
+    return `https://res.cloudinary.com/${cloudinaryCloudName}/video/fetch/so_0,f_jpg,q_auto,w_${safeWidth}/${encodeURI(absoluteUrl)}`;
+  }
+
   // Fallback chain for a broken optimized <img>: Cloudinary → wsrv.nl → the raw original.
   // Delegated capture listener (image 'error' events don't bubble). Each <img> is marked
   // so it retries at most twice and can never loop.
@@ -117,10 +155,14 @@
     absoluteImageUrl,
     setCloudinaryCloudName,
     optimizeImage,
+    optimizeVideo,
+    videoPosterUrl,
     wsrvUrl,
     get fallbackProvider() { return fallbackProvider; }
   };
 
   window.optimizeImage = optimizeImage;
+  window.optimizeVideo = optimizeVideo;
+  window.videoPosterUrl = videoPosterUrl;
   window.ZuweraImages.configReady = loadImageConfig();
 })();

@@ -424,6 +424,31 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
   try {
     if (localStorage.getItem('zw_hide_static_hero') === '1') {
       document.documentElement.classList.add('zw-hide-static-hero');
+      /* ── A CAROUSEL HERO GETS A PRELOAD TOO ──────────────────────────────
+         This branch used to return here, having preloaded nothing. The static
+         hero below is preloaded at high priority before anything else runs; a
+         carousel hero had to wait for storefront.js — 145 KB, deferred — to
+         download, parse, run and fetch its settings before the largest element
+         on the page could even start loading. Measured live: LCP 5,716ms.
+
+         storefront.js caches the first slide's POSTER under 'zw-hero-media'
+         when it renders (58 KB, and it is what paints — the video itself is
+         1.2 MB and arrives behind it). So from the second visit onward the
+         browser can start that download in the first few milliseconds instead
+         of the fourth second.
+
+         Same shape as the static path: a cached answer, used only as a
+         preload, so a stale one costs a wasted 58 KB and never a wrong hero.
+         The carousel still renders whatever the settings actually say. */
+      var heroMedia = localStorage.getItem('zw-hero-media');
+      if (heroMedia && /^https:\/\//.test(heroMedia)) {
+        var pre = document.createElement('link');
+        pre.rel = 'preload';
+        pre.as = 'image';
+        pre.href = heroMedia;
+        pre.fetchPriority = 'high';
+        document.head.appendChild(pre);
+      }
       return;
     }
   } catch (e) {}
@@ -488,14 +513,31 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
      storefront.js calls window.quickAddToCart, which this module provides. -->
 <script src="pdp-gallery.js?v=1e454262" defer></script>
 <script src="quick-add-modal.js?v=26a085c4" defer></script>
-<script src="image-utils.js?v=3fee4aec" defer></script>
+<script src="image-utils.js?v=502077fb" defer></script>
 <script src="video-embed.js?v=0462ce95" defer></script>
 <!-- Before storefront.js, which also re-prices the stored cart and writes it
      back — so the homepage can put a wrong price into localStorage that the bag
-     and checkout then display. It needs the same membership answer they use. -->
-<script src="customer-messages.js?v=2c5164d0"></script>
-<script src="stock-rules.js?v=efc11b57"></script>
-<script src="storefront.js?v=a0a8859b" defer></script>
+     and checkout then display. It needs the same membership answer they use.
+
+     DEFERRED, AND THE ORDER ABOVE STILL HOLDS. These two were the only
+     render-blocking scripts left in this head, and they finished at 3113ms on a
+     cold load — the same instant as the last stylesheet, so they were half of
+     what the first paint was waiting for.
+
+     Deferring does not weaken the requirement in the paragraph above: deferred
+     scripts execute in document order, and these still sit immediately before
+     storefront.js, so zwHasValidSession is still defined before anything
+     re-prices the cart. What changes is only that the PARSER no longer stops
+     for them.
+
+     NOT done on checkout.html, where stock-rules.js is loaded without defer on
+     purpose and says so in its own comment: that page prices the cart from an
+     inline block near the top, and an inline script does not wait for a
+     deferred one. Here there is no such block — nothing in this document calls
+     zwHasValidSession, and ZWMessages is read only by the admin panel. -->
+<script src="customer-messages.js?v=2c5164d0" defer></script>
+<script src="stock-rules.js?v=efc11b57" defer></script>
+<script src="storefront.js?v=bdbb13b2" defer></script>
 <script src="/stripe-client-config.js?v=6cbbcea0" defer></script>
 <script src="/checkout-tax.js?v=efb36dbb" defer></script>
 
@@ -2887,7 +2929,7 @@ try{var _nb=document.documentElement.getAttribute('data-zw-base')||'dark';docume
 <script src="storefront-theme.js?v=3782df36" defer></script>
 <script src="lang.js?v=f4b70f65" defer></script>
 <script src="scroll-reveal.js?v=8333d598" defer></script>
-<script src="reviews.js?v=2827c337" charset="utf-8" defer></script>
+<script src="reviews.js?v=43109c27" charset="utf-8" defer></script>
 
 <!-- Cookie consent banner is injected on every page by consent.js (window.zwConsent),
      which also gates analytics/marketing until the visitor accepts. -->
