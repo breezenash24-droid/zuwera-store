@@ -207,7 +207,7 @@
 
   // The full-width mega panel drops from just under the header — measure where
   // that is (varies with the announcement bar / nav height) into --zw-megatop.
-  var _megaTopVal = '';
+  var _megaTopVal = '', _megaGapVal = '';
   function setMegaTop() {
     try {
       var nav = document.querySelector('nav#nav, header.nav, nav.nav, nav.zw-nav');
@@ -215,8 +215,47 @@
       // floor, not round: a fractional header bottom must never round UP past the
       // real edge (the panel sits below the header in z, so a sub-pixel overlap is
       // invisible but a sub-pixel gap shows a hairline of the page behind).
-      var v = Math.max(0, Math.floor(nav.getBoundingClientRect().bottom)) + 'px';
+      var bottom = nav.getBoundingClientRect().bottom;
+      var v = Math.max(0, Math.floor(bottom)) + 'px';
       if (v !== _megaTopVal) { _megaTopVal = v; document.documentElement.style.setProperty('--zw-megatop', v); }
+
+      /* ── HOW FAR THE HOVER BRIDGE HAS TO REACH ────────────────────────────
+       * The panel opens under the header, and the category it belongs to ends
+       * well above the header's bottom edge — so moving the cursor down from
+       * the word to the panel crosses dead space, and the panel would close on
+       * the way. .zw-mega::before is the cover for that space.
+       *
+       * It was a FIXED 1.6rem, which is a guess about a distance that changes
+       * with the arrangement. On a one-row header the real gap is ~15px, so the
+       * bridge overhung the categories by 11px. On a TWO-ROW header the
+       * categories sit at the bottom of the bar and end 3px BELOW it — the gap
+       * is negative, there is nothing to bridge, and 25.6px of invisible panel
+       * lay across the whole row. Measured at 1222px, categories on their own
+       * row, panel open:
+       *
+       *     nav bottom 114.4   labels 81.4 -> 117.4   bridge 88.8 -> 114.4
+       *     elementFromPoint at every label centre:  div.zw-mega
+       *
+       * Every category dead, in both arrangements that put them on a second
+       * row, and clickable in the six that do not. That is the whole of "the
+       * category buttons aren't clickable in some formats".
+       *
+       * So measure it rather than guessing: exactly the space between the
+       * bottom of the categories and the bottom of the bar, and never less than
+       * nothing. floor() under-estimates, which is the safe direction — a
+       * bridge a pixel short closes on a diagonal flick; a bridge a pixel long
+       * eats a click on the word above it. */
+      /* The LOWEST edge anything hoverable reaches, not the item's own box.
+         .nav-link carries padding that overflows .zw-navitem — measured, 36px of
+         link inside 25px of item — and hovering that overflow still counts as
+         hovering the item. Bridging from the item's bottom would lay 11px of
+         panel across the bottom of every word. */
+      var low = 0;
+      document.querySelectorAll('.nav-center .zw-navitem, .nav-center .zw-navitem > .nav-link')
+        .forEach(function (el) { low = Math.max(low, el.getBoundingClientRect().bottom); });
+      var gap = low ? Math.max(0, Math.floor(bottom - low)) : 0;
+      var g = gap + 'px';
+      if (g !== _megaGapVal) { _megaGapVal = g; document.documentElement.style.setProperty('--zw-megabridge', g); }
     } catch (_) {}
   }
 
@@ -300,12 +339,69 @@
       try { open = !!document.querySelector('.zw-navitem:hover, .zw-navitem:focus-within'); } catch (_) {}
       _glue = open ? (window.requestAnimationFrame || setTimeout)(_glueLoop) : 0;
     }
+    /* MEASURE BEFORE THE PANEL IS DRAWN, NOT ON THE NEXT FRAME.
+     *
+     * This only started the rAF loop, so the first frame of every open used
+     * whatever --zw-megatop happened to hold — and the CSS opens the panel on
+     * :hover / :focus-within immediately. When the held value was stale the
+     * panel appeared UP INSIDE THE HEADER, on top of the categories, and its
+     * transparent hover bridge (.zw-mega::before, full width, 1.6rem tall)
+     * came with it. Measured in the builder preview at 1222px, with the panel
+     * opened by focus:
+     *
+     *     --zw-megatop  67px      nav bottom  116.8px      49.8px out
+     *     panel box     55 -> 347     category labels  40 -> 76
+     *     elementFromPoint at every label centre:  div.zw-mega
+     *
+     * Every category in the bar was unclickable, and which ones depended on the
+     * arrangement — a two-row header puts its labels lower, so a stale value
+     * covered two of three instead of three of three. That is the whole of
+     * "the category buttons aren't clickable in some formats": nothing was
+     * wrong with the links, an invisible panel was sitting on them.
+     *
+     * Synchronously here, the value is right before the frame that reveals the
+     * panel is composited. The loop still runs after, for the header that keeps
+     * moving (scroll padding, auto-hide, the bar sliding). */
     function _glueStart(e) {
-      if (e.target.closest && e.target.closest('.zw-navitem') && !_glue) _glue = (window.requestAnimationFrame || setTimeout)(_glueLoop);
+      if (!(e.target.closest && e.target.closest('.zw-navitem'))) return;
+      setMegaTop();
+      if (!_glue) _glue = (window.requestAnimationFrame || setTimeout)(_glueLoop);
     }
     document.addEventListener('mouseover', _glueStart, { passive: true });
     document.addEventListener('focusin', _glueStart);
     setTimeout(setMegaTop, 450); setTimeout(setMegaTop, 1300);
+
+    /* ── AND KEEP IT HONEST WHILE NOTHING IS HOVERED ──────────────────────────
+     * Two sampled measurements and a resize/scroll listener cannot see the two
+     * things that actually move this header, because neither is a resize and
+     * neither is a scroll:
+     *
+     *   the announcement bar arriving   pushes the nav down ~25px, and in a
+     *                                   builder preview it is held back until
+     *                                   the draft answers — after 1300ms.
+     *   the arrangement changing        1 row -> 2 rows is 67px -> 89px, and it
+     *                                   lands whenever the settings row does;
+     *                                   in the builder that is every time you
+     *                                   pick a layout.
+     *
+     * So watch for them instead of sampling and hoping. The observers are cheap
+     * and idle: one fires when the bar or the nav changes size, the other only
+     * when a data-zw-hdr-* attribute is written. */
+    try {
+      if (window.ResizeObserver) {
+        var _ro = new ResizeObserver(_onMt);
+        var _watch = function (el) { if (el) try { _ro.observe(el); } catch (_) {} };
+        _watch(document.querySelector('nav#nav, header.nav, nav.nav, nav.zw-nav'));
+        _watch(document.getElementById('bar'));
+      }
+      if (window.MutationObserver) {
+        new MutationObserver(_onMt).observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ['data-zw-hdr', 'data-zw-hdr-logo', 'data-zw-hdr-links',
+            'data-zw-hdr-actions', 'data-zw-hdr-linksrow', 'data-zw-iconlabels'],
+        });
+      }
+    } catch (_) {}
     // Refresh nav config + product taxonomy from the server.
     try {
       fetch(SB + 'site_settings?select=value&key=eq.nav_menu', { headers: H })
