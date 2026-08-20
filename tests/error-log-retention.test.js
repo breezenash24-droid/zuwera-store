@@ -34,10 +34,14 @@ console.log('\n  error log retention\n');
 
 console.log('  the violation that was actually being reported');
 {
-  /* The point of reading a log. This one was live and nobody had seen it. */
-  ok('connect-src allows analytics.google.com', /connect-src[^;]*https:\/\/analytics\.google\.com/.test(HEADERS));
+  /* The point of reading a log. This one was live and nobody had seen it.
+     Matched WITHOUT the scheme now: the policy dropped every `https://` prefix
+     to get under Cloudflare's 2000-character-per-line limit, which a scheme-less
+     host-source makes free on an https-only document. The hostnames are the
+     claim here, not how they are written. */
+  ok('connect-src allows analytics.google.com', /connect-src[^;]*\banalytics\.google\.com/.test(HEADERS));
   ok('…as well as the *.google-analytics.com wildcard it is NOT covered by',
-    /https:\/\/\*\.google-analytics\.com/.test(HEADERS),
+    /\*\.google-analytics\.com/.test(HEADERS),
     'they are different hostnames; the wildcard does not match');
 
   /* THIS USED TO ASSERT THE OPPOSITE, and the reasoning it carried was right at
@@ -59,19 +63,27 @@ console.log('  the violation that was actually being reported');
      missing from the enforced policy. The rule moved from "never name a host"
      to "name every one you use", which is a claim a test can actually check. */
   const enforced = (HEADERS.match(/^\s*Content-Security-Policy:.*$/m) || [''])[0];
-  const reportOnly = (HEADERS.match(/^\s*Content-Security-Policy-Report-Only:.*$/m) || [''])[0];
   ok('there is an enforcing policy', /frame-ancestors/.test(enforced), enforced.slice(0, 80));
   ok('…and it names hosts, so a script cannot be loaded from anywhere',
     /script-src/.test(enforced) && /connect-src/.test(enforced),
     'an advisory script-src is a control that reports protection it is not giving');
-  /* The report channel has to point at the NEXT step or it teaches nothing: a
-     report-only copy of the policy already enforced collects zero reports. */
-  ok('the report-only policy is the stricter one still to come',
-    /script-src/.test(reportOnly)
-    && /'unsafe-inline'/.test(enforced)
-    && !/script-src[^;]*'unsafe-inline'/.test(reportOnly),
-    'report-only should be the tightening being worked toward, not a copy of what already applies');
-  ok('…and it is still reporting somewhere', /report-uri \/api\/csp-report/.test(reportOnly));
+
+  /* AND THERE IS NO REPORT-ONLY POLICY ANY MORE. One shipped alongside the
+     promotion, carrying the stricter version, so /api/csp-report would collect
+     the inline blocks needing a hash. It was measured before it had been live
+     long: 82 requests on the home page without it, 100 with — eighteen
+     violation POSTs per page view, for ever, to learn a list that is identical
+     on every load and can be read out of the repository in a second.
+
+     So this file's subject — a log nobody could read because one
+     misconfiguration filled it — nearly recurred by a different route, and the
+     fix is the same one: stop generating the volume. */
+  ok('nothing is reporting a fixed fact on every page load',
+    !/Content-Security-Policy-Report-Only:/.test(HEADERS),
+    '18 reports a load is how this table filled up with 27,993 rows the first time');
+  ok('…but a real violation is still reported',
+    /report-uri \/api\/csp-report/.test(enforced),
+    'on the ENFORCED policy, where a report means something actually broke');
 }
 
 console.log('\n  one row per problem, not per pageview');

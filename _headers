@@ -38,19 +38,79 @@
 # being injected inline. That is a real improvement and a partial one, and it
 # is written down rather than implied.
 #
-# WHERE THE REPORT-ONLY HEADER POINTS NOW. At the next step, not at the one
-# just taken: it is the same policy WITHOUT 'unsafe-inline' and 'unsafe-eval'.
-# /api/csp-report therefore collects exactly the list of inline blocks that
-# have to be given a hash before that can be enforced too. A report-only copy
-# of a policy already enforced would collect nothing and teach nothing.
+# ── THERE IS NO REPORT-ONLY HEADER, AND THAT IS THE SECOND CORRECTION ───────
+#
+# One shipped alongside this: the same policy WITHOUT 'unsafe-inline', so that
+# /api/csp-report would collect the list of inline blocks needing a hash before
+# the next tightening. Sound in principle. Measured on the home page:
+#
+#     enforced only              82 requests
+#     enforced + report-only    100 requests     18 CSP violations per load
+#
+# One report per inline block, per page view, from every visitor, for ever —
+# and each one is a POST that goes through the rate limiter and a Supabase
+# write. It bought a list that does not change between page views.
+#
+# The same list, read out of the repository in a second and costing nobody
+# anything:
+#
+#     134 inline <script> blocks site-wide
+#      17 blocks + 17 inline handlers on index.html — which is exactly the 18
+#         violations that were being reported on every single load
+#     230 inline handlers on admin.html alone
+#
+# That is the scope of removing 'unsafe-inline', and it did not need telemetry.
+# The report-uri stays on the ENFORCED policy, where a report means something
+# actually broke — rare, and worth hearing about.
+#
+# ── 2000 CHARACTERS A LINE, AND OVER IT THE LINE IS SILENTLY DROPPED ────────
+#
+# The first version of this shipped at 2227 and 2182 characters. Cloudflare
+# Pages did not warn, did not fail the build, and did not truncate — it dropped
+# BOTH lines, so the deployed site served no Content-Security-Policy at all.
+# Worse than before the change, which at least had frame-ancestors. Measured on
+# the deployed response: every other header in this block was present and the
+# two CSP lines were simply absent.
+#
+# The old report-only line was 1946 characters and had always been delivered,
+# which is what pins the limit at 2000 rather than leaving it a guess.
+#
+# GETTING UNDER IT WITHOUT GIVING ANYTHING UP:
+#
+#   scheme prefixes dropped   A host-source with no scheme matches the
+#                             document's own scheme or better. This document is
+#                             always https (HSTS + upgrade-insecure-requests),
+#                             so `*.stripe.com` here means exactly what
+#                             `https://*.stripe.com` meant, at 8 fewer
+#                             characters a host across ~55 hosts. wss:// IS
+#                             kept explicit on the chat widgets: the spec says
+#                             an https document matches wss on a bare host, and
+#                             a live chat that silently stops connecting is not
+#                             the place to lean on that.
+#   wildcards collapsed       *.stripe.com already covered js.stripe.com and
+#                             hooks.stripe.com; *.paypal.com covered
+#                             www.paypal.com; *.google-analytics.com covered
+#                             www.google-analytics.com.
+#
+# tests/csp-is-enforced-and-complete.test.js now measures every line in this
+# file against the limit, so this cannot ship again.
+#
+# ── ONE HOST THE FIRST VERSION WOULD HAVE BROKEN ────────────────────────────
+#
+# media-src did not include images.zuwera.store, and that is where R2 serves
+# product media — admin-main.js filters that host for rows with
+# media_type === 'video'. 'self' does NOT cover a subdomain, and unlike img-src
+# there is no bare `https:` in media-src to catch it, so every R2-hosted product
+# video would have stopped playing the moment the policy took effect. It did not
+# take effect, because of the length bug above. Two mistakes cancelling is not a
+# defence; media-src now names *.zuwera.store.
 
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: payment=(*)
   X-Frame-Options: SAMEORIGIN
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.stripe.com https://www.paypal.com https://*.paypal.com https://cdn.jsdelivr.net https://unpkg.com https://www.googletagmanager.com https://connect.facebook.net https://*.posthog.com https://static.cloudflareinsights.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.clarity.ms https://browser.sentry-cdn.com https://client.crisp.chat https://embed.tawk.to https://s.pinimg.com https://analytics.tiktok.com https://plausible.io https://widget.trustpilot.com https://challenges.cloudflare.com; connect-src 'self' https://*.supabase.co https://api.stripe.com https://*.paypal.com https://*.posthog.com https://www.google-analytics.com https://analytics.google.com https://*.facebook.com https://cloudflareinsights.com https://api.github.com https://www.googletagmanager.com https://*.google-analytics.com https://*.doubleclick.net https://*.clarity.ms https://*.ingest.sentry.io https://client.crisp.chat wss://client.relay.crisp.chat https://*.tawk.to wss://*.tawk.to https://ct.pinterest.com https://analytics.tiktok.com https://plausible.io https://challenges.cloudflare.com https://www.google.com https://www.googleadservices.com; media-src 'self' https://*.supabase.co blob: data: https://*.r2.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://client.crisp.chat https://embed.tawk.to; font-src 'self' data: https://fonts.gstatic.com https://client.crisp.chat; img-src 'self' data: blob: https: https://*.r2.dev; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.stripe.com https://www.paypal.com https://*.paypal.com https://*.facebook.com https://www.googletagmanager.com https://td.doubleclick.net https://widget.trustpilot.com https://*.tawk.to https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.instagram.com https://challenges.cloudflare.com; worker-src 'self' blob:; form-action 'self' https://*.paypal.com https://*.stripe.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; upgrade-insecure-requests; report-uri /api/csp-report
-  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https://js.stripe.com https://*.stripe.com https://www.paypal.com https://*.paypal.com https://cdn.jsdelivr.net https://unpkg.com https://www.googletagmanager.com https://connect.facebook.net https://*.posthog.com https://static.cloudflareinsights.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.clarity.ms https://browser.sentry-cdn.com https://client.crisp.chat https://embed.tawk.to https://s.pinimg.com https://analytics.tiktok.com https://plausible.io https://widget.trustpilot.com https://challenges.cloudflare.com; connect-src 'self' https://*.supabase.co https://api.stripe.com https://*.paypal.com https://*.posthog.com https://www.google-analytics.com https://analytics.google.com https://*.facebook.com https://cloudflareinsights.com https://api.github.com https://www.googletagmanager.com https://*.google-analytics.com https://*.doubleclick.net https://*.clarity.ms https://*.ingest.sentry.io https://client.crisp.chat wss://client.relay.crisp.chat https://*.tawk.to wss://*.tawk.to https://ct.pinterest.com https://analytics.tiktok.com https://plausible.io https://challenges.cloudflare.com https://www.google.com https://www.googleadservices.com; media-src 'self' https://*.supabase.co blob: data: https://*.r2.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://client.crisp.chat https://embed.tawk.to; font-src 'self' data: https://fonts.gstatic.com https://client.crisp.chat; img-src 'self' data: blob: https: https://*.r2.dev; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.stripe.com https://www.paypal.com https://*.paypal.com https://*.facebook.com https://www.googletagmanager.com https://td.doubleclick.net https://widget.trustpilot.com https://*.tawk.to https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.instagram.com https://challenges.cloudflare.com; worker-src 'self' blob:; form-action 'self' https://*.paypal.com https://*.stripe.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; report-uri /api/csp-report
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.stripe.com *.paypal.com cdn.jsdelivr.net unpkg.com www.googletagmanager.com connect.facebook.net *.posthog.com static.cloudflareinsights.com www.googleadservices.com googleads.g.doubleclick.net www.clarity.ms browser.sentry-cdn.com *.crisp.chat embed.tawk.to s.pinimg.com analytics.tiktok.com plausible.io widget.trustpilot.com challenges.cloudflare.com; connect-src 'self' *.supabase.co *.stripe.com *.paypal.com *.posthog.com *.google-analytics.com analytics.google.com *.facebook.com cloudflareinsights.com api.github.com www.googletagmanager.com *.doubleclick.net *.clarity.ms *.ingest.sentry.io *.crisp.chat wss://*.crisp.chat *.tawk.to wss://*.tawk.to ct.pinterest.com analytics.tiktok.com plausible.io challenges.cloudflare.com www.google.com www.googleadservices.com; media-src 'self' *.zuwera.store *.supabase.co *.r2.dev res.cloudinary.com blob: data:; style-src 'self' 'unsafe-inline' fonts.googleapis.com *.crisp.chat embed.tawk.to; font-src 'self' data: fonts.gstatic.com *.crisp.chat; img-src 'self' data: blob: https:; frame-src 'self' *.stripe.com *.paypal.com *.facebook.com www.googletagmanager.com td.doubleclick.net widget.trustpilot.com *.tawk.to www.youtube.com www.youtube-nocookie.com player.vimeo.com www.tiktok.com www.instagram.com challenges.cloudflare.com; worker-src 'self' blob:; form-action 'self' *.paypal.com *.stripe.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; upgrade-insecure-requests; report-uri /api/csp-report
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Cache-Control: no-cache, must-revalidate
 

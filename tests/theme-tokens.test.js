@@ -1312,22 +1312,38 @@ console.log('\n  the CSP allows our own bot protection');
 {
   const headers = fs.readFileSync(ROOT + '/_headers', 'utf8');
   const csp = (headers.match(/Content-Security-Policy[^\n]*/g) || []).join(' ');
+  /* Matched without the scheme: the policy dropped every `https://` prefix to
+     fit Cloudflare's 2000-character-per-line limit — over it, the whole line is
+     dropped and the site serves no CSP at all, which is what happened once. A
+     scheme-less host-source on an https-only document means the same thing. */
   for (const d of ['script-src', 'connect-src', 'frame-src']) {
     const m = csp.match(new RegExp(d + ' [^;]*'));
     ok(d + ' allows challenges.cloudflare.com',
-      !!m && m[0].includes('https://challenges.cloudflare.com'),
+      !!m && /\bchallenges\.cloudflare\.com/.test(m[0]),
       m ? m[0].slice(0, 90) : 'directive missing');
   }
 
-  /* Product photos and videos live in R2 and are served from r2.dev, which
-     media-src did not list — so every product video on the homepage logged
-     a violation. Report-only, so they still played; enforce the policy one
-     day and the videos stop. */
+  /* Product photos and videos live in R2, which media-src did not list — so
+     every product video on the homepage logged a violation. Report-only, so
+     they still played; "enforce the policy one day and the videos stop" is what
+     this comment said, and that day came. It nearly happened: the first
+     enforced policy named *.r2.dev and NOT images.zuwera.store, which is the
+     custom domain R2 actually serves from, and 'self' does not cover a
+     subdomain. Both are listed now.
+
+     img-src is satisfied differently and deliberately: it carries a bare
+     `https:` scheme-source, which covers every https host including these, so
+     naming them again would be characters spent on nothing — and characters are
+     the scarce resource in a file with a 2000-per-line limit. */
   for (const d of ['media-src', 'img-src']) {
     const m = csp.match(new RegExp(d + ' [^;]*'));
+    const covered = !!m && (/r2\.dev/.test(m[0]) || /\bhttps:(\s|$)/.test(m[0]));
     ok(d + ' allows the R2 bucket product media is served from',
-      !!m && m[0].includes('r2.dev'), m ? m[0].slice(0, 90) : 'directive missing');
+      covered, m ? m[0].slice(0, 90) : 'directive missing');
   }
+  ok('media-src also names the custom R2 domain videos are served from',
+    /media-src [^;]*\*\.zuwera\.store/.test(csp),
+    "admin-main.js filters images.zuwera.store for rows with media_type === 'video'");
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

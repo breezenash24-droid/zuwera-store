@@ -43,7 +43,9 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g,
    calls it the defect. */
 const code = (f) => read(f).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 
-const SITEMAP = read('functions/sitemap.xml.js');
+const SITEMAP_FILE = 'functions/api/_sitemap.js';
+const SITEMAP = read(SITEMAP_FILE);
+const MW = read('functions/_middleware.js');
 const EDGE = read('functions/product/[slug].js');
 const MAIN = read('product-main.js');
 const STORE = read('storefront.js');
@@ -53,7 +55,28 @@ console.log('\n  the sitemap is generated, and the markup carries its ratings\n'
 
 console.log('  the sitemap comes from the catalogue');
 {
-  ok('there is a /sitemap.xml route', fs.existsSync(path.join(ROOT, 'functions/sitemap.xml.js')));
+  /* IT SHIPPED AS functions/sitemap.xml.js AND THAT ROUTE DOES NOT EXIST.
+     Measured on the deployed site: /sitemap.xml returned 404 with the 404
+     page's body — the dot in the filename means Pages never registered it, and
+     the static file had been deleted in the same change, so the result was no
+     sitemap at all. Worse than the stale one it replaced, and invisible from
+     here, because every assertion in this file reads the repository rather
+     than the response.
+
+     The generator is now a module, and functions/_middleware.js answers the
+     path. That is not another guess: the middleware demonstrably runs in
+     production, because it is what stamps the header arrangement into the
+     HTML of every page. */
+  ok('the generator is a module, not a dotted route',
+    fs.existsSync(path.join(ROOT, SITEMAP_FILE))
+    && !fs.existsSync(path.join(ROOT, 'functions/sitemap.xml.js')),
+    'functions/sitemap.xml.js is not a route Cloudflare Pages will serve');
+  ok('...and the middleware answers /sitemap.xml with it',
+    /url\.pathname === '\/sitemap\.xml'/.test(MW)
+    && /await buildSitemap\(env\)/.test(MW)
+    && /import \{ buildSitemap \} from '\.\/api\/_sitemap\.js'/.test(MW));
+  ok('...falling through rather than 500ing if it throws',
+    /try \{ return await buildSitemap\(env\); \} catch \(_\) \{/.test(MW));
   ok('…and the hand-typed file is gone', !fs.existsSync(path.join(ROOT, 'sitemap.xml')),
     'a static asset wins over the function route — leaving it would shadow the fix');
   ok('…and the build no longer copies it', !/'sitemap\.xml'/.test(BUILD));
@@ -81,10 +104,10 @@ console.log('  the sitemap comes from the catalogue');
   ok('published journal posts are listed too',
     /journal_posts\?select=slug/.test(SITEMAP) && /status=eq\.published/.test(SITEMAP));
   ok('pages that show YOUR data are not',
-    !/account\.html|\/bag\.html|checkout\.html/.test(code('functions/sitemap.xml.js')),
+    !/account\.html|\/bag\.html|checkout\.html/.test(code(SITEMAP_FILE)),
     'nothing to index, and listing them invites the attempt');
   ok('the template page is not listed either',
-    !/'\/product\.html'/.test(code('functions/sitemap.xml.js')),
+    !/'\/product\.html'/.test(code(SITEMAP_FILE)),
     'every real product has its own entry; product.html is the shell');
 
   ok('a failed query costs entries, not the response',
