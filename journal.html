@@ -265,7 +265,8 @@ try {
       font-weight: 300;
       min-height: 100vh;
       overflow-x: hidden;   /* fallback for old Safari */
-      overflow-x: clip;     /* clip horizontal overflow WITHOUT making <body> a scroll container (keeps window scroll → header auto-hide works) */
+      overflow-x: clip;     /* clip horizontal overflow WITHOUT making <body>
+<a class="skip-link" href="#main-content">Skip to content</a> a scroll container (keeps window scroll → header auto-hide works) */
       display: flex;
       flex-direction: column;
     }
@@ -554,7 +555,7 @@ try {
   .jr-post-body p{margin:0 0 1.3rem}
   .jr-empty{text-align:center;opacity:.5;font-family:var(--fb);padding:3rem 0}
 </style>
-<main class="page zw-journal">
+<main id="main-content" class="page zw-journal">
   <section class="jr-hero" data-reveal>
     <p class="jr-label" id="jr-label">The Journal</p>
     <h1 class="jr-h1" id="jr-h1">Field Notes</h1>

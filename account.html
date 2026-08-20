@@ -276,7 +276,8 @@ try {
       font-weight: 300;
       min-height: 100vh;
       overflow-x: hidden;   /* fallback for old Safari */
-      overflow-x: clip;     /* clip horizontal overflow WITHOUT making <body> a scroll container (keeps window scroll ? header auto-hide works) */
+      overflow-x: clip;     /* clip horizontal overflow WITHOUT making <body>
+<a class="skip-link" href="#main-content">Skip to content</a> a scroll container (keeps window scroll ? header auto-hide works) */
       display: flex;
       flex-direction: column;
     }
@@ -889,7 +890,7 @@ try {
 <!-- Bag-panel class before the nav so cohesion.css hides the header login/account
      link pre-paint instead of flashing on mobile (was only added later by features.js). -->
 <script>try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on')}catch(_){}</script>
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- NAV -->
 <nav class="zw-nav">
@@ -985,7 +986,7 @@ try {
 </div>
 
 <!-- PAGE CONTENT -->
-<main class="page-wrap">
+<main id="main-content" class="page-wrap">
 
   <!-- AUTH WALL (shown before session loads) -->
   <div id="auth-wall" style="display:none">

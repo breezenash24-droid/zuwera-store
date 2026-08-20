@@ -667,7 +667,7 @@ try {
 <body>
 <script>(function(){try{var b=document.body.classList,base=document.documentElement.getAttribute('data-zw-base');if(!base){var m=localStorage.getItem('zw_theme_mode')||localStorage.getItem('zw_homepage_theme_mode')||'';if(m==='dark'||m==='light'||m==='super-light')base=m;}if(!base)return;b.toggle('light-mode',base!=='dark');b.toggle('super-light-mode',base==='super-light');}catch(_){}})()</script>
 
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- HEADER -->
 <header class="co-header">

@@ -534,12 +534,13 @@ body.super-light-mode .zw-fav-size-picker{background: var(--ink) !important;bord
 <script src="consent.js?v=2e7601ab" defer></script>
 </head>
 <body>
+<a class="skip-link" href="#main-content">Skip to content</a>
 <script>(function(){try{var b=document.body.classList,base=document.documentElement.getAttribute('data-zw-base');if(!base){var m=localStorage.getItem('zw_theme_mode')||localStorage.getItem('zw_homepage_theme_mode')||'';if(m==='dark'||m==='light'||m==='super-light')base=m;}if(!base)return;b.toggle('light-mode',base!=='dark');b.toggle('super-light-mode',base==='super-light');}catch(_){}})()</script>
 <!-- Bag-panel class before the nav (below) so cohesion.css hides the header
      login/account buttons pre-paint instead of flashing on mobile. -->
 <script>try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on')}catch(_){}</script>
 
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- NAV -->
 <nav id="nav">
@@ -612,7 +613,7 @@ body.super-light-mode .zw-fav-size-picker{background: var(--ink) !important;bord
 </div>
 
 <!-- BAG PAGE -->
-<main class="bag-main">
+<main id="main-content" class="bag-main">
   <header class="cart-page-header">
     <!-- "Continue Shopping" removed: the nav logo already returns to the shop
          (same destination, "/"). Spacer keeps "Your Bag" centered. -->

@@ -265,7 +265,8 @@ try {
       font-weight: 300;
       min-height: 100vh;
       overflow-x: hidden;   /* fallback for old Safari */
-      overflow-x: clip;     /* clip horizontal overflow WITHOUT making <body> a scroll container (keeps window scroll → header auto-hide works) */
+      overflow-x: clip;     /* clip horizontal overflow WITHOUT making <body>
+<a class="skip-link" href="#main-content">Skip to content</a> a scroll container (keeps window scroll → header auto-hide works) */
       display: flex;
       flex-direction: column;
     }
@@ -528,7 +529,7 @@ try {
 </div>
 
 <!-- MAIN -->
-<main class="page">
+<main id="main-content" class="page">
   <section class="about-hero">
     <p class="about-label" id="about-label">About Zuwera</p>
     <h1 class="about-h1" id="about-heading">Built For<br>Movement.</h1>
