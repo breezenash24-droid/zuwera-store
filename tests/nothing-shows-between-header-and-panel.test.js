@@ -115,15 +115,26 @@ console.log('  the two surfaces meet on a whole device row, and no further');
     !/dpr - \d/.test(FEAT) && !/dpr - \d/.test(NAV)
     && !/Math\.floor\(bottom \* dpr\)/.test(FEAT) && !/Math\.floor\(bottom \* dpr\)/.test(NAV),
     'the panel is painted ON TOP, so anything above the bar’s bottom is a stripe');
-  /* The bar cannot be left to end on a fraction of a device row with nothing
-     under it, so it paints one pixel of itself below its own box while a panel
-     is there. ceil() keeps the panel off the bar; the bleed fills whatever
-     fraction of a row that leaves. Neither half is enough alone. */
-  ok('...and the bar bleeds a pixel of itself under whatever covers it',
-    /box-shadow: 0 1px 0 var\(--zw-nav-bg, var\(--ink, #09090b\)\) !important;/.test(CSS),
-    'a hard 1px shadow, no blur, in the bar’s own colour');
-  ok('...only while something is covering it',
-    /body\.zwf-searching :is\(nav#nav, \.nav, header\.nav, \.zw-nav\),[\s\S]{0,2400}box-shadow: 0 1px 0 /.test(CSS));
+  /* THE COMPENSATING PIXEL BELONGS TO THE PANEL, IN THE PANEL'S OWN COLOUR.
+     ceil() keeps the panel off the bar; that leaves up to one device row
+     neither surface covers, so each panel paints one pixel of ITSELF above
+     its own top edge. Rounds down: the row is under the bar and nothing
+     shows. Rounds up: the row shows and it is the panel's colour, which is
+     what belongs directly below the bar. Neither half is enough alone.
+
+     It was briefly the BAR that bled, in var(--zw-nav-bg, var(--ink)) — and
+     on a light theme --ink is the dark ink token, not the bar. Measured on
+     the live shop: nav background rgb(240,238,233), computed shadow
+     rgb(18,18,18) 0 1px 0. A near-black hairline across the full width under
+     a cream bar, on every light theme at every scale. That was the line. */
+  ok('the search and bag panels bleed a pixel of themselves upward',
+    (FEAT.match(/box-shadow:0 -1px 0 rgb\(var\(--bg-rgb, 9 9 11\)\)/g) || []).length === 2,
+    'the same token each panel paints its background from');
+  ok('...and the mega panel does too, from its own',
+    /box-shadow:0 -1px 0 var\(--ink, #09090b\), 0 30px 44px -22px/.test(CSS));
+  ok('...and the bar never bleeds, because its colour is not the panel’s',
+    !/box-shadow: 0 1px 0 var\(--zw-nav-bg/.test(CSS),
+    'var(--ink) is the dark ink on a light theme, not the bar');
   ok('...both reading devicePixelRatio rather than assuming 1',
     /var dpr = window\.devicePixelRatio \|\| 1;/.test(FEAT)
     && /var dpr = window\.devicePixelRatio \|\| 1;/.test(NAV));
@@ -149,11 +160,15 @@ console.log('\n  the header draws no bottom edge where a panel covers it');
     !!rule && /:has\(\.zw-navitem\.zw-has-mega:hover\)/.test(rule[0])
     && /:has\(\.zw-navitem\.zw-has-mega:focus-within\)/.test(rule[0]),
     'focus-within too: the panel opens on keyboard focus as well as hover');
-  ok('...and it deals with BOTH decorations, not just the border',
+  /* The border only. The bar's soft 0 1px 12px shadow paints BELOW its box,
+     which is where the opaque panel is and the panel is painted above it, so
+     it is already covered. Removing it bought nothing and cost something:
+     box-shadow is in this bar's transition list, so `none` fades over 350ms
+     and draws a blurred band across the join for exactly that long. */
+  ok('...and it touches the border only, leaving the shadow alone',
     !!rule && /border-bottom-color: transparent !important;/.test(rule[0])
-    && /box-shadow: 0 1px 0 /.test(rule[0])
-    && !/box-shadow: none/.test(rule[0]),
-    'the soft 0 1px 12px shadow had to go; a hard 1px of the bar takes its place');
+    && !/box-shadow:/.test(rule[0]),
+    'the shadow is under the panel already; removing it only adds a 350ms fade');
   /* Both nav dialects, because a rule written against one of them silently does
      nothing on the eight pages that use the other. */
   for (const d of ['nav#nav', '.nav', 'header.nav', '.zw-nav']) {
