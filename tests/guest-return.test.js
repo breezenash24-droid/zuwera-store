@@ -201,7 +201,16 @@ const TOKEN = fs.readFileSync(ROOT + '/functions/api/_order-token.js', 'utf8')
       /if \(!data\.eligible\)/.test(page));
     ok('the reasons are the page\'s existing list, not a second one',
       /REASONS\.map/.test(page));
-    ok('all three resolutions are offered', /value="exchange"/.test(page) && /value="store_credit"/.test(page));
+    /* TWO now, not three. The guest form offered store credit and there is no
+       credit balance in this system to spend — see
+       tests/store-credit-is-not-offered.test.js for the search that established
+       that, and [[work-queue]] item 16 for the ledger that would earn the
+       option back. What matters here is unchanged and is what this line was
+       really about: the guest form asks the same question as the signed-in one
+       and offers the same answers, so a return does not depend on whether
+       somebody happened to be logged in. */
+    ok('the guest form offers the same resolutions as the signed-in one',
+      /value="exchange"/.test(page) && !/value="store_credit"/.test(page));
     ok('an empty selection is explained as "the whole order"',
       /return the whole order/i.test(page));
 

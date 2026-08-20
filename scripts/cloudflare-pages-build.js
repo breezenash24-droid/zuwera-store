@@ -77,7 +77,6 @@ const files = [
   'returns.html',
   'robots.txt',
   'site.webmanifest',
-  'sitemap.xml',
   'sizeguide.html',
   'storefront-cohesion.css',
   'storefront-mobile-rebuild.css',

@@ -1132,10 +1132,13 @@
       var input = form.querySelector('input');
       var email = (input.value || '').trim();
       if (!email || email.indexOf('@') === -1) { input.focus(); return; }
-      fetch('/api/subscribe', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email, source: 'product_page' })
-      })
+      (window.zwHumanToken ? window.zwHumanToken() : Promise.resolve(''))
+        .then(function (turnstileToken) {
+          return fetch('/api/subscribe', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, source: 'product_page', turnstileToken: turnstileToken })
+          });
+        })
         .then(function (r) { return r.json(); })
         .then(function (j) {
           if (j && j.ok) {

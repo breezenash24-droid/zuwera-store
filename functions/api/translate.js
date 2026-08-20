@@ -5,6 +5,7 @@
  */
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { limit } from './_ratelimit.js';
 
 function parseCsv(value) {
   return String(value || '')
@@ -86,6 +87,9 @@ function buildCorsHeaders(request, env = {}) {
 
 export async function onRequestPost(context) {
   const corsHeaders = buildCorsHeaders(context.request, context.env);
+  const limited = await limit(context.env, context.request, 'translate', corsHeaders);
+  if (limited) return limited;
+
 
   function normalizeTranslateEndpoint(value) {
     if (!value) return null;

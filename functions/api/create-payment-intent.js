@@ -28,6 +28,7 @@ import { normalizeStateCode } from './_tax.js';
    quotes, then charges. */
 import { buildOrderMetadata, generateOrderNumber, quoteCart, sha256Base64Url } from './_cart-pricing.js';
 import { attributionToMeta, sanitizeMatchKeys } from './_attribution.js';
+import { limit } from './_ratelimit.js';
 
 const CORS = (env) => ({
   'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
@@ -46,6 +47,9 @@ export async function onRequestOptions({ env }) {
 
 export async function onRequestPost({ request, env, waitUntil }) {
   const headers = CORS(env);
+  const limited = await limit(env, request, 'create-payment-intent', headers);
+  if (limited) return limited;
+
 
   try {
     if (!env.STRIPE_SECRET_KEY) return json({ error: 'Stripe is not configured.' }, 500, headers);

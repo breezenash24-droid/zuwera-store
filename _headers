@@ -1,14 +1,56 @@
 # Cloudflare Pages — Custom HTTP headers
 # https://developers.cloudflare.com/pages/configuration/headers/
 # (Netlify also supports this file format, so it works on both platforms.)
+#
+# ── THE CONTENT-SECURITY-POLICY IS ENFORCED NOW ─────────────────────────────
+#
+# It used to be four directives — frame-ancestors, object-src, base-uri,
+# upgrade-insecure-requests — with the long, carefully built policy sitting on
+# the Report-Only header where it constrained nothing. So nothing stopped a
+# script injected into checkout.html from reading the page around the card
+# frame and posting it somewhere else. That is the specific control a PCI
+# SAQ-A-EP questionnaire asks about, and the answer was "we are thinking about
+# it".
+#
+# WHAT HAD TO BE FIXED BEFORE IT COULD BE TURNED ON. The report-only policy was
+# not correct — it had never been enforced, so nothing had ever caught its
+# gaps. Three script hosts the site genuinely uses were missing from it, found
+# by walking every browser-side file for both static <script src> and
+# dynamically assigned .src (the second is where the third-party SDKs live, and
+# a scan that only reads HTML misses all of them):
+#
+#     www.paypal.com      paypal-button.js — the PayPal SDK.  Promoting the
+#                         policy as written would have broken PayPal checkout.
+#     cdn.jsdelivr.net    admin-finance.js (Chart.js), builder.html (QRious)
+#     unpkg.com           analytics.html (React UMD builds)
+#
+# tests/csp-is-enforced-and-complete.test.js now walks the same files on every
+# run, so the next SDK somebody adds fails in CI rather than on checkout.
+#
+# WHAT IS STILL LOOSE, DELIBERATELY. script-src keeps 'unsafe-inline' and
+# 'unsafe-eval'. Every page in this repository has inline handlers and inline
+# pre-paint blocks, so removing it is a real piece of work — hashes or a nonce
+# on every one of them — and shipping that in the same change as the promotion
+# would mean a broken storefront and no way to tell which half did it.
+#
+# So the enforced policy stops a script being LOADED from a host nobody
+# allowlisted, which is how skimmers actually arrive, and does not yet stop one
+# being injected inline. That is a real improvement and a partial one, and it
+# is written down rather than implied.
+#
+# WHERE THE REPORT-ONLY HEADER POINTS NOW. At the next step, not at the one
+# just taken: it is the same policy WITHOUT 'unsafe-inline' and 'unsafe-eval'.
+# /api/csp-report therefore collects exactly the list of inline blocks that
+# have to be given a hash before that can be enforced too. A report-only copy
+# of a policy already enforced would collect nothing and teach nothing.
 
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: payment=(*)
   X-Frame-Options: SAMEORIGIN
-  Content-Security-Policy: frame-ancestors 'self'; object-src 'none'; base-uri 'self'; upgrade-insecure-requests
-  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.stripe.com https://www.googletagmanager.com https://connect.facebook.net https://*.posthog.com https://static.cloudflareinsights.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.clarity.ms https://browser.sentry-cdn.com https://client.crisp.chat https://embed.tawk.to https://s.pinimg.com https://analytics.tiktok.com https://plausible.io https://widget.trustpilot.com https://challenges.cloudflare.com; connect-src 'self' https://*.supabase.co https://api.stripe.com https://*.posthog.com https://www.google-analytics.com https://analytics.google.com https://*.facebook.com https://cloudflareinsights.com https://api.github.com https://www.googletagmanager.com https://*.google-analytics.com https://*.doubleclick.net https://*.clarity.ms https://*.ingest.sentry.io https://client.crisp.chat wss://client.relay.crisp.chat https://*.tawk.to wss://*.tawk.to https://ct.pinterest.com https://analytics.tiktok.com https://plausible.io https://challenges.cloudflare.com https://www.google.com https://www.googleadservices.com; media-src 'self' https://*.supabase.co blob: data: https://*.r2.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://client.crisp.chat https://embed.tawk.to; font-src 'self' https://fonts.gstatic.com https://client.crisp.chat; img-src 'self' data: blob: https: https://*.r2.dev; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.facebook.com https://www.googletagmanager.com https://td.doubleclick.net https://widget.trustpilot.com https://*.tawk.to https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.instagram.com https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; report-uri /api/csp-report
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.stripe.com https://www.paypal.com https://*.paypal.com https://cdn.jsdelivr.net https://unpkg.com https://www.googletagmanager.com https://connect.facebook.net https://*.posthog.com https://static.cloudflareinsights.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.clarity.ms https://browser.sentry-cdn.com https://client.crisp.chat https://embed.tawk.to https://s.pinimg.com https://analytics.tiktok.com https://plausible.io https://widget.trustpilot.com https://challenges.cloudflare.com; connect-src 'self' https://*.supabase.co https://api.stripe.com https://*.paypal.com https://*.posthog.com https://www.google-analytics.com https://analytics.google.com https://*.facebook.com https://cloudflareinsights.com https://api.github.com https://www.googletagmanager.com https://*.google-analytics.com https://*.doubleclick.net https://*.clarity.ms https://*.ingest.sentry.io https://client.crisp.chat wss://client.relay.crisp.chat https://*.tawk.to wss://*.tawk.to https://ct.pinterest.com https://analytics.tiktok.com https://plausible.io https://challenges.cloudflare.com https://www.google.com https://www.googleadservices.com; media-src 'self' https://*.supabase.co blob: data: https://*.r2.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://client.crisp.chat https://embed.tawk.to; font-src 'self' data: https://fonts.gstatic.com https://client.crisp.chat; img-src 'self' data: blob: https: https://*.r2.dev; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.stripe.com https://www.paypal.com https://*.paypal.com https://*.facebook.com https://www.googletagmanager.com https://td.doubleclick.net https://widget.trustpilot.com https://*.tawk.to https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.instagram.com https://challenges.cloudflare.com; worker-src 'self' blob:; form-action 'self' https://*.paypal.com https://*.stripe.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; upgrade-insecure-requests; report-uri /api/csp-report
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https://js.stripe.com https://*.stripe.com https://www.paypal.com https://*.paypal.com https://cdn.jsdelivr.net https://unpkg.com https://www.googletagmanager.com https://connect.facebook.net https://*.posthog.com https://static.cloudflareinsights.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.clarity.ms https://browser.sentry-cdn.com https://client.crisp.chat https://embed.tawk.to https://s.pinimg.com https://analytics.tiktok.com https://plausible.io https://widget.trustpilot.com https://challenges.cloudflare.com; connect-src 'self' https://*.supabase.co https://api.stripe.com https://*.paypal.com https://*.posthog.com https://www.google-analytics.com https://analytics.google.com https://*.facebook.com https://cloudflareinsights.com https://api.github.com https://www.googletagmanager.com https://*.google-analytics.com https://*.doubleclick.net https://*.clarity.ms https://*.ingest.sentry.io https://client.crisp.chat wss://client.relay.crisp.chat https://*.tawk.to wss://*.tawk.to https://ct.pinterest.com https://analytics.tiktok.com https://plausible.io https://challenges.cloudflare.com https://www.google.com https://www.googleadservices.com; media-src 'self' https://*.supabase.co blob: data: https://*.r2.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://client.crisp.chat https://embed.tawk.to; font-src 'self' data: https://fonts.gstatic.com https://client.crisp.chat; img-src 'self' data: blob: https: https://*.r2.dev; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.stripe.com https://www.paypal.com https://*.paypal.com https://*.facebook.com https://www.googletagmanager.com https://td.doubleclick.net https://widget.trustpilot.com https://*.tawk.to https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.instagram.com https://challenges.cloudflare.com; worker-src 'self' blob:; form-action 'self' https://*.paypal.com https://*.stripe.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; report-uri /api/csp-report
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Cache-Control: no-cache, must-revalidate
 

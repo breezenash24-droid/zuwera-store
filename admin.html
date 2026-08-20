@@ -913,6 +913,12 @@
                             <option value="">All Types</option>
                             <option value="return">Return</option>
                             <option value="exchange">Exchange</option>
+                            <!-- Store Credit stays HERE and nowhere else. This is a
+                                 filter over returns that already exist, not a choice
+                                 about a new one — and a return settled as credit
+                                 before the option was withdrawn is exactly the thing
+                                 somebody needs to be able to find. Removing it would
+                                 hide those rows rather than fix anything. -->
                             <option value="store_credit">Store Credit</option>
                         </select>
                     </div>
@@ -951,7 +957,7 @@
                     </div>
 
                     <!-- Returns JS -->
-                    <script src="admin-returns-ui.js?v=d8174ddc"></script>
+                    <script src="admin-returns-ui.js?v=43136ed3"></script>
                   <!-- Return Shipments -->
                   <div style="margin-top:32px;">
                     <div style="margin-bottom:20px;">
@@ -4945,9 +4951,9 @@
      the formatter existed. -->
 <script src="order-number.js?v=7a8bb114"></script>
 <script src="customer-messages.js?v=2c5164d0"></script>
-    <script src="admin-main.js?v=6a38c319"></script>
+    <script src="admin-main.js?v=4d35cb9d"></script>
     <!-- After admin-main: it needs `sb`, which that file creates at top level. -->
-    <script src="admin-themes.js?v=8d88cdf9"></script>
+    <script src="admin-themes.js?v=15ad5372"></script>
     <script src="admin-theme-presets.js?v=f4b3ae29"></script>
     <script src="admin-theme-import.js?v=957380c1"></script>
     <!-- The icon editor previews through the real registry, so it loads it too. -->

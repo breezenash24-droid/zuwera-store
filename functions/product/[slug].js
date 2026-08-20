@@ -37,7 +37,52 @@ async function fetchProductSeo(id, env) {
   }
 }
 
-function injectSeo(html, product, pageUrl) {
+/* ── THE STARS IN A SEARCH RESULT ────────────────────────────────────────────
+ * The Product + Offer markup below has been right for a while and stopped one
+ * field short. aggregateRating is what puts a rating out of five under the
+ * listing, and it is the single most visible difference between two otherwise
+ * identical results — while the reviews it is built from were already in the
+ * database and already shown on the page.
+ *
+ * EVERY REVIEW, BECAUSE THE PAGE SHOWS EVERY REVIEW. Google's rule is that the
+ * aggregate has to describe what a visitor can actually see; reviews.js loads
+ * `reviews` filtered only by product_id, so the honest aggregate is the same
+ * unfiltered set. If a moderation flag is ever added there, it has to be added
+ * here on the same day or the markup starts overstating the rating.
+ *
+ * NO REVIEWS MEANS NO PROPERTY. An aggregateRating of 0 from 0 ratings is
+ * invalid structured data and is treated as a markup error rather than as "no
+ * reviews yet" — the absence has to be an absence.
+ */
+async function fetchRatingSummary(id, env) {
+  const base = supabaseUrl(env);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 2000);
+  try {
+    const resp = await fetch(
+      `${base}/rest/v1/reviews?product_id=eq.${encodeURIComponent(id)}&select=rating&limit=1000`,
+      {
+        headers: { apikey: supabaseAnonKey(env), Authorization: `Bearer ${supabaseAnonKey(env)}` },
+        signal: controller.signal,
+      });
+    if (!resp.ok) return null;
+    const rows = await resp.json().catch(() => []);
+    const ratings = (Array.isArray(rows) ? rows : [])
+      .map((r) => Number(r.rating))
+      .filter((n) => Number.isFinite(n) && n >= 1 && n <= 5);
+    if (!ratings.length) return null;
+    const mean = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+    return { count: ratings.length, value: Math.round(mean * 10) / 10 };
+  } catch (_) {
+    /* A rating lookup must never cost the page its other markup — this runs on
+       every product view and the title, canonical and Offer matter more. */
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function injectSeo(html, product, pageUrl, rating) {
   const title = (product.title || '').trim();
   if (!title) return html;
   // subtitle holds the human category ("Jackets"); products.category is an
@@ -96,6 +141,15 @@ function injectSeo(html, product, pageUrl) {
       seller: { '@type': 'Organization', name: 'ZUWERA' },
     };
   }
+  if (rating && rating.count > 0) {
+    ld.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: String(rating.value),
+      ratingCount: rating.count,
+      bestRating: '5',
+      worstRating: '1',
+    };
+  }
   // The runtime script re-uses this element by id, so there's never a duplicate.
   const ldTag = `<script type="application/ld+json" id="product-ld-json">${
     JSON.stringify(ld).replace(/</g, '\\u003c')
@@ -126,9 +180,15 @@ export async function onRequest(context) {
 
   const id = url.searchParams.get('id');
   if (id && /^[0-9a-f-]{32,40}$/i.test(id)) {
-    const product = await fetchProductSeo(id, context.env);
+    /* Both at once — the rating lookup is a second round trip and there is no
+       reason for it to be a second wait. Either may come back null and the page
+       is still served, with whatever it did get. */
+    const [product, rating] = await Promise.all([
+      fetchProductSeo(id, context.env),
+      fetchRatingSummary(id, context.env),
+    ]);
     if (product) {
-      try { html = injectSeo(html, product, url); } catch (_) { /* serve untouched */ }
+      try { html = injectSeo(html, product, url, rating); } catch (_) { /* serve untouched */ }
     }
   }
 

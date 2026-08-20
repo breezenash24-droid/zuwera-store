@@ -9,10 +9,18 @@
  */
 
 import { supabaseUrl } from './_config.js';
+import { limit } from './_ratelimit.js';
 
 const clip = (v, n) => (v == null ? null : String(v).slice(0, n));
 
 export async function onRequestPost({ request, env }) {
+  /* The report-only policy now points at every inline block on every page, so
+     this endpoint is about to receive far more than it ever has. The row dedupe
+     below keeps the LOG small; this keeps the REQUESTS bounded — an unmetered
+     public write is still an unmetered public write, however small each row. */
+  const limited = await limit(env, request, 'csp-report');
+  if (limited) return limited;
+
   try {
     const key = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY;
     const url = supabaseUrl(env);

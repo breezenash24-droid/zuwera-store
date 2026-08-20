@@ -245,9 +245,9 @@ html.zw-authed #account-btn{display:inline-flex!important}
   <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
   <link rel="stylesheet" href="nav.css?v=7e04029d">
   <link rel="stylesheet" href="cart.css?v=a4e16320">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=e885efd8">
-<script src="preview-mode.js?v=8e7152ff" defer></script>
-<script src="header-scroll.js?v=fe320725" defer></script>
+  <link rel="stylesheet" href="storefront-cohesion.css?v=6cac1e71">
+<script src="preview-mode.js?v=799782ba" defer></script>
+<script src="header-scroll.js?v=1e2ba84f" defer></script>
   <link rel="stylesheet" href="quick-add-modal.css?v=dc3088fe">
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=5dc05f38" defer></script>
@@ -534,12 +534,13 @@ body.super-light-mode .zw-fav-size-picker{background: var(--ink) !important;bord
 <script src="consent.js?v=2e7601ab" defer></script>
 </head>
 <body>
+<a class="skip-link" href="#main-content">Skip to content</a>
 <script>(function(){try{var b=document.body.classList,base=document.documentElement.getAttribute('data-zw-base');if(!base){var m=localStorage.getItem('zw_theme_mode')||localStorage.getItem('zw_homepage_theme_mode')||'';if(m==='dark'||m==='light'||m==='super-light')base=m;}if(!base)return;b.toggle('light-mode',base!=='dark');b.toggle('super-light-mode',base==='super-light');}catch(_){}})()</script>
 <!-- Bag-panel class before the nav (below) so cohesion.css hides the header
      login/account buttons pre-paint instead of flashing on mobile. -->
 <script>try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on')}catch(_){}</script>
 
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- NAV -->
 <nav id="nav">
@@ -612,7 +613,7 @@ body.super-light-mode .zw-fav-size-picker{background: var(--ink) !important;bord
 </div>
 
 <!-- BAG PAGE -->
-<main class="bag-main">
+<main id="main-content" class="bag-main">
   <header class="cart-page-header">
     <!-- "Continue Shopping" removed: the nav logo already returns to the shop
          (same destination, "/"). Spacer keeps "Your Bag" centered. -->
@@ -1802,7 +1803,7 @@ window.__zwOpenAuth = function(tab) {
 <script src="checkout.js?v=ffa1d489"></script>
 <script src="commerce-checkout.js?v=b42a55a1"></script>
 <script src="modal-lock.js?v=fb1f304f"></script>
-<script src="/theme-engine.js?v=4f499d38" defer></script>
+<script src="/theme-engine.js?v=f63c3aa4" defer></script>
 <script src="/motion.js?v=5b9cc123" defer></script>
 <script src="/icon-sets.js?v=e0ed4bcb" defer></script>
 <script src="storefront-theme.js?v=3782df36" defer></script>
@@ -1811,12 +1812,12 @@ window.__zwOpenAuth = function(tab) {
      auth.js, both deferred), so the inline reroute that used to sit here is gone.
      One login entry point, defined in one place — see zw-login.js. -->
 <script src="zw-login.js?v=09e6833c" defer></script>
-<script src="/nav-menu.js?v=a1272b19" defer></script>
-<script src="/zw-copy.js?v=a0389ca5" defer></script>
-<script src="/header-layouts.js?v=d9eeed75" defer></script>
+<script src="/nav-menu.js?v=6f2120b1" defer></script>
+<script src="/zw-copy.js?v=07463acd" defer></script>
+<script src="/header-layouts.js?v=0544d332" defer></script>
 <script src="fit-finder.js?v=f5cdcd6f" defer></script>
-<script src="/storefront-features.js?v=5a9b8bff" defer></script>
-<script src="announcement-bar.js?v=aa84f76a" defer></script>
+<script src="/storefront-features.js?v=bba83864" defer></script>
+<script src="announcement-bar.js?v=9e0f1787" defer></script>
 <script src="email-popup.js?v=33908bad" defer></script>
 <script src="integrations.js?v=7f9fbde2" defer></script>
 </body>

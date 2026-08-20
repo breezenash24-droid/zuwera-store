@@ -10,6 +10,7 @@ import { shipFrom, shipFromKeys, SHIP_FROM_FIELDS } from './_ship-from.js';
 import { veeqoGetRates, veeqoKey } from './_veeqo.js';
 import { getShippoMonthlyCount, shippoFreeLimit, shippoMonthKey } from './_shipping-usage.js';
 import { notifyOps, alertConfig } from './_notify-ops.js';
+import { limit } from './_ratelimit.js';
 
 const CORS = (env) => ({
   'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
@@ -259,6 +260,14 @@ export async function onRequestOptions({ env }) {
 
 export async function onRequestPost({ request, env }) {
   const headers = CORS(env);
+
+  /* Every call here is a live quote against a carrier account with a metered
+     free tier — 30 Shippo requests a month before it costs money. An
+     unauthenticated endpoint that spends a third-party allowance is the one
+     kind of public write where the abuse has an invoice attached. Forty an hour
+     leaves a shopper free to change their address as often as they like. */
+  const limited = await limit(env, request, 'shippo-rates', headers);
+  if (limited) return limited;
 
   try {
     const { address, parcel: customParcel, totalItems: itemCount, totalWeightLb, items = [], allRates = false } = await request.json();

@@ -865,18 +865,35 @@ function renderProduct() {
     : (currentProduct.status || '').toLowerCase() === 'sold out'
       ? 'https://schema.org/SoldOut'
       : 'https://schema.org/PreOrder';
+  /* ── MERGED ONTO THE SERVER'S COPY, NOT WRITTEN OVER IT ────────────────────
+     functions/product/[slug].js already put a Product block in the head before
+     the browser saw the page — that is what social crawlers read, since they do
+     not run JavaScript. This used to REPLACE that element wholesale, which
+     silently dropped every field the server knew and this file does not:
+     `sku` was being deleted from the markup on every page load, and
+     `aggregateRating` — the stars in a search result — would have been deleted
+     the moment it was added.
+
+     So: start from what the server wrote and update only the fields that depend
+     on the selected colourway. The server is the source for anything it can
+     resolve on its own; the browser is the source for what changes as somebody
+     clicks around. Neither has to know the other's whole list. */
   const _ldEl = document.getElementById('product-ld-json') || document.createElement('script');
+  let _ld = {};
+  try { _ld = JSON.parse(_ldEl.textContent || '{}') || {}; } catch (_) { _ld = {}; }
   _ldEl.id = 'product-ld-json';
   _ldEl.type = 'application/ld+json';
   _ldEl.textContent = JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'Product',
-    name: currentProduct.title || '',
-    description: currentProduct.description || '',
+    ..._ld,
+    name: currentProduct.title || _ld.name || '',
+    description: currentProduct.description || _ld.description || '',
     image: _pImg,
     url: _pUrl,
     brand: { '@type': 'Brand', name: 'ZUWERA' },
     offers: {
+      ...(_ld.offers && typeof _ld.offers === 'object' ? _ld.offers : {}),
       '@type': 'Offer',
       priceCurrency: 'USD',
       price: _price,

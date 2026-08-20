@@ -344,7 +344,6 @@
         let currentSizeChart = null;
         let productSizeChartCache = null;
         let productSizeChartCachePromise = null;
-        let auditTableReady = true;
         const SUPABASE_PRODUCT_IMAGE_BUCKET = 'product-images';
         const R2_PUBLIC_IMAGE_HOSTS = ['images.zuwera.store'];
         const MAX_PRODUCT_UPLOAD_WIDTH = 1600;
@@ -391,28 +390,64 @@
             }
         }
 
+        /* ── THE PANEL ASKS FOR A ROW; IT DOES NOT WRITE ONE ────────────────────
+           This used to insert straight into admin_audit_log with
+           `admin_user_id: currentUser?.id` — the page's own claim about who it
+           was. It now posts to /api/admin-audit, which takes the identity from
+           the token it verifies and ignores anything the body says about it.
+           Migration 0029 revokes INSERT from `authenticated`, so this is not
+           merely the preferred route any more, it is the only one.
+
+           AND IT CANNOT GO QUIET. The old version set `auditTableReady = false`
+           on the first error — including an error raised by merely VIEWING the
+           audit page when the table was missing — and every later action went
+           unrecorded for the rest of the session behind a console.warn. A log
+           that stops without saying so is worse than no log, because the
+           missing rows read as "nothing happened". There is no latch now: every
+           call tries, and a run of failures is put on screen. */
+        let _auditFailures = 0;
+        function _auditTrouble(detail) {
+            _auditFailures += 1;
+            console.error('Admin audit log: entry not recorded —', detail);
+            /* Said once, at the point it stops looking like one bad request. A
+               toast per action would be its own kind of noise; silence is the
+               failure being fixed, not volume. */
+            if (_auditFailures === 3) {
+                try {
+                    showToast('Admin history is not being recorded — check /api/admin-audit and the audit log table.', 'error');
+                } catch (_) {}
+            }
+            const status = document.getElementById('auditStatus');
+            if (status) status.textContent = 'Warning: ' + _auditFailures + ' recent admin actions could not be written to this log.';
+        }
+
         async function logAdminAudit(action, resourceType, resourceId = null, metadata = {}) {
             if (!currentUser?.id) return;
-            if (!auditTableReady) return;
             try {
-                const payload = {
-                    admin_user_id: currentUser?.id || null,
-                    admin_email: currentUser?.email || null,
-                    action,
-                    resource_type: resourceType,
-                    resource_id: resourceId ? String(resourceId) : null,
-                    metadata: {
-                        ...metadata,
-                        page: location.pathname,
-                        summary: summarizeAuditPayload(metadata)
-                    },
-                    user_agent: navigator.userAgent
-                };
-                const { error } = await sb.from('admin_audit_log').insert([payload]);
-                if (error) throw error;
+                const { data: { session } } = await sb.auth.getSession();
+                const token = session?.access_token;
+                if (!token) { _auditTrouble('no admin session'); return; }
+                const resp = await fetch('/api/admin-audit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({
+                        action,
+                        resource_type: resourceType,
+                        resource_id: resourceId ? String(resourceId) : null,
+                        /* `page` stays — it is the one thing about the change
+                           that only the browser knows. Everything else in the
+                           row is stamped server-side. */
+                        metadata: { ...metadata, page: location.pathname }
+                    })
+                });
+                const out = await resp.json().catch(() => ({}));
+                if (!resp.ok || !out.logged) {
+                    _auditTrouble(out.error || ('HTTP ' + resp.status));
+                    return;
+                }
+                _auditFailures = 0;
             } catch (error) {
-                auditTableReady = false;
-                console.warn('Admin audit log unavailable. Run supabase-admin-audit-log.sql in Supabase.', error);
+                _auditTrouble((error && error.message) || 'network error');
             }
         }
 
@@ -5722,7 +5757,11 @@
                 if (loadMoreBtn) loadMoreBtn.style.display = hasMore ? 'inline-block' : 'none';
                 if (status) status.textContent = _auditTotalLoaded ? `Showing ${_auditTotalLoaded} events${hasMore ? ' — more available' : ''}.` : 'No audit events yet.';
             } catch (error) {
-                auditTableReady = false;
+                /* Failing to READ the log used to stop it being WRITTEN — this
+                   branch set auditTableReady = false, so opening this page on a
+                   store whose table was missing silenced logging for the rest
+                   of the session. Reading and writing are different questions
+                   and one cannot answer the other. */
                 if (status) status.textContent = 'Audit table is not available yet. Run supabase-admin-audit-log.sql in Supabase, then refresh.';
                 if (!append) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Audit log table not found or policy not configured.</td></tr>';
                 console.warn('Audit log load failed:', error);

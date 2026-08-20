@@ -9,12 +9,16 @@
  */
 
 import { supabaseUrl } from './_config.js';
+import { limit } from './_ratelimit.js';
 
 
 const clip = (v, n) => (v == null ? null : String(v).slice(0, n));
 const int = (v) => (Number.isFinite(+v) ? (+v | 0) : null);
 
 export async function onRequestPost({ request, env }) {
+  const limited = await limit(env, request, 'log-error');
+  if (limited) return limited;
+
   try {
     const body = await request.json().catch(() => ({}));
     const key = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY;

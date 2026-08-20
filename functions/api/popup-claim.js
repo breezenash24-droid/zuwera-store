@@ -35,6 +35,7 @@ import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } f
 import { logEmail } from './_email-log.js';
 import { sendTransactional } from './_email.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { limit } from './_ratelimit.js';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // no I/O/0/1
 const POPUP_LABEL = 'Popup';                                 // marks what we minted
@@ -226,6 +227,9 @@ export async function onRequestOptions({ env }) {
 }
 
 export async function onRequestPost({ request, env, waitUntil }) {
+  const limited = await limit(env, request, 'popup-claim', cors(env));
+  if (limited) return limited;
+
   try {
     const body = await request.json().catch(() => ({}));
     const email = String(body.email || '').trim().toLowerCase();

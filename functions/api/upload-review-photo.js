@@ -11,6 +11,7 @@
  */
 
 import { supabaseUrl, supabaseAnonKey } from './_config.js';
+import { limit } from './_ratelimit.js';
 
 
 const BUCKET = 'product-images';
@@ -40,6 +41,9 @@ export async function onRequestOptions() {
 }
 
 export async function onRequestPost({ request, env }) {
+  const limited = await limit(env, request, 'upload-review-photo');
+  if (limited) return limited;
+
   try {
     const form = await request.formData();
     const accessToken = form.get('accessToken');
