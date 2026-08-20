@@ -91,6 +91,30 @@ for (const file of browserFiles()) {
 
 console.log('\n  the CSP is enforced, and its allow-list matches the code\n');
 
+console.log('  every line fits in what Cloudflare will actually send');
+{
+  /* THE FIRST VERSION OF THIS POLICY WAS NEVER DELIVERED. It shipped at 2227
+     and 2182 characters. Cloudflare Pages did not warn, did not fail the build
+     and did not truncate — it dropped BOTH lines, and the deployed site served
+     no Content-Security-Policy at all. Worse than before the change, which at
+     least had frame-ancestors, and invisible from the repository: every test
+     here passed, because they all read the file rather than the response.
+
+     The old report-only line was 1946 characters and had always been delivered,
+     which is what pins the limit at 2000 rather than leaving it folklore. */
+  const LIMIT = 2000;
+  const over = HEADERS.split('\n')
+    .map((l, i) => ({ i: i + 1, l }))
+    .filter((x) => /^\s{2}[A-Za-z-]+:/.test(x.l) && x.l.length > LIMIT);
+  ok('no header line exceeds ' + LIMIT + ' characters', over.length === 0,
+    over.map((x) => 'line ' + x.i + ' is ' + x.l.length + ': ' + x.l.slice(2, 40)).join(' | ')
+    + ' — Cloudflare drops the whole line, silently');
+  const lens = HEADERS.split('\n').filter((l) => /^\s{2}Content-Security-Policy/.test(l)).map((l) => l.length);
+  ok('...and the policy line is measured, not assumed', lens.length === 1 && lens[0] > 400,
+    'lengths seen: ' + lens.join(', '));
+  console.log('        enforced ' + lens[0] + ' chars, limit ' + LIMIT);
+}
+
 console.log('  it is on the enforcing header');
 {
   ok('there is an enforcing Content-Security-Policy', !!enforced.trim());
@@ -136,6 +160,19 @@ console.log('\n  every host the shipped code loads from is named');
   ok('jsDelivr is allowed', covered(scriptSrc, 'cdn.jsdelivr.net'), 'Chart.js in Finance, QRious in the builder');
   ok('unpkg is allowed', covered(scriptSrc, 'unpkg.com'), 'React UMD in analytics.html');
   ok('Stripe is allowed on both', covered(scriptSrc, 'js.stripe.com') && covered(frameSrc, 'js.stripe.com'));
+
+  /* R2 SERVES PRODUCT VIDEO FROM images.zuwera.store, and 'self' does not cover
+     a subdomain. img-src has a bare https: that catches everything, media-src
+     does not — so the first version of this policy would have stopped every
+     R2-hosted product video the moment it took effect. It never took effect,
+     because the line was over Cloudflare's length limit and was dropped. Two
+     mistakes cancelling is not a defence. */
+  ok('media-src covers the R2 media host',
+    covered(directive(enforced, 'media-src'), 'images.zuwera.store'),
+    "admin-main.js filters this host for rows with media_type === 'video'");
+  ok('...and the Supabase and R2 buckets it also plays from',
+    covered(directive(enforced, 'media-src'), 'abc.supabase.co')
+    && covered(directive(enforced, 'media-src'), 'x.r2.dev'));
 }
 
 console.log('\n  and the inline allowance is admitted rather than hidden');
@@ -150,6 +187,25 @@ console.log('\n  and the inline allowance is admitted rather than hidden');
   ok('_headers says so out loud',
     /WHAT IS STILL LOOSE, DELIBERATELY/.test(HEADERS),
     'a partial control that reads as complete is the thing being fixed');
+
+  /* THE REPORT-ONLY HEADER IS GONE, AND ITS ABSENCE IS DELIBERATE.
+     It shipped carrying the stricter policy, to collect the inline blocks that
+     would need hashing before 'unsafe-inline' could go. Sound in principle.
+     Measured on the home page: 82 requests without it, 100 with — eighteen
+     violation POSTs per page view, from every visitor, for ever, each one
+     through the rate limiter and a database write, to learn a list that does
+     not change between loads.
+
+     The same list came out of the repository in a second and cost nobody
+     anything: 134 inline <script> blocks site-wide, 17 blocks plus 17 inline
+     handlers on index.html — which is exactly the 18 — and 230 handlers on
+     admin.html alone. That is the scope of the next tightening, and it did not
+     need telemetry. */
+  ok('there is no Report-Only header billing every visitor for a static fact',
+    !/Content-Security-Policy-Report-Only:/.test(HEADERS),
+    'it cost 18 requests per page load and taught nothing a grep could not');
+  ok('...but the enforced policy still reports, where a report means a real break',
+    /report-uri \/api\/csp-report/.test(enforced));
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

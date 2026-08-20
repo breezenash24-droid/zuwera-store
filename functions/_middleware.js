@@ -45,6 +45,7 @@
  * store that has not published since this shipped is simply left as it was.
  */
 import { supabaseUrl, supabaseAnonKey } from './api/_config.js';
+import { buildSitemap } from './api/_sitemap.js';
 
 /* Long enough that a busy page costs one origin read rather than hundreds;
    short enough that a publish is visible almost immediately. The runtime fetch
@@ -180,6 +181,18 @@ export async function onRequest(context) {
 
   let url;
   try { url = new URL(request.url); } catch (_) { return context.next(); }
+
+  /* ── /sitemap.xml is answered here ────────────────────────────────────────
+     Not because a middleware is the natural home for it, but because a file at
+     functions/sitemap.xml.js does NOT become a route — measured on the deployed
+     site, where it returned 404 while the static file it replaced had already
+     been deleted. The dot in the filename is the reason. This middleware is
+     demonstrably reached in production (it is what stamps the header
+     arrangement into every page), so it is the one place the route is certain.
+     Failure falls through to whatever the site would otherwise serve. */
+  if (request.method === 'GET' && url.pathname === '/sitemap.xml') {
+    try { return await buildSitemap(env); } catch (_) { /* fall through */ }
+  }
 
   /* Not worth a settings read: API routes are not pages, a non-GET is not a
      page load, and a builder preview must show the DRAFT — stamping the

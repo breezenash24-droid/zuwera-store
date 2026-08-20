@@ -1,5 +1,20 @@
 /**
- * GET /sitemap.xml — generated from the catalogue, not typed by hand.
+ * /sitemap.xml — generated from the catalogue, not typed by hand.
+ *
+ * ── WHY THIS IS A MODULE AND NOT A ROUTE ────────────────────────────────────
+ *
+ * It shipped as `functions/sitemap.xml.js`, on the reasonable assumption that
+ * Pages turns a file path into a route by dropping the `.js`. Measured on the
+ * deployed site: `/sitemap.xml` returned 404. The dot in the filename means
+ * that route never registered — and because the static sitemap.xml had been
+ * deleted in the same change, the result was no sitemap at all, which is worse
+ * than the stale one it replaced.
+ *
+ * So the generator lives here, underscore-prefixed so it is not a route itself,
+ * and `functions/_middleware.js` — which already runs in front of every GET —
+ * answers /sitemap.xml with it. That path is not a guess: the middleware is
+ * demonstrably running in production, because it is what stamps the header
+ * arrangement into the HTML.
  *
  * WHAT IT REPLACES. A static sitemap.xml with product UUIDs written into it by
  * a person, last touched on 11 June, which scripts/cloudflare-pages-build.js
@@ -31,7 +46,7 @@
  * lesser harm and is what the file did every day anyway.
  */
 
-import { supabaseUrl, supabaseAnonKey } from './api/_config.js';
+import { supabaseUrl, supabaseAnonKey } from './_config.js';
 
 const SITE = 'https://zuwera.store';
 
@@ -95,7 +110,7 @@ const STATIC = [
   { loc: '/policies.html', priority: '0.3', changefreq: 'monthly' },
 ];
 
-export async function onRequest({ env }) {
+export async function buildSitemap(env) {
   const urls = STATIC.map((p) => ({ ...p, loc: SITE + p.loc }));
 
   /* status=neq.Legacy&status=neq.Draft is the same filter /api/catalog and the
