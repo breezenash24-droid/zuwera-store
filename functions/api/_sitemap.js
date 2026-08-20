@@ -1,20 +1,25 @@
 /**
  * /sitemap.xml — generated from the catalogue, not typed by hand.
  *
- * ── WHY THIS IS A MODULE AND NOT A ROUTE ────────────────────────────────────
+ * ── IT TOOK THREE GOES TO GET THIS SERVED, AND ONLY THE THIRD REASON IS REAL ─
  *
- * It shipped as `functions/sitemap.xml.js`, on the reasonable assumption that
- * Pages turns a file path into a route by dropping the `.js`. Measured on the
- * deployed site: `/sitemap.xml` returned 404. The dot in the filename means
- * that route never registered — and because the static sitemap.xml had been
- * deleted in the same change, the result was no sitemap at all, which is worse
- * than the stale one it replaced.
+ * 1. It shipped as `functions/sitemap.xml.js`, assuming Pages turns a file path
+ *    into a route by dropping the `.js`. /sitemap.xml returned 404.
+ * 2. Blamed on the dot in the filename, so the generator moved here and
+ *    `functions/_middleware.js` answered the path instead. Still 404.
+ * 3. The actual reason, found by reading `_routes.json` instead of guessing a
+ *    second time: that file lists the ONLY paths that reach a Function at all.
+ *    Everything else is served straight off the asset store without a Worker
+ *    running — which is a deliberate and good optimisation, and it meant
+ *    neither a route nor the middleware was ever invoked for /sitemap.xml.
  *
- * So the generator lives here, underscore-prefixed so it is not a route itself,
- * and `functions/_middleware.js` — which already runs in front of every GET —
- * answers /sitemap.xml with it. That path is not a guess: the middleware is
- * demonstrably running in production, because it is what stamps the header
- * arrangement into the HTML.
+ * So the fix is one line in `_routes.json`. This module stays where it is:
+ * being reached through the middleware is fine, and the underscore keeps it
+ * from pretending to be a route on its own.
+ *
+ * The lesson is the same one as the CSP header that was silently dropped for
+ * being too long — the repository is not the deployment, and only the deployed
+ * response can say whether something works.
  *
  * WHAT IT REPLACES. A static sitemap.xml with product UUIDs written into it by
  * a person, last touched on 11 June, which scripts/cloudflare-pages-build.js

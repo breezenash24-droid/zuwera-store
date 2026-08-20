@@ -28,6 +28,8 @@ import { normalizeStateCode } from './_tax.js';
    quotes, then charges. */
 import { buildOrderMetadata, generateOrderNumber, quoteCart, sha256Base64Url } from './_cart-pricing.js';
 import { attributionToMeta, sanitizeMatchKeys } from './_attribution.js';
+import { hold, capture, release } from './_stored-value.js';
+import { handleSuccessfulPayment } from './_fulfil.js';
 import { limit } from './_ratelimit.js';
 
 const CORS = (env) => ({
@@ -49,6 +51,12 @@ export async function onRequestPost({ request, env, waitUntil }) {
   const headers = CORS(env);
   const limited = await limit(env, request, 'create-payment-intent', headers);
   if (limited) return limited;
+
+  /* Outside the try, so the catch can give back what this request reserved.
+     Holds expire on their own after thirty minutes — that is what makes a dead
+     Worker survivable — but a shopper whose request failed should not have to
+     wait out that half hour before trying the same card again. */
+  let svHoldRef = '';
 
 
   try {
@@ -82,13 +90,14 @@ export async function onRequestPost({ request, env, waitUntil }) {
     const quote = await quoteCart({
       waitUntil,
       items, address, shippingRate, promoCode, deliveryMethod,
+      storedValueCode: body.storedValueCode || '',
       accessToken: body.accessToken || request.headers.get('Authorization')?.replace(/^Bearer\s+/i, ''),
       env, request,
     });
     const {
       attributedUser, lineItems, inventoryItems, subtotalCents,
       shipping, normalizedPromoCode, discountCents, tax, taxStateCode,
-      taxRate, taxCents, totalCents,
+      taxRate, taxCents, totalCents, storedValue,
     } = quote;
 
     if (totalCents <= 0) return json({ error: 'Invalid payment amount.' }, 400, headers);
@@ -117,11 +126,95 @@ export async function onRequestPost({ request, env, waitUntil }) {
     const idempotencyKey = `pi_${idempotencyHash}`;
 
     const orderNumber = generateOrderNumber();
+
+    /* ── THE CARD IS RESERVED HERE, NOT AT QUOTE TIME ─────────────────────────
+       The quote runs on every keystroke in the address field; a hold taken
+       there would let a shopper who typed a code and changed their mind leave
+       their own money locked up. This is the moment the order becomes real.
+
+       KEYED ON THE IDEMPOTENCY HASH, NOT THE ORDER NUMBER. A new order number
+       is generated on every request, so keying on it would mean a shopper whose
+       first card declined comes back with a fresh number, takes a SECOND hold
+       against the same gift card, and finds half of it already reserved by the
+       attempt that failed — their own money, locked against nothing, for half an
+       hour. The hash is derived from the cart and the address, so every retry of
+       the same purchase carries the same reference and finds the same hold.
+
+       IF THE HOLD COMES BACK SHORT, THE CARD IS CHARGED MORE — not less. The
+       balance can have moved between the quote a moment ago and now (the same
+       card used in another tab), and the one outcome that must never happen is
+       goods leaving for less than they cost. */
+    let heldCents = 0;
+    if (storedValue.appliedCents > 0 && storedValue.code) {
+      svHoldRef = idempotencyKey;
+      const h = await hold(env, storedValue.code, storedValue.appliedCents, svHoldRef, 1800);
+      heldCents = h.heldCents;
+      if (!h.ok && h.reason === 'unavailable') {
+        /* The ledger could not be reached. Charging the full amount would take
+           money the customer thinks their card is covering; letting it through
+           at the discounted amount would give away goods. Neither, so: stop and
+           say so, which is the only answer that cannot lose. */
+        return json({ error: 'We could not check that gift card just now. Please try again in a moment.' }, 503, headers);
+      }
+    }
+    const amountDueCents = Math.max(0, totalCents - heldCents);
+
+    /* ── PAID IN FULL FROM THE CARD, SO THERE IS NO CHARGE TO MAKE ────────────
+       Stripe will not create a zero PaymentIntent, and a $100 card against an
+       $80 order is the ordinary case rather than an edge one. So this order is
+       completed here, the same way PayPal completes one: the stored value is
+       captured, a payment-shaped object is built, and fulfilment runs. The
+       order has a total, owes tax on it, and reports revenue exactly as any
+       other — only the tender is different.
+
+       Captured BEFORE fulfilment. A capture that failed after the goods were
+       committed would be goods given away; a fulfilment that fails after the
+       capture leaves a customer who paid and an order to be recovered, which is
+       the direction this codebase already chose everywhere else. */
+    if (amountDueCents === 0) {
+      const cap = await capture(env, svHoldRef, orderNumber);
+      if (!cap.ok || cap.capturedCents < totalCents) {
+        await release(env, svHoldRef);
+        return json({ error: 'We could not complete that with the gift card. Please try again.' }, 409, headers);
+      }
+      const meta = buildOrderMetadata({ orderNumber, address, quote, featureFlagsMeta, attributionMeta, matchKeys });
+      meta.payment_provider = 'stored_value';
+      meta.stored_value_cents = String(cap.capturedCents);
+      meta.stored_value_code = storedValue.code;
+      svHoldRef = '';   // captured — nothing left to release
+      const payment = { id: 'sv_' + orderNumber, amount: totalCents };
+      try {
+        await handleSuccessfulPayment(payment, meta, env, null);
+      } catch (err) {
+        console.error('stored-value order captured but fulfilment failed —', orderNumber, err);
+      }
+      return json({
+        paidInFull: true,
+        orderNumber,
+        orderId: payment.id,
+        subtotal: (subtotalCents / 100).toFixed(2),
+        discount: (discountCents / 100).toFixed(2),
+        discountCode: normalizedPromoCode,
+        shipping: (shipping.shippingCents / 100).toFixed(2),
+        tax: (taxCents / 100).toFixed(2),
+        total: (totalCents / 100).toFixed(2),
+        storedValueApplied: (cap.capturedCents / 100).toFixed(2),
+        amountDue: '0.00',
+        taxState: taxStateCode,
+        taxRateBps: Math.round(taxRate * 10000),
+      }, 200, headers);
+    }
+
     const stripe = new Stripe(env.STRIPE_SECRET_KEY, { httpClient: Stripe.createFetchHttpClient() });
     /* Named, so the retry below sends the SAME body under a new key. An
        inline literal could not be resent identically. */
     const intentParams = {
-        amount: totalCents,
+        /* What the CARD is asked for, which is the order total minus whatever a
+           gift card is covering. `totalCents` is still what the order is worth
+           and is still what the metadata, the tax record and the confirmation
+           email report — charging and owing are different numbers the moment a
+           second tender exists. */
+        amount: amountDueCents,
         currency: 'usd',
         automatic_payment_methods: { enabled: true },
         receipt_email: address.email,
@@ -156,7 +249,20 @@ export async function onRequestPost({ request, env, waitUntil }) {
             country: address.country || 'US',
           },
         },
-        metadata: buildOrderMetadata({ orderNumber, address, quote, featureFlagsMeta, attributionMeta, matchKeys }),
+        /* The hold's reference travels ON THE PAYMENT, because the thing that
+           captures it is the webhook, and the webhook knows nothing except what
+           Stripe hands back. Without this the money would stay reserved until
+           the hold expired and then quietly return — the customer would have
+           received goods, been charged the reduced amount, and kept the gift
+           card balance too. */
+        metadata: {
+          ...buildOrderMetadata({ orderNumber, address, quote, featureFlagsMeta, attributionMeta, matchKeys }),
+          ...(heldCents > 0 ? {
+            stored_value_ref: svHoldRef,
+            stored_value_cents: String(heldCents),
+            stored_value_code: storedValue.code,
+          } : {}),
+        },
     };
     const paymentIntent = await stripe.paymentIntents.create(intentParams, { idempotencyKey }
     ).catch(async (e) => {
@@ -193,6 +299,12 @@ export async function onRequestPost({ request, env, waitUntil }) {
       shipping: (shipping.shippingCents / 100).toFixed(2),
       tax: (taxCents / 100).toFixed(2),
       total: (totalCents / 100).toFixed(2),
+      /* Both numbers, named for what they are. The page shows a total and a
+         "gift card −$40" line and a "to pay" line; leaving it to subtract would
+         be the browser computing money again. */
+      storedValueApplied: (heldCents / 100).toFixed(2),
+      storedValueCode: heldCents > 0 ? storedValue.code : '',
+      amountDue: (amountDueCents / 100).toFixed(2),
       taxState: taxStateCode,
       taxRateBps: Math.round(taxRate * 10000),
       actualShipping: (shipping.actualShippingCents / 100).toFixed(2),
@@ -205,6 +317,9 @@ export async function onRequestPost({ request, env, waitUntil }) {
 
        The log line is unconditional either way: a 409 is a normal outcome, but
        a sudden run of them still means something broke upstream. */
+    if (svHoldRef) {
+      try { await release(env, svHoldRef); } catch (_) { /* it expires anyway */ }
+    }
     const status = Number.isInteger(e?.zwStatus) ? e.zwStatus : 500;
     console.error('create-payment-intent error (' + status + '):', e);
     return json({ error: e.message || 'Could not create payment.' }, status, headers);

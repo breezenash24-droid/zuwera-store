@@ -46,6 +46,7 @@ const code = (f) => read(f).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/
 const SITEMAP_FILE = 'functions/api/_sitemap.js';
 const SITEMAP = read(SITEMAP_FILE);
 const MW = read('functions/_middleware.js');
+const ROUTES = read('_routes.json');
 const EDGE = read('functions/product/[slug].js');
 const MAIN = read('product-main.js');
 const STORE = read('storefront.js');
@@ -55,26 +56,42 @@ console.log('\n  the sitemap is generated, and the markup carries its ratings\n'
 
 console.log('  the sitemap comes from the catalogue');
 {
-  /* IT SHIPPED AS functions/sitemap.xml.js AND THAT ROUTE DOES NOT EXIST.
-     Measured on the deployed site: /sitemap.xml returned 404 with the 404
-     page's body — the dot in the filename means Pages never registered it, and
-     the static file had been deleted in the same change, so the result was no
-     sitemap at all. Worse than the stale one it replaced, and invisible from
-     here, because every assertion in this file reads the repository rather
-     than the response.
+  /* THREE ATTEMPTS, AND ONLY THE THIRD DIAGNOSIS WAS RIGHT.
 
-     The generator is now a module, and functions/_middleware.js answers the
-     path. That is not another guess: the middleware demonstrably runs in
-     production, because it is what stamps the header arrangement into the
-     HTML of every page. */
-  ok('the generator is a module, not a dotted route',
+       1  shipped as functions/sitemap.xml.js       → 404
+       2  blamed the dot; moved to a module answered by the middleware → 404
+       3  read _routes.json, which lists the ONLY paths that reach a Function
+          at all. Everything else is served straight off the asset store with
+          no Worker running — so neither the route nor the middleware had ever
+          been invoked, and with the static file deleted the 404 page answered.
+
+     Both of the first two were guesses that looked like reasoning, and each
+     cost a deploy. The generalisable check is the routing one below; the
+     module-vs-route shape is now just tidiness. */
+  ok('the generator is a module rather than a dotted route',
     fs.existsSync(path.join(ROOT, SITEMAP_FILE))
     && !fs.existsSync(path.join(ROOT, 'functions/sitemap.xml.js')),
-    'functions/sitemap.xml.js is not a route Cloudflare Pages will serve');
+    'a dotted filename is at best ambiguous; the underscore says plainly it is not a route');
   ok('...and the middleware answers /sitemap.xml with it',
     /url\.pathname === '\/sitemap\.xml'/.test(MW)
     && /await buildSitemap\(env\)/.test(MW)
     && /import \{ buildSitemap \} from '\.\/api\/_sitemap\.js'/.test(MW));
+  /* THE ONE THAT ACTUALLY MATTERED. _routes.json lists the only paths that
+     reach a Function at all — everything else is served straight off the asset
+     store with no Worker running, which is why neither functions/sitemap.xml.js
+     nor the middleware was ever invoked. Two deploys were spent guessing at the
+     filename before anybody read this file.
+
+     Any path answered by the middleware has to be in here, so this is the
+     assertion that generalises: add a middleware-served path without adding it
+     to the include list and it silently 404s. */
+  ok('/sitemap.xml is routed to Functions at all',
+    /"\/sitemap\.xml"/.test(ROUTES),
+    '_routes.json is the list of paths a Worker ever sees — omitted means the asset store answers, and there is no asset');
+  ok('...and the include list is still valid JSON with the old entries intact',
+    (() => { try { const j = JSON.parse(ROUTES); return Array.isArray(j.include) && j.include.includes('/api/*') && j.include.includes('/'); } catch (_) { return false; } })(),
+    'a malformed _routes.json takes every Function down, not just this one');
+
   ok('...falling through rather than 500ing if it throws',
     /try \{ return await buildSitemap\(env\); \} catch \(_\) \{/.test(MW));
   ok('…and the hand-typed file is gone', !fs.existsSync(path.join(ROOT, 'sitemap.xml')),
