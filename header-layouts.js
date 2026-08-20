@@ -85,6 +85,10 @@
       note: 'Categories move left and the logo takes the middle.',
       spec: { logo: 'center', links: 'left', actions: 'right', linksRow: 1 } },
 
+    { id: 'logo-beside', name: 'Centred logo, categories beside it',
+      note: 'The logo and the categories sit together in the middle of one row — the centred look without the extra row it usually costs.',
+      spec: { logo: 'center', links: 'center', actions: 'right', linksRow: 1 } },
+
     { id: 'stacked', name: 'Centred logo, categories below',
       note: 'The logo has the first row to itself and the categories run along a second row underneath.',
       spec: { logo: 'center', links: 'center', actions: 'right', linksRow: 2 } },
@@ -158,7 +162,14 @@
      placed left simply sit in document order. */
   function conflict(spec) {
     var z = zones(spec);
-    if (z.center.length > 1) {
+    /* ONE PAIR IS NOT A COLLISION ANY MORE. The logo and the categories are
+       placed side by side in the centre lane, each pushed out by half of what
+       the other measures — see the rule in storefront-cohesion.css. That is
+       only possible for these two: the arithmetic needs both widths, and the
+       action controls are in flow with an auto margin rather than in the lane.  */
+    var paired = z.center.length === 2
+      && z.center.indexOf('logo') > -1 && z.center.indexOf('links') > -1;
+    if (z.center.length > 1 && !paired) {
       return 'two parts centred — centring is absolute, so they would sit on top of each other';
     }
     if (z.right.length > 1) {

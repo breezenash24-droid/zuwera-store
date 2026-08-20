@@ -207,7 +207,14 @@
 
   // The full-width mega panel drops from just under the header — measure where
   // that is (varies with the announcement bar / nav height) into --zw-megatop.
-  var _megaTopVal = '', _megaGapVal = '';
+  var _megaTopVal = '', _megaGapVal = '', _wide = {};
+  /* Round UP: half a pixel short would let the two boxes touch, and touching is
+     what this exists to prevent. */
+  function _put(name, el) {
+    if (!el) return;
+    var v = Math.ceil(el.getBoundingClientRect().width) + 'px';
+    if (v !== _wide[name]) { _wide[name] = v; document.documentElement.style.setProperty(name, v); }
+  }
   function setMegaTop() {
     try {
       var nav = document.querySelector('nav#nav, header.nav, nav.nav, nav.zw-nav');
@@ -256,6 +263,27 @@
       var gap = low ? Math.max(0, Math.floor(bottom - low)) : 0;
       var g = gap + 'px';
       if (g !== _megaGapVal) { _megaGapVal = g; document.documentElement.style.setProperty('--zw-megabridge', g); }
+
+      /* ── HOW WIDE THE LOGO AND THE CATEGORIES ARE ─────────────────────────
+       * For the one arrangement that puts BOTH of them in the middle of the
+       * same row. Centring is absolute positioning against the nav, so two
+       * centred parts land at the same coordinates — which is why that
+       * combination used to be refused. Side by side is only a matter of
+       * pushing each one out by half of what the other takes up, and CSS can do
+       * that arithmetic; it just cannot know the two numbers.
+       *
+       * Measured here rather than in the stylesheet's imagination: the logo is
+       * an image whose width arrives when it loads, and the categories are
+       * words that change with the shop's own menu. Both are re-read on
+       * everything that already re-reads the header — see the observers below.
+       *
+       * Published unconditionally. Nothing reads them unless the arrangement is
+       * that one, and a value that only exists in some arrangements is a value
+       * that is missing on the frame the arrangement changes. */
+      var _logo = document.querySelector('.nav-logo, .nav-logo-link, .zw-nav-logo');
+      var _links = document.querySelector('.nav-center');
+      _put('--zw-hdr-logo-w', _logo);
+      _put('--zw-hdr-links-w', _links);
     } catch (_) {}
   }
 
@@ -322,6 +350,11 @@
     // never stuck hidden on a slow/failed fetch:
     setTimeout(function () { if (!_navSettled) { _navSettled = true; render(); } }, 3000);
     render();
+    /* Immediately, not first at 450ms. The panel's top can wait — nothing has
+       opened one yet — but the arrangement that puts the logo and the
+       categories side by side is POSITIONED from these numbers, and until they
+       exist it has nothing to place itself with. */
+    setMegaTop();
     var _mt = 0;
     function _onMt() { if (_mt) return; _mt = (window.requestAnimationFrame || setTimeout)(function () { _mt = 0; setMegaTop(); }); }
     window.addEventListener('resize', _onMt, { passive: true });
@@ -393,9 +426,19 @@
         var _watch = function (el) { if (el) try { _ro.observe(el); } catch (_) {} };
         _watch(document.querySelector('nav#nav, header.nav, nav.nav, nav.zw-nav'));
         _watch(document.getElementById('bar'));
+        /* The two the PAIR arrangement is measured from. The logo is an image:
+           its width arrives when it loads, which is neither a resize of the
+           window nor a change of any attribute. */
+        _watch(document.querySelector('.nav-logo, .nav-logo-link, .zw-nav-logo'));
+        _watch(document.querySelector('.nav-center'));
       }
       if (window.MutationObserver) {
-        new MutationObserver(_onMt).observe(document.documentElement, {
+        /* setMegaTop, not _onMt: every other trigger can wait for the next
+           frame, but the rule that reads these numbers applies on the SAME
+           frame the attribute is written, so a measurement one frame later is a
+           frame of the logo sitting on the categories. Mutation callbacks run
+           after the change, so what is measured here is the new arrangement. */
+        new MutationObserver(setMegaTop).observe(document.documentElement, {
           attributes: true,
           attributeFilter: ['data-zw-hdr', 'data-zw-hdr-logo', 'data-zw-hdr-links',
             'data-zw-hdr-actions', 'data-zw-hdr-linksrow', 'data-zw-iconlabels'],

@@ -4717,6 +4717,42 @@ body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img)
     order: 3; position: static; left: auto; right: auto; margin: 0 0 0 auto; width: auto; justify-content: flex-end;
   }
 
+  /* ── THE LOGO AND THE CATEGORIES SHARING ONE CENTRE ───────────────────────
+     Both centred used to be a refusal: centring is absolute positioning against
+     the nav, so two centred parts are two boxes at the same coordinates and the
+     one underneath stops being clickable. Measured at 1920px, before this rule:
+     logo 919..969 sitting inside categories 818..1069.
+
+     The only arrangement that gave a centred logo AND centred categories was to
+     put the categories on a row of their own, and a row costs a row — 91.5px of
+     header against 67px for every single-row arrangement, half again as tall
+     before the announcement bar is counted.
+
+     They fit on one row if each is pushed out by half of what the other takes
+     up, plus a gap. An absolutely positioned box with left:0;right:0 and auto
+     margins sits at the nav's centre; giving it left:-S and right:S moves that
+     lane by exactly S and changes nothing else, so the pair ends up centred as
+     a unit with each half where it belongs. The two widths are measured by
+     nav-menu.js, because the logo is an image and the categories are the shop's
+     own words.
+
+     NOT a transform, which would do the same arithmetic and break something
+     else: a transform makes the element a containing block for fixed-position
+     descendants, and .zw-mega — the full-width category panel — is
+     position:fixed INSIDE .nav-center. It would stop spanning the viewport and
+     start spanning the categories. Offsets have no such side effect. */
+  html[data-zw-hdr-logo="center"][data-zw-hdr-links="center"][data-zw-hdr-linksrow="1"] :is(#nav, .nav, .zw-nav) > :is(.nav-logo, .nav-logo-link, .zw-nav-logo, :first-child) {
+    left: calc(-1 * (var(--zw-hdr-links-w, 0px) + var(--zw-hdr-pair-gap, 2rem)) / 2);
+    right: calc((var(--zw-hdr-links-w, 0px) + var(--zw-hdr-pair-gap, 2rem)) / 2);
+  }
+  html[data-zw-hdr-logo="center"][data-zw-hdr-links="center"][data-zw-hdr-linksrow="1"] :is(#nav, .nav, .zw-nav) > .nav-center {
+    left: calc((var(--zw-hdr-logo-w, 0px) + var(--zw-hdr-pair-gap, 2rem)) / 2);
+    right: calc(-1 * (var(--zw-hdr-logo-w, 0px) + var(--zw-hdr-pair-gap, 2rem)) / 2);
+  }
+  /* The gap tightening below is for the arrangement where the categories run in
+     FLOW past a centred logo. Here they are centred too, and the pair is placed
+     from their measured width — squeezing them would only move the logo. */
+
   /* A centred part is out of flow, so the categories beside it do not stop at
      the centre lane — they run underneath it, and the thing on the bottom stops
      being clickable. Measured on the four categories this shop ships: the
