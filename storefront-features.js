@@ -303,11 +303,26 @@
       '@media(min-width:900px){.zwf-search-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}}',
       '.zwf-empty{padding:3rem 1rem;text-align:center;opacity:.55;font-family:var(--fb,inherit)}',
       '@media(prefers-reduced-motion:reduce){.zwf-search,.zwf-search-panel{transition:none}}',
-      /* Apple-ish: the panel slides out from beneath the header, which stays put
-         and shrinks slightly. The overlay's top is set in JS to the header's
-         measured bottom, so the header is never covered and stays clickable. */
+      /* Apple-ish: the panel slides out from beneath the header, which stays
+         put. The overlay's top is set in JS to the header's measured bottom, so
+         the header is never covered and stays clickable. */
       'body.zwf-searching :is(nav#nav,nav.nav,header.nav,nav.zw-nav){padding-top:.3rem!important;padding-bottom:.3rem!important}',
-      'body.zwf-searching :is(.nav-logo,.zw-nav-logo) img{transform:scale(.86);transition:transform .34s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1))}',
+      /* THE LOGO DOES NOT SHRINK WITH IT. It used to: transform:scale(.86) on
+         the logo image. Measured on the home page with the search panel open,
+         transitions cancelled so the settled value is the one being read:
+
+             logo shut   50 x 50   transform: none
+             logo open   43 x 43   matrix(0.86, 0, 0, 0.86, 0, 0)
+             bar         67px, both ways
+
+         The mark was the only thing that moved. The bar never changed size at
+         all: a baked header is floored at min-height:var(--zw-hdr-minh, 67px),
+         and the padding above cannot pull it under that. So the whole visible
+         gesture was a brand mark going 14% smaller and snapping back on close
+         — snapping, because the transition is declared inside this rule and so
+         only ever existed on the way in. That reads as a rendering fault, not
+         as a gesture. The padding rule stays for headers that are not floored;
+         the mark stays the size it is. */
       '.zwf-search-panel{overflow:hidden}',
       '@media(max-width:899px){.zwf-search-panel{max-height:100%}}',
 

@@ -155,7 +155,7 @@ console.log('\n  the header draws no bottom edge where a panel covers it');
     !!rule && /body\.zwf-searching/.test(rule[0])
     && /classList\.add\('zwf-searching'\)/.test(FEAT)
     && (FEAT.match(/classList\.add\('zwf-searching'\)/g) || []).length >= 2,
-    'storefront-features sets it for both — it is what shrinks the header');
+    'storefront-features sets it for both, and the join rule is what reads it');
   ok('...and the mega panel, matched on the nav because it has no body class',
     !!rule && /:has\(\.zw-navitem\.zw-has-mega:hover\)/.test(rule[0])
     && /:has\(\.zw-navitem\.zw-has-mega:focus-within\)/.test(rule[0]),
@@ -174,6 +174,29 @@ console.log('\n  the header draws no bottom edge where a panel covers it');
   for (const d of ['nav#nav', '.nav', 'header.nav', '.zw-nav']) {
     ok('  ' + d + ' is named', !!rule && rule[0].includes(d));
   }
+}
+
+console.log('\n  and the header keeps its shape while the panel is open');
+{
+  /* The class used to resize the logo: transform:scale(.86) on the logo image,
+     which took the home page mark from 50x50 to 43x43 and snapped it back on
+     close — the transition lived inside the same rule, so it only existed on
+     the way in. Measured with the search panel open and transitions cancelled,
+     so the settled value is the one read. The bar itself never moved: 67px
+     either way, floored by min-height:var(--zw-hdr-minh, 67px).
+
+     A brand mark that changes size when a panel opens reads as a rendering
+     fault, which is how it was reported. */
+  ok('the logo is not resized when a panel opens',
+    !/zwf-searching[^']*(\.nav-logo|\.zw-nav-logo)[^']*transform:\s*scale/.test(FEAT),
+    'a mark that shrinks when the bag opens looks like a bug, not a gesture');
+  ok('...and nothing else in the bundle scales it either',
+    !/(\.nav-logo|\.zw-nav-logo|\.nav-logo-link)[^']*\{[^']*transform:\s*scale/.test(FEAT));
+  /* The class still has a job — the join rule above keys off it — so it is
+     still set for both panels and still removed on close. */
+  ok('the class is still cleared on the way out',
+    (FEAT.match(/classList\.remove\('zwf-searching'\)/g) || []).length >= 2,
+    'left behind, it would hold the bar’s bottom edge transparent for good');
 }
 
 console.log('\n  and the divider setting can actually turn the line off');
