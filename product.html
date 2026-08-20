@@ -252,7 +252,7 @@ try {
 <link rel="stylesheet" href="storefront-cohesion.css?v=6cac1e71">
 <script src="header-scroll.js?v=1e2ba84f" defer></script>
 <script src="announcement-bar.js?v=9e0f1787" defer></script>
-<script src="email-popup.js?v=33908bad" defer></script>
+<script src="email-popup.js?v=33908bad" async></script>
 <script src="integrations.js?v=7f9fbde2" defer></script>
 <script src="image-effects.js?v=ec67c379" defer></script>
 <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=12725ac1">
@@ -1919,15 +1919,21 @@ body.super-light-mode { background: var(--ink) !important; }
 <script src="/motion.js?v=5b9cc123" defer></script>
 <script src="/icon-sets.js?v=e0ed4bcb" defer></script>
 <script src="storefront-theme.js?v=3782df36" defer></script>
-<script src="lang.js?v=f4b70f65" defer></script>
+<script src="lang.js?v=f4b70f65" async></script>
 <!-- deferred: nothing is parsed after this that needs it, and renderReviews()
      runs off the async product fetch, long after a deferred script has run.
      8 KB off the render-blocking path for content 25% down the page. -->
+<!-- defer, not async, on THIS page alone: the review form is opened by an
+     inline onclick="openReviewForm(...)" in the markup below, and an inline
+     handler naming a function that has not loaded yet throws rather than
+     waiting. `defer` is what guarantees reviews.js has run before anything
+     is clickable. On the homepage there is no such handler, so it is async
+     there and stays out of the ordered queue. -->
 <script src="reviews.js?v=43109c27" charset="utf-8" defer></script>
 
 <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 <script src="commerce-checkout.js?v=b42a55a1" defer></script>
-<script src="customer-hub.js?v=ed5b8f03" defer></script>
+<script src="customer-hub.js?v=ed5b8f03" async></script>
 
 <script>
 /* ── Modal backdrop transparency enforcer ──────────────────────────────────

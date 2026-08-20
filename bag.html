@@ -1808,7 +1808,7 @@ window.__zwOpenAuth = function(tab) {
 <script src="/motion.js?v=5b9cc123" defer></script>
 <script src="/icon-sets.js?v=e0ed4bcb" defer></script>
 <script src="storefront-theme.js?v=3782df36" defer></script>
-<script src="lang.js?v=f4b70f65" defer></script>
+<script src="lang.js?v=f4b70f65" async></script>
 <!-- zw-login.js claims window.openAuthModal/__zwOpenAuth itself (it loads after
      auth.js, both deferred), so the inline reroute that used to sit here is gone.
      One login entry point, defined in one place — see zw-login.js. -->
@@ -1819,7 +1819,7 @@ window.__zwOpenAuth = function(tab) {
 <script src="fit-finder.js?v=f5cdcd6f" defer></script>
 <script src="/storefront-features.js?v=bba83864" defer></script>
 <script src="announcement-bar.js?v=9e0f1787" defer></script>
-<script src="email-popup.js?v=33908bad" defer></script>
+<script src="email-popup.js?v=33908bad" async></script>
 <script src="integrations.js?v=7f9fbde2" defer></script>
 </body>
 </html>

@@ -303,6 +303,90 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
   /* Settings early fetch — builder config, theme, brand all arrive before
      storefront.js begins executing, eliminating the settings-apply flash. */
   window.__zwSettingsEarlyFetch=fetch('/api/storefront-settings');
+
+  /* ── THE HERO, FOR SOMEONE WHO HAS NEVER BEEN HERE BEFORE ────────────────
+     The block further down preloads the hero at high priority, and it reads
+     localStorage — so it works on the second visit and does nothing at all on
+     the first. A first-time visitor's largest element could not begin
+     downloading until storefront.js (40 KB on the wire, deferred) had been
+     fetched, parsed, executed, and had waited for its settings. Measured live:
+     LCP 5,716 ms, and the LCP element was the hero VIDEO.
+
+     But the answer is already on its way — it is in the response fired one line
+     above. So: read the hero out of THAT, and start the download immediately.
+     Nothing here renders anything; the carousel still draws whatever the
+     settings actually say. The worst a mistake can cost is one wasted preload.
+
+     Cloned before anyone reads it. This handler is registered first, so the
+     clone is taken before zw-data.js consumes the body. */
+  try {
+    window.__zwSettingsEarlyFetch
+      .then(function(r){ return r.ok ? r.clone().json() : null; })
+      .then(function(body){
+        var st = body && body.settings; if (!st) return;
+        var pb = st.page_builder_published;
+        if (typeof pb === 'string') { try { pb = JSON.parse(pb); } catch(e) { return; } }
+        var secs = (pb && pb.sections) || [];
+        if (!secs.length) return;
+        /* The FIRST visible section, not the first hero anywhere — a hero
+           three sections down is not the largest contentful paint, and
+           preloading it would compete with whatever is. */
+        var top = secs.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); })
+          .filter(function(s){ return s && s.visible !== false; })[0];
+        if (!top || (top.type !== 'hero' && top.type !== 'hero_carousel')) return;
+        var s = top.settings || top;
+        var narrow = window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
+        if (narrow ? s.hide_mobile : s.hide_desktop) return;
+
+        var url = '', isVideo = false;
+        if (top.type === 'hero_carousel') {
+          var sl = (Array.isArray(s.slides) && s.slides[0]) || s;
+          url = (narrow && sl.media_url_mobile) || sl.media_url || '';
+          isVideo = sl.media_type === 'video' || /\.(mp4|webm|mov)(\?|$)/i.test(url);
+          /* A video's POSTER is what paints — 58 KB against 1.2 MB — so that
+             is what gets the high-priority slot. The video arrives behind it
+             at the browser's own pace. An admin-set poster wins; otherwise the
+             first frame comes from Cloudinary, the same URL storefront.js
+             builds with videoPosterUrl(). */
+          if (isVideo) url = sl.video_poster || zwPosterOf(url);
+        } else {
+          url = s.image || '';
+        }
+        if (!url || !/^https?:\/\//i.test(url)) return;
+
+        var href = isVideo ? url : zwOptHead(url, narrow ? 800 : 1400);
+        var pre = document.createElement('link');
+        pre.rel = 'preload'; pre.as = 'image'; pre.href = href;
+        pre.fetchPriority = 'high';
+        document.head.appendChild(pre);
+        /* And remember it, so the SYNCHRONOUS block below — which runs before
+           any network call at all — can do this on the next visit without
+           waiting for settings. */
+        try { localStorage.setItem('zw-hero-media', href); } catch(e) {}
+      })
+      .catch(function(){});
+  } catch(e) {}
+
+  /* Mirrors optimizeImage()/videoPosterUrl() in image-utils.js, which is
+     deferred and therefore not available this early. Keep the cloud name and
+     the caps in sync — tests/the-reads-are-bounded-and-shared.test.js checks
+     that these agree with the real ones. */
+  function zwOptHead(url, width){
+    var v = String(url || '').trim();
+    if(!v || /^(data:|blob:)/i.test(v)) return v;
+    if(!/^https?:\/\//i.test(v) || v.indexOf('cloudinary.com') !== -1) return v;
+    var vw = window.innerWidth || 0, cap = 1400;
+    if(vw && vw <= 520) cap = 760; else if(vw && vw <= 900) cap = 1000;
+    var w = Math.max(120, Math.min(Math.round(width || 800), cap));
+    return 'https://res.cloudinary.com/dubg4loah/image/fetch/f_auto,q_auto:eco,w_' + w + '/' + encodeURI(v);
+  }
+  function zwPosterOf(url){
+    var v = String(url || '').trim();
+    if(!/^https?:\/\//i.test(v) || v.indexOf('cloudinary.com') !== -1) return '';
+    var vw = window.innerWidth || 0, cap = 1400;
+    if(vw && vw <= 520) cap = 760; else if(vw && vw <= 900) cap = 1000;
+    return 'https://res.cloudinary.com/dubg4loah/video/fetch/so_0,f_jpg,q_auto,w_' + cap + '/' + encodeURI(v);
+  }
 })();
 </script>
 <!-- JSON-LD Structured Data -->
@@ -513,7 +597,7 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
   <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
 <script src="header-scroll.js?v=1e2ba84f" defer></script>
 <script src="announcement-bar.js?v=9e0f1787" defer></script>
-<script src="email-popup.js?v=33908bad" defer></script>
+<script src="email-popup.js?v=33908bad" async></script>
 <script src="integrations.js?v=7f9fbde2" defer></script>
 <script src="image-effects.js?v=ec67c379" defer></script>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=12725ac1">
@@ -2935,16 +3019,16 @@ try{var _nb=document.documentElement.getAttribute('data-zw-base')||'dark';docume
 <script src="/motion.js?v=5b9cc123" defer></script>
 <script src="/icon-sets.js?v=e0ed4bcb" defer></script>
 <script src="storefront-theme.js?v=3782df36" defer></script>
-<script src="lang.js?v=f4b70f65" defer></script>
+<script src="lang.js?v=f4b70f65" async></script>
 <script src="scroll-reveal.js?v=8333d598" defer></script>
-<script src="reviews.js?v=43109c27" charset="utf-8" defer></script>
+<script src="reviews.js?v=43109c27" charset="utf-8" async></script>
 
 <!-- Cookie consent banner is injected on every page by consent.js (window.zwConsent),
      which also gates analytics/marketing until the visitor accepts. -->
 
 
 <script src="commerce-checkout.js?v=b42a55a1" defer></script>
-<script src="customer-hub.js?v=ed5b8f03" defer></script>
+<script src="customer-hub.js?v=ed5b8f03" async></script>
 
 <!-- Empty-bag and cart shell wiring compatibility structure -->
 <div id="cart-modal" style="display:none;"></div>

@@ -333,5 +333,114 @@ console.log('\n  and video has somewhere to fall when Cloudinary stops answering
     'a Cloudinary URL somebody stored directly must be left alone');
 }
 
+console.log('\n  the hero starts loading on the FIRST visit, not the second');
+{
+  /* The existing preload block reads localStorage, so it does nothing at all
+     for someone who has never been here. Their largest element could not begin
+     downloading until storefront.js — 39,953 bytes on the wire, deferred, and
+     24% of the homepage's whole script payload — had been fetched, parsed, run,
+     and had waited for its settings. Measured live: LCP 5,716 ms, and the LCP
+     element was the hero VIDEO.
+
+     The answer was already in flight: /api/storefront-settings is fired in the
+     <head>. So the hero is read out of THAT. Verified against the live payload
+     before shipping — the block picks the first visible section, resolves the
+     video to its poster frame, and both viewports return a real image:
+
+         desktop  …/video/fetch/so_0,f_jpg,q_auto,w_1400/…   200   58,439 b
+         mobile   …/video/fetch/so_0,f_jpg,q_auto,w_760/…    200   27,687 b  */
+  ok('the head reads the hero out of the settings already in flight',
+    /window\.__zwSettingsEarlyFetch\s*\n\s*\.then\(function\(r\)\{ return r\.ok \? r\.clone\(\)\.json\(\) : null; \}\)/.test(INDEX));
+  ok('…by cloning, so it does not consume the body zw-data.js needs',
+    /r\.clone\(\)\.json\(\)/.test(INDEX),
+    'this handler is registered first, so the clone is taken before anything reads it');
+  ok('it preloads the FIRST VISIBLE section, not the first hero anywhere',
+    /\.filter\(function\(s\)\{ return s && s\.visible !== false; \}\)\[0\]/.test(INDEX)
+    && /if \(!top \|\| \(top\.type !== 'hero' && top\.type !== 'hero_carousel'\)\) return;/.test(INDEX),
+    'a hero three sections down is not the largest paint, and would compete with whatever is');
+  ok('…respecting the per-device hide switches',
+    /if \(narrow \? s\.hide_mobile : s\.hide_desktop\) return;/.test(INDEX));
+  ok('…and the mobile media override',
+    /\(narrow && sl\.media_url_mobile\) \|\| sl\.media_url/.test(INDEX));
+  ok('a video preloads its POSTER, which is what actually paints',
+    /if \(isVideo\) url = sl\.video_poster \|\| zwPosterOf\(url\);/.test(INDEX),
+    '58 KB against 1.2 MB — the video arrives behind it');
+  ok('…preferring the poster the admin set over the derived one',
+    /sl\.video_poster \|\| zwPosterOf/.test(INDEX));
+  ok('the preload is high priority',
+    /pre\.fetchPriority = 'high';/.test(INDEX));
+  ok('…and is remembered for the synchronous path on the next visit',
+    /localStorage\.setItem\('zw-hero-media', href\)/.test(INDEX));
+  ok('it renders nothing — a wrong guess costs one wasted request, never a wrong hero',
+    !/innerHTML/.test(INDEX.slice(INDEX.indexOf('THE HERO, FOR SOMEONE WHO HAS NEVER'),
+      INDEX.indexOf('function zwOptHead'))));
+
+  /* These two duplicate image-utils.js because they run in <head>, before it.
+     Duplication is the price of being early; drift is what makes it a bug. */
+  ok('the head transform agrees with the real optimizeImage',
+    /f_auto,q_auto:eco,w_/.test(INDEX) && /f_auto,q_auto:eco,w_\$\{safeWidth\}/.test(UTIL));
+  ok('the head poster agrees with the real videoPosterUrl',
+    /video\/fetch\/so_0,f_jpg,q_auto,w_/.test(INDEX)
+    && /so_0,f_jpg,q_auto,w_\$\{safeWidth\}/.test(UTIL));
+  ok('…and both use the same cloud name',
+    (INDEX.match(/res\.cloudinary\.com\/dubg4loah/g) || []).length >= 2
+    && /DEFAULT_CLOUDINARY_CLOUD_NAME = 'dubg4loah'/.test(UTIL));
+  ok('…and the same viewport caps',
+    (INDEX.match(/cap = 760; else if\(vw && vw <= 900\) cap = 1000;/g) || []).length >= 2
+    && /MAX_MOBILE_WIDTH = 760/.test(UTIL) && /MAX_TABLET_WIDTH = 1000/.test(UTIL));
+}
+
+console.log('\n  four modules left the ordered queue, and only the four that could');
+{
+  /* Deferred scripts execute in DOCUMENT ORDER, so a slow one holds up every
+     script after it — including the ones that paint the nav, the copy and the
+     header arrangement. That ordering cost more than the bytes did. */
+  const PAGES = ['404.html', 'about.html', 'account.html', 'bag.html', 'checkout.html',
+    'confirm.html', 'drop001.html', 'index.html', 'journal.html', 'landing.html',
+    'policies.html', 'product.html', 'returns.html', 'sizeguide.html'];
+  const tag = (html, file) => {
+    const m = html.match(new RegExp('<script[^>]*\\ssrc="[^"]*' + file.replace('.', '\\.') + '[^"]*"[^>]*>'));
+    return m ? m[0] : '';
+  };
+  for (const page of PAGES) {
+    const html = read(page);
+    for (const f of ['email-popup.js', 'lang.js', 'customer-hub.js']) {
+      const t = tag(html, f);
+      if (!t) continue;
+      ok(page + ' loads ' + f + ' out of the ordered queue',
+        / async[ >]/.test(t) && !/ defer[ >]/.test(t), t.slice(0, 60));
+    }
+  }
+  ok('reviews.js is async on the homepage, where nothing inline calls it',
+    / async[ >]/.test(tag(INDEX, 'reviews.js')));
+  /* product.html has onclick="openReviewForm(...)" written into its markup, and
+     an inline handler naming a function that has not loaded yet throws rather
+     than waiting. defer is what guarantees it has run before anything is
+     clickable. */
+  ok('…but stays deferred on the product page, which has an inline handler for it',
+    / defer[ >]/.test(tag(read('product.html'), 'reviews.js'))
+    && /onclick="openReviewForm\(/.test(read('product.html')));
+
+  /* Leaving the deferred queue means a script can run AFTER DOMContentLoaded,
+     and a listener registered for an event that already fired never runs. Both
+     files that had an unguarded one were guarded first. */
+  ok('customer-hub.js no longer depends on being early to initialise',
+    /if \(document\.readyState === 'loading'\)/.test(read('customer-hub.js'))
+    && /document\.addEventListener\('DOMContentLoaded', boot, \{ once: true \}\)/.test(read('customer-hub.js')));
+  ok('reviews.js does not either',
+    /function zwOnReady\(fn\)/.test(read('reviews.js'))
+    && !/^document\.addEventListener\('DOMContentLoaded'/m.test(code(read('reviews.js'))));
+
+  /* These two look like the same kind of module and are not: between them they
+     define showToast, renderCart, loadCartCount, animateAddToBag,
+     closeMobileMenu and openAuth, called from more than ten other files.
+     Loading either late leaves a window with showToast undefined site-wide. */
+  for (const f of ['quick-add-modal.js', 'zw-login.js'])
+    ok(f + ' stayed in the queue — other files call its globals',
+      / defer[ >]/.test(tag(INDEX, f)), tag(INDEX, f).slice(0, 60));
+  ok('…and that is true of showToast specifically',
+    /window\.showToast\s*=/.test(read('quick-add-modal.js')));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

@@ -2624,7 +2624,17 @@
             let rows = apiRow('Plan', s.plan || 'Free');
             if (s.credits)   rows += apiRow('Credits used', `${(s.credits.usage||0).toFixed(1)} / ${s.credits.limit || 25}`) + usageBar(s.credits.used_percent || 0);
             if (s.credits)   rows += projectQuota(s.credits.usage, s.credits.limit || 25,
-                { whenOver: 'Image transforms then fail rather than falling back, so this one is worth watching.' });
+                /* This used to read "Image transforms then fail rather than
+                   falling back", which was wrong in one direction and right in
+                   the other. Images have fallen back for a long time
+                   (Cloudinary → images.weserv.nl → the raw original). VIDEO had
+                   no fallback at all until the hero started going through
+                   Cloudinary and one was written for it — and wsrv is an image
+                   service, so video's only fallback is the untouched file.
+                   Live numbers for the hero: 1.2 MB optimised, 5.8 MB raw. */
+                { whenOver: 'The shop keeps working: photos fall back to images.weserv.nl and then to the original, '
+                    + 'and video falls back to the untouched file. What you lose is the compression — the hero video '
+                    + 'goes from about 1.2 MB to 5.8 MB — so pages get heavy rather than broken.' });
             if (s.storage)   rows += apiRow('Storage', `${fmtBytes(s.storage.usage)} / ${fmtBytes(s.storage.limit)}`) + usageBar(s.storage.used_percent || 0);
             if (s.bandwidth) rows += apiRow('Bandwidth', `${fmtBytes(s.bandwidth.usage)} / ${fmtBytes(s.bandwidth.limit)}`) + usageBar(s.bandwidth.used_percent || 0);
             if (s.objects)   rows += apiRow('Objects (files)', `${(s.objects.usage||0).toLocaleString()} / ${(s.objects.limit||3000).toLocaleString()}`);

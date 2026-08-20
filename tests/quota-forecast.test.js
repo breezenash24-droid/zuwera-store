@@ -110,9 +110,25 @@ console.log('\n  it is actually wired to the cards that have limits');
     /projectQuota\(s\.characterCount, s\.characterLimit/.test(SRC));
   ok('…naming the charge that starts', /charges per character past that/.test(SRC));
   ok('Cloudinary forecasts its credits', /projectQuota\(s\.credits\.usage/.test(SRC));
-  /* Cloudinary is the one with no fallback — worth saying, because the other
-     two degrade and this one simply stops. */
-  ok('…and says transforms fail rather than fall back', /fail rather than falling back/.test(SRC));
+  /* This used to assert that Cloudinary "transforms fail rather than falling
+     back", and that was simply not true. Images have fallen back for a long
+     time (Cloudinary → images.weserv.nl → the raw original). Video had no
+     fallback at all until the hero started going through Cloudinary and one was
+     written for it — and wsrv is an image service, so video's only fallback is
+     the untouched file. Checked against the live hero: 1.2 MB optimised,
+     5.8 MB raw, and wsrv answers 404 for the .mp4.
+
+     A quota warning that overstates the consequence is the same defect as one
+     that understates it: it is a control saying something it cannot produce.
+     What the merchant needs to know is that pages get HEAVY, not broken. */
+  ok('…and says what over-quota actually costs: weight, not a broken shop',
+    /photos fall back to images\.weserv\.nl and then to the original/.test(SRC)
+    && /video falls back to the untouched file/.test(SRC));
+  ok('…with the size it costs, so the warning is worth acting on',
+    /1\.2 MB to 5\.8 MB/.test(SRC));
+  ok('…and no longer claims transforms simply stop',
+    !/fail rather than falling back/.test(SRC.replace(/\/\*[\s\S]*?\*\//g, '')),
+    'images have degraded gracefully for a long time; that text was never true of them');
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

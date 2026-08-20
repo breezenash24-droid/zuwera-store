@@ -1,3 +1,8 @@
+/* Run now if the document is already parsed, otherwise when it is. */
+function zwOnReady(fn) {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once: true });
+  else fn();
+}
 /**
  * reviews.js Ã¢Â€Â” Product reviews powered by Supabase
  *
@@ -1056,7 +1061,11 @@ window.translateReviews = async function(domId) {
 })();
 
 // Ensure all-reviews-modal can be safely closed globally
-document.addEventListener('DOMContentLoaded', () => {
+/* Guarded for the same reason as the block above it: a DOMContentLoaded
+   listener registered after that event has fired never runs, and this file no
+   longer executes inside the deferred queue that used to guarantee it could
+   not be late. */
+zwOnReady(() => {
   const allModal = document.getElementById('all-reviews-modal');
   if (allModal) {
     function closeAllReviewsModal() {
