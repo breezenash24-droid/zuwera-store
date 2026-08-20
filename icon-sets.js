@@ -286,8 +286,24 @@
   }
 
   function load() {
+  /* ONE read of site_settings for the whole page, shared with every other
+     module on it - see zw-data.js. This used to be its own round trip to
+     Supabase, and twelve modules each having one is what put the last of
+     them 3.5 seconds into the page load.
+
+     The module's own request stays as the fallback, so this never depends
+     on another file having loaded first. Both paths resolve to the same
+     PostgREST row shape, and both reject rather than resolve empty when the
+     read fails - so nothing below this line changes. */
+  function zwCfgRows() {
+    if (window.zwSettings) {
+      return window.zwSettings.get('icons')
+        .then(function (v) { return v == null ? [] : [{ value: v }]; });
+    }
     return fetch(REST, { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }, cache: 'no-store' })
-      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (r) { return r.ok ? r.json() : null; });
+  }
+    return zwCfgRows()
       .then(function (rows) {
         var raw = rows && rows[0] && rows[0].value;
         if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch (_) { raw = null; } }

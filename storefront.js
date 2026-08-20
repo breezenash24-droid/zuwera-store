@@ -2988,15 +2988,22 @@ async function _doLoadProducts() {
     const earlyFetch = window.__zwProductsEarlyFetch;
     window.__zwProductsEarlyFetch = null;
     const _timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 9000));
-    const productsResp = await Promise.race([
-      earlyFetch || fetch('/api/catalog'),
-      _timeout
-    ]);
-    if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
-    const _payload = await productsResp.json();
-    // { ok, products } from /api/catalog; a bare array from the old direct
-    // Supabase read. Both accepted so a page cached mid-deploy still renders.
-    let products = Array.isArray(_payload) ? _payload : (_payload && _payload.products);
+    /* /api/catalog is paginated now, so "the catalogue" is however many pages
+       it takes — zwFetchCatalog walks them and hands back the whole thing.
+       The head's early fetch is passed in as page one so nothing is requested
+       twice, and view=list matches the URL it was fetched with: asking for a
+       different projection here would throw that response away.
+
+       The fallback below is the old single call, kept for a page cached from
+       before zw-data.js existed. It reads a bare array as happily as an
+       envelope, which is the same reason it has always been written that way. */
+    const _fetchAll = (typeof window.zwFetchCatalog === 'function')
+      ? window.zwFetchCatalog({ view: 'list', pageSize: 250, first: earlyFetch })
+          .then((r) => r.products)
+      : Promise.resolve(earlyFetch || fetch('/api/catalog?view=list'))
+          .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+          .then((b) => (Array.isArray(b) ? b : ((b && b.products) || [])));
+    let products = await Promise.race([_fetchAll, _timeout]);
     if (!Array.isArray(products)) products = [];
     
     const normalizedProducts = products.map((product) => ({

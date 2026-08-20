@@ -226,6 +226,7 @@ document.documentElement.classList.add('zw-collflash');
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
   <link rel="manifest" href="/site.webmanifest">
   <link rel="canonical" href="https://zuwera.store/drop001.html">
+  <script src="/zw-data.js" defer></script>
   <script src="preview-mode.js?v=799782ba" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=5dc05f38" defer></script>
@@ -2782,13 +2783,26 @@ function updateCountdown() {
         // serve them from its edge. These were 108 KB of Supabase egress on
         // every collection page load. Stock is the separate call on purpose:
         // the catalogue can sit on a 5-minute cache, stock cannot.
-        const [catResp, stockResp] = await Promise.all([
-          fetch('/api/catalog'),
+        /* view=full, not view=list, and that is deliberate: this page's card
+           carousel renders EVERY photo of a colourway as a slide, so the
+           trimmed grid projection would quietly shorten the carousels.
+
+           Paged, though — /api/catalog no longer answers with an unbounded
+           catalogue, and the filter sidebar here reads every product to decide
+           which colours, prices and materials to offer. A sidebar built from
+           page one would offer a subset of the real options while looking
+           exactly like a complete one, so this waits for every page before it
+           draws. */
+        const [_catAll, stockResp] = await Promise.all([
+          (typeof window.zwFetchCatalog === 'function')
+            ? window.zwFetchCatalog({ view: 'full', pageSize: 250 })
+            : fetch('/api/catalog').then((r) => {
+              if (!r.ok) throw new Error(`HTTP ${r.status}`);
+              return r.json();
+            }).then((b) => ({ products: (Array.isArray(b) ? b : (b && b.products)) || [] })),
           fetch('/api/stock'),
         ]);
-        if (!catResp.ok) throw new Error(`HTTP ${catResp.status}`);
-        const _cat = await catResp.json();
-        const _catProducts = (Array.isArray(_cat) ? _cat : (_cat && _cat.products)) || [];
+        const _catProducts = (_catAll && _catAll.products) || [];
         const _stock = stockResp.ok ? await stockResp.json().catch(() => null) : null;
         const sizeRows = (Array.isArray(_stock) ? _stock : (_stock && _stock.sizes)) || [];
 

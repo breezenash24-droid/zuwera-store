@@ -233,6 +233,7 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
   <link rel="manifest" href="/site.webmanifest">
+  <script src="/zw-data.js" defer></script>
   <script src="preview-mode.js?v=799782ba" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=5dc05f38" defer></script>
@@ -291,7 +292,14 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
      Supabase egress on EVERY homepage load, with cache:'no-store' making sure
      none of it was ever reused — which is how a store with two monthly active
      users put 5.68 GB through a 5 GB tier. */
-  window.__zwProductsEarlyFetch=fetch('/api/catalog');
+  /* view=list drops the columns only a product page reads — care instructions,
+     fabric weights, model measurements, the point-of-measure table. A grid of
+     cards has never drawn any of them. Together with the trimmed image rows
+     that is a third off the payload, and `limit` is what stops it being
+     unbounded: at 8,392 bytes per product the old call was heading for 8 MB at
+     a thousand products, in front of the first product a visitor sees.
+     zwFetchCatalog pages past this first response if the shop is larger. */
+  window.__zwProductsEarlyFetch=fetch('/api/catalog?view=list&limit=250&offset=0');
   /* Settings early fetch — builder config, theme, brand all arrive before
      storefront.js begins executing, eliminating the settings-apply flash. */
   window.__zwSettingsEarlyFetch=fetch('/api/storefront-settings');

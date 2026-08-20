@@ -11333,8 +11333,13 @@ function escapeAttr(value) {
                    read makes the whole answer unsafe, and says so. */
                 const sources = [];
                 try {
-                    const r = await fetch('/api/catalog');
-                    sources.push(JSON.stringify(await r.json()));
+                    /* Every page of it. /api/catalog is bounded now, and a
+                       single call returns page one -- which for this scan would
+                       mean reporting every photo of every product past the
+                       first page as unused, and offering to delete it. */
+                    const cat = await window.zwFetchCatalog({ view: 'full', pageSize: 500 });
+                    if (!cat.complete) { checkedAll = false; say('(could not read the whole catalogue — ' + cat.products.length + ' of ' + (cat.total == null ? '?' : cat.total) + ' products)'); }
+                    sources.push(JSON.stringify(cat.products));
                 } catch (_) { checkedAll = false; say('(could not read products)'); }
                 try {
                     const { data, error } = await sb.from('site_settings').select('key,value');
@@ -11427,8 +11432,12 @@ function escapeAttr(value) {
             const sources = [];
             let complete = true;
             try {
-                const r = await fetch('/api/catalog');
-                sources.push({ where: 'products', blob: JSON.stringify(await r.json()) });
+                /* Paged to the end, for the same reason as the scan above: a
+                   catalogue this only half-read would mark the other half's
+                   images as used by nothing. */
+                const cat = await window.zwFetchCatalog({ view: 'full', pageSize: 500 });
+                if (!cat.complete) complete = false;
+                sources.push({ where: 'products', blob: JSON.stringify(cat.products) });
             } catch (_) { complete = false; }
             try {
                 const { data, error } = await sb.from('site_settings').select('key,value');
