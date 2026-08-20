@@ -1909,9 +1909,13 @@
      inline on every control, from the SAME attribute the stylesheet read. When
      no row is promoted the two agree exactly; when one is, this corrects the
      approximation in the same breath as adding the control that made it one. */
+  /* One role, every spelling of it, across both nav dialects — and #logout-btn
+     with them: it is the account cluster's third face, it sits in the same row
+     on the bag page, and a control the order never places keeps order 0 and
+     jumps in front of everything that was placed. */
   var ORDER_SEL = {
     search:  '.zwf-search-btn',
-    account: '#account-btn, #login-btn, #hdr-login',
+    account: '#account-btn, #login-btn, #hdr-login, #logout-btn',
     bag:     '#cart-btn, .zw-hdr-bag',
   };
   function applyActionOrder() {

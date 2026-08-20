@@ -63,6 +63,47 @@
        that exists that early. See storefront-cohesion.css for why the
        stylesheet then accepts the answer on either element. */
 
+    /* ── THE SEQUENCE, RESOLVED, BEFORE THE HEADER IS PAINTED ──────────────
+     *
+     * The stylesheet turns data-zw-hdr-order into places with two attribute
+     * selectors per control: whatever the value starts with goes first,
+     * whatever it ends with goes last, everything else stays in the middle.
+     * That is exact for three controls and only three. Promote a row out of the
+     * account menu and the value grows a fourth name — say "orders search
+     * account bag" — and CSS can still see the two ends but has no way to tell
+     * the second name from the third. Both land on the default, DOM order
+     * breaks the tie, and applyActionOrder() in storefront-features.js corrects
+     * it once the row config arrives. After the frame.
+     *
+     * Counting is trivial in JavaScript, and this block runs before the header
+     * is painted — that is what it is for. So the same seven custom properties
+     * the stylesheet writes get written here from the actual positions, and
+     * every length is exact rather than every length up to three.
+     *
+     * Ahead of the zw_srch return below, deliberately: the sequence has nothing
+     * to do with whether this store shows a search control, and a shop with the
+     * search switched off would otherwise be the one that kept the old
+     * behaviour.
+     *
+     * account, login and logout take the SAME number. They are one role with
+     * three faces and at most one of them is on screen; giving them different
+     * places would put the customer's name somewhere the visitor's Login was
+     * not. The promoted rows are absent because they are not among the theme's
+     * seven controls and do not exist yet — they are injected later, and
+     * applyActionOrder() places them as it injects them, so there is no frame
+     * in which they are visible and wrong. */
+    try {
+      var _o = (document.documentElement.getAttribute('data-zw-hdr-order') || '').trim();
+      if (_o) {
+        var _n = _o.split(/ +/), _st = document.documentElement.style, _i, _k, _v;
+        for (_i = 0; _i < _n.length; _i++) {
+          _k = _n[_i]; _v = String(_i + 1);
+          if (_k === 'account') { _st.setProperty('--zw-ord-login', _v); _st.setProperty('--zw-ord-logout', _v); }
+          if (_k === 'account' || _k === 'search' || _k === 'bag') _st.setProperty('--zw-ord-' + _k, _v);
+        }
+      }
+    } catch (_) {}
+
     if (localStorage.getItem('zw_srch') !== '1') return;
 
     /* Dialect one: the browse header. Dialect two: the information header.

@@ -177,6 +177,15 @@
      mapping, so nothing here needs to know about .nbtn or .zw-hdr-action. */
   var ICON_KEYS = ['search', 'account', 'login', 'logout', 'shop', 'bag', 'menu'];
 
+  /* Which of the seven THIS function set, so it can take back its own and
+     nothing else. The header's chosen sequence is written to the same
+     properties, on the same element, before the first paint — see
+     scripts/header-preboot.head.js — and a theme that simply does not mention
+     icon order is not a theme asking for the shop's arrangement to be thrown
+     away. Removing them anyway put the header back on the stylesheet's
+     three-control approximation the moment a theme applied. Same rule as
+     data-zw-account and data-zw-iconlabels: clear only what you wrote. */
+  var ordWritten = {};
   function applyIcons(root, icons) {
     var spec = (icons && typeof icons === 'object') ? icons : {};
     var order = (spec.order && typeof spec.order === 'object') ? spec.order : {};
@@ -184,8 +193,8 @@
       var v = parseInt(order[k], 10);
       // Absent, not 0: every control defaults to order 0 in the stylesheet, so
       // removing the property restores DOM order rather than pinning it first.
-      if (isFinite(v)) root.style.setProperty('--zw-ord-' + k, String(v));
-      else root.style.removeProperty('--zw-ord-' + k);
+      if (isFinite(v)) { root.style.setProperty('--zw-ord-' + k, String(v)); ordWritten[k] = 1; }
+      else if (ordWritten[k]) { root.style.removeProperty('--zw-ord-' + k); ordWritten[k] = 0; }
     });
     /* 'menu' is deliberately not hideable. On a phone the hamburger is the only
        route to the categories, and a theme that hid it would strand every
