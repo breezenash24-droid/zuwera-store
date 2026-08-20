@@ -74,6 +74,15 @@ const RULES = [
   { names: ['ZW_SUPABASE_URL', 'SUPABASE_URL'],           from: CANON.supabaseUrl },
   { names: ['ZW_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY'], from: CANON.supabaseAnonKey },
   { names: ['ZW_SITE_URL', 'SITE_URL'],                   from: CANON.siteUrl },
+  /* The Cloudinary account, which was the one identifier a fork could not
+     change. It is a literal in image-utils.js (as the fallback when no config
+     is found) and three times in index.html's <head>, where it reads no
+     configuration at all because it runs before image-utils.js is fetched.
+
+     So a fork resized every image through the ORIGINAL store's account, on the
+     original's 25 monthly credits, and nothing said so -- the images loaded.
+     Same failure this whole file exists to prevent, one vendor over. */
+  { names: ['ZW_CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_CLOUD_NAME'], from: CANON.cloudinaryCloudName },
 ];
 RULES.forEach((r) => { r.env = readEnv(...r.names); r.name = r.names[0]; });
 
@@ -128,6 +137,10 @@ if (onCloudflare && !targetUrl) {
   say('    ZW_SUPABASE_ANON_KEY  <your project\'s anon key>');
   say('    ZW_SITE_URL           https://<your-domain>');
   say('  (SUPABASE_URL / SUPABASE_ANON_KEY / SITE_URL are accepted too.)');
+  say('');
+  say('  And, so that images resize through your own Cloudinary account rather');
+  say('  than the original store\'s 25 monthly credits:');
+  say('    ZW_CLOUDINARY_CLOUD_NAME   <your cloud name>');
   say('');
   /* The distinction that costs a deploy cycle otherwise. Cloudflare keeps
      runtime variables and BUILD variables in two different places, and this

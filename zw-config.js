@@ -66,5 +66,24 @@
 
     /* Shown to customers. Kept here so a fork changes it once. */
     brandName: 'Zuwera',
+
+    /* ── The Cloudinary account every image is resized through ──────────────
+       This was a literal in image-utils.js and three times in index.html's
+       <head>, and NOT among the things this file governed — which made it the
+       one identifier a fork could not change.
+
+       image-utils.js keeps it as the fallback when no configuration is found,
+       and setCloudinaryCloudName() rejects an empty value rather than clearing
+       it, so a fork that never set CLOUDINARY_CLOUD_NAME served every one of
+       its own images through the original store's account. On the original's
+       25 monthly credits, and invisibly: the images would load.
+
+       Worse, the three in <head> read no configuration at all — they run
+       before image-utils.js is even fetched, so even a fork that HAD
+       configured Cloudinary properly still sent its hero preload here.
+
+       Stamped at build time like the rest, so ZW_CLOUDINARY_CLOUD_NAME (or
+       CLOUDINARY_CLOUD_NAME) rewrites all four. */
+    cloudinaryCloudName: 'dubg4loah',
   };
 }));
