@@ -62,11 +62,18 @@ console.log('The hover bridge is measured, not guessed');
     /querySelectorAll\('\.nav-center \.zw-navitem, \.nav-center \.zw-navitem > \.nav-link'\)/.test(NAV)
     && /low = Math\.max\(low, el\.getBoundingClientRect\(\)\.bottom\)/.test(NAV),
     '.nav-link padding overflows .zw-navitem — 36px of link inside 25px of item');
+  /* Measured to where the panel STARTS, not to the bar's bottom edge. Those are
+     two device pixels apart — the panel is pulled up so the two never meet on a
+     fractional device row — and a bridge sized from the wrong one of them would
+     reach that much further up, into the words. */
+  ok('...from the panel’s own top, which is not the bar’s bottom edge',
+    /var top = Math\.max\(0, Math\.floor\(bottom \* dpr - 2\) \/ dpr\);/.test(NAV),
+    'the same expression as headerBottom() in storefront-features.js');
   ok('...and never reaches upward when there is nothing to bridge',
-    /var gap = low \? Math\.max\(0, Math\.floor\(bottom - low\)\) : 0;/.test(NAV),
+    /var gap = low \? Math\.max\(0, Math\.floor\(top - low\)\) : 0;/.test(NAV),
     'a two-row header ends BELOW the bar, so the gap is negative');
   ok('...measured in the same place the panel top is',
-    /function setMegaTop\(\)[\s\S]{0,3600}--zw-megabridge/.test(NAV),
+    /function setMegaTop\(\)[\s\S]{0,5200}--zw-megabridge/.test(NAV),
     'two measurements of one header in two functions is how they disagree');
 }
 
