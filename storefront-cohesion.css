@@ -4018,15 +4018,34 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
      isolated stacking context), which read as the header faintly changing colour. */
   box-shadow:0 30px 44px -22px rgba(0,0,0,.40);
   opacity:0; visibility:hidden; pointer-events:none;
-  transform:translateY(-12px);
-  transition:opacity .2s ease, transform .2s ease, visibility 0s linear .2s;
+  transition:opacity .2s ease, visibility 0s linear .2s;
   z-index:219;
 }
-/* transparent bridge so moving the cursor from the item to the panel doesn't close it */
-.zw-navitem > .zw-mega::before{ content:''; position:absolute; left:0; right:0; top:-1.6rem; height:1.6rem; }
+/* THE ENTRANCE MOVES THE CONTENT, NOT THE PANEL.
+   This was transform:translateY(-12px) on the panel itself, which means that
+   for the 200ms of every open the panel — and the bridge hanging off its top
+   edge — sat 12px higher than it belongs, inside the header, over the words it
+   dropped from. Invisible, because the panel is the header's own colour, and
+   the bottom third of every category was unclickable while it played.
+   The columns carry the slide instead. The panel box never leaves its lane. */
+.zw-navitem > .zw-mega > .zw-mega-col{
+  transform:translateY(-12px); transition:transform .2s ease;
+}
+.zw-navitem:hover > .zw-mega > .zw-mega-col,
+.zw-navitem:focus-within > .zw-mega > .zw-mega-col{ transform:translateY(0); }
+/* Transparent bridge so moving the cursor from the item to the panel doesn't
+   close it. Its height is MEASURED — see setMegaTop() in nav-menu.js — because
+   the distance it has to cover depends on the arrangement, and a fixed 1.6rem
+   laid itself across the categories on every two-row header. 0 until measured:
+   a bridge that has not been sized yet closes the panel on a slow diagonal,
+   which is a smaller fault than one that eats the click it sits on. */
+.zw-navitem > .zw-mega::before{
+  content:''; position:absolute; left:0; right:0;
+  top:calc(-1 * var(--zw-megabridge, 0px)); height:var(--zw-megabridge, 0px);
+}
 .zw-navitem:hover > .zw-mega, .zw-navitem:focus-within > .zw-mega{
-  opacity:1; visibility:visible; pointer-events:auto; transform:translateY(0);
-  transition:opacity .2s ease, transform .2s ease;
+  opacity:1; visibility:visible; pointer-events:auto;
+  transition:opacity .2s ease;
 }
 /* Backdrop behind the open mega panel — follows the admin modal-backdrop scrim
    (--zw-mbd-* vars: Dim/Blur/Frost/None + intensity + tint) so the page BELOW the
