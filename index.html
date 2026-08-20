@@ -191,7 +191,18 @@ try {
    (html:not(.zw-nav-ready) #nav-category-links) until nav-menu.js settles, so the
    old items never flash before the real Men/Women/New menu — even on a first /
    cleared-cache load. The 3s timeout is a safety net if nav-menu.js can't load. */
-try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.length)document.documentElement.classList.add('zw-customnav');}catch(_){}setTimeout(function(){try{document.documentElement.classList.add('zw-nav-ready');}catch(_){}},3000);</script>
+try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.length){document.documentElement.classList.add('zw-customnav');
+/* …and how much room it took last time, so the hidden fallback holds THAT
+   rather than the width of the four categories this page ships. Stored as
+   logo|linksrow|width and only used when both still match, because a centred
+   logo tightens the gap between the categories and changes the answer by ~38px.
+   See rememberNavWidth() in nav-menu.js and the rule in
+   storefront-cohesion.css. This runs after the pre-paint block, so the
+   arrangement is already on <html> to compare against. */
+var _d=document.documentElement,_nw=(localStorage.getItem('zw_nav_w')||'').split('|');
+if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
+  &&_nw[1]===(_d.getAttribute('data-zw-hdr-linksrow')||'')
+  &&+_nw[2]>0&&+_nw[2]<3000)_d.style.setProperty('--zw-navc-w',+_nw[2]+'px');}}catch(_){}setTimeout(function(){try{document.documentElement.classList.add('zw-nav-ready');}catch(_){}},3000);</script>
 <meta name="zuwera-deployment" content="2026-05-14-v2-supabase-timeout">
 <title>ZUWERA - For Those Who Dream</title>
 <meta name="description" content="Bold athletic sportswear. Release 001 launching September 20, 2026.">

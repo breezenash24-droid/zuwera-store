@@ -4163,6 +4163,22 @@ body.light-mode .zw-mnav-cat{ border-color:var(--c20); }
    before the real menu (Men/Women/New). visibility (not display) keeps layout
    stable; a safety timeout in nav-menu.js + <head> guarantees it always reveals. */
 html:not(.zw-nav-ready) #nav-category-links{ visibility:hidden; }
+/* AND IT HOLDS THE ROOM THE REAL MENU WILL NEED, not the room the shipped
+   fallback needs. visibility keeps the box, and on the home page that box is
+   sized by four categories the shop replaced — 544px against the real menu's
+   290px, measured at 1920px — so every arrangement that puts the action
+   controls after the categories in flow drew them 254px too far right and then
+   snapped them back. --zw-navc-w is last load's measurement, published by
+   index.html's pre-paint block from what nav-menu.js remembered. Unset on a
+   first-ever visit, which is the one load no cache can help; auto is then
+   exactly the old behaviour. Only while a custom nav is known to be coming: if
+   the fallback is what will be shown, its own width is the right one. */
+@media (min-width: 901px) {
+  html.zw-customnav:not(.zw-nav-ready):not([data-zw-hdr-linksrow="2"]) #nav-category-links{
+    width: var(--zw-navc-w, auto);
+    overflow: hidden;
+  }
+}
 
 /* ──────────────────────────────────────────────────────────────────────────
    BUILDER: HERO CAROUSEL
@@ -4911,17 +4927,52 @@ html[data-zw-hdr-lines="off"] :is(#nav, .nav, .zw-nav):has(.zw-navitem.zw-has-me
    inside the group, and on the browse header it is the one control whose place
    is structural rather than a preference — so it is pinned last wherever
    ordering is on, and there is no way to ask for it somewhere else. */
-html[data-zw-hdr-order] :is(#nav, .nav, .zw-nav) :is(.zwf-search-btn, #login-btn, #account-btn, #hdr-login, #cart-btn, .zw-hdr-bag, .zwf-hdr-row) {
-  order: 2;
-}
-html[data-zw-hdr-order] :is(#nav, .nav, .zw-nav) .hamburger-btn { order: 9; }
+/* ── ONE SET OF PROPERTIES, NOT TWO SETS OF RULES ─────────────────────────
+   This block used to declare `order` directly, and further down the file the
+   THEME's icon order declares it too, through
+   `:is(#nav,.nav,.zw-nav) :is(#cart-btn,…) { order: var(--zw-ord-bag, 0) }`.
+   Two systems writing the same property through differently-shaped selectors is
+   a specificity contest, and it was won by a different system for each control,
+   because every control is an id and the search button is a class:
 
-html[data-zw-hdr-order^="search"] :is(#nav, .nav, .zw-nav) .zwf-search-btn { order: 1; }
-html[data-zw-hdr-order$="search"] :is(#nav, .nav, .zw-nav) .zwf-search-btn { order: 3; }
-html[data-zw-hdr-order^="account"] :is(#nav, .nav, .zw-nav) :is(#login-btn, #account-btn, #hdr-login) { order: 1; }
-html[data-zw-hdr-order$="account"] :is(#nav, .nav, .zw-nav) :is(#login-btn, #account-btn, #hdr-login) { order: 3; }
-html[data-zw-hdr-order^="bag"] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag) { order: 1; }
-html[data-zw-hdr-order$="bag"] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag) { order: 3; }
+       bag       html[…$="bag"] :is(#nav) :is(#cart-btn)   (2,1,1)  beat  (2,0,0)
+       account   the default    :is(#nav) :is(#login-btn)  (2,1,1)  beat  (2,0,0)
+       search    html[…^="search"] :is(#nav) .zwf-search   (1,2,1)  lost to (1,1,0)
+
+   So the arrangement's own answer never reached the search control. Measured on
+   the home page with the value "search account bag", stylesheet only:
+
+       t300   bag order=3   account order=2   search order=2
+
+   Search sat in the middle until applyActionOrder() in storefront-features.js
+   wrote an inline value ~800ms later and moved it to the front — one icon
+   changing places on its own, after the rest of the header had settled. That is
+   the "old icon order" people see before it corrects itself.
+
+   The fix is not more specificity. It is to stop having two answers: the
+   arrangement sets the SAME seven custom properties the theme's icon order
+   sets, on <html>, and the single rule further down turns them into `order`.
+   Nothing competes, so nothing can win the wrong way — and a theme that
+   explicitly orders its icons still overrides, because theme-engine.js writes
+   those properties inline. `logout` and `shop` are left alone deliberately:
+   they were never in the old default either, and naming them here would move
+   two controls no arrangement has ever mentioned. */
+html[data-zw-hdr-order] {
+  --zw-ord-search: 2; --zw-ord-account: 2; --zw-ord-login: 2; --zw-ord-bag: 2;
+  --zw-ord-menu: 9;
+}
+html[data-zw-hdr-order^="search"]  { --zw-ord-search: 1; }
+html[data-zw-hdr-order$="search"]  { --zw-ord-search: 3; }
+html[data-zw-hdr-order^="account"] { --zw-ord-account: 1; --zw-ord-login: 1; }
+html[data-zw-hdr-order$="account"] { --zw-ord-account: 3; --zw-ord-login: 3; }
+html[data-zw-hdr-order^="bag"]     { --zw-ord-bag: 1; }
+html[data-zw-hdr-order$="bag"]     { --zw-ord-bag: 3; }
+/* A row promoted out of the account menu has no property of its own — it is not
+   one of the theme's seven controls — so it keeps a rule. Nothing else declares
+   `order` for it, so there is no contest to lose. Where it goes WITHIN the
+   sequence is applyActionOrder()'s job: the value can name it, and CSS cannot
+   match an arbitrary name. */
+html[data-zw-hdr-order] :is(#nav, .nav, .zw-nav) .zwf-hdr-row { order: 2; }
 
 /* ── Icons as words ────────────────────────────────────────────────────────
    Some storefronts say "Bag", not a bag. Driven off `aria-label`, which every
