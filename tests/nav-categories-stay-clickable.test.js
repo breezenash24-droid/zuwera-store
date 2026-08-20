@@ -101,8 +101,11 @@ console.log('\nWhere the panel drops from is re-measured when the header moves')
     'the CSS opens the panel on the same frame — a measurement one frame later is too late');
   ok('the bar and the bar-shaped hole are watched, not sampled',
     /new ResizeObserver\(_onMt\)/.test(NAV) && /_watch\(document\.getElementById\('bar'\)\)/.test(NAV));
+  /* This one measures straight away rather than on the next frame, because the
+     rules that read the measurements apply on the SAME frame the attribute is
+     written — including the one that places the logo beside the categories. */
   ok('...and so is the arrangement changing under it',
-    /new MutationObserver\(_onMt\)\.observe\(document\.documentElement/.test(NAV)
+    /new MutationObserver\(setMegaTop\)\.observe\(document\.documentElement/.test(NAV)
     && /'data-zw-hdr-linksrow'/.test(NAV),
     'one row to two is 22px, and it is neither a resize nor a scroll');
   ok('the sampled measurements are still there as the floor',

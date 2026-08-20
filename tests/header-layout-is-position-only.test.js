@@ -132,7 +132,25 @@ console.log('\nThe picker offers nothing the header cannot hold');
      centring is absolute positioning, so two centred parts overlap; "right" is
      margin-left:auto, and two parts taking it spread apart. */
   ok('conflict() rejects two centred parts',
-    !!L.conflict({ logo: 'center', links: 'center', actions: 'right', linksRow: 1 }));
+    !!L.conflict({ logo: 'center', links: 'right', actions: 'center', linksRow: 1 }));
+  /* ONE PAIR IS NOT A COLLISION ANY MORE. The logo and the categories are placed
+     side by side in the centre lane, each pushed out by half of what the other
+     measures — nav-menu.js publishes the two widths, storefront-cohesion.css
+     does the arithmetic with left/right offsets. It works for these two and
+     only these two: the action controls are in flow with an auto margin rather
+     than in the lane, so there is nothing to push them out of.
+
+     Measured at 1920px: logo 777..827, categories 859..1110, a 32px gap, the
+     pair centred on 943.5 against a nav centre of 943.5, in a 67px header —
+     against 91.8px for the same look with the categories on a second row. */
+  ok('...but not the logo and the categories, which are placed as a pair',
+    !L.conflict({ logo: 'center', links: 'center', actions: 'right', linksRow: 1 }));
+  ok('...and the pair is offered as an arrangement of its own',
+    !!L.byId('logo-beside')
+    && JSON.stringify(L.byId('logo-beside').spec)
+       === JSON.stringify({ logo: 'center', links: 'center', actions: 'right', linksRow: 1 }));
+  ok('...while a third part in the lane is still refused',
+    !!L.conflict({ logo: 'center', links: 'center', actions: 'center', linksRow: 1 }));
   ok('conflict() rejects two right-hand parts',
     !!L.conflict({ logo: 'left', links: 'right', actions: 'right', linksRow: 1 }));
   ok('conflict() rejects centred actions beside in-flow categories',
@@ -146,6 +164,50 @@ console.log('\nThe picker offers nothing the header cannot hold');
   const bad = L.list.filter((l) => L.conflict(l.spec));
   ok('every shipped layout passes its own rule', bad.length === 0,
     bad.map((l) => l.id + ': ' + L.conflict(l.spec)).join(' | '));
+}
+
+console.log('\nA centred logo does not have to cost a second row');
+{
+  const NAV2 = read('nav-menu.js');
+
+  /* Wanting the logo centred used to mean giving the categories a row of their
+     own, and a row costs a row. Measured at 1920px with the store's own menu:
+
+       every single-row arrangement   67.0px
+       categories on a second row     91.8px
+
+     Half a header again, before the announcement bar is counted, for a
+     horizontal arrangement question. Side by side in the same lane is 67px. */
+  ok('the pair is positioned from two measured widths',
+    /--zw-hdr-links-w/.test(CSS) && /--zw-hdr-logo-w/.test(CSS)
+    && /setProperty\('--zw-hdr-logo-w'|_put\('--zw-hdr-logo-w'/.test(NAV2)
+    && /_put\('--zw-hdr-links-w'/.test(NAV2),
+    'the logo is an image and the categories are the shop’s own words — CSS cannot know either');
+  ok('...keyed on exactly the arrangement that needs it',
+    /html\[data-zw-hdr-logo="center"\]\[data-zw-hdr-links="center"\]\[data-zw-hdr-linksrow="1"\]/.test(CSS));
+  ok('...each pushed out by half of what the other takes up',
+    /left: calc\(-1 \* \(var\(--zw-hdr-links-w, 0px\) \+ var\(--zw-hdr-pair-gap, 2rem\)\) \/ 2\)/.test(CSS)
+    && /left: calc\(\(var\(--zw-hdr-logo-w, 0px\) \+ var\(--zw-hdr-pair-gap, 2rem\)\) \/ 2\)/.test(CSS),
+    'measured after: logo 777..827, categories 859..1110, pair centre 943.5 against nav centre 943.5');
+
+  /* NOT a transform, which would do the same arithmetic. A transform makes the
+     element a containing block for fixed-position descendants, and .zw-mega —
+     the full-width category panel — is position:fixed INSIDE .nav-center. It
+     would stop spanning the viewport and start spanning the categories.
+     Measured after the offsets: panel 0..1887 of a 1902px viewport. */
+  ok('...with offsets, not a transform, because the panel lives inside one of them',
+    !/\[data-zw-hdr-links="center"\]\[data-zw-hdr-linksrow="1"\][^{]*\{[^}]*transform:/.test(CSS),
+    'a transform on .nav-center would re-anchor the fixed mega panel to it');
+
+  /* Both widths change without a window resize: the logo is an image whose
+     width arrives when it loads, and the categories are re-rendered from the
+     shop's menu. */
+  ok('both are watched, not sampled',
+    /_watch\(document\.querySelector\('\.nav-logo, \.nav-logo-link, \.zw-nav-logo'\)\)/.test(NAV2)
+    && /_watch\(document\.querySelector\('\.nav-center'\)\)/.test(NAV2));
+  ok('...and measured as soon as there is a nav to measure',
+    /render\(\);\s*\/\*[\s\S]{0,400}\*\/\s*setMegaTop\(\);/.test(NAV2),
+    'first at 450ms would be 450ms of the logo sitting on the categories');
 }
 
 console.log('\nThe picture cannot disagree with the result');
