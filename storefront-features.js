@@ -640,12 +640,48 @@
   // display and exactly enough on a scaled one, and it is expressed in the
   // units the seam actually lives in rather than the ones the layout is
   // written in.
+  /*
+   * ── THE PANEL IS ON TOP, SO AN OVERLAP IS NOT HIDDEN — IT IS A STRIPE ──
+   *
+   * This subtracted 2 device pixels, on the reasoning that an overlap is
+   * invisible and a sub-pixel gap is not. That is true of a panel that paints
+   * UNDER the header. None of these do:
+   *
+   *     nav                 z-index 220
+   *     .zwf-search /       z-index 990   — above it, and its own child
+   *     .zwf-bag                            panel is opaque
+   *     .zw-mega            z-index 219, but INSIDE the nav, so it paints
+   *                                       over the nav's own background too
+   *
+   * So the two pixels were never hidden under the bar. They were painted
+   * across the bottom of it, in the panel's colour. Read out of a screenshot
+   * at scale 1, cream header and white panel, header bottom 67:
+   *
+   *     y=64  240,238,233   header
+   *     y=65  255,255,255   panel, over the header
+   *     y=66  255,255,255   panel, over the header
+   *
+   * Two rows of the wrong colour along the join — which is exactly what a
+   * thin gap looks like, and why it showed on the search and the bag and not
+   * on anything else.
+   *
+   * What has to be prevented is the panel starting BELOW the header, where a
+   * sliver of the page would show between them. Flooring to a whole device
+   * row does that and nothing more: at scale 1 it is exactly flush, and at a
+   * fractional scale it lands at most one device pixel high — a single row of
+   * panel over header, which is the same thing the browser would have
+   * antialiased anyway.
+   *
+   * nav-menu.js measures the mega panel with the identical expression; the
+   * check in tests/nothing-shows-between-header-and-panel.test.js holds the
+   * two together, because they cannot share a module.
+   */
   function headerBottom() {
     var h = headerEl();
     if (!h) return 0;
     var dpr = window.devicePixelRatio || 1;
     var bottom = h.getBoundingClientRect().bottom;
-    return Math.max(0, Math.floor(bottom * dpr - 2) / dpr);
+    return Math.max(0, Math.floor(bottom * dpr) / dpr);
   }
 
   function syncSearchTop() {

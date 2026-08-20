@@ -67,7 +67,7 @@ console.log('The hover bridge is measured, not guessed');
      fractional device row — and a bridge sized from the wrong one of them would
      reach that much further up, into the words. */
   ok('...from the panel’s own top, which is not the bar’s bottom edge',
-    /var top = Math\.max\(0, Math\.floor\(bottom \* dpr - 2\) \/ dpr\);/.test(NAV),
+    /var top = Math\.max\(0, Math\.floor\(bottom \* dpr\) \/ dpr\);/.test(NAV),
     'the same expression as headerBottom() in storefront-features.js');
   ok('...and never reaches upward when there is nothing to bridge',
     /var gap = low \? Math\.max\(0, Math\.floor\(top - low\)\) : 0;/.test(NAV),
