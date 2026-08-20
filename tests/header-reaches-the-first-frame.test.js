@@ -235,8 +235,14 @@ function stubFetch(value, { ok: isOk = true, throws = false } = {}) {
       && /new\.updated_at = now\(\)/.test(mig));
     ok('...and it is safe to re-run', /create or replace function/.test(mig)
       && /drop trigger if exists/.test(mig));
+    /* Stamped onto EVERY row, after the list is complete — not onto the first
+       one where it is built. Doing that gave one row three keys and the rest
+       two, and PostgREST rejects a bulk write whose objects disagree about
+       their columns (PGRST102), so every Publish that copies a draft onto its
+       live key failed outright. tests/publish-writes-one-shape.test.js drives
+       the endpoint and checks the shapes; this only holds the stamp in place. */
     ok('...and the endpoint stamps it as well, for a shop that has not run it',
-      /const rows = \[\{ key, value, updated_at: new Date\(\)\.toISOString\(\) \}\];/
+      /const stampedAt = new Date\(\)\.toISOString\(\);\s*for \(const row of rows\) row\.updated_at = stampedAt;/
         .test(fs.readFileSync(path.join(ROOT, 'functions/api/save-page-builder.js'), 'utf8')),
       'the ranking is worthless while both sides carry the row creation date');
 

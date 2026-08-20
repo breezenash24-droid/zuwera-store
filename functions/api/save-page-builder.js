@@ -134,15 +134,7 @@ export async function onRequestPost({ request, env }) {
       : { ...payload, updated_at: new Date().toISOString(), published: !!published };
 
     // Build rows to upsert
-    /* WHEN, as well as WHAT. site_settings.updated_at was declared with a
-       DEFAULT and no trigger, so it recorded the moment each key was first
-       created and never moved again — and the header's pre-paint block RANKS the
-       browser's cache against the deployed bake by exactly that column. Two
-       equal strings meant the cache could never win, so a published change
-       flashed the old arrangement on every load until the next deploy. Migration
-       0028 puts a trigger on the table, which is where the rule belongs; this
-       line makes the builder correct on a shop that has not run it yet. */
-    const rows = [{ key, value, updated_at: new Date().toISOString() }];
+    const rows = [{ key, value }];
     if (key === 'page_builder' && published) {
       rows.push({ key: 'page_builder_published', value });
     }
@@ -157,6 +149,31 @@ export async function onRequestPost({ request, env }) {
     if (DRAFT_TO_LIVE[key] && published) {
       rows.push({ key: DRAFT_TO_LIVE[key], value });
     }
+
+    /* ── EVERY ROW CARRIES THE SAME KEYS, AND THAT IS NOT A STYLE CHOICE ─────
+     *
+     * PostgREST turns a JSON array into ONE insert, which has one column list,
+     * so it rejects a write whose objects do not all have the same keys —
+     * PGRST102, "All object keys must match". updated_at had been stamped onto
+     * the first row, where the list is built, giving that row three keys while
+     * every row pushed below it had two. Any save that writes a SECOND row was
+     * refused outright: every Publish that copies a draft onto its live key, so
+     * the Product and Collection tabs, page_builder, landing_pages, the nav, the
+     * announcement bar, page copy, the header arrangement and the bag panel. A
+     * plain Save still worked, because one row is always self-consistent.
+     *
+     * So it is applied here, to all of them, once the list is complete. A push
+     * added below this line inherits it; a push added after a per-row stamp does
+     * not, and would break publishing again in exactly the same way. One
+     * timestamp for the whole write, because it IS one write.
+     *
+     * Why the column is written at all: the header's pre-paint block ranks the
+     * browser's cache against the deployed bake by site_settings.updated_at, and
+     * that column has a DEFAULT and no trigger on a database that has not run
+     * migration 0028 — so without this it never moves, and the ranking compares
+     * a string with itself. */
+    const stampedAt = new Date().toISOString();
+    for (const row of rows) row.updated_at = stampedAt;
 
     const saveRes = await fetch(`${supabaseUrl(env)}/rest/v1/site_settings?on_conflict=key`, {
       method: 'POST',
