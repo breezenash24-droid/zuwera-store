@@ -112,6 +112,17 @@ window.__zwCardAltImage = function (product, coverUrl) {
   if (footerCopy) footerCopy.innerHTML = '&copy; 2026 Zuwera. All rights reserved.';
 })();
 
+/* A brand logo, at the size it is actually drawn.
+   These are admin-uploaded files rendered at 24-60px tall and were going out at
+   whatever was uploaded — a 2000px PNG for a 40px row. Width is doubled for
+   retina and floored, so a small logo is never upscaled into a bigger file than
+   the original. Falls back to the raw URL when image-utils has not loaded. */
+function _logoSrc(url, heightPx) {
+  if (typeof window.optimizeImage !== 'function') return url || '';
+  const h = Number(heightPx) || 40;
+  return window.optimizeImage(url, Math.max(120, Math.round(h * 6)));
+}
+
 /* TOAST */
 let _toastTimer = null;
 function showToast(msg) {
@@ -1377,7 +1388,7 @@ function showToast(msg) {
             <div style="display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:1.5rem 2.5rem">
             ${logositems.map(it=>{
                const inner = it.src
-                 ? `<img src="${it.src}" alt="${escapeHomeFavoriteHtml(it.alt||it.name||'')}" style="height:${logoH}px;width:auto;opacity:${imgOp};${imgFilter}">`
+                 ? `<img src="${_logoSrc(it.src, logoH)}" alt="${escapeHomeFavoriteHtml(it.alt||it.name||'')}" style="height:${logoH}px;width:auto;opacity:${imgOp};${imgFilter}">`
                  : it.name
                    ? `<span style="font-family:var(--fw);font-size:1.1rem;font-weight:700;font-style:italic;letter-spacing:.06em;text-transform:uppercase;opacity:${spanOp}">${it.name}</span>`
                    : '';
@@ -1463,7 +1474,7 @@ function showToast(msg) {
           // guaranteed (works even inside the positioned/transformed content wrapper).
           const cbLogoRowBg = cbLogoBlend ? `background:${cbBg};` : '';
           const cbLogosHtml = cbLogos.map(l => {
-            const img = `<img src="${escapeHomeFavoriteHtml(l.src)}" alt="${escapeHomeFavoriteHtml(l.alt || '')}" style="height:${cbLogoH}px;width:auto;${cbLogoImgFx}" loading="lazy">`;
+            const img = `<img src="${escapeHomeFavoriteHtml(_logoSrc(l.src, cbLogoH || 40))}" alt="${escapeHomeFavoriteHtml(l.alt || '')}" style="height:${cbLogoH}px;width:auto;${cbLogoImgFx}" loading="lazy">`;
             return l.link ? `<a href="${escapeHomeFavoriteHtml(zwSafeUrl(l.link))}" style="display:inline-flex;align-items:center;text-decoration:none">${img}</a>` : img;
           }).join('');
           // Free X/Y position of the content (0–100%). Falls back to the legacy
@@ -1673,7 +1684,43 @@ function showToast(msg) {
                 // Preload so a non-first slide shows its first frame immediately
                 // instead of a black box while waiting to be navigated to.
                 const vidPreload = i === 0 ? 'auto' : 'metadata';
-                mediaHtml = `<video class="zw-hc-media" src="${sl.media_url||''}" poster="${sl.video_poster||''}" playsinline${loopAttr} muted${auto} preload="${vidPreload}" style="${posVars(sl)}"></video>`;
+                /* ── THROUGH CLOUDINARY, AND NEVER WITH AN EMPTY POSTER ────
+                   The hero VIDEO was the only piece of media on this page not
+                   being optimised — images have gone through Cloudinary for a
+                   while, video came straight off R2 at whatever was uploaded.
+                   Measured on the live hero: 3,371,102 bytes raw against
+                   1,271,347 through video/fetch. It is also the LCP element, so
+                   those are the bytes the largest paint waits for.
+
+                   AND poster="" IS NOT "no poster". An empty attribute resolves
+                   against the document, so this markup made every homepage load
+                   fetch https://zuwera.store/ a second time and try to decode
+                   the HTML as an image — a wasted request and a guaranteed
+                   failure, on every visit. Now: the admin's poster if they set
+                   one, else the video's own first frame from Cloudinary (58 KB,
+                   so the hero paints while the video is still arriving), and if
+                   neither can be built, no attribute at all. */
+                const vidSrc = typeof window.optimizeVideo === 'function' ? window.optimizeVideo(sl.media_url, 1400) : (sl.media_url || '');
+                const posterSrc = sl.video_poster
+                  || (typeof window.videoPosterUrl === 'function' ? window.videoPosterUrl(sl.media_url, 1400) : '');
+                const posterAttr = posterSrc ? ` poster="${posterSrc}"` : '';
+                /* ── REMEMBER WHAT THE FIRST SLIDE IS, FOR THE NEXT VISIT ─────
+                   The head already caches a static hero under 'zw-hero-image'
+                   and preloads it at high priority before anything else runs.
+                   A CAROUSEL hero got none of that: the head's preload block
+                   sees zw_hide_static_hero and returns early, so nothing is
+                   preloaded and the largest element on the page cannot begin
+                   loading until this 145 KB deferred file has downloaded,
+                   parsed, run, and fetched its settings — measured at 5.7
+                   seconds on the live homepage.
+
+                   The poster is what gets cached, not the video: it is 58 KB
+                   against 1.2 MB and it is what actually paints. Only slide
+                   zero, because that is the only one on screen at first paint. */
+                if (i === 0 && posterSrc) {
+                  try { localStorage.setItem('zw-hero-media', posterSrc); } catch (_) {}
+                }
+                mediaHtml = `<video class="zw-hc-media" src="${vidSrc}"${posterAttr} playsinline${loopAttr} muted${auto} preload="${vidPreload}" style="${posVars(sl)}"></video>`;
              } else {
                 // Carousel slides are a small, known set that will be shown within
                 // seconds — NEVER lazy-load them (a lazy slide in a translateX
@@ -1974,7 +2021,13 @@ function showToast(msg) {
              const ht = s.card_height ? `height:${s.card_height};` : `aspect-ratio:${aspect};`;
              const isVideo = cd.media_type === 'video' || (cd.media_url && cd.media_url.match(/\.(mp4|webm|mov)(\?.*)?$/i));
              if (isVideo) {
-                mediaHtml = `<video src="${cd.media_url||''}" poster="${cd.video_poster||''}" playsinline autoplay loop muted class="zw-mg-media" style="${ht}"></video>`;
+                /* Same two fixes as the hero above: compressed through
+                   Cloudinary, and no empty poster attribute pointing the
+                   browser at this page's own HTML. */
+                const mgSrc = typeof window.optimizeVideo === 'function' ? window.optimizeVideo(cd.media_url, 1400) : (cd.media_url || '');
+                const mgPoster = cd.video_poster
+                  || (typeof window.videoPosterUrl === 'function' ? window.videoPosterUrl(cd.media_url, 1400) : '');
+                mediaHtml = `<video src="${mgSrc}"${mgPoster ? ` poster="${mgPoster}"` : ''} playsinline autoplay loop muted class="zw-mg-media" style="${ht}"></video>`;
              } else {
                 const optImg = typeof window.optimizeImage === 'function' ? window.optimizeImage(cd.media_url, 800) : cd.media_url;
                 mediaHtml = `<img src="${optImg||''}" alt="" class="zw-mg-media" style="${ht}" loading="lazy" decoding="async">`;
@@ -5004,7 +5057,12 @@ window.openWatchModal = function(url) {
    } else if (vimeoMatch) {
       container.innerHTML = `<iframe src="https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
    } else {
-      container.innerHTML = `<video src="${url}" controls autoplay playsinline></video>`;
+      /* Through Cloudinary like the hero: this is an admin-uploaded file
+         played at modal size, and it was being served at whatever resolution
+         was uploaded. */
+      const _mv = typeof window.optimizeVideo === 'function' ? window.optimizeVideo(url, 1400) : url;
+      const _mp = typeof window.videoPosterUrl === 'function' ? window.videoPosterUrl(url, 1400) : '';
+      container.innerHTML = `<video src="${_mv}"${_mp ? ` poster="${_mp}"` : ''} controls autoplay playsinline></video>`;
    }
    
    modal.classList.add('open');

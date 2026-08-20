@@ -389,7 +389,7 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
       ${review.body ? (reviewNeedsCollapse(review.body)
         ? `<p class="review-card-body" data-collapsible="1">${escHtml(reviewShort(review.body))}… </p><button type="button" class="review-more-btn" aria-expanded="false">View more</button>`
         : `<p class="review-card-body">${escHtml(review.body)}</p>`) : ''}
-      ${Array.isArray(review.photos) && review.photos.length && (!_reviewPhotoApproval || review.photos_approved) ? `<div class="review-card-photos">${review.photos.map(u => `<img src="${escHtml(u)}" data-full="${escHtml(u)}" alt="review photo" loading="lazy">`).join('')}</div>` : ''}
+      ${Array.isArray(review.photos) && review.photos.length && (!_reviewPhotoApproval || review.photos_approved) ? `<div class="review-card-photos">${review.photos.map(u => `<img src="${escHtml(reviewPhoto(u, 400))}" data-full="${escHtml(reviewPhoto(u, 1400))}" alt="review photo" loading="lazy">`).join('')}</div>` : ''}
       ${adminResponseHtml}
     `;
       list.appendChild(reviewEl);
@@ -661,11 +661,25 @@ document.querySelectorAll('#star-selector button').forEach(btn => {
 
 // -- Submit review ----------------------------------------------------
 // ── Review photos (optional; uploaded via /api/upload-review-photo) ──────────
+/* ── CUSTOMER PHOTOS GO THROUGH CLOUDINARY ────────────────────────────────────
+   /api/upload-review-photo stores what the phone sent and resizes nothing, so a
+   review photo is routinely three to eight megabytes of full-resolution camera
+   output — displayed in a thumbnail strip a couple of hundred pixels wide, on
+   the product page, several at a time.
+
+   `data-full` keeps a LARGER Cloudinary URL rather than the raw original: the
+   lightbox needs a big image, not a 12-megapixel one. Both fall back to the raw
+   URL when image-utils has not loaded, so a photo is never missing — only
+   occasionally larger than it needed to be. */
+function reviewPhoto(url, width) {
+  return (typeof window.optimizeImage === 'function') ? window.optimizeImage(url, width) : url;
+}
+
 function renderReviewPhotoThumbs() {
   const strip = document.getElementById('review-photo-strip');
   if (!strip) return;
   strip.innerHTML = _reviewPhotos.map((url) =>
-    `<div class="rvp-thumb"><img src="${escHtml(url)}" alt="review photo"><button type="button" class="rvp-remove" data-url="${escHtml(url)}" aria-label="Remove photo">&times;</button></div>`
+    `<div class="rvp-thumb"><img src="${escHtml(reviewPhoto(url, 300))}" alt="review photo"><button type="button" class="rvp-remove" data-url="${escHtml(url)}" aria-label="Remove photo">&times;</button></div>`
   ).join('');
   strip.querySelectorAll('.rvp-remove').forEach((b) => b.addEventListener('click', () => zwReviewPhotoRemove(b.dataset.url)));
   const addBtn = document.getElementById('review-photo-add');

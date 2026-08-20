@@ -47,10 +47,28 @@
 import { supabaseUrl, supabaseAnonKey } from './api/_config.js';
 import { buildSitemap } from './api/_sitemap.js';
 
-/* Long enough that a busy page costs one origin read rather than hundreds;
-   short enough that a publish is visible almost immediately. The runtime fetch
-   in header-layouts.js is uncached and still corrects anything this misses. */
-const TTL = 15;
+/* ── THIS NUMBER WAS COSTING EVERY VISITOR TTFB ─────────────────────────────
+   It was 15 seconds, on the reasoning that a publish should be visible almost
+   immediately. Measured against the deployed site, five runs each:
+
+       /about.html   bypasses Functions      0.63 – 0.69s   tight
+       /about        through this middleware 0.82 – 1.32s
+       /             through this middleware 0.84 – 1.56s
+
+   Two hundred to seven hundred milliseconds, on the front of every page, and
+   variable — which is the signature of a cache miss. At a 15-second TTL almost
+   every visitor to a quiet shop is the one who pays for the refill.
+
+   Five minutes instead. The publish-visibility argument was always weaker than
+   it looked: this is a FIRST-FRAME optimisation, and a publish already reaches
+   the page three other ways within the same second (the cached answer, the
+   runtime fetch, and the next deploy's bake). Nobody was ever waiting on this
+   for correctness — only for the first frame to be right, which it still is
+   for everyone whose visit lands inside the window. */
+const TTL = 300;
+
+/* And it is no longer waited for indefinitely. See the note at onRequest. */
+const STAMP_BUDGET_MS = 60;
 
 const SPOTS = { left: 1, center: 1, right: 1 };
 
@@ -211,7 +229,28 @@ export async function onRequest(context) {
   try {
     const ct = (res.headers && res.headers.get('content-type')) || '';
     if (!ct.includes('text/html')) return res;
-    const attrs = await pending;
+
+    /* ── THE STAMP GETS A BUDGET, NOT A BLANK CHEQUE ─────────────────────────
+       This used to `await pending` outright, so on a cold settings cache the
+       whole page waited for a Supabase round trip before a single byte of HTML
+       went out. That is a first-frame nicety holding up the first frame.
+
+       The file already says what happens without it: "This can make the first
+       frame right; it cannot make the page wrong." The page still carries the
+       baked answer, still corrects from the visitor's cache, still corrects
+       from the runtime fetch. So a slow read is simply not worth waiting for —
+       sixty milliseconds is long enough for a warm edge cache, which is the
+       case that actually benefits, and short enough that a cold one costs
+       almost nothing.
+
+       Deliberately racing rather than lowering the fetch timeout: the read is
+       still allowed to finish and populate the edge cache for the NEXT
+       visitor. Giving up on the wait is not the same as giving up on the
+       request. */
+    const attrs = await Promise.race([
+      pending,
+      new Promise((resolve) => setTimeout(() => resolve(null), STAMP_BUDGET_MS)),
+    ]);
     if (!attrs || (!attrs.html && !attrs.body)) return res;
     let rw = new HTMLRewriter();
     if (attrs.html) rw = rw.on('html', new Stamp(attrs.html));
