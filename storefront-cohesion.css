@@ -1938,9 +1938,29 @@ body.light-mode .heart-btn{
   body.super-light-mode .zw-hdr-action{
     color:rgb(var(--fg-rgb)) !important;
   }
+  /* ── .zwf-search-btn is excluded, and it is the whole bug ─────────────────
+     The search launcher borrows .zw-hdr-action for its padding and colour, so
+     it inherited this person mask on top of its own magnifier SVG. Two rules
+     were written to stop that, and between them they covered one of the two
+     states:
+
+       labels OFF  line ~161 kills .zwf-search-btn::before outright. Fine.
+       labels ON   the label rule further down sets `content: attr(aria-label)`
+                   with NO !important, so this declaration wins, the label
+                   never appears, and `> svg { display: none }` has already
+                   hidden the magnifier.
+
+     Result on any store with icon labels turned on: the search control renders
+     a PERSON, identical to the account button beside it. Two account icons,
+     one of which searches. Read off the live collection page — the button had
+     the right SVG all along, hidden under this.
+
+     Excluding it here fixes both states at once and needs no !important war:
+     labels off keeps the SVG, labels on gets the word "Search", exactly as the
+     bag beside it reads "BAG". */
   nav#nav :is(#login-btn,#account-btn)::before,
   .nav :is(#login-btn,#account-btn)::before,
-  .zw-hdr-action::before{
+  .zw-hdr-action:not(.zwf-search-btn)::before{
     content:'' !important;
     width:20px;
     height:20px;
