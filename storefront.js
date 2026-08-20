@@ -4844,9 +4844,12 @@ async function zwHomeNewsletterSubmit() {
   const success = document.getElementById('nl-success');
   // Persist server-side (service-role) so it reliably lands in the admin list.
   try {
+    /* The endpoint verifies this server-side; '' when the check could not run
+       is a perfectly normal answer and the server decides what it means. */
+    const turnstileToken = window.zwHumanToken ? await window.zwHumanToken() : '';
     const resp = await fetch('/api/subscribe', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, source: 'newsletter_footer_home' }),
+      body: JSON.stringify({ email, source: 'newsletter_footer_home', turnstileToken }),
     });
     const j = await resp.json().catch(() => ({}));
     if (!j || !j.ok) { if (input) input.style.borderColor = '#e07060'; return; }

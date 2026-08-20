@@ -1,6 +1,7 @@
 import { resolvePerms, permsHave } from './_rbac.js';
 
 import { can } from './_abac.js';
+import { recordDecision } from './_audit.js';
 export function json(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
     status,
@@ -166,18 +167,84 @@ export async function verifyUser(env, accessToken) {
   return resp.json().catch(() => null);
 }
 
+/* ── THE SECOND FACTOR IS PART OF WHO YOU ARE, NOT PART OF THE LOGIN SCREEN ──
+ *
+ * admin.html does this properly on the surface: `checkMFAAndProceed()` reads the
+ * assurance level, forces TOTP enrolment when there is no factor, challenges
+ * when there is, and only then shows the panel. None of that reached here.
+ *
+ * `/auth/v1/user` answers for an aal1 token — email and password, no code — so
+ * a session that never passed the challenge resolved to a full admin at every
+ * endpoint below. The TOTP prompt was a gate on one HTML page that anybody
+ * holding the password could walk around with `curl`.
+ *
+ * WHY THE CLAIM IS SAFE TO READ THIS WAY. The token's signature is verified by
+ * the `/auth/v1/user` call above — if it were forged or expired that call fails
+ * and we never get here. Decoding the payload of an already-verified token is
+ * reading what the issuer said, not trusting the caller. It is the same token
+ * Supabase itself just vouched for.
+ *
+ * FAIL CLOSED, AND WITH NO SWITCH. There is deliberately no environment
+ * variable to turn this off. A store that could disable MFA enforcement is a
+ * store where MFA enforcement is off, because that is the setting somebody
+ * flips at 2am and never flips back — the same reasoning that keeps
+ * REFUND_SECRET in Cloudflare rather than in the panel. Recovery from a lost
+ * authenticator is a Supabase dashboard action by the owner, and it is written
+ * down in RUNBOOKS.md.
+ *
+ * NOBODY IS LOCKED OUT BY THIS. Reaching the panel already requires clearing
+ * the MFA step, and the one endpoint that runs BEFORE it — /api/admin-access,
+ * which answers "are you an admin at all" — has its own auth path and does not
+ * come through here. A first admin on a fresh store enrols through Supabase's
+ * own API, which upgrades the session to aal2 before any endpoint is called.
+ */
+function jwtClaims(token) {
+  try {
+    const part = String(token || '').split('.')[1];
+    if (!part) return null;
+    const b64 = part.replace(/-/g, '+').replace(/_/g, '/');
+    const bin = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch (_) {
+    return null;
+  }
+}
+
+/* The assurance level of a token, or '' when it does not say. An absent claim
+   is NOT treated as aal1-and-fine: it is treated as unknown, which fails the
+   check below, because "the token did not say" and "the token said aal1" are
+   the same amount of evidence that a second factor was used. */
+export function assuranceOf(accessToken) {
+  const token = String(accessToken || '').replace(/^Bearer\s+/i, '').trim();
+  const claims = jwtClaims(token) || {};
+  return String(claims.aal || '').toLowerCase();
+}
+
+export const MFA_REQUIRED_REASON =
+  'This session has not completed two-factor verification. Sign out of the admin panel and sign in again with your authenticator code.';
+
 export async function verifyAdmin(env, accessToken) {
   const user = await verifyUser(env, accessToken);
   if (!user?.id) return null;
   const rows = await supabaseSelect(env, `profiles?select=id,email,role,full_name,admin_role,admin_permissions&id=eq.${encodeURIComponent(user.id)}&limit=1`);
   const profile = rows?.[0] || null;
   if (!profile || profile.role !== 'admin') return null;
+  /* Held here rather than at each of the 21 endpoints that resolve an admin,
+     because a check that has to be remembered 21 times is a check that is
+     missing from one of them. */
+  const aal = assuranceOf(accessToken);
+  if (aal !== 'aal2') {
+    console.warn('admin auth: refused an', aal || 'unstated', 'assurance session for', profile.email);
+    return null;
+  }
   // admin_role may be null on stores that haven't run supabase-rbac.sql yet —
   // treat that as super_admin so RBAC rollout never locks the owner out.
   const adminRole = profile.admin_role || 'super_admin';
   // Effective flat permission list from role preset + per-user overrides.
   const permissions = resolvePerms({ admin_role: adminRole, admin_permissions: profile.admin_permissions });
-  return { ...user, profile, admin_role: adminRole, permissions };
+  return { ...user, profile, admin_role: adminRole, permissions, aal };
 }
 
 // Like verifyAdmin, but also requires the person to hold `permission`
@@ -256,7 +323,17 @@ async function burnWaiver(env, id, byAdminId) {
  */
 export async function decide(env, accessToken, permission, ctx = {}) {
   const admin = await verifyAdmin(env, accessToken);
-  if (!admin) return { allow: false, reason: 'not signed in as an admin', admin: null };
+  if (!admin) {
+    /* Say which refusal it is. "Not signed in as an admin" to somebody who is
+       plainly signed in as an admin reads as a bug and gets retried; the
+       assurance level is the one refusal with an action attached to it. */
+    const aal = assuranceOf(accessToken);
+    return {
+      allow: false,
+      reason: (aal && aal !== 'aal2') ? MFA_REQUIRED_REASON : 'not signed in as an admin',
+      admin: null,
+    };
+  }
 
   const rbacAllowed = permsHave(admin.permissions, permission);
   const rules = await abacRules(env);
@@ -293,6 +370,20 @@ export async function decide(env, accessToken, permission, ctx = {}) {
     }
   }
 
+  /* ── THE DECISION LOGS ITSELF ──────────────────────────────────────────────
+     Not the interface. The 48 audit rows this codebase had were all written by
+     admin-main.js, which means they described what the PANEL did — and the
+     panel is not the only thing holding the token. A row written here is
+     written whether the action was asked for by the admin page, by a script, or
+     by somebody with a stolen session, because this is the gate all three come
+     through.
+
+     Awaited rather than fired and forgotten: a log entry that may or may not
+     have been written before the response goes out is not evidence of
+     anything. record() never throws, so a logging failure cannot turn into a
+     failed refund — it comes back as false and is shouted into the tail. */
+  const logged = await recordDecision(env, admin, permission, verdict, ctx.request || null);
+
   return {
     allow: verdict.allow,
     reason: verdict.reason,
@@ -303,6 +394,7 @@ export async function decide(env, accessToken, permission, ctx = {}) {
     limited: !!verdict.limited && rbacAllowed,
     ownerMayOverride: !!verdict.ownerMayOverride,
     admin: verdict.allow ? admin : null,
+    logged,
   };
 }
 

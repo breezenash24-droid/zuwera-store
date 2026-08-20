@@ -6,65 +6,36 @@
  * Returns: { success: true } or { success: false, error: "..." }
  *
  * Set TURNSTILE_SECRET_KEY in Cloudflare Pages → Settings → Environment Variables
+ *
+ * THE SITEVERIFY CALL ITSELF LIVES IN _turnstile.js. It used to live here, and
+ * here was the only place anything could ask — which is how a bot check ended
+ * up guarding one login form while eleven public endpoints had none. Endpoints
+ * now call requireHuman() directly rather than routing a second HTTP request
+ * through this one; this route stays because the admin sign-in screen calls it,
+ * and it delegates so there is one implementation to get right.
  */
+import { verifyToken, turnstileConfigured } from './_turnstile.js';
+
 export async function onRequestPost(context) {
-  try {
-    const { request, env } = context;
-    const secret = env.TURNSTILE_SECRET_KEY;
+  const { request, env } = context;
+  const h = { 'Content-Type': 'application/json' };
 
-    if (!secret) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          code: 'TURNSTILE_NOT_CONFIGURED',
-          error: 'Turnstile secret key not configured'
-        }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const body = await request.json();
-    const token = body?.token;
-
-    if (!token) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Missing Turnstile token' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get real client IP for extra validation
-    const ip = request.headers.get('CF-Connecting-IP') || '';
-
-    const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ secret, response: token, remoteip: ip }).toString()
-    });
-
-    if (!verifyRes.ok) {
-      return new Response(
-        JSON.stringify({ success: false, error: `Turnstile service error (${verifyRes.status})` }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-    const result = await verifyRes.json();
-
-    if (result.success) {
-      return new Response(
-        JSON.stringify({ success: true }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
-    } else {
-      return new Response(
-        JSON.stringify({ success: false, error: result['error-codes']?.join(', ') || 'Verification failed' }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ success: false, error: err.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+  if (!turnstileConfigured(env)) {
+    return new Response(JSON.stringify({
+      success: false,
+      code: 'TURNSTILE_NOT_CONFIGURED',
+      error: 'Turnstile secret key not configured',
+    }), { status: 500, headers: h });
   }
+
+  let body = {};
+  try { body = await request.json(); } catch (_) { body = {}; }
+  const token = body && body.token;
+  if (!token) {
+    return new Response(JSON.stringify({ success: false, error: 'Missing Turnstile token' }), { status: 400, headers: h });
+  }
+
+  const ip = request.headers.get('CF-Connecting-IP') || '';
+  const result = await verifyToken(env, token, ip);
+  return new Response(JSON.stringify(result), { status: result.success ? 200 : 403, headers: h });
 }

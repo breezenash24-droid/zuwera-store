@@ -189,6 +189,51 @@ incident — by the time they hurt, they have been wrong for weeks.
 - If RLS is refusing everything, check migration `0017`
   (`0017_rls_respects_permissions.sql`) applied cleanly.
 
+### 11a. Lost the authenticator — every admin endpoint returns 401
+Symptom: you can sign in, the panel loads, and every action fails with *"This
+session has not completed two-factor verification."* The Workers log shows
+`admin auth: refused an aal1 assurance session for <you>`.
+
+`verifyAdmin()` in `_commerce.js` requires an `aal2` token. **There is no
+environment variable to turn that off, on purpose** — the same reasoning as
+`REFUND_SECRET` above: a store that can disable MFA enforcement is a store where
+MFA enforcement is off. Recovery is out-of-band, through an account nobody
+signing in to the storefront holds:
+
+1. Supabase dashboard → **Authentication → Users** → find your user.
+2. Delete the enrolled TOTP factor (**MFA** section on the user's detail page).
+3. Sign in to `/admin.html` again. With no factor present the panel routes you
+   to enrolment, you scan the new QR code, and the session comes back as `aal2`.
+
+Two things worth knowing before you need this:
+- **Enrol a second factor now**, on a second device, and keep the recovery codes
+  Supabase shows at enrolment. That turns this runbook into a non-event.
+- `/api/admin-access` deliberately does **not** require `aal2`. It is the "are
+  you an admin at all" check that runs before the MFA step, so a first sign-in
+  can always reach the enrolment screen. If you ever find yourself adding
+  `verifyAdmin` to it, that is the lockout.
+
+## 11b. Are the public-endpoint protections actually running?
+`GET /api/health` answers, under `protections`:
+
+```json
+"protections": {
+  "rateLimit": { "memory": true, "database": "ok", "durable": true },
+  "botCheck": "on"
+}
+```
+
+- `database: "missing"` → migration **0029** has not been run. The limiter is
+  still working from its in-isolate counter, which stops a loop from one address
+  and not a spread across many. Run the migration.
+- `botCheck: "not-configured"` → `TURNSTILE_SECRET_KEY` is unset, so
+  `/api/subscribe` accepts requests without a token.
+
+Both of those fail **open** by design — a late migration must not take checkout
+down — which is exactly why they are published here rather than assumed. This is
+deliberately not part of the `ok` flag: an uptime monitor should page for a store
+that cannot serve, not for a migration nobody has run yet.
+
 ## 12. Suspected key/secret leak
 - Rotate immediately in the source (Stripe/Supabase/Cloudflare dashboards) **and**
   update CF env vars. gitleaks (CI) scans history; if a key ever landed in git,

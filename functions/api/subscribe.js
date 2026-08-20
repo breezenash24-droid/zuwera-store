@@ -10,6 +10,8 @@
  */
 
 import { cors, json } from './_commerce.js';
+import { limit } from './_ratelimit.js';
+import { requireHuman } from './_turnstile.js';
 
 function serviceKey(env) {
   return env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_ANON_KEY || '';
@@ -23,11 +25,24 @@ export async function onRequestOptions({ env }) {
 }
 
 export async function onRequestPost({ request, env }) {
+  const headers = cors(env);
+  /* Five in ten minutes per address. Nobody subscribes to a newsletter twice;
+     a list-bombing script does it as fast as the network allows. */
+  const limited = await limit(env, request, 'subscribe', headers);
+  if (limited) return limited;
+
   try {
     const body = await request.json().catch(() => ({}));
     const email = String(body.email || '').trim().toLowerCase();
     const source = String(body.source || 'footer').slice(0, 60);
     if (!validEmail(email)) return json({ ok: false, error: 'Please enter a valid email.' }, 400, cors(env));
+
+    /* AFTER the address is checked, so a typo does not spend a token, and
+       before anything is written. Returns null when Turnstile is not installed
+       on this deployment — /api/health is where that fact is published, so it
+       cannot pass for protection that is not there. */
+    const notHuman = await requireHuman(env, request, body.turnstileToken, headers);
+    if (notHuman) return notHuman;
 
     const key = serviceKey(env);
     if (!env.SUPABASE_URL || !key) return json({ ok: false, error: 'not configured' }, 500, cors(env));

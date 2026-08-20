@@ -40,19 +40,38 @@ console.log('  the violation that was actually being reported');
     /https:\/\/\*\.google-analytics\.com/.test(HEADERS),
     'they are different hostnames; the wildcard does not match');
 
-  /* Two policies, and the split is why nothing was broken. The ENFORCING one
-     carries only directives that cannot break a third party — clickjacking,
-     plugins, base tags, http upgrades. Everything that names a host is
-     report-only, so a missing entry produces a log line instead of an outage.
-     That is the right arrangement and worth pinning: the day a fetch directive
-     appears in the enforcing header, every unlisted host in that log stops
-     working at once. */
-  ok('the host allow-lists are report-only', /Content-Security-Policy-Report-Only:[^\n]*connect-src/.test(HEADERS));
+  /* THIS USED TO ASSERT THE OPPOSITE, and the reasoning it carried was right at
+     the time: while the host allow-lists were report-only, a missing entry
+     produced a log line instead of an outage, and it warned that "the day a
+     fetch directive appears in the enforcing header, every unlisted host in
+     that log stops working at once."
+
+     That day is here — an advisory script-src stops nothing being loaded onto
+     the checkout page, which is the one thing a CSP is for — and the warning is
+     what made the promotion safe rather than something to argue with. Three
+     hosts the site genuinely uses were missing from the list and were found and
+     added before it was turned on: www.paypal.com (the SDK — PayPal checkout
+     would have stopped), cdn.jsdelivr.net and unpkg.com.
+
+     What replaces the old assertion is not a weaker one. It is the same concern
+     enforced where it now belongs: tests/csp-is-enforced-and-complete.test.js
+     walks every browser-side file and fails if any host it loads from is
+     missing from the enforced policy. The rule moved from "never name a host"
+     to "name every one you use", which is a claim a test can actually check. */
   const enforced = (HEADERS.match(/^\s*Content-Security-Policy:.*$/m) || [''])[0];
-  ok('there is an enforcing policy too', /frame-ancestors/.test(enforced), enforced.slice(0, 80));
-  ok('…carrying nothing that can block a third party',
-    !/(connect-src|script-src|img-src|media-src|style-src|font-src|frame-src|default-src)/.test(enforced),
-    'a fetch directive here turns every gap in the report-only list into an outage');
+  const reportOnly = (HEADERS.match(/^\s*Content-Security-Policy-Report-Only:.*$/m) || [''])[0];
+  ok('there is an enforcing policy', /frame-ancestors/.test(enforced), enforced.slice(0, 80));
+  ok('…and it names hosts, so a script cannot be loaded from anywhere',
+    /script-src/.test(enforced) && /connect-src/.test(enforced),
+    'an advisory script-src is a control that reports protection it is not giving');
+  /* The report channel has to point at the NEXT step or it teaches nothing: a
+     report-only copy of the policy already enforced collects zero reports. */
+  ok('the report-only policy is the stricter one still to come',
+    /script-src/.test(reportOnly)
+    && /'unsafe-inline'/.test(enforced)
+    && !/script-src[^;]*'unsafe-inline'/.test(reportOnly),
+    'report-only should be the tightening being worked toward, not a copy of what already applies');
+  ok('…and it is still reporting somewhere', /report-uri \/api\/csp-report/.test(reportOnly));
 }
 
 console.log('\n  one row per problem, not per pageview');

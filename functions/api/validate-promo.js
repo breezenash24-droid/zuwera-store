@@ -12,6 +12,7 @@ import {
   normalizePromoCode,
   sanitizeCommerceConfig,
 } from './_commerce.js';
+import { limit } from './_ratelimit.js';
 
 const CORS = (env) => ({
   'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
@@ -33,6 +34,9 @@ export async function onRequestOptions({ env }) {
 
 export async function onRequestPost({ request, env }) {
   const headers = CORS(env);
+  const limited = await limit(env, request, 'validate-promo', headers);
+  if (limited) return limited;
+
   try {
     const body = await request.json().catch(() => ({}));
     const { promoCode = '', items = [] } = body;

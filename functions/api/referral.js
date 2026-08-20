@@ -20,6 +20,7 @@
 
 import { cors, json, mutateSetting } from './_commerce.js';
 import { supabaseUrl, supabaseAnonKey } from './_config.js';
+import { limit } from './_ratelimit.js';
 
 const SITE = 'https://zuwera.store';
 
@@ -143,6 +144,9 @@ export async function onRequestOptions({ env }) {
 }
 
 export async function onRequestPost({ request, env }) {
+  const limited = await limit(env, request, 'referral', cors(env));
+  if (limited) return limited;
+
   try {
     const body = await request.json().catch(() => ({}));
     const accessToken = String(body.accessToken || '').trim();

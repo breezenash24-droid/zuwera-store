@@ -92,6 +92,7 @@ export function buildReturnLinkEmail({ appearance, content, orderLabel, link }) 
    token is — a second copy is how two definitions drift and only one of them
    gets the next fix. */
 import { mintOrderToken, readOrderToken } from './_order-token.js';
+import { limit } from './_ratelimit.js';
 
 /* Orders are read with the service key because there is no session to read them
    under — that is the entire point. Narrowed to the one order the token names,
@@ -152,6 +153,9 @@ export async function onRequestOptions({ env }) {
 
 export async function onRequestPost({ request, env }) {
   const h = cors(env);
+  const limited = await limit(env, request, 'guest-return', h);
+  if (limited) return limited;
+
   let body;
   try { body = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400, h); }
   const action = String(body?.action || '').trim();

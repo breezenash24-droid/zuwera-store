@@ -19,6 +19,7 @@ import { cors, json, verifyAdminCan } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { sendTransactional } from './_email.js';
 import { getEmailAppearance, getEmailContent, renderEmailShell, fillTemplate } from './_email-theme.js';
+import { limit } from './_ratelimit.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
 
@@ -79,6 +80,9 @@ export async function onRequestOptions({ env }) {
 }
 
 export async function onRequestPost({ request, env }) {
+  const limited = await limit(env, request, 'notify-restock', cors(env));
+  if (limited) return limited;
+
   try {
     const authHeader = request.headers.get('Authorization') || '';
     const body = await request.json().catch(() => ({}));

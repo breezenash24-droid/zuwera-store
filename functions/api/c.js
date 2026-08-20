@@ -12,6 +12,7 @@
  */
 
 import { buildUserData, sendCapiEvents } from './_capi.js';
+import { limit } from './_ratelimit.js';
 
 const ALLOWED = new Set([
   'PageView', 'ViewContent', 'AddToCart', 'InitiateCheckout',
@@ -43,6 +44,13 @@ export function onRequestGet() {
 }
 
 export async function onRequestPost({ request, env }) {
+  /* A public relay into Meta's Conversions API. Left open, anybody can post
+     fabricated conversions into the ad account and poison the optimisation
+     signal — the damage is not to the store's servers, it is to what Meta
+     believes about who buys. */
+  const limited = await limit(env, request, 'capi-relay');
+  if (limited) return limited;
+
   let payload;
   try { payload = await request.json(); } catch { payload = null; }
 
