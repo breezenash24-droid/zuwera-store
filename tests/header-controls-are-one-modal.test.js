@@ -70,8 +70,15 @@ console.log('\nOne modal for the whole header\n');
   ok('...and the old spellings still work, so baked HTML is not blanked',
     /\[data-zw-iconlabels="mobile"\]/.test(read('storefront-cohesion.css'))
     && /\[data-zw-iconlabels="always"\]/.test(read('storefront-cohesion.css')));
-  ok('where the account link lives is answerable there',
-    /id="hdrAcctBag"/.test(B) && /id="hdrAcctHeader"/.test(B));
+  /* Asked with the other four, on the account's own row, rather than in a
+     section of its own that phrased the same question differently. */
+  ok('where the account link lives is answerable there, on its row',
+    /function bagRowWhere\(key\)\{/.test(B)
+    && /if\(key==='account'\) return \(chromeHdrAccount\|\|'bag'\)==='header'/.test(B)
+    && !/id="hdrAcctBag"/.test(B));
+  ok('...and its answer is stored once, not copied under the row too',
+    /if\(key==='account'\)\{\s*chromeHdrAccount=w;/.test(B),
+    'a second copy is what lets the two disagree');
   ok('and the four menu rows are, each with a switch and a name',
     /id="hdrBagRows"/.test(B) && /data-bagrow=/.test(B) && /data-baglabel=/.test(B));
   ok('the support address too, since one row is an email link',
@@ -84,7 +91,7 @@ console.log('\nOne modal for the whole header\n');
      things. Hiding Apply on one tab made the halves behave differently for no
      reason a reader could see, and left Cancel closing without undoing. */
   ok('every switch reaches the preview as it is pressed',
-    /function setHdrAccount\(v\)\{[\s\S]{0,200}sendChrome\(\)/.test(B));
+    /function setBagRowWhere\(key,where\)\{[\s\S]{0,600}sendChrome\(\)/.test(B));
   ok('...but only Apply writes it to the draft',
     /function applyHeaderCfg\(\)\{/.test(B) && /hdrCfgTouched=false;/.test(B));
   ok('...and Cancel puts back what the draft held when you opened it',
@@ -286,11 +293,23 @@ console.log('\nOne modal for the whole header\n');
   /* The panel could hide a row and nothing else, so "hide Orders" and "put
      Orders in the header" were the same button and only one of them existed. */
   ok('a row says which surface it is on',
-    /where: r\.where === 'header' \? 'header' : 'bag'/.test(FEAT)
+    /var where = \(r\.where === 'header' && CAN_PROMOTE\[key\]\) \? 'header' : 'bag';/.test(FEAT)
     && /function setBagRowWhere\(key,where\)\{/.test(B));
-  ok('...and the four that have a destination can move',
+  /* A stray where-value on a row nothing can build a control for would strand it:
+     the panel stops drawing it, and nothing in the header draws it either. */
+  ok('...and a row that cannot be built is never treated as promoted',
+    /var CAN_PROMOTE = \{ orders: 1, saves: 1, support: 1 \};/.test(FEAT));
+  ok('...and the three that need a control built for them get one',
     /var HDR_ROWS = \[/.test(FEAT)
-    && ['orders', 'saves', 'account', 'support'].every((k) => new RegExp("key: '" + k + "'").test(FEAT)));
+    && ['orders', 'saves', 'support'].every((k) => new RegExp("key: '" + k + "'").test(FEAT)));
+  /* The account is promotable too, and needs no injected control: the header
+     already has one that reads the customer's name. Building a second anchor to
+     the same page would put two account controls in the row and give the word
+     account two meanings in the order, which can only place one of them. */
+  ok('...while the account uses the control the header already has',
+    !/key: 'account'/.test(FEAT) && /function accountInHeader\(\)/.test(FEAT));
+  ok('...and leaves the panel when it does, rather than appearing twice',
+    /rAccount\.enabled && !accountInHeader\(\)/.test(FEAT));
   /* The heading is not a link. Offering to move it would be offering a switch
      with nowhere to go. */
   ok('...but the heading cannot, and says so instead of offering a dead switch',
@@ -324,6 +343,26 @@ console.log('\nOne modal for the whole header\n');
   ok('a promoted row follows the words-or-glyphs setting like everything else',
     /\.zwf-hdr-row/.test(read('storefront-cohesion.css')),
     'a control that ignored it would be the one thing on the row reading differently');
+
+  /* ── THE LABEL IS RENDERED THROUGH ::before, AND SO WAS THE THING KILLING IT
+     The search launcher borrows a class whose ::before masks in a person glyph,
+     so a rule kills that pseudo-element. Unscoped, it also killed the LABEL:
+     with words on, the search control rendered nothing at all — present, sized,
+     clickable and invisible — while the bag beside it read "BAG", because
+     #cart-btn has no such rule. One control vanishing and its neighbour not is
+     what made it look like a missing button rather than a hidden label.
+
+     There are TWO copies of that rule, one in the stylesheet and one in the
+     runtime-injected CSS, and scoping only the first left the fault exactly
+     where it was. Both are checked here for that reason. */
+  for (const [what, src] of [['the stylesheet', read('storefront-cohesion.css')],
+                             ['the injected CSS', FEAT]]) {
+    const kills = [...src.matchAll(/([^\n{]*\.zwf-search-btn(?:[^\n{]*)?::before[^{]*)\{[^}]*content\s*:\s*none/g)]
+      .map((m) => m[1]);
+    ok('  ' + what + ' kills the search ::before only while it is a glyph',
+      kills.length > 0 && kills.every((sel) => /data-zw-iconlabels/.test(sel)),
+      kills.filter((sel) => !/data-zw-iconlabels/.test(sel)).join(' | ') || 'no rule found');
+  }
 }
 
 /* ── 7 · what applies at which width, said out loud ──────────────────────── */
