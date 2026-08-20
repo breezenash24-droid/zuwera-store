@@ -167,6 +167,10 @@ if (notClaimed.length) {
    9 → 10 for 0027 (header_layout on it too — which had to be its own file
    because 0026 was edited AFTER it had been applied, and an applied version is
    never re-run),
+   12 → 13 for 0030 (the stored_value ledger + its six functions — gift cards
+   and store credit, which are one instrument; the balance is a SUM of immutable
+   entries rather than a column, because a column is a value two checkouts can
+   both read and both overwrite),
    11 → 12 for 0029 (the audit log's client INSERT policy revoked, and the
    zw_rate_limit counter + RPC added — the database half of two controls that
    had been reporting protection they did not provide: history the browser
@@ -188,7 +192,7 @@ if (notClaimed.length) {
    can quietly fix. It is one command, recorded in scripts/build-install-sql.js,
    and every migration past 0017 is a thing a NEW project does not get until
    somebody runs it. That is the real cost this number is counting. */
-const DRIFT_BUDGET = 12;
+const DRIFT_BUDGET = 13;
 ok('install.sql has not fallen further behind', notClaimed.length <= DRIFT_BUDGET,
   notClaimed.length + ' migrations post-date the snapshot (budget ' + DRIFT_BUDGET + ') — '
   + 'regenerate it, then lower DRIFT_BUDGET to ' + notClaimed.length);

@@ -217,6 +217,12 @@ export const LIMITS = {
   'shippo-rates':         { max: 40, windowSec: 3600 },
   'capi-relay':           { max: 120, windowSec: 3600 },
   'csp-report':           { max: 60, windowSec: 600 },
+
+  /* A gift card code is bearer paper, and an unmetered endpoint that answers
+     yes-or-no about a secret is a thing that gets scripted eventually. Twenty
+     an hour is invisible to somebody holding a card and hopeless for guessing
+     at one. */
+  'stored-value':         { max: 20, windowSec: 3600, message: 'Too many code checks. Please wait a few minutes.' },
 };
 
 /** enforce() with the allowance looked up by name. */

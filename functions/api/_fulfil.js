@@ -37,6 +37,7 @@ import { incrementShippoMonthlyCount, recordLabelFailure } from './_shipping-usa
 import { recordTaxSale } from './_tax.js';
 import { shipFrom } from './_ship-from.js';
 import { mintOrderToken } from './_order-token.js';
+import { capture as captureStoredValue } from './_stored-value.js';
 
 const SERVICE_TOKEN_MAP = {
   'Priority Mail':         'usps_priority',
@@ -141,6 +142,34 @@ function riskOf(pi) {
 // ─── Orchestrator ─────────────────────────────────────────────────────────────
 
 export async function handleSuccessfulPayment(pi, meta, env, onTracking) {
+  /* ── THE GIFT CARD IS SPENT FIRST, BEFORE ANYTHING ELSE HAPPENS ────────────
+     The card was RESERVED when the payment was created; this is where the
+     reservation becomes a payment. It runs before the label, the order row and
+     the email, because those are all things that can be repaired afterwards and
+     an uncaptured hold is not: it expires quietly, hands the balance back to a
+     customer who has already been shipped the goods, and nothing anywhere says
+     it happened.
+
+     Idempotent in the database, which matters more here than anywhere else in
+     this file — a Stripe webhook is delivered more than once by design, and the
+     second delivery must not spend the balance a second time. See
+     zw_stored_value_capture in migration 0030.
+
+     A failure is logged and does NOT stop fulfilment. The customer's card has
+     already been charged for the remainder; refusing to ship because the ledger
+     is unreachable would turn a bookkeeping problem into a missing order. */
+  if (meta.stored_value_ref) {
+    try {
+      const cap = await captureStoredValue(env, meta.stored_value_ref, meta.order_number || pi.id);
+      if (!cap.ok) {
+        console.error('stored value NOT captured for', meta.order_number, '—', cap.reason,
+          '— expected', meta.stored_value_cents, 'cents from', meta.stored_value_code);
+      }
+    } catch (e) {
+      console.error('stored value capture threw for', meta.order_number, '—', e && e.message);
+    }
+  }
+
   // Pre-fetch email keys + branding from Supabase api_key_overrides (admin overrides take priority)
   const emailKeyCache = await fetchSiteSettings(
     ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL',

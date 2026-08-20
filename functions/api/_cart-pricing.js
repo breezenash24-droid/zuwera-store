@@ -34,6 +34,7 @@ import { normalizeStateCode, resolveTax } from './_tax.js';
 import { messagesFrom, shippedMessages } from './_messages.js';
 import { resolveVariantPrice } from './_variant-price.js';
 import { fetchPricingContext, resolvePrice, shopperFor, isWholesaleBuyer, wholesaleMinimumCents } from './_price-resolution.js';
+import { storedValueEnabled, quoteAgainst } from './_stored-value.js';
 /* A rejection the shopper caused and can fix, tagged with the status it should
    actually carry.
 
@@ -673,7 +674,7 @@ export async function resolveShipping({ shippingRate, address, subtotalCents, ca
    Throws cartError() for anything the shopper can fix — the caller's catch is
    expected to honour e.zwStatus so a sold-out size stays a 409 rather than
    becoming a fake server outage. */
-export async function quoteCart({ items, address = {}, shippingRate, promoCode = '', deliveryMethod = '', accessToken = '', env, request, waitUntil }) {
+export async function quoteCart({ items, address = {}, shippingRate, promoCode = '', deliveryMethod = '', storedValueCode = '', accessToken = '', env, request, waitUntil }) {
   const verifiedUser = await verifyAccessToken(accessToken, env);
   const isMember = Boolean(verifiedUser?.id);
 
@@ -846,6 +847,38 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
 
   const totalCents = discountedSubtotalCents + shipping.shippingCents + tax.taxCents;
 
+  /* ── STORED VALUE IS TENDER, NOT A DISCOUNT ────────────────────────────────
+     Applied here, AFTER tax and shipping, and deliberately not with the promo
+     code above. A gift card pays a bill; it does not reduce one. Folding it in
+     as a discount would shrink the taxable amount — which is somebody else's
+     money to decide about — and would under-collect tax the store still owes on
+     goods it really did sell at full price.
+
+     So `totalCents` stays what the order is worth, and `amountDueCents` is what
+     the card is asked for. An order paid entirely with a gift card still has a
+     total, still owes tax on it, and still reports revenue.
+
+     NOTHING IS RESERVED HERE. This runs while the customer is still looking at
+     the page — every keystroke in the address field re-quotes — and a hold
+     taken at quote time would let a shopper who typed a code and wandered off
+     leave their own money locked against a checkout that never happened. The
+     hold is taken at the moment of payment, by the caller. */
+  let storedValue = { code: '', appliedCents: 0, balanceCents: 0, reason: '', kind: '' };
+  if (storedValueCode && await storedValueEnabled(env)) {
+    const q = await quoteAgainst(env, storedValueCode, totalCents);
+    storedValue = {
+      code: q.applied > 0 ? String(storedValueCode).trim().toUpperCase().replace(/\s+/g, '') : '',
+      appliedCents: q.applied,
+      balanceCents: q.info.balanceCents || 0,
+      kind: q.info.kind || '',
+      /* Why it did nothing, in the shopper's words rather than the ledger's, so
+         the page can say "that code has already been used" instead of failing
+         silently and looking broken. */
+      reason: q.applied > 0 ? '' : (q.info.reason || 'not_found'),
+    };
+  }
+  const amountDueCents = Math.max(0, totalCents - storedValue.appliedCents);
+
   /* Two projections of the same items, both needed downstream by every
      processor: what the customer bought, and what to take off the shelf. */
   const lineItems = catalogItems.map((item) => ({
@@ -870,5 +903,11 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
     discountedSubtotalCents, tax,
     taxStateCode: tax.stateCode, taxRate: tax.rate, taxCents: tax.taxCents,
     totalCents,
+    /* What the order is worth vs what the card is asked for. Both, always, so
+       nothing downstream has to subtract for itself — the same reason
+       `discountedSubtotalCents` is returned rather than recomputed. When stored
+       value is off or unused, amountDueCents === totalCents and every existing
+       caller reads the number it always read. */
+    storedValue, amountDueCents,
   };
 }
