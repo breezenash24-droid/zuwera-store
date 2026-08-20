@@ -62,6 +62,29 @@ console.log('\nOne modal for the whole header\n');
     /id="hdrDevs"/.test(B) && /data-dev="/.test(B)
     && /function toggleHdrLabel\(dev\)\{/.test(B)
     && ['phone', 'tablet', 'desktop'].every((d) => B.includes("['" + d + "',")));
+  /* ONE WRITER for that answer. The cards and the reset both go through it,
+     so "an empty list means 'none', not ''" is decided once — '' would hand
+     the question back to the theme, which is a different answer and not what
+     either control means. */
+  ok('...through a single writer, so empty means the same thing to both',
+    /function setHdrLabels\(devs\)\{/.test(B)
+    && /const next=devs\.length\?\(L\?L\.deviceList\(devs\.join\(' '\)\):devs\.join\(' '\)\):'none';/.test(B)
+    && (B.match(/chromeHdrLabels=next;/g) || []).length === 1);
+  /* THE STATE IS ALWAYS STATED. The line under the cards read
+     `words.length ? '' : …`, so the one state it never described in words was
+     the one somebody would want described: words turned on. A store ends up
+     showing WORDS where its owner remembers choosing icons, and no sentence
+     anywhere confirms which of them is right. */
+  ok('...and the modal says in words which answer is saved, in every state',
+    /'Saved: icons on every device\.'/.test(B)
+    && /'Saved: words on every device\.'/.test(B)
+    && /'Saved: words on '\+words\.join\(', '\)/.test(B)
+    && !/words\.length \? '' :/.test(B));
+  /* And a way back that is one press rather than finding every lit card. */
+  ok('...with a one-press return to icons, shown only when it would do something',
+    /id="hdrLbReset"/.test(B)
+    && /rst\.hidden = !words\.length;/.test(B)
+    && /rst\.onclick = \(\) => setHdrLabels\(\[\]\);/.test(B));
   ok('...and every device is on the header’s own 900px boundary, not a second one',
     /@media \(max-width: 600px\)[\s\S]{0,240}data-zw-iconlabels~="phone"/.test(read('storefront-cohesion.css'))
     && /@media \(min-width: 601px\) and \(max-width: 900px\)[\s\S]{0,240}data-zw-iconlabels~="tablet"/.test(read('storefront-cohesion.css'))
