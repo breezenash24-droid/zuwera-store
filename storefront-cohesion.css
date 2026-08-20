@@ -4899,15 +4899,45 @@ body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img)
 
    Outside the placement media query on purpose: the lines are a whole-site
    choice and a phone shows them too. */
+/* !important, and it is not decoration. Two rules were beating this one and
+   both were more specific by accident rather than by intent:
+
+       body.light-mode nav#nav, body.light-mode nav#nav.scrolled  (1,1,2)
+       @media (max-width:900px) body.light-mode :is(nav#nav,…)    !important
+
+   against this one's (1,1,1). So on every light theme — including a custom
+   theme that paints a dark bar on a light page, which is what this shop runs —
+   "divider lines: off" did nothing at all, and the line the setting promised to
+   remove stayed under the header on every page. A switch that reports a state
+   it does not produce is worse than no switch. The rules it now beats are theme
+   defaults; this is the shop owner answering the same question directly. */
 html[data-zw-hdr-lines="off"] :is(#nav, .nav, .zw-nav, header.nav),
 html[data-zw-hdr-lines="off"] #bar {
-  border-bottom-color: transparent;
+  border-bottom-color: transparent !important;
 }
-/* The mega panel drops the nav's border while it is open so the two read as one
-   surface. With the lines already off there is nothing to drop, and this simply
-   keeps the two rules from disagreeing about which one owns the border. */
-html[data-zw-hdr-lines="off"] :is(#nav, .nav, .zw-nav):has(.zw-navitem.zw-has-mega:hover) {
-  border-bottom-color: transparent;
+
+/* ── NOTHING IS DRAWN ON THE HEADER'S BOTTOM EDGE WHILE A PANEL HANGS OFF IT ─
+   The mega panel already dropped the border while it was open, so the two would
+   read as one surface. Every other panel that drops from the header wants the
+   same thing and none of them asked for it — and it is not only the border. On
+   the light themes the bar also carries a box-shadow of 0 1px 12px, which paints
+   a soft band DOWNWARD onto whatever is beneath it. With a panel open that is
+   the panel: a pale, blurred stripe along the join, which reads exactly like a
+   gap between the two.
+
+   So: one rule, every panel, both decorations. body.zwf-searching is set for the
+   search overlay AND the bag panel (storefront-features.js adds it for both —
+   it is what shrinks the header); the mega panel is matched on the nav itself,
+   because it has no body class and never needed one.
+
+   This is about the JOIN, not about the divider setting: a store that keeps its
+   lines on still keeps them, and only loses the edge where a panel is covering
+   it anyway. */
+body.zwf-searching :is(nav#nav, .nav, header.nav, .zw-nav),
+:is(nav#nav, .nav, header.nav, .zw-nav):has(.zw-navitem.zw-has-mega:hover),
+:is(nav#nav, .nav, header.nav, .zw-nav):has(.zw-navitem.zw-has-mega:focus-within) {
+  border-bottom-color: transparent !important;
+  box-shadow: none !important;
 }
 
 /* ── The order the action controls sit in ──────────────────────────────────
