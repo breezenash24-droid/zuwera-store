@@ -51,16 +51,43 @@ const FEAT = read('storefront-features.js');
 
 console.log('\n  nothing shows between the header and the panel under it\n');
 
-console.log('  the two surfaces overlap, in whole device pixels');
+console.log('  the two surfaces meet on a whole device row, and no further');
 {
-  /* Deliberately the same expression in both files. They cannot share a module
+  /* THE PANEL IS ON TOP. Every one of them paints above the bar — the search
+     and bag overlays at z-index 990 against the nav's 220, and the mega panel
+     inside the nav, which puts it over the nav's own background. So a
+     deliberate overlap is not hidden under anything: it is a stripe of the
+     panel's colour across the bottom of the header.
+
+     This subtracted two device pixels, on reasoning borrowed from a panel that
+     paints UNDER the header. Read out of a screenshot at scale 1, cream header
+     and white panel, header bottom 67:
+
+         before   y=64 240,238,233   header
+                  y=65 255,255,255   panel, over the header
+                  y=66 255,255,255   panel, over the header
+         after    y=66 240,238,233   header, its full height
+                  y=67 255,255,255   panel
+
+     Two rows of the wrong colour along the join is what a thin gap looks like,
+     and it showed on the search and the bag because those are the two panels
+     whose colour differs from the bar's.
+
+     What still has to be prevented is the panel starting BELOW the header,
+     which would show a sliver of the page. Flooring to a whole device row does
+     that and nothing more.
+
+     Deliberately the same expression in both files. They cannot share a module
      — one is the nav, one is the feature bundle, and neither imports — so what
      keeps them together is this check and a comment in each pointing at the
      other. */
-  const EXPR = /Math\.max\(0, Math\.floor\(bottom \* dpr - 2\) \/ dpr\)/;
+  const EXPR = /Math\.max\(0, Math\.floor\(bottom \* dpr\) \/ dpr\)/;
   ok('storefront-features measures the join that way', EXPR.test(FEAT));
   ok('...and nav-menu measures it identically', EXPR.test(NAV),
-    'floor() on the CSS value left the mega panel exactly flush — 0 overlap');
+    'floor() on the CSS value left the mega panel meeting the bar mid-device-pixel');
+  ok('...and neither reaches up into the bar',
+    !/dpr - \d/.test(FEAT) && !/dpr - \d/.test(NAV),
+    'the panel is painted ON TOP, so an overlap is a stripe, not a hidden seam');
   ok('...both reading devicePixelRatio rather than assuming 1',
     /var dpr = window\.devicePixelRatio \|\| 1;/.test(FEAT)
     && /var dpr = window\.devicePixelRatio \|\| 1;/.test(NAV));

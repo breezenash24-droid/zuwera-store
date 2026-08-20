@@ -223,24 +223,22 @@
       // real edge (the panel sits below the header in z, so a sub-pixel overlap is
       // invisible but a sub-pixel gap shows a hairline of the page behind).
       /* ── ONE CSS PIXEL IS NOT ONE PIXEL ──────────────────────────────────
-       * floor() on the CSS value used to be the whole answer, and it left the
-       * panel EXACTLY flush: measured at 1600px, the nav's bottom is 67.0 CSS
-       * px, so the panel opened at 67.0 too — 0 overlap. On a display that is
-       * not at scale 1 that boundary is not on a device pixel at all: at 1.25
-       * the two layers meet at device row 83.75, and two separately composited
-       * layers meeting three quarters of the way through a pixel is exactly
-       * where a hairline of the page behind shows up.
+       * floor() on the CSS VALUE used to be the whole answer, and on a display
+       * that is not at scale 1 that boundary is not on a device pixel at all:
+       * the nav's bottom is 67.0 CSS px, which at scale 1.25 is device row
+       * 83.75, and two layers meeting three quarters of the way through a pixel
+       * is where a hairline of the page behind shows up.
        *
-       * storefront-features.js solved this for the search and bag panels and
-       * the formula below is deliberately the same one, character for character
-       * — see headerBottom() there, and the check in tests/header-and-bar-hide-
-       * together.test.js that holds the two together. Round DOWN to a whole
-       * DEVICE pixel and take two more: an overlap of two device pixels is
-       * invisible (the panel is painted in the header's own colour), and a gap
-       * of a fraction of one is not. */
+       * Flooring to a whole DEVICE row fixes that. Not two rows further — see
+       * the long note beside headerBottom() in storefront-features.js, which
+       * this matches character for character and which explains why: every one
+       * of these panels paints ABOVE the bar, so a deliberate overlap is not
+       * hidden, it is a stripe of the panel's colour along the bottom of the
+       * header. The check in tests/nothing-shows-between-header-and-panel.test.js
+       * holds the two expressions together, because they cannot share a module. */
       var bottom = nav.getBoundingClientRect().bottom;
       var dpr = window.devicePixelRatio || 1;
-      var top = Math.max(0, Math.floor(bottom * dpr - 2) / dpr);
+      var top = Math.max(0, Math.floor(bottom * dpr) / dpr);
       var v = top + 'px';
       if (v !== _megaTopVal) { _megaTopVal = v; document.documentElement.style.setProperty('--zw-megatop', v); }
 
