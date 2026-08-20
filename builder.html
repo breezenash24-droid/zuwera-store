@@ -665,21 +665,15 @@ body{display:flex;flex-direction:column}
         <p class="hdrcfg-lines-n" id="hdrOrderNote" style="margin:.55rem 0 0"></p>
       </div>
 
-      <div class="hdrcfg-set">
-        <div class="hdrcfg-set-hd">
-          <span class="hdrcfg-lines-l">Account link</span>
-          <span class="tog" role="group" aria-label="Account link">
-            <button type="button" id="hdrAcctBag"    onclick="setHdrAccount('bag')">In the bag</button>
-            <button type="button" id="hdrAcctHeader" onclick="setHdrAccount('header')">In the header</button>
-          </span>
-        </div>
-        <p class="hdrcfg-lines-n">The bag slide-out carries an account menu, so the header's own account button is normally quiet while it is open. Keep it in the header if you would rather it stayed put &mdash; the menu below keeps its own route either way, so nobody loses their way to their account. The cards above show which way you have it.</p>
-      </div>
+      <!-- The "Account link" section that used to sit here asked the same
+           question as the Account row's own Bag/Header switch below, in
+           different words, and the two could disagree. One question, asked
+           where the other four are asked. -->
 
       <div class="hdrcfg-set">
         <div class="hdrcfg-set-hd">
           <span class="hdrcfg-lines-l">The account menu</span>
-          <span class="hdrcfg-lines-n" style="flex:1">Inside the bag slide-out. Untick to hide a row; type over a name to rename it.</span>
+          <span class="hdrcfg-lines-n" style="flex:1">Untick to hide a row, type over a name to rename it, and choose whether each one lives in the bag slide-out or in the header itself.</span>
         </div>
         <div id="hdrBagRows" class="hdrcfg-rows"></div>
         <label class="hdrcfg-mail">
@@ -3934,13 +3928,9 @@ function toggleHdrLabel(dev){
     :'Header controls: words on '+next.split(' ').join(', ')+' — preview updated','ok');
 }
 
-function setHdrAccount(v){
-  if((v!=='bag'&&v!=='header') || chromeHdrAccount===v) return;
-  chromeHdrAccount=v;
-  hdrCfgMark(); sendChrome(); paintHdrControls();
-  toast(v==='header'?'Account button stays in the header — preview updated'
-    :'Account link lives in the bag — preview updated','ok');
-}
+/* The account's bag-or-header answer is set by its ROW's switch now, with the
+   other four, through setBagRowWhere. This is kept as the one function that
+   writes it, so there is still a single place to look. */
 
 /* bag_panel is read-modify-write on an object the Settings page also edits, so
    only the fields actually touched here are set — a whole-object replace would
@@ -3966,14 +3956,31 @@ function setBagRowLabel(key,text){
 }
 /* Which surface a row shows on. Promoting one puts it in the header beside the
    bag AND into the order flow below, because a control in the header without a
-   place in the order is a control whose position nobody chose. */
+   place in the order is a control whose position nobody chose.
+
+   ACCOUNT IS STORED SOMEWHERE ELSE, and that is not an inconsistency — it is
+   the absence of one. The header already has an account control, the one that
+   reads the customer's name, so putting the account in the header means
+   un-hiding that rather than building a second anchor to the same page. Its
+   answer therefore lives where that control's answer lives, in the header
+   draft, and this switch writes it. Storing a second copy under the row is what
+   would let the two disagree. */
+function bagRowWhere(key){
+  if(key==='account') return (chromeHdrAccount||'bag')==='header' ? 'header' : 'bag';
+  return bagRowCfg(key).where==='header' ? 'header' : 'bag';
+}
 function setBagRowWhere(key,where){
   const w = where==='header' ? 'header' : 'bag';
-  const cur = bagRowCfg(key).where==='header' ? 'header' : 'bag';
-  if(cur===w) return;
-  if(w==='header') bagRowCfg(key).where='header'; else delete bagRowCfg(key).where;
-  syncHdrOrderWithRows();
-  hdrCfgMarkBag(); sendChrome(); paintHdrControls();
+  if(bagRowWhere(key)===w) return;
+  if(key==='account'){
+    chromeHdrAccount=w;
+    hdrCfgMark();
+  }else{
+    if(w==='header') bagRowCfg(key).where='header'; else delete bagRowCfg(key).where;
+    syncHdrOrderWithRows();
+    hdrCfgMarkBag();
+  }
+  sendChrome(); paintHdrControls();
   const L=window.ZWHeaderLayouts;
   toast((L&&L.controlLabels[key]||key)+(w==='header'?' moved to the header':' moved back to the bag')+' — preview updated','ok');
 }
@@ -4082,7 +4089,7 @@ function paintHdrControls(){
      isn't. The order is still kept for it, because turning the control back on
      should put it where you already said it goes. */
   const absent = {};
-  if(!acctHere) absent.account='the account link is in the bag, so there is no header control to place';
+  if(!acctHere) absent.account='its row below is set to Bag — switch it to Header and it appears here';
   L.promotable.forEach(k=>{
     const r=(chromeBag&&chromeBag.rows&&chromeBag.rows[k])||{};
     if(r.where!=='header') absent[k]='this row is in the bag panel';
@@ -4123,16 +4130,13 @@ function paintHdrControls(){
     });
   }
 
-  const ac=chromeHdrAccount||'bag';
-  tog('hdrAcctBag',ac==='bag'); tog('hdrAcctHeader',ac==='header');
-
   const host=document.getElementById('hdrBagRows');
   if(host){
     const rows=(chromeBag&&chromeBag.rows)||{};
     host.innerHTML=BAG_ROWS.map(([key,def,note])=>{
       const r=rows[key]||{};
       const on=r.enabled!==false;
-      const inHdr=r.where==='header';
+      const inHdr=bagRowWhere(key)==='header';
       /* The heading is not a destination, so there is nothing for a header
          control to link to — it is the one row that cannot be moved, and it
          says so rather than offering a switch that would do nothing. */

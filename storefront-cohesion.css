@@ -147,7 +147,19 @@ html.zw-authed body[data-zw-account="header"] #account-btn{display:inline-flex !
    like the .nbtn text button it borrows its class from. */
 .zwf-search-btn{background:none !important;border:none !important;cursor:pointer;display:inline-flex !important;align-items:center;justify-content:center;padding:.35rem !important;min-width:0 !important;width:auto !important;height:auto !important;font-size:0 !important;color:inherit}
 .zwf-search-btn svg{width:20px;height:20px;display:block}
-.zwf-search-btn::before{content:none !important;display:none !important}
+/* Killed ONLY while the controls are glyphs.
+   The words-instead-of-glyphs setting renders its label THROUGH this
+   pseudo-element, so an unconditional `content:none !important` here made the
+   search control render nothing at all once words were switched on: present,
+   sized, clickable, and completely invisible — while the bag two pixels away
+   read "BAG", because #cart-btn has no such rule. One control disappearing and
+   its neighbour not is what made this look like a missing button rather than a
+   hidden label.
+   The rule it was defending against does not exist: there is no .nbtn::before
+   anywhere in this stylesheet. It stays, scoped, because the class is borrowed
+   and a future ::before on .nbtn would land on the magnifier again. */
+html:not([data-zw-iconlabels]) .zwf-search-btn::before,
+html[data-zw-iconlabels="none"] .zwf-search-btn::before{content:none !important;display:none !important}
 /* ── Modal accent mode (admin-toggleable, Appearance → Modal accent) ─────────
    Two vars skin every pop-up modal. --zw-mfn = FUNCTIONAL modals (filters,
    login); --zw-msoc = SOCIAL modals (reviews, size & fit). No body class = mode

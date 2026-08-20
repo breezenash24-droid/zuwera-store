@@ -187,11 +187,18 @@
       '.zwf-search-btn{background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:.35rem}',
       /* The launcher borrows .zw-hdr-action on the .zw-hdr-group headers for its
          padding and colour — but that class carries a mobile-only ::before that
-         masks in a PERSON glyph (storefront-cohesion.css:1644, the unified account
+         masks in a PERSON glyph (storefront-cohesion.css, the unified account
          icon). So the search button drew an account icon AND its own magnifier,
          crammed into one slot. Kill the inherited glyph; the SVG inside is the icon.
-         Doubled class beats the .zw-hdr-action::before it's overriding. */
-      '.zw-hdr-action.zwf-search-btn::before,.zwf-search-btn::before{content:none!important;display:none!important}',
+         Doubled class beats the .zw-hdr-action::before it's overriding.
+
+         SCOPED TO THE GLYPH STATE, because words-instead-of-glyphs renders its
+         label through this same pseudo-element. Unscoped, this made the search
+         control render nothing at all once words were on — present, sized,
+         clickable, invisible — while the bag beside it read "BAG". There were
+         two copies of this rule, here and in the stylesheet, and fixing only
+         the one I found first left the fault exactly where it was. */
+      'html:is(:not([data-zw-iconlabels]),[data-zw-iconlabels="none"]) :is(.zw-hdr-action.zwf-search-btn,.zwf-search-btn)::before{content:none!important;display:none!important}',
       '.zwf-search-btn svg{width:20px;height:20px;display:block}',
 
       /* search overlay — deliberate cream "spotlight" panel that reads on both themes */
@@ -1596,18 +1603,44 @@
        it is called: which SURFACE it shows on. 'header' lifts it out of the
        panel and into the action row beside the bag; anything else — including
        absent — leaves it where it has always been. */
-    return { enabled: r.enabled !== false, label: label, where: r.where === 'header' ? 'header' : 'bag' };
+    var where = (r.where === 'header' && CAN_PROMOTE[key]) ? 'header' : 'bag';
+    return { enabled: r.enabled !== false, label: label, where: where };
   }
 
-  /* The four rows that can be promoted, with everything that differs between
-     them. `name` is not here and cannot be: it is the panel's heading, not a
-     destination, and there is nothing for a header control to link to. */
+  /* The rows this file INJECTS into the header when they are promoted.
+     Every row in the panel can be moved to the header; only these three need a
+     new control built for them.
+
+     `account` is missing on purpose and is still promotable — the header
+     already HAS an account control, the one that reads the customer's name, and
+     putting it there is a matter of un-hiding it rather than building a second
+     anchor to the same page. Injecting one anyway would put two account
+     controls in the row and give the word `account` two meanings in the order,
+     where it can only place one of them. So the account's answer is carried by
+     data-zw-account, and read below.
+
+     `name` is not promotable at all: it is the panel's heading, a person's
+     name, not a destination. There is nothing for a header control to link to. */
   var HDR_ROWS = [
     { key: 'orders',  def: 'Orders',     icon: 'orders', href: '/account.html#orders' },
     { key: 'saves',   def: 'Your saves', icon: 'saves',  href: '/account.html#saved' },
-    { key: 'account', def: 'Account',    icon: 'acct',   href: '/account.html#profile' },
     { key: 'support', def: 'Support',    icon: 'help',   href: '' },   // mailto, built below
   ];
+  /* Whether a row is allowed to leave the panel by having a control built for
+     it. Read by bagRow so a stray `where` on a row that cannot be injected —
+     left in the settings by hand or by an earlier build — cannot strand it in
+     neither place, with the panel no longer drawing it and nothing in the
+     header drawing it either. */
+  var CAN_PROMOTE = { orders: 1, saves: 1, support: 1 };
+
+  /* Where the ACCOUNT ended up, read from the answer the whole page already
+     shares rather than from a second field that could disagree with it. The
+     attribute is on <html> or <body> depending on which writer got there first
+     — see storefront-cohesion.css — so both are consulted. */
+  function accountInHeader() {
+    return document.documentElement.getAttribute('data-zw-account') === 'header'
+      || (document.body && document.body.getAttribute('data-zw-account') === 'header');
+  }
   function bagSupportEmail() {
     return String(bagCfg().supportEmail || '').trim() || 'nasirubreeze@zuwera.store';
   }
@@ -1979,7 +2012,13 @@
     var links = user
       ? (here(rOrders) ? '<a class="zwf-bag-link" href="/account.html#orders">' + bagIcon('orders') + esc(rOrders.label) + '</a>' : '')
         + (here(rSaves) ? '<a class="zwf-bag-link" href="/account.html#saved">' + bagIcon('saves') + esc(rSaves.label) + savesBadge + '</a>' : '')
-        + (here(rAccount) ? '<a class="zwf-bag-link" href="/account.html#profile">' + bagIcon('acct') + esc(rAccount.label) + '</a>' : '')
+        /* The account row leaves the panel when the account is in the header,
+           for the same reason a promoted row does: it is a MOVE, and drawing it
+           in both places would put two routes to one page in front of someone
+           who opened this menu looking for one. Its answer comes from the
+           attribute rather than from a `where` of its own — one account, one
+           setting, wherever the setting was made. */
+        + ((rAccount.enabled && !accountInHeader()) ? '<a class="zwf-bag-link" href="/account.html#profile">' + bagIcon('acct') + esc(rAccount.label) + '</a>' : '')
       : '<a class="zwf-bag-link" data-zw-login href="/?auth=signin&next=' + encodeURIComponent(location.pathname) + '">' + bagIcon('acct') + 'Sign in</a>';
     var rSupport = bagRow('support', 'Support');
     var supportRow = here(rSupport) ? '<a class="zwf-bag-link" href="mailto:' + esc(bagSupportEmail()) + '">' + bagIcon('help') + esc(rSupport.label) + '</a>' : '';
