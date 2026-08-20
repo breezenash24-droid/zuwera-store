@@ -166,7 +166,12 @@ if (notClaimed.length) {
    8 → 9 for 0026 (text_overrides on the public-read allow-list),
    9 → 10 for 0027 (header_layout on it too — which had to be its own file
    because 0026 was edited AFTER it had been applied, and an applied version is
-   never re-run).
+   never re-run),
+   10 → 11 for 0028 (a trigger, so site_settings.updated_at tracks updates: the
+   column had a DEFAULT and nothing else, so it recorded when each key was first
+   created and never moved — and the header's pre-paint block ranks the browser
+   cache against the deployed bake by comparing exactly that column, which meant
+   comparing a string with itself).
    This is the budget WORKING, not failing: it made the cost of adding a
    migration visible at the moment of adding one, which is the only moment
    anybody is thinking about install.sql. The rule stays 'it only goes down' —
@@ -178,7 +183,7 @@ if (notClaimed.length) {
    can quietly fix. It is one command, recorded in scripts/build-install-sql.js,
    and every migration past 0017 is a thing a NEW project does not get until
    somebody runs it. That is the real cost this number is counting. */
-const DRIFT_BUDGET = 10;
+const DRIFT_BUDGET = 11;
 ok('install.sql has not fallen further behind', notClaimed.length <= DRIFT_BUDGET,
   notClaimed.length + ' migrations post-date the snapshot (budget ' + DRIFT_BUDGET + ') — '
   + 'regenerate it, then lower DRIFT_BUDGET to ' + notClaimed.length);

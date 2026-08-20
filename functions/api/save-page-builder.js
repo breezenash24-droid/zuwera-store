@@ -134,7 +134,15 @@ export async function onRequestPost({ request, env }) {
       : { ...payload, updated_at: new Date().toISOString(), published: !!published };
 
     // Build rows to upsert
-    const rows = [{ key, value }];
+    /* WHEN, as well as WHAT. site_settings.updated_at was declared with a
+       DEFAULT and no trigger, so it recorded the moment each key was first
+       created and never moved again — and the header's pre-paint block RANKS the
+       browser's cache against the deployed bake by exactly that column. Two
+       equal strings meant the cache could never win, so a published change
+       flashed the old arrangement on every load until the next deploy. Migration
+       0028 puts a trigger on the table, which is where the rule belongs; this
+       line makes the builder correct on a shop that has not run it yet. */
+    const rows = [{ key, value, updated_at: new Date().toISOString() }];
     if (key === 'page_builder' && published) {
       rows.push({ key: 'page_builder_published', value });
     }

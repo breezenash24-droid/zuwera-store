@@ -202,6 +202,84 @@ function stubFetch(value, { ok: isOk = true, throws = false } = {}) {
       'it would then claim the build-time placement was current');
   }
 
+  console.log('\n…and the column it says it in has to move');
+  {
+    /* THE RANKING WAS COMPARING A STRING WITH ITSELF.
+     *
+     * site_settings.updated_at was declared `TIMESTAMPTZ DEFAULT now()` and
+     * nothing else. A DEFAULT applies on INSERT; every writer of this table
+     * upserts `{ key, value }`, so the column recorded when each key was first
+     * created and then never moved again.
+     *
+     * Read off the live shop an hour apart:
+     *
+     *     value  { id: "all-left",    order: "bag search account" }
+     *     value  { id: "logo-center", order: "search account bag" }
+     *     updated_at  2026-08-19T03:19:38.942998+00:00   — both times
+     *
+     * The bake carries that same string, and the pre-paint block applies the
+     * cache only when it is strictly newer. Equal always, so the cache could
+     * never win: every load stamped the DEPLOYED arrangement before paint and
+     * the fetch corrected it afterwards — the old placement and the old icon
+     * order, visible on every reload, and no amount of reloading fixed it
+     * because the second reload is exactly what the ranking exists to make
+     * clean. Publishing without deploying was permanently broken.
+     *
+     * The rule belongs to the table — there are more than thirty upserts
+     * against it — so 0028 is a trigger. The endpoint stamps it too, so a shop
+     * that has not run the migration is still correct from the builder. */
+    const mig = fs.readFileSync(path.join(ROOT, 'migrations/0028_site_settings_updated_at_is_maintained.sql'), 'utf8');
+    ok('a trigger maintains site_settings.updated_at',
+      /create trigger zw_site_settings_touch_updated_at/.test(mig)
+      && /before insert or update on public\.site_settings/.test(mig)
+      && /new\.updated_at = now\(\)/.test(mig));
+    ok('...and it is safe to re-run', /create or replace function/.test(mig)
+      && /drop trigger if exists/.test(mig));
+    ok('...and the endpoint stamps it as well, for a shop that has not run it',
+      /const rows = \[\{ key, value, updated_at: new Date\(\)\.toISOString\(\) \}\];/
+        .test(fs.readFileSync(path.join(ROOT, 'functions/api/save-page-builder.js'), 'utf8')),
+      'the ranking is worthless while both sides carry the row creation date');
+
+    /* Both readers still compare the same way, against the same attribute —
+       that is what makes the column load-bearing rather than decorative. */
+    const PRE = fs.readFileSync(path.join(ROOT, 'scripts/theme-preboot.head.js'), 'utf8');
+    ok('...and both readers still rank rather than assume',
+      /if \(!_hb \|\| \(_hc\[4\] \|\| ''\) > _hb\) \{/.test(PRE)
+      && /if \(!docAt \|\| \(parts\[4\] \|\| ''\) > docAt\)/
+        .test(fs.readFileSync(path.join(ROOT, 'header-layouts.js'), 'utf8')));
+  }
+
+  console.log('\nThe categories hold the room the real menu needs');
+  {
+    /* index.html ships four categories as a no-JavaScript fallback and hides
+       them with `visibility` until nav-menu.js settles — which keeps the box.
+       The box is sized by words this shop replaced: 544px against the real
+       menu's 290px, measured at 1920px. In every arrangement where the action
+       controls follow the categories in flow, the bag, the search and the
+       account started 254px to the right and snapped left. Only on the home
+       page, because it is the only page that ships the fallback. */
+    const NAVJS = fs.readFileSync(path.join(ROOT, 'nav-menu.js'), 'utf8');
+    const CSS2 = fs.readFileSync(path.join(ROOT, 'storefront-cohesion.css'), 'utf8');
+    const IDX = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+
+    ok('the rendered width is remembered',
+      /localStorage\.setItem\('zw_nav_w', v\)/.test(NAVJS)
+      && /window\.__zwCustomNavApplied/.test(NAVJS),
+      'remembering the fallback\u2019s width would cache the wrong number twice as hard');
+    ok('...stored with the arrangement it was measured in',
+      /function navWKey\(h\) \{/.test(NAVJS)
+      && /var v = navWKey\(h\) \+ '\|' \+ w;/.test(NAVJS),
+      'a centred logo tightens the gap between the categories — same words, 38px apart');
+    ok('...and never from a second row, where they are stretched to the bar',
+      /if \(h\.getAttribute\('data-zw-hdr-linksrow'\) === '2'\) return;/.test(NAVJS));
+    ok('the pre-paint block publishes it, and only on a match',
+      /_nw\[0\]===\(_d\.getAttribute\('data-zw-hdr-logo'\)\|\|''\)/.test(IDX)
+      && /--zw-navc-w/.test(IDX));
+    ok('...and the placeholder reserves it',
+      /html\.zw-customnav:not\(\.zw-nav-ready\):not\(\[data-zw-hdr-linksrow="2"\]\) #nav-category-links\{[\s\S]{0,120}width: var\(--zw-navc-w, auto\)/.test(CSS2),
+      'auto is exactly the old behaviour, which is what a first-ever visit still gets');
+  }
+
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
   process.exit(fail ? 1 : 0);
 })();

@@ -284,6 +284,64 @@
       var _links = document.querySelector('.nav-center');
       _put('--zw-hdr-logo-w', _logo);
       _put('--zw-hdr-links-w', _links);
+      rememberNavWidth(_links);
+    } catch (_) {}
+  }
+
+  /* ── HOW MUCH ROOM THE CATEGORIES TAKE, REMEMBERED FOR THE NEXT LOAD ──────
+   *
+   * index.html ships four categories in the markup as a no-JavaScript fallback
+   * — Jackets, T-Shirts, Sweatpants, Socks — and they are HIDDEN until this
+   * file settles, with visibility. Hidden that way keeps the box, and the box
+   * is sized by words the shop does not use any more. Measured at 1920px:
+   *
+   *     shipped fallback   90..634   544px
+   *     the real menu      90..380   290px
+   *
+   * In any arrangement where the action controls follow the categories in flow,
+   * that put the bag, the search and the account 254px further right than they
+   * belong on the first frame, and they snapped left when this file rendered.
+   * Only on the home page, because it is the only page that ships the fallback;
+   * everywhere else .nav-center is created empty.
+   *
+   * The width of the real menu cannot be known before the menu is, but on a
+   * RELOAD it can be remembered — and a reload is what somebody watching their
+   * own header does. index.html's pre-paint block already reads zw_nav_menu to
+   * decide whether a custom nav is coming; it reads this alongside it and
+   * reserves the space, so the placeholder holds the room the answer will need
+   * instead of the room the wrong answer needed.
+   *
+   * Not remembered when the categories are not at their natural width: on a
+   * second row they are stretched to the full bar, and 1807px reserved on the
+   * next load would be worse than anything this fixes. */
+  var _navWVal = '';
+  /* WHICH ARRANGEMENT THE NUMBER WAS MEASURED IN, stored with it.
+     The categories are not one width. A centred logo tightens the gap between
+     them — the rule above the placement block buys back ~70px so a long
+     category list cannot run under the wordmark — so the same three words
+     measure 290px in one arrangement and 252px in another. Reserving one
+     arrangement's number while the page is laid out in the other trades a
+     254px jump for a 38px one, which is a smaller lie and still a lie. */
+  function navWKey(h) {
+    return (h.getAttribute('data-zw-hdr-logo') || '')
+      + '|' + (h.getAttribute('data-zw-hdr-linksrow') || '');
+  }
+  function rememberNavWidth(host) {
+    try {
+      /* Only once the real menu is up. Called from setMegaTop, which also runs
+         before this file has rendered anything — and remembering the width of
+         the shipped fallback is remembering the wrong number twice as hard. */
+      if (!host || !window.__zwCustomNavApplied) return;
+      if (!window.matchMedia || !matchMedia('(min-width: 901px)').matches) return;
+      var h = document.documentElement;
+      if (h.getAttribute('data-zw-hdr-linksrow') === '2') return;
+      if (h.getAttribute('data-zw-hdr-links') === 'none') return;
+      var w = Math.round(host.getBoundingClientRect().width);
+      if (!(w > 0 && w < innerWidth)) return;
+      var v = navWKey(h) + '|' + w;
+      if (v === _navWVal) return;
+      _navWVal = v;
+      localStorage.setItem('zw_nav_w', v);
     } catch (_) {}
   }
 

@@ -259,9 +259,23 @@ console.log('\nOne modal for the whole header\n');
   /* `order`, on children of a flex row both dialects already have. Nothing is
      moved — the rule this header has been rebuilt around since the picker that
      tried to move things could not. */
+  /* Through the SAME custom properties the theme's icon order uses, not a
+     second set of rules declaring the same property. Two systems writing
+     `order` through differently-shaped selectors is a specificity contest, and
+     it was won by a different system for each control — measured, stylesheet
+     only, with the value "search account bag": bag 3, account 2, search 2. The
+     arrangement's answer never reached the search control, because every other
+     control is an id and the search button is a class. */
   ok('ordering is `order` on the existing row, not moved markup',
-    /html\[data-zw-hdr-order\] :is\(#nav, \.nav, \.zw-nav\) :is\(\.zwf-search-btn/.test(CSS)
+    /html\[data-zw-hdr-order\] \{\s*--zw-ord-search: 2; --zw-ord-account: 2; --zw-ord-login: 2; --zw-ord-bag: 2;/.test(CSS)
     && !/appendChild|insertBefore/.test(read('header-layouts.js').replace(/\/\*[\s\S]*?\*\//g, '')));
+  /* The one exception is the promoted row, which is not one of the theme's
+     seven controls and so has no property of its own — and nothing else
+     declares `order` for it, so there is no contest for it to lose. */
+  ok('...and no control gets `order` from two places',
+    (CSS.match(/html\[data-zw-hdr-order[^\]]*\][^{]*\{ order:/g) || [])
+      .every((r) => r.includes('.zwf-hdr-row')),
+    'the arrangement sets the properties; the icon block turns them into order');
   /* CSS cannot read a position out of an attribute, so the default is the
      middle and only the two ends are named. Six arrangements, seven rules. */
   for (const c of ['search', 'account', 'bag']) {
@@ -270,7 +284,7 @@ console.log('\nOne modal for the whole header\n');
       && CSS.includes('html[data-zw-hdr-order$="' + c + '"]'));
   }
   ok('the menu button is pinned last rather than offered as a choice',
-    /html\[data-zw-hdr-order\] :is\(#nav, \.nav, \.zw-nav\) \.hamburger-btn \{ order: 9; \}/.test(CSS),
+    /html\[data-zw-hdr-order\] \{[\s\S]{0,160}--zw-ord-menu: 9;/.test(CSS),
     'on the information header it is not even inside the group');
 
   /* Always all three, completed rather than rejected: a partial answer would
