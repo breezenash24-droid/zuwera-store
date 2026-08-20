@@ -283,16 +283,41 @@ console.log('\n  zw-data.js is in front of everything that reads through it');
   const PAGES = ['404.html', 'about.html', 'account.html', 'bag.html', 'checkout.html',
     'confirm.html', 'drop001.html', 'index.html', 'journal.html', 'landing.html',
     'policies.html', 'product.html', 'returns.html', 'sizeguide.html'];
-  /* Deferred scripts run in document order, so being FIRST is the whole
-     requirement: window.zwSettings exists before any module looks for it. */
-  const firstSrcTag = (html) => {
-    const m = html.match(/<script[^>]*\ssrc=["'][^"']+["'][^>]*>/);
-    return m ? m[0] : '';
-  };
+  /* Deferred scripts run in document order, so the requirement is that
+     zw-data.js comes before every module that reads window.zwSettings.
+
+     NOT "first", though — that was the first attempt and it broke a different
+     invariant. preview-mode.js has its own, held by tests/preview-mode.test.js:
+     it takes the ?zwpreview= token out of the address bar and must have done so
+     before any renderer looks for it. It goes first; zw-data.js goes directly
+     after. preview-mode.js reads no settings, so nothing is lost.
+
+     (That collision passed locally by three characters and only failed once the
+     cache-bust hash lengthened the tag. Hence `npm run ci`, not `node
+     tests/run.js`.) */
+  const READERS = ['header-scroll.js', 'announcement-bar.js', 'icon-sets.js',
+    'image-effects.js', 'theme-engine.js', 'zw-copy.js', 'integrations.js',
+    'storefront-features.js', 'fit-finder.js', 'nav-menu.js', 'flags.js',
+    'express-wallet.js', 'header-layouts.js'];
   for (const page of PAGES) {
-    const tag = firstSrcTag(read(page));
-    ok(page + ' loads it before any other script',
-      /zw-data\.js/.test(tag), tag.slice(0, 70) || 'no <script src> at all');
+    const html = read(page);
+    const mine = html.search(/<script[^>]*\ssrc="[^"]*zw-data\.js/);
+    ok(page + ' loads zw-data.js at all', mine > -1);
+    if (mine < 0) continue;
+    const late = READERS.filter((f) => {
+      const at = html.search(new RegExp('<script[^>]*\\ssrc="[^"]*' + f.replace('.', '\\.')));
+      return at > -1 && at < mine;
+    });
+    ok('…before every module that reads through it', late.length === 0, late.join(', '));
+  }
+  /* And the other invariant it must not displace. */
+  for (const page of PAGES) {
+    const html = read(page);
+    const pv = html.search(/<script[^>]*\ssrc="[^"]*preview-mode\.js/);
+    if (pv < 0) continue;
+    const mine = html.search(/<script[^>]*\ssrc="[^"]*zw-data\.js/);
+    ok(page + ': preview-mode.js still runs before it', pv < mine,
+      'preview-mode reads the ?zwpreview= token before any renderer looks for it');
   }
   ok('the admin gets it too, for the paging loop its media scans need',
     /zw-data\.js/.test(read('admin.html')));
