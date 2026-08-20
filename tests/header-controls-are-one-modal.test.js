@@ -283,6 +283,23 @@ console.log('\nOne modal for the whole header\n');
       CSS.includes('html[data-zw-hdr-order^="' + c + '"]')
       && CSS.includes('html[data-zw-hdr-order$="' + c + '"]'));
   }
+  /* SIGNED IN AND SIGNED OUT ARE THE SAME CONTROL. The nav ships both buttons
+     and a render-blocking rule keeps one; "account" in the order has to place
+     whichever survived, or the header reads correctly to a visitor and wrongly
+     to a customer. It is also the state where getting it wrong is most visible,
+     because signed in that control is a WORD — the customer's own name — so a
+     late swap moves text rather than a magnifier. Reported exactly that way:
+     "when you're not logged in it loads the correct order, but when you're
+     signed in it shows the wrong order first". */
+  for (const end of ['^', '$']) {
+    const rule = new RegExp('html\\[data-zw-hdr-order\\' + end
+      + '="account"\\] *\\{ --zw-ord-account: (\\d); --zw-ord-login: (\\d); \\}');
+    const m = CSS.match(rule);
+    ok('  the account and the login button move together (' + end + '=)',
+      !!m && m[1] === m[2],
+      'one is hidden at any moment, and which one depends on the visitor');
+  }
+
   ok('the menu button is pinned last rather than offered as a choice',
     /html\[data-zw-hdr-order\] \{[\s\S]{0,160}--zw-ord-menu: 9;/.test(CSS),
     'on the information header it is not even inside the group');
