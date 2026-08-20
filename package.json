@@ -14,7 +14,8 @@
     "bump-cache": "node scripts/bump-cache-version.js",
     "test": "node tests/run.js",
     "build:migrations": "node scripts/build-migrations.js",
-    "speed": "node scripts/speed-check.js"
+    "speed": "node scripts/speed-check.js",
+    "verify:live": "node scripts/verify-live.js"
   },
   "dependencies": {
     "clean-css": "^5.3.3",
