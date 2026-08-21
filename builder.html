@@ -1196,6 +1196,7 @@ const PDP_GALLERY_OPTS = {
   layout:['single','dual'], thumbs:['bottom','left','none'], arrows:['overlay','below','none'],
   modal_thumbs:['none','bottom','left'], modal_arrows:['below','overlay','none'],
   modal_style:['product','compact'], modal_layout:['dual','single'],
+  modal_fill:['auto','edge','matte'],
 };
 function pdpGalleryNormalize(g){
   const out={};
@@ -1337,6 +1338,7 @@ function paintProductTab(container){
     ${gsel('modal_arrows','Arrows',G.modal_arrows,[['below','In a row underneath (default), with an n/total counter'],['overlay','Over the photo'],['none','Hidden']])}
     ${gsel('modal_layout','Image area',G.modal_layout,[['dual','Two side by side \u2014 page across (default)'],['single','One image with arrows']],'Matches the product page: two photos at once, paged sideways with a position counter. \u201cOne image\u201d is the older popup gallery, where the thumbnail and arrow settings below apply.')}
     ${gsel('modal_style','Look',G.modal_style,[['product','Match the product page (default)'],['compact','Its own compact style']],'“Match the product page” gives the popup the same headings, price, swatch and size styling as a full product page, so the two don’t read as different designs. Switch back here any time.')}
+    ${gsel('modal_fill','Space beside a photo',G.modal_fill,[['auto','Continue the photo, where it suits it (default)'],['edge','Always continue the photo'],['matte','Always leave it plain']],'The popup sizes itself to the first photo, so most fill it exactly. When one does not — a short window, or a product whose photos are different shapes — this is what goes beside it. “Where it suits it” checks each photo first: it continues a plain, light studio backdrop, and leaves a close-up crop or a dark backdrop alone, because continuing those smears the garment sideways or puts a slab of colour against the popup.')}
     <div style="font-size:.58rem;color:var(--mu);line-height:1.6;margin:-.2rem 0 .4rem">On phones both fall back to the strip underneath — a left rail leaves the photo too small to read.</div>
     <div class="tab-hd" style="margin-top:.4rem">Price</div>
     <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">What you pay, what it was and how much less are always shown the same way. This is the member badge beside them — whether it appears, where, and what it says.</div>
