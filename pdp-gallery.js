@@ -290,6 +290,20 @@
          property assignment is, and is what an instant jump wants anyway. */
       if (behavior === 'auto' || typeof host.scrollTo !== 'function') host.scrollLeft = left;
       else host.scrollTo({ left: left, behavior: behavior || 'smooth' });
+
+      /* ── SAY SO NOW, NOT WHEN THE SCROLL FINISHES ─────────────────────────
+         onIndex also fires from the scroll listener, which is what a SWIPE
+         comes through — but a smooth scroll reports its arrival several hundred
+         milliseconds after the press, and anything the caller keeps in step with
+         the strip is stale for that whole window. The collection modal keeps the
+         current photo there, so that a colourway switch can land on the same
+         one: pressing next and immediately picking a colour would otherwise go
+         back to the photo before it. Calling twice is harmless — both calls
+         carry the same index. */
+      var o = host._zwStripOpts;
+      if (o && o.onIndex) {
+        try { o.onIndex(current, current >= n - 1); } catch (_) {}
+      }
     }
 
     function slotWidth() {
