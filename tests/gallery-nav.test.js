@@ -292,23 +292,21 @@ console.log('');
   /* Capped through a custom property, so a licensee's theme can move the cap
      without editing this file — the literal is only the fallback. */
   const capped = /^var\(--zw-strip-max-h,/.test(media.style.getPropertyValue('max-height'));
-  /* ── AND THE CAP MUST NARROW THE PANE, NOT BAND IT ────────────────────
-     Giving the pane the photo's ratio is only half of fitting it. On a short
-     window the height cap wins, the pane is left wider than the ratio wants,
-     and a contained photo sits between two bands again — the same gap turned on
-     its side. Measured on a 796px window: the pane wanted 729px of height, the
-     cap allowed 621, and a 4:5 photo left 43px down each edge. So the width is
-     capped to what the height cap can carry AT THIS RATIO, and the leftover
-     moves outside the pane where it reads as margin. */
+  /* ── AND THE PANE MUST *NOT* NARROW TO MATCH ──────────────────────────
+     It used to: when the height cap binds the pane is wider than the ratio
+     wants, so the width was capped to what the cap could carry and the leftover
+     moved outside the pane to read as margin. That was right until paintMargin
+     existed, and then the two cancelled EXACTLY — a pane narrowed to the photo
+     has no margin inside it, so paintMargin correctly painted nothing, while the
+     leftover moved onto an element the <img>'s background cannot reach. Both
+     fixes live, both behaving as designed, dark edges back on the deployed site.
+     The space has to stay where the element that owns it can colour it. */
   fit(1070, 1338);                       // the 4:5 shape, whose numbers are known
   const mw = media.style.getPropertyValue('max-width');
-  /* 1070/1338 = 0.7997. The cap is carried through, not resolved to pixels, so
-     the pane keeps up with a window being resized without this running again. */
-  const narrows = mw === 'calc(var(--zw-strip-max-h, min(78vh, 760px)) * ' + (1070 / 1338).toFixed(4) + ')'
-    && media.style.getPropertyValue('margin-inline') === 'auto';
+  const keeps = !mw && !media.style.getPropertyValue('margin-inline');
   console.log('  …and the pane is free to take it            ' + (freed ? 'yes' : 'NO'));
   console.log('  …but still capped, themeably                ' + (capped ? 'yes' : 'NO'));
-  console.log('  …and narrows to match, rather than banding  ' + (narrows ? 'yes' : 'NO — ' + (mw || 'not set')));
+  console.log('  …and keeps its margin where it can paint it ' + (keeps ? 'yes' : 'NO — ' + (mw || 'margin-inline set')));
 
   /* Nothing a product photo plausibly is. More likely a tracking pixel or a
      broken decode, and the stylesheet's answer is a better wrong answer than a
@@ -317,7 +315,7 @@ console.log('');
   const silly = fit(4000, 40) || fit(40, 4000) || fit(0, 0);
   console.log('  a 100:1 sliver leaves the pane alone       ' + (!silly ? 'yes' : 'NO — ' + silly));
 
-  const fitOk = measured && freed && capped && narrows && !silly;
+  const fitOk = measured && freed && capped && keeps && !silly;
   console.log('\n  ' + (fitOk
     ? 'PASS  the pane is measured, never assumed'
     : 'FAIL  the pane is guessing at a shape'));
