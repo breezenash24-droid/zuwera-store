@@ -83,8 +83,14 @@ console.log('\n  the refund goes where the money went');
     'a check after the call is not a check');
 
   ok('the response says which processor handled it', /check: true, orderId, processor/.test(REFUND));
+  /* Was pinned to the words "blocked: already fully refunded". It is now
+     "settled in full", because a refund and a store credit both consume the
+     same ceiling and only one of them is a refund — and an assertion on the
+     wording would have failed for a change that made the message MORE true.
+     What has to hold is the guard and its position. */
   ok('an already-refunded order is refused before PayPal is called',
-    /blocked: already fully refunded/.test(REFUND));
+    /if \(remaining <= 0\) \{[\s\S]{0,200}?success: false/.test(REFUND)
+    && code.indexOf('if (remaining <= 0)') < code.indexOf('proc.refund('));
 
   /* Cancel is deliberately still processor-agnostic: cancelling an unpaid
      order moves no money and touches nobody's API. */

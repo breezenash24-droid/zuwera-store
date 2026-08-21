@@ -386,10 +386,15 @@ console.log('\n  a refund tells the return it happened');
      had been refunded. */
   ok('a successful refund closes the return it settled',
     /Close the return this refund just settled/.test(ref)
-      && /status: 'refunded', updatedAt: at/.test(ref));
+      && /status: 'refunded',/.test(ref) && /updatedAt: at,/.test(ref));
   ok('…only the ones still open',
     /'requested', 'approved', 'label_sent', 'item_received', 'exchange_in_progress'/.test(ref));
-  ok('…and only when Stripe actually returned a refund', /&& stripeRefundId\)/.test(ref));
+  /* "Stripe actually returned a refund" is now "something actually moved" —
+     a return settled as store credit has no processor refund id and still has
+     to close. What must not happen is the return closing when NEITHER exists,
+     which is the refund having failed. */
+  ok('…and only when something actually moved',
+    /&& \(stripeRefundId \|\| storeCreditCode\)\)/.test(ref));
 
   /* The money has already moved. Failing the request now would say the refund
      did not happen, and somebody would do it again. */

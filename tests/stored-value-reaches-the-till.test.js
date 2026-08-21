@@ -218,14 +218,15 @@ ok('…and it is written to the settings row the SERVER reads',
   /key: 'stored_value'/.test(adminMod)
   && /getSetting\(env, 'stored_value'/.test(read('functions/api/_stored-value.js')));
 
-console.log('\n  what is deliberately still missing');
+console.log('\n  and a return can settle into it');
 
-/* Not built yet, and the returns screen still says so. Putting the option back
-   before the money can actually move would be the same promise that got it
-   removed in the first place. */
-ok('refunds to a card are not offered yet, and the reminder test still stands',
-  fs.existsSync(path.join(ROOT, 'tests', 'store-credit-is-not-offered.test.js')),
-  'that test failing is the signal to re-offer store credit on the return forms');
+/* This said "refunds to a card are not offered yet" and pointed at a reminder
+   test. That reminder fired and was acted on: admin-refund.js can now settle a
+   return as store credit, and the four return forms offer it again. The rules
+   that keeps honest live in the file named below. */
+ok('a return can be settled as store credit, and the rules for it are asserted',
+  fs.existsSync(path.join(ROOT, 'tests', 'store-credit-is-offered-because-it-works.test.js'))
+  && /kind: 'store_credit'/.test(read('functions/api/admin-refund.js')));
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

@@ -42,7 +42,7 @@ const FULFIL = read('functions/api/_fulfil.js');
 const PUBLIC = read('functions/api/stored-value.js');
 const ADMIN = read('functions/api/admin-stored-value.js');
 const RL = read('functions/api/_ratelimit.js');
-const RETURNS = read('tests/store-credit-is-not-offered.test.js');
+const RETURNS = read('tests/store-credit-is-offered-because-it-works.test.js');
 
 console.log('\n  stored value is tender, and the ledger cannot lose count\n');
 
@@ -207,11 +207,14 @@ console.log('\n  and it is off until somebody turns it on');
     /storedValueEnabled/.test(PRICE) && /storedValueEnabled/.test(ADMIN),
     'issuing a card the till cannot accept hands somebody a piece of paper');
 
-  /* The returns dropdown stays empty until this is real AND switched on. That
-     test is the reminder; this is the other half of the pair. */
-  ok('the returns forms still do not offer store credit',
-    /store credit is not offered, because there is none/.test(RETURNS),
-    'the option goes back in the same change that makes it spendable, not before');
+  /* The pair this used to form has flipped. The returns forms DO offer store
+     credit now, because a return can issue it and a checkout can spend it —
+     and the other half of the pair moved with it: that file asserts the four
+     forms offer it and that each one is gated on this same switch. */
+  ok('the returns forms offer store credit, gated on this same switch',
+    /store credit is offered again, on all four forms/.test(RETURNS)
+    && /the gate is the same switch the till reads/.test(RETURNS),
+    'offered where it can be honoured, and nowhere else');
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

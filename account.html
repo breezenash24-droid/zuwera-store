@@ -2030,18 +2030,14 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
         <div class="zw-grid-2" style="margin-top:.75rem">
           <div class="zw-field">
             <label>Resolution</label>
-            <!-- Store credit is NOT offered here, and its absence is the fix.
-                 It was an option on this menu and on the admin resolution
-                 picker, and there is no credit balance anywhere in the system:
-                 no ledger, no way to see one, and nothing in cart pricing or
-                 the payment intent that could spend it. Choosing it meant a
-                 customer was told about money they had no way to use.
-                 The LABEL for it is kept in retResolutionLabel() so returns
-                 already settled that way still read correctly — what is
-                 withdrawn is the ability to choose it again. -->
+            <!-- Store credit is offered again, and hidden until the store runs
+                 it. It was withdrawn because choosing it told a customer about
+                 money they had no way to use; there is a ledger behind it now,
+                 spendable at checkout and visible on this same page. -->
             <select id="ret-resolution">
               <option value="return">Return for refund</option>
               <option value="exchange">Exchange</option>
+              <option value="store_credit" data-zw-needs-credit hidden>Store credit</option>
             </select>
           </div>
           <!-- The same vocabulary customer-hub.js uses, from the same file.
@@ -2523,6 +2519,11 @@ document.addEventListener('DOMContentLoaded', function() { _sb = window.sb; init
      DOMContentLoaded, and a deferred script is not guaranteed to have run by
      the time that fires on a page this size. -->
 <script src="return-reasons.js?v=cbcedfa6"></script>
+<!-- Reveals the store-credit return option, and only where the store runs it.
+     Deferred: it hides the option itself before it asks, so it does not need to
+     beat anything to the DOM — and it watches for the forms that are built
+     later. -->
+<script src="store-credit-offer.js?v=6d46bcf2" defer></script>
 <!-- Trade account panel. Defers because it needs `sb` and the DOM, and it
      reveals its own tab — nothing on this page has to know it exists. -->
 <script src="wholesale-apply.js?v=3d18c97e" defer></script>

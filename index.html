@@ -3058,7 +3058,12 @@ try{var _nb=document.documentElement.getAttribute('data-zw-base')||'dark';docume
 
 
 <script src="commerce-checkout.js?v=bde06400" defer></script>
-<script src="customer-hub.js?v=040904b1" async></script>
+<script src="customer-hub.js?v=136c2490" async></script>
+<!-- Reveals the store-credit return option, and only where the store runs it.
+     Deferred: it hides the option itself before it asks, so it does not need to
+     beat anything to the DOM — and it watches for the forms that are built
+     later. -->
+<script src="store-credit-offer.js?v=6d46bcf2" defer></script>
 
 <!-- Empty-bag and cart shell wiring compatibility structure -->
 <div id="cart-modal" style="display:none;"></div>
