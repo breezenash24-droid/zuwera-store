@@ -1889,13 +1889,44 @@ function colorwayThumbSrc(color) {
   const firstImg = cimgs.find((m) => !isVideoMedia(m)) || cimgs[0];
   return (firstImg && firstImg.image_url) ? optimizeImage(firstImg.image_url, 240) : '';
 }
+/* A real <img>, not a CSS background. A background-image that 404s fires no
+   error event anywhere, so these swatches were invisible to the fallback chain
+   in image-utils.js — the only images on the product page with no retry. On an
+   over-quota Cloudinary every colourway went blank while the tiles kept their
+   size, which is a failure that does not look like one.
+
+   Built here rather than in markup because this is called twice: once when the
+   colours arrive, and again from updateColorwayThumbnails() once the images
+   resolve, which race each other. So it has to be idempotent. */
 function applyColorwaySwatchVisual(swatch, color) {
   const src = colorwayThumbSrc(color);
+  let img = swatch.querySelector('img.zw-swatch-thumb');
   if (src) {
-    swatch.style.backgroundImage = `url('${src}')`;
+    if (!img) {
+      img = document.createElement('img');
+      img.className = 'zw-swatch-thumb';
+      img.alt = '';                     // the button already has aria-label
+      img.decoding = 'async';
+      img.draggable = false;
+      /* colorwayThumbSrc() asks the optimiser for 240; step 0 of the fallback
+         chain reads this attribute to size its wsrv retry. */
+      img.setAttribute('width', '240');
+      img.setAttribute('height', '190');
+      swatch.appendChild(img);
+    }
+    if (img.getAttribute('src') !== src) {
+      /* Clear the chain's bookkeeping when the URL genuinely changes. Without
+         this, a swatch that had already exhausted its retries would keep
+         dataset.zwFb === '2' and never retry for the next colour. */
+      delete img.dataset.zwFb;
+      delete img.dataset.zwOrig;
+      img.src = src;
+    }
+    swatch.style.backgroundImage = '';
     swatch.style.backgroundColor = '';
     swatch.classList.add('has-thumb');
   } else {
+    if (img) img.remove();
     swatch.style.backgroundImage = '';
     swatch.style.backgroundColor = color.hex_color || '#888';
     swatch.classList.remove('has-thumb');

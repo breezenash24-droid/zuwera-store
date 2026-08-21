@@ -4046,6 +4046,38 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
   transform:translateY(-1px); outline:none;
   box-shadow:0 0 0 2px var(--paper,#f4f1eb), 0 0 0 3px rgba(0,0,0,.35);
 }
+/* ── EVERY COLOUR THUMBNAIL ON THE SITE, IN ONE RULE ────────────────────────
+   Colour swatches were painted with `background-image:url(<cloudinary url>)`.
+   A CSS background that 404s fires NO error event — not on the element, not on
+   the document — so the fallback chain in image-utils.js could never see them.
+   They were the only images on the site with no fallback: an over-quota
+   Cloudinary blanked every colour on every card while the layout held, so
+   nothing looked broken enough to notice.
+
+   FIVE renderers had the same defect, in four files: the two product-card grids
+   (storefront.js and drop001.html), the two quick-add colour pickers
+   (quick-add-modal.js and drop001.html) and the product page's colourway picker
+   (product-main.js). They emit one shared <img class="zw-swatch-thumb"> from
+   window.zwSwatchImg(), so this rule is the only place their sizing lives.
+
+   This stylesheet is loaded by index.html, drop001.html, product.html,
+   landing.html and bag.html, which is every page that draws one.
+
+   border-radius:inherit rather than overflow:hidden on the button — the
+   selected-colour bar is an ::after at bottom:-6px/-7px/-8px, OUTSIDE the
+   element, and clipping the button would erase it. */
+.zw-swatch-thumb{
+  display:block; width:100%; height:100%;
+  object-fit:cover; object-position:center;
+  border-radius:inherit;
+  pointer-events:none;   /* clicks belong to the button, whatever reads e.target */
+}
+/* The three landscape 68x54 tiles framed their photo from the top, not the
+   middle — `background-position:center top`. object-position is the equivalent,
+   and getting it wrong would recrop every colourway on the product page. */
+.color-swatch > .zw-swatch-thumb,
+.quick-add-color > .zw-swatch-thumb,
+.collection-color > .zw-swatch-thumb{ object-position:center top; }
 .zw-card-swatch.zw-swatch-more{
   width:auto; min-width:20px; padding:0 5px; background:transparent;
   display:inline-flex; align-items:center; justify-content:center;

@@ -449,8 +449,19 @@
             var thumbSrc = '';
             for (var ci = 0; ci < cimgs.length; ci++) { if (!quickAddIsVideo(cimgs[ci])) { thumbSrc = cimgs[ci]; break; } }
             if (!thumbSrc) thumbSrc = cimgs[0] || '';
-            var styleAttr = thumbSrc ? "background-image:url('" + quickAddEscapeAttr(thumbSrc) + "')" : 'background:' + quickAddEscapeAttr(color.hex_color || '#888');
-            return '<button type="button" class="quick-add-color' + active + (thumbSrc ? ' has-thumb' : '') + '" data-index="' + idx + '" title="' + quickAddEscapeAttr(name) + '" aria-label="' + quickAddEscapeAttr(name) + '" style="' + styleAttr + '"></button>';
+            /* A real <img>, not a CSS background: a background that 404s fires
+               no error event, so these were invisible to the fallback chain in
+               image-utils.js. Degrades to the old background-image if that has
+               not loaded, so the worst case is what this used to do.
+
+               optimizeImage() while we are here — this was handing the RAW
+               image_url to a 68x54 tile, so every colour of every product
+               opened in the modal downloaded a full-size photograph. The PDP's
+               equivalent picker has always asked for 240. */
+            if (thumbSrc && typeof window.optimizeImage === 'function') thumbSrc = window.optimizeImage(thumbSrc, 240);
+            var _im = (thumbSrc && typeof window.zwSwatchImg === 'function') ? window.zwSwatchImg(thumbSrc, 240) : '';
+            var styleAttr = _im ? '' : (thumbSrc ? "background-image:url('" + quickAddEscapeAttr(thumbSrc) + "')" : 'background:' + quickAddEscapeAttr(color.hex_color || '#888'));
+            return '<button type="button" class="quick-add-color' + active + (thumbSrc ? ' has-thumb' : '') + '" data-index="' + idx + '" title="' + quickAddEscapeAttr(name) + '" aria-label="' + quickAddEscapeAttr(name) + '" style="' + styleAttr + '">' + _im + '</button>';
           }).join('')
         : '<p class="quick-add-empty-option">Standard colorway</p>';
       colorWrap.querySelectorAll('.quick-add-color').forEach(function (button) {
