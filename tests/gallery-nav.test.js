@@ -20,7 +20,18 @@ class El {
     this.parentElement = null;
     this.className = '';
     this.id = '';
-    this.style = {};
+    /* A real CSSStyleDeclaration, near enough: the strip pins its geometry with
+       setProperty(..., 'important') because an inline !important is the only
+       thing a stylesheet cannot reach past. Mirrored to camelCase so the plain
+       `style.foo = x` writes elsewhere in this file still read back. */
+    this.style = {
+      _p: {},
+      setProperty(prop, val) {
+        this._p[prop] = val;
+        this[prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = val;
+      },
+      getPropertyValue(prop) { return this._p[prop] || ''; },
+    };
     this.textContent = '';
     this._attrs = {};
     this._listeners = {};
@@ -211,10 +222,20 @@ console.log('');
   /* Without these the host is not a scroll container at all and the photos just
      shrink to share the width — which IS the two-up that was showing. */
   const cont = media.style.display === 'flex' && media.style.overflowX === 'auto'
-    && media.style.scrollSnapType === 'x mandatory';
+    && media.style.scrollSnapType === 'x mandatory'
+    /* justify-content:center on an overflowing flex row pushes the overflow out
+       BOTH ends, and there is no negative scrollLeft — the first photo becomes
+       unreachable. .collection-review-media centres, so this has to be undone. */
+    && media.style.justifyContent === 'flex-start';
+  /* Written through setProperty, which is how they carry !important — the only
+     position in the cascade a stylesheet cannot reach past, and the reason this
+     round is different from the last two. */
+  const pinned = ['flex', 'width', 'object-fit'].every((p) => kids[0].style.getPropertyValue(p))
+    && ['display', 'overflow-x', 'justify-content'].every((p) => media.style.getPropertyValue(p));
   console.log('  every photo is the full pane          ' + (geom ? 'yes' : 'NO'));
   console.log('  …and stops at the next one, not the nearest  ' + (snap ? 'yes' : 'NO'));
   console.log('  …in a container that actually scrolls       ' + (cont ? 'yes' : 'NO'));
+  console.log('  …pinned where no stylesheet can reach it    ' + (pinned ? 'yes' : 'NO'));
 
   /* Two-up is still expressible — the product page's arrangement, and the
      reason this is a number rather than a boolean. */
@@ -228,7 +249,7 @@ console.log('');
   console.log('  two-up is still expressible                 ' + (two ? 'yes' : 'NO'));
   console.log('  …and saying nothing leaves it to the css    ' + (none ? 'yes' : 'NO'));
 
-  var perView = geom && snap && cont && two && none;
+  var perView = geom && snap && cont && pinned && two && none;
   console.log('\n  ' + (perView
     ? 'PASS  the strip carries its own geometry'
     : 'FAIL  the strip is still asking a stylesheet'));
