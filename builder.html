@@ -1326,6 +1326,12 @@ function paintProductTab(container){
   // paintProductTab threw and the tab sat on "Loading…" forever. `node --check`
   // and the repo audit both pass on that: it is a runtime error, not a syntax one.
   const dualOff = G.layout==='dual' ? 'Not used by “Two side by side” — it pages with the arrows under the photos.' : '';
+  /* THE PREVIEW CANNOT SHOW A QUICK-ADD POPUP. It renders the product page, and
+     nothing in it ever opens the popup — so all five settings under that heading
+     change nothing on the right and read as broken controls. Reported exactly
+     that way. Saying so is not the fix it deserves, but it is honest, and it is
+     better than a control that looks dead. */
+  const modalNote = '<div style="font-size:.58rem;line-height:1.6;color:var(--mu);margin:-.1rem 0 .5rem;padding:.4rem .55rem;border-left:2px solid var(--mu)">These change the popup, which the preview on the right cannot open — it shows the product page. Save and look at a collection page to see them.</div>';
   container.innerHTML = `<div class="tab-pane">
     <div class="tab-hd">Gallery</div>
     <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">How the product photos are arranged. Leave these as they are for the current look — every option is optional.</div>
@@ -1334,9 +1340,10 @@ function paintProductTab(container){
     ${gsel('arrows','Arrows',G.arrows,[['overlay','Over the photo (current)'],['below','In a row underneath'],['none','Hidden']],'Same arrows either way — they just move.',dualOff)}
     <div class="tab-hd" style="margin-top:.4rem">Quick-add modal</div>
     <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">The small product popup opened from a collection card. Set separately — a left rail can suit the page but crowd the popup.</div>
+    ${modalNote}
     ${gsel('modal_thumbs','Thumbnails',G.modal_thumbs,[['none','Hidden (default) \u2014 arrows + counter only'],['bottom','Below the photo'],['left','Left rail, scaled down']])}
     ${gsel('modal_arrows','Arrows',G.modal_arrows,[['below','In a row underneath (default), with an n/total counter'],['overlay','Over the photo'],['none','Hidden']])}
-    ${gsel('modal_layout','Image area',G.modal_layout,[['dual','Two side by side \u2014 page across (default)'],['single','One image with arrows']],'Matches the product page: two photos at once, paged sideways with a position counter. \u201cOne image\u201d is the older popup gallery, where the thumbnail and arrow settings below apply.')}
+    ${gsel('modal_layout','Image area',G.modal_layout,[['dual','One photo, with the next peeking (default)'],['single','One image with arrows']],'The photo takes four fifths of the width and the next one shows in the last fifth, so it is visible that the strip scrolls without having to read the counter. Paged by the arrows underneath, or by swiping. \u201cOne image with arrows\u201d is the older popup gallery, where the thumbnail and arrow settings above apply. This is the POPUP \u2014 the product page\u2019s own image area is the setting at the top of this tab.')}
     ${gsel('modal_style','Look',G.modal_style,[['product','Match the product page (default)'],['compact','Its own compact style']],'“Match the product page” gives the popup the same headings, price, swatch and size styling as a full product page, so the two don’t read as different designs. Switch back here any time.')}
     ${gsel('modal_fill','Space beside a photo',G.modal_fill,[['auto','Continue the photo, where it suits it (default)'],['edge','Always continue the photo'],['matte','Always leave it plain']],'The popup sizes itself to the first photo, so most fill it exactly. When one does not — a short window, or a product whose photos are different shapes — this is what goes beside it. “Where it suits it” checks each photo first: it continues a plain, light studio backdrop, and leaves a close-up crop or a dark backdrop alone, because continuing those smears the garment sideways or puts a slab of colour against the popup.')}
     <div style="font-size:.58rem;color:var(--mu);line-height:1.6;margin:-.2rem 0 .4rem">On phones both fall back to the strip underneath — a left rail leaves the photo too small to read.</div>

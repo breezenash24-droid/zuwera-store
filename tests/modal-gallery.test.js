@@ -57,8 +57,12 @@ rules.forEach((block, i) => {
      view ON THE ELEMENTS, and this rule is the second voice rather than the
      only one. If it ever drifts from perView, the two disagree in a way that is
      visible rather than silent — which is what these assertions are for. */
-  ok('the modal asks for one photo per view in its own right',
-    /perView: 1,/.test(css),
+  /* 1.25 slides in view: one photo across four fifths, the next showing in the
+     last fifth. A strip filling the pane edge to edge gives no sign there is
+     anything past it — the counter says 1/6 while the pane looks like a single
+     photo. The sliver says it without a word. */
+  ok('the modal asks for one photo and a peek, in its own right',
+    /perView: 1\.25,/.test(css),
     'the stylesheet below says the same thing and was not reaching the photos');
 }
 
@@ -67,7 +71,11 @@ rules.forEach((block, i) => {
   const base = rules[0] || '';
   ok('the whole photo is shown (object-fit:contain), not cropped to fill',
     decl(base, 'object-fit') === 'contain', decl(base, 'object-fit'));
-  ok('one photo per view (flex basis 100%)', /flex:\s*0\s+0\s+100%/.test(base));
+  /* Four fifths, so the fifth that is left shows the next photo. The two voices
+     have to say the same number — the stylesheet here and perView in
+     pdp-gallery.js — or whichever one applies decides the layout and the other
+     is a comment that looks like code. */
+  ok('one photo and a peek (flex basis 80%)', /flex:\s*0\s+0\s+80%/.test(base));
   ok('the slot has a definite height so the pane cannot stretch it',
     (decl(base, 'height') || '').indexOf('min(') === 0, decl(base, 'height'));
   ok('the phone rule overrides height, not max-height (a cap would re-create the conflict)',

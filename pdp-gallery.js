@@ -491,7 +491,16 @@
            stylesheet's own answer is a better wrong answer than a squashed
            pane. */
         if (!isFinite(r) || r < 0.4 || r > 2.5) return;
-        pin(host, 'aspect-ratio', w + ' / ' + h);
+        /* × perView, because the pane is not the slide. Each slide is
+           1/perView of the pane's width, so for the photo to fill its slide the
+           PANE has to be perView times as wide relative to its height. At
+           perView 1 this is the photo's own ratio, which is why it read as one
+           until a peek was asked for; at 1.25 a pane holding a 4:5 photo comes
+           out square, and the photo fills the four fifths it occupies. Getting
+           this wrong does not misplace anything — it just puts the margin back,
+           top and bottom, which is what fitPane exists to remove. */
+        var wide = w * (perView || 1);
+        pin(host, 'aspect-ratio', (wide % 1 === 0 ? wide : wide.toFixed(2)) + ' / ' + h);
         pin(host, 'height', 'auto');
         /* A very tall photo would otherwise make a pane taller than the screen.
            Through a custom property so a licensee's theme can change the cap

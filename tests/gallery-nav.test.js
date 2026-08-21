@@ -242,6 +242,13 @@ console.log('');
   G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, perView: 2 });
   const two = media.children.every((k) => k.style.flex === '0 0 50%' && k.style.width === '50%');
 
+  /* And a FRACTION is what makes a peek possible: 1.25 slides in view is one
+     photo across four fifths with the next showing in the last fifth, which is
+     how a strip says it scrolls without anybody reading the counter. */
+  G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, perView: 1.25 });
+  const peek = media.children.every((k) => k.style.flex === '0 0 80%' && k.style.width === '80%');
+  console.log('  a peek is expressible too                   ' + (peek ? '1.25 → 80% slides' : 'NO'));
+
   /* And a caller that says nothing keeps the stylesheet in charge, so the
      product page is untouched by this. */
   G.renderStrip(media, shots, { alt: 'x', isVideo: () => false });
@@ -249,7 +256,7 @@ console.log('');
   console.log('  two-up is still expressible                 ' + (two ? 'yes' : 'NO'));
   console.log('  …and saying nothing leaves it to the css    ' + (none ? 'yes' : 'NO'));
 
-  var perView = geom && snap && cont && pinned && two && none;
+  var perView = geom && snap && cont && pinned && two && peek && none;
   console.log('\n  ' + (perView
     ? 'PASS  the strip carries its own geometry'
     : 'FAIL  the strip is still asking a stylesheet'));
@@ -265,8 +272,8 @@ console.log('');
    about somebody else's shoot that nothing would ever correct. */
 console.log('');
 {
-  const fit = (w, h, cached) => {
-    G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, perView: 1 });
+  const fit = (w, h, cached, pv) => {
+    G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, perView: pv || 1 });
     const first = media.children[0];
     first.naturalWidth = w; first.naturalHeight = h;
     if (cached) { first.complete = true; G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, perView: 1 }); }
@@ -276,13 +283,24 @@ console.log('');
 
   /* The two shapes this catalogue actually ships, and one it does not — the
      point being that none of them is written down anywhere. */
+  /* At perView 1 the pane IS the slide, so the pane takes the photo's own ratio. */
   const square = fit(2000, 2000);
   const tall = fit(1070, 1338);
   const odd = fit(1836, 1950);
+  /* ── THE PANE IS NOT THE SLIDE ────────────────────────────────────────
+     Each slide is 1/perView of the pane's width, so for the photo to fill its
+     slide the PANE has to be perView times as wide relative to its height. At
+     perView 1 those are the same number, which is why this read as "the photo's
+     ratio" until a peek was asked for — a 4:5 photo at 1.25 wants a SQUARE pane,
+     and getting it wrong puts the top-and-bottom margin straight back. */
+  const peeked = fit(1070, 1338, false, 1.25);
+  console.log('  the same photo at a 1.25 peek -> ' + (peeked || 'not set')
+    + '   (1070 x 1.25 = 1337.5, so the pane is square)');
   console.log('  a 2000x2000 product   pane -> ' + (square || 'not set'));
   console.log('  a 1070x1338 product   pane -> ' + (tall || 'not set'));
   console.log('  an 1836x1950 product  pane -> ' + (odd || 'not set'));
-  const measured = square === '2000 / 2000' && tall === '1070 / 1338' && odd === '1836 / 1950';
+  const measured = square === '2000 / 2000' && tall === '1070 / 1338' && odd === '1836 / 1950'
+    && peeked === '1337.50 / 1338';
 
   /* And the pane has to be free to take that shape: a height from the
      stylesheet would fight the ratio it was just given. */
