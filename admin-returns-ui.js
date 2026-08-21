@@ -553,26 +553,25 @@
                                              the way back looked closed. -->
                                         <div><label class="form-label">Status <span style="opacity:.5;font-weight:400">— saves as you pick</span></label>
                                             <select id="ret-detail-status-${id}" class="form-select" onchange="saveReturnDetails('${id}')">${retStatusOptions(r.status)}</select></div>
-                                        <!-- STORE CREDIT IS NOT ON THIS MENU. It was, and there is
-                                             no credit balance anywhere in the system: no ledger,
-                                             nothing in the account page that could show one, and
-                                             nothing in cart pricing or the payment intent that
-                                             could spend it. Settling a return as credit meant
-                                             telling a customer about money they had no way to
-                                             use, and the staff member doing it had no way to know
-                                             that.
+                                        <!-- STORE CREDIT IS BACK ON THIS MENU, and the ledger it
+                                             names now exists: it is issued from the refund dialog
+                                             on this page, spent at checkout, and visible on the
+                                             customer's account. It was withdrawn for two years'
+                                             worth of the opposite — an option that settled a return
+                                             into money nobody could find — and it only returns
+                                             because that is no longer true.
 
-                                             It stays visible on a return that ALREADY carries it
-                                             — marked retired, so the row reads correctly and can
-                                             be moved to refund or exchange — and it cannot be
-                                             chosen for a new one. Building the ledger for real is
-                                             on the work queue; until it exists the honest thing
-                                             is to not offer it. -->
+                                             Choosing it here RECORDS what the customer asked for.
+                                             It does not issue anything: money moves through
+                                             /api/admin-refund and nowhere else, which is what the
+                                             refund dialog above calls. The two are wired together
+                                             — a return marked store credit opens that dialog with
+                                             credit already selected. -->
                                         <div><label class="form-label">Resolution <span style="opacity:.5;font-weight:400">— saves as you pick</span></label>
                                             <select id="ret-detail-resolution-${id}" class="form-select" onchange="saveReturnDetails('${id}')">
                                                 <option value="return" ${r.resolution === 'return' ? 'selected' : ''}>Return / Refund</option>
                                                 <option value="exchange" ${r.resolution === 'exchange' ? 'selected' : ''}>Exchange</option>
-                                                ${r.resolution === 'store_credit' ? '<option value="store_credit" selected>Store Credit (retired)</option>' : ''}
+                                                <option value="store_credit" ${r.resolution === 'store_credit' ? 'selected' : ''}>Store Credit</option>
                                             </select></div>
                                         <div><label class="form-label">Exchange SKU / Size</label>
                                             <input id="ret-detail-exchange-${id}" class="form-input" value="${retAttr(r.exchangeSku || '')}" placeholder="Replacement SKU or size"></div>
@@ -716,12 +715,26 @@
                         modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;';
                         modal.innerHTML = `
                           <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;padding:1.5rem;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);">
-                            <h3 style="margin:0 0 .25rem;font-size:1rem;">Issue Stripe Refund</h3>
+                            <h3 style="margin:0 0 .25rem;font-size:1rem;">Issue Refund</h3>
                             <div style="color:var(--text-secondary);font-size:.8rem;margin-bottom:1rem;">${escapeHtml(req.customerName || req.customerEmail || '')} · ${totalStr}</div>
                             <div style="display:grid;gap:.75rem;">
                               <div>
                                 <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Partial Amount (leave blank for full refund)</label>
                                 <input id="retrefmod-amount" type="number" min="0" step="0.01" placeholder="${req.orderTotal || ''}" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem;color:var(--text-primary);font-size:.85rem;box-sizing:border-box;">
+                              </div>
+                              <!-- Hidden until /api/stored-value says the store runs
+                                   credit at all. A choice that leads to "store
+                                   credit is switched off" is a choice that should
+                                   not have been offered. Defaults to credit when
+                                   the customer asked for it on the return form —
+                                   which is the only reason that field exists. -->
+                              <div id="retrefmod-settle-wrap" style="display:none;">
+                                <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Refund To</label>
+                                <select id="retrefmod-settle" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem;color:var(--text-primary);font-size:.85rem;box-sizing:border-box;">
+                                  <option value="card">The original payment method</option>
+                                  <option value="store_credit">Store credit</option>
+                                </select>
+                                <div id="retrefmod-settle-note" style="font-size:.72rem;color:var(--text-secondary);margin-top:.35rem;line-height:1.5;"></div>
                               </div>
                               <div>
                                 <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Reason</label>
@@ -750,6 +763,36 @@
                         modal.querySelector('#rst-all')?.addEventListener('click', () => {
                             modal.querySelectorAll('input[id^="rst-chk-"]').forEach((c) => { c.checked = true; });
                         });
+                        /* Ask whether credit is a thing here, and only then offer
+                           it. Failing quietly leaves the card option, which is the
+                           behaviour this panel had yesterday. */
+                        (async function () {
+                            try {
+                                const r = await fetch('/api/stored-value').then(x => x.json());
+                                if (!r || !r.enabled) return;
+                                const wrap = modal.querySelector('#retrefmod-settle-wrap');
+                                const sel = modal.querySelector('#retrefmod-settle');
+                                const note = modal.querySelector('#retrefmod-settle-note');
+                                if (!wrap || !sel) return;
+                                wrap.style.display = '';
+                                if (String(req.resolution || '') === 'store_credit') sel.value = 'store_credit';
+                                const describe = function () {
+                                    const credit = sel.value === 'store_credit';
+                                    note.textContent = credit
+                                        ? 'Issues a code worth this amount. No money leaves the bank, the sale is still reversed for tax, and the code is emailed to the customer and shown here once.'
+                                        : (String(req.resolution || '') === 'store_credit'
+                                            ? 'The customer asked for store credit on this return.'
+                                            : '');
+                                    const btn = modal.querySelector('#retrefmod-submit');
+                                    if (btn) {
+                                        btn.textContent = credit ? 'Issue Credit' : 'Refund';
+                                        btn.style.background = credit ? '#22c55e' : '#ef4444';
+                                    }
+                                };
+                                sel.addEventListener('change', describe);
+                                describe();
+                            } catch (_) { /* leave the card-only modal as it was */ }
+                        }());
                         modal.querySelector('#retrefmod-cancel').onclick = () => modal.remove();
                         modal.onclick = e => { if (e.target === modal) modal.remove(); };
                         modal.querySelector('#retrefmod-submit').onclick = async function() {
@@ -773,7 +816,9 @@
                                 const { data: { session } } = await sb.auth.getSession();
                                 const token = session?.access_token;
                                 if (!token) throw new Error('Missing admin session.');
-                                const body = { action: 'refund', orderId: req.orderId, refundKey, accessToken: token, reason };
+                                const settlement = modal.querySelector('#retrefmod-settle')?.value === 'store_credit'
+                                    ? 'store_credit' : 'card';
+                                const body = { action: 'refund', orderId: req.orderId, refundKey, accessToken: token, reason, settlement };
                                 if (amtVal) body.amountCents = Math.round(parseFloat(amtVal) * 100);
                                 if (note) body.customerNote = note;
                                 const resp = await fetch('/api/admin-refund', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -793,10 +838,26 @@
                                     return;
                                 }
                                 if (!resp.ok || !data.success) throw new Error(data.error || 'Refund failed.');
-                                await persistReturnUpdate(requestId, { status: 'refunded' });
-                                await logAdminAudit('return.stripe_refund', 'return_requests', requestId, { reason, amountCents: body.amountCents || null, stripeRefundId: data.stripeRefundId });
+                                /* The resolution follows the tender. A return the
+                                   customer asked to have refunded but which was
+                                   settled as credit has to READ as credit, or the
+                                   account page tells them to watch their card. */
+                                await persistReturnUpdate(requestId, data.storeCreditCode
+                                    ? { status: 'refunded', resolution: 'store_credit' }
+                                    : { status: 'refunded' });
+                                await logAdminAudit(data.storeCreditCode ? 'return.store_credit' : 'return.stripe_refund',
+                                    'return_requests', requestId,
+                                    { reason, amountCents: body.amountCents || null,
+                                      stripeRefundId: data.stripeRefundId || null,
+                                      /* The amount, never the code — same rule the
+                                         endpoint follows for its own audit log. */
+                                      storeCreditCents: data.storeCreditCents || null });
                                 modal.remove();
-                                notifyReturns('Refund issued successfully.', 'success');
+                                if (data.storeCreditCode) {
+                                    showStoreCreditIssued(data.storeCreditCode, data.storeCreditCents, req.customerEmail || '');
+                                } else {
+                                    notifyReturns('Refund issued successfully.', 'success');
+                                }
                                 await loadReturnsPage();
                                 /* The item is back and paid for; the stock it
                                    came from is still down. Nothing linked those
@@ -819,6 +880,46 @@
                             }
                         };
                     }
+                    /* ── THE CODE IS SHOWN ONCE ──────────────────────────────
+                       Nothing can look it back up. The endpoint returns it, the
+                       customer gets it by email, and the audit log deliberately
+                       does not carry it — so if the email bounces, this dialog is
+                       the only chance anybody has to read it out. A toast that
+                       disappears after four seconds is not that.
+
+                       Restock is deliberately offered AFTER this closes: the item
+                       coming back and the money going out are two decisions, and
+                       stacking a second dialog over an unread code is how the code
+                       gets lost. */
+                    function showStoreCreditIssued(code, cents, email) {
+                        const amount = retMoney(Number(cents || 0) / 100);
+                        const modal = document.createElement('div');
+                        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem;';
+                        modal.innerHTML = `
+                          <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;padding:1.5rem;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+                            <h3 style="margin:0 0 .25rem;font-size:1rem;">${amount} of store credit issued</h3>
+                            <div style="color:var(--text-secondary);font-size:.8rem;margin-bottom:1rem;">Emailed to ${escapeHtml(email || 'the customer')}${email ? '' : ' — check the order for an address'}.</div>
+                            <div style="border:1px dashed var(--border);border-radius:8px;padding:1rem;text-align:center;margin-bottom:.9rem;">
+                              <div style="font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.4rem;">The code</div>
+                              <div id="retsc-code" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:1.15rem;letter-spacing:.14em;user-select:all;">${escapeHtml(code)}</div>
+                            </div>
+                            <div style="font-size:.75rem;color:var(--text-secondary);line-height:1.55;margin-bottom:1rem;">Shown once and never again — nothing in this panel can look it back up. If it is lost before it reaches the customer, void it under Coupons and issue another.</div>
+                            <div style="display:flex;gap:.5rem;justify-content:flex-end;">
+                              <button id="retsc-copy" style="background:transparent;border:1px solid var(--border);color:var(--text-primary);padding:.5rem 1rem;border-radius:6px;font-size:.85rem;cursor:pointer;">Copy</button>
+                              <button id="retsc-done" style="background:#22c55e;border:none;color:#fff;padding:.5rem 1.25rem;border-radius:6px;font-size:.85rem;font-weight:600;cursor:pointer;">Done</button>
+                            </div>
+                          </div>`;
+                        document.body.appendChild(modal);
+                        modal.querySelector('#retsc-copy').onclick = async function () {
+                            try { await navigator.clipboard.writeText(code); this.textContent = 'Copied'; }
+                            catch (_) { this.textContent = 'Select it above'; }
+                        };
+                        modal.querySelector('#retsc-done').onclick = () => modal.remove();
+                        /* No backdrop-click close. Every other dialog here has one;
+                           this one holds the only copy of something spendable, and
+                           a stray click outside it is not a decision. */
+                    }
+
                     window.openRestockModal = function(requestId) {
                         const req = _returnsData.find(r => r.id === requestId);
                         if (!req) return;

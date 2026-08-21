@@ -257,7 +257,16 @@
       if (typeof original !== 'function' || original.__zwPromoWrapped) return;
       const wrapped = async function (url, body) {
         const nextBody = PRICED_ENDPOINTS.includes(url)
-          ? { ...(body || {}), promoCode: currentPromoCode(),
+          ? { ...(body || {}),
+              promoCode: currentPromoCode(),
+              /* Only the CODE travels, never an amount — see the note above
+                 SV. And only to the Stripe route: PayPal prices from
+                 quoteCart() but has no hold, no capture and no release, so a
+                 code sent there would be quoted against and then never spent.
+                 The express buttons are hidden while a card is applied for the
+                 same reason; when PayPal learns to hold, this gate and that one
+                 come off together. */
+              storedValueCode: url === '/api/create-payment-intent' ? SV.code : undefined,
               featureFlags: (typeof window.zwActiveFlags === 'function' ? window.zwActiveFlags() : undefined),
               deliveryMethod: (typeof window.zwDeliveryMethod === 'function' ? window.zwDeliveryMethod() : undefined),
               /* Where this order came from. Injected here rather than at each
@@ -316,17 +325,222 @@
     }
   }
 
+  /* ── GIFT CARDS AND STORE CREDIT ──────────────────────────────────────────
+     One instrument, two names, and NOT a discount. A promo reduces what the
+     order is worth; a gift card pays part of what it is worth. That difference
+     is the whole reason this is a separate block rather than another branch in
+     computeDiscountCents(): the total keeps its value, the tax keeps its base,
+     and what changes is the amount due underneath.
+
+     THE NUMBER SHOWN HERE IS AN ESTIMATE AND THE SERVER'S IS THE ONE THAT
+     COUNTS. The balance came from /api/stored-value a moment ago; between then
+     and the charge the same card can be spent in another tab. So the browser
+     shows min(balance, total) and quoteCart() decides for real — and when the
+     two disagree, create-payment-intent charges the card MORE, never less. The
+     rule that keeps that safe lives on the server; this only has to avoid
+     promising something it cannot deliver, which is why nothing here is ever
+     sent as an amount. Only the code is sent. */
+  const SV = { enabled: false, code: '', balanceCents: 0, kind: '', probed: false };
+
+  function svNodes() {
+    return {
+      shell: document.getElementById('zw-sv-shell'),
+      input: document.getElementById('zw-sv-input'),
+      apply: document.getElementById('zw-sv-apply'),
+      message: document.getElementById('zw-sv-message'),
+      rows: document.getElementById('zw-sv-rows'),
+      label: document.getElementById('zw-sv-row-label'),
+      applied: document.getElementById('zw-sv-applied'),
+      dueRow: document.getElementById('zw-sv-due-row'),
+      due: document.getElementById('zw-sv-due'),
+    };
+  }
+
+  /* checkout.html does NOT use the #summary-* ids getSummaryNodes() looks for —
+     it has its own summary with #pm-* ids and its own three writers for them.
+     Reading the wrong element here would have shown a $0 total, hidden the
+     gift-card lines, and made a working card look like it did nothing. So the
+     total is found by asking for both, in the order that puts the checkout
+     page's own first. */
+  function svTotalEl() {
+    return document.getElementById('pm-total') || getSummaryNodes().total || null;
+  }
+
+  /* A total that is still waiting on tax or shipping is written as an em dash
+     and marked `.dash` by checkout.js. parseMoney() reads that as zero, which
+     is a number, and a gift card sized against it would claim to cover nothing.
+     Waiting is the right answer until every part has arrived. */
+  function svTotalCents() {
+    const el = svTotalEl();
+    if (!el || el.classList.contains('dash')) return 0;
+    return parseMoney(el.textContent || '');
+  }
+
+  function svAppliedCents() {
+    if (!SV.code || SV.balanceCents <= 0) return 0;
+    const totalCents = svTotalCents();
+    if (totalCents <= 0) return 0;
+    return Math.min(SV.balanceCents, totalCents);
+  }
+
+  /* Applying a gift card takes the express buttons away, and says so.
+     /api/create-payment-intent knows about stored value; PayPal and the wallet
+     sheet do not. A shopper who applied a card and then tapped Apple Pay would
+     be shown one total by the sheet and charged another by the intent — or,
+     if the card covered everything, handed a payment sheet for an order the
+     server had already completed. Hiding a control that would take the wrong
+     amount is the honest version of "not built yet"; leaving it there and
+     hoping is how a shopper pays twice. */
+  const EXPRESS_IDS = ['payment-request-btn', 'express-checkout-btn', 'wallet-methods', 'paypal-button', 'pay-divider'];
+
+  function svToggleExpress(hidden) {
+    EXPRESS_IDS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (hidden) {
+        if (el.__zwSvHidden) return;
+        /* Remembers what it was, because most of these are hidden already for
+           their own reasons — an unconfigured PayPal, a browser with no wallet.
+           Restoring them all to visible would show buttons that were never
+           meant to be there. */
+        el.__zwSvHidden = true;
+        el.__zwSvPrev = el.style.display;
+        el.style.display = 'none';
+      } else if (el.__zwSvHidden) {
+        el.style.display = el.__zwSvPrev || '';
+        el.__zwSvHidden = false;
+      }
+    });
+    let note = document.getElementById('zw-sv-express-note');
+    if (hidden && !note) {
+      const anchor = document.getElementById('pay-divider') || document.getElementById('paypal-button');
+      if (anchor && anchor.parentNode) {
+        note = document.createElement('p');
+        note.id = 'zw-sv-express-note';
+        note.style.cssText = 'font-size:.72rem;line-height:1.5;color:var(--sub,#8a8a8a);margin:0 0 1.2rem';
+        note.textContent = 'Gift cards and store credit are paid with a card. Remove the card below to use PayPal or a wallet instead.';
+        anchor.parentNode.insertBefore(note, anchor);
+      }
+    } else if (!hidden && note) {
+      note.remove();
+    }
+  }
+
+  function renderStoredValue() {
+    const n = svNodes();
+    if (!n.shell) return;
+    n.shell.style.display = SV.enabled ? '' : 'none';
+    if (!SV.enabled) return;
+
+    const appliedCents = svAppliedCents();
+    const totalCents = svTotalCents();
+
+    if (n.rows) n.rows.style.display = appliedCents > 0 ? '' : 'none';
+    if (n.label) n.label.textContent = SV.kind === 'store_credit' ? 'Store credit' : 'Gift card';
+    if (n.applied) n.applied.textContent = `-${formatMoney(appliedCents)}`;
+    if (n.dueRow) n.dueRow.style.display = appliedCents > 0 ? '' : 'none';
+    if (n.due) n.due.textContent = formatMoney(Math.max(0, totalCents - appliedCents));
+    if (n.apply) n.apply.textContent = SV.code ? 'Remove' : 'Apply';
+    if (n.input) n.input.disabled = !!SV.code;
+
+    svToggleExpress(appliedCents > 0);
+
+    if (n.message && SV.code) {
+      const left = Math.max(0, SV.balanceCents - appliedCents);
+      n.message.textContent = left > 0
+        ? `${formatMoney(SV.balanceCents)} on the card — ${formatMoney(appliedCents)} of it covers this order, ${formatMoney(left)} left over.`
+        : `${formatMoney(SV.balanceCents)} on the card, all of it going to this order.`;
+      n.message.style.color = 'rgba(110,210,130,.9)';
+    }
+  }
+
+  function svClear(message) {
+    SV.code = '';
+    SV.balanceCents = 0;
+    SV.kind = '';
+    const n = svNodes();
+    if (n.input) { n.input.disabled = false; n.input.value = ''; }
+    if (n.message) { n.message.textContent = message || ''; n.message.style.color = ''; }
+    renderStoredValue();
+  }
+
+  async function applyStoredValueFromInput() {
+    const n = svNodes();
+    if (!n.input) return;
+    if (SV.code) { svClear(''); return; }
+
+    const code = String(n.input.value || '').trim().toUpperCase();
+    if (!code) { if (n.message) { n.message.textContent = 'Enter the code from your gift card.'; n.message.style.color = ''; } return; }
+
+    if (n.apply) n.apply.disabled = true;
+    if (n.message) { n.message.textContent = 'Checking…'; n.message.style.color = ''; }
+    try {
+      const resp = await fetch('/api/stored-value', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const payload = await resp.json().catch(() => ({}));
+      if (!payload || !payload.ok) {
+        svClear(payload && payload.error ? payload.error : 'We could not check that just now. Please try again in a moment.');
+        return;
+      }
+      SV.code = payload.code || code;
+      SV.balanceCents = Number(payload.balanceCents) || 0;
+      SV.kind = payload.kind || 'gift_card';
+      renderStoredValue();
+    } catch (_) {
+      svClear('We could not check that just now. Please try again in a moment.');
+    } finally {
+      if (n.apply) n.apply.disabled = false;
+    }
+  }
+
+  async function initStoredValue() {
+    const n = svNodes();
+    if (!n.shell || SV.probed) return;
+    SV.probed = true;
+    try {
+      /* GET, not POST. The POST is rate limited at twenty an hour because it
+         answers a question about a secret; spending those on "should this field
+         exist" would lock a shopper out of checking their own balance after a
+         few reloads. */
+      const resp = await fetch('/api/stored-value');
+      const payload = await resp.json().catch(() => ({}));
+      SV.enabled = !!(payload && payload.enabled);
+    } catch (_) {
+      SV.enabled = false;
+    }
+    if (n.apply && !n.apply.__zwWired) {
+      n.apply.addEventListener('click', applyStoredValueFromInput);
+      n.apply.__zwWired = true;
+    }
+    if (n.input && !n.input.__zwWired) {
+      n.input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); applyStoredValueFromInput(); } });
+      n.input.__zwWired = true;
+    }
+    renderStoredValue();
+  }
+
   function observeSummary() {
     const nodes = getSummaryNodes();
     [nodes.subtotal, nodes.shipping, nodes.tax].filter(Boolean).forEach((node) => {
       new MutationObserver(() => { renderPromoSummary(); tryAutoApplyRef(); }).observe(node, { childList: true, subtree: true, characterData: true });
     });
+    /* The total is watched separately: renderPromoSummary WRITES it, so a
+       stored-value redraw hung off the same observers as the promo would either
+       miss the change or chase its own tail. This one only reads. */
+    const totalEl = svTotalEl();
+    if (totalEl) {
+      new MutationObserver(() => renderStoredValue())
+        .observe(totalEl, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class'] });
+    }
   }
 
   function init() {
     wrapGlobalPost();
     wrapWalletHelpers();
     observeSummary();
+    initStoredValue();
     // Load config first — ensurePromoUi checks show_promo_code flag
     loadConfig().then(() => {
       ensurePromoUi();
@@ -346,6 +560,10 @@
   };
 
   window.zwGetActivePromoCode = currentPromoCode;
+  /* checkout.js reads this to decide whether the order might come back already
+     paid. It is the code, not the amount — the amount is the server's. */
+  window.zwGetStoredValueCode = function () { return SV.code || ''; };
+  window.zwClearStoredValue = function () { svClear(''); };
   window.zwGetPromoDiscountCents = function (subtotalCents, shippingCents) {
     return computeDiscountCents(STATE.promotion, Number(subtotalCents || 0), Number(shippingCents || 0));
   };

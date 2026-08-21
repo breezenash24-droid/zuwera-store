@@ -25,6 +25,12 @@ import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { processorFor } from './_processors.js';
 import { sha256Base64Url } from './_cart-pricing.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
+/* Settling a return as store credit issues an instrument instead of calling a
+   processor. It is the same money decision — this route already asks who you
+   are, asks for the authorization code, checks the limits and refuses a second
+   payout — so it happens HERE rather than in a second endpoint that would have
+   to grow its own copy of all of that. */
+import { issue as issueStoredValue, storedValueEnabled } from './_stored-value.js';
 
 const RATE_LIMIT_KEY = 'refund_rate_limit';
 const AUDIT_LOG_KEY  = 'refund_audit_log';
@@ -47,6 +53,14 @@ export async function onRequestPost({ request, env }) {
   }
 
   const { accessToken, orderId, refundKey, action, amountCents, reason, customerNote } = body;
+
+  /* WHERE the money goes back to, which is a different question from whether it
+     goes back. 'card' sends it through the processor that took it; the order is
+     settled either way, owes the same tax either way, and the return closes
+     either way. Anything unrecognised is treated as 'card' — the direction that
+     cannot invent a balance out of a typo. */
+  const settlement = String(body.settlement || 'card').toLowerCase() === 'store_credit'
+    ? 'store_credit' : 'card';
 
   // ── 1. Verify admin JWT + refund permission ─────────────────────────────────
   const admin = await verifyAdmin(env, accessToken);
@@ -122,6 +136,22 @@ export async function onRequestPost({ request, env }) {
     return json({ error: 'Invalid action.' }, 400, h);
   }
   if (!orderId) return json({ error: 'orderId is required.' }, 400, h);
+
+  /* ── 5b. Store credit has to be a thing this store does ────────────────────
+     Asked BEFORE anything moves, and asked of the same switch the till reads.
+     Issuing credit into a checkout that will not accept it hands somebody a
+     code that does nothing — which is the exact promise this whole feature was
+     removed from the return forms for making. */
+  if (settlement === 'store_credit') {
+    if (action !== 'refund' && action !== 'cancel_refund') {
+      return json({ error: 'Store credit can only settle a refund.' }, 400, h);
+    }
+    if (!await storedValueEnabled(env)) {
+      return json({
+        error: 'Store credit is switched off. Turn it on under Coupons → Gift Cards & Store Credit before settling a return this way.',
+      }, 409, h);
+    }
+  }
 
   // ── 6. Fetch order from Supabase ─────────────────────────────────────────────
   const sbKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_ANON_KEY;
@@ -281,14 +311,26 @@ export async function onRequestPost({ request, env }) {
      answer completely from their own API and some cannot, so the ledger is
      read for all of them and each decides what to do with it. */
   let ledgerCents = 0, ledgerCount = 0;
+  /* Money already sent back as CREDIT rather than through a processor, which no
+     processor can be asked about — Stripe has never heard of it. Kept in its own
+     field for exactly that reason: writing a credit settlement into
+     `stripeRefundAmount` would make it count against the processor's own
+     ledger, and the reconciliation above would report refunds that never
+     happened to any card.
+
+     It still has to be counted somewhere, because $50 given as credit and then
+     $50 returned to the card is paying for the same item twice. */
+  let creditCents = 0, creditCount = 0;
   try {
     const log = await getSetting(env, AUDIT_LOG_KEY, []);
-    (Array.isArray(log) ? log : [])
+    const mine = (Array.isArray(log) ? log : [])
       .filter((e) => e && e.success === true
         && String(e.orderId || '') === String(orderId)
-        && (e.action === 'refund' || e.action === 'cancel_refund')
-        && Number(e.stripeRefundAmount) > 0)
+        && (e.action === 'refund' || e.action === 'cancel_refund'));
+    mine.filter((e) => Number(e.stripeRefundAmount) > 0)
       .forEach((e) => { ledgerCents += Math.round(Number(e.stripeRefundAmount)); ledgerCount++; });
+    mine.filter((e) => Number(e.storeCreditCents) > 0)
+      .forEach((e) => { creditCents += Math.round(Number(e.storeCreditCents)); creditCount++; });
   } catch (e) {
     console.warn('refund: could not read the refund ledger —', e && e.message);
   }
@@ -309,6 +351,11 @@ export async function onRequestPost({ request, env }) {
       chargedCents: already.chargedCents,
       refundCount: already.count,
       known: already.known,
+      /* So the panel can say "already settled as $40 of store credit" before
+         somebody presses a button, rather than after. No processor can be asked
+         this, so it comes from the ledger here. */
+      storeCreditCents: creditCents,
+      storeCreditCount: creditCount,
       /* PayPal can say a capture is partly refunded without saying by how much.
          Surfaced so the panel can warn rather than present an unqualified
          "nothing refunded yet". */
@@ -326,6 +373,12 @@ export async function onRequestPost({ request, env }) {
      which is the one number a double refund depends on. */
   let stripeRefundId     = null;
   let stripeRefundAmount = null;
+  /* Kept apart from the two above on purpose — see the ledger note. The code is
+     returned to the panel and put in the customer's email, and deliberately
+     never written to the audit log: that log is readable by more admins than
+     may issue, and a list of live codes is a list of spendable money. */
+  let storeCreditCents = 0;
+  let storeCreditCode  = '';
 
   if (action === 'refund' || action === 'cancel_refund') {
     /* Somebody refunded this in the processor's own dashboard and this panel
@@ -349,19 +402,33 @@ export async function onRequestPost({ request, env }) {
        Only when the figure is KNOWN. An unknown one must not be treated as
        zero — a zero reads as "nothing refunded yet" and permits exactly the
        second refund these guards exist to stop. */
-    const remaining = Math.max(0, already.chargedCents - already.refundedCents);
+    /* Credit already given comes off the same ceiling as money already sent
+       back. They are different tenders and the same debt: an order that has had
+       $50 returned to the card and an order that has had $50 issued as credit
+       both owe the customer nothing more. */
+    const remaining = Math.max(0, already.chargedCents - already.refundedCents - creditCents);
     const wanted = (action === 'refund' && amountCents && Number.isFinite(Number(amountCents)))
       ? Math.round(Number(amountCents))
       : remaining;
 
+    /* "$40 has already gone back" is wrong when $40 of it went out as credit —
+       it never went back anywhere, and an admin reading that would go looking
+       for a card refund that does not exist. Both figures, named. */
+    const goneBack = () => {
+      const parts = [];
+      if (already.refundedCents > 0) parts.push(`$${(already.refundedCents / 100).toFixed(2)} to the card`);
+      if (creditCents > 0) parts.push(`$${(creditCents / 100).toFixed(2)} as store credit`);
+      return parts.join(' and ');
+    };
+
     if (already.known) {
       if (remaining <= 0) {
         await audit(env, { adminId, adminEmail, orderId, action, success: false,
-          note: `blocked: already fully refunded (${already.count} refund${already.count === 1 ? '' : 's'})` });
+          note: `blocked: already settled in full (${already.count} refund${already.count === 1 ? '' : 's'}, ${creditCount} credit${creditCount === 1 ? '' : 's'})` });
         return json({
-          error: `This order has already been refunded in full — $${(already.refundedCents / 100).toFixed(2)} across `
-               + `${already.count} refund${already.count === 1 ? '' : 's'}. Nothing further can be refunded.`,
+          error: `This order has already been settled in full — ${goneBack()}. Nothing further can be refunded.`,
           processor, alreadyRefundedCents: already.refundedCents, chargedCents: already.chargedCents,
+          storeCreditCents: creditCents,
         }, 409, h);
       }
       if (wanted > remaining) {
@@ -369,8 +436,9 @@ export async function onRequestPost({ request, env }) {
           note: `blocked: ${wanted}c requested, ${remaining}c remaining` });
         return json({
           error: `Only $${(remaining / 100).toFixed(2)} is left to refund on this order — `
-               + `$${(already.refundedCents / 100).toFixed(2)} has already gone back. Nothing was charged or refunded.`,
+               + `${goneBack()} already. Nothing was charged or refunded.`,
           processor, alreadyRefundedCents: already.refundedCents, chargedCents: already.chargedCents,
+          storeCreditCents: creditCents,
         }, 409, h);
       }
     }
@@ -381,25 +449,85 @@ export async function onRequestPost({ request, env }) {
     const wantedCents = (action === 'refund' && amountCents && Number.isFinite(Number(amountCents)))
       ? Math.round(Number(amountCents)) : 0;
 
-    const out = await proc.refund({
-      env, order, reference,
-      amountCents: wantedCents,
-      reason, adminId, adminEmail, action,
-      /* Derived from the order and the amount, so a double-click is the SAME
-         request rather than a second refund. This matters more than at capture:
-         a refund issued twice is money leaving twice, and the obvious trigger
-         is an admin clicking again because the first click looked like it did
-         nothing. Processors that support an idempotency key use it; the others
-         ignore it. */
-      idempotencyKey: 'zwr_' + (await sha256Base64Url(String(orderId) + ':' + wantedCents)).slice(0, 40),
-    });
+    /* ── SETTLED AS STORE CREDIT ─────────────────────────────────────────────
+       No processor is called and no money leaves the bank. The customer gets an
+       instrument worth what they paid, the sale is still reversed for tax, the
+       order is still marked settled and the return still closes — the only
+       difference is the tender.
 
-    if (!out.ok) {
-      await audit(env, { adminId, adminEmail, orderId, action, success: false, note: proc.id + ': ' + out.error });
-      return json({ error: out.error, processor }, out.alreadyRefunded ? 409 : 400, h);
+       A CREDIT ISSUED TWICE IS MONEY GIVEN TWICE, and the realistic way that
+       happens is an admin clicking again because the first click looked like it
+       did nothing. A processor would absorb that through an idempotency key;
+       nothing here can, because issuing writes a new instrument every time by
+       design. So the amount has to be KNOWN before anything is written: an
+       unknown ceiling is refused rather than guessed at, and the ledger read
+       above is what a second click runs into.
+
+       `full` here has to be decided from the ORDER, not from wantedCents being
+       zero the way the processors read it — nothing downstream would know how
+       much to issue. */
+    if (settlement === 'store_credit') {
+      if (!already.known) {
+        await audit(env, { adminId, adminEmail, orderId, action, success: false,
+          note: 'blocked: store credit needs a known ceiling' });
+        return json({
+          error: 'We could not confirm how much is left to refund on this order, and store credit cannot be un-issued. '
+               + 'Refund it to the card, or check the payment in ' + (proc ? proc.label : processor) + ' first.',
+          processor,
+        }, 409, h);
+      }
+      const creditToIssue = wantedCents > 0 ? wantedCents : remaining;
+      if (creditToIssue <= 0) {
+        return json({ error: 'There is nothing left to settle on this order.', processor }, 409, h);
+      }
+
+      let issued;
+      try {
+        issued = await issueStoredValue(env, {
+          kind: 'store_credit',
+          cents: creditToIssue,
+          /* Bound to the account when the order has one, so it appears on their
+             account page rather than only in an email they have to keep. An
+             order placed as a guest has no account to bind and travels as a
+             code, which is what the email is for. */
+          ownerUserId: order.user_id || null,
+          ownerEmail: order.email || '',
+          issuedBy: adminId,
+          reason: `Return settled as store credit — order ${orderNo(order)}${reason ? ` (${reason})` : ''}`,
+          sourceRef: 'refund:' + String(orderId),
+        });
+      } catch (e) {
+        /* Nothing has moved. The order is untouched, the return is still open,
+           and the admin can try again or settle it to the card instead — which
+           is why issuing comes before every write below rather than after. */
+        await audit(env, { adminId, adminEmail, orderId, action, success: false, note: 'store credit not issued: ' + (e && e.message) });
+        return json({ error: 'Could not issue the store credit: ' + ((e && e.message) || 'unknown error') + ' Nothing was refunded.' }, 502, h);
+      }
+
+      storeCreditCents = creditToIssue;
+      storeCreditCode = issued.code;
+    } else {
+
+      const out = await proc.refund({
+        env, order, reference,
+        amountCents: wantedCents,
+        reason, adminId, adminEmail, action,
+        /* Derived from the order and the amount, so a double-click is the SAME
+           request rather than a second refund. This matters more than at capture:
+           a refund issued twice is money leaving twice, and the obvious trigger
+           is an admin clicking again because the first click looked like it did
+           nothing. Processors that support an idempotency key use it; the others
+           ignore it. */
+        idempotencyKey: 'zwr_' + (await sha256Base64Url(String(orderId) + ':' + wantedCents)).slice(0, 40),
+      });
+
+      if (!out.ok) {
+        await audit(env, { adminId, adminEmail, orderId, action, success: false, note: proc.id + ': ' + out.error });
+        return json({ error: out.error, processor }, out.alreadyRefunded ? 409 : 400, h);
+      }
+      stripeRefundId     = out.id;
+      stripeRefundAmount = out.amountCents || wantedCents || already.chargedCents;
     }
-    stripeRefundId     = out.id;
-    stripeRefundAmount = out.amountCents || wantedCents || already.chargedCents;
 
     /* Tell the tax provider the sale came back, so the tax on it stops being
        something this store owes the state. Refunding the customer without
@@ -414,7 +542,12 @@ export async function onRequestPost({ request, env }) {
     try {
       const orderTax = Math.round(Number(order.tax || 0) * 100);
       const orderGross = Math.round(Number(order.total || 0) * 100);
-      const refunded = Number(stripeRefundAmount || 0);
+      /* Whichever tender settled it. A sale returned as store credit is just as
+         returned as one refunded to a card — the goods came back, so the tax on
+         them stops being something this store owes the state. The customer will
+         owe tax again on whatever they spend the credit on, which is a
+         different sale. */
+      const refunded = Number(stripeRefundAmount || storeCreditCents || 0);
       const isFull = !refunded || refunded >= orderGross;
       /* The tax inside this refund, in proportion to what was sent back. */
       const taxPortion = isFull
@@ -489,7 +622,7 @@ export async function onRequestPost({ request, env }) {
 
      Never fatal. The money has already moved; failing the request now would
      say the refund did not happen, and somebody would do it again. */
-  if ((action === 'refund' || action === 'cancel_refund') && stripeRefundId) {
+  if ((action === 'refund' || action === 'cancel_refund') && (stripeRefundId || storeCreditCode)) {
     try {
       const bundle = await getCommerceBundle(env);
       const list = Array.isArray(bundle.returnsState?.requests) ? bundle.returnsState.requests : [];
@@ -499,8 +632,11 @@ export async function onRequestPost({ request, env }) {
         const at = new Date().toISOString();
         /* Appended, not replaced — an inspection note somebody wrote by
            hand is the reason this return was settled the way it was. */
-        const line = `Refunded from the ${action === 'cancel_refund' ? 'cancellation' : 'refund'} `
-          + `panel by ${adminEmail || adminId} on ${at}.`;
+        const line = storeCreditCode
+          ? `Settled as $${(storeCreditCents / 100).toFixed(2)} of store credit from the refund panel `
+            + `by ${adminEmail || adminId} on ${at}. The code is in the customer's email and on their account.`
+          : `Refunded from the ${action === 'cancel_refund' ? 'cancellation' : 'refund'} `
+            + `panel by ${adminEmail || adminId} on ${at}.`;
         const noteWith = (prev) => (String(prev || '').trim() ? `${String(prev).trim()}
 ${line}` : line);
         await mutateSetting(env, 'commerce_returns', (cur) => {
@@ -509,7 +645,17 @@ ${line}` : line);
           return {
             ...state,
             requests: reqs.map(r => (r && hits.some(h => h.id === r.id)
-              ? { ...r, status: 'refunded', updatedAt: at, internalNotes: noteWith(r.internalNotes) }
+              ? {
+                  ...r,
+                  status: 'refunded',
+                  /* So the customer's account page and the admin table say
+                     "Store Credit" rather than "Refund" — the vocabulary that
+                     was deliberately kept when the option was removed is now
+                     being written again, by the thing that actually issued it. */
+                  ...(storeCreditCode ? { resolution: 'store_credit', storeCreditCents } : {}),
+                  updatedAt: at,
+                  internalNotes: noteWith(r.internalNotes),
+                }
               : r)),
           };
         });
@@ -525,6 +671,12 @@ ${line}` : line);
     reason:            reason || '',
     stripeRefundId,
     stripeRefundAmount,
+    /* The amount, never the code. This is the field the ledger read at the top
+       sums to stop a second payout, so it has to be here — and it is separate
+       from stripeRefundAmount so the processor reconciliation never sees a
+       refund that no card ever received. */
+    settlement,
+    ...(storeCreditCents > 0 ? { storeCreditCents } : {}),
     newStatus:         patch.status,
     customerEmail:     order.email,
     orderTotal:        order.total,
@@ -541,12 +693,22 @@ ${line}` : line);
       stripeRefundAmount,
       reason,
       customerNote:      String(customerNote || '').trim(),
+      /* The one place the code is allowed to go: to the person it belongs to.
+         A customer with no account has nothing but this email — it IS the
+         instrument for them, which is why the email is worth more here than a
+         "your refund is on its way" ever was. */
+      storeCreditCode,
+      storeCreditCents,
     });
   }
 
   return json({
-    success: true, action, orderId,
+    success: true, action, orderId, settlement,
     newStatus: patch.status, stripeRefundId, stripeRefundAmount,
+    /* Returned so the panel can show it once and the admin can read it out if
+       the email does not arrive. Nothing stores it anywhere they can get it
+       back from. */
+    ...(storeCreditCode ? { storeCreditCode, storeCreditCents } : {}),
   }, 200, h);
 }
 
@@ -626,10 +788,13 @@ async function sendLockoutAlert(env, { adminEmail, adminId, orderId, attempts, l
 
 // Builds the refund email on the shared shell. Exported so the admin email
 // preview can render it with sample data (a refund can't be triggered on demand).
-export function buildRefundEmail({ action, orderNumber, orderTotal, stripeRefundAmount, reason, customerName, customerNote, fromEmail, appearance }) {
+export function buildRefundEmail({ action, orderNumber, orderTotal, stripeRefundAmount, reason, customerName, customerNote, fromEmail, appearance, storeCreditCode = '', storeCreditCents = 0 }) {
   const a = appearance;
+  const isCredit    = !!storeCreditCode;
   const isPartial   = action === 'refund';
-  const refundAmt   = stripeRefundAmount ? `$${(stripeRefundAmount / 100).toFixed(2)}` : `$${Number(orderTotal || 0).toFixed(2)}`;
+  const refundAmt   = isCredit
+    ? `$${(Number(storeCreditCents || 0) / 100).toFixed(2)}`
+    : stripeRefundAmount ? `$${(stripeRefundAmount / 100).toFixed(2)}` : `$${Number(orderTotal || 0).toFixed(2)}`;
   const orderAmt    = `$${Number(orderTotal || 0).toFixed(2)}`;
   const firstName   = esc(String(customerName || '').split(' ')[0] || 'there');
   const reasonText  = reason === 'duplicate'   ? 'Duplicate order'
@@ -637,13 +802,55 @@ export function buildRefundEmail({ action, orderNumber, orderTotal, stripeRefund
     : reason === 'out_of_stock'                ? 'Item out of stock'
     : 'Customer request';
 
-  const subject = isPartial
-    ? `Partial refund of ${refundAmt} processed — Order ${esc(orderNumber)}`
-    : `Your refund of ${refundAmt} is on its way — Order ${esc(orderNumber)}`;
+  const subject = isCredit
+    ? `${refundAmt} in store credit — Order ${esc(orderNumber)}`
+    : isPartial
+      ? `Partial refund of ${refundAmt} processed — Order ${esc(orderNumber)}`
+      : `Your refund of ${refundAmt} is on its way — Order ${esc(orderNumber)}`;
 
   const sumRow = (labelTxt, val, strong) => `
     <tr><td style="padding:11px 16px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:${a.muted};width:42%;border-bottom:1px solid ${a.border};font-family:${a.fontMono};">${labelTxt}</td>
     <td style="padding:11px 16px;font-size:13px;color:${a.text};${strong ? 'font-weight:700;' : ''}border-bottom:1px solid ${a.border};">${val}</td></tr>`;
+  /* ── THE CREDIT VERSION IS A DIFFERENT EMAIL, NOT A RELABELLED ONE ────────
+     Everything the refund email says about timing is false here: no bank is
+     involved, nothing takes 5–10 business days, and nothing will ever appear on
+     a statement. Telling somebody to watch their card for money that is sitting
+     in their account instead is how a settled return turns into a support
+     ticket. And for a guest order this email IS the instrument — there is no
+     account page to fall back on — so the code is the loudest thing on it. */
+  const creditBody = `
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${a.border};border-radius:8px;overflow:hidden;margin-bottom:24px;text-align:center;">
+      <tr><td style="padding:24px 20px;background:rgba(128,128,128,.06);">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:${a.muted};font-family:${a.fontMono};">Store credit</p>
+        <p style="margin:0;font-size:42px;font-weight:800;color:${a.text};letter-spacing:-.02em;font-family:${a.fontHead};line-height:1;">${esc(refundAmt)}</p>
+      </td></tr>
+    </table>
+    <p style="margin:0 0 22px;font-size:14px;color:${a.muted};line-height:1.75;">Hi ${firstName}, your return is settled. We've put <strong style="color:${a.text};">${esc(refundAmt)}</strong> of store credit on your account — enter the code below at checkout and it comes straight off what you owe.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px dashed ${a.border};border-radius:8px;overflow:hidden;margin-bottom:24px;text-align:center;">
+      <tr><td style="padding:20px;">
+        <p style="margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:${a.muted};font-family:${a.fontMono};">Your code</p>
+        <p style="margin:0;font-size:22px;font-weight:700;letter-spacing:.16em;color:${a.text};font-family:${a.fontMono};">${esc(storeCreditCode)}</p>
+      </td></tr>
+    </table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${a.border};border-radius:8px;overflow:hidden;margin-bottom:24px;">
+      ${sumRow('Order', esc(orderNumber), true)}
+      ${sumRow('Credit', esc(refundAmt), true)}
+      ${sumRow('Reason', esc(reasonText))}
+      ${sumRow('Available', 'Now — it does not expire')}
+    </table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(128,128,128,.06);border-radius:8px;margin-bottom:24px;">
+      <tr><td style="padding:16px 20px;">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:${a.muted};font-family:${a.fontMono};">How to use it</p>
+        <p style="margin:0;font-size:13px;color:${a.muted};line-height:1.65;">At checkout, enter the code in the <strong style="color:${a.text};">Gift Card or Store Credit</strong> box. If it is worth more than your order, the rest stays on the code for next time. Keep this email — it is the only copy of the code we send.</p>
+      </td></tr>
+    </table>
+    ${customerNote ? `
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${a.border};border-radius:8px;overflow:hidden;margin-bottom:24px;">
+      <tr><td style="padding:11px 16px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:${a.muted};background:rgba(128,128,128,.06);font-family:${a.fontMono};">A note from us</td></tr>
+      <tr><td style="padding:14px 16px;font-size:13px;color:${a.text};line-height:1.65;white-space:pre-wrap;">${esc(customerNote)}</td></tr>
+    </table>` : ''}
+    <p style="margin:0;font-size:13px;color:${a.muted};line-height:1.6;">Questions? Reach us at <a href="mailto:${esc(fromEmail)}" style="color:${a.accent};font-weight:600;text-decoration:underline;">${esc(fromEmail)}</a></p>`;
+
   const body = `
     <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${a.border};border-radius:8px;overflow:hidden;margin-bottom:24px;text-align:center;">
       <tr><td style="padding:24px 20px;background:rgba(128,128,128,.06);">
@@ -673,16 +880,16 @@ export function buildRefundEmail({ action, orderNumber, orderTotal, stripeRefund
     <p style="margin:0;font-size:13px;color:${a.muted};line-height:1.6;">Questions? Reach us at <a href="mailto:${esc(fromEmail)}" style="color:${a.accent};font-weight:600;text-decoration:underline;">${esc(fromEmail)}</a></p>`;
 
   const html = renderEmailShell(a, {
-    kicker:  isPartial ? 'Partial refund' : 'Refund confirmed',
-    heading: 'Your money is on its way back',
+    kicker:  isCredit ? 'Store credit' : isPartial ? 'Partial refund' : 'Refund confirmed',
+    heading: isCredit ? 'Your credit is ready to spend' : 'Your money is on its way back',
     intro:   '',
-    bodyHtml: body,
+    bodyHtml: isCredit ? creditBody : body,
     footer:  `© ${new Date().getFullYear()} ${esc(a.brand)} · This is an automated message`,
   });
   return { subject, html };
 }
 
-async function sendRefundEmail(env, { customerEmail, customerName, orderNumber, action, orderTotal, stripeRefundAmount, reason, customerNote }) {
+async function sendRefundEmail(env, { customerEmail, customerName, orderNumber, action, orderTotal, stripeRefundAmount, reason, customerNote, storeCreditCode = '', storeCreditCents = 0 }) {
   try {
     const cache     = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL', 'fonts', 'brand', 'email_theme'], env);
     const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
@@ -695,6 +902,7 @@ async function sendRefundEmail(env, { customerEmail, customerName, orderNumber, 
 
     const { subject, html } = buildRefundEmail({
       action, orderNumber, orderTotal, stripeRefundAmount, reason, customerName, customerNote, fromEmail, appearance: a,
+      storeCreditCode, storeCreditCents,
     });
 
     if (resendKey) {

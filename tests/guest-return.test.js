@@ -210,7 +210,9 @@ const TOKEN = fs.readFileSync(ROOT + '/functions/api/_order-token.js', 'utf8')
        and offers the same answers, so a return does not depend on whether
        somebody happened to be logged in. */
     ok('the guest form offers the same resolutions as the signed-in one',
-      /value="exchange"/.test(page) && !/value="store_credit"/.test(page));
+      /value="exchange"/.test(page) && /value="store_credit"/.test(page)
+      && /data-zw-needs-credit/.test(page),
+      'a guest has no account page to find a balance on, so the gate matters most here');
     ok('an empty selection is explained as "the whole order"',
       /return the whole order/i.test(page));
 

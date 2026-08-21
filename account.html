@@ -232,15 +232,15 @@ try {
   <script src="preview-mode.js?v=799782ba" defer></script>
   <script src="/zw-data.js?v=54eabcad" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
-  <script src="/variant-price.js?v=46f1b9f4"></script>
+  <script src="/variant-price.js?v=f5dede95"></script>
   <script src="/attribution.js?v=2a299a54" defer></script>
   <script src="/meta-pixel.js?v=99466e34" defer></script>
   <script src="/google-tag.js?v=8fbf81e0" defer></script>
   <script src="/supabase.min.js?v=4b6a655b" defer></script>
   <script src="/supabase-client.js?v=0bf64814" defer></script>
-<script src="pdp-gallery.js?v=1e454262" defer></script>
+<script src="pdp-gallery.js?v=2192736c" defer></script>
   <script src="customer-messages.js?v=2c5164d0" defer></script>
-  <script src="quick-add-modal.js?v=0d6bfa3a" defer></script>
+  <script src="quick-add-modal.js?v=d056189c" defer></script>
   <meta name="robots" content="noindex, nofollow">
   <meta name="description" content="Manage your Zuwera account, orders, and saved items.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -361,6 +361,24 @@ try {
     body.light-mode .page-hd-meta { color: var(--c45); }
 
     /* -- REWARDS (loyalty points) -- */
+    /* Gift cards / store credit. Deliberately shaped like the rewards card
+       above rather than like a product tile — it is a balance, not a thing to
+       browse. The code sits in a monospaced button because it is going to be
+       read out loud or typed, and both of those go wrong on an O that might be
+       a zero. */
+    .gc-total { border: 1px solid var(--c14); border-radius: 12px; padding: 26px 22px; text-align: center; max-width: 420px; margin-bottom: 20px; }
+    .gc-total-value { font-family: var(--fw); font-size: 3.2rem; font-weight: 800; line-height: 1; }
+    .gc-total-label { font-size: .68rem; letter-spacing: .18em; text-transform: uppercase; opacity: .5; margin-top: 4px; }
+    .gc-list { display: grid; gap: 12px; max-width: 420px; }
+    .gc-card { border: 1px solid var(--c14); border-radius: 12px; padding: 16px 18px; }
+    .gc-card-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .gc-kind { font-size: .68rem; letter-spacing: .16em; text-transform: uppercase; opacity: .55; }
+    .gc-balance { font-family: var(--fw); font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .gc-code { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; margin-top: 12px; padding: 10px 12px; border: 1px dashed var(--c20); border-radius: 8px; background: rgb(var(--fg-rgb) / 3%); color: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; letter-spacing: .12em; cursor: pointer; transition: border-color .2s; }
+    .gc-code:hover { border-color: var(--c45); }
+    .gc-copy { font-family: var(--fm, inherit); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase; opacity: .55; }
+    .gc-meta { font-size: .74rem; opacity: .5; margin-top: 8px; }
+    .gc-hint { font-size: .78rem; opacity: .6; margin-top: 16px; max-width: 420px; line-height: 1.6; }
     .rw-card { border: 1px solid var(--c14); border-radius: 12px; padding: 26px 22px; text-align: center; max-width: 420px; }
     body.light-mode .rw-card { border-color: var(--c14); }
     .rw-balance { font-family: var(--fw); font-size: 3.2rem; font-weight: 800; line-height: 1; }
@@ -875,7 +893,7 @@ try {
       #saved-list { grid-template-columns: repeat(2, 1fr); gap: .8rem; }
     }
   </style>
-<link rel="stylesheet" href="storefront-cohesion.css?v=45f94756">
+<link rel="stylesheet" href="storefront-cohesion.css?v=48bc109f">
 <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
 <script src="header-scroll.js?v=0a0efce9" defer></script>
 <link rel="stylesheet" href="quick-add-modal.css?v=dc3088fe">
@@ -1037,6 +1055,9 @@ try {
       <button class="acct-tab" data-tab="saved">Saved Items</button>
       <button class="acct-tab" data-tab="returns">Returns</button>
       <button class="acct-tab" data-tab="rewards" id="acct-tab-rewards" style="display:none">Rewards</button>
+      <!-- Only appears once there is a balance to look at. A wallet tab that is
+           always there and always empty teaches people not to open it. -->
+      <button class="acct-tab" data-tab="giftcards" id="acct-tab-giftcards" style="display:none">Gift Cards</button>
       <!-- Label follows the state: "Trade Account" once there is one to look
            at, "Wholesale" while it is still a thing to ask for. Set by
            wholesale-apply.js, which is also what reveals it. -->
@@ -1090,6 +1111,12 @@ try {
     <div class="acct-panel" id="panel-rewards">
       <div class="zw-loading" id="rewards-loading" role="status" aria-live="polite">Loading your rewards…</div>
       <div id="rewards-content"></div>
+    </div>
+
+    <!-- GIFT CARDS / STORE CREDIT -->
+    <div class="acct-panel" id="panel-giftcards">
+      <div class="zw-loading" id="gc-loading" role="status" aria-live="polite">Loading your cards…</div>
+      <div id="gc-content"></div>
     </div>
 
     <!-- TRADE / WHOLESALE — rendered by wholesale-apply.js -->
@@ -1285,6 +1312,7 @@ function switchTab(tab) {
   if (tab === 'saved') loadSaved();
   if (tab === 'returns') loadReturns();
   if (tab === 'rewards') loadRewards();
+  if (tab === 'giftcards') loadGiftCards();
   if (tab === 'profile') loadProfile();
 }
 
@@ -1362,6 +1390,95 @@ async function loadRewards() {
     b.addEventListener('click', () => redeemRewards(Number(b.dataset.points), b));
   });
   loadReferral(label);
+}
+
+/* -- GIFT CARDS AND STORE CREDIT --
+   The same instrument under two names: one somebody bought, one somebody was
+   given. This panel does not spend anything and cannot — redemption happens at
+   the till, against the balance at that moment. All this does is answer "what
+   have I got, and what do I type". */
+let _giftCards = null;
+async function fetchGiftCards() {
+  const { data } = await _sb.auth.getSession();
+  const token = data && data.session && data.session.access_token;
+  if (!token) return null;
+  return fetch('/api/my-stored-value', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accessToken: token })
+  }).then(r => r.json()).catch(() => null);
+}
+/* Revealed only when there is something in it. The endpoint already drops
+   spent and expired cards, so "cards.length" means "money you can spend". */
+async function initGiftCardsTab() {
+  const r = await fetchGiftCards();
+  _giftCards = r;
+  if (r && r.ok && r.enabled && r.cards && r.cards.length) {
+    const t = document.getElementById('acct-tab-giftcards');
+    if (t) t.style.display = '';
+  }
+}
+function gcKindLabel(kind) {
+  return kind === 'store_credit' ? 'Store credit' : 'Gift card';
+}
+function gcExpiryLine(card) {
+  if (!card.expiresAt) return 'No expiry.';
+  const when = new Date(card.expiresAt);
+  if (isNaN(when.getTime())) return '';
+  return 'Expires ' + when.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) + '.';
+}
+async function loadGiftCards() {
+  const loading = document.getElementById('gc-loading');
+  const host = document.getElementById('gc-content');
+  if (!host) return;
+  if (loading) loading.style.display = '';
+  host.innerHTML = '';
+  const r = (_giftCards && _giftCards.ok) ? _giftCards : await fetchGiftCards();
+  _giftCards = r;
+  if (loading) loading.style.display = 'none';
+
+  if (!r || !r.ok || !r.enabled) {
+    host.innerHTML = '<p class="acct-empty">Gift cards aren\'t available right now.</p>';
+    return;
+  }
+  const cards = Array.isArray(r.cards) ? r.cards : [];
+  if (!cards.length) {
+    host.innerHTML = '<p class="acct-empty">Nothing here yet. Gift cards and store credit show up on this page as soon as they are issued to your account.</p>';
+    return;
+  }
+
+  host.innerHTML = `
+    <div class="gc-total">
+      <div class="gc-total-value">$${escHtml(r.total)}</div>
+      <div class="gc-total-label">available to spend</div>
+    </div>
+    <div class="gc-list">
+      ${cards.map(c => `
+        <div class="gc-card">
+          <div class="gc-card-top">
+            <span class="gc-kind">${escHtml(gcKindLabel(c.kind))}</span>
+            <span class="gc-balance">$${escHtml(c.balance)}</span>
+          </div>
+          <button type="button" class="gc-code" data-code="${escHtml(c.code)}" title="Copy this code">
+            <span>${escHtml(c.code)}</span><span class="gc-copy">Copy</span>
+          </button>
+          <p class="gc-meta">${escHtml(gcExpiryLine(c))}</p>
+        </div>`).join('')}
+    </div>
+    <p class="gc-hint">Enter one of these at checkout. A card larger than the order keeps whatever is left over for next time.</p>`;
+
+  host.querySelectorAll('.gc-code').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const label = btn.querySelector('.gc-copy');
+      try {
+        await navigator.clipboard.writeText(btn.dataset.code || '');
+        if (label) { label.textContent = 'Copied'; setTimeout(() => { label.textContent = 'Copy'; }, 1600); }
+      } catch (_) {
+        /* Clipboard refused — a permission thing, and not worth an error. The
+           code is on the screen either way, which is what it is there for. */
+        if (label) { label.textContent = 'Select it'; setTimeout(() => { label.textContent = 'Copy'; }, 1600); }
+      }
+    });
+  });
 }
 
 /* -- REFER A FRIEND -- */
@@ -1913,18 +2030,14 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
         <div class="zw-grid-2" style="margin-top:.75rem">
           <div class="zw-field">
             <label>Resolution</label>
-            <!-- Store credit is NOT offered here, and its absence is the fix.
-                 It was an option on this menu and on the admin resolution
-                 picker, and there is no credit balance anywhere in the system:
-                 no ledger, no way to see one, and nothing in cart pricing or
-                 the payment intent that could spend it. Choosing it meant a
-                 customer was told about money they had no way to use.
-                 The LABEL for it is kept in retResolutionLabel() so returns
-                 already settled that way still read correctly — what is
-                 withdrawn is the ability to choose it again. -->
+            <!-- Store credit is offered again, and hidden until the store runs
+                 it. It was withdrawn because choosing it told a customer about
+                 money they had no way to use; there is a ledger behind it now,
+                 spendable at checkout and visible on this same page. -->
             <select id="ret-resolution">
               <option value="return">Return for refund</option>
               <option value="exchange">Exchange</option>
+              <option value="store_credit" data-zw-needs-credit hidden>Store credit</option>
             </select>
           </div>
           <!-- The same vocabulary customer-hub.js uses, from the same file.
@@ -2333,6 +2446,7 @@ async function init() {
     document.getElementById('acct-content').style.display = 'block';
     // Reveals the Rewards tab only if a rewards programme is switched on.
     try { initRewardsTab(); } catch (_) {}
+    try { initGiftCardsTab(); } catch (_) {}
     const navSO = document.getElementById('nav-signout-btn');
     if (navSO) navSO.style.display = '';
 
@@ -2380,7 +2494,7 @@ async function init() {
 
 document.addEventListener('DOMContentLoaded', function() { _sb = window.sb; init(); });
 </script>
-<script src="/theme-engine.js?v=e553558b" defer></script>
+<script src="/theme-engine.js?v=e6652ad7" defer></script>
 <script src="/motion.js?v=5b9cc123" defer></script>
 <script src="/icon-sets.js?v=60e5763a" defer></script>
 <script src="storefront-theme.js?v=3782df36" defer></script>
@@ -2405,6 +2519,11 @@ document.addEventListener('DOMContentLoaded', function() { _sb = window.sb; init
      DOMContentLoaded, and a deferred script is not guaranteed to have run by
      the time that fires on a page this size. -->
 <script src="return-reasons.js?v=cbcedfa6"></script>
+<!-- Reveals the store-credit return option, and only where the store runs it.
+     Deferred: it hides the option itself before it asks, so it does not need to
+     beat anything to the DOM — and it watches for the forms that are built
+     later. -->
+<script src="store-credit-offer.js?v=6d46bcf2" defer></script>
 <!-- Trade account panel. Defers because it needs `sb` and the DOM, and it
      reveals its own tab — nothing on this page has to know it exists. -->
 <script src="wholesale-apply.js?v=3d18c97e" defer></script>

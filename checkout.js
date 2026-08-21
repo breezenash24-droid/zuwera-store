@@ -754,6 +754,15 @@ function initPaymentRequestButton(subtotalCents) {
         },
       });
       if (piData.error) { ev.complete('fail'); return; }
+      /* The wallet buttons are hidden while a gift card is applied, so this
+         should be unreachable — but "should be" is not a thing to hand a
+         payment sheet. If an order comes back already paid, close the sheet as
+         a success rather than confirming an intent that does not exist. */
+      if (piData.paidInFull) {
+        ev.complete('success');
+        showOrderConfirmed(piData.orderNumber, ev.payerEmail, piData.orderId || '');
+        return;
+      }
       const initialResult = await stripe.confirmCardPayment(
         piData.clientSecret,
         { payment_method: ev.paymentMethod.id },
@@ -1238,6 +1247,22 @@ _pay.btn?.addEventListener('click', async () => {
       _pay.errEl.textContent = piData.error;
       _pay.btn.disabled = false;
       _pay.btnTxt.textContent = 'Pay Now';
+      return;
+    }
+
+    /* ── THE ORDER MAY ALREADY BE DONE ───────────────────────────────────
+       A gift card that covers the whole total leaves nothing for Stripe to
+       charge, and Stripe will not create a zero PaymentIntent. So
+       create-payment-intent captures the stored value, runs fulfilment and
+       returns the finished order — there is no clientSecret to confirm and
+       nothing to ask the card for.
+
+       Confirming anyway would not "just fail": confirmCardPayment(undefined)
+       throws, the catch below turns that into a decline message, and the
+       shopper is told their payment failed for an order that has already been
+       placed and paid. */
+    if (piData.paidInFull) {
+      showOrderConfirmed(piData.orderNumber, email, piData.orderId || '');
       return;
     }
 

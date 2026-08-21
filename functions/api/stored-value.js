@@ -81,3 +81,22 @@ export async function onRequestPost({ request, env }) {
     expiresAt: info.expiresAt,
   }, 200, headers);
 }
+
+/**
+ * GET /api/stored-value  —  "is this feature on?"
+ *
+ * The checkout page has to decide whether to draw a gift-card field before the
+ * shopper has typed anything, and the switch lives in a settings row that only
+ * the server reads. So it asks here.
+ *
+ * DELIBERATELY NOT RATE LIMITED, unlike the POST above. That limit exists
+ * because the POST answers a question about a SECRET — twenty guesses an hour
+ * at a code. This one answers a question the page's own markup gives away the
+ * moment the field appears. Metering it would spend a shopper's twenty guesses
+ * on page loads and lock them out of checking their own balance, which is the
+ * limit protecting nothing and costing the thing it was put there for.
+ */
+export async function onRequestGet({ env }) {
+  const headers = cors(env);
+  return json({ ok: true, enabled: await storedValueEnabled(env) }, 200, headers);
+}

@@ -246,8 +246,11 @@ function net(routes) {
     ok('failures are written to the audit log', /note: proc\.id \+ ': ' \+ out\.error/.test(code));
 
     ok('check reports which processor it asked', /check: true, orderId, processor/.test(code));
+    /* The guard, not the sentence it prints. See the same note in
+       orders-know-the-processor.test.js. */
     ok('an already-refunded order is blocked before PayPal is called',
-      /blocked: already fully refunded/.test(code));
+      /if \(remaining <= 0\) \{[\s\S]{0,200}?success: false/.test(code)
+      && code.indexOf('if (remaining <= 0)') < code.indexOf('proc.refund('));
 
     ok('the local refund ledger is consulted', /AUDIT_LOG_KEY/.test(code) && /ledgerCents/.test(code));
     ok('…only for successful refunds on this order',

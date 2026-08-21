@@ -166,12 +166,13 @@
         <div class="zw-hub-grid">
           <div class="zw-hub-field">
             <label>Resolution</label>
-            <!-- No store credit option: there is no credit balance in this
-                 system to spend. See account.html's return form, which asks
-                 the same question and had the same problem. -->
+            <!-- Same three choices as account.html's return form, asked the same
+                 way, from the same vocabulary — two forms asking one question
+                 two ways puts half the returns beyond counting. -->
             <select id="zw-return-resolution">
               <option value="return">Return for refund</option>
               <option value="exchange">Exchange</option>
+              <option value="store_credit" data-zw-needs-credit hidden>Store credit</option>
             </select>
           </div>
           <div class="zw-hub-field">
