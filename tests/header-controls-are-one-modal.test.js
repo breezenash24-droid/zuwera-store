@@ -467,6 +467,41 @@ console.log('\nOne modal for the whole header\n');
       kills.length > 0 && kills.every((sel) => /data-zw-iconlabels/.test(sel)),
       kills.filter((sel) => !/data-zw-iconlabels/.test(sel)).join(' | ') || 'no rule found');
   }
+
+  /* ── AND THE OTHER HALF, WHICH THOSE TWO RULES DO NOT COVER ───────────────
+     Scoping the kill to the glyph state left the LABEL state unguarded, and
+     that is where it broke. `.zw-hdr-action::before` sets the person mask with
+     `content:'' !important`; the label rule sets `content: attr(aria-label)`
+     with no !important. So with words turned on the declaration with the bang
+     won, the label never appeared, and `> svg { display:none }` had already
+     hidden the magnifier.
+
+     Read off the live collection page before this was fixed:
+
+       search   labels="phone tablet desktop"  ::before ""  mask=PERSON  svg=none
+       account  labels="phone tablet desktop"  ::before ""  mask=PERSON  svg=none
+
+     Two identical account icons, one of which searched. Excluding the launcher
+     from the mask rule fixes both states at once and needs no !important war;
+     verified against the live page in each:
+
+       labels ON   ::before "Search"   mask none   (the bag beside it says BAG)
+       labels OFF  ::before none       svg block   (the magnifier is back)  */
+  {
+    const css = read('storefront-cohesion.css');
+    const maskRules = [...css.matchAll(/([^{}]*\.zw-hdr-action[^{}]*::before[^{]*)\{([^}]*)\}/g)]
+      .filter((m) => /mask\s*:/.test(m[2]));
+    ok('the person mask is defined somewhere', maskRules.length > 0);
+    ok('…and it does not reach the search launcher',
+      maskRules.every((m) => /:not\(\s*\.zwf-search-btn\s*\)/.test(m[1])),
+      maskRules.filter((m) => !/:not\(\s*\.zwf-search-btn\s*\)/.test(m[1]))
+        .map((m) => m[1].trim()).join(' | ')
+        + '  — a borrowed class must not bring an account glyph with it');
+    /* The account button still needs its glyph; a fix that took it away would
+       pass the assertion above and break the header a different way. */
+    ok('…while the account button keeps it',
+      maskRules.some((m) => /#account-btn|#login-btn|\.zw-hdr-action/.test(m[1])));
+  }
 }
 
 /* ── 7 · what applies at which width, said out loud ──────────────────────── */
