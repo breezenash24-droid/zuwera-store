@@ -380,9 +380,19 @@
        flipping one lands exactly on the other, which is the check that the
        mirror is the right operation rather than an approximation of one. */
     flip:       { on: 1, off: 1 },
+    /* How far apart the categories sit. Named steps rather than a number: every
+       other answer in this modal is named, and a pixel box invites fiddling
+       without giving anyone a sense of what "right" is. `normal` is the 2.4rem
+       the header has always used, so an unanswered store is unchanged.
+
+       It was the one thing about this header nobody could change -- a literal
+       in three files -- and it is the first thing that looks wrong when the
+       arrangement moves, because a centred strip wants air and a strip tucked
+       beside the logo wants much less of it. */
+    navGap:     { tight: 1, snug: 1, normal: 1, roomy: 1, wide: 1 },
     // iconLabels is not an enum — see deviceList below.
   };
-  var EXTRA_KEYS = ['lines', 'account', 'iconLabels', 'order', 'flip'];
+  var EXTRA_KEYS = ['lines', 'account', 'iconLabels', 'order', 'flip', 'navGap'];
 
   /* ── The mirror ───────────────────────────────────────────────────────────
      Left and right swap; centre is its own mirror; `none` is not a position at
@@ -620,7 +630,7 @@
      copy still reads correctly here — a shorter tuple simply answers '' for
      the fields it does not have, which is exactly "not chosen". Reordering it
      would silently reinterpret every cache already in the wild. */
-  var ATTR_FIELDS = ['lines', 'account', 'iconLabels', 'order', 'flip'];  // fields 5..9
+  var ATTR_FIELDS = ['lines', 'account', 'iconLabels', 'order', 'flip', 'navGap'];  // fields 5..10
 
   function remember(id, at, opts) {
     var l = byId(id);

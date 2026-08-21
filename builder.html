@@ -633,6 +633,21 @@ body{display:flex;flex-direction:column}
            lets you choose one on the Tablet preview and watch nothing happen. -->
       <p class="hdrcfg-scope" id="hdrCfgScope"></p>
       <div id="hdrCfgList" class="hdrcfg-grid"></div>
+      <!-- The one thing about this header nobody could change: 2.4rem, written
+           as a literal in three files. It is also the first thing that looks
+           wrong when the arrangement moves, because a centred strip wants air
+           and a strip tucked beside the logo wants far less of it. -->
+      <div class="hdrcfg-lines">
+        <span class="hdrcfg-lines-l">Category spacing</span>
+        <span class="hdrcfg-lines-n hdrcfg-gap-n">How far apart Men, Women and New sit. Applies to every page.</span>
+        <span class="tog" role="group" aria-label="Category spacing">
+          <button type="button" id="hdrGapTight"  onclick="setHdrGap('tight')">Tight</button>
+          <button type="button" id="hdrGapSnug"   onclick="setHdrGap('snug')">Snug</button>
+          <button type="button" id="hdrGapNormal" onclick="setHdrGap('normal')">Normal</button>
+          <button type="button" id="hdrGapRoomy"  onclick="setHdrGap('roomy')">Roomy</button>
+          <button type="button" id="hdrGapWide"   onclick="setHdrGap('wide')">Wide</button>
+        </span>
+      </div>
       <!-- Mirror is a modifier on whichever tile is chosen, not a twelfth tile,
            so it sits with the other cross-cutting settings rather than in the
            gallery. Seven of the eleven arrangements have no mirrored twin in
@@ -3565,10 +3580,10 @@ function sendChrome(){
   if(Array.isArray(chromeNav)) post({type:'ZW_NAV_PREVIEW',items:chromeNav});
   if(chromeBar) post({type:'ZW_BAR_PREVIEW',value:chromeBar});
   post({type:'ZW_TEXT_OVERRIDES',value:chromeCopy||{}});
-  if(chromeHeader||chromeHdrLines||chromeHdrAccount||chromeHdrLabels||chromeHdrOrder||chromeHdrFlip){
+  if(chromeHeader||chromeHdrLines||chromeHdrAccount||chromeHdrLabels||chromeHdrOrder||chromeHdrFlip||chromeHdrGap){
     post({type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines,
           account:chromeHdrAccount,iconLabels:chromeHdrLabels,order:chromeHdrOrder,
-          flip:chromeHdrFlip});
+          flip:chromeHdrFlip,navGap:chromeHdrGap});
   }
   if(chromeBag) post({type:'ZW_BAG_PREVIEW',value:chromeBag});
 }
@@ -3599,6 +3614,7 @@ async function loadChrome(){
   chromeHdrLabels=(hd&&typeof hd==='object'&&typeof hd.iconLabels==='string')?hd.iconLabels:'';
   chromeHdrOrder=(hd&&typeof hd==='object'&&typeof hd.order==='string')?hd.order:'';
   chromeHdrFlip=one('flip',['on','off']);
+  chromeHdrGap=one('navGap',['tight','snug','normal','roomy','wide']);
   const bg=pick(bgD,bgL);
   chromeBag=(bg&&typeof bg==='object'&&!Array.isArray(bg))?bg:{};
   const nav=pick(navD,navL);
@@ -3695,6 +3711,11 @@ let chromeHeader = '';
    different one and works on any layout added later without its twin having to
    be written. Seven of the eleven mirrors are not in the gallery at all. */
 let chromeHdrFlip = '';
+/* Which of the five named category spacings. '' means the store has not
+   answered and the stylesheet's own 2.4rem stands -- which is what `normal`
+   also is, so choosing it explicitly changes nothing but is not the same as
+   never having chosen. */
+let chromeHdrGap = '';
 /* Whether the header and the announcement bar draw their bottom rule. Stored
    beside the arrangement because it is chosen in the same modal, but it is not
    part of a layout: every arrangement can have it either way, and turning it
@@ -3761,7 +3782,7 @@ function openHeaderCfg(){
      than a door. Everything on the Icons tab writes to the live values as you
      press it — the preview is the point — and this is what puts them back. */
   hdrCfgWas = {
-    header: chromeHeader, lines: chromeHdrLines, account: chromeHdrAccount, flip: chromeHdrFlip,
+    header: chromeHeader, lines: chromeHdrLines, account: chromeHdrAccount, flip: chromeHdrFlip, gap: chromeHdrGap,
     labels: chromeHdrLabels, order: chromeHdrOrder,
     bag: JSON.stringify(chromeBag || {}),
   };
@@ -3769,6 +3790,7 @@ function openHeaderCfg(){
   hdrCfgSel = chromeHeader || 'classic';
   paintHeaderCfg();
   paintHdrFlip();
+  paintHdrGap();
   paintHdrLines();
   paintHdrControls();
   paintHdrScope();
@@ -3843,7 +3865,7 @@ function paintHdrApply(){
    flag would swallow it. */
 function closeHeaderCfg(){
   if(hdrCfgTouched&&hdrCfgWas){
-    chromeHeader=hdrCfgWas.header; chromeHdrLines=hdrCfgWas.lines; chromeHdrFlip=hdrCfgWas.flip;
+    chromeHeader=hdrCfgWas.header; chromeHdrLines=hdrCfgWas.lines; chromeHdrFlip=hdrCfgWas.flip; chromeHdrGap=hdrCfgWas.gap;
     chromeHdrAccount=hdrCfgWas.account; chromeHdrLabels=hdrCfgWas.labels;
     chromeHdrOrder=hdrCfgWas.order;
     try{ chromeBag=JSON.parse(hdrCfgWas.bag); }catch(_){ chromeBag={}; }
@@ -3952,6 +3974,51 @@ function paintHdrFlip(){
       ? 'This arrangement cannot be mirrored: ' + why + '. The other nine can.'
       : 'Flip the whole arrangement left to right. The tiles above show it. Applies to every page.';
     note.classList.toggle('warn', !!why);
+  }
+}
+
+/* Applies on click like the two toggles beside it. Five named steps rather
+   than a number: every other answer in this modal is named, and a pixel box
+   invites fiddling without giving anyone a sense of what "right" is. */
+const HDR_GAPS = ['tight','snug','normal','roomy','wide'];
+function setHdrGap(v){
+  if(HDR_GAPS.indexOf(v)===-1) return;
+  if((chromeHdrGap||'')===v) return;
+  chromeHdrGap = v;
+  hdrCfgMark();
+  sendChrome();
+  paintHdrGap();
+  toast('Category spacing: '+v+' — preview updated','ok');
+}
+function paintHdrGap(){
+  /* '' and 'normal' are the same spacing, and the button shows for both: a
+     store that has never answered is looking at 2.4rem, so highlighting
+     nothing would read as "no answer applies" when one plainly does. */
+  const cur = chromeHdrGap || 'normal';
+  HDR_GAPS.forEach(function(g){
+    const el=document.getElementById('hdrGap'+g.charAt(0).toUpperCase()+g.slice(1));
+    if(!el) return;
+    el.classList.toggle('on', g===cur);
+    el.setAttribute('aria-pressed', g===cur?'true':'false');
+  });
+  /* The one arrangement where this does something different, said out loud
+     rather than left to be discovered -- and said ACCURATELY. Measured at
+     1280px on a centred-logo header: tight gives 8.8px, while normal, roomy and
+     wide all give 15.36px. The guard is a clamp whose middle term is 1.2vw, so
+     the chosen gap only wins while it is SMALLER than that. Describing it as
+     "half your choice" would be a control overstating what it does. */
+  const note=document.querySelector('#hdrPaneLayout .hdrcfg-gap-n');
+  if(note){
+    const sel = hdrCfgSel||chromeHeader||'classic';
+    const L2 = window.ZWHeaderLayouts, lay = L2 && L2.byId(sel);
+    /* A centred LOGO on a single row is the case the stylesheet guards, because
+       the categories run in flow past an out-of-flow logo and would end up
+       underneath it. Read off the spec rather than matched on the name. */
+    const centred = !!(lay && lay.spec && lay.spec.logo === 'center'
+      && String(lay.spec.linksRow) !== '2');
+    note.textContent = centred
+      ? 'How far apart Men, Women and New sit. This arrangement centres the logo, so the strip is capped to keep the categories from running underneath it — the tighter steps still apply, the wider ones stop at the cap.'
+      : 'How far apart Men, Women and New sit. Applies to every page.';
   }
 }
 
@@ -4292,6 +4359,7 @@ function pickHeaderLayout(id){
   if(!window.ZWHeaderLayouts||!window.ZWHeaderLayouts.byId(id)) return;
   hdrCfgSel=id;
   paintHeaderCfg();
+  paintHdrGap();
   /* The mirror switch belongs to the SELECTED arrangement -- two of the eleven
      cannot be mirrored -- so it is repainted with the gallery rather than only
      when the modal opens. Without this, selecting one of those two would leave
@@ -4352,6 +4420,7 @@ async function saveChrome(pub){
       if (chromeHdrLabels) out.iconLabels = chromeHdrLabels;
       if (chromeHdrOrder) out.order = chromeHdrOrder;
       if (chromeHdrFlip) out.flip = chromeHdrFlip;
+      if (chromeHdrGap) out.navGap = chromeHdrGap;
       return out;
     }],
     /* A different key with a different owner: site_settings.bag_panel, which
@@ -4845,6 +4914,6 @@ function onKey(e){
 
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 </script>
-<script src="/header-layouts.js?v=afec8b7a"></script>
+<script src="/header-layouts.js?v=1b620b41"></script>
 </body>
 </html>

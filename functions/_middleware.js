@@ -71,6 +71,7 @@ const TTL = 300;
 const STAMP_BUDGET_MS = 60;
 
 const SPOTS = { left: 1, center: 1, right: 1 };
+const GAPS = { tight: 1, snug: 1, normal: 1, roomy: 1, wide: 1 };
 
 /* ── The mirror, a second time ────────────────────────────────────────────────
    Left and right swap; centre is its own mirror; `none` is not a side at all
@@ -120,6 +121,10 @@ export function attrsFrom(value, updatedAt) {
        the other four, because a centred pair reads the same either way round.
        See the note beside setHeader() in theme-engine.js. */
     if (value.flip === 'on') out['data-zw-hdr-flip'] = 'on';
+    /* Category spacing, validated against the same five names the stylesheet
+       has rules for. Anything else writes nothing and the shipped 2.4rem
+       stands. */
+    if (GAPS[value.navGap]) out['data-zw-hdr-gap'] = value.navGap;
 
     /* ── WITHOUT THIS LINE THE STAMP GETS UNDONE ────────────────────────────
        data-zw-hdr-at does not describe when the page was built. It means "the

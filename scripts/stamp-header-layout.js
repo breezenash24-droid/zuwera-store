@@ -66,7 +66,7 @@ const OURS = ['data-zw-hdr', 'data-zw-hdr-logo', 'data-zw-hdr-links',
   /* Listed so that turning the mirror OFF actually removes it. Without this the
      attribute would be baked once and never stripped, and the store would stay
      mirrored on the first frame of every page after the setting was cleared. */
-  'data-zw-hdr-flip'];
+  'data-zw-hdr-flip', 'data-zw-hdr-gap'];
 
 /* data-zw-account is on <body>, because the rule it answers is written against
    body.zwf-bagpanel-on. stamp-theme-default.js bakes it there from the store's
@@ -123,8 +123,9 @@ function fetchLayout() {
                flip is applied further down from `chosen.flip`, and a field this
                function does not pick up is a field that is always absent. */
             flip: pick('flip', ['on', 'off']),
+            navGap: pick('navGap', ['tight', 'snug', 'normal', 'roomy', 'wide']),
           };
-          const any = chosen.id || chosen.lines || chosen.account || chosen.iconLabels || chosen.order || chosen.flip;
+          const any = chosen.id || chosen.lines || chosen.account || chosen.iconLabels || chosen.order || chosen.flip || chosen.navGap;
           resolve(any ? chosen : null);
         } catch (_) { resolve(null); }
       });
@@ -228,6 +229,11 @@ if (!process.env.CF_PAGES && !process.argv.includes('--local')) process.exit(0);
              between a baked answer and a cached one without guessing. */
           keep += ' data-zw-hdr-at="' + chosen.at + '"';
         }
+        /* OUTSIDE the placement block on purpose, beside `lines` and the icon
+           labels below. Category spacing is not a placement: a store can want a
+           tighter strip without ever choosing an arrangement, and gating it on
+           `spec` would mean the setting silently did nothing for them. */
+        if (chosen.navGap) keep += ' data-zw-hdr-gap="' + chosen.navGap + '"';
         if (lines) keep += ' data-zw-hdr-lines="' + lines + '"';
         /* 'icons' is an answer meaning "no words", and the way to bake it is to
            leave the attribute off — which stripping OURS above has already
