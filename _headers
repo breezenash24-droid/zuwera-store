@@ -103,14 +103,35 @@
 # there is no bare `https:` in media-src to catch it, so every R2-hosted product
 # video would have stopped playing the moment the policy took effect. It did not
 # take effect, because of the length bug above. Two mistakes cancelling is not a
-# defence; media-src now names *.zuwera.store.
+# defence; media-src named *.zuwera.store.
+#
+# ── AND THEN EVERY OTHER HOST, WHICH THE ALLOWLIST COULD NEVER KNOW ─────────
+#
+# Naming the hosts was still the wrong shape. A product video's URL is whatever
+# the merchant pasted into the admin, and the catalogue on this store alone
+# plays from assets.nmp.nike.com — which is not in any allowlist anyone would
+# have thought to write. It was blocked in silence: the <video> element renders,
+# the pane is the right size, and nothing appears in it. Reported as "it's not
+# loading the videos on the mini product modals".
+#
+# For a licensee it is worse than a missing host, because their catalogue is
+# whatever their supplier hosts and the policy that governs it lives in a file
+# they would have to know to edit. So media-src is now `https:`, which is
+# exactly what img-src has always been and exactly the same trust: images from
+# any https host have always been allowed here, and a video is not a more
+# dangerous thing to fetch than a photograph. Neither can execute. http: is
+# still refused, and upgrade-insecure-requests still rewrites what tries.
+#
+# The named hosts are gone rather than kept alongside it — `https:` already
+# covers every one of them, and a list that no longer decides anything is a list
+# somebody will later trust.
 
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: payment=(*)
   X-Frame-Options: SAMEORIGIN
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.stripe.com *.paypal.com cdn.jsdelivr.net unpkg.com www.googletagmanager.com connect.facebook.net *.posthog.com static.cloudflareinsights.com www.googleadservices.com googleads.g.doubleclick.net www.clarity.ms browser.sentry-cdn.com *.crisp.chat embed.tawk.to s.pinimg.com analytics.tiktok.com plausible.io widget.trustpilot.com challenges.cloudflare.com; connect-src 'self' *.supabase.co *.stripe.com *.paypal.com *.posthog.com *.google-analytics.com analytics.google.com *.facebook.com cloudflareinsights.com api.github.com www.googletagmanager.com *.doubleclick.net *.clarity.ms *.ingest.sentry.io *.crisp.chat wss://*.crisp.chat *.tawk.to wss://*.tawk.to ct.pinterest.com analytics.tiktok.com plausible.io challenges.cloudflare.com www.google.com www.googleadservices.com; media-src 'self' *.zuwera.store *.supabase.co *.r2.dev res.cloudinary.com blob: data:; style-src 'self' 'unsafe-inline' fonts.googleapis.com *.crisp.chat embed.tawk.to; font-src 'self' data: fonts.gstatic.com *.crisp.chat; img-src 'self' data: blob: https:; frame-src 'self' *.stripe.com *.paypal.com *.facebook.com www.googletagmanager.com td.doubleclick.net widget.trustpilot.com *.tawk.to www.youtube.com www.youtube-nocookie.com player.vimeo.com www.tiktok.com www.instagram.com challenges.cloudflare.com; worker-src 'self' blob:; form-action 'self' *.paypal.com *.stripe.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; upgrade-insecure-requests; report-uri /api/csp-report
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.stripe.com *.paypal.com cdn.jsdelivr.net unpkg.com www.googletagmanager.com connect.facebook.net *.posthog.com static.cloudflareinsights.com www.googleadservices.com googleads.g.doubleclick.net www.clarity.ms browser.sentry-cdn.com *.crisp.chat embed.tawk.to s.pinimg.com analytics.tiktok.com plausible.io widget.trustpilot.com challenges.cloudflare.com; connect-src 'self' *.supabase.co *.stripe.com *.paypal.com *.posthog.com *.google-analytics.com analytics.google.com *.facebook.com cloudflareinsights.com api.github.com www.googletagmanager.com *.doubleclick.net *.clarity.ms *.ingest.sentry.io *.crisp.chat wss://*.crisp.chat *.tawk.to wss://*.tawk.to ct.pinterest.com analytics.tiktok.com plausible.io challenges.cloudflare.com www.google.com www.googleadservices.com; media-src 'self' https: blob: data:; style-src 'self' 'unsafe-inline' fonts.googleapis.com *.crisp.chat embed.tawk.to; font-src 'self' data: fonts.gstatic.com *.crisp.chat; img-src 'self' data: blob: https:; frame-src 'self' *.stripe.com *.paypal.com *.facebook.com www.googletagmanager.com td.doubleclick.net widget.trustpilot.com *.tawk.to www.youtube.com www.youtube-nocookie.com player.vimeo.com www.tiktok.com www.instagram.com challenges.cloudflare.com; worker-src 'self' blob:; form-action 'self' *.paypal.com *.stripe.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; upgrade-insecure-requests; report-uri /api/csp-report
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Cache-Control: no-cache, must-revalidate
 
