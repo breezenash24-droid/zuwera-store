@@ -1178,7 +1178,11 @@ document.documentElement.classList.add('zw-collflash');
          the last fifth, so the strip says it scrolls without anybody reading
          the counter. pdp-gallery.js sets the same thing on the elements from
          perView — this is the second voice, and the two have to agree. */
-      flex:0 0 80%;scroll-snap-align:start;min-width:0;
+      /* Full width. The peek is MEASURED at runtime — see fitPeek in
+         pdp-gallery.js — because a fixed fraction takes height from the photo
+         on every product, and only the ones the height ceiling cuts short have
+         space going spare. This is the starting point it narrows from. */
+      flex:0 0 100%;scroll-snap-align:start;min-width:0;
       /* A swipe must not carry past a photo and come to rest between two of
          them. `mandatory` on its own picks the NEAREST snap point at the end of
          a fling, which can be two photos away; `always` stops at the very next
@@ -4000,15 +4004,16 @@ function updateCountdown() {
              not reaching the photos — two shots at half width each, which reads
              as one photo sliced down the middle. Said on the element instead,
              where nothing has to match. */
-          /* FOUR FIFTHS, with the next photo showing in the last fifth.
-             A strip that fills the pane edge to edge gives no sign there is
-             anything past it: the arrows say 1/6 but the pane looks like a
-             single photo, and a shopper has to read the counter to learn the
-             strip scrolls. A sliver of the next one says it without a word,
-             which is what every filmstrip that works does.
-             1.25 because each slide is 1/perView of the pane — 1/1.25 = 80%.
-             The 0.4rem gap comes out of the peek, not out of the photo. */
-          perView: 1.25,
+          /* One photo, full size — and a sliver of the next one WHEREVER THAT
+             IS FREE. A peek costs height: the pane's width is fixed by this
+             column, so anything given to the peek comes out of the photo. At
+             four fifths that was 124px of a 619px photo, which is why it looked
+             short. Measured instead: the photo is sized first, and only space
+             the height ceiling was already leaving becomes the peek. On a 4:5
+             product that is 86px for nothing; on a squarer one there is none,
+             and the photo stays as big as it ever was. */
+          perView: 1,
+          peek: true,
           /* Builder → Product → Gallery → "Space beside a photo". */
           fill: colCfgEarly.modal_fill,
           /* Open on the colourway's own photo. Without this the strip started

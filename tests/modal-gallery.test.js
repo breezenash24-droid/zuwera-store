@@ -57,12 +57,13 @@ rules.forEach((block, i) => {
      view ON THE ELEMENTS, and this rule is the second voice rather than the
      only one. If it ever drifts from perView, the two disagree in a way that is
      visible rather than silent — which is what these assertions are for. */
-  /* 1.25 slides in view: one photo across four fifths, the next showing in the
-     last fifth. A strip filling the pane edge to edge gives no sign there is
-     anything past it — the counter says 1/6 while the pane looks like a single
-     photo. The sliver says it without a word. */
-  ok('the modal asks for one photo and a peek, in its own right',
-    /perView: 1\.25,/.test(css),
+  /* One photo at full size, and a sliver of the next WHERE THAT IS FREE.
+     A fixed fraction cost height on every product: the pane's width is set by
+     its column, so anything given to the peek comes out of the photo — 124px of
+     a 619px photo at four fifths. Measured instead, so the peek only takes space
+     the height ceiling was already leaving as margin. */
+  ok('the modal asks for one photo, and a peek only where it is free',
+    /perView: 1,/.test(css) && /peek: true,/.test(css),
     'the stylesheet below says the same thing and was not reaching the photos');
 }
 
@@ -71,11 +72,13 @@ rules.forEach((block, i) => {
   const base = rules[0] || '';
   ok('the whole photo is shown (object-fit:contain), not cropped to fill',
     decl(base, 'object-fit') === 'contain', decl(base, 'object-fit'));
-  /* Four fifths, so the fifth that is left shows the next photo. The two voices
-     have to say the same number — the stylesheet here and perView in
-     pdp-gallery.js — or whichever one applies decides the layout and the other
-     is a comment that looks like code. */
-  ok('one photo and a peek (flex basis 80%)', /flex:\s*0\s+0\s+80%/.test(base));
+  /* Full width, and the peek is measured from there at runtime. A fixed
+     fraction in the stylesheet would take height from the photo on every
+     product, including the ones with no space to give. The two voices still
+     have to say the same starting number — this and perView in pdp-gallery.js —
+     or whichever applies decides the layout and the other is a comment that
+     looks like code. */
+  ok('one photo per view in the stylesheet (flex basis 100%)', /flex:\s*0\s+0\s+100%/.test(base));
   ok('the slot has a definite height so the pane cannot stretch it',
     (decl(base, 'height') || '').indexOf('min(') === 0, decl(base, 'height'));
   ok('the phone rule overrides height, not max-height (a cap would re-create the conflict)',
