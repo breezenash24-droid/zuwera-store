@@ -235,6 +235,13 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
   <link rel="manifest" href="/site.webmanifest">
   <script src="preview-mode.js?v=799782ba" defer></script>
   <script src="/zw-data.js?v=069f4fa9" defer></script>
+  <!-- Third on purpose, directly behind the settings broker it reads. The hero
+       used to be rendered by a case inside storefront.js, which is the largest
+       script here and runs thirtieth — so the headline, kicker, subtext and both
+       buttons only reached their real values after everything else had parsed,
+       and a visitor read the shipped default first. This paints them the moment
+       the settings response lands. -->
+  <script src="/hero-render.js?v=34907f5c" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=a6453cd7" defer></script>
 <script src="fit-finder.js?v=daf3b4fd" defer></script>
@@ -387,6 +394,12 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
     if(vw && vw <= 520) cap = 760; else if(vw && vw <= 900) cap = 1000;
     return 'https://res.cloudinary.com/dubg4loah/video/fetch/so_0,f_jpg,q_auto,w_' + cap + '/' + encodeURI(v);
   }
+  /* hero-render.js runs third in the deferred chain, well before image-utils.js
+     has defined the real optimiser, and it would otherwise fall back to the raw
+     image_url — a full-size photograph in place of a resized one, on the single
+     largest element of the page. Same account and the same width caps, so the
+     URL it builds is the one image-utils.js would have built. */
+  window.zwOptHead = zwOptHead;
 })();
 </script>
 <!-- JSON-LD Structured Data -->
@@ -629,7 +642,7 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
      zwHasValidSession, and ZWMessages is read only by the admin panel. -->
 <script src="customer-messages.js?v=2c5164d0" defer></script>
 <script src="stock-rules.js?v=efc11b57" defer></script>
-<script src="storefront.js?v=9a154b45" defer></script>
+<script src="storefront.js?v=b7a07d46" defer></script>
 <script src="/stripe-client-config.js?v=6cbbcea0" defer></script>
 <script src="/checkout-tax.js?v=efb36dbb" defer></script>
 
