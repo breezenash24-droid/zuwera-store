@@ -368,14 +368,48 @@
       var id = nodes[i].getAttribute('data-zw-price-for');
       if (id && ids.indexOf(id) === -1) ids.push(id);
     }
+    /* ── A CARD SHOWS NO PRICE UNTIL IT SHOWS THE RIGHT ONE ─────────────────
+     *
+     * The grids used to print the CATALOGUE figure and let this correct it a
+     * few hundred milliseconds later. For a signed-in member that meant every
+     * card on the page changed — $43 to $32, $20 to $15, $80 to $70 — because
+     * the member price is not in the catalogue and cannot be: the catalogue is
+     * one shared, edge-cached document.
+     *
+     * A price that appears a moment late reads as loading. A price that CHANGES
+     * reads as an error, and it is the one number on the page a shopper is
+     * entitled to trust. So the cards render blank and carry the catalogue
+     * figure in data-zw-price-fallback, and this writes whichever answer it
+     * has — never a number it is about to take back.
+     *
+     * The fallback is still used, for exactly what it was always for: a store
+     * with no price list, a product the server does not answer for, a request
+     * that fails. It is just no longer shown FIRST. */
+    var fallbackOf = function (el) { return el.getAttribute('data-zw-price-fallback') || ''; };
+    var put = function (el, text) {
+      if (text && el.textContent !== text) { el.textContent = text; return 1; }
+      return 0;
+    };
+
+    /* Nothing may leave a card with no price on it. This runs whatever happens
+       to the request — resolved, rejected, hung — and fills only what is still
+       empty, so a slow answer arriving afterwards still corrects it. Short,
+       because it is the deadline a shopper waits at, not the network's. */
+    var floor = setTimeout(function () {
+      for (var k = 0; k < nodes.length; k++) {
+        if (!nodes[k].textContent) put(nodes[k], fallbackOf(nodes[k]));
+      }
+    }, 700);
+    if (floor && typeof floor.unref === 'function') floor.unref();
+
     var paint = function () {
       var n = 0;
       for (var j = 0; j < nodes.length; j++) {
         var el = nodes[j];
         var pid = el.getAttribute('data-zw-price-for');
-        if (!known(pid)) continue;               // no answer: leave what it rendered
+        if (!known(pid)) { n += put(el, fallbackOf(el)); continue; }
         var r = resolvedFor(pid);
-        if (!r || typeof r.priceCents !== 'number') continue;
+        if (!r || typeof r.priceCents !== 'number') { n += put(el, fallbackOf(el)); continue; }
         /* The member figure only when this store charges one — the same switch
            the product page and the till consult, so a store with member pricing
            off never shows a member number on a card. */

@@ -3183,7 +3183,7 @@ function renderProductCards(products, grid) {
         <div class="pcard-info">
           <p class="pcard-name">${escapeHomeFavoriteHtml(productName)}</p>
           <p class="pcard-cat">${escapeHomeFavoriteHtml(productType)}</p>
-          <p class="pcard-price" data-zw-price-for="${p.id}">${priceDisplay}</p>
+          <p class="pcard-price" data-zw-price-for="${p.id}" data-zw-price-fallback="${priceDisplay}"></p>
           <button class="pcard-action" onclick="event.stopPropagation();openAllReviewsModal('${p.id}', '${domId}', this.dataset.pname)" data-review-pid="${p.id}" data-review-domid="${domId}" data-pname="${escapeHomeFavoriteHtml(productName)}">
             <span id="avg-${domId}" style="${_revCache[p.id] && _revCache[p.id].count > 0 ? '' : 'display:none'}">${_revCache[p.id] && _revCache[p.id].count > 0 ? zwStarsMarkup(_revCache[p.id].avg) : ''}</span>
             <span id="cnt-${domId}">${_revCache[p.id] ? zwReviewCountText(_revCache[p.id].count, _revCache[p.id].avg) : ''}</span>
@@ -3209,13 +3209,22 @@ function renderProductCards(products, grid) {
      rediscover that would cost more than it saves. */
   if (window.ZWMotion) window.ZWMotion.scan(grid);
 
-  /* The cards printed the CATALOGUE price. Ask the resolver — the same one
-     the product page, the bag and the till use — and correct any that a
-     price list has moved. Ids the server does not answer for keep what they
-     rendered, so a slow or failed request shows the catalogue figure rather
-     than a gap. */
+  /* The cards render BLANK and carry the catalogue figure as a fallback. This
+     asks the resolver — the same one the product page, the bag and the till use
+     — and writes whichever answer it has, so the first number a shopper sees is
+     the one they will be charged. */
   if (window.ZWVariantPrice && window.ZWVariantPrice.paintCards) {
     try { window.ZWVariantPrice.paintCards(grid); } catch (_) {}
+  } else {
+    /* variant-price.js is deferred and can be missing entirely — a blocked
+       request, an extension, an old cache. The cards render blank now, so
+       nothing filling them in would leave a grid with no prices at all, which is
+       far worse than the flash this replaced. The catalogue figure they carry is
+       written straight in. */
+    var _pf = grid.querySelectorAll('[data-zw-price-fallback]');
+    for (var _pi = 0; _pi < _pf.length; _pi++) {
+      if (!_pf[_pi].textContent) _pf[_pi].textContent = _pf[_pi].getAttribute('data-zw-price-fallback') || '';
+    }
   }
 
   // Re-init hearts for dynamically loaded cards

@@ -50,9 +50,35 @@ ok('there is one painter, not one per grid',
   (vp.match(/function paintCards/g) || []).length === 1,
   'a third copy of the price rule is the one that would drift');
 
-ok('a price the server has not answered for is left as rendered',
-  /if \(!known\(pid\)\) continue;/.test(vp),
+/* ── THE FIRST NUMBER A SHOPPER SEES IS THE ONE THEY WILL BE CHARGED ───────
+   The cards used to print the catalogue figure and let the painter correct it a
+   few hundred milliseconds later. For a signed-in member that changed EVERY card
+   on the page — $43 to $32, $20 to $15 — because the member price is not in the
+   catalogue and cannot be: the catalogue is one shared, edge-cached document.
+
+   A price that appears a moment late reads as loading. A price that CHANGES
+   reads as an error, and it is the one number on the page a shopper is entitled
+   to trust. So the requirement below is unchanged — an unanswered price must end
+   up showing the catalogue figure — but it gets there from an attribute instead
+   of from what was rendered, so it is never shown FIRST. */
+ok('a price the server has not answered for still ends up as the catalogue figure',
+  /if \(!known\(pid\)\) \{ n \+= put\(el, fallbackOf\(el\)\); continue; \}/.test(vp)
+  && /data-zw-price-fallback/.test(vp),
   'a slow or failed request must show the catalogue figure, not a blank or a spinner');
+ok('…and so does one the resolver answers for without a price',
+  /if \(!r \|\| typeof r\.priceCents !== 'number'\) \{ n \+= put\(el, fallbackOf\(el\)\); continue; \}/.test(vp));
+/* Nothing may leave a card with no price on it — not a rejected request, not a
+   hung one, not a module that failed to load at all. */
+ok('…and a deadline fills anything still blank',
+  /setTimeout\(function \(\) \{[\s\S]{0,240}?if \(!nodes\[k\]\.textContent\) put\(nodes\[k\], fallbackOf\(nodes\[k\]\)\);/.test(vp),
+  'a blank price is worse than a corrected one');
+ok('…and both grids fill their own if the resolver never loads',
+  /\[data-zw-price-fallback\]'\);[\s\S]{0,220}?if \(!_pf\[_pi\]\.textContent\)/.test(coll)
+  && /\[data-zw-price-fallback\]'\);[\s\S]{0,220}?if \(!_pf\[_pi\]\.textContent\)/.test(home),
+  'variant-price.js is deferred and can be blocked outright');
+ok('…and the cards render blank rather than with a figure to take back',
+  /data-zw-price-fallback="\$\{productPrice \? '\$' \+ Number\(productPrice\)\.toFixed\(2\) : 'Price TBA'\}"><\/p>/.test(coll)
+  && /data-zw-price-fallback="\$\{priceDisplay\}"><\/p>/.test(home));
 
 ok('the member figure needs the member-pricing switch',
   /memberPricingOn\(\)/.test(vp),
