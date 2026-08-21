@@ -35,7 +35,7 @@ class El {
     this.textContent = '';
     this._attrs = {};
     this._listeners = {};
-    this.scrollLeft = 0; this.scrollWidth = 700; this.clientWidth = 100;
+    this._scrollLeft = 0; this._scrollWidth = 700; this.clientWidth = 100;
     this.classList = {
       add: (c) => { if (!this.className.split(/\s+/).includes(c)) this.className = (this.className + ' ' + c).trim(); },
       remove: (c) => { this.className = this.className.split(/\s+/).filter(x => x && x !== c).join(' '); },
@@ -63,10 +63,44 @@ class El {
      strip now pages to a child's own offsetLeft instead of scrolling by a
      measured number of pixels — which is what stopped it coming to rest between
      two photos, and is therefore what has to be exercised here. */
+  /* A slide sized `width:auto` HAS NO WIDTH UNTIL ITS PHOTO DECODES, and that is
+     not a detail — it is the whole reason a strip asked to open on photo four
+     opened on photo one. Every child sat at offsetLeft 0 at the moment goTo ran.
+     Modelled, so the harness can see it: an <img> left to size itself measures
+     nothing until naturalWidth exists. */
+  _laidOutWidth() {
+    if (this.tagName === 'IMG' && this.style.getPropertyValue('width') === 'auto' && !this.naturalWidth) return 0;
+    return this.clientWidth;
+  }
+  /* ── AND scrollLeft IS CLAMPED, WHICH IS THE WHOLE MECHANISM ─────────────
+     A browser will not hold a scroll position the content cannot reach. When
+     fitPeek swaps the slides from a definite width to `width:auto`, every photo
+     that has not decoded collapses to nothing, the strip's scrollable extent
+     collapses with them, and the position goTo just set is clamped back to 0.
+     That is what sent the modal to photo one — not a wrong index, a right index
+     applied to a layout that then went away underneath it. A harness that lets
+     scrollLeft hold any number it is given cannot see that, and did not. */
+  get scrollWidth() {
+    if (!this.children.length) return this._scrollWidth;
+    let w = 0;
+    for (let k = 0; k < this.children.length; k++) w += this.children[k]._laidOutWidth() + (k ? 6 : 0);
+    return w;
+  }
+  set scrollWidth(v) { this._scrollWidth = v; }
+  get scrollLeft() { return this._scrollLeft; }
+  set scrollLeft(v) {
+    const max = Math.max(0, this.scrollWidth - this.clientWidth);
+    this._scrollLeft = Math.max(0, Math.min(max, Number(v) || 0));
+  }
   get offsetLeft() {
     if (!this.parentElement) return 0;
-    const i = this.parentElement.children.indexOf(this);
-    return i <= 0 ? 0 : i * (this.clientWidth + 6);
+    const sibs = this.parentElement.children;
+    let x = 0;
+    for (let k = 0; k < sibs.length; k++) {
+      if (sibs[k] === this) break;
+      x += sibs[k]._laidOutWidth() + 6;
+    }
+    return x;
   }
   scrollTo(o) { if (o && typeof o.left === 'number') this.scrollLeft = o.left; }
   _walk(out) { this.children.forEach(c => { out.push(c); c._walk(out); }); return out; }
@@ -563,7 +597,42 @@ console.log('');
   }
   console.log('  a video-first product          -> ' + (vidOk ? 'pane fitted ' + vidFit + ', edges from its poster' : 'NO — ' + (vidFit || 'not fitted')));
 
-  /* ── AND IT SAYS WHERE IT IS AS SOON AS IT MOVES ───────────────────────
+  /* ── OPENING ON PHOTO FOUR, WHEN NOTHING HAS A WIDTH YET ───────────────
+   Each slide is as wide as its own photograph, so it has no width at all until
+   that photograph decodes. At the moment the strip is built every child sits at
+   offsetLeft 0, and goTo(startIndex) scrolls to 0 — the strip opens on photo one
+   however far along it was asked to start. That is what sent the modal back to
+   the first image whenever a colourway was switched: the position it was given
+   was right, and the geometry it measured against did not exist yet. */
+console.log('');
+{
+  media.clientWidth = 583; media._maxH = '621px';
+  delete media.style._p['max-height']; delete media.style.maxHeight;
+  G.renderStrip(media, shots, {
+    alt: 'x', isVideo: () => false, perView: 1, peek: true, startIndex: 3,
+  });
+  const kids = media.children;
+  /* A 4:5 photo at the 621px ceiling is 497 wide — the real number from this
+     catalogue, so the strip is genuinely longer than its pane and can scroll. */
+  const load = (i) => {
+    kids[i].naturalWidth = 1070; kids[i].naturalHeight = 1338;
+    kids[i].clientWidth = 497;
+    kids[i].fire('load');
+  };
+  load(0);                                  // the first arrives; the rest measure nothing
+  const atOpen = media.scrollLeft;
+  for (let i = 1; i < shots.length; i++) load(i);
+  const settled = media.scrollLeft;
+  const slot = 497 + 6;
+  console.log('  asked to open on photo 4      -> scrollLeft ' + atOpen + ' while they load, '
+    + settled + ' once they have');
+  const anchored = settled === slot * 3;
+  console.log('  …lands on it once widths exist ' + (anchored ? 'yes' : 'NO — expected ' + slot * 3));
+  boundaries = boundaries && anchored;
+  media.clientWidth = 100; media._maxH = '';
+}
+
+/* ── AND IT SAYS WHERE IT IS AS SOON AS IT MOVES ───────────────────────
    onIndex also fires from the scroll listener, which is what a swipe comes
    through — but a smooth scroll reports its arrival several hundred milliseconds
    after the press. Anything the caller keeps in step with the strip is stale for

@@ -484,8 +484,31 @@
 
     function matchMargins() {
       if (!perView || typeof window.zwEdgeStrips !== 'function') return;
-      for (var i = 0; i < host.children.length; i++) (function (node) {
+      for (var i = 0; i < host.children.length; i++) (function (node, idx) {
         var run = function () {
+          /* ── AND RE-ANCHOR, BECAUSE POSITIONS MOVED WHEN THIS ARRIVED ────
+             Each slide is as wide as its own photograph, which means it has no
+             width at all until that photograph loads. So at the moment the strip
+             is built every child sits at offsetLeft 0, and goTo(startIndex)
+             scrolls to 0 — the strip opens on photo one however far along it was
+             asked to start. That is what put the modal back to the first image
+             on a colourway switch: the position it was told was right and the
+             geometry it measured against did not exist yet.
+
+             And it is not only the slides IN FRONT that matter. A browser will
+             not hold a scroll position the content cannot reach, so while most
+             photos measure nothing the strip's scrollable extent is short and
+             the position is CLAMPED — not to the wrong photo, to as far as the
+             strip could go. Every later photo that arrives lengthens it again,
+             and nothing restores the position that was clipped. So every load
+             re-anchors, not just the ones before where we are.
+
+             It costs nothing once the offsets are real — goTo writes the
+             scrollLeft the strip already has — and it follows the shopper rather
+             than fighting them, because `current` is wherever they have since
+             paged or swiped to. */
+          goTo(current, 'auto');
+
           var src = sampleSrc(node);
           if (!src) return;                 // a video with no poster has nothing to read
           window.zwEdgeStrips(src)
@@ -501,7 +524,7 @@
           else node.addEventListener('loadedmetadata', run, { once: true });
         } else if (node.complete && node.naturalWidth) run();
         else node.addEventListener('load', run, { once: true });
-      }(host.children[i]));
+      }(host.children[i], i));
     }
 
     function repaintMargins() {
