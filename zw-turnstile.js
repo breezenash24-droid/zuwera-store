@@ -90,6 +90,16 @@
    */
   window.zwHumanToken = function (timeoutMs) {
     var wait = typeof timeoutMs === 'number' ? timeoutMs : 8000;
+    /* No site key means this store runs no bot check — a fork sets
+       ZW_TURNSTILE_SITE_KEY=off and the literal above is stamped empty.
+       Resolving '' is not a new code path: it is the SAME answer this function
+       already gives for a blocked script or a Turnstile outage, and the server
+       decides what an empty token is worth. That matters more here than
+       anywhere else in the fork story, because a site key is bound to a
+       hostname list — a fork that kept this one would not merely report to the
+       wrong account, it would fail the challenge on every page load and take
+       the newsletter form down with it, for real customers, silently. */
+    if (!SITEKEY) return Promise.resolve('');
     return loadScript().then(function (ready) {
       if (!ready || !window.turnstile) return '';
       return new Promise(function (resolve) {

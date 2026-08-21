@@ -28,12 +28,40 @@ const SRC = read('functions/_middleware.js');
    A recording HTMLRewriter: it never parses anything, it just hands the
    handler an element that remembers what was set on it. */
 let lastStamped = null;
+let stampedBy = {};
+/* SEVERAL HANDLERS, NOT ONE. This kept only the last `.on()` — fine when the
+   middleware stamped a single set of attributes on <html>, and silently wrong
+   once it also merges classes, corrects the theme bake and prepends the
+   first-paint settings to <head>. The old mock recorded the LAST registration
+   and dropped the rest, so the assertions below were reading an element nothing
+   had written to.
+
+   Handlers for the same selector share an element, because that is what the
+   real HTMLRewriter does — and it is the whole reason ClassStamp has to merge
+   rather than assign. */
 global.HTMLRewriter = class {
-  on(sel, handler) { this.sel = sel; this.handler = handler; return this; }
+  constructor() { this.handlers = []; }
+  on(sel, handler) { this.handlers.push({ sel, handler }); return this; }
   transform(res) {
-    const el = { attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } };
-    this.handler.element(el);
-    lastStamped = { selector: this.sel, attrs: el.attrs };
+    const els = {};
+    for (const { sel, handler } of this.handlers) {
+      if (!els[sel]) {
+        els[sel] = {
+          attrs: {}, removed: [], prepended: [],
+          setAttribute(k, v) { this.attrs[k] = v; },
+          removeAttribute(k) { delete this.attrs[k]; this.removed.push(k); },
+          getAttribute(k) {
+            return Object.prototype.hasOwnProperty.call(this.attrs, k) ? this.attrs[k] : null;
+          },
+          prepend(html) { this.prepended.push(html); },
+        };
+      }
+      handler.element(els[sel]);
+    }
+    stampedBy = els;
+    /* The existing assertions all speak about <html>, so that is what this
+       keeps naming. */
+    if (els.html) lastStamped = { selector: 'html', attrs: els.html.attrs };
     return { ...res, __rewritten: true };
   }
 };
@@ -55,7 +83,10 @@ function stubFetch(value, { ok: isOk = true, throws = false } = {}) {
   global.fetch = async () => {
     fetchCalls++;
     if (throws) throw new Error('network');
-    return { ok: isOk, json: async () => (value === undefined ? [] : [{ value }]) };
+    /* Keyed rows: the middleware now asks for the first-paint settings in ONE
+       query (key=in.(...)) and reads them BY KEY, so a positional row would be
+       silently ignored -- which is exactly what this stub used to hand it. */
+    return { ok: isOk, json: async () => (value === undefined ? [] : [{ key: 'header_layout', value }]) };
   };
 }
 
@@ -82,7 +113,7 @@ function stubFetch(value, { ok: isOk = true, throws = false } = {}) {
     ok('the settings read is cached at the edge', /cacheTtl: TTL/.test(SRC),
       'one origin read per location per TTL, not one per visitor');
     ok('...and starts before the page is fetched, not after',
-      SRC.indexOf('const pending = skip ? null : headerAttrs') < SRC.indexOf('await context.next()'),
+      SRC.indexOf('const pending = skip ? null : firstPaint') < SRC.indexOf('await context.next()'),
       'in sequence it would add its latency to every page load');
   }
 
@@ -195,8 +226,14 @@ function stubFetch(value, { ok: isOk = true, throws = false } = {}) {
     ok('the stamp carries the row timestamp',
       withAt['data-zw-hdr-at'] === '2026-08-19T09:00:00+00:00',
       'without it a stale cache reads as fresher and overwrites a correct stamp');
+    /* `key` joined the projection when the middleware started asking for all
+       the first-paint settings in one query instead of header_layout alone —
+       the rows have to be identifiable to be read by key. What this assertion
+       is actually about is updated_at: the browser caches that column and
+       compares against the stamp, so reading a different one would make the
+       two incomparable. */
     ok('...read from the same column the browser caches',
-      /select=value,updated_at/.test(SRC));
+      /select=key,value,updated_at/.test(SRC));
     ok('the timestamp is never written without a placement to describe',
       !('data-zw-hdr-at' in (attrsFrom({ id: 'x', lines: 'off' }, '2026-08-19T09:00:00+00:00') || {})),
       'it would then claim the build-time placement was current');

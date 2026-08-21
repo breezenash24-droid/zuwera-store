@@ -220,11 +220,11 @@ try {
   <link rel="manifest" href="/site.webmanifest">
   <link rel="canonical" href="https://zuwera.store/sizeguide.html">
   <script src="preview-mode.js?v=799782ba" defer></script>
-  <script src="/zw-data.js?v=244bd990" defer></script>
+  <script src="/zw-data.js?v=54eabcad" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/attribution.js?v=2a299a54" defer></script>
-  <script src="/meta-pixel.js?v=4919f284" defer></script>
-  <script src="/google-tag.js?v=fdfca537" defer></script>
+  <script src="/meta-pixel.js?v=99466e34" defer></script>
+  <script src="/google-tag.js?v=8fbf81e0" defer></script>
   <meta name="description" content="Interactive size guide for Zuwera apparel. Find your perfect fit with our calculator and detailed measurements.">
   <meta name="robots" content="index, follow">
   <meta property="og:title" content="Size &amp; Fit Guide - Zuwera">
@@ -244,11 +244,11 @@ try {
        immutable, so on refresh — and inside the product-page modal iframe — the
        headings paint in the real font with no swap. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=0ce51d31">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=45f94756">
   <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
 <script src="header-scroll.js?v=0a0efce9" defer></script>
   <script src="mobile-menu.js?v=f7defb81" defer></script>
-  <script src="/theme-engine.js?v=9eddea28" defer></script>
+  <script src="/theme-engine.js?v=e553558b" defer></script>
   <script src="/motion.js?v=5b9cc123" defer></script>
   <script src="/icon-sets.js?v=60e5763a" defer></script>
   <script src="storefront-theme.js?v=3782df36" defer></script>
@@ -1088,7 +1088,7 @@ try {
     body.light-mode .tabs-nav { border-bottom-color: var(--c10); }
   </style>
 <script>try{var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
-<script src="/posthog-init.js?v=653a267b" defer></script>
+<script src="/posthog-init.js?v=994f0720" defer></script>
 <style>body.super-light-mode{--bg:#FFFFFF;}</style>
 <!-- Suppress nav/hamburger when loaded inside the product-page iframe modal -->
 <!-- Page chrome that must not render when this page is embedded in the product
@@ -2806,11 +2806,16 @@ try {
 <script src="zw-login.js?v=09e6833c" defer></script>
 <script src="/nav-menu.js?v=5735cc2b" defer></script>
 <script src="/zw-copy.js?v=5b4f7680" defer></script>
-<script src="/header-layouts.js?v=1b620b41" defer></script>
+<script src="/header-layouts.js?v=7d3d3cdb" defer></script>
 <script src="fit-finder.js?v=daf3b4fd" defer></script>
-<script src="/storefront-features.js?v=a8588757" defer></script>
+<script src="/storefront-features.js?v=35813369" defer></script>
 <script src="announcement-bar.js?v=374dfc94" defer></script>
+<!-- Runs the inert text/zw-lazy declarations below once the page is idle
+     or the visitor first touches it. See zw-lazy.js for why the list is
+     short: almost every other module here is called synchronously by
+     another one while the page settles. -->
+<script src="/zw-lazy.js?v=e327b753" defer></script>
 <script src="email-popup.js?v=33908bad" async></script>
-<script src="integrations.js?v=82606df1" defer></script>
+<script type="text/zw-lazy" src="integrations.js?v=82606df1"></script>
 </body>
 </html>

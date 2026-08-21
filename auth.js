@@ -241,7 +241,15 @@ on('back-to-signin', 'click', e => { e.preventDefault(); switchAuthTab('signin')
 
 // ── Cloudflare Turnstile Helper ────────────────────────────────────
 const ZW_TS_KEY = '0x4AAAAAADRcULYsa0xJEyZH';
-const ZW_TS_ENABLED = !!document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]');
+/* Two conditions, not one. The script has to be on the page AND this deployment
+   has to own a site key — scripts/stamp-project-config.js empties the literal
+   above when a fork sets ZW_TURNSTILE_SITE_KEY=off. Without the key half, a
+   fork rendered a widget against a key issued for another domain: the challenge
+   fails, `captchaToken` never arrives, and line 395 blocks the sign-in. A dead
+   captcha that locks people out is worse than no captcha, so an absent key
+   means the check is simply not asked for and the server decides, exactly as it
+   does for a blocked script. */
+const ZW_TS_ENABLED = !!ZW_TS_KEY && !!document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]');
 let _zwTsWidgetId = null;
 let _zwTsPendingCb = null;
 
@@ -266,7 +274,10 @@ window._zwTsError = function() {
 // Initialize the invisible widget once Turnstile SDK loads
 function _zwInitTurnstile() {
   const el = document.getElementById('zw-ts-widget');
-  if (!el || !window.turnstile || _zwTsWidgetId !== null) return;
+  /* ZW_TS_KEY first: window.turnstile can be present because some OTHER module
+     loaded the SDK, and rendering with an empty sitekey throws inside
+     turnstile.render rather than failing quietly. */
+  if (!ZW_TS_KEY || !el || !window.turnstile || _zwTsWidgetId !== null) return;
   _zwTsWidgetId = window.turnstile.render(el, {
     sitekey: ZW_TS_KEY,
     size: 'invisible',

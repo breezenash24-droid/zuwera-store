@@ -25,18 +25,27 @@
     window.gtag = function () { window.dataLayer.push(arguments); };
   }
 
+  /* Either id may be stamped empty by scripts/stamp-project-config.js, meaning
+     this store does not use that destination — a fork sets ZW_GA_MEASUREMENT_ID
+     or ZW_GOOGLE_ADS_ID to `off`. They are independent: running GA4 with no ads
+     account is the normal case, and the pair is only loaded at all if at least
+     one survives. Without this, a fork's traffic reported into the original
+     store's property and nothing anywhere said so. */
+  var LIB = GA4 || ADS;
+
   // Only load + configure Google once consent is granted.
   function start() {
+    if (!LIB) return;
     var needLib = !document.querySelector('script[src*="googletagmanager.com/gtag/js"]');
     if (needLib) gtag('js', new Date());
-    gtag('config', GA4);
-    gtag('config', ADS);
+    if (GA4) gtag('config', GA4);
+    if (ADS) gtag('config', ADS);
     if (needLib) {
       var loadGtag = function () {
         if (document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) return;
         var s = document.createElement('script');
         s.async = true;
-        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA4;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + LIB;
         document.head.appendChild(s);
       };
       if (typeof window.zwWhenIdle === 'function') window.zwWhenIdle(loadGtag);

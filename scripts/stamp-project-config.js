@@ -83,8 +83,48 @@ const RULES = [
      original's 25 monthly credits, and nothing said so -- the images loaded.
      Same failure this whole file exists to prevent, one vendor over. */
   { names: ['ZW_CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_CLOUD_NAME'], from: CANON.cloudinaryCloudName },
+
+  /* ── The five accounts a fork would otherwise report into ───────────────────
+     Same class of bug as Cloudinary, worse consequences. A licensee left with
+     these literals sends its pageviews, conversions, Purchase events and funnel
+     to the ORIGINAL store's properties, and asks the original store's Turnstile
+     site key to vouch for its visitors. All of it silent; the shop works.
+
+     `optional: true` is what separates these from the three above. A store must
+     have a database, so an unset SUPABASE_URL can only mean "not configured".
+     A store need not have Meta advertising — so these accept off/none/false/0/-
+     and stamp an empty string, and every consumer treats empty as "this store
+     does not use that service". See ERASE below. */
+  { names: ['ZW_GA_MEASUREMENT_ID', 'GA_MEASUREMENT_ID'], from: CANON.gaMeasurementId,   optional: true },
+  { names: ['ZW_GOOGLE_ADS_ID', 'GOOGLE_ADS_ID'],         from: CANON.googleAdsId,       optional: true },
+  { names: ['ZW_META_PIXEL_ID', 'META_PIXEL_ID'],         from: CANON.metaPixelId,       optional: true },
+  { names: ['ZW_POSTHOG_KEY', 'POSTHOG_KEY'],             from: CANON.posthogKey,        optional: true },
+  { names: ['ZW_TURNSTILE_SITE_KEY', 'TURNSTILE_SITE_KEY'], from: CANON.turnstileSiteKey, optional: true },
+  /* The R2 public hostname. Also appears in _headers' media-src, which this
+     script does rewrite — _headers is not .js/.html, so it is NOT in
+     shippedFiles() and a fork's video would be blocked by its own CSP. Handled
+     separately below rather than by widening the file filter, because _headers
+     is a deployment artifact with its own syntax and blanket string replacement
+     across it is how a policy ends up malformed. */
+  { names: ['ZW_IMAGE_HOST', 'IMAGE_HOST'],               from: CANON.imageHost,         optional: true },
 ];
-RULES.forEach((r) => { r.env = readEnv(...r.names); r.name = r.names[0]; });
+
+/* Values that mean "this store does not use that service". Only honoured for
+   `optional` rules — `ZW_SUPABASE_URL=off` is a typo, not an instruction, and
+   stamping an empty database URL would produce a storefront that fails on every
+   page rather than one that quietly points home. */
+const ERASE = /^(off|none|false|0|-|null|disabled)$/i;
+
+RULES.forEach((r) => {
+  r.name = r.names[0];
+  const raw = readEnv(...r.names);
+  /* Three states, not two: unset (leave the literal alone), set to a value
+     (substitute), set to off (erase). The old code collapsed the first and
+     third, which is precisely why a fork could not remove a vendor. */
+  r.declared = !!raw;
+  r.erased = r.declared && !!r.optional && ERASE.test(raw);
+  r.env = r.erased ? '' : raw;
+});
 
 /* The project ref on its own, so a URL assembled from pieces — or a storage
    hostname — is caught as well as the full origin. */
@@ -179,7 +219,9 @@ for (const file of files) {
   let src = fs.readFileSync(file, 'utf8');
   const before = src;
   for (const rule of RULES) {
-    if (!rule.from || !rule.env || rule.env === rule.from) continue;
+    /* `declared`, not `env` — an erased optional rule has an EMPTY env and must
+       still rewrite. Testing truthiness here was what made "off" unreachable. */
+    if (!rule.from || !rule.declared || rule.env === rule.from) continue;
     if (!src.includes(rule.from)) continue;
     replacements += src.split(rule.from).length - 1;
     src = src.split(rule.from).join(rule.env);
@@ -201,6 +243,53 @@ for (const file of files) {
      same question whether or not this particular build is repointing. */
   if ((repointing || check) && ref && post.includes(ref)) {
     stillReferencing.push(path.relative(ROOT, file).replace(/\\/g, '/'));
+  }
+}
+
+/* ── _headers, which shippedFiles() cannot see ───────────────────────────────
+ *
+ * The CSP names the R2 host so product video can play — media-src carries
+ * `*.zuwera.store`, because 'self' does not cover a subdomain and media-src has
+ * no bare `https:` to fall back on. That was found the hard way once already
+ * (see the comment block in _headers itself).
+ *
+ * _headers is not .js or .html, so it is not in shippedFiles() and no rule above
+ * ever reached it. A fork therefore rewrote its image host everywhere EXCEPT the
+ * one place that decides whether the browser will load from it, and the failure
+ * arrives as a silent CSP block on video only — the images still work, because
+ * img-src allows `https:` wholesale.
+ *
+ * Rewritten as a single token rather than by blanket string replacement: this
+ * file is a deployment artifact with its own syntax, and a policy that parses
+ * wrong is a policy the browser discards entirely.
+ */
+const headersPath = path.join(ROOT, '_headers');
+const hostRule = RULES.find((r) => r.name === 'ZW_IMAGE_HOST');
+if (!check && hostRule && hostRule.declared && hostRule.env !== hostRule.from && fs.existsSync(headersPath)) {
+  const apex = String(hostRule.from).split('.').slice(-2).join('.');   // zuwera.store
+  const token = '*.' + apex;
+  const lines = fs.readFileSync(headersPath, 'utf8').split('\n');
+  let hits = 0;
+  const out = lines.map((line) => {
+    /* Comments carry the same string and explain WHY the host is listed. They
+       are documentation of this store's history, not configuration, and
+       rewriting them would leave a fork reading an account of a bug that never
+       happened to it. */
+    if (/^\s*#/.test(line) || !line.includes(token)) return line;
+    hits += line.split(token).length - 1;
+    /* Erased: the fork serves no media from a bucket of its own, so the token
+       is dropped rather than replaced with something that matches nothing.
+       Collapse the double space it leaves, or the directive gains an empty
+       source which some parsers treat as the whole policy being malformed. */
+    return hostRule.erased
+      ? line.split(token).join('').replace(/  +/g, ' ').replace(/ ;/g, ';')
+      : line.split(token).join(hostRule.env);
+  });
+  if (hits) {
+    fs.writeFileSync(headersPath, out.join('\n'));
+    replacements += hits;
+    touched++;
+    console.log(`[project-config] _headers: ${hits} CSP host token(s) ${hostRule.erased ? 'removed' : 'repointed'}`);
   }
 }
 

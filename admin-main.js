@@ -43,7 +43,15 @@
 
         function initAdminTurnstile() {
             const el = document.getElementById('zw-admin-ts-widget');
-            if (!el || !window.turnstile || adminTsWidgetId !== null) return;
+            /* No site key means this deployment runs no bot check — a fork sets
+               ZW_TURNSTILE_SITE_KEY=off and the literal is stamped empty.
+               Leaving adminTsWidgetId null is what the caller already reads as
+               "check unavailable, continue without a token", so this needs no
+               second path. It matters most HERE: a fork that kept the original
+               store's key would have rendered a widget bound to a hostname it
+               does not own, failed the challenge on every attempt, and locked
+               its own administrator out of the panel. */
+            if (!ADMIN_TS_KEY || !el || !window.turnstile || adminTsWidgetId !== null) return;
             adminTsWidgetId = window.turnstile.render(el, {
                 sitekey: ADMIN_TS_KEY,
                 size: 'invisible',
@@ -64,6 +72,9 @@
         });
 
         function waitForAdminTurnstile(timeoutMs = 2500) {
+            /* Short-circuit rather than polling for 2.5s on every sign-in of a
+               deployment that will never have a widget to find. */
+            if (!ADMIN_TS_KEY) return Promise.resolve(false);
             initAdminTurnstile();
             if (adminTsWidgetId !== null) return Promise.resolve(true);
             return new Promise(resolve => {
@@ -345,7 +356,26 @@
         let productSizeChartCache = null;
         let productSizeChartCachePromise = null;
         const SUPABASE_PRODUCT_IMAGE_BUCKET = 'product-images';
-        const R2_PUBLIC_IMAGE_HOSTS = ['images.zuwera.store'];
+        /* The R2 bucket's public hostname. `.filter(Boolean)` is load-bearing:
+           scripts/stamp-project-config.js empties this literal when a fork sets
+           ZW_IMAGE_HOST=off, and an array holding one empty string is not the
+           same as an empty array — see zwIsOwnImageHost below for the half of
+           this that actually bites. */
+        const R2_PUBLIC_IMAGE_HOSTS = ['images.zuwera.store'].filter(Boolean);
+
+        /* Does this URL point at OUR media bucket?
+           The media census used to ask `(r.image_url||'').includes(HOST)` in
+           three places. Every string contains the empty string, so a fork that
+           turned R2 off would not have counted zero files — it would have
+           counted EVERY file as R2-hosted, and reported a storage bill for
+           images it does not store. A substring test against configuration that
+           can legitimately be empty is a trap, so there is one function and the
+           three call sites use it. */
+        function zwIsOwnImageHost(url) {
+            if (!R2_PUBLIC_IMAGE_HOSTS.length) return false;
+            const s = String(url || '');
+            return R2_PUBLIC_IMAGE_HOSTS.some(h => s.includes(h));
+        }
         const MAX_PRODUCT_UPLOAD_WIDTH = 1600;
         const MAX_PRODUCT_UPLOAD_BYTES = 1.5 * 1024 * 1024;
         const PRODUCT_UPLOAD_QUALITIES = [0.84, 0.78, 0.72];
@@ -5351,7 +5381,7 @@
                     const videos      = rows.filter(r => r.media_type === 'video').length;
                     const images      = totalFiles - videos;
                     const colorSpec   = rows.filter(r => r.color_variant_id).length;
-                    const onR2        = rows.filter(r => (r.image_url||'').includes('images.zuwera.store')).length;
+                    const onR2        = rows.filter(r => zwIsOwnImageHost(r.image_url)).length;
 
                     // Per-product breakdown
                     const byProd = {};
@@ -5364,8 +5394,8 @@
                     const noMedia = prods.filter(p => !prodIds.has(p.id));
 
                     // Estimated storage — only R2-hosted files count against your quota
-                    const r2Images = rows.filter(r => (r.image_url||'').includes('images.zuwera.store') && r.media_type !== 'video').length;
-                    const r2Videos = rows.filter(r => (r.image_url||'').includes('images.zuwera.store') && r.media_type === 'video').length;
+                    const r2Images = rows.filter(r => zwIsOwnImageHost(r.image_url) && r.media_type !== 'video').length;
+                    const r2Videos = rows.filter(r => zwIsOwnImageHost(r.image_url) && r.media_type === 'video').length;
                     const estBytes = r2Images * 300 * 1024 + r2Videos * 25 * 1024 * 1024;
                     const fmtSize = b => b < 1024*1024 ? (b/1024).toFixed(1)+' KB' : b < 1024**3 ? (b/(1024**2)).toFixed(1)+' MB' : (b/(1024**3)).toFixed(2)+' GB';
                     const pct = Math.min((estBytes / (10 * 1024**3)) * 100, 100);

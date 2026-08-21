@@ -156,6 +156,46 @@
     try { el.load(); } catch (_) {}
   }
 
+  /* ── THE ONE PLACE THE FALLBACK CHAIN COULD NOT REACH ─────────────────────
+     Colour swatches on a product card were painted with CSS:
+
+         style="background-image:url('<cloudinary url>')"
+
+     A CSS background that 404s fires NO event. Not on the element, not on the
+     document, not anywhere — there is nothing to listen for, so the delegated
+     handler below could never see it. Every other image on the site has three
+     chances; the swatches had none. Over-quota Cloudinary meant every colour on
+     every card went blank, and the card kept its layout, so nothing looked
+     broken enough to notice.
+
+     Returning a real <img> puts them on the same chain as everything else.
+     ONE definition, in image-utils.js rather than in each renderer, because
+     there are two independent grid implementations (storefront.js for the
+     homepage, drop001.html for the collection) and a rule written twice is a
+     rule that ends up written differently. Both call sites fall back to the old
+     background-image if this has not loaded, so the worst case is today's
+     behaviour rather than an empty swatch. */
+  function zwSwatchImg(src, width) {
+    const url = String(src || '');
+    if (!url) return '';
+    const safe = url.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+                    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    /* alt="" on purpose — every one of these sits inside a button that already
+       carries aria-label with the colour name, and a described image inside a
+       labelled control is announced twice.
+
+       `width` is the size the source was optimised AT, not the size it is drawn
+       at. Step 0 of the chain reads getAttribute('width') to size the wsrv
+       retry, so passing the same number the optimiser was given keeps the
+       fallback the same dimensions as the original request. CSS gives the
+       element its real size, so this never affects layout. */
+    const w = Number(width) > 0 ? Math.round(Number(width)) : 600;
+    return '<img class="zw-swatch-thumb" src="' + safe + '" alt="" '
+         + 'width="' + w + '" height="' + w + '" '
+         + 'loading="lazy" decoding="async" draggable="false">';
+  }
+  if (typeof window !== 'undefined') window.zwSwatchImg = zwSwatchImg;
+
   // Fallback chain for a broken optimized <img>: Cloudinary → wsrv.nl → the raw original.
   // Delegated capture listener (image 'error' events don't bubble). Each <img> is marked
   // so it retries at most twice and can never loop.

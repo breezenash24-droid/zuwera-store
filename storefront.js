@@ -1133,81 +1133,13 @@ function showToast(msg) {
       }
       switch(sec.type) {
         case 'hero': {
-          const h1 = el.querySelector('.hero-h1');
-          const sub = el.querySelector('.hero-sub');
-          const kicker = el.querySelector('.hero-kicker');
-          const ctaPrimary = el.querySelector('.hero-cta-row .btn-outline');
-          const ctaSecondary = el.querySelector('.hero-cta-row .btn-ghost');
-          if (h1 && s.heading !== undefined) h1.innerHTML = (s.heading || '').replace(/\n/g,'<br>');
-          if (sub && s.subtext !== undefined) sub.textContent = s.subtext || '';
-          if (kicker && s.kicker !== undefined) kicker.textContent = s.kicker || '';
-          
-          const primaryText = s.cta1_text || s.cta_primary_text;
-          const primaryUrl = s.cta1_url || s.cta_primary_url;
-          if (ctaPrimary && primaryText !== undefined) {
-            const svg = ctaPrimary.querySelector('svg');
-            ctaPrimary.textContent = primaryText;
-            if (svg) ctaPrimary.appendChild(svg);
-          }
-          if (ctaPrimary && primaryUrl) ctaPrimary.onclick = () => { if(primaryUrl.startsWith('#')) document.getElementById(primaryUrl.slice(1))?.scrollIntoView({behavior:'smooth'}); else location.href=zwSafeUrl(primaryUrl); };
-          
-          const secondaryVisible = s.cta2_on !== undefined ? s.cta2_on : s.cta_secondary_visible;
-          const secondaryText = s.cta2_text || s.cta_secondary_text;
-          const secondaryUrl = s.cta2_url || s.cta_secondary_url;
-          if (ctaSecondary) ctaSecondary.style.display = secondaryVisible ? '' : 'none';
-          if (ctaSecondary && secondaryText !== undefined) ctaSecondary.textContent = secondaryText;
-          if (ctaSecondary && secondaryUrl) ctaSecondary.onclick = () => { if(secondaryUrl.startsWith('#')) document.getElementById(secondaryUrl.slice(1))?.scrollIntoView({behavior:'smooth'}); else location.href=zwSafeUrl(secondaryUrl); };
-          
-          // Image CTA overlay
-          let imgCta = el.querySelector('.hero-img-cta');
-          const imgCtaVisible = s.img_btn_on !== undefined ? s.img_btn_on : s.image_cta_visible;
-          const imgCtaText = s.img_btn_text || s.image_cta_text;
-          const imgCtaUrl = s.img_btn_url || s.image_cta_url;
-          if (imgCtaVisible) {
-            if (!imgCta) {
-              imgCta = document.createElement('a');
-              imgCta.className = 'hero-img-cta';
-              imgCta.style.cssText = 'position:absolute;bottom:30%;left:50%;transform:translateX(-50%);z-index:10;padding:.65rem 1.8rem;background:rgba(255,255,255,.92);color:#09090b;font-family:var(--fm);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;text-decoration:none;backdrop-filter:blur(8px);transition:opacity .2s';
-              el.querySelector('.hero-img-wrap')?.appendChild(imgCta);
-            }
-            imgCta.textContent = imgCtaText || 'Shop Now';
-            imgCta.href = imgCtaUrl || '/drop001.html';
-            imgCta.style.display = '';
-          } else if (imgCta) imgCta.style.display = 'none';
-          // Background image
-          const img = el.querySelector('#hero-image');
-          const mobileSource = el.querySelector('#hero-mobile-source');
-          if (s.image) {
-            const optDesk = typeof window.optimizeImage === 'function' ? window.optimizeImage(s.image, 1400) : s.image;
-            const optMob = typeof window.optimizeImage === 'function' ? window.optimizeImage(s.image, 800) : s.image;
-            if (img) img.src = optDesk;
-            if (mobileSource) mobileSource.srcset = optMob;
-            // Cache the hero so the synchronous <head> bootstrap paints THIS image
-            // on the next load instead of the stale default/old one — otherwise the
-            // page-builder hero path (unlike the legacy settings.hero path) never
-            // updated the cache, so every load flashed old→new. Skip in the builder
-            // preview so an unpublished hero isn't cached for the real homepage.
-            if (!window.__ZW_BUILDER_PREVIEW__) {
-              window.__ZW_HERO_IMAGE = optDesk;
-              try { localStorage.setItem('zw-hero-image', s.image); } catch (e) {}
-              const preload = document.getElementById('hero-preload');
-              if (preload) preload.href = optDesk;
-            }
-          } else {
-            if (img) img.src = 'images/hero.jpg?v=2';
-            if (mobileSource) mobileSource.srcset = 'images/hero-mobile.jpg';
-          }
-          // Fill (cover) vs Fit (contain) — lets a logo/graphic show whole.
-          if (img) img.style.objectFit = (s.fit === 'contain') ? 'contain' : 'cover';
-          // Viewfinder framing: a focal point set in the builder becomes
-          // object-position on the tablet/mobile breakpoints (see .hero-img-wrap
-          // img CSS vars). Unset → the var falls back to center.
-          if (img) {
-            const _p = f => (f && f.x != null && f.y != null) ? (f.x + '% ' + f.y + '%') : '';
-            const _pt = _p(s.focalTab), _pm = _p(s.focalMob);
-            if (_pt) img.style.setProperty('--zwh-pos-tab', _pt); else img.style.removeProperty('--zwh-pos-tab');
-            if (_pm) img.style.setProperty('--zwh-pos-mob', _pm); else img.style.removeProperty('--zwh-pos-mob');
-          }
+          /* Lives in hero-render.js now. It loads third in the page instead of
+             thirtieth, and paints the hero the moment the settings land rather
+             than after this file has parsed - so a visitor stops reading the
+             shipped default copy and watching it change. One implementation,
+             called from here and from its own early pass, because a second copy
+             would drift from what the builder thinks a hero is. */
+          if (window.zwHero && typeof window.zwHero.paint === 'function') window.zwHero.paint(el, s);
           break;
         }
         case 'marquee': {
@@ -3136,7 +3068,13 @@ function zwCardSwatchRow(p, quickAddPayload, fallbackImg) {
     let src = fallbackImg || '';
     if (src && typeof window.optimizeImage === 'function') src = window.optimizeImage(src, 600);
     if (!src) return '';
-    return `<div class="zw-card-swatches" data-quick-add="${quickAddPayload}"><button type="button" class="zw-card-swatch" data-img="${esc(src)}" aria-label="${esc(p.title || 'View')}" style="background-image:url('${esc(src)}')"></button></div>`;
+    /* A real <img> so a failing Cloudinary URL reaches the fallback chain in
+       image-utils.js; a CSS background that 404s fires no event at all. Degrades
+       to the old background-image if image-utils.js has not loaded, so the worst
+       case is exactly what this used to do. */
+    const _im = (typeof window.zwSwatchImg === 'function') ? window.zwSwatchImg(src) : '';
+    const _st = _im ? '' : ` style="background-image:url('${esc(src)}')"`;
+    return `<div class="zw-card-swatches" data-quick-add="${quickAddPayload}"><button type="button" class="zw-card-swatch" data-img="${esc(src)}" aria-label="${esc(p.title || 'View')}"${_st}>${_im}</button></div>`;
   }
   // All colours in one row (scrolls on mobile) — first swatch active on load so the
   // selected-bar sits under the colour the card is showing.
@@ -3145,8 +3083,11 @@ function zwCardSwatchRow(p, quickAddPayload, fallbackImg) {
     let src = (ci && ci.image_url) || fallbackImg || '';
     if (src && typeof window.optimizeImage === 'function') src = window.optimizeImage(src, 600);
     const nm = c.color_name || 'Color';
-    const thumbStyle = src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`;
-    return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
+    /* See the single-image branch above. The hex path stays a background — it
+       is a colour, not an image, so there is nothing that can fail to load. */
+    const _im = (src && typeof window.zwSwatchImg === 'function') ? window.zwSwatchImg(src) : '';
+    const thumbStyle = _im ? '' : (src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`);
+    return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}">${_im}</button>`;
   }).join('');
   return `<div class="zw-card-swatches" data-quick-add="${quickAddPayload}">${html}</div>`;
 }

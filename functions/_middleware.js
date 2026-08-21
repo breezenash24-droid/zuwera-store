@@ -192,12 +192,83 @@ export function bodyAttrsFrom(value) {
   return null;
 }
 
-async function headerAttrs(env) {
+/* ── THE SETTINGS THE FIRST FRAME IS MADE OF ─────────────────────────────────
+ *
+ * Not all of them. `page_builder_published` alone is 12,180 bytes on the live
+ * store and `legal_policies` another 6,623, and neither decides what the top of
+ * the page LOOKS like before you scroll. These fourteen do: they carry the
+ * colours, the fonts, the copy, the icons, the categories, the announcement bar
+ * and the header arrangement.
+ *
+ * Measured against the live settings: 3,986 bytes, 1,552 gzipped. That is what
+ * it costs to stop guessing.
+ */
+const FIRST_PAINT_KEYS = [
+  'theme', 'theme_modes', 'text_overrides', 'fonts', 'icons', 'bag_panel',
+  'header_layout', 'brand', 'nav_menu', 'product_card_cta', 'image_effects',
+  'hero', 'header_behavior', 'announcement_bar',
+];
+
+/* The static sections index.html ships in its markup. A builder layout that
+   omits one has to hide it, and until now that was remembered rather than
+   known — see layoutClasses below. */
+const DEFAULT_SECTIONS = ['marquee', 'about', 'release', 'products'];
+
+/**
+ * Which of the baked-in sections this layout does NOT contain, as the class
+ * names the stylesheet already keys off.
+ *
+ * ── WHAT THIS REPLACES, AND WHY IT IS THE WHOLE POINT ───────────────────────
+ *
+ * index.html hides these before first paint by reading localStorage — a note
+ * storefront.js left on the PREVIOUS visit. That is a memory, not a fact, and
+ * it is wrong in exactly the two cases that matter most:
+ *
+ *   a first-ever visitor      has no note at all, so every default section
+ *                             paints and is then hidden in front of them.
+ *   the visit after a change  has last time's note, so the page paints the
+ *                             OLD layout and corrects itself.
+ *
+ * The live homepage leads with a hero_carousel and no static hero, so a first
+ * visit paints the shipped hero, then removes it and draws a carousel over the
+ * space. The document knows none of this; the edge does.
+ *
+ * Returned as CLASSES rather than as data for a script to act on, because a
+ * class on <html> is styled by `html.zw-hide-static-hero .hero{display:none}`
+ * with no JavaScript involved at all. Not "before the first script runs" —
+ * before there is anything to run.
+ *
+ * @param {*} pb the parsed page_builder_published value
+ * @returns {{classes: string[], hasStaticHero: boolean}|null} null when the
+ *   layout cannot be read, which leaves the remembered answer in charge.
+ */
+export function layoutClasses(pb) {
+  const sections = pb && Array.isArray(pb.sections) ? pb.sections : null;
+  if (!sections) return null;
+  /* An empty published layout means "nothing is configured", not "hide
+     everything" — the shipped page is the answer then, and blanking it from
+     the edge would be the worst possible failure mode for this feature. */
+  const visible = sections.filter((s) => s && s.visible !== false);
+  if (!visible.length) return null;
+  const types = new Set(visible.map((s) => String(s.type || '')));
+  const classes = [];
+  const hasStaticHero = types.has('hero');
+  if (!hasStaticHero) classes.push('zw-hide-static-hero');
+  for (const t of DEFAULT_SECTIONS) if (!types.has(t)) classes.push('zw-hs-' + t);
+  return { classes, hasStaticHero };
+}
+
+async function firstPaint(env) {
   const base = supabaseUrl(env);
   const key = supabaseAnonKey(env);
   if (!base || !key) return null;
+  /* ONE request for all of it. The header arrangement used to be fetched on its
+     own; asking for the rest alongside it costs the same round trip and the
+     same edge-cache entry. */
+  const wanted = FIRST_PAINT_KEYS.concat(['page_builder_published']);
   const res = await fetch(
-    base + '/rest/v1/site_settings?select=value,updated_at&key=eq.header_layout',
+    base + '/rest/v1/site_settings?select=key,value,updated_at&key=in.('
+      + wanted.join(',') + ')',
     {
       headers: { apikey: key, Authorization: 'Bearer ' + key },
       cf: { cacheTtl: TTL, cacheEverything: true },
@@ -205,10 +276,106 @@ async function headerAttrs(env) {
   );
   if (!res.ok) return null;
   const rows = await res.json();
-  const row = rows && rows[0];
-  let v = row && row.value;
-  if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { return null; } }
-  return { html: attrsFrom(v, row && row.updated_at), body: bodyAttrsFrom(v) };
+  if (!Array.isArray(rows)) return null;
+
+  const parse = (v) => {
+    if (typeof v !== 'string') return v;
+    try { return JSON.parse(v); } catch (_) { return v; }
+  };
+
+  const byKey = {};
+  const updatedAt = {};
+  for (const r of rows) {
+    if (!r || !r.key) continue;
+    byKey[r.key] = parse(r.value);
+    if (r.updated_at) updatedAt[r.key] = r.updated_at;
+  }
+
+  /* Only the keys that were actually found. A key with no row is not the same
+     as a key whose value is null, and zw-data.js has to be able to tell them
+     apart or a missing setting becomes a stamped null it will never re-fetch. */
+  const settings = {};
+  for (const k of FIRST_PAINT_KEYS) if (byKey[k] !== undefined) settings[k] = byKey[k];
+
+  const hdr = byKey.header_layout;
+  return {
+    html: attrsFrom(hdr, updatedAt.header_layout),
+    body: bodyAttrsFrom(hdr),
+    classes: layoutClasses(byKey.page_builder_published),
+    theme: themeAttrs(byKey.theme_modes),
+    settings,
+    updatedAt,
+  };
+}
+
+/**
+ * Which theme the store defaults to, right now.
+ *
+ * ── WHY AN ATTRIBUTE AND NOT THE WHOLE RECORD ───────────────────────────────
+ *
+ * The pre-paint block in every page decides the ground and the text colour
+ * before a stylesheet is matched, and it decides them from localStorage — the
+ * settings row as it looked on this visitor's LAST visit. Empty on a first
+ * visit; stale on the visit after the shop changes its theme.
+ *
+ * It does not need the row. The default theme's actual colours are already in
+ * the page as a real stylesheet rule, baked by stamp-theme-default.js and
+ * scoped to html[data-zw-theme-stamp]. The only thing the pre-paint block
+ * cannot work out on its own is whether that BAKE IS STILL THE RIGHT ONE, and
+ * that is one string: the id of the default today.
+ *
+ * So two attributes rather than a JSON blob. The pre-paint block is inlined
+ * into fourteen pages and measured against a byte budget — putting the settings
+ * JSON in there ran 243 bytes over and told it nothing these do not.
+ *
+ * data-zw-theme-default is only written when the base is one the stylesheet
+ * knows. An unrecognised value there is worse than none: the block treats it as
+ * a learned answer and paints a ground for a theme that does not exist.
+ */
+export function themeAttrs(tm) {
+  const v = (tm && typeof tm === 'object') ? tm : null;
+  const id = v && typeof v.default === 'string' ? v.default.trim() : '';
+  if (!id) return null;
+  const modes = Array.isArray(v.modes) ? v.modes : [];
+  const rec = modes.filter((m) => m && m.id === id)[0] || null;
+  const base = rec && typeof rec.base === 'string' ? rec.base : '';
+  return {
+    id,
+    /* Only when the stylesheet has a token set for it. An unrecognised base is
+       worse than none: the pre-paint block treats it as a learned answer and
+       paints a ground for a theme that does not exist. */
+    base: (base === 'light' || base === 'super-light' || base === 'dark') ? base : '',
+  };
+}
+
+/**
+ * Rewrite the baked theme answer to today's, on the way out.
+ *
+ * stamp-theme-default.js bakes the default theme's real palette into every page
+ * as a stylesheet rule scoped to html[data-zw-theme-stamp]. That is the whole
+ * answer for a visitor with nothing stored — until the shop changes its default,
+ * at which point the bake is a confident wrong answer that nothing on the page
+ * can challenge: the pre-paint block compares it against the id it read from
+ * localStorage, and a first-ever visitor has none.
+ *
+ * The edge has both halves. It removes the bake when it is out of date and
+ * corrects the base either way, so the pre-paint block finds attributes that
+ * already tell the truth and needs no extra code — which matters, because that
+ * block is inlined into fourteen pages and is up against a byte budget.
+ *
+ * A visitor who PICKED a theme is still handled in the browser: their choice
+ * lives in localStorage, the edge cannot see it, and the pre-paint block's own
+ * comparison already drops the bake for them. The two are complementary and
+ * neither can undo the other.
+ */
+class ThemeStamp {
+  constructor(theme) { this.theme = theme; }
+  element(el) {
+    const { id, base } = this.theme;
+    if (base) el.setAttribute('data-zw-theme-default', base);
+    const baked = String(el.getAttribute('data-zw-theme-stamp') || '');
+    if (baked && id && baked !== id) el.removeAttribute('data-zw-theme-stamp');
+  }
 }
 
 class Stamp {
@@ -226,6 +393,53 @@ class Stamp {
       const v = this.attrs[k];
       if (v === null) el.removeAttribute(k); else el.setAttribute(k, v);
     }
+  }
+}
+
+/**
+ * Add classes to <html> without discarding the ones already on it.
+ *
+ * setAttribute REPLACES, and <html> carries classes the preboot scripts and the
+ * theme stamp put there. Merging rather than assigning is the difference
+ * between hiding a section and clearing the page's theme.
+ */
+class ClassStamp {
+  constructor(classes, marker) { this.classes = classes; this.marker = marker; }
+  element(el) {
+    const have = String(el.getAttribute('class') || '').split(/\s+/).filter(Boolean);
+    const seen = new Set(have);
+    for (const c of this.classes) if (!seen.has(c)) { seen.add(c); have.push(c); }
+    if (have.length) el.setAttribute('class', have.join(' '));
+    /* The marker is what tells index.html's preboot to stop guessing. Without
+       it the preboot would apply its remembered answer ON TOP of the stamped
+       one and could hide a section this layout actually has — a remembered
+       answer being wrong is exactly why the stamp exists. */
+    if (this.marker) el.setAttribute('data-zw-pb', '1');
+  }
+}
+
+/**
+ * Put the first-paint settings into the document as inline JSON.
+ *
+ * zw-data.js reads this instead of making a request, so every module that goes
+ * through the settings broker has its answer before the first frame rather than
+ * after a round trip. Prepended to <head> so it is parsed before the stylesheets
+ * and before any deferred script exists to look for it.
+ *
+ * `type="application/json"` is not executable — the browser will not run it, the
+ * CSP does not have to allow it, and nothing here is ever interpreted as code.
+ * The only sequence that could end the block early is a literal "</script>", so
+ * the forward slash is escaped; the JSON parser reads \/ as / and the HTML
+ * parser never sees a closing tag.
+ */
+class HeadStamp {
+  constructor(payload) { this.payload = payload; }
+  element(el) {
+    const json = JSON.stringify(this.payload).replace(/<\/script/gi, '<\\/script');
+    el.prepend(
+      '<script type="application/json" id="zw-first-paint">' + json + '</script>',
+      { html: true },
+    );
   }
 }
 
@@ -256,7 +470,7 @@ export async function onRequest(context) {
 
   /* Started before the page is fetched so the two overlap. A rejection here
      must not take the page down with it. */
-  const pending = skip ? null : headerAttrs(env).catch(() => null);
+  const pending = skip ? null : firstPaint(env).catch(() => null);
 
   const res = await context.next();
   if (skip) return res;
@@ -286,10 +500,26 @@ export async function onRequest(context) {
       pending,
       new Promise((resolve) => setTimeout(() => resolve(null), STAMP_BUDGET_MS)),
     ]);
-    if (!attrs || (!attrs.html && !attrs.body)) return res;
+    if (!attrs) return res;
+    const hasSettings = attrs.settings && Object.keys(attrs.settings).length > 0;
+    const hasClasses = attrs.classes && attrs.classes.classes.length > 0;
+    /* `data-zw-pb` is written whenever the layout was READ, even when it turns
+       out to hide nothing — "this layout has every default section" is an
+       answer, and the preboot must stop guessing on the strength of it rather
+       than only when something needs hiding. */
+    const readLayout = !!attrs.classes;
+    if (!attrs.html && !attrs.body && !hasSettings && !readLayout && !attrs.theme) return res;
     let rw = new HTMLRewriter();
     if (attrs.html) rw = rw.on('html', new Stamp(attrs.html));
+    if (attrs.theme) rw = rw.on('html', new ThemeStamp(attrs.theme));
+    if (readLayout) rw = rw.on('html', new ClassStamp(hasClasses ? attrs.classes.classes : [], true));
     if (attrs.body) rw = rw.on('body', new Stamp(attrs.body));
+    if (hasSettings) {
+      rw = rw.on('head', new HeadStamp({
+        settings: attrs.settings,
+        updatedAt: attrs.updatedAt || {},
+      }));
+    }
     return rw.transform(res);
   } catch (_) {
     return res;   // the page as it was, which is still a working page

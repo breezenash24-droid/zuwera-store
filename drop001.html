@@ -227,16 +227,16 @@ document.documentElement.classList.add('zw-collflash');
   <link rel="manifest" href="/site.webmanifest">
   <link rel="canonical" href="https://zuwera.store/drop001.html">
   <script src="preview-mode.js?v=799782ba" defer></script>
-  <script src="/zw-data.js?v=244bd990" defer></script>
+  <script src="/zw-data.js?v=54eabcad" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=a6453cd7" defer></script>
 <script src="pdp-gallery.js?v=1e454262" defer></script>
 <script src="fit-finder.js?v=daf3b4fd" defer></script>
-  <script src="/storefront-features.js?v=a8588757" defer></script>
+  <script src="/storefront-features.js?v=35813369" defer></script>
   <script src="/variant-price.js?v=46f1b9f4"></script>
   <script src="/attribution.js?v=2a299a54" defer></script>
-  <script src="/meta-pixel.js?v=4919f284" defer></script>
-  <script src="/google-tag.js?v=fdfca537" defer></script>
+  <script src="/meta-pixel.js?v=99466e34" defer></script>
+  <script src="/google-tag.js?v=8fbf81e0" defer></script>
   <script src="/supabase.min.js?v=4b6a655b" defer></script>
   <script src="/supabase-client.js?v=0bf64814" defer></script>
   <meta name="description" content="Shop Zuwera Release 001 — jackets, t-shirts, sweatpants and socks. Bold athletic sportswear launching September 20, 2026. Sign up for early access.">
@@ -261,12 +261,17 @@ document.documentElement.classList.add('zw-collflash');
        are cached immutable, so on every repeat view the real font is ready at
        first paint with no fallback swap. Preconnects keep cold-cache cost small. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=0ce51d31">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=45f94756">
   <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
 <script src="header-scroll.js?v=0a0efce9" defer></script>
 <script src="announcement-bar.js?v=374dfc94" defer></script>
+<!-- Runs the inert text/zw-lazy declarations below once the page is idle
+     or the visitor first touches it. See zw-lazy.js for why the list is
+     short: almost every other module here is called synchronously by
+     another one while the page settles. -->
+<script src="/zw-lazy.js?v=e327b753" defer></script>
 <script src="email-popup.js?v=33908bad" async></script>
-<script src="integrations.js?v=82606df1" defer></script>
+<script type="text/zw-lazy" src="integrations.js?v=82606df1"></script>
 <script src="image-effects.js?v=42549149" defer></script>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=12725ac1">
 <!-- Google tag: library loaded on browser idle by google-tag.js (deferred); inline block below only primes the dataLayer/config queue. -->
@@ -1528,9 +1533,9 @@ document.documentElement.classList.add('zw-collflash');
       color: #e07060; border: 1px solid rgba(224,112,96,.35); padding: .18rem .55rem;
     }
   </style>
-  <script src="image-utils.js?v=0b9a0d3f" defer></script>
+  <script src="image-utils.js?v=6c5e9a06" defer></script>
   <script src="mobile-menu.js?v=f7defb81" defer></script>
-  <script src="/theme-engine.js?v=9eddea28" defer></script>
+  <script src="/theme-engine.js?v=e553558b" defer></script>
   <script src="/motion.js?v=5b9cc123" defer></script>
   <script src="/icon-sets.js?v=60e5763a" defer></script>
   <script src="storefront-theme.js?v=3782df36" defer></script>
@@ -2995,7 +3000,14 @@ function updateCountdown() {
             let src = fallbackImg || '';
             if (src && typeof optimizeImage === 'function') src = optimizeImage(src, 600);
             if (!src) return '';
-            return `<div class="zw-card-swatches" data-quick-add="${payload}"><button type="button" class="zw-card-swatch" data-img="${esc(src)}" aria-label="${esc(p.title || 'View')}" style="background-image:url('${esc(src)}')"></button></div>`;
+            /* A real <img> so a failing Cloudinary URL reaches the fallback
+               chain in image-utils.js; a CSS background that 404s fires no
+               event at all. Degrades to the old background-image if
+               image-utils.js has not loaded. Kept identical to the homepage
+               grid in storefront.js — two implementations, one behaviour. */
+            const _im = (typeof window.zwSwatchImg === 'function') ? window.zwSwatchImg(src) : '';
+            const _st = _im ? '' : ` style="background-image:url('${esc(src)}')"`;
+            return `<div class="zw-card-swatches" data-quick-add="${payload}"><button type="button" class="zw-card-swatch" data-img="${esc(src)}" aria-label="${esc(p.title || 'View')}"${_st}>${_im}</button></div>`;
           }
           // All colours in a single horizontal-scroll row — no "+N" cap now that
           // extra colours scroll (CSS: .zw-card-swatches overflow-x:auto) instead of
@@ -3007,7 +3019,10 @@ function updateCountdown() {
             let src = (ci && ci.image_url) || fallbackImg || '';
             if (src && typeof optimizeImage === 'function') src = optimizeImage(src, 600);
             const nm = c.color_name || 'Color';
-            const thumbStyle = src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`;
+            /* See the single-image branch above. The hex path stays a
+               background — a colour cannot fail to load. */
+            const _im = (src && typeof window.zwSwatchImg === 'function') ? window.zwSwatchImg(src) : '';
+            const thumbStyle = _im ? '' : (src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`);
             const _cm = _carOn ? zwCardMedia(p, c.id, _carVids) : [];
             const imgsAttr = (_carOn && _cm.length) ? ` data-imgs="${esc(encodeURIComponent(JSON.stringify(_cm)))}"` : '';
             // Colour-facet bucket for this swatch — same key space as the filter
@@ -3016,7 +3031,7 @@ function updateCountdown() {
             const _bkt = plpGrainBucket(plpColorBucket(c.hex_color)) || '';
             // First swatch active on load — its colour is the one shown on the card,
             // so the selected-bar (Nike-style) sits under it from the start.
-            return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-color-bucket="${esc(_bkt)}" data-img="${esc(src)}"${imgsAttr} title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
+            return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-color-bucket="${esc(_bkt)}" data-img="${esc(src)}"${imgsAttr} title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}">${_im}</button>`;
           }).join('');
           return `<div class="zw-card-swatches" data-quick-add="${payload}">${html}</div>`;
         };
@@ -4049,8 +4064,14 @@ function updateCountdown() {
             var thumbSrc = '';
             for (var ci = 0; ci < cimgs.length; ci++) { if (!collectionIsVideo(cimgs[ci])) { thumbSrc = cimgs[ci]; break; } }
             if (!thumbSrc) thumbSrc = cimgs[0] || '';
-            var styleAttr = thumbSrc ? "background-image:url('" + collectionEscapeAttr(thumbSrc) + "')" : 'background:' + collectionEscapeAttr(color.hex_color || '#888');
-            return '<button type="button" class="collection-color' + active + (thumbSrc ? ' has-thumb' : '') + '" data-index="' + idx + '" title="' + collectionEscapeAttr(name) + '" aria-label="' + collectionEscapeAttr(name) + '" style="' + styleAttr + '"></button>';
+            /* A real <img>, not a CSS background — see quick-add-modal.js, which
+               is the same picker for the homepage grid and is kept identical.
+               optimizeImage() too: this handed the RAW image_url to a 68x54
+               tile, so every colour downloaded a full-size photograph. */
+            if (thumbSrc && typeof window.optimizeImage === 'function') thumbSrc = window.optimizeImage(thumbSrc, 240);
+            var _im = (thumbSrc && typeof window.zwSwatchImg === 'function') ? window.zwSwatchImg(thumbSrc, 240) : '';
+            var styleAttr = _im ? '' : (thumbSrc ? "background-image:url('" + collectionEscapeAttr(thumbSrc) + "')" : 'background:' + collectionEscapeAttr(color.hex_color || '#888'));
+            return '<button type="button" class="collection-color' + active + (thumbSrc ? ' has-thumb' : '') + '" data-index="' + idx + '" title="' + collectionEscapeAttr(name) + '" aria-label="' + collectionEscapeAttr(name) + '" style="' + styleAttr + '">' + _im + '</button>';
           }).join('')
         : '<p class="collection-empty-option">Standard colorway</p>';
       colorWrap.querySelectorAll('.collection-color').forEach(function(button) {
@@ -4245,7 +4266,7 @@ function updateCountdown() {
     } catch(_) {}
   }
   </script>
-<script src="auth.js?v=36b281fb" defer></script>
+<script src="auth.js?v=fac9d15e" defer></script>
 <script src="zw-login.js?v=09e6833c" defer></script>
 <!-- Shopper-facing wording, shared with the product page and the bag.
      stock-rules.js comes with it because that is what fetches the admin's
@@ -4256,6 +4277,6 @@ function updateCountdown() {
 <script src="stock-rules.js?v=efc11b57"></script>
 <script src="/nav-menu.js?v=5735cc2b" defer></script>
 <script src="/zw-copy.js?v=5b4f7680" defer></script>
-<script src="/header-layouts.js?v=1b620b41" defer></script>
+<script src="/header-layouts.js?v=7d3d3cdb" defer></script>
 </body>
 </html>

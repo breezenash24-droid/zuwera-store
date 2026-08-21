@@ -139,9 +139,18 @@ console.log('\n  and the server stops holding the page up for a nicety');
     'a first-frame nicety was holding up the first frame');
   ok('…while still letting the read finish and warm the cache',
     /Giving up on the wait is not the same as giving up on the\s*\n\s*request/.test(MW));
+  /* A timeout resolves the race to null, so this ONE line is what guarantees
+     the page goes out exactly as it came in. It used to also enumerate the two
+     things being stamped; the middleware now stamps four (attributes, classes,
+     the theme bake correction, and the first-paint settings), so the guard is
+     asserted on the property that matters rather than on a list that has to be
+     rewritten every time something is added to it. */
   ok('and the page is unchanged when it times out',
-    /if \(!attrs \|\| \(!attrs\.html && !attrs\.body\)\) return res;/.test(MW),
+    /if \(!attrs\) return res;/.test(MW),
     'the baked answer, the visitor cache and the runtime fetch all still apply');
+  ok('…and nothing is stamped when the read came back with nothing in it',
+    /if \(!attrs\.html && !attrs\.body && !hasSettings && !readLayout && !attrs\.theme\) return res;/.test(MW),
+    'an empty stamp would still cost an HTMLRewriter pass over every page');
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

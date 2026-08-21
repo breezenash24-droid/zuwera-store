@@ -234,16 +234,23 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
   <link rel="manifest" href="/site.webmanifest">
   <script src="preview-mode.js?v=799782ba" defer></script>
-  <script src="/zw-data.js?v=244bd990" defer></script>
+  <script src="/zw-data.js?v=54eabcad" defer></script>
+  <!-- Third on purpose, directly behind the settings broker it reads. The hero
+       used to be rendered by a case inside storefront.js, which is the largest
+       script here and runs thirtieth — so the headline, kicker, subtext and both
+       buttons only reached their real values after everything else had parsed,
+       and a visitor read the shipped default first. This paints them the moment
+       the settings response lands. -->
+  <script src="/hero-render.js?v=34907f5c" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=a6453cd7" defer></script>
 <script src="fit-finder.js?v=daf3b4fd" defer></script>
-  <script src="/zw-turnstile.js?v=4c39cc2f" defer></script>
-  <script src="/storefront-features.js?v=a8588757" defer></script>
+  <script src="/zw-turnstile.js?v=4db27d32" defer></script>
+  <script src="/storefront-features.js?v=35813369" defer></script>
   <script src="/variant-price.js?v=46f1b9f4"></script>
   <script src="/attribution.js?v=2a299a54" defer></script>
-  <script src="/meta-pixel.js?v=4919f284" defer></script>
-  <script src="/google-tag.js?v=fdfca537" defer></script>
+  <script src="/meta-pixel.js?v=99466e34" defer></script>
+  <script src="/google-tag.js?v=8fbf81e0" defer></script>
   <!-- Supabase JS SDK (~180KB) is loaded LAZILY: product data comes from the
        REST early-fetch below, so the SDK is only needed for auth (login,
        session, favorites, reviews). Logged-in visitors and password-recovery
@@ -387,6 +394,12 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
     if(vw && vw <= 520) cap = 760; else if(vw && vw <= 900) cap = 1000;
     return 'https://res.cloudinary.com/dubg4loah/video/fetch/so_0,f_jpg,q_auto,w_' + cap + '/' + encodeURI(v);
   }
+  /* hero-render.js runs third in the deferred chain, well before image-utils.js
+     has defined the real optimiser, and it would otherwise fall back to the raw
+     image_url — a full-size photograph in place of a resized one, on the single
+     largest element of the page. Same account and the same width caps, so the
+     URL it builds is the one image-utils.js would have built. */
+  window.zwOptHead = zwOptHead;
 })();
 </script>
 <!-- JSON-LD Structured Data -->
@@ -502,8 +515,13 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
    hero's zw-hide-static-hero. storefront.js caches the omitted types; without this
    they flash in (e.g. the products grid) before storefront.js runs and hides them. */
 (function(){try{
-  var hidden=(localStorage.getItem('zw_pb_hidden_defaults')||'').split(',');
   var h=document.documentElement;
+  /* data-zw-pb means functions/_middleware.js READ the published layout and put
+     the answer on this element already. A remembered answer must not be applied
+     on top of a known one: last visit's note can name a section this layout
+     actually has, and adding its hide class would remove something real. */
+  if(h.hasAttribute('data-zw-pb')) return;
+  var hidden=(localStorage.getItem('zw_pb_hidden_defaults')||'').split(',');
   for(var i=0;i<hidden.length;i++){ if(hidden[i]) h.classList.add('zw-hs-'+hidden[i]); }
 }catch(_){}})();
 </script>
@@ -514,7 +532,18 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
   // and skip its high-priority preload — otherwise the old default hero flashes
   // in before storefront.js renders the carousel over it.
   try {
-    if (localStorage.getItem('zw_hide_static_hero') === '1') {
+    /* Two sources, and the stamped one wins. functions/_middleware.js reads the
+       published layout as the page is served and adds zw-hide-static-hero to
+       <html> itself, so on a stamped response the class is already applied by
+       the time the stylesheet is parsed — before there is anything to run.
+       localStorage is last visit's note, which is empty for a first-ever
+       visitor and stale for the visit after a change: the two cases where the
+       old hero actually flashed. */
+    var _h = document.documentElement;
+    var _noStaticHero = _h.hasAttribute('data-zw-pb')
+      ? _h.classList.contains('zw-hide-static-hero')
+      : (localStorage.getItem('zw_hide_static_hero') === '1');
+    if (_noStaticHero) {
       document.documentElement.classList.add('zw-hide-static-hero');
       /* ── A CAROUSEL HERO GETS A PRELOAD TOO ──────────────────────────────
          This branch used to return here, having preloaded nothing. The static
@@ -593,19 +622,24 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
   <link rel="preload" href="reviews.css?v=91ac9a6f" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="reviews.css?v=91ac9a6f"></noscript>
-  <link rel="stylesheet" href="storefront-cohesion.css?v=0ce51d31">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=45f94756">
   <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
 <script src="header-scroll.js?v=0a0efce9" defer></script>
 <script src="announcement-bar.js?v=374dfc94" defer></script>
+<!-- Runs the inert text/zw-lazy declarations below once the page is idle
+     or the visitor first touches it. See zw-lazy.js for why the list is
+     short: almost every other module here is called synchronously by
+     another one while the page settles. -->
+<script src="/zw-lazy.js?v=e327b753" defer></script>
 <script src="email-popup.js?v=33908bad" async></script>
-<script src="integrations.js?v=82606df1" defer></script>
+<script type="text/zw-lazy" src="integrations.js?v=82606df1"></script>
 <script src="image-effects.js?v=42549149" defer></script>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=12725ac1">
 <!-- Quick-add modal module MUST load before storefront.js: the grid wiring in
      storefront.js calls window.quickAddToCart, which this module provides. -->
 <script src="pdp-gallery.js?v=1e454262" defer></script>
-<script src="quick-add-modal.js?v=26a085c4" defer></script>
-<script src="image-utils.js?v=0b9a0d3f" defer></script>
+<script src="quick-add-modal.js?v=0d6bfa3a" defer></script>
+<script src="image-utils.js?v=6c5e9a06" defer></script>
 <script src="video-embed.js?v=0462ce95" defer></script>
 <!-- Before storefront.js, which also re-prices the stored cart and writes it
      back — so the homepage can put a wrong price into localStorage that the bag
@@ -629,7 +663,7 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
      zwHasValidSession, and ZWMessages is read only by the admin panel. -->
 <script src="customer-messages.js?v=2c5164d0" defer></script>
 <script src="stock-rules.js?v=efc11b57" defer></script>
-<script src="storefront.js?v=f1da416e" defer></script>
+<script src="storefront.js?v=b7a07d46" defer></script>
 <script src="/stripe-client-config.js?v=6cbbcea0" defer></script>
 <script src="/checkout-tax.js?v=efb36dbb" defer></script>
 
@@ -638,7 +672,7 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DCVWDZ8ZBC');</script>
 
 <!-- PostHog analytics -->
-<script src="/posthog-init.js?v=653a267b" defer></script>
+<script src="/posthog-init.js?v=994f0720" defer></script>
 
 <!-- PWA -->
 <meta name="color-scheme" content="dark">
@@ -3015,20 +3049,20 @@ try{var _nb=document.documentElement.getAttribute('data-zw-base')||'dark';docume
 <!-- Language selector -->
 <script src="modal-lock.js?v=fb1f304f" defer></script>
 <script>window.__zwSkipThemeFetch=true;</script>
-<script src="/theme-engine.js?v=9eddea28" defer></script>
+<script src="/theme-engine.js?v=e553558b" defer></script>
 <script src="/motion.js?v=5b9cc123" defer></script>
 <script src="/icon-sets.js?v=60e5763a" defer></script>
 <script src="storefront-theme.js?v=3782df36" defer></script>
 <script src="lang.js?v=f4b70f65" async></script>
 <script src="scroll-reveal.js?v=8333d598" defer></script>
-<script src="reviews.js?v=aed233d4" charset="utf-8" async></script>
+<script src="reviews.js?v=f09d8ac5" charset="utf-8" async></script>
 
 <!-- Cookie consent banner is injected on every page by consent.js (window.zwConsent),
      which also gates analytics/marketing until the visitor accepts. -->
 
 
 <script src="commerce-checkout.js?v=b42a55a1" defer></script>
-<script src="customer-hub.js?v=05c8887e" async></script>
+<script src="customer-hub.js?v=040904b1" async></script>
 
 <!-- Empty-bag and cart shell wiring compatibility structure -->
 <div id="cart-modal" style="display:none;"></div>
@@ -3056,6 +3090,6 @@ try{var _nb=document.documentElement.getAttribute('data-zw-base')||'dark';docume
 
 <script src="/nav-menu.js?v=5735cc2b" defer></script>
 <script src="/zw-copy.js?v=5b4f7680" defer></script>
-<script src="/header-layouts.js?v=1b620b41" defer></script>
+<script src="/header-layouts.js?v=7d3d3cdb" defer></script>
 </body>
 </html>

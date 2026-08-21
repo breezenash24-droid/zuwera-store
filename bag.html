@@ -245,17 +245,17 @@ html.zw-authed #account-btn{display:inline-flex!important}
   <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
   <link rel="stylesheet" href="nav.css?v=7e04029d">
   <link rel="stylesheet" href="cart.css?v=a4e16320">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=0ce51d31">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=45f94756">
 <script src="preview-mode.js?v=799782ba" defer></script>
-<script src="/zw-data.js?v=244bd990" defer></script>
+<script src="/zw-data.js?v=54eabcad" defer></script>
 <script src="header-scroll.js?v=0a0efce9" defer></script>
   <link rel="stylesheet" href="quick-add-modal.css?v=dc3088fe">
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=a6453cd7" defer></script>
   <script src="/variant-price.js?v=46f1b9f4"></script>
   <script src="/attribution.js?v=2a299a54" defer></script>
-  <script src="/meta-pixel.js?v=4919f284" defer></script>
-  <script src="/google-tag.js?v=fdfca537" defer></script>
+  <script src="/meta-pixel.js?v=99466e34" defer></script>
+  <script src="/google-tag.js?v=8fbf81e0" defer></script>
   <script src="/supabase.min.js?v=4b6a655b" defer></script>
   <script src="/supabase-client.js?v=0bf64814" defer></script>
   <script src="/stripe-client-config.js?v=6cbbcea0" defer></script>
@@ -523,7 +523,7 @@ html.zw-authed #account-btn{display:inline-flex!important}
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=12725ac1">
   <script src="mobile-menu.js?v=f7defb81" defer></script>
 <script>try{var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
-<script src="/posthog-init.js?v=653a267b" defer></script>
+<script src="/posthog-init.js?v=994f0720" defer></script>
 <style>
 body.light-mode .zw-fav-size-picker{background: var(--ink) !important;border-color:var(--c14)!important;}
 body.light-mode .zw-fav-size-picker button{color:var(--c80)!important;border-color:rgb(var(--fg-rgb) / 18%)!important;}
@@ -909,7 +909,7 @@ body.super-light-mode .zw-fav-size-picker{background: var(--ink) !important;bord
 <!-- Before the summary code that calls it. Classic script, so it defines
      window.ZWWholesaleMinimum synchronously and the first recalculation can
      already reach it. -->
-<script src="wholesale-minimum.js?v=2ab73e07"></script>
+<script src="wholesale-minimum.js?v=6f69e3b0"></script>
 <script>
 /* ===================== CORE SETUP ===================== */
 // window.sb set by supabase-client.js (deferred) before DOMContentLoaded fires
@@ -1658,10 +1658,10 @@ window.__zwOpenAuth = function(tab) {
 };
 </script>
 
-<script src="image-utils.js?v=0b9a0d3f"></script>
+<script src="image-utils.js?v=6c5e9a06"></script>
 <script src="pdp-gallery.js?v=1e454262" defer></script>
-<script src="quick-add-modal.js?v=26a085c4" defer></script>
-<script src="auth.js?v=36b281fb" defer></script>
+<script src="quick-add-modal.js?v=0d6bfa3a" defer></script>
+<script src="auth.js?v=fac9d15e" defer></script>
 <script>
 /* ── Saved items visibility + member pricing: flip as soon as auth state is known ── */
 (function() {
@@ -1804,7 +1804,7 @@ window.__zwOpenAuth = function(tab) {
 <script src="checkout.js?v=ffa1d489"></script>
 <script src="commerce-checkout.js?v=b42a55a1"></script>
 <script src="modal-lock.js?v=fb1f304f"></script>
-<script src="/theme-engine.js?v=9eddea28" defer></script>
+<script src="/theme-engine.js?v=e553558b" defer></script>
 <script src="/motion.js?v=5b9cc123" defer></script>
 <script src="/icon-sets.js?v=60e5763a" defer></script>
 <script src="storefront-theme.js?v=3782df36" defer></script>
@@ -1815,11 +1815,16 @@ window.__zwOpenAuth = function(tab) {
 <script src="zw-login.js?v=09e6833c" defer></script>
 <script src="/nav-menu.js?v=5735cc2b" defer></script>
 <script src="/zw-copy.js?v=5b4f7680" defer></script>
-<script src="/header-layouts.js?v=1b620b41" defer></script>
+<script src="/header-layouts.js?v=7d3d3cdb" defer></script>
 <script src="fit-finder.js?v=daf3b4fd" defer></script>
-<script src="/storefront-features.js?v=a8588757" defer></script>
+<script src="/storefront-features.js?v=35813369" defer></script>
 <script src="announcement-bar.js?v=374dfc94" defer></script>
+<!-- Runs the inert text/zw-lazy declarations below once the page is idle
+     or the visitor first touches it. See zw-lazy.js for why the list is
+     short: almost every other module here is called synchronously by
+     another one while the page settles. -->
+<script src="/zw-lazy.js?v=e327b753" defer></script>
 <script src="email-popup.js?v=33908bad" async></script>
-<script src="integrations.js?v=82606df1" defer></script>
+<script type="text/zw-lazy" src="integrations.js?v=82606df1"></script>
 </body>
 </html>

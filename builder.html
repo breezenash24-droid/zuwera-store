@@ -774,7 +774,7 @@ body{display:flex;flex-direction:column}
 <!-- Image optimiser. Without it every thumbnail in here pulled the FULL-SIZE
      original straight from Supabase Storage — a 4MB photo for a 56px preview —
      which is where this project's cached-egress bill was going. -->
-<script src="image-utils.js?v=0b9a0d3f"></script>
+<script src="image-utils.js?v=6c5e9a06"></script>
 <script src="/supabase.min.js?v=4b6a655b"></script>
 <script src="/supabase-client.js?v=0bf64814"></script>
 <!-- Shared video-embed resolver. Loaded (not deferred) so buildForm can call
@@ -3937,10 +3937,12 @@ function paintHdrScope(){
 function setHdrFlip(v){
   if(v!=='on'&&v!=='off') return;
   if((chromeHdrFlip||'off')===v) return;
-  /* Refused rather than quietly ignored. Two of the eleven arrangements put
-     two parts on the left, and the stylesheet can group a pair on the left but
-     not on the right -- so their mirror is not an arrangement the header can
-     build. Turning the switch on anyway would look like it worked. */
+  /* Refused rather than quietly ignored, if it ever comes back. All eleven
+     arrangements mirror today -- the stylesheet now groups on the right as well
+     as on the left -- so mirrorBlocked() returns '' for every one of them and
+     this branch does not fire. It stays because the question is real: an
+     arrangement added later could easily have no expressible reflection, and
+     turning the switch on anyway would look like it worked. */
   const _L=window.ZWHeaderLayouts, _sel=hdrCfgSel||chromeHeader||'classic';
   if(v==='on'&&_L&&typeof _L.mirrorBlocked==='function'){
     const why=_L.mirrorBlocked(_sel);
@@ -3961,9 +3963,11 @@ function paintHdrFlip(){
   off.classList.toggle('on',!cur);
   on.setAttribute('aria-pressed',cur?'true':'false');
   off.setAttribute('aria-pressed',cur?'false':'true');
-  /* Off, with the reason on it, for the two arrangements whose mirror the
-     stylesheet cannot build. A disabled control that says why beats one that
-     accepts the click and does nothing. */
+  /* Off, with the reason on it, for any arrangement whose mirror the stylesheet
+     cannot build. A disabled control that says why beats one that accepts the
+     click and does nothing. Nothing is blocked today, so this reads as enabled
+     everywhere; it is asked rather than assumed so a new arrangement cannot
+     silently ship a switch that does nothing. */
   const L=window.ZWHeaderLayouts, sel=hdrCfgSel||chromeHeader||'classic';
   const why=(L&&typeof L.mirrorBlocked==='function')?L.mirrorBlocked(sel):'';
   on.disabled=!!why;
@@ -3971,7 +3975,7 @@ function paintHdrFlip(){
   const note=document.querySelector('#hdrPaneLayout .hdrcfg-flip-n');
   if(note){
     note.textContent = why
-      ? 'This arrangement cannot be mirrored: ' + why + '. The other nine can.'
+      ? 'This arrangement cannot be mirrored: ' + why + '. The others can.'
       : 'Flip the whole arrangement left to right. The tiles above show it. Applies to every page.';
     note.classList.toggle('warn', !!why);
   }
@@ -4914,6 +4918,6 @@ function onKey(e){
 
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 </script>
-<script src="/header-layouts.js?v=1b620b41"></script>
+<script src="/header-layouts.js?v=7d3d3cdb"></script>
 </body>
 </html>

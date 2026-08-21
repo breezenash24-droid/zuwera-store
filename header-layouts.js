@@ -172,7 +172,25 @@
     if (z.center.length > 1 && !paired) {
       return 'two parts centred — centring is absolute, so they would sit on top of each other';
     }
-    if (z.right.length > 1) {
+    /* RIGHT MAY NOW GROUP, FOR THE TWO SHAPES THE STYLESHEET BUILDS.
+       "Right" is one margin-left:auto, and two parts each claiming it split the
+       slack and drift apart — measured at nav width 1280, the mirror of
+       `links-left` put the logo at 385.5..445.5 instead of 1188..1248. The fix
+       is the one that already makes LEFT repeat safely: only the leading part
+       takes the margin. Left gets that free because the leading margin is where
+       the flow starts; right has to be told, and the order WITHIN the group is
+       only knowable per combination, so it is expressed as combination rules in
+       storefront-cohesion.css rather than as another attribute.
+
+       Exactly two are built, because exactly two are reachable: they are the
+       reflections of the two left-grouped arrangements. Any other right-hand
+       pair stays refused — nothing can ask for one, and CSS for an arrangement
+       nobody can reach is CSS nobody notices has rotted. Same shape as the
+       `paired` exception above: the rule is permitted because a stylesheet rule
+       exists for it, not because the general restriction went away. */
+    var GROUPED_RIGHT = { 'logo,links': 1, 'logo,links,actions': 1 };
+    if (z.right.length > 1
+        && !(String(spec.linksRow) !== '2' && GROUPED_RIGHT[z.right.join(',')])) {
       return 'two parts on the right — they would spread apart instead of sitting together';
     }
     /* Measured, not theorised. A centred part is out of flow, so an in-flow
@@ -252,8 +270,21 @@
     if (device === 'phone' || device === 'tablet') return smallMini();
     var z = zones(flip ? mirror(l.spec) : l.spec);
     var row1 = SPOTS.map(function (s) {
+      /* The right zone draws in REVERSE. zones() collects parts in PARTS order,
+         which is document order, and that is what the left zone lays out —
+         `all-left` really is [logo][categories][actions]. A grouped right zone
+         is the reflection of a grouped left one, so its parts swap places as
+         well as sides: [logo][categories] on the left becomes
+         [categories][logo] on the right, which is exactly what the combination
+         rules in storefront-cohesion.css build with order:2 and order:3.
+
+         Drawing it in document order here would put the logo on the correct
+         side of a tile that no longer read as a mirror — a tile that lies,
+         which this gallery has shipped once before. Reversing a zone with one
+         part in it changes nothing, so this needs no condition. */
+      var parts = s === 'right' ? z[s].slice().reverse() : z[s];
       return '<span class="zwhl-z zwhl-' + s + '">'
-        + z[s].map(function (p) { return part(p, z.menu && p === 'actions'); }).join('')
+        + parts.map(function (p) { return part(p, z.menu && p === 'actions'); }).join('')
         + '</span>';
     }).join('');
     var row2 = z.row2.length
@@ -417,28 +448,38 @@
   }
   function isFlipped(o) { return extraChoice('flip', o && o.flip) === 'on'; }
 
-  /* ── Two arrangements cannot be mirrored, and it is not an oversight ───────
-     `left` may hold two parts: only the first takes the leading margin, so
-     parts placed left simply sit in document order. `right` may not: right is
-     expressed as margin-left:auto, and a second part claiming the same margin
-     splits the free space between them and pushes the pair APART instead of
-     grouping it. conflict() has said so since the placement system was written.
+  /* ── All eleven mirror now; two of them did not ────────────────────────────
+     `left` may hold several parts: only the first takes the leading margin, so
+     parts placed left simply sit in document order. `right` could not, because
+     right is expressed as margin-left:auto and a second part claiming the same
+     margin splits the free space and pushes the pair APART. So the mirror of
+     anything grouped on the left was an arrangement the stylesheet could not
+     build, and two were refused with the reason shown on the control:
 
-     So the mirror of anything with two parts on the left is an arrangement the
-     stylesheet cannot build:
+         links-left   logo+links left   ->  logo+links right
+         all-left     all three left    ->  all three right
 
-         links-left   logo+links left   ->  logo+links right   not expressible
-         all-left     all three left    ->  all three right    not expressible
+     Both are built now, by the same principle that makes left repeat safely:
+     only the LEADING part takes the auto margin and the rest ride behind it.
+     Left gets that for free; right has to be told, and the order within the
+     group is only knowable per combination, so it lives as combination rules
+     in storefront-cohesion.css — like the centred logo+categories pair — rather
+     than as a sixth attribute.
 
-     The other nine mirror cleanly. Rather than offer a switch that would
-     quietly do nothing on those two, the builder asks this and turns the
-     control off with the reason on it — the same principle as the gallery
-     refusing to offer an arrangement the header cannot hold.
+     Measured at nav width 1280, reflection error against the unmirrored
+     original is 0px on all three parts for both:
 
-     Making the right zone group would mean giving only the leading part the
-     auto margin and assigning explicit orders to the rest, across five nav
-     dialects. That is placement surgery, not a toggle, and it is the thing to
-     do if these two mirrors are ever wanted. */
+         links-left mirrored   actions 32..127.3  cats 643.6..1188  logo 1188..1248
+         all-left   mirrored   actions 548.3..643.6  cats 643.6..1188  logo 1188..1248
+
+     The parts swap PLACES as well as sides — [logo][cats] reflects to
+     [cats][logo] — which is why miniature() draws the right zone in reverse.
+
+     conflict() still refuses every other right-hand pair. Nothing can ask for
+     one, and a rule for an arrangement nobody can reach is a rule nobody
+     notices has rotted. The builder still asks mirrorBlocked() rather than
+     assuming, so an arrangement added later cannot ship a switch that silently
+     does nothing. */
   function mirrorable(layout) {
     var l = typeof layout === 'string' ? byId(layout) : layout;
     if (!l) return false;
