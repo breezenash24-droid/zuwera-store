@@ -335,6 +335,87 @@
      * is the same moment the photo appears, so there is no interval where a
      * visible photo sits in a pane of the wrong shape.
      */
+    /* ── THE MARGIN TAKES THE COLOUR OF THE EDGE IT SITS AGAINST ────────────
+     *
+     * fitPane gives the pane the first photo's shape, so most of the time there
+     * is no margin at all. Two cases leave one anyway: a short window, where the
+     * height cap binds and the pane comes out wider than the ratio wants; and a
+     * product whose own photos differ, where every slide but the first is a
+     * different shape from the pane holding it.
+     *
+     * A contained photo can only ever leave margin on ONE axis — it always
+     * touches one pair of edges — so exactly two edges are ever against it, and
+     * which two is decided by comparing the photo's ratio with the pane's. Both
+     * are known here, so nothing is guessed.
+     *
+     * Painted as gradients rather than a colour because the backdrops are not
+     * flat: measured across this catalogue, seven of eighteen run from one tone
+     * to another down the edge (one of them from #ffffff to #3c382e) and six
+     * have different left and right sides. A single averaged colour would match
+     * at one end and be plainly wrong at the other. Sixteen stops reproduce the
+     * edge closely enough that the join is not findable.
+     *
+     * On the ELEMENT, not the pane: each slide has its own photo and therefore
+     * its own edges, and an <img>'s background paints exactly the area
+     * object-fit leaves over.
+     *
+     * Re-decided on resize, without re-fetching — the strips are cached by URL
+     * in image-utils.js, and a window that gets shorter can flip which axis
+     * carries the margin. */
+    function gradient(dir, strip) {
+      var stops = [];
+      for (var i = 0; i < strip.length; i++) {
+        var c = strip[i];
+        stops.push('rgb(' + c[0] + ' ' + c[1] + ' ' + c[2] + ') '
+          + ((i / (strip.length - 1)) * 100).toFixed(2) + '%');
+      }
+      return 'linear-gradient(' + dir + ',' + stops.join(',') + ')';
+    }
+
+    function paintMargin(node, strips) {
+      if (!strips || !node.naturalWidth || !node.naturalHeight) return;
+      var box = node.getBoundingClientRect();
+      if (!(box.width > 0 && box.height > 0)) return;
+      var photo = node.naturalWidth / node.naturalHeight;
+      var slot = box.width / box.height;
+      /* Within half a percent the photo fills the slot; painting anything would
+         only risk a seam along an edge that has no margin beside it. */
+      if (Math.abs(photo - slot) / slot < 0.005) {
+        pin(node, 'background-image', 'none');
+        return;
+      }
+      var sideways = photo < slot;            // photo relatively taller → margin left and right
+      pin(node, 'background-image', sideways
+        ? gradient('to bottom', strips.left) + ',' + gradient('to bottom', strips.right)
+        : gradient('to right', strips.top) + ',' + gradient('to right', strips.bottom));
+      pin(node, 'background-size', sideways ? '50% 100%,50% 100%' : '100% 50%,100% 50%');
+      pin(node, 'background-position', sideways ? 'left top,right top' : 'left top,left bottom');
+      pin(node, 'background-repeat', 'no-repeat,no-repeat');
+    }
+
+    function matchMargins() {
+      if (!perView || typeof window.zwEdgeStrips !== 'function') return;
+      for (var i = 0; i < host.children.length; i++) (function (node) {
+        if (node.tagName !== 'IMG') return;
+        var run = function () {
+          window.zwEdgeStrips(node.currentSrc || node.src)
+            .then(function (strips) { node._zwStrips = strips; paintMargin(node, strips); })
+            .catch(function () {});
+        };
+        /* On its own load, which is also when a lazy slide is first needed — so
+           nothing is sampled for a photo the shopper never reaches. */
+        if (node.complete && node.naturalWidth) run();
+        else node.addEventListener('load', run, { once: true });
+      }(host.children[i]));
+    }
+
+    function repaintMargins() {
+      for (var i = 0; i < host.children.length; i++) {
+        var n = host.children[i];
+        if (n._zwStrips) paintMargin(n, n._zwStrips);
+      }
+    }
+
     function fitPane() {
       var first = host.querySelector('img');
       if (!first) return;                    // a video-first strip keeps the CSS
@@ -375,11 +456,24 @@
         /* The slides carry their own height from CSS, which would fight the
            ratio the pane has just taken. Follow it instead. */
         for (var i = 0; i < host.children.length; i++) pin(host.children[i], 'height', '100%');
+        /* The pane has just changed shape, so which edges carry the margin may
+           have changed with it. */
+        repaintMargins();
       };
       if (first.complete && first.naturalWidth) apply();
       else first.addEventListener('load', apply, { once: true });
     }
-    if (perView) fitPane();
+    if (perView) {
+      fitPane();
+      matchMargins();
+      /* One listener per host, however many times this re-renders. A window that
+         gets shorter makes the cap bind, which changes the pane's shape, which
+         can move the margin from one axis to the other. */
+      if (!host._zwEdgeBound) {
+        host._zwEdgeBound = true;
+        window.addEventListener('resize', function () { repaintMargins(); }, { passive: true });
+      }
+    }
 
     /* Land on a photo boundary before anyone can see otherwise. Instant, not
        smooth: this is the strip arriving, not the shopper moving it — and it is

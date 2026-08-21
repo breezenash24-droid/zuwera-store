@@ -324,6 +324,92 @@ console.log('');
   boundaries = boundaries && fitOk;
 }
 
+/* ── AND WHAT MARGIN IS LEFT TAKES THE COLOUR OF THE EDGE BESIDE IT ───────
+   The backdrops are not flat: seven of eighteen sampled run from one tone to
+   another down the edge — one from #ffffff to #3c382e — and six have different
+   left and right sides. So the margin is painted as a GRADIENT reproducing the
+   edge, and on the axis that actually carries it, which a contained photo makes
+   answerable: it always touches one pair of edges, so exactly two are ever
+   against margin. */
+console.log('');
+{
+  /* Resolved synchronously so the assertions below stay flat and deterministic —
+     a real promise would need the whole file to become async for no extra
+     coverage. The shape is the same one image-utils.js returns. */
+  const band = (from, to) => {
+    const out = [];
+    for (let i = 0; i < 16; i++) {
+      const t = i / 15;
+      out.push([Math.round(from[0] + (to[0] - from[0]) * t),
+        Math.round(from[1] + (to[1] - from[1]) * t),
+        Math.round(from[2] + (to[2] - from[2]) * t)]);
+    }
+    return out;
+  };
+  const STRIPS = {                       // Zuwera Fleece's real numbers
+    left: band([255, 255, 255], [60, 56, 46]),
+    right: band([240, 240, 240], [70, 66, 56]),
+    top: band([255, 255, 255], [240, 240, 240]),
+    bottom: band([60, 56, 46], [70, 66, 56]),
+  };
+  global.window.zwEdgeStrips = () => ({ then(fn) { fn(STRIPS); return { catch() {} }; } });
+
+  const paint = (w, h) => {
+    G.renderStrip(media, ['a.jpg'], { alt: 'x', isVideo: () => false, perView: 1 });
+    const n = media.children[0];
+    n.naturalWidth = w; n.naturalHeight = h;
+    n.fire('load');                       // the slot is 100 wide x 100 tall here
+    return n.style;
+  };
+
+  /* 1070x1338 in a square slot: relatively taller, so the margin is down the
+     SIDES and each side gets its own edge, top to bottom. */
+  let s = paint(1070, 1338);
+  const sides = /^linear-gradient\(to bottom,rgb\(255 255 255\) 0\.00%,/.test(s.getPropertyValue('background-image'))
+    && (s.getPropertyValue('background-image').match(/linear-gradient\(to bottom,/g) || []).length === 2
+    && s.getPropertyValue('background-size') === '50% 100%,50% 100%'
+    && s.getPropertyValue('background-position') === 'left top,right top';
+  console.log('  a tall photo in a square slot  -> ' + (sides ? 'left and right edges, top to bottom' : 'NO'));
+
+  /* The other way round: margin above and below, painted from the top and
+     bottom edges, left to right. */
+  s = paint(1338, 1070);
+  const stacked = (s.getPropertyValue('background-image').match(/linear-gradient\(to right,/g) || []).length === 2
+    && s.getPropertyValue('background-size') === '100% 50%,100% 50%'
+    && s.getPropertyValue('background-position') === 'left top,left bottom';
+  console.log('  a wide photo in a square slot  -> ' + (stacked ? 'top and bottom edges, left to right' : 'NO'));
+
+  /* And when the photo fills the slot there is nothing to paint. Painting
+     anyway would put a seam along an edge with no margin beside it. */
+  s = paint(1000, 1000);
+  const clean = s.getPropertyValue('background-image') === 'none';
+  console.log('  a photo that fills its slot    -> ' + (clean ? 'nothing painted' : 'NO — ' + s.getPropertyValue('background-image').slice(0, 40)));
+
+  /* Sixteen stops, evenly spaced, first and last pinned to the ends — a
+     gradient that starts late leaves a hard line at the join. */
+  s = paint(1070, 1338);
+  const bg = s.getPropertyValue('background-image');
+  /* Regex rather than indexOf: this is a string BUILT at runtime, not source
+     text, so ordering-assertions-are-not-vacuous.test.js cannot check the needle
+     against a file and correctly reports it as a landmark that does not exist. */
+  const dense = (bg.match(/rgb\(/g) || []).length === 32
+    && /rgb\([^)]*\) 0\.00%/.test(bg) && /rgb\([^)]*\) 100\.00%/.test(bg);
+  console.log('  …reproduced with 16 stops each -> ' + (dense ? 'yes' : 'NO'));
+
+  /* A store with no image-utils.js loaded must not throw — it simply keeps the
+     pane's own background, which is where this started. */
+  delete global.window.zwEdgeStrips;
+  let survived = true;
+  try { paint(1070, 1338); } catch (_) { survived = false; }
+  console.log('  …and nothing breaks without it -> ' + (survived ? 'yes' : 'NO'));
+
+  const edgeOk = sides && stacked && clean && dense && survived;
+  console.log('\n  ' + (edgeOk
+    ? 'PASS  the margin matches the edge it sits against'
+    : 'FAIL  the margin is a colour of its own'));
+  boundaries = boundaries && edgeOk;
+}
+
 /* Regression guard for the fix this one sits on top of: opening a ONE-photo
    product straight after a seven-photo one must still clear the old arrows,
    which by then are wired to the previous product's strip. */

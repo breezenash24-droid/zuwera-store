@@ -99,6 +99,89 @@
     return `https://res.cloudinary.com/${cloudinaryCloudName}/video/fetch/so_0,f_jpg,q_auto,w_${safeWidth}/${encodeURI(absoluteUrl)}`;
   }
 
+  /* ── WHAT COLOUR IS THE EDGE OF THIS PHOTO? ────────────────────────────────
+   *
+   * A photo shown with object-fit:contain leaves the pane's own background
+   * showing beside it. Paint that background the photo's own edge colour and the
+   * join disappears — but only if the colour is RIGHT, and on this catalogue a
+   * single averaged colour is not. Sampled eight points down each edge of
+   * eighteen product photos:
+   *
+   *     Zuwera Aero Pro      #edeee9 -> #edeee9    flat
+   *     Senegal Home Jersey  #454952 -> #99a0a8    86 apart
+   *     Zuwera Fleece        #ffffff -> #3c382e    199 apart
+   *     Zuwera Tech          left and right edges 53 apart
+   *
+   * Seven of eighteen backdrops are lit gradients and six have different left
+   * and right edges. One flat colour would match at one end of the photo and be
+   * plainly wrong at the other, which is worse than an honest dark band.
+   *
+   * So this returns the edges as STRIPS, and the caller reproduces them as
+   * gradients. Sixteen samples down each side is finer than the eye can pick out
+   * across a 40-pixel margin.
+   *
+   * ── ONE REQUEST, ALL FOUR EDGES ────────────────────────────────────────────
+   *
+   * Cloudinary scales the whole photo to 16x16 — around 400 bytes — and the four
+   * edges are that grid's outer rows and columns. Each cell is the average of
+   * the sixteenth of the photo it covers, which is exactly the strip that sits
+   * against the margin. Four separate edge crops would be four round trips for a
+   * worse answer.
+   *
+   * Read through a canvas, which needs the pixels to be same-origin or CORS-
+   * clean. They are: res.cloudinary.com answers `Access-Control-Allow-Origin: *`,
+   * verified against the live account. The ORIGINAL host is never touched by
+   * this — a product photo can be on any domain a merchant pasted and most of
+   * them send no CORS headers at all, so sampling the original directly would
+   * taint the canvas and throw. */
+  const EDGE_CACHE = new Map();
+  function zwEdgeStrips(url) {
+    const absoluteUrl = absoluteImageUrl(url);
+    if (!absoluteUrl || !/^https?:\/\//i.test(absoluteUrl)) return Promise.resolve(null);
+    if (EDGE_CACHE.has(absoluteUrl)) return EDGE_CACHE.get(absoluteUrl);
+
+    const N = 16;
+    const job = new Promise((resolve) => {
+      if (typeof document === 'undefined' || typeof Image !== 'function') return resolve(null);
+      let done = false;
+      const finish = (v) => { if (!done) { done = true; resolve(v); } };
+      /* A photo that never answers must not leave a promise pending forever —
+         it is cached by URL, so every later slide would await the same one. */
+      const timer = setTimeout(() => finish(null), 8000);
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.decoding = 'async';
+      img.onload = function () {
+        clearTimeout(timer);
+        try {
+          const c = document.createElement('canvas');
+          c.width = N; c.height = N;
+          const ctx = c.getContext('2d', { willReadFrequently: false });
+          ctx.drawImage(img, 0, 0, N, N);
+          const d = ctx.getImageData(0, 0, N, N).data;
+          const at = (x, y) => {
+            const i = (y * N + x) * 4;
+            return [d[i], d[i + 1], d[i + 2]];
+          };
+          const col = (x) => { const o = []; for (let y = 0; y < N; y++) o.push(at(x, y)); return o; };
+          const row = (y) => { const o = []; for (let x = 0; x < N; x++) o.push(at(x, y)); return o; };
+          finish({ left: col(0), right: col(N - 1), top: row(0), bottom: row(N - 1) });
+        } catch (_) {
+          finish(null);                       // tainted canvas, or no 2d context
+        }
+      };
+      img.onerror = function () { clearTimeout(timer); finish(null); };
+      /* Its own Cloudinary URL is already the sample; asking Cloudinary to fetch
+         a Cloudinary URL is a round trip for nothing. */
+      img.src = absoluteUrl.indexOf('res.cloudinary.com') !== -1
+        ? absoluteUrl
+        : `https://res.cloudinary.com/${cloudinaryCloudName}/image/fetch/c_scale,w_${N},h_${N},f_png/${encodeURI(absoluteUrl)}`;
+    });
+
+    EDGE_CACHE.set(absoluteUrl, job);
+    return job;
+  }
+
   /* Pull the untransformed source back out of one of our own Cloudinary URLs.
      The shape is /<type>/fetch/<transforms>/<encoded original>, so the original
      is everything after the first slash that follows the transform segment.
@@ -265,6 +348,7 @@
     optimizeImage,
     optimizeVideo,
     videoPosterUrl,
+    zwEdgeStrips,
     wsrvUrl,
     get fallbackProvider() { return fallbackProvider; }
   };
@@ -272,5 +356,6 @@
   window.optimizeImage = optimizeImage;
   window.optimizeVideo = optimizeVideo;
   window.videoPosterUrl = videoPosterUrl;
+  window.zwEdgeStrips = zwEdgeStrips;
   window.ZuweraImages.configReady = loadImageConfig();
 })();
