@@ -96,6 +96,40 @@ Runs on Google's servers, free, independent of the website.
 
 ---
 
+## New tables are picked up on their own
+
+You do not have to tell the backup about a new table. Each run asks PostgREST
+which tables exist — the same OpenAPI document the API itself publishes — and
+exports anything it finds, so a table added in Supabase on Tuesday is in
+Wednesday morning's backup with its own tab.
+
+Two things it will **not** take, and it says so on the Overview rather than
+skipping quietly:
+
+- anything on the never-export list (`api_key_overrides`, `zw_insert_throttle`)
+- any newly discovered table whose **name** looks like it holds credentials —
+  `*_keys`, `*_secrets`, `*_tokens`, `*_credentials`, `*_passwords`
+
+That second rule exists because discovery turns "somebody added a table" into
+"somebody published a table", and this payload lands in a Google Sheet and a git
+repo. If it holds one back wrongly, the Overview names it and you can add it to
+the known list in `supabase/functions/backup-export/index.ts`.
+
+The known list is a **floor**, not the whole truth: if discovery fails, the run
+falls back to it, so a bad day makes the backup no smaller than it was.
+
+**Rows are paged**, so nothing stops at the project's 1000-row "Max rows" cap —
+which was silent, and would have started quietly dropping orders the day you
+passed a thousand. Customers are paged the same way (that one was hardcoded to
+the first 1000). A table past 50,000 rows stops and reports itself as truncated,
+which is a truncated backup that knows it is truncated.
+
+Anything discovered gets a plain tab named after the table. To give it a nicer
+label, a description and a place in the tab order, add it to `DISPLAY`,
+`DESCRIPTION` and `TAB_ORDER` in `google-sheet/Code.gs`.
+
+---
+
 ## If the Sheet stops updating
 
 The Apps Script trigger is the part that fails silently, so check it in this
