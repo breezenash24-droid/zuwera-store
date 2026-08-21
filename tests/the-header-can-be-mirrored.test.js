@@ -188,6 +188,63 @@ console.log('\n  the two definitions of the mirror agree, on every shipped layou
   }
 }
 
+console.log('\n  the four placement attributes could not describe a mirror, and now five do');
+{
+  /* Reported as "some of the header mirrored work, while some didn't at all",
+     and measuring every arrangement's geometry on the live page found exactly
+     two. At 1280px, part centres, normal -> mirrored, against the reflection:
+
+         logo-beside   logo  512 -> 512   wanted 768      frozen
+                       links 681 -> 681   wanted 599      frozen
+         stacked       actions 1153.6 -> 1153.6  wanted 126.4   frozen
+
+     Both are combinations the catalogue never contained, so no rule covered
+     them:
+
+       a CENTRED PAIR reads [logo][categories] or [categories][logo], and both
+       are logo=center links=center — the four attributes cannot tell them
+       apart, so the pair drew the same way round either way;
+
+       the two-row centred rule pins the actions with a literal `right:`, which
+       outranks data-zw-hdr-actions entirely.
+
+     So the fact "this arrangement is mirrored" is written down instead of
+     inferred from the other four. After the fix, measured the same way: all
+     nine reflect, logo-beside 512 -> 768 and 681 -> 599, stacked 1153.6 ->
+     126.4. */
+  const CSS = read('storefront-cohesion.css');
+  const TE = read('theme-engine.js');
+  const STAMP = read('scripts/stamp-header-layout.js');
+
+  ok('theme-engine writes the fifth attribute',
+    /if \(spec\.flip === 'on'\) root\.setAttribute\('data-zw-hdr-flip', 'on'\);/.test(code(TE)));
+  ok('…and removes it when the mirror is turned off',
+    /else root\.removeAttribute\('data-zw-hdr-flip'\);/.test(code(TE)),
+    'left behind, a store that unmirrored would stay mirrored');
+  ok('…and clear() takes it with the others',
+    /'data-zw-hdr-linksrow', 'data-zw-hdr-flip'\]/.test(TE));
+
+  ok('the edge stamps it too', /out\['data-zw-hdr-flip'\] = 'on';/.test(code(MID)));
+  ok('the build stamp writes it', /if \(flipped\) keep \+= ' data-zw-hdr-flip="on"';/.test(code(STAMP)));
+  ok('…reads it off the row, or it could never bake one',
+    /flip: pick\('flip', \['on', 'off'\]\)/.test(code(STAMP)),
+    'a field fetchLayout does not pick up is a field that is always absent');
+  ok('…counts it as an answer worth baking on its own',
+    /chosen\.order \|\| chosen\.flip;/.test(code(STAMP)));
+  ok('…and strips it, so turning the mirror off actually un-mirrors',
+    /'data-zw-hdr-flip'\];/.test(STAMP));
+
+  ok('the centred pair swaps sides when mirrored',
+    /html\[data-zw-hdr-flip="on"\]\[data-zw-hdr-logo="center"\]\[data-zw-hdr-links="center"\]\[data-zw-hdr-linksrow="1"\]/.test(CSS));
+  ok('…by negating the same two offsets, not by inventing new arithmetic',
+    /data-zw-hdr-flip="on"[\s\S]{0,400}left: calc\(\(var\(--zw-hdr-links-w/.test(CSS));
+  ok('the two-row centred actions pin to the other side',
+    /html\[data-zw-hdr-flip="on"\]\[data-zw-hdr-linksrow="2"\]\[data-zw-hdr-logo="center"\]/.test(CSS));
+  ok('…clearing the literal `right:` it is overriding',
+    /left: var\(--zw-mobile-gutter, 2\.5rem\); right: auto;/.test(CSS),
+    'an absolutely positioned box with both set stretches between them');
+}
+
 console.log('\n  and the builder can actually turn it on');
 {
   ok('there is a control', /id="hdrFlipOn"/.test(B) && /id="hdrFlipOff"/.test(B));

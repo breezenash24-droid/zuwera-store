@@ -62,7 +62,11 @@ const PAGES = ['404.html', 'about.html', 'account.html', 'bag.html', 'checkout.h
    on <html> survives and re-running cannot compound. */
 const OURS = ['data-zw-hdr', 'data-zw-hdr-logo', 'data-zw-hdr-links',
   'data-zw-hdr-actions', 'data-zw-hdr-linksrow', 'data-zw-hdr-at',
-  'data-zw-hdr-lines', 'data-zw-iconlabels', 'data-zw-account', 'data-zw-hdr-order'];
+  'data-zw-hdr-lines', 'data-zw-iconlabels', 'data-zw-account', 'data-zw-hdr-order',
+  /* Listed so that turning the mirror OFF actually removes it. Without this the
+     attribute would be baked once and never stripped, and the store would stay
+     mirrored on the first frame of every page after the setting was cleared. */
+  'data-zw-hdr-flip'];
 
 /* data-zw-account is on <body>, because the rule it answers is written against
    body.zwf-bagpanel-on. stamp-theme-default.js bakes it there from the store's
@@ -115,8 +119,12 @@ function fetchLayout() {
               const v = String(o.iconLabels || '').trim();
               return /^(none|(phone|tablet|desktop)( (phone|tablet|desktop))*)$/.test(v) ? v : '';
             })(),
+            /* Read here or the build could never bake a mirrored header: the
+               flip is applied further down from `chosen.flip`, and a field this
+               function does not pick up is a field that is always absent. */
+            flip: pick('flip', ['on', 'off']),
           };
-          const any = chosen.id || chosen.lines || chosen.account || chosen.iconLabels || chosen.order;
+          const any = chosen.id || chosen.lines || chosen.account || chosen.iconLabels || chosen.order || chosen.flip;
           resolve(any ? chosen : null);
         } catch (_) { resolve(null); }
       });
@@ -212,6 +220,10 @@ if (!process.env.CF_PAGES && !process.argv.includes('--local')) process.exit(0);
           keep += ' data-zw-hdr-links="' + spec.links + '"';
           keep += ' data-zw-hdr-actions="' + spec.actions + '"';
           keep += ' data-zw-hdr-linksrow="' + (String(spec.linksRow) === '2' ? '2' : '1') + '"';
+          /* Same fifth attribute the edge and theme-engine.js write: two rules
+             in the stylesheet cannot tell a mirrored centred pair from a normal
+             one without it. */
+          if (flipped) keep += ' data-zw-hdr-flip="on"';
           /* Not decoration: this is what lets the pre-paint block decide
              between a baked answer and a cached one without guessing. */
           keep += ' data-zw-hdr-at="' + chosen.at + '"';

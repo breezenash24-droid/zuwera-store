@@ -115,6 +115,11 @@ export function attrsFrom(value, updatedAt) {
     out['data-zw-hdr-links'] = s.links;
     out['data-zw-hdr-actions'] = s.actions;
     out['data-zw-hdr-linksrow'] = String(s.linksRow) === '2' ? '2' : '1';
+    /* The fifth placement attribute. Two rules in storefront-cohesion.css need
+       to know an arrangement is MIRRORED rather than merely inferring it from
+       the other four, because a centred pair reads the same either way round.
+       See the note beside setHeader() in theme-engine.js. */
+    if (value.flip === 'on') out['data-zw-hdr-flip'] = 'on';
 
     /* ── WITHOUT THIS LINE THE STAMP GETS UNDONE ────────────────────────────
        data-zw-hdr-at does not describe when the page was built. It means "the
