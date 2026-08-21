@@ -146,7 +146,7 @@ const MW = read('functions/_middleware.js');
 
   console.log('\n  and it is wired without widening what gets stamped');
   {
-    ok('feature_flags is fetched', /'page_builder_published', 'feature_flags'/.test(MW));
+    ok('feature_flags is fetched', /FIRST_PAINT_KEYS\.concat\(\['feature_flags'\]\)/.test(MW));
     ok('…but not stamped into the settings block',
       !/'feature_flags',/.test((MW.match(/const FIRST_PAINT_KEYS = \[[\s\S]*?\];/) || [''])[0]),
       '2,970 bytes on every HTML response for one derived attribute');

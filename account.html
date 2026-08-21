@@ -2398,13 +2398,8 @@ document.addEventListener('DOMContentLoaded', function() { _sb = window.sb; init
      panels here, exactly as it does for every other modal. -->
 <script src="modal-lock.js?v=fb1f304f" defer></script>
 <script src="announcement-bar.js?v=374dfc94" defer></script>
-<!-- Runs the inert text/zw-lazy declarations below once the page is idle
-     or the visitor first touches it. See zw-lazy.js for why the list is
-     short: almost every other module here is called synchronously by
-     another one while the page settles. -->
-<script src="/zw-lazy.js?v=e327b753" defer></script>
 <script src="email-popup.js?v=33908bad" async></script>
-<script type="text/zw-lazy" src="integrations.js?v=82606df1"></script>
+<script src="integrations.js?v=82606df1" defer></script>
 <!-- The return-reason vocabulary, shared with the account modal's own form in
      customer-hub.js. NOT deferred: the wiring call below runs on
      DOMContentLoaded, and a deferred script is not guaranteed to have run by

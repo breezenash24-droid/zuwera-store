@@ -258,25 +258,50 @@ export function layoutClasses(pb) {
   return { classes, hasStaticHero };
 }
 
-async function firstPaint(env) {
+async function firstPaint(env, home) {
   const base = supabaseUrl(env);
   const key = supabaseAnonKey(env);
   if (!base || !key) return null;
-  /* ONE request for all of it. The header arrangement used to be fetched on its
-     own; asking for the rest alongside it costs the same round trip and the
-     same edge-cache entry. */
-  const wanted = FIRST_PAINT_KEYS.concat(['page_builder_published', 'feature_flags']);
-  const res = await fetch(
-    base + '/rest/v1/site_settings?select=key,value,updated_at&key=in.('
-      + wanted.join(',') + ')',
-    {
-      headers: { apikey: key, Authorization: 'Bearer ' + key },
-      cf: { cacheTtl: TTL, cacheEverything: true },
-    },
-  );
-  if (!res.ok) return null;
-  const rows = await res.json();
+  /* ── TWO REQUESTS, NOT ONE, AND THE REASON IS MEASURED ────────────────────
+     This was one query for everything, on the reasoning that asking for the
+     rest alongside the header costs the same round trip. It does — but it does
+     NOT cost the same number of BYTES, and the stamp is raced against a 60ms
+     budget:
+
+         header_layout alone                    282 b
+         the fourteen first-paint keys        5,293 b
+         page_builder_published alone        13,255 b
+         all of them together                18,598 b
+
+     Measured against the deployed site, the combined read won that race
+     ONE TIME IN TEN. Nine visitors in ten got a page with no stamp at all —
+     every part of this file dead, silently, while every test still passed
+     because they all read files.
+
+     page_builder_published is 71% of those bytes and is wanted for ONE thing:
+     which default sections the layout omits. Split out, it gets its own edge
+     cache entry and its own race, so a slow read of the big row can no longer
+     cost the theme, the nav and the settings their stamp too. */
+  const headers = { apikey: key, Authorization: 'Bearer ' + key };
+  const cf = { cacheTtl: TTL, cacheEverything: true };
+  const url = (keys) => base + '/rest/v1/site_settings?select=key,value,updated_at&key=in.('
+    + keys.join(',') + ')';
+
+  const [small, big] = await Promise.all([
+    fetch(url(FIRST_PAINT_KEYS.concat(['feature_flags'])), { headers, cf }),
+    /* Its own failure is not the small read's failure. */
+    fetch(url(['page_builder_published']), { headers, cf }).catch(() => null),
+  ]);
+
+  if (!small || !small.ok) return null;
+  const rows = await small.json();
   if (!Array.isArray(rows)) return null;
+  if (big && big.ok) {
+    try {
+      const more = await big.json();
+      if (Array.isArray(more)) rows.push(...more);
+    } catch (_) { /* the layout classes are skipped; nothing else is */ }
+  }
 
   const parse = (v) => {
     if (typeof v !== 'string') return v;
@@ -304,7 +329,11 @@ async function firstPaint(env) {
     classes: layoutClasses(byKey.page_builder_published),
     nav: navStripHtml(byKey.nav_menu),
     search: searchAttr(byKey.feature_flags),
-    theme: themeAttrs(byKey.theme_modes),
+    /* The page's own theme beats the store default where there is one — see
+       themeAttrs. Only the homepage has a page_builder_published to speak for
+       it; every other route falls through to the default, which is what they
+       actually render. */
+    theme: themeAttrs(byKey.theme_modes, home ? byKey.page_builder_published : null),
     settings,
     updatedAt,
   };
@@ -467,19 +496,42 @@ export function searchAttr(featureFlags) {
   return '';
 }
 
-export function themeAttrs(tm) {
+const BASES = { light: 1, 'super-light': 1, dark: 1 };
+
+export function themeAttrs(tm, pb) {
   const v = (tm && typeof tm === 'object') ? tm : null;
   const id = v && typeof v.default === 'string' ? v.default.trim() : '';
   if (!id) return null;
   const modes = Array.isArray(v.modes) ? v.modes : [];
-  const rec = modes.filter((m) => m && m.id === id)[0] || null;
-  const base = rec && typeof rec.base === 'string' ? rec.base : '';
+  const baseById = {};
+  for (const m of modes) if (m && typeof m.id === 'string' && BASES[m.base]) baseById[m.id] = m.base;
+
+  /* ── THE PAGE'S THEME BEATS THE STORE'S DEFAULT, BECAUSE IT WINS LATER ────
+     Two rows answer "what colour is this page" and they disagree on the live
+     store:
+
+         theme_modes.default            imported-mslmiae8, whose base is LIGHT
+         page_builder_published.theme   "dark"
+
+     The pre-paint block reads the first and paints a light ground; storefront.js
+     applies the second a moment later and the homepage turns dark. An incognito
+     visitor — no cached choice, no cached record — watched exactly that on every
+     single load, which is what "it shows light before switching to dark" is.
+
+     Whoever wins LAST is the page's real theme, so that is what gets stamped.
+     Only the homepage has a page_builder_published to speak for it; the caller
+     passes null for every other route, which falls through to the default they
+     genuinely render. */
+  const page = (pb && typeof pb === 'object' && typeof pb.theme === 'string') ? pb.theme.trim() : '';
+  const base = BASES[page] ? page : (baseById[id] || '');
+
   return {
     id,
     /* Only when the stylesheet has a token set for it. An unrecognised base is
        worse than none: the pre-paint block treats it as a learned answer and
        paints a ground for a theme that does not exist. */
-    base: (base === 'light' || base === 'super-light' || base === 'dark') ? base : '',
+    base,
+    baseById,
   };
 }
 
@@ -506,10 +558,23 @@ export function themeAttrs(tm) {
 class ThemeStamp {
   constructor(theme) { this.theme = theme; }
   element(el) {
-    const { id, base } = this.theme;
+    const { id, base, baseById } = this.theme;
     if (base) el.setAttribute('data-zw-theme-default', base);
     const baked = String(el.getAttribute('data-zw-theme-stamp') || '');
-    if (baked && id && baked !== id) el.removeAttribute('data-zw-theme-stamp');
+    if (!baked) return;
+    /* Two ways the baked palette can be the wrong one, and the second is the
+       one that was actually happening:
+
+         it is not the default any more   the shop picked another theme
+         it IS the default, but this PAGE renders on a different ground
+
+     On the live store the bake is the default AND light, while the homepage
+     renders dark. Comparing ids alone kept it, so a light theme's tokens sat
+     on a dark ground for the first frame. */
+    const bakedBase = baseById[baked] || '';
+    if (baked !== id || (base && bakedBase && bakedBase !== base)) {
+      el.removeAttribute('data-zw-theme-stamp');
+    }
   }
 }
 
@@ -605,7 +670,23 @@ export async function onRequest(context) {
 
   /* Started before the page is fetched so the two overlap. A rejection here
      must not take the page down with it. */
-  const pending = skip ? null : firstPaint(env).catch(() => null);
+  /* Only the homepage is described by page_builder_published, so only it gets
+     that row's theme. /index.html is the same document by another name and is
+     routed here too. */
+  const home = url.pathname === '/' || url.pathname === '/index.html';
+  const pending = skip ? null : firstPaint(env, home).catch(() => null);
+
+  /* ── THE READ HAS TO OUTLIVE THE RACE, OR THE CACHE NEVER WARMS ─────────
+     The note below says giving up on the WAIT is not giving up on the REQUEST.
+     It was, though: without waitUntil the Worker is torn down the moment the
+     response is returned and the in-flight fetch is cancelled with it. So the
+     edge cache was never populated, every visitor raced a COLD read against
+     60ms, and the stamp landed one time in ten measured against the deployed
+     site. The comment described the behaviour anybody would have wanted; this
+     line is what makes it true. */
+  if (pending && typeof context.waitUntil === 'function') {
+    try { context.waitUntil(pending); } catch (_) {}
+  }
 
   const res = await context.next();
   if (skip) return res;

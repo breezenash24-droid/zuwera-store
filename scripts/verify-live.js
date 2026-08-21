@@ -314,18 +314,16 @@ const getText = async (path) => {
     const hr = await get('/hero-render.js');
     ok('…and it actually resolves', hr.status === 200, 'HTTP ' + hr.status);
 
-    const lazy = [...html.matchAll(/<script type="text\/zw-lazy"[^>]*src="([^"]+)"/g)].map((m) => m[1]);
-    ok('the lazy declarations are inert markup', lazy.length > 0,
-      'nothing declared lazy on this page');
-    if (lazy.length) {
-      console.log('      deferred to idle: ' + lazy.map((s) => s.split('?')[0]).join(', '));
-      ok('…with the loader ahead of them',
-        html.indexOf('src="/zw-lazy.js') > -1
-        && html.indexOf('src="/zw-lazy.js') < html.indexOf('<script type="text/zw-lazy"'),
-        'a declaration the loader never sees is a module that never runs');
-      const lz = await get('/zw-lazy.js');
-      ok('…and the loader resolves', lz.status === 200, 'HTTP ' + lz.status);
-    }
+    /* THERE IS NO LAZY LOADER ANY MORE, AND THAT IS THE ASSERTION.
+       One was built and one module (integrations.js) declared through it. The
+       trigger was zwWhenIdle, which fires on the FIRST SCROLL EVENT — the same
+       frame the header's hide animation starts in — so it inserted a script,
+       fetched it and parsed it exactly while the header was moving. Reported as
+       a choppy header, and it bought 3,709 bytes of a module that does nothing
+       on a store with no integrations row. Removed rather than rescheduled. */
+    ok('nothing loads itself during a scroll',
+      !/text\/zw-lazy/.test(html) && !/zw-lazy\.js/.test(html),
+      'zwWhenIdle fires on the first scroll, which is when the header animates');
   }
 
   /* ── 9. the stylesheet, as minified and served ─────────────────────────────

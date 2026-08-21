@@ -117,7 +117,7 @@ const ctx = () => ({
     ok('…nor legal_policies', !keys.includes('legal_policies'), '6,623 bytes');
     ok('one request for all of it, not one per key', /key=in\.\(/.test(MW));
     ok('…read by key, so the rows have to carry one', /select=key,value,updated_at/.test(MW));
-    ok('…and still cached at the edge', /cf: \{ cacheTtl: TTL, cacheEverything: true \}/.test(MW));
+    ok('…and still cached at the edge', /const cf = \{ cacheTtl: TTL, cacheEverything: true \};/.test(MW));
   }
 
   console.log('\n  what the layout actually contains, instead of what was remembered');
