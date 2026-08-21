@@ -626,8 +626,13 @@ if(_nw.length===3&&_nw[0]===(_d.getAttribute('data-zw-hdr-logo')||'')
   <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
 <script src="header-scroll.js?v=0a0efce9" defer></script>
 <script src="announcement-bar.js?v=374dfc94" defer></script>
+<!-- Runs the inert text/zw-lazy declarations below once the page is idle
+     or the visitor first touches it. See zw-lazy.js for why the list is
+     short: almost every other module here is called synchronously by
+     another one while the page settles. -->
+<script src="/zw-lazy.js?v=e327b753" defer></script>
 <script src="email-popup.js?v=33908bad" async></script>
-<script src="integrations.js?v=82606df1" defer></script>
+<script type="text/zw-lazy" src="integrations.js?v=82606df1"></script>
 <script src="image-effects.js?v=42549149" defer></script>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=12725ac1">
 <!-- Quick-add modal module MUST load before storefront.js: the grid wiring in
