@@ -301,14 +301,27 @@
 
     /* Still measured, because a SWIPE is not one of ours to place — this only
        has to name which photo the shopper has landed on, for the counter.
-       Clamped, so a rubber-band overscroll cannot report a photo that is not
-       there. */
+       ── AND SLIDES ARE NOT ALL THE SAME WIDTH ──────────────────────────────
+       Each is as wide as its own photograph, so dividing the scroll position by
+       one slot width names the wrong photo as soon as the shapes differ. The
+       nearest child by its own offset is the same answer when they are equal and
+       the right one when they are not; slotWidth stays only as the fallback for
+       a strip that has not been laid out yet. */
     function index() {
-      var s = slotWidth();
-      if (!s) return 0;
-      var i = Math.round(host.scrollLeft / s);
-      if (!isFinite(i)) return 0;
-      return Math.max(0, Math.min(count() - 1, i));
+      var kids = host.children, n = kids.length;
+      if (!n) return 0;
+      var at = host.scrollLeft + (host.offsetLeft || 0);
+      var best = 0, bestGap = Infinity;
+      for (var i = 0; i < n; i++) {
+        var gap = Math.abs((kids[i].offsetLeft || 0) - at);
+        if (gap < bestGap) { bestGap = gap; best = i; }
+      }
+      if (bestGap === Infinity) {
+        var s = slotWidth();
+        best = s ? Math.round(host.scrollLeft / s) : 0;
+      }
+      if (!isFinite(best)) return 0;
+      return Math.max(0, Math.min(n - 1, best));
     }
 
     function page(dir) { goTo(current + (dir > 0 ? 1 : -1)); }
@@ -512,26 +525,49 @@
      * others. That is the honest version — it shows up exactly where it is free,
      * and steps aside where it would cost the photograph.
      */
-    var MIN_PEEK = 24;      // below this it reads as a rendering fault, not a peek
-    var MAX_PEEK = 0.25;    // and past this the next photo stops being a hint
-
     function fitPeek(r) {
       var W = host.getBoundingClientRect().width;
       if (!(W > 0) || !(r > 0)) return;
       var capPx = parseFloat(getComputedStyle(host).maxHeight);
       if (!isFinite(capPx) || capPx <= 0) capPx = Infinity;
 
-      var photoH = Math.min(W / r, capPx);     // the biggest it can be at full width
-      var photoW = photoH * r;
-      var spare = W - photoW;
-      if (!(spare >= MIN_PEEK)) return;        // it already fills: leave it alone
-      if (spare > W * MAX_PEEK) { photoW = W * (1 - MAX_PEEK); photoH = photoW / r; }
+      /* ONE HEIGHT FOR THE WHOLE ROW, taken from the first photo and the
+         ceiling. Height is the thing that must not change as you page: it is
+         what the pane, the arrows and everything under them are laid out
+         against, and a row of differing heights would jog the modal on every
+         press. */
+      var H = Math.min(W / r, capPx);
+      pin(host, 'aspect-ratio', W.toFixed(2) + ' / ' + H.toFixed(2));
 
-      var pct = (photoW / W) * 100;
-      pin(host, 'aspect-ratio', W.toFixed(2) + ' / ' + photoH.toFixed(2));
+      /* ── AND EACH SLIDE IS AS WIDE AS ITS OWN PHOTO ─────────────────────
+       *
+       * Every slide used to be the same width, so a photo of a different shape
+       * could not fill the one it was given, and the leftover was painted with
+       * that photo's own edge. That is why a close-up on a white sweep put a
+       * white slab against the black popup: the paint was RIGHT — it matched
+       * the photograph exactly — and it still read as a mistake, because a band
+       * of anything beside a photo reads as a band.
+       *
+       * There is no need for one. At a fixed height, a photo's width follows
+       * from its own proportions, and `width:auto` on an <img> with a set height
+       * is the browser working that out for nothing. Every photo then fills its
+       * slide exactly and there is no leftover ANYWHERE to colour.
+       *
+       * The peek comes out of the same arithmetic rather than being asked for:
+       * a photo narrower than the pane leaves room, and what shows in that room
+       * is the next photo instead of a painted margin. So the strip is only
+       * uneven where the photographs themselves are, which is what was asked
+       * for — and it is uneven in the one way that reads as intentional, since
+       * what fills the gap is a picture.
+       *
+       * max-width caps a photo wider than the pane; that one still letterboxes
+       * top and bottom, and paintMargin still covers it. */
       for (var i = 0; i < host.children.length; i++) {
-        pin(host.children[i], 'flex', '0 0 ' + pct.toFixed(3) + '%');
-        pin(host.children[i], 'width', pct.toFixed(3) + '%');
+        var n = host.children[i];
+        pin(n, 'flex', '0 0 auto');
+        pin(n, 'width', 'auto');
+        pin(n, 'height', '100%');
+        pin(n, 'max-width', '100%');
       }
     }
 

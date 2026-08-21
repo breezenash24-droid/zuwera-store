@@ -350,24 +350,37 @@ console.log('');
     n.fire('load');
     return {
       slide: n.style.getPropertyValue('width'),
+      flex: n.style.getPropertyValue('flex'),
+      height: n.style.getPropertyValue('height'),
+      capW: n.style.getPropertyValue('max-width'),
       pane: media.style.getPropertyValue('aspect-ratio'),
     };
   };
 
-  /* 1836x1950 wants 619px of height at full width and the ceiling allows 621 —
-     it already fills the pane, so a peek could only come out of the photo. */
+  /* 1836x1950 wants 619px of height at full width and the ceiling allows 621. */
   const fills = peekAt(1836, 1950);
-  /* 1070x1338 wants 729 and the ceiling allows 621, so it is drawn 497 wide in
-     a 583 pane. 86px is already margin; the peek is free. */
+  /* 1070x1338 wants 729 and the ceiling allows 621, so at that height it is 497
+     wide in a 583 pane — and the 86px left over is where the NEXT photo shows,
+     rather than a painted margin. */
   const spare = peekAt(1070, 1338);
-  console.log('  a photo that fills the ceiling-> slide ' + fills.slide + '  (no peek taken)');
-  console.log('  one the ceiling cuts short    -> slide ' + spare.slide + ', pane ' + spare.pane);
-  /* 100%, not blank: renderStrip pinned it and fitPeek left it alone, which is
-     the whole point — the photo is never smaller than it would have been with
-     no peek at all. */
-  const peekOk = fills.slide === '100%'
-    && /^85\.1\d+%$/.test(spare.slide)              // 497 / 583
-    && /^583\.00 \/ 621\.00$/.test(spare.pane);     // and the photo keeps its full height
+  console.log('  a photo that fills the ceiling-> pane ' + fills.pane + ', slide ' + fills.slide);
+  console.log('  one the ceiling cuts short    -> pane ' + spare.pane + ', slide ' + spare.slide);
+  /* ── THE SLIDE IS AS WIDE AS ITS OWN PHOTO ─────────────────────────────
+     Not a percentage. Every slide being the same width is what created the
+     leftover in the first place — a photo of a different shape could not fill
+     the one it was given. At a fixed height, `width:auto` on an <img> is the
+     browser deriving each photo's width from its own proportions, so every one
+     fills its slide exactly and there is nothing anywhere to paint. The peek
+     falls out of the same arithmetic: a narrower photo leaves room, and what
+     shows in it is the next photograph. */
+  const geomOf = (g) => g.slide === 'auto' && g.flex === '0 0 auto'
+    && g.height === '100%' && g.capW === '100%';
+  const peekOk = geomOf(fills) && geomOf(spare)
+    /* Height is the one thing shared across the row: it is what the pane and
+       everything under it are laid out against, and a row of differing heights
+       would jog the modal on every press. */
+    && /^583\.00 \/ 619\.\d+$/.test(fills.pane)     // 583 / 0.9415, under the ceiling
+    && /^583\.00 \/ 621\.00$/.test(spare.pane);     // ceiling binds, photo keeps it
 
   media.clientWidth = 100; media._maxH = '';        // put the harness back
 
