@@ -20,7 +20,7 @@
   "dependencies": {
     "clean-css": "^5.3.3",
     "stripe": "^22.5.0",
-    "terser": "^5.49.2"
+    "terser": "^5.50.0"
   },
   "devDependencies": {
     "pg": "^8.23.0",
