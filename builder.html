@@ -633,6 +633,20 @@ body{display:flex;flex-direction:column}
            lets you choose one on the Tablet preview and watch nothing happen. -->
       <p class="hdrcfg-scope" id="hdrCfgScope"></p>
       <div id="hdrCfgList" class="hdrcfg-grid"></div>
+      <!-- Mirror is a modifier on whichever tile is chosen, not a twelfth tile,
+           so it sits with the other cross-cutting settings rather than in the
+           gallery. Seven of the eleven arrangements have no mirrored twin in
+           the gallery at all; the four that do (classic/logo-right and
+           logo-center/actions-left) land exactly on each other when flipped,
+           which is the check that this is the same operation by another name. -->
+      <div class="hdrcfg-lines">
+        <span class="hdrcfg-lines-l">Mirror</span>
+        <span class="hdrcfg-lines-n hdrcfg-flip-n">Flip the whole arrangement left to right. The tiles above show it. Applies to every page.</span>
+        <span class="tog" role="group" aria-label="Mirror the arrangement">
+          <button type="button" id="hdrFlipOff" onclick="setHdrFlip('off')">Normal</button>
+          <button type="button" id="hdrFlipOn"  onclick="setHdrFlip('on')">Mirrored</button>
+        </span>
+      </div>
       <div class="hdrcfg-lines">
         <span class="hdrcfg-lines-l">Divider lines</span>
         <span class="hdrcfg-lines-n">The rule under the header and under the announcement bar. Applies to every page.</span>
@@ -3551,9 +3565,10 @@ function sendChrome(){
   if(Array.isArray(chromeNav)) post({type:'ZW_NAV_PREVIEW',items:chromeNav});
   if(chromeBar) post({type:'ZW_BAR_PREVIEW',value:chromeBar});
   post({type:'ZW_TEXT_OVERRIDES',value:chromeCopy||{}});
-  if(chromeHeader||chromeHdrLines||chromeHdrAccount||chromeHdrLabels||chromeHdrOrder){
+  if(chromeHeader||chromeHdrLines||chromeHdrAccount||chromeHdrLabels||chromeHdrOrder||chromeHdrFlip){
     post({type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines,
-          account:chromeHdrAccount,iconLabels:chromeHdrLabels,order:chromeHdrOrder});
+          account:chromeHdrAccount,iconLabels:chromeHdrLabels,order:chromeHdrOrder,
+          flip:chromeHdrFlip});
   }
   if(chromeBag) post({type:'ZW_BAG_PREVIEW',value:chromeBag});
 }
@@ -3583,6 +3598,7 @@ async function loadChrome(){
   chromeHdrAccount=one('account',['bag','header']);
   chromeHdrLabels=(hd&&typeof hd==='object'&&typeof hd.iconLabels==='string')?hd.iconLabels:'';
   chromeHdrOrder=(hd&&typeof hd==='object'&&typeof hd.order==='string')?hd.order:'';
+  chromeHdrFlip=one('flip',['on','off']);
   const bg=pick(bgD,bgL);
   chromeBag=(bg&&typeof bg==='object'&&!Array.isArray(bg))?bg:{};
   const nav=pick(navD,navL);
@@ -3674,6 +3690,11 @@ function applyTextOverride(page,path,was,newText,loose){
    the version that did could not shift the categories at all (they are centred
    by absolute positioning) and stacked other parts underneath them. */
 let chromeHeader = '';
+/* Whether the arrangement is mirrored left-to-right. Not a layout of its own:
+   it is a modifier on whichever tile is chosen, so it survives picking a
+   different one and works on any layout added later without its twin having to
+   be written. Seven of the eleven mirrors are not in the gallery at all. */
+let chromeHdrFlip = '';
 /* Whether the header and the announcement bar draw their bottom rule. Stored
    beside the arrangement because it is chosen in the same modal, but it is not
    part of a layout: every arrangement can have it either way, and turning it
@@ -3740,13 +3761,14 @@ function openHeaderCfg(){
      than a door. Everything on the Icons tab writes to the live values as you
      press it — the preview is the point — and this is what puts them back. */
   hdrCfgWas = {
-    header: chromeHeader, lines: chromeHdrLines, account: chromeHdrAccount,
+    header: chromeHeader, lines: chromeHdrLines, account: chromeHdrAccount, flip: chromeHdrFlip,
     labels: chromeHdrLabels, order: chromeHdrOrder,
     bag: JSON.stringify(chromeBag || {}),
   };
   hdrCfgTouched = false;
   hdrCfgSel = chromeHeader || 'classic';
   paintHeaderCfg();
+  paintHdrFlip();
   paintHdrLines();
   paintHdrControls();
   paintHdrScope();
@@ -3792,7 +3814,7 @@ function paintHeaderCfg(){
       + (on?'<span class="hdrcfg-cur">Current</span>':'')
       + (sel?'<span class="hdrcfg-mark" aria-hidden="true">&#10003;</span>':'')
       + '</span>'
-      + L.miniature(l, hdrDevice())
+      + L.miniature(l, hdrDevice(), chromeHdrFlip==='on')
       + '<span class="hdrcfg-note">'+he(l.note)+'</span></button>';
   }).join('');
   /* Bound here rather than written as an inline onclick: the id would have to be
@@ -3821,7 +3843,7 @@ function paintHdrApply(){
    flag would swallow it. */
 function closeHeaderCfg(){
   if(hdrCfgTouched&&hdrCfgWas){
-    chromeHeader=hdrCfgWas.header; chromeHdrLines=hdrCfgWas.lines;
+    chromeHeader=hdrCfgWas.header; chromeHdrLines=hdrCfgWas.lines; chromeHdrFlip=hdrCfgWas.flip;
     chromeHdrAccount=hdrCfgWas.account; chromeHdrLabels=hdrCfgWas.labels;
     chromeHdrOrder=hdrCfgWas.order;
     try{ chromeBag=JSON.parse(hdrCfgWas.bag); }catch(_){ chromeBag={}; }
@@ -3885,6 +3907,54 @@ function paintHdrScope(){
    preview — there is nothing to browse through and no way to lose your place,
    and making you press Apply for one switch would be ceremony rather than
    safety. Still only the draft: Publish is what reaches a shopper. */
+/* Applies on click, like the lines toggle beside it and for the same reason:
+   a two-state switch IS its own preview. Repainting the gallery is the part
+   that matters — the tiles have to show the mirrored arrangement, or the
+   picture disagrees with the result, which is the failure this whole picker
+   was rebuilt to avoid. */
+function setHdrFlip(v){
+  if(v!=='on'&&v!=='off') return;
+  if((chromeHdrFlip||'off')===v) return;
+  /* Refused rather than quietly ignored. Two of the eleven arrangements put
+     two parts on the left, and the stylesheet can group a pair on the left but
+     not on the right -- so their mirror is not an arrangement the header can
+     build. Turning the switch on anyway would look like it worked. */
+  const _L=window.ZWHeaderLayouts, _sel=hdrCfgSel||chromeHeader||'classic';
+  if(v==='on'&&_L&&typeof _L.mirrorBlocked==='function'){
+    const why=_L.mirrorBlocked(_sel);
+    if(why){ toast('This arrangement cannot be mirrored: '+why,'err'); paintHdrFlip(); return; }
+  }
+  chromeHdrFlip = v==='on' ? 'on' : 'off';
+  hdrCfgMark();
+  sendChrome();
+  paintHdrFlip();
+  paintHeaderCfg();
+  toast(v==='on'?'Header mirrored — preview updated':'Header back to normal — preview updated','ok');
+}
+function paintHdrFlip(){
+  const on=document.getElementById('hdrFlipOn'), off=document.getElementById('hdrFlipOff');
+  if(!on||!off) return;
+  const cur=(chromeHdrFlip||'off')==='on';
+  on.classList.toggle('on',cur);
+  off.classList.toggle('on',!cur);
+  on.setAttribute('aria-pressed',cur?'true':'false');
+  off.setAttribute('aria-pressed',cur?'false':'true');
+  /* Off, with the reason on it, for the two arrangements whose mirror the
+     stylesheet cannot build. A disabled control that says why beats one that
+     accepts the click and does nothing. */
+  const L=window.ZWHeaderLayouts, sel=hdrCfgSel||chromeHeader||'classic';
+  const why=(L&&typeof L.mirrorBlocked==='function')?L.mirrorBlocked(sel):'';
+  on.disabled=!!why;
+  on.title=why?('This arrangement cannot be mirrored: '+why):'';
+  const note=document.querySelector('#hdrPaneLayout .hdrcfg-flip-n');
+  if(note){
+    note.textContent = why
+      ? 'This arrangement cannot be mirrored: ' + why + '. The other nine can.'
+      : 'Flip the whole arrangement left to right. The tiles above show it. Applies to every page.';
+    note.classList.toggle('warn', !!why);
+  }
+}
+
 function setHdrLines(v){
   if(v!=='on'&&v!=='off') return;
   if(chromeHdrLines===v) return;
@@ -4222,6 +4292,11 @@ function pickHeaderLayout(id){
   if(!window.ZWHeaderLayouts||!window.ZWHeaderLayouts.byId(id)) return;
   hdrCfgSel=id;
   paintHeaderCfg();
+  /* The mirror switch belongs to the SELECTED arrangement -- two of the eleven
+     cannot be mirrored -- so it is repainted with the gallery rather than only
+     when the modal opens. Without this, selecting one of those two would leave
+     an enabled switch that refuses the click. */
+  paintHdrFlip();
 }
 
 
@@ -4276,6 +4351,7 @@ async function saveChrome(pub){
       if (chromeHdrAccount) out.account = chromeHdrAccount;
       if (chromeHdrLabels) out.iconLabels = chromeHdrLabels;
       if (chromeHdrOrder) out.order = chromeHdrOrder;
+      if (chromeHdrFlip) out.flip = chromeHdrFlip;
       return out;
     }],
     /* A different key with a different owner: site_settings.bag_panel, which
@@ -4769,6 +4845,6 @@ function onKey(e){
 
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 </script>
-<script src="/header-layouts.js?v=6179b830"></script>
+<script src="/header-layouts.js?v=afec8b7a"></script>
 </body>
 </html>

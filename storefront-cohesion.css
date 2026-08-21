@@ -3932,6 +3932,39 @@ nav#nav, header.nav, nav.nav, nav.zw-nav{
      slide duration for a synced push. reduced-motion is handled by the global guard. */
   transition: top .3s cubic-bezier(.32,.72,0,1), transform .35s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)), background .35s, border-color .35s, box-shadow .35s, padding .35s !important;
 }
+/* ── …EXCEPT WHILE A PANEL IS OPEN, WHERE `padding .35s` IS A BUG ───────────
+   Opening the bag or search adds `zwf-searching`, which shrinks this header's
+   padding to .3rem, and the panel's overlay is positioned at the header's
+   MEASURED bottom edge. With padding in the transition list above, that
+   measurement is taken of a header that is still moving, so the panel opens
+   low and creeps up as trackHeader() re-measures for 520ms.
+
+   Measured on the live site at 1280px — overlay top, first frame -> settled:
+
+       classic      header 67.0px    92    -> 92       0px
+       links-left   header 67.0px    92    -> 92       0px
+       minimal      header 67.0px    92    -> 92       0px
+       stacked      header 89.4px    114.5 -> 110.5    4px   drops and creeps
+       links-row    header 87.8px    113   -> 109      4px   drops and creeps
+
+   Which is why it only showed on SOME arrangements: 67px is this header's
+   min-height floor, so a one-row header has no padding it can actually give
+   up and its bottom edge never moves. Only the two-row layouts are above the
+   floor — and links-row is what this store is set to.
+
+   The Animation domain named the culprit outright: CSSTransition padding-top
+   350ms and padding-bottom 350ms, starting on the click, totalling the 4px.
+
+   It has to be fixed HERE rather than in JS. An inline `style.transition =
+   'none'` cannot beat the `!important` above — that was the first attempt, and
+   the probe showed the inline value set and the transition running anyway.
+
+   Everything else keeps transitioning: `top` and `transform` are what the
+   auto-hide header rides on, and snapping those would be a worse trade than
+   the 4px this is buying back. */
+body.zwf-searching :is(nav#nav, header.nav, nav.nav, nav.zw-nav){
+  transition: top .3s cubic-bezier(.32,.72,0,1), transform .35s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)), background .35s, border-color .35s, box-shadow .35s !important;
+}
 /* --zw-nav-lift is how far below the top of the viewport the header is sitting:
    the announcement bar's height, written on the nav by announcement-bar.js
    whenever a bar is above it, and absent otherwise.

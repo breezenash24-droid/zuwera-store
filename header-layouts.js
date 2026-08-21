@@ -242,11 +242,15 @@
       + '</span></span>';
   }
 
-  function miniature(layout, device) {
+  /* `flip` is passed through so a tile can draw the mirrored arrangement. The
+     picture has to agree with the result -- that is the rule this whole file is
+     built around -- and a gallery that drew the unflipped tiles while the
+     preview showed mirrored ones would be the tiles-that-lie problem again. */
+  function miniature(layout, device, flip) {
     var l = typeof layout === 'string' ? byId(layout) : layout;
     if (!l) return '';
     if (device === 'phone' || device === 'tablet') return smallMini();
-    var z = zones(l.spec);
+    var z = zones(flip ? mirror(l.spec) : l.spec);
     var row1 = SPOTS.map(function (s) {
       return '<span class="zwhl-z zwhl-' + s + '">'
         + z[s].map(function (p) { return part(p, z.menu && p === 'actions'); }).join('')
@@ -363,9 +367,79 @@
   var EXTRAS = {
     lines:      { on: 1, off: 1 },
     account:    { bag: 1, header: 1 },
+    /* Mirror the whole arrangement left-to-right. It is an EXTRA rather than
+       eleven more entries in the catalogue because it is not a different
+       arrangement — it is the same one, seen the other way round, and it works
+       on any layout added later without anyone remembering to add its twin.
+
+       Seven of the eleven mirrors are not in the catalogue at all today
+       (links-left, logo-beside, stacked, links-row, all-left, minimal and
+       minimal-center have no reversed entry), so this roughly doubles what the
+       gallery can express. The other four already have their mirror by name —
+       classic/logo-right and logo-center/actions-left are each other's — and
+       flipping one lands exactly on the other, which is the check that the
+       mirror is the right operation rather than an approximation of one. */
+    flip:       { on: 1, off: 1 },
     // iconLabels is not an enum — see deviceList below.
   };
-  var EXTRA_KEYS = ['lines', 'account', 'iconLabels', 'order'];
+  var EXTRA_KEYS = ['lines', 'account', 'iconLabels', 'order', 'flip'];
+
+  /* ── The mirror ───────────────────────────────────────────────────────────
+     Left and right swap; centre is its own mirror; `none` is not a position at
+     all (the categories are in the menu drawer) so it stays. linksRow is a row
+     count, not a side, and stays too.
+
+     This is the ONLY definition of the operation in the browser. There is a
+     second one in functions/_middleware.js, because a Worker cannot import a
+     browser file and the arrangement has to be stamped into the HTML before
+     any of this runs. tests/header-layout-is-position-only.test.js holds the
+     two together — the same arrangement they already make for SPOTS. */
+  var MIRROR = { left: 'right', right: 'left', center: 'center', none: 'none' };
+  function mirror(spec) {
+    var s = spec || {};
+    var out = {};
+    for (var k in s) if (Object.prototype.hasOwnProperty.call(s, k)) out[k] = s[k];
+    for (var i = 0; i < PARTS.length; i++) {
+      var p = PARTS[i];
+      if (MIRROR[s[p]]) out[p] = MIRROR[s[p]];
+    }
+    return out;
+  }
+  function isFlipped(o) { return extraChoice('flip', o && o.flip) === 'on'; }
+
+  /* ── Two arrangements cannot be mirrored, and it is not an oversight ───────
+     `left` may hold two parts: only the first takes the leading margin, so
+     parts placed left simply sit in document order. `right` may not: right is
+     expressed as margin-left:auto, and a second part claiming the same margin
+     splits the free space between them and pushes the pair APART instead of
+     grouping it. conflict() has said so since the placement system was written.
+
+     So the mirror of anything with two parts on the left is an arrangement the
+     stylesheet cannot build:
+
+         links-left   logo+links left   ->  logo+links right   not expressible
+         all-left     all three left    ->  all three right    not expressible
+
+     The other nine mirror cleanly. Rather than offer a switch that would
+     quietly do nothing on those two, the builder asks this and turns the
+     control off with the reason on it — the same principle as the gallery
+     refusing to offer an arrangement the header cannot hold.
+
+     Making the right zone group would mean giving only the leading part the
+     auto margin and assigning explicit orders to the rest, across five nav
+     dialects. That is placement surgery, not a toggle, and it is the thing to
+     do if these two mirrors are ever wanted. */
+  function mirrorable(layout) {
+    var l = typeof layout === 'string' ? byId(layout) : layout;
+    if (!l) return false;
+    return !conflict(mirror(l.spec));
+  }
+  /* Why not, in the words the modal can show. '' when it can. */
+  function mirrorBlocked(layout) {
+    var l = typeof layout === 'string' ? byId(layout) : layout;
+    if (!l) return '';
+    return conflict(mirror(l.spec)) || '';
+  }
 
   /* ── The order the three action controls sit in ───────────────────────────
      A permutation of the three, and always all three: a partial answer would
@@ -488,6 +562,11 @@
        they are four answers, and only one of them is missing. */
     var spec = l ? l.spec : null;
     var e = extras(opts);
+    /* The mirror is applied HERE, to the named layout's spec, rather than
+       stored as a second arrangement. `flip` travels with the other extras, so
+       the cache, the postMessage and the settings row all carry it without any
+       of them knowing what it means. */
+    if (spec && e.flip === 'on') spec = mirror(spec);
     var out = {};
     if (spec) { for (var k in spec) out[k] = spec[k]; }
     for (var i = 0; i < EXTRA_KEYS.length; i++) out[EXTRA_KEYS[i]] = e[EXTRA_KEYS[i]];
@@ -500,6 +579,8 @@
   window.ZWHeaderLayouts = {
     list: LAYOUTS, parts: PARTS, spots: SPOTS, labels: PART_LABEL,
     byId: byId, zones: zones, conflict: conflict,
+    mirror: mirror, isFlipped: isFlipped,
+    mirrorable: mirrorable, mirrorBlocked: mirrorBlocked,
     miniature: miniature, css: MINI_CSS, actionsMini: actionsMini,
     lineChoice: lineChoice, extraChoice: extraChoice, extras: extras,
     extraKeys: EXTRA_KEYS, extraValues: EXTRAS,
@@ -539,7 +620,7 @@
      copy still reads correctly here — a shorter tuple simply answers '' for
      the fields it does not have, which is exactly "not chosen". Reordering it
      would silently reinterpret every cache already in the wild. */
-  var ATTR_FIELDS = ['lines', 'account', 'iconLabels', 'order'];   // fields 5, 6, 7, 8
+  var ATTR_FIELDS = ['lines', 'account', 'iconLabels', 'order', 'flip'];  // fields 5..9
 
   function remember(id, at, opts) {
     var l = byId(id);
@@ -550,8 +631,14 @@
          make those answers flash on every load. */
       if (!l && !anyExtra(e)) { localStorage.removeItem(CACHE); localStorage.removeItem(ATTRS); return; }
       if (l) localStorage.setItem(CACHE, l.id); else localStorage.removeItem(CACHE);
+      /* The first four fields are what the PRE-PAINT block stamps straight onto
+         <html>, so they have to be the arrangement as it will look — mirrored
+         already if it is mirrored. Caching the unflipped spec and the flip flag
+         separately would mean the first frame drew the unmirrored header and
+         then swapped, which is the flash this cache exists to prevent. */
+      var cs = (l && extras(opts).flip === 'on') ? mirror(l.spec) : (l && l.spec);
       var row = l
-        ? [l.spec.logo, l.spec.links, l.spec.actions, String(l.spec.linksRow) === '2' ? '2' : '1', at || '']
+        ? [cs.logo, cs.links, cs.actions, String(cs.linksRow) === '2' ? '2' : '1', at || '']
         : ['', '', '', '', at || ''];
       for (var i = 0; i < ATTR_FIELDS.length; i++) row.push(e[ATTR_FIELDS[i]] || '');
       localStorage.setItem(ATTRS, row.join('|'));

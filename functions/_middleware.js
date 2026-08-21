@@ -72,6 +72,26 @@ const STAMP_BUDGET_MS = 60;
 
 const SPOTS = { left: 1, center: 1, right: 1 };
 
+/* ── The mirror, a second time ────────────────────────────────────────────────
+   Left and right swap; centre is its own mirror; `none` is not a side at all
+   (the categories are in the menu drawer) so it stays. linksRow is a row count,
+   not a side.
+
+   This duplicates mirror() in header-layouts.js, for the same reason SPOTS
+   above duplicates theme-engine.js's vocabulary: a Worker cannot import a
+   browser file, and the arrangement has to be in the HTML before any browser
+   file runs. tests/header-layout-is-position-only.test.js holds the two
+   definitions to the same answer on every shipped layout. */
+const MIRROR = { left: 'right', right: 'left', center: 'center', none: 'none' };
+function mirrorSpec(s) {
+  return {
+    ...s,
+    logo: MIRROR[s.logo] || s.logo,
+    links: MIRROR[s.links] || s.links,
+    actions: MIRROR[s.actions] || s.actions,
+  };
+}
+
 /** The attributes to write, or null if there is nothing trustworthy to write.
  *
  *  Validated against the same vocabulary theme-engine.js accepts, for the same
@@ -82,7 +102,12 @@ export function attrsFrom(value, updatedAt) {
   if (!value || typeof value !== 'object') return null;
   const out = {};
 
-  const s = value.spec;
+  const raw = value.spec;
+  /* Mirrored HERE rather than stored mirrored, so the settings row keeps saying
+     which named arrangement was chosen and `flip` stays a modifier of it. A row
+     that stored the already-flipped spec would read as a layout nobody can find
+     in the gallery. */
+  const s = (raw && typeof raw === 'object' && value.flip === 'on') ? mirrorSpec(raw) : raw;
   if (s && typeof s === 'object'
       && SPOTS[s.logo] && (SPOTS[s.links] || s.links === 'none') && SPOTS[s.actions]) {
     out['data-zw-hdr'] = '1';

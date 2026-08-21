@@ -234,7 +234,7 @@ console.log('\nThe picture cannot disagree with the result');
      collapsing to the same compact header, which is the honest picture of
      "placement is a desktop setting". Still one drawing function. */
   ok('the builder draws from that function, not its own copy',
-    /L\.miniature\(l, hdrDevice\(\)\)/.test(B) && !/zwhl-logo|zwhl-links/.test(BCODE),
+    /L\.miniature\(l, hdrDevice\(\)/.test(B) && !/zwhl-logo|zwhl-links/.test(BCODE),
     'a second drawing of the same thing is a second thing to keep in step');
   ok('...and a small device draws the header those widths really have',
     L.miniature('classic', 'phone') === L.miniature('stacked', 'phone'),
@@ -276,9 +276,22 @@ console.log('\nChoosing is not applying');
   ok('the button sits with the other canvas controls', /id="hdrCfgBtn"/.test(B));
   ok('and opens a gallery you can compare in', /id="hdrCfgList" class="hdrcfg-grid"/.test(B)
     && /\.hdrcfg-grid\{display:grid/.test(B));
-  ok('a tile click only highlights it',
-    /function pickHeaderLayout\(id\)\{[\s\S]*?hdrCfgSel=id;\s*paintHeaderCfg\(\);\s*\}/.test(B),
-    'browsing the gallery must not rewrite the header once per tile');
+  /* The thing that must not happen is a WRITE. Listing the exact calls made
+     this fail the moment a second repaint was added — the mirror switch is
+     per-arrangement, so it has to be redrawn with the gallery — which is a
+     paint, not a write. So: assert the absence of the writes. */
+  {
+    const body = (B.match(/function pickHeaderLayout\(id\)\{([\s\S]*?)\n\}/) || [])[1] || '';
+    ok('a tile click only highlights it',
+      body.length > 0
+      && /hdrCfgSel=id;/.test(body)
+      && !/sendChrome\(|markChromeDirty\(|chromeHeader\s*=|hdrCfgMark\(/.test(body),
+      'browsing the gallery must not rewrite the header once per tile');
+    ok('…and everything it does do is a repaint',
+      body.split('\n').filter((l) => /\w\(/.test(l) && !/^\s*(\/\/|\/\*|\*)/.test(l))
+        .every((l) => /paint|hdrCfgSel|byId|ZWHeaderLayouts|return/.test(l)),
+      body.trim().slice(0, 120));
+  }
   /* Scoped to that function's own body. Matched across the whole file, any
      `markChromeDirty` anywhere later satisfies a lazy quantifier and the check
      passes for the wrong reason. */
@@ -291,7 +304,7 @@ console.log('\nChoosing is not applying');
   ok('the button says so when there is nothing to apply', /Nothing to apply/.test(B));
   ok('the current arrangement is marked as current, separately from the selection',
     /hdrcfg-cur/.test(B) && /hdrcfg-mark/.test(B));
-  ok('it previews at once', /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines,\s*account:chromeHdrAccount,iconLabels:chromeHdrLabels,order:chromeHdrOrder\}\)/.test(B));
+  ok('it previews at once', /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines,\s*account:chromeHdrAccount,iconLabels:chromeHdrLabels,order:chromeHdrOrder,?\s*(flip:chromeHdrFlip)?\}\)/.test(B));
 }
 
 console.log('\nA preview shows the draft, not a flash of what is live first');
@@ -455,7 +468,7 @@ console.log('\nThe line under the header is a choice, and it moves nothing');
   ok('the saved value carries both answers',
     /const out = \{ id, lines: chromeHdrLines \|\| 'on' \};/.test(B));
   ok('and the preview push carries it',
-    /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines,\s*account:chromeHdrAccount,iconLabels:chromeHdrLabels,order:chromeHdrOrder\}\)/.test(B));
+    /post\(\{type:'ZW_HEADER_LAYOUT',id:chromeHeader,lines:chromeHdrLines,\s*account:chromeHdrAccount,iconLabels:chromeHdrLabels,order:chromeHdrOrder,?\s*(flip:chromeHdrFlip)?\}\)/.test(B));
 }
 
 console.log('\nOne header height, whichever arrangement is chosen');
