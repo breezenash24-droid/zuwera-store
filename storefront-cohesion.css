@@ -3931,6 +3931,17 @@ nav#nav, header.nav, nav.nav, nav.zw-nav{
      the bar slides out (was missing → the nav's top jumped instantly). Matches the bar
      slide duration for a synced push. reduced-motion is handled by the global guard. */
   transition: top .3s cubic-bezier(.32,.72,0,1), transform .35s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1)), background .35s, border-color .35s, box-shadow .35s, padding .35s !important;
+  /* DECLARED, not defaulted in a var() fallback, and the auto-hide depends on
+     it. announcement-bar.js writes this inline as the height of the bar sitting
+     above the header; without a bar there is nothing to write, and the hide
+     rule below then read a fallback — which the minifier turned into a unitless
+     zero and broke the whole declaration. Declaring it here means the hide rule
+     needs no fallback and there is no zero for a minifier to find.
+
+     Same selector list as the hide rule on purpose: anything that can match
+     that rule matches this one, so the variable is never undefined where it is
+     read. An inline value still wins over it. */
+  --zw-nav-lift: 0px;
 }
 /* ── …EXCEPT WHILE A PANEL IS OPEN, WHERE `padding .35s` IS A BUG ───────────
    Opening the bag or search adds `zwf-searching`, which shrinks this header's
@@ -3981,8 +3992,37 @@ body.zwf-searching :is(nav#nav, header.nav, nav.nav, nav.zw-nav){
    move. `top` still animates where it is genuinely a layout change — the bar's
    own scroll-hide, where the header really does rise into the space the bar
    vacates and STAYS there. */
+/* ── THE FALLBACK HAD TO GO, AND THAT IS THE WHOLE BUG ──────────────────────
+   This read `var(--zw-nav-lift, 0px)`. clean-css rewrites a zero to a bare `0`
+   inside calc() — every unit, not just px:
+
+       0px 0em 0% 0rem 0vh 0.0px   ->  0          1px  ->  1px
+
+   and a unitless zero is a <number>. Subtracting a <number> from a <percentage>
+   is invalid, so `calc(-110% - 0)` is invalid at computed-value time, the whole
+   declaration is dropped, and `transform` falls back to its INITIAL value:
+   none. Not to the previous cascade winner — to none.
+
+   Which is why the auto-hide worked on desktop and did nothing at all on a
+   phone. announcement-bar.js writes --zw-nav-lift inline whenever a bar sits
+   above the header, so on desktop the fallback was never reached. On a phone
+   there is no lift, the fallback fired, and the header stopped moving. Read off
+   the live site at 390px: .zw-nav-hidden applied, computed transform `none`,
+   header top 0 at every scroll position. At 1280px: transform
+   matrix(1,0,0,1,0,-117.159), top 25 -> -92.2.
+
+   It is not a clean-css OPTION. level:{1:{all:false}} still strips it; only
+   level 0 does not, and that would give up minification entirely. So the
+   expression must not contain a zero for it to find: --zw-nav-lift is declared
+   with a length on the same selector list above, and this reads it with no
+   fallback at all. An inline value from announcement-bar.js still wins.
+
+   tests/the-header-hides-on-a-phone-too.test.js minifies this file with the
+   real config and checks the OUTPUT, because the source was correct the whole
+   time — this is the third defect on this site that only existed after the
+   build. */
 nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-nav.zw-nav-hidden{
-  transform: translateY(calc(-110% - var(--zw-nav-lift, 0px))) !important;
+  transform: translateY(calc(-110% - var(--zw-nav-lift))) !important;
 }
 @media (prefers-reduced-motion: reduce){
   nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-nav.zw-nav-hidden{ transform: none !important; }
