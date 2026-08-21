@@ -432,7 +432,51 @@ console.log('');
   try { paint(1070, 1338); } catch (_) { survived = false; }
   console.log('  …and nothing breaks without it -> ' + (survived ? 'yes' : 'NO'));
 
-  const edgeOk = sides && stacked && clean && dense && refused && override && suppress && unknown && survived;
+  /* ── A CLIP IS SHOT ON THE SAME SET AS THE PHOTOGRAPHS BESIDE IT ────────
+     fitPane asked for an `img`, and paintMargin skipped anything that was not
+     one, so a video was exempt from all of this rather than deliberately
+     excluded: a product whose FIRST slide is a clip never got a fitted pane at
+     all. A video says its size as videoWidth/videoHeight and announces it with
+     loadedmetadata — one question, two spellings — and its edges come from the
+     poster, which is a still of frame 0 on an image URL. */
+  global.window.zwEdgeStrips = () => ({ then(fn) { fn(STRIPS); return { catch() {} }; } });
+  let vidOk = false, vidFit = '';
+  {
+    G.renderStrip(media, ['clip.mp4'], { alt: 'x', isVideo: () => true, perView: 1 });
+    const v = media.children[0];
+    v.tagName = 'VIDEO';
+    v.videoWidth = 1070; v.videoHeight = 1338;
+    v.poster = 'https://res.cloudinary.com/x/image/fetch/so_0,f_jpg/clip.mp4';
+    v.fire('loadedmetadata');
+    vidFit = media.style.getPropertyValue('aspect-ratio');
+    vidOk = vidFit === '1070 / 1338'
+      && (v.style.getPropertyValue('background-image').match(/linear-gradient\(to bottom,/g) || []).length === 2;
+  }
+  console.log('  a video-first product          -> ' + (vidOk ? 'pane fitted ' + vidFit + ', edges from its poster' : 'NO — ' + (vidFit || 'not fitted')));
+
+  /* ── AND THE NEXT SLIDE IS ALREADY ON ITS WAY ──────────────────────────
+     Everything past the second ships loading="lazy", so pressing the arrow used
+     to show an empty pane while the photo arrived. Promoting the NEIGHBOURS to
+     eager starts their fetch before they are needed; promoting all seventeen
+     would trade one visible wait for a burst of requests on a modal the shopper
+     may close in two seconds. */
+  let warmed = false;
+  {
+    const s = G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, perView: 1 });
+    const load = () => media.children.map((c) => c.loading);
+    const atOpen = load();
+    s.page(1); s.page(1);                    // now sitting on slide 3
+    const atThree = load();
+    warmed = atOpen[0] === 'eager' && atOpen[1] === 'eager' && atOpen[3] === 'lazy'
+      && atThree[3] === 'eager'              // the one after where we are
+      && atThree[5] === 'lazy';              // and no further than that
+    console.log('  on open                        -> ' + atOpen.join(' '));
+    console.log('  after paging to slide 3        -> ' + atThree.join(' '));
+  }
+  console.log('  …neighbours warmed, not all 7  -> ' + (warmed ? 'yes' : 'NO'));
+
+  const edgeOk = sides && stacked && clean && dense && refused && override && suppress && unknown
+    && survived && vidOk && warmed;
   console.log('\n  ' + (edgeOk
     ? 'PASS  the margin matches the edge it sits against'
     : 'FAIL  the margin is a colour of its own'));
