@@ -25,6 +25,9 @@
 import { cors, json, verifyAdmin, mutateSetting, getSetting, ABAC_REQUESTS_KEY } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { permsHave } from './_rbac.js';
+/* One function decides what an order is called. Spelling the fallback out
+   here again is how a store ends up with six names for one order. */
+import { orderNoPlain } from './_order-no.js';
 
 /* Long enough to walk over and ask, short enough that a forgotten yes is not
    a standing exemption. An approval nobody remembers granting is the failure
@@ -318,7 +321,7 @@ async function notifyRequester(env, req, { approved, completed, by, note }) {
   if (!to) return;
 
   const what = String(req.action || 'that') === 'refund'
-    ? `the refund on order ${String(req.resourceId || '').slice(-8).toUpperCase()}`
+    ? `the refund on order ${orderNoPlain(String(req.resourceId || ''))}`
     : `your ${String(req.action || 'request')} request`;
   const amount = Number.isFinite(Number(req.amount)) ? ` ($${Number(req.amount).toFixed(2)})` : '';
 

@@ -244,6 +244,42 @@ that cannot serve, not for a migration nobody has run yet.
 
 ---
 
+## 12b. Test orders sitting in live data
+
+A real order row placed by hand while testing is counted like any other: it is in
+revenue, in the order count, in the analytics averages and in every backup. It
+is not created by anything in this repository — nothing here writes an order
+number like `ZW-TEST-1` — so it will not come back on its own once removed.
+
+**Known: `ZW-TEST-1`**, `Test Guest` / `YOUR_OTHER_EMAIL@example.com`, $45.00,
+placed 2026-08-11. It is the only row in the table with an `order_number`, which
+is what made it obvious.
+
+Find them first, and look before deleting:
+
+```sql
+select id, order_number, email, customer_name, total, created_at
+from orders
+where order_number like 'ZW-TEST%'
+   or email ilike '%example.com'
+   or customer_name ilike 'test %';
+```
+
+Then remove the ones you recognise, by id:
+
+```sql
+delete from orders where id in ('...');
+```
+
+**Check for children first.** A return request, a refund audit entry or a
+webhook event may reference the order; deleting the row leaves those pointing at
+nothing. `commerce_returns` and `refund_audit_log` are JSON blobs in
+`site_settings`, so they are edited from the admin rather than by SQL.
+
+**Do not filter test orders out in code.** A hidden exclusion in analytics is
+worse than the bad row: the number changes and nothing says why, and the next
+person cannot reproduce the total from the table. Delete the data instead.
+
 ## 13. Testing a price change before it reaches customers
 
 Prices are the one area where "try it and see" costs real money, because

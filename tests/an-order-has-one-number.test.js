@@ -65,8 +65,9 @@ console.log('\n  the email and the database say the same thing');
 /* This is the whole point. The email prints meta.order_number; the column now
    holds meta.order_number; orderNo() reads the column first. Three readers,
    one string. */
-ok('the confirmation email prints the metadata number',
-  /const orderId      = meta\.order_number \|\| pi\.id\.slice\(-8\)\.toUpperCase\(\);/.test(fulfil));
+ok('the confirmation email prints the number through the shared function',
+  /const orderId      = orderNoPlain\(\{ order_number: meta\.order_number, stripe_payment_intent_id: pi\.id \}\);/.test(fulfil),
+  'it used to spell the fallback out by hand, which is one more copy to drift');
 
 ok('…and the panel reads the column before falling back',
   /const n = String\(o\.order_number == null \? '' : o\.order_number\)\.trim\(\);\s*\n\s*if \(n\) return/.test(read('functions/api/_order-no.js')));
@@ -80,6 +81,41 @@ ok('…and old orders keep the name they have always had',
 ok('a guest can be found by the number they were emailed',
   /sameOrderNo\(orderNo\(o\), wanted\)/.test(read('functions/api/guest-return.js')),
   'it matches on orderNo(), which is why the column being null rejected real customers');
+
+console.log('\n  and only one function decides what an order is called');
+{
+  const adminReturns = read('functions/api/admin-returns.js');
+
+  /* This file had a FOURTH derivation, and it used the ROW ID rather than the
+     payment reference. A return whose stored label was missing got drawn with a
+     name that appears nowhere else — not on the order, not in the customer's
+     email, not in the panel's own Orders list — so searching for it found
+     nothing. */
+  ok('admin-returns.js does not invent its own',
+    /import \{ orderNo \} from '\.\/_order-no\.js'/.test(adminReturns)
+    && /function orderLabel\(order = \{\}\) \{\s*\n\s*return orderNo\(order\);/.test(adminReturns));
+
+  /* THE CENSUS, and it found six more. `.slice(-8).toUpperCase()` is the
+     fallback orderNo() applies when an order has no number, and it was written
+     out by hand in the confirmation email, the Stripe webhook, the return label
+     email, the return status email, the shipping notification, the ABAC
+     approval text and the refund lockout alert. Seven copies of one rule, which
+     is six chances for it to drift the next time it changes — and two of them
+     were reading the UUID where orderNo() reads the payment reference, so they
+     printed a name the customer could not find anywhere.
+
+     Comments are stripped first: admin-returns.js keeps the old line quoted in
+     its own explanation of why it is gone. */
+  const workers = fs.readdirSync(path.join(ROOT, 'functions', 'api')).filter((f) => f.endsWith('.js'));
+  const offenders = workers.filter((f) => {
+    if (f === '_order-no.js') return false;
+    return /\.slice\(-8\)\.toUpperCase\(\)/
+      .test(read('functions/api/' + f).replace(/\/\*[\s\S]*?\*\//g, ' '));
+  });
+  ok('…and no other Worker spells the fallback out for itself',
+    offenders.length === 0,
+    offenders.join(', ') + ' — call orderNo() or orderNoPlain() instead');
+}
 
 console.log('\n  no two orders share one');
 

@@ -17,7 +17,7 @@
    arrived, so the file that decides WHETHER to refund no longer knows HOW. */
 import { cors, json, verifyAdmin, decide, getSetting, setSetting, getCommerceBundle, mutateSetting } from './_commerce.js';
 import { permsHave } from './_rbac.js';
-import { orderNo } from './_order-no.js';
+import { orderNo, orderNoPlain } from './_order-no.js';
 import { reverseTaxSale } from './_tax.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 /* One place that knows how each processor differs. This route no longer names
@@ -752,7 +752,7 @@ async function sendLockoutAlert(env, { adminEmail, adminId, orderId, attempts, l
     <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:20px">
       <tr style="border-bottom:1px solid #eee"><td style="padding:8px 4px;color:#888">Admin account</td><td style="padding:8px 4px"><strong>${esc(adminEmail)}</strong></td></tr>
       <tr style="border-bottom:1px solid #eee"><td style="padding:8px 4px;color:#888">Failed attempts</td><td style="padding:8px 4px"><strong>${attempts}</strong></td></tr>
-      <tr style="border-bottom:1px solid #eee"><td style="padding:8px 4px;color:#888">Target order</td><td style="padding:8px 4px">${orderId ? esc(String(orderId).slice(-8).toUpperCase()) : 'N/A'}</td></tr>
+      <tr style="border-bottom:1px solid #eee"><td style="padding:8px 4px;color:#888">Target order</td><td style="padding:8px 4px">${orderId ? esc(orderNoPlain(String(orderId))) : 'N/A'}</td></tr>
       <tr><td style="padding:8px 4px;color:#888">Locked until</td><td style="padding:8px 4px">${esc(lockedUntilStr)}</td></tr>
     </table>
     <p style="font-size:13px;color:#888">If this was you, wait 1 hour and try again with the correct code. If you did not attempt this, your admin session may be compromised — change your password immediately.</p>

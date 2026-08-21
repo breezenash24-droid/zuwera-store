@@ -32,6 +32,9 @@ import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } f
 import { buildUserData, sendCapiEvents } from './_capi.js';
 import { veeqoBookShipment } from './_veeqo.js';
 import { incrementShippoMonthlyCount, recordLabelFailure } from './_shipping-usage.js';
+/* One function decides what an order is called. Spelling the fallback out
+   here again is how a store ends up with six names for one order. */
+import { orderNoPlain } from './_order-no.js';
 
 // Fallback service-level token map if rate object ID is unavailable
 const SERVICE_TOKEN_MAP = {
@@ -229,7 +232,7 @@ export async function onRequestPost({ request, env }) {
     // never turn a paid, fulfilled order into a 500 that Stripe then retries.
     // Same fire-and-forget shape as logWebhookEvent above.
     sendOrderAlerts(env, {
-      orderNumber: meta.order_number || pi.id.slice(-8).toUpperCase(),
+      orderNumber: orderNoPlain({ order_number: meta.order_number, stripe_payment_intent_id: pi.id }),
       totalCents:  pi.amount || 0,
       email:       meta.customer_email || '',
       items:       (() => { try { return JSON.parse(meta.items || '[]'); } catch { return []; } })(),
