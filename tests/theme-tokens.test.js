@@ -1341,9 +1341,18 @@ console.log('\n  the CSP allows our own bot protection');
     ok(d + ' allows the R2 bucket product media is served from',
       covered, m ? m[0].slice(0, 90) : 'directive missing');
   }
-  ok('media-src also names the custom R2 domain videos are served from',
-    /media-src [^;]*\*\.zuwera\.store/.test(csp),
-    "admin-main.js filters images.zuwera.store for rows with media_type === 'video'");
+  /* Asked as "is it allowed", not "is it spelled a particular way" — the sibling
+     loop above already gets this right. media-src is now a bare `https:`, the
+     same as img-src, because a product video's host is whatever the merchant
+     pasted: this catalogue plays from assets.nmp.nike.com, which no allowlist
+     anyone would write contains, and it was blocked in silence. Pinning the
+     literal would have failed the fix rather than the bug. */
+  {
+    const m = csp.match(/media-src [^;]*/);
+    ok('media-src allows the custom R2 domain videos are served from',
+      !!m && (/\*\.zuwera\.store/.test(m[0]) || /\bhttps:(\s|$)/.test(m[0])),
+      "admin-main.js filters images.zuwera.store for rows with media_type === 'video'");
+  }
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

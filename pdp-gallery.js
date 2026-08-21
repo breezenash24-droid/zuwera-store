@@ -180,6 +180,19 @@
         node = document.createElement('video');
         node.src = url; node.muted = true; node.loop = true;
         node.playsInline = true; node.preload = 'metadata';
+        /* A frame to show while it buffers. Without one the slide is a black
+           rectangle until enough of the file has arrived — which looks exactly
+           like the video not loading, and is indistinguishable from it if
+           something upstream really has gone wrong. videoPosterUrl asks
+           Cloudinary for frame 0 as a JPEG, so it arrives on the image path
+           rather than the media one and is already cached by the time the
+           shopper pages to it. */
+        try {
+          if (typeof window.videoPosterUrl === 'function') {
+            var poster = window.videoPosterUrl(url, 900);
+            if (poster) node.poster = poster;
+          }
+        } catch (_) { /* a slide with no poster is still a slide */ }
       } else {
         node = document.createElement('img');
         node.src = url;

@@ -52,6 +52,12 @@ function directive(policy, name) {
    js.stripe.com are both listed in a correct policy. */
 function covered(sources, host) {
   return sources.some((src) => {
+    /* A bare scheme source covers every host on that scheme. This helper used to
+       understand only exact hosts and *. wildcards, which made it report `false`
+       for a directive that in fact allows everything — the sort of wrong answer
+       that reads as a passing test right up until somebody removes a host it
+       said was needed. */
+    if (src === 'https:' || src === '*') return true;
     const s = src.replace(/^https:\/\//, '').replace(/\/$/, '');
     if (s === host) return true;
     if (s.startsWith('*.')) {
@@ -161,18 +167,37 @@ console.log('\n  every host the shipped code loads from is named');
   ok('unpkg is allowed', covered(scriptSrc, 'unpkg.com'), 'React UMD in analytics.html');
   ok('Stripe is allowed on both', covered(scriptSrc, 'js.stripe.com') && covered(frameSrc, 'js.stripe.com'));
 
-  /* R2 SERVES PRODUCT VIDEO FROM images.zuwera.store, and 'self' does not cover
-     a subdomain. img-src has a bare https: that catches everything, media-src
-     does not — so the first version of this policy would have stopped every
-     R2-hosted product video the moment it took effect. It never took effect,
-     because the line was over Cloudflare's length limit and was dropped. Two
-     mistakes cancelling is not a defence. */
-  ok('media-src covers the R2 media host',
-    covered(directive(enforced, 'media-src'), 'images.zuwera.store'),
+  /* ── A PRODUCT VIDEO'S HOST IS WHATEVER THE MERCHANT PASTED ──────────────
+     R2 serves product video from images.zuwera.store and 'self' does not cover
+     a subdomain, so the first version of this policy would have stopped every
+     R2-hosted video the moment it took effect. It never took effect, because
+     the line was over Cloudflare's length limit and was dropped. Two mistakes
+     cancelling is not a defence — and naming the hosts was still the wrong
+     shape, because this store's own catalogue plays from assets.nmp.nike.com,
+     which no allowlist anyone would write contains. It failed in SILENCE: the
+     <video> renders, the pane is the right size, and nothing appears in it.
+
+     So media-src is `https:`, which is what img-src has always been. Asserted as
+     hosts rather than as the literal, because the question is "can this play",
+     not "is the directive spelled a particular way". */
+  const mediaSrc = directive(enforced, 'media-src');
+  ok('media-src covers the R2 media host', covered(mediaSrc, 'images.zuwera.store'),
     "admin-main.js filters this host for rows with media_type === 'video'");
   ok('...and the Supabase and R2 buckets it also plays from',
-    covered(directive(enforced, 'media-src'), 'abc.supabase.co')
-    && covered(directive(enforced, 'media-src'), 'x.r2.dev'));
+    covered(mediaSrc, 'abc.supabase.co') && covered(mediaSrc, 'x.r2.dev'));
+  ok('...and a host nobody put on a list',
+    covered(mediaSrc, 'assets.nmp.nike.com'),
+    'this store really does play video from there, and it was blocked in silence');
+  /* The one thing `https:` must NOT quietly hand over. A page served over https
+     cannot fetch http: media anyway, but saying so keeps the directive honest
+     if the scheme list is ever widened by hand. */
+  ok('...but not over plain http', !mediaSrc.includes('http:') && !mediaSrc.includes('*'),
+    'mixed content, and upgrade-insecure-requests should be doing the rewriting');
+  /* Redundant hosts are worse than no hosts: a list that no longer decides
+     anything is a list somebody will later trust. */
+  ok('...and the hosts https: replaced were removed, not left beside it',
+    mediaSrc.every((s) => /^('self'|https:|blob:|data:)$/.test(s)),
+    mediaSrc.join(' '));
 }
 
 console.log('\n  and the inline allowance is admitted rather than hidden');
