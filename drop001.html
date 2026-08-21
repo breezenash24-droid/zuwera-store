@@ -1167,6 +1167,12 @@ document.documentElement.classList.add('zw-collflash');
        photos' own ratio, so it has almost nothing to crop. */
     .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip > *{
       flex:0 0 100%;scroll-snap-align:start;min-width:0;
+      /* A swipe must not carry past a photo and come to rest between two of
+         them. `mandatory` on its own picks the NEAREST snap point at the end of
+         a fling, which can be two photos away; `always` stops at the very next
+         one. The card carousel on this page already uses it for the same
+         reason. */
+      scroll-snap-stop:always;
       width:100%;height:min(78vh,760px);aspect-ratio:auto;max-height:none;
       object-fit:contain;object-position:center;display:block;
     }
@@ -3969,6 +3975,13 @@ function updateCountdown() {
         var strip = window.ZWPdpGallery.renderStrip(media, images, {
           isVideo: collectionIsVideo,
           alt: item.title,
+          /* Open on the colourway's own photo. Without this the strip started
+             at 0 whatever the shopper had selected, and — because this function
+             runs again when the colour fetch lands — a smooth scroll still in
+             flight from the arrows carried on to an offset the new children did
+             not line up with, leaving half of one photo beside half of the
+             next. */
+          startIndex: currentIndex,
           onIndex: function (i) {
             if (window.ZWPdpGallery.setNavCount) window.ZWPdpGallery.setNavCount(gal, i, images.length);
           }
