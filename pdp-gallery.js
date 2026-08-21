@@ -253,10 +253,31 @@
 
     function count() { return host.children.length; }
 
+    /* ── THE NEXT ONE IS ALREADY ON ITS WAY ─────────────────────────────────
+     *
+     * Everything past the second slide ships `loading="lazy"`, which is right
+     * for a strip nobody may page through — but lazy means the browser starts
+     * fetching only once the slide is nearly in view, so pressing the arrow
+     * showed an empty pane while the photo arrived. Reported as "sometimes it
+     * doesn't preload the image".
+     *
+     * Promoting a lazy image to eager starts its fetch immediately, so asking
+     * for the NEIGHBOURS of wherever the shopper is means the next press has
+     * something to show. Only the neighbours: eager-loading all seventeen would
+     * trade one visible wait for a burst of requests the shopper never asked
+     * for, on a modal they may close in two seconds. */
+    function warm(i) {
+      for (var k = i - 1; k <= i + 1; k++) {
+        var n = host.children[k];
+        if (n && n.tagName === 'IMG' && n.loading === 'lazy') n.loading = 'eager';
+      }
+    }
+
     function goTo(i, behavior) {
       var n = count();
       if (!n) return;
       current = Math.max(0, Math.min(n - 1, i | 0));
+      warm(current);
       var el = host.children[current];
       if (!el) return;
       var left = (el.offsetLeft || 0) - (host.offsetLeft || 0);
@@ -308,6 +329,7 @@
            have to learn where the shopper left it or the next press would page
            from a photo nobody is looking at. */
         current = index();
+        warm(current);
         var o = host._zwStripOpts;
         if (o && o.onIndex) o.onIndex(current, host.scrollWidth - host.clientWidth <= host.scrollLeft + 1);
       }, { passive: true });
@@ -375,11 +397,24 @@
       return 'linear-gradient(' + dir + ',' + stops.join(',') + ')';
     }
 
+    /* A video knows its size as videoWidth/videoHeight and an image as
+       naturalWidth/naturalHeight. One question, two spellings — and asking the
+       image's question of a video gets undefined, which is how videos ended up
+       exempt from all of this rather than deliberately excluded from it. */
+    function mediaW(n) { return n.tagName === 'VIDEO' ? n.videoWidth : n.naturalWidth; }
+    function mediaH(n) { return n.tagName === 'VIDEO' ? n.videoHeight : n.naturalHeight; }
+    /* And its edges are sampled from the POSTER, which is a still of frame 0 on
+       an image URL — so the same canvas read works, and the colours are the
+       ones the shopper sees before it starts playing. */
+    function sampleSrc(n) {
+      return n.tagName === 'VIDEO' ? (n.poster || '') : (n.currentSrc || n.src || '');
+    }
+
     function paintMargin(node, strips) {
-      if (!strips || !node.naturalWidth || !node.naturalHeight) return;
+      if (!strips || !mediaW(node) || !mediaH(node)) return;
       var box = node.getBoundingClientRect();
       if (!(box.width > 0 && box.height > 0)) return;
-      var photo = node.naturalWidth / node.naturalHeight;
+      var photo = mediaW(node) / mediaH(node);
       var slot = box.width / box.height;
       /* Within half a percent the photo fills the slot; painting anything would
          only risk a seam along an edge that has no margin beside it. */
@@ -411,15 +446,21 @@
     function matchMargins() {
       if (!perView || typeof window.zwEdgeStrips !== 'function') return;
       for (var i = 0; i < host.children.length; i++) (function (node) {
-        if (node.tagName !== 'IMG') return;
         var run = function () {
-          window.zwEdgeStrips(node.currentSrc || node.src)
+          var src = sampleSrc(node);
+          if (!src) return;                 // a video with no poster has nothing to read
+          window.zwEdgeStrips(src)
             .then(function (strips) { node._zwStrips = strips; paintMargin(node, strips); })
             .catch(function () {});
         };
         /* On its own load, which is also when a lazy slide is first needed — so
-           nothing is sampled for a photo the shopper never reaches. */
-        if (node.complete && node.naturalWidth) run();
+           nothing is sampled for a photo the shopper never reaches. A video says
+           the same thing with a different event, and says it once its dimensions
+           are known, which is exactly what paintMargin needs. */
+        if (node.tagName === 'VIDEO') {
+          if (node.videoWidth) run();
+          else node.addEventListener('loadedmetadata', run, { once: true });
+        } else if (node.complete && node.naturalWidth) run();
         else node.addEventListener('load', run, { once: true });
       }(host.children[i]));
     }
@@ -432,10 +473,16 @@
     }
 
     function fitPane() {
-      var first = host.querySelector('img');
-      if (!first) return;                    // a video-first strip keeps the CSS
+      /* Whichever comes first, photo or clip. This used to ask only for an
+         `img`, so a product whose first slide is a video never got a fitted pane
+         at all — it kept the stylesheet's fixed height and letterboxed against
+         it, which is the thing this function exists to stop. A clip is shot on
+         the same set as the photographs beside it; there is no reason for it to
+         be the one that does not fit. */
+      var first = host.querySelector('img, video');
+      if (!first) return;
       var apply = function () {
-        var w = first.naturalWidth, h = first.naturalHeight;
+        var w = mediaW(first), h = mediaH(first);
         if (!(w > 0 && h > 0)) return;
         var r = w / h;
         /* Outside anything a product photo plausibly is, the measurement is
@@ -476,8 +523,8 @@
            have changed with it. */
         repaintMargins();
       };
-      if (first.complete && first.naturalWidth) apply();
-      else first.addEventListener('load', apply, { once: true });
+      if (mediaW(first)) apply();
+      else first.addEventListener(first.tagName === 'VIDEO' ? 'loadedmetadata' : 'load', apply, { once: true });
     }
     if (perView) {
       fitPane();
