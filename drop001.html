@@ -1814,6 +1814,35 @@ document.documentElement.classList.add('zw-collflash');
         sync();
         if(nav) new MutationObserver(sync).observe(nav,{attributes:true,attributeFilter:['class']});
         addEventListener('resize', sync, {passive:true});
+        /* ── THE HEIGHTS CHANGE WITHOUT A RESIZE, AND THAT IS THE BUG ────────
+           .plp-pillbar is stuck at calc(--zw-nav-h + --zw-plpbar-h) — it is
+           parked immediately below .plp-bar, and BOTH numbers were measured
+           once at DOMContentLoaded and then only re-read on a window resize or
+           a class change on the header. Neither of those fires for any of the
+           things that actually change these two heights after first paint:
+
+             .plp-count      is empty until the products land ("11 PRODUCTS")
+             .plp-bar        wraps (flex-wrap) as its content arrives
+             the header      grows when the announcement bar loads, and again
+                             when icon labels turn words into a taller row
+             webfonts        Barlow Condensed swapping in re-flows both
+
+           Measure high and the pill bar parks BELOW the bar it should touch,
+           leaving a strip of the page scrolling between two opaque bars — which
+           is what "the header on the right seems to be translucent" was: not
+           transparency, a gap. Measure low and it slides under instead
+           (z-index 40 vs 50) and eats the sort control.
+
+           A ResizeObserver is the only thing that sees all four. It fires once
+           on observe, so the initial sync() above is redundant with it and kept
+           only for the browsers that have neither. */
+        if(typeof ResizeObserver==='function'){
+          var ro=new ResizeObserver(sync);
+          if(nav) ro.observe(nav);
+          if(bar) ro.observe(bar);
+        } else if(document.fonts && document.fonts.ready){
+          document.fonts.ready.then(sync).catch(function(){});
+        }
       }
       if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', setup); else setup();
     })();
@@ -3064,7 +3093,23 @@ function updateCountdown() {
           const imgHtml = (_ccOn && _ccMedia.length > 1)
             ? zwCarouselHtml(_ccMedia, productName)
             : (firstImg
-            ? `<img src="${firstImg}" alt="${productName}" loading="lazy" width="400" height="500" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center" onerror="if(this.src !== '${originalImg || ''}') this.src='${originalImg || ''}';">${_altHtml}`
+            /* NO inline onerror — the delegated chain in image-utils.js owns
+               this, exactly as it does for the homepage card (storefront.js).
+
+               The handler that used to be here set src to the raw original on
+               the first error. That listener runs in the TARGET phase and the
+               chain's runs in CAPTURE, so it fired second and overwrote
+               whatever the chain had just set — which meant the middle step,
+               the wsrv.nl retry, never happened on this grid. wsrv is the whole
+               point of the chain: it is what covers an over-quota Cloudinary,
+               and skipping straight to the raw original covers nothing, since
+               the raw original is where the Cloudinary URL was derived from.
+
+               It could also never finish for a product whose stored image_url
+               is RELATIVE: `this.src` reads back as an absolute URL, so
+               `this.src !== originalImg` stayed true forever and the same
+               failing request was re-issued on every error. */
+            ? `<img src="${firstImg}" alt="${productName}" loading="lazy" width="400" height="500" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center">${_altHtml}`
             : `<div class="product-img-placeholder">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
                 <span>Image Coming Soon</span>
