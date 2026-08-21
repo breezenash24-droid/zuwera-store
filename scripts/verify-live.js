@@ -276,6 +276,29 @@ const getText = async (path) => {
 
     ok('the theme default is stamped', /data-zw-theme-default="(light|super-light|dark)"/.test(openTag),
       'the pre-paint block falls back to the shipped dark without it');
+
+    /* ── THE ONE A VISITOR ACTUALLY NOTICES ────────────────────────────────
+       index.html bakes four category links into its markup and nav-menu.js
+       replaces the lot with the configured menu. Four long words become three
+       short ones, so the strip paints wider than it ends up and then collapses.
+       Read the labels the page SHIPS and compare them with nav_menu. */
+    const host = html.match(/id="nav-category-links"[^>]*>([\s\S]*?)<\/div>\s*<div\b/);
+    const shipped = host
+      ? [...host[1].matchAll(/class="nav-link[^"]*"[^>]*>([^<]+)</g)].map((m) => m[1].trim())
+      : [];
+    const cfg = Array.isArray(S.nav_menu) ? S.nav_menu : [];
+    const wanted = cfg.filter((i) => i && i.label).map((i) => String(i.label));
+    if (!shipped.length) {
+      note('no category strip in the markup', 'nav-menu.js injects one on pages that lack it');
+    } else if (!wanted.length) {
+      note('no nav_menu configured', 'nothing to compare the baked links against');
+    } else {
+      console.log('      shipped:    ' + shipped.join(' · '));
+      console.log('      configured: ' + wanted.join(' · '));
+      ok('the categories shipped are the ones the store configured',
+        wanted.every((l) => shipped.includes(l)) && shipped.length === wanted.length,
+        'a mismatch IS the strip that paints wide and then collapses');
+    }
   }
 
   /* ── 8. the modules that moved ─────────────────────────────────────────── */

@@ -302,6 +302,7 @@ async function firstPaint(env) {
     html: attrsFrom(hdr, updatedAt.header_layout),
     body: bodyAttrsFrom(hdr),
     classes: layoutClasses(byKey.page_builder_published),
+    nav: navStripHtml(byKey.nav_menu),
     theme: themeAttrs(byKey.theme_modes),
     settings,
     updatedAt,
@@ -332,6 +333,97 @@ async function firstPaint(env) {
  * knows. An unrecognised value there is worse than none: the block treats it as
  * a learned answer and paints a ground for a theme that does not exist.
  */
+/* ── THE CATEGORY STRIP, WHICH SHIPPED SOMEBODY ELSE'S ANSWER ────────────────
+ *
+ * index.html bakes four category links into its markup — Jackets, T-Shirts,
+ * Sweatpants, Socks — and nav-menu.js replaces the lot with what the store
+ * actually configured, which here is men / Women / New. Four long words become
+ * three short ones, so the strip is visibly wider on the first frame and then
+ * collapses. That is the "wrong distancing that fixes itself".
+ *
+ * The edge already reads nav_menu — it is one of the first-paint keys — so it
+ * can write the real labels into the document and nav-menu.js then re-renders
+ * the SAME labels, which is a repaint nobody can see.
+ *
+ * ── WHAT THIS DELIBERATELY DOES NOT DO ──────────────────────────────────────
+ *
+ * resolveItem() in nav-menu.js needs the CATALOGUE: it builds each item's
+ * mega-menu from the product taxonomy, and it DROPS a gender or a tag that has
+ * no products. None of that is knowable here without a second, much larger
+ * read, and a copy of that logic at the edge is the duplication this codebase
+ * has been bitten by before.
+ *
+ * It does not have to be. nav-menu.js already has a branch for exactly this
+ * situation — the taxonomy has not arrived yet — and it renders the top-level
+ * labels with no mega-menu:
+ *
+ *     if (!tax || tax.empty) return { label: label, url: landing, columns: [] };
+ *
+ * This reproduces THAT branch and nothing else. The markup is the same shape
+ * nav-menu.js emits for a column-less item, so the strip measures the same
+ * before and after.
+ *
+ * The one case it can still be wrong about is an item the catalogue would drop:
+ * a gender or tag with no products would be stamped and then removed. That is a
+ * far smaller shift than the one it fixes, and on this store nothing is dropped
+ * — Men has 5 products, Women 2, the New tag 4.
+ *
+ * tests/the-header-categories-do-not-jump.test.js holds this to resolveItem's
+ * no-taxonomy branch, the same way mirrorSpec is held to mirror().
+ */
+const NAV_ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
+const navEsc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => NAV_ESC[c]);
+
+/* nav-menu.js's safeUrl, character for character. A url this rejects becomes
+   '#' there too, so stamping one it would refuse is not possible. */
+function navSafeUrl(u) {
+  const v = String(u == null ? '' : u).trim();
+  if (!v || v.slice(0, 2) === '//') return '#';
+  if (/^(?:javascript|data|vbscript|file):/i.test(v)) return '#';
+  if (/^[#/]/.test(v)) return v;
+  if (/^(?:https?:\/\/|mailto:|tel:)/i.test(v)) return v;
+  if (/^[\w][\w./?=&%#+-]*$/.test(v)) return v;
+  return '#';
+}
+
+/**
+ * The top-level strip, as nav-menu.js would render it before the catalogue
+ * lands. Returns '' when there is nothing trustworthy to write, which leaves
+ * the baked markup exactly as it was.
+ */
+export function navStripHtml(navMenu) {
+  const items = Array.isArray(navMenu) ? navMenu : null;
+  if (!items || !items.length) return '';
+  const out = [];
+  for (const item of items) {
+    if (!item || !item.label) continue;
+    const label = item.label;
+    const type = item.type || (item.gender ? 'gender' : (item.tag ? 'tag' : 'link'));
+    let url = '';
+    if (type === 'gender') {
+      const gender = item.gender || item.label;
+      url = item.url || ('landing.html?page=' + encodeURIComponent(String(gender).toLowerCase()));
+    } else if (type === 'tag') {
+      const tag = item.tag || label;
+      url = item.url || ('landing.html?tag=' + encodeURIComponent(tag));
+    } else {
+      url = item.url ? navSafeUrl(item.url) : '';
+    }
+    /* A custom link with no url is a mega-menu trigger, not a link — the same
+       distinction nav-menu.js draws, and it changes the element type. */
+    const top = url
+      ? '<a href="' + navEsc(url) + '" class="nav-link">' + navEsc(label) + '</a>'
+      : '<button type="button" class="nav-link zw-navtrigger">' + navEsc(label) + '</button>';
+    out.push('<div class="zw-navitem">' + top + '</div>');
+  }
+  return out.join('');
+}
+
+class NavStamp {
+  constructor(html) { this.html = html; }
+  element(el) { el.setInnerContent(this.html, { html: true }); }
+}
+
 export function themeAttrs(tm) {
   const v = (tm && typeof tm === 'object') ? tm : null;
   const id = v && typeof v.default === 'string' ? v.default.trim() : '';
@@ -508,10 +600,11 @@ export async function onRequest(context) {
        answer, and the preboot must stop guessing on the strength of it rather
        than only when something needs hiding. */
     const readLayout = !!attrs.classes;
-    if (!attrs.html && !attrs.body && !hasSettings && !readLayout && !attrs.theme) return res;
+    if (!attrs.html && !attrs.body && !hasSettings && !readLayout && !attrs.theme && !attrs.nav) return res;
     let rw = new HTMLRewriter();
     if (attrs.html) rw = rw.on('html', new Stamp(attrs.html));
     if (attrs.theme) rw = rw.on('html', new ThemeStamp(attrs.theme));
+    if (attrs.nav) rw = rw.on('#nav-category-links', new NavStamp(attrs.nav));
     if (readLayout) rw = rw.on('html', new ClassStamp(hasClasses ? attrs.classes.classes : [], true));
     if (attrs.body) rw = rw.on('body', new Stamp(attrs.body));
     if (hasSettings) {
