@@ -35,6 +35,131 @@ export async function onRequestOptions({ env }) {
 
 const KINDS = new Set(['gift_card', 'store_credit']);
 
+function serviceKey(env) {
+  return env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '';
+}
+
+/**
+ * The account an email belongs to, if it belongs to one yet.
+ *
+ * ── WHY THE BINDING HAPPENS HERE AND NOT AT READ TIME ───────────────────────
+ *
+ * Store credit is nearly always issued from an email address — it is what the
+ * admin has in front of them on the return. But /api/my-stored-value matches on
+ * `owner_user_id` and deliberately never on email, because "signed up with an
+ * address" is not "owns that address". If nothing resolved the one to the other
+ * at issue time, every credit ever issued would be invisible on the account it
+ * was issued to, and the customer would be told they had credit with no way to
+ * find it.
+ *
+ * So it resolves ONCE, here, where an admin is already asserting who this is
+ * for — and the answer is written down rather than re-derived on every read by
+ * whoever happens to be holding a session with that address.
+ *
+ * Not finding one is not a failure. A gift card bought for somebody who has no
+ * account is the ordinary case; it keeps the email for the record and travels
+ * as a code, which is how gift cards have always travelled.
+ */
+async function accountForEmail(env, email) {
+  const clean = String(email || '').trim().toLowerCase();
+  if (!clean || clean.indexOf('@') < 0) return null;
+  const key = serviceKey(env);
+  if (!env.SUPABASE_URL || !key) return null;
+  try {
+    const resp = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/profiles?email=ilike.${encodeURIComponent(clean)}&select=id&limit=2`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+    );
+    if (!resp.ok) return null;
+    const rows = await resp.json().catch(() => []);
+    /* Two accounts on one address should not happen and is not worth guessing
+       between — the card still issues, it just stays unbound. */
+    return Array.isArray(rows) && rows.length === 1 ? rows[0].id || null : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * What is outstanding, without naming a single code.
+ *
+ * Unspent gift cards are a LIABILITY — money taken for goods not yet handed
+ * over — and it is the one number about this system an owner genuinely has to
+ * be able to see. Every other question ("which cards exist", "who has one")
+ * would need a list, and a list of codes is a list of spendable money sitting
+ * where more people can read it than can issue it.
+ *
+ * So this returns counts and totals and nothing else. It is summed in the
+ * Worker rather than in SQL so it needs no second migration; the row cap keeps
+ * that honest, and reports itself when it bites rather than quietly under-
+ * counting what the store owes.
+ */
+const SUMMARY_CAP = 2000;
+
+async function summarize(env) {
+  const key = serviceKey(env);
+  if (!env.SUPABASE_URL || !key) throw new Error('Not configured.');
+  const head = { apikey: key, Authorization: `Bearer ${key}` };
+
+  const vResp = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/stored_value?status=eq.active&select=id,kind,expires_at&limit=${SUMMARY_CAP + 1}`,
+    { headers: head }
+  );
+  if (vResp.status === 404) throw new Error('Gift cards need migration 0030.');
+  if (!vResp.ok) throw new Error('Could not read the ledger (' + vResp.status + ').');
+  const values = await vResp.json().catch(() => []);
+  const capped = values.length > SUMMARY_CAP;
+  const rows = capped ? values.slice(0, SUMMARY_CAP) : values;
+
+  const byId = new Map();
+  const now = Date.now();
+  for (const r of rows) {
+    if (r.expires_at && new Date(r.expires_at).getTime() <= now) continue;
+    byId.set(r.id, { kind: r.kind, cents: 0 });
+  }
+
+  /* One read of the entries rather than one RPC per card. The same expiry rule
+     the balance function applies: an expired hold has stopped counting. */
+  let from = 0;
+  const PAGE = 1000;
+  for (;;) {
+    const eResp = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/stored_value_entries?select=stored_value_id,cents,kind,expires_at`
+      + `&order=id.asc&offset=${from}&limit=${PAGE}`,
+      { headers: head }
+    );
+    if (!eResp.ok) throw new Error('Could not read the entries (' + eResp.status + ').');
+    const batch = await eResp.json().catch(() => []);
+    for (const e of batch) {
+      const bucket = byId.get(e.stored_value_id);
+      if (!bucket) continue;
+      if (e.kind === 'hold' && e.expires_at && new Date(e.expires_at).getTime() <= now) continue;
+      bucket.cents += Number(e.cents) || 0;
+    }
+    if (batch.length < PAGE) break;
+    from += PAGE;
+    if (from > 50000) break;
+  }
+
+  const out = {
+    gift_card: { count: 0, cents: 0 },
+    store_credit: { count: 0, cents: 0 },
+  };
+  for (const b of byId.values()) {
+    if (b.cents <= 0) continue;
+    const slot = out[b.kind] || out.gift_card;
+    slot.count += 1;
+    slot.cents += b.cents;
+  }
+  return {
+    capped,
+    cap: SUMMARY_CAP,
+    giftCards: out.gift_card,
+    storeCredit: out.store_credit,
+    outstandingCents: out.gift_card.cents + out.store_credit.cents,
+  };
+}
+
 export async function onRequestPost({ request, env }) {
   const headers = cors(env);
   const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
@@ -76,6 +201,10 @@ export async function onRequestPost({ request, env }) {
       return json({ ok: true, info }, 200, headers);
     }
 
+    if (action === 'summary') {
+      return json({ ok: true, summary: await summarize(env) }, 200, headers);
+    }
+
     if (action === 'issue') {
       const kind = KINDS.has(body.kind) ? body.kind : 'gift_card';
       if (!(amountCents > 0)) return json({ ok: false, error: 'Enter an amount greater than zero.' }, 400, headers);
@@ -85,11 +214,14 @@ export async function onRequestPost({ request, env }) {
          against a mistyped amount turning $50 into $50,000. */
       if (amountCents > 500000) return json({ ok: false, error: 'That is over the $5,000 issuing limit.' }, 400, headers);
 
+      const ownerEmail = String(body.ownerEmail || '').trim();
+      const ownerUserId = body.ownerUserId || await accountForEmail(env, ownerEmail);
+
       const out = await issue(env, {
         kind,
         cents: amountCents,
-        ownerUserId: body.ownerUserId || null,
-        ownerEmail: body.ownerEmail || '',
+        ownerUserId: ownerUserId || null,
+        ownerEmail,
         issuedBy: admin.id,
         reason: String(body.reason || '').slice(0, 300),
         sourceRef: String(body.sourceRef || '').slice(0, 120),
@@ -103,7 +235,7 @@ export async function onRequestPost({ request, env }) {
         action: 'stored_value.issue',
         resource_type: 'stored_value',
         resource_id: out.id,
-        metadata: { kind, amountCents, ownerEmail: body.ownerEmail || '', reason: body.reason || '' },
+        metadata: { kind, amountCents, ownerEmail, bound: !!ownerUserId, reason: body.reason || '' },
       }, request);
 
       return json({ ok: true, code: out.code, balance: (out.balanceCents / 100).toFixed(2) }, 200, headers);

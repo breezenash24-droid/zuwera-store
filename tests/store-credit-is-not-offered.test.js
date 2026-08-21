@@ -1,25 +1,40 @@
-/* A return could be settled as store credit, and store credit did not exist.
+/* Store credit is not offered ON A RETURN, because a return cannot issue it.
  *
- * Four separate forms offered it — the signed-in return form in account.html,
- * the customer hub's, the guest form and the multi-step flow in returns.html,
- * plus the admin's resolution picker. The returns.html card said, in words,
- * "Credit towards your next Zuwera order".
+ * ── WHAT THIS FILE USED TO SAY, AND WHY IT CHANGED ──────────────────────────
  *
- * There was no credit. Searched at the time:
+ * It used to say "store credit is not offered, because there is none". Four
+ * forms let a shopper choose it — the signed-in return form in account.html,
+ * the customer hub's, the guest form and the multi-step flow in returns.html —
+ * plus the admin's resolution picker, and behind all five there was no balance
+ * anywhere: no table, no redemption path at checkout, nothing on the account
+ * page that could display one. A shopper picked it, a staff member confirmed
+ * it, and the money existed only as a word on a status page.
  *
- *     no credit or balance table in schema.sql or any supabase-*.sql
- *     no reference in checkout.js, commerce-checkout.js, _cart-pricing.js
- *       or create-payment-intent.js
- *     nothing on the account page that could display a balance
+ * That is no longer the reason. Migration 0030 built the ledger, and the three
+ * surfaces that make it real are now built too: an admin can issue credit, a
+ * shopper can spend it at checkout, and they can see the balance and the code
+ * on their account page. Store credit EXISTS and is spendable — so the
+ * assertion this file used to make, that commerce-checkout.js has no
+ * redemption path, is now false ON PURPOSE. Keeping it would be asserting the
+ * feature away.
  *
- * So a shopper picked it, a staff member confirmed it, and the money existed
- * only as a word on a status page. That is the worst of the three possible
- * states: not having the feature is honest, having it is useful, and appearing
- * to have it means somebody is owed money the system cannot pay.
+ * ── WHAT IS STILL MISSING IS ONE STEP, NOT THE WHOLE THING ──────────────────
+ *
+ * Nothing issues credit FROM A RETURN. /api/admin-refund is where money moves —
+ * it is the only route that refunds a processor, reverses the tax, closes the
+ * request and emails the customer — and it has no store-credit settlement in
+ * it. Until it does, a return form offering store credit would recreate the
+ * exact bug that got the option removed: a shopper picks it, an admin confirms
+ * it, and nothing issues.
+ *
+ * So the rule has not changed, only its trigger. The forms get the option back
+ * in the same change that lets a return settle as credit, and not before. The
+ * two assertions at the end of this file are what will fail on that day, and
+ * their failure message says what to do about it.
  *
  * ── WHAT WAS REMOVED AND WHAT WAS DELIBERATELY KEPT ─────────────────────────
  *
- * REMOVED: every way to CHOOSE it.
+ * REMOVED: every way to CHOOSE it on a return.
  * KEPT:    every way to READ it.
  *
  * A return already settled as credit still has to render as "Store Credit",
@@ -29,10 +44,8 @@
  * worse lie than the one being fixed. The admin's per-return dropdown keeps the
  * option only when that return already carries it, marked "(retired)", so it
  * reads correctly and can be moved to refund or exchange.
- *
- * Building the ledger properly is on the work queue. Until it exists, not
- * offering it is the honest position.
  */
+
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
@@ -41,7 +54,7 @@ const ok = (n, c, e) => { if (c) { pass++; console.log('  ✓ ' + n); } else { f
 const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g, '\n');
 const code = (f) => read(f).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
 
-console.log('\n  store credit is not offered, because there is none\n');
+console.log('\n  store credit is not offered on a return, because a return cannot issue it\n');
 
 console.log('  no form lets anybody choose it');
 {
@@ -86,16 +99,43 @@ console.log('\n  but every return already settled that way still reads correctly
     'otherwise the next person tidying this up removes it and hides the rows');
 }
 
-console.log('\n  and nothing pretends a balance exists');
+console.log('\n  the balance itself is real now — that is no longer the blocker');
 {
-  const MONEY = ['checkout.js', 'commerce-checkout.js',
-    'functions/api/_cart-pricing.js', 'functions/api/create-payment-intent.js'];
-  for (const f of MONEY) {
-    ok('  ' + f + ' has no credit redemption path',
-      !/store.?credit/i.test(read(f)),
-      'if this ever gains one, the option belongs back on the forms above');
-  }
+  /* These four used to be asserted EMPTY, and three of them still would be if
+     the rule were "no file may mention credit". They are the redemption path,
+     and it exists: the till quotes against a code, holds it, and captures it
+     when the payment succeeds. */
+  ok('the till can spend a balance',
+    /storedValueCode/.test(read('functions/api/_cart-pricing.js'))
+    && /quoteAgainst/.test(read('functions/api/_cart-pricing.js')));
+  ok('…and holds it rather than trusting the browser',
+    /await hold\(env, storedValue\.code/.test(read('functions/api/create-payment-intent.js')));
+  ok('…and a shopper has somewhere to type the code',
+    /zw-sv-input/.test(read('checkout.html'))
+    && /applyStoredValueFromInput/.test(read('commerce-checkout.js')));
+  ok('…and somewhere to find out what it is',
+    /my-stored-value/.test(read('account.html')));
+  ok('…and an admin has a way to create one',
+    fs.existsSync(path.join(ROOT, 'stored-value-admin.js'))
+    && /action === 'issue'/.test(read('functions/api/admin-stored-value.js')));
 }
+
+console.log('\n  but a RETURN still cannot issue one, which is the last step');
+{
+  /* THESE TWO ARE THE REMINDER NOW. admin-refund.js is the only route money
+     moves through on a return — processor refund, tax reversal, closing the
+     request, emailing the customer — and admin-returns.js is the one that
+     records the resolution. When a store-credit settlement lands in either,
+     these fail, and the failure means: put the option back on all four forms
+     in that same change. */
+  ok('nothing issues credit from the refund route yet',
+    !/_stored-value|storedValue|issueStoreCredit/i.test(read('functions/api/admin-refund.js')),
+    'IT DOES NOW — re-offer store credit on the four return forms in this change');
+  ok('…nor from the returns-update route',
+    !/_stored-value|storedValue|issueStoreCredit/i.test(read('functions/api/admin-returns.js')),
+    'IT DOES NOW — re-offer store credit on the four return forms in this change');
+}
+
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
