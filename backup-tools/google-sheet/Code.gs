@@ -290,11 +290,29 @@ function writeSummary_(ss, payload, failed) {
      which tab was stale on the day you need it. So the state of the run is the
      second line of the sheet, above everything else, and it names the tabs that
      did not make it. When every tab wrote, it says so in one word. */
-  var health = bad.length
-    ? bad.length + ' tab' + (bad.length === 1 ? '' : 's') + ' FAILED — '
+  var notes = [];
+  if (bad.length) {
+    notes.push(bad.length + ' tab' + (bad.length === 1 ? '' : 's') + ' FAILED — '
       + bad.map(function (f) { return displayName_(f.table) + ' (' + f.error + ')'; }).join('; ')
-      + '. Everything else on this sheet is current.'
-    : 'All tabs written.';
+      + '. Everything else on this sheet is current.');
+  }
+
+  /* What the export decided on the server, repeated here because this is where
+     somebody looks. A table the exporter held back for looking like it holds
+     credentials, or one so large it had to stop — neither is visible from a row
+     count, and both change what this backup is worth. */
+  var d = payload.discovery || {};
+  if (d.added && d.added.length) {
+    notes.push('New table' + (d.added.length === 1 ? '' : 's') + ' picked up automatically: ' + d.added.join(', ') + '.');
+  }
+  if (d.held && d.held.length) {
+    notes.push('NOT backed up: ' + d.held.map(function (x) { return x.table + ' (' + x.why + ')'; }).join('; ')
+      + '. Deliberate — change it in backup-export if that is wrong.');
+  }
+  if (d.truncated && d.truncated.length) {
+    notes.push('TRUNCATED — too many rows to export in one run: ' + d.truncated.join(', ') + '.');
+  }
+  var health = notes.length ? notes.join(' ') : 'All tabs written.';
 
   var rows = [
     ['Zuwera data backup', '', ''],
@@ -326,7 +344,11 @@ function writeSummary_(ss, payload, failed) {
   /* Red and bold when a tab failed. A backup that quietly went partial is the
      one that costs you — this is the line that has to catch an eye that was
      only checking the date. */
-  if (bad.length) sheet.getRange(3, 2).setFontColor('#c5221f').setFontWeight('bold');
+  /* Red for the states that cost you something — a failed tab or a truncated
+     one. Picking up a new table is news, not a problem, and colouring it like a
+     fault is how a warning colour stops meaning anything. */
+  var alarming = bad.length || (d.truncated && d.truncated.length);
+  if (alarming) sheet.getRange(3, 2).setFontColor('#c5221f').setFontWeight('bold');
   sheet.getRange(6, 1, 1, 3).setBackground(HEADER_BG).setFontColor(HEADER_FG).setFontWeight('bold');
   sheet.setFrozenRows(6);
   var bodyRows = rows.length - 6;
