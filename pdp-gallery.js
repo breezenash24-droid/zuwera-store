@@ -353,8 +353,25 @@
         /* A very tall photo would otherwise make a pane taller than the screen.
            Through a custom property so a licensee's theme can change the cap
            without touching this file — the literal here is only the fallback. */
-        pin(host, 'max-height', 'var(--zw-strip-max-h, min(78vh, 760px))');
+        var cap = 'var(--zw-strip-max-h, min(78vh, 760px))';
+        pin(host, 'max-height', cap);
         pin(host, 'min-height', '0');
+        /* ── AND WHEN THE CAP BINDS, THE PANE NARROWS RATHER THAN BANDS ─────
+           Giving the pane the photo's ratio is only half of fitting it. On a
+           short window the cap wins, the pane ends up wider than that ratio
+           wants, and a contained photo goes back to sitting between two bands —
+           the same gap as before, turned on its side. Measured on a 796px-tall
+           window: the pane wanted 729px of height, the cap allowed 621, and a
+           4:5 photo left 43px of dead space down each edge.
+
+           So the width is capped to whatever the HEIGHT cap can actually carry
+           at this ratio. The pane then matches the photo on both axes and the
+           leftover space moves OUTSIDE it, where margin-inline:auto centres it
+           and it reads as margin around a photo rather than as a gap inside a
+           frame. Expressed in CSS rather than in pixels so it keeps up with a
+           window being resized without this having to run again. */
+        pin(host, 'max-width', 'calc(' + cap + ' * ' + (w / h).toFixed(4) + ')');
+        pin(host, 'margin-inline', 'auto');
         /* The slides carry their own height from CSS, which would fight the
            ratio the pane has just taken. Follow it instead. */
         for (var i = 0; i < host.children.length; i++) pin(host.children[i], 'height', '100%');

@@ -1141,6 +1141,14 @@ document.documentElement.classList.add('zw-collflash');
        an arrow row stranded beneath both. */
     .collection-product-gallery[data-layout="dual"]{display:flex;flex-direction:column;padding:0}
     .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip{
+      /* HOW TALL THE PANE MAY GET, and the only place that decides it.
+         pdp-gallery.js gives the pane the photo's own aspect ratio and then caps
+         it against this — and caps the WIDTH against this too, so that when the
+         cap binds the pane narrows to match the photo instead of leaving bands
+         down its edges. The script carries the same value as a fallback for a
+         page that has not set it; a licensee changing the cap should only ever
+         have to change it here. */
+      --zw-strip-max-h: min(78vh, 760px);
       display:flex;gap:.4rem;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;
       scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior-x:contain;
       /* Single-image caps do not apply to a strip. Hug the photos: flex:1 1 auto
@@ -1202,6 +1210,13 @@ document.documentElement.classList.add('zw-collflash');
          above, a cap here would just be the same over-constraint again. */
       .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip > *{
         height:min(56vh,460px);
+      }
+      /* And the same shorter answer for the fitted pane, which sizes itself from
+         the photo and reads its ceiling from here. Without this the phone kept
+         the desktop ceiling — the slide rule above cannot say it, because the
+         fitted pane drives the slides rather than the other way round. */
+      .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip{
+        --zw-strip-max-h: min(56vh, 460px);
       }
     }
     /* Arrow row: flex:0 0 auto or the media pane (flex:1 1 auto) inside
