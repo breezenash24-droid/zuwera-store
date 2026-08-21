@@ -54,6 +54,46 @@
 
   var settingsPromise = null;
 
+  /* ── THE ANSWER THAT ARRIVED WITH THE DOCUMENT ────────────────────────────
+     functions/_middleware.js reads the first-paint settings as the page is
+     served and writes them into <head> as inline JSON. Fourteen keys, 3,986
+     bytes on the live store, 1,552 gzipped — the colours, fonts, copy, icons,
+     categories, announcement bar and header arrangement.
+
+     Every module that reads a setting used to do the same thing: paint from
+     localStorage, then fetch, then correct itself. That is wrong twice, and
+     both times in front of somebody:
+
+         a first-ever visitor      has nothing cached, so they watch the
+                                   shipped defaults become the real store.
+         the visit after a change  has the OLD value cached, so they watch
+                                   last week's store become this week's.
+
+     A stamped key needs neither. It is already in the document.
+
+     FRESHNESS, STATED. The stamp is at most as old as the middleware's edge
+     cache — five minutes. So within one page load a stamped key does not see a
+     change published in the last few minutes; the next load does. That is the
+     same contract the header attributes have carried since they were stamped,
+     and it is a far better trade than a correct value that arrives after the
+     visitor has already read the wrong one. */
+  var stamped = (function () {
+    try {
+      var el = document.getElementById('zw-first-paint');
+      if (!el) return null;
+      var v = JSON.parse(el.textContent || 'null');
+      if (!v || typeof v.settings !== 'object' || !v.settings) return null;
+      return { settings: v.settings, updatedAt: (v.updatedAt && typeof v.updatedAt === 'object') ? v.updatedAt : {} };
+    } catch (_) { return null; }
+  }());
+
+  /* hasOwnProperty rather than `!== undefined`: the edge omits a key that has no
+     row, so "stamped as null" and "not stamped" are genuinely different — the
+     first is an answer, the second has to go to the network. */
+  function isStamped(key) {
+    return !!stamped && Object.prototype.hasOwnProperty.call(stamped.settings, key);
+  }
+
   function fetchSettings() {
     if (settingsPromise) return settingsPromise;
 
@@ -99,10 +139,28 @@
    *                       REJECTS when the settings could not be read at all.
    */
   function get(key) {
+    if (isStamped(key)) return Promise.resolve(stamped.settings[key]);
     return fetchSettings().then(function (d) {
       var v = d.settings[key];
       return v === undefined ? null : v;
     });
+  }
+
+  /**
+   * The stamped value, synchronously, or undefined if this key was not stamped.
+   *
+   * WHY A SYNCHRONOUS READ EXISTS AT ALL. get() resolves in a microtask, which
+   * is early enough for almost everything. It is NOT early enough for a module
+   * whose whole job is to be right before the first paint — theme-engine.js
+   * decides the page's colours, and a microtask is one turn too late if the
+   * browser paints in between. Those callers ask peek() first and fall back to
+   * their existing path when it answers undefined.
+   *
+   * Returns undefined for "not stamped" and the value for "stamped", including
+   * when that value is null.
+   */
+  function peek(key) {
+    return isStamped(key) ? stamped.settings[key] : undefined;
   }
 
   /**
@@ -111,6 +169,12 @@
    * pre-paint cache is still the freshest thing it has.
    */
   function getWithMeta(key) {
+    if (isStamped(key)) {
+      return Promise.resolve({
+        value: stamped.settings[key],
+        updated_at: stamped.updatedAt[key] || null,
+      });
+    }
     return fetchSettings().then(function (d) {
       var v = d.settings[key];
       return { value: v === undefined ? null : v, updated_at: d.updatedAt[key] || null };
@@ -225,8 +289,13 @@
   window.zwSettings = {
     get: get,
     getWithMeta: getWithMeta,
+    peek: peek,
     all: all,
     prime: prime,
+    /* Whether this document arrived with its first-paint settings in it. Lets a
+       caller tell "not stamped" from "stamped as absent" without reaching into
+       the DOM a second time. */
+    stamped: function () { return !!stamped; },
     /* Testing and diagnostics only — a module should ask for its key. */
     _reset: function () { settingsPromise = null; },
   };

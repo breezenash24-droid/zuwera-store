@@ -301,6 +301,25 @@ try {
     _rec = (_tc && _tc.modes && _tc.modes.filter(function (x) { return x && x.id === _id; })[0]) || null;
   } catch (_) {}
 
+  /* A NOTE ON THE VISITOR WITH NOTHING STORED, WHO IS NOT HANDLED HERE.
+   *
+   * Everything above is a MEMORY: zw_theme_modes is the settings row as it
+   * looked on this visitor's LAST visit. Empty on a first visit, stale on the
+   * visit after the shop changes its default theme. In both cases `_id` is ''
+   * and the comparison below cannot fire, so a baked palette that is no longer
+   * the default survives unchallenged.
+   *
+   * That case is answered before this file runs. functions/_middleware.js reads
+   * the row as the page is served, and does the same comparison at the edge —
+   * removing data-zw-theme-stamp and rewriting data-zw-theme-default itself. So
+   * by the time this executes the attributes already tell the truth, and there
+   * is nothing to add here.
+   *
+   * Deliberately NOT solved by reading the stamped settings JSON in this block.
+   * It is inlined into fourteen pages and measured against a byte budget
+   * (tests/product-page-is-cacheable.test.js); doing it here cost 243 bytes over
+   * and told us nothing the two attributes already say. */
+
   /* THE BAKED DEFAULT, AND THE ONE MOMENT TO STOP BELIEVING IT.
      stamp-theme-default.js writes the store's default theme into the page as a
      real stylesheet rule, scoped to html[data-zw-theme-stamp], so a visitor
