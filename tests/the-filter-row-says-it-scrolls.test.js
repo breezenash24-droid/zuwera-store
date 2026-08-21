@@ -91,6 +91,37 @@ console.log('\n  the fade itself');
     /data-more="both"\][\s\S]{0,200}linear-gradient\(to right,transparent,#000 [^,]+,#000 calc\(100% - [^)]+\),transparent\)/.test(COLL));
 }
 
+console.log('\n  and it parks against the bar above it, at every height that bar takes');
+{
+  /* ── "THE HEADER ON THE RIGHT SEEMS TO BE TRANSLUCENT" WAS A GAP ─────────
+     .plp-pillbar sticks at calc(--zw-nav-h + --zw-plpbar-h) — parked directly
+     under .plp-bar. Both numbers were measured once at DOMContentLoaded and
+     re-read only on a window resize or a class change on the header, and
+     NEITHER fires for the four things that actually change those heights after
+     first paint: the product count arriving in .plp-count, .plp-bar wrapping,
+     the announcement bar loading into the header, and the webfont swapping in.
+
+     Measure high and the pill bar parks below the bar it should touch, so a
+     strip of the page scrolls between two opaque bars and reads as
+     transparency. Measure low and it slides under (z-index 40 vs 50). */
+  ok('the two sticky bars are measured, not assumed',
+    /root\.style\.setProperty\('--zw-nav-h'/.test(code)
+    && /root\.style\.setProperty\('--zw-plpbar-h'/.test(code));
+  ok('…and re-measured whenever either box changes size',
+    /var ro=new ResizeObserver\(sync\);/.test(code)
+    && /if\(nav\) ro\.observe\(nav\);/.test(code)
+    && /if\(bar\) ro\.observe\(bar\);/.test(code),
+    'a resize listener sees none of the four things that move these');
+  /* The observers it already had are still the cheapest way to catch the
+     header's hide/show, so neither replaces the other. */
+  ok('…without dropping the class watch the auto-hide needs',
+    /new MutationObserver\(sync\)\.observe\(nav,\{attributes:true,attributeFilter:\['class'\]\}\)/.test(code));
+  ok('…and a browser with no ResizeObserver still waits for the font',
+    /document\.fonts\.ready\.then\(sync\)/.test(code));
+  ok('the pill bar is still parked directly under the bar above it',
+    /top:calc\(var\(--zw-nav-h,54px\) \+ var\(--zw-plpbar-h,50px\)\)/.test(COLL));
+}
+
 console.log('\n  none of which replaced the scrolling');
 {
   /* The row must still scroll. A fade over a row that can no longer move is a

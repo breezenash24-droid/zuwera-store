@@ -153,5 +153,42 @@ console.log('\n  and the server stops holding the page up for a nicety');
     'an empty stamp would still cost an HTMLRewriter pass over every page');
 }
 
+console.log('\n  and the two product grids fail the same way');
+{
+  /* ── AN INLINE onerror RACES THE CHAIN AND WINS ──────────────────────────
+     The chain in image-utils.js is a DELEGATED listener in the CAPTURE phase,
+     so it acts before any handler on the element itself — and is then
+     overwritten by it. The collection card carried
+
+         onerror="if(this.src !== RAW) this.src = RAW;"
+
+     so on this grid the middle step never ran: Cloudinary failed, the chain set
+     the wsrv.nl retry, and this put the raw original back over the top of it.
+     wsrv is the step that covers an over-quota Cloudinary; going straight to
+     the raw original covers nothing, because the raw original is what the
+     Cloudinary URL was built from.
+
+     It also could not terminate for a product whose stored image_url is
+     RELATIVE: `img.src` reads back absolute, so the comparison stayed true and
+     the same failing request was re-issued on every error.
+
+     The homepage card (storefront.js) never had one, and is the reference. */
+  const COLL = read('drop001.html');
+  /* The footer wordmark keeps its handler and should: it does not RETRY, it
+     swaps a failed logo for the word ZUWERA, which the chain cannot do. */
+  const handlers = (COLL.match(/onerror="[^"]*"/g) || []).filter((h) => /this\.src\s*=/.test(h));
+  ok('the collection card leaves failure to the chain', handlers.length === 0,
+    handlers.join(' | ') || 'an element handler runs after the capture listener and overwrites it');
+  ok('…the same as the homepage card, which never had one',
+    !/alt="\$\{escapeHomeFavoriteHtml\(productName\)\}"[^>]*onerror=/.test(STORE),
+    'two grid implementations, one behaviour');
+  /* Both still hand the chain what it needs: a Cloudinary URL it can walk back
+     to an original, and a width to size the wsrv retry with. */
+  ok('…and both still ask the optimiser, which is what the chain walks back',
+    /optimizeImage\(firstImg, 600\)/.test(COLL));
+  ok('…with the width attribute step 0 reads to size its retry',
+    /wsrvUrl\(absoluteImageUrl\(orig\), img\.getAttribute\('width'\) \|\| 800\)/.test(UTIL));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

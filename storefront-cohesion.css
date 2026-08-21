@@ -5341,38 +5341,59 @@ html[data-zw-hdr-order] :is(#nav, .nav, .zw-nav) .zwf-hdr-row { order: 2; }
    an earlier build carries them, and a store that has never opened the header
    modal still has them in its theme — dropping them would blank the labels for
    the moment between the page arriving and theme-engine.js normalising it. */
-html[data-zw-iconlabels] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) {
+html[data-zw-iconlabels] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) {
   --zw-il: 0;   /* off unless a device below turns it on at this width */
 }
 @media (max-width: 600px) {
-  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) { --zw-il: 1; }
+  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) { --zw-il: 1; }
 }
 @media (min-width: 601px) and (max-width: 900px) {
-  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) { --zw-il: 1; }
+  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) { --zw-il: 1; }
 }
 @media (min-width: 901px) {
-  html:is([data-zw-iconlabels~="desktop"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) { --zw-il: 1; }
+  html:is([data-zw-iconlabels~="desktop"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) { --zw-il: 1; }
 }
 
 /* `display` cannot be driven by a custom property, so the two states are two
-   rules keyed on the same devices rather than one clever declaration. */
+   rules keyed on the same devices rather than one clever declaration.
+
+   ── AND A CONTROL SHOWING A WORD IS NOT A 20px ICON BOX ────────────────────
+   The mobile block near the top of this file forces every .zw-hdr-action to
+   `width:20px; min-width:20px; padding:0`, which is right when they are all
+   glyphs and predates icon labels entirely. .zwf-search-btn BORROWS
+   .zw-hdr-action for its colour and padding, so with labels on it became a
+   20px box with the word SEARCH hanging out of it — and the account glyph,
+   sitting one 0.45rem gap after that 20px box, landed hard against the last
+   letter. Reported as "distance between search and account on some pages": the
+   .nbtn pages were fine because there the search button is a .nbtn and keeps
+   its own padding, so only the .zw-hdr-* pages (drop001, policies, sizeguide,
+   landing, bag) showed it.
+
+   Released here rather than up there, because it must only happen when the
+   label is actually being drawn — which is exactly the condition these two
+   blocks already express. Not repeated in the ≥901px block: the 20px box is
+   itself scoped to ≤900px, and forcing .5rem there would SHRINK the 0.9rem
+   padding the desktop rule gives it. Only .zwf-search-btn needs this — it is
+   the one label-bearing control that is also a .zw-hdr-action. */
 @media (max-width: 600px) {
-  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) > svg { display: none; }
-  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row)::before { content: attr(aria-label); }
+  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) > svg { display: none; }
+  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row)::before { content: attr(aria-label); }
+  html:is([data-zw-iconlabels~="phone"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) .zwf-search-btn { width: auto !important; min-width: 0 !important; padding-inline: .5rem !important; }
 }
 @media (min-width: 601px) and (max-width: 900px) {
-  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) > svg { display: none; }
-  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row)::before { content: attr(aria-label); }
+  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) > svg { display: none; }
+  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row)::before { content: attr(aria-label); }
+  html:is([data-zw-iconlabels~="tablet"], [data-zw-iconlabels="mobile"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) .zwf-search-btn { width: auto !important; min-width: 0 !important; padding-inline: .5rem !important; }
 }
 @media (min-width: 901px) {
-  html:is([data-zw-iconlabels~="desktop"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) > svg { display: none; }
-  html:is([data-zw-iconlabels~="desktop"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row)::before { content: attr(aria-label); }
+  html:is([data-zw-iconlabels~="desktop"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row) > svg { display: none; }
+  html:is([data-zw-iconlabels~="desktop"], [data-zw-iconlabels="always"]) :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row)::before { content: attr(aria-label); }
 }
 
 /* One rule for the look of the label, whichever scope revealed it.
    --zw-label-font defaults to the body font, so "match the current font" is the
    behaviour when nothing is chosen rather than a setting you have to find. */
-html[data-zw-iconlabels] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row)::before {
+html[data-zw-iconlabels] :is(#nav, .nav, .zw-nav) :is(#cart-btn, .zw-hdr-bag, .zwf-search-btn, .hamburger-btn, .zwf-hdr-row)::before {
   font-family: var(--zw-label-font, var(--fb, inherit));
   font-size: var(--zw-label-size, .72rem);
   letter-spacing: .12em;

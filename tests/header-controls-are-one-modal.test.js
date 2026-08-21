@@ -93,6 +93,39 @@ console.log('\nOne modal for the whole header\n');
   ok('...and the old spellings still work, so baked HTML is not blanked',
     /\[data-zw-iconlabels="mobile"\]/.test(read('storefront-cohesion.css'))
     && /\[data-zw-iconlabels="always"\]/.test(read('storefront-cohesion.css')));
+  /* ── BOTH SPELLINGS OF THE BAG, OR THE SETTING IS HALF-APPLIED ───────────
+     The bag is #cart-btn on the .nbtn pages and .zw-hdr-bag on the .zw-hdr-*
+     ones. Only the first was listed, so "words" turned the homepage bag into
+     BAG and left the collection page drawing a bag icon — the same setting
+     rendering two different headers, which is what surfaced as "some pages"
+     looking wrong. .desktop-bag-btn needs no entry: it only ever appears as
+     `#cart-btn.desktop-bag-btn`, so #cart-btn already covers it. */
+  {
+    const css = read('storefront-cohesion.css');
+    /* The label control list is the one that names the search launcher — the
+       other `:is(#cart-btn…)` groups in this file are about something else. */
+    const lists = (css.match(/:is\(#cart-btn[^)]*\)/g) || []).filter((l) => /\.zwf-search-btn/.test(l));
+    ok('...and BOTH spellings of the bag are labelled, not just the .nbtn one',
+      lists.length >= 11 && lists.every((l) => /\.zw-hdr-bag/.test(l)),
+      lists.filter((l) => !/\.zw-hdr-bag/.test(l)).join(' | ') || 'found ' + lists.length + ' lists');
+  }
+  /* ── A CONTROL SHOWING A WORD IS NOT A 20px ICON BOX ─────────────────────
+     .zwf-search-btn borrows .zw-hdr-action, which the ≤900px block pins to
+     width:20px/padding:0. With labels on that left the word SEARCH hanging out
+     of a 20px box and the account glyph one gap later landing against it.
+     Released ONLY in the two blocks that draw the label — releasing it
+     unconditionally would put padding around the magnifier on stores that
+     chose icons. */
+  {
+    const css = read('storefront-cohesion.css');
+    const rel = css.match(/\.zwf-search-btn \{ width: auto !important; min-width: 0 !important; padding-inline: \.5rem !important; \}/g) || [];
+    ok('...and the search button is released from it wherever its label shows',
+      rel.length === 2, 'expected the ≤600 and 601–900 blocks, found ' + rel.length);
+    /* The 20px box only exists below 900px, and the desktop rule already gives
+       it 0.9rem — releasing there would SHRINK it. */
+    ok('...but not at desktop, where that would shrink it',
+      !/min-width: 901px\)[\s\S]{0,600}?\.zwf-search-btn \{ width: auto/.test(css));
+  }
   /* Asked with the other four, on the account's own row, rather than in a
      section of its own that phrased the same question differently. */
   ok('where the account link lives is answerable there, on its row',
