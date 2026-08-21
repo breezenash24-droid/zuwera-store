@@ -14,6 +14,9 @@ import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { cors, json, verifyAdmin, getCommerceBundle } from './_commerce.js';
 import { sendTransactional } from './_email.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
+/* One function decides what an order is called. Spelling the fallback out
+   here again is how a store ends up with six names for one order. */
+import { orderNo } from './_order-no.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
 
@@ -173,7 +176,7 @@ export function buildEmail({ r, status, resolution, fromFirstName, logoUrl, appe
   const nextSteps = nextStepsHtml(status, resolution, r, a);
   const labelSec  = labelSectionHtml(r, a);
   const adminMsg  = (r.customerMessage || '').trim();
-  const orderLabel = r.orderLabel || ('#' + String(r.orderId || '').slice(-8).toUpperCase());
+  const orderLabel = r.orderLabel || orderNo({ id: r.orderId });
   const resolutionDisplay = resolution === 'exchange' ? 'Exchange' : resolution === 'store_credit' ? 'Store Credit' : 'Return / Refund';
 
   const body = `

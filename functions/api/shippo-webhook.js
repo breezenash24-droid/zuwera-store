@@ -30,6 +30,9 @@ import { mintOrderToken } from './_order-token.js';
 import { isPaused } from './_paused.js';
 import { siteUrl } from './_config.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
+/* One function decides what an order is called. Spelling the fallback out
+   here again is how a store ends up with six names for one order. */
+import { orderNoPlain } from './_order-no.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
 
@@ -357,7 +360,7 @@ export async function onRequestPost({ request, env }) {
 
   const customerEmail = order.customer_email || '';
   const customerName  = order.customer_name  || 'Customer';
-  const orderId       = (order.id || '').toString().slice(-8).toUpperCase() || 'ZUWERA';
+  const orderId       = orderNoPlain(order) || 'ZUWERA';
   const trackingUrl   = data.tracking_url_provider || data.tracking_status?.tracking_url || '';
   const smsPhone      = order.sms_phone || order.phone || '';
   const smsConsent    = order.sms_consent === true || order.sms_consent === 'true';

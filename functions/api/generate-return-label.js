@@ -15,6 +15,9 @@ import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { shipFromValue, shipFromKeys, SHIP_FROM_FIELDS } from './_ship-from.js';
 import { cors, json, verifyAdminCan, decide, limitError, limitResponse, getCommerceBundle, setSetting } from './_commerce.js';
 import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
+/* One function decides what an order is called. Spelling the fallback out
+   here again is how a store ends up with six names for one order. */
+import { orderNo } from './_order-no.js';
 
 async function fetchOrder(orderId, env) {
   const url = (env.SUPABASE_URL || '').trim();
@@ -246,7 +249,7 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
   const toName     = order.customer_name || 'Customer';
   if (!toEmail) return;
 
-  const orderLabel = '#' + String(order.id || '').slice(-8).toUpperCase();
+  const orderLabel = orderNo(order);
   const resolution = returnRequest?.resolution || 'return';
   const resolutionLabel = resolution === 'exchange' ? 'exchange'
     : resolution === 'store_credit' ? 'store credit' : 'refund';

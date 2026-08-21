@@ -10,13 +10,47 @@ import {
   verifyAdmin,
 } from './_commerce.js';
 import { permsHave } from './_rbac.js';
+/* The one place that decides what an order is called. This file used to have
+   its own idea — see below. */
+import { orderNo } from './_order-no.js';
 
+/* `total_amount` is a DEAD COLUMN. Nothing in this repository has ever written
+   it — `git log -S` across the whole history finds no commit that adds a write
+   — and every one of the nine places that reads it reads it exactly like this,
+   as a fallback behind `total`.
+
+   It is kept rather than removed because "nothing in this repo wrote it" is not
+   the same as "no row has a value". A row imported by hand or by whatever
+   preceded this codebase could carry one, and the fallback only ever fires when
+   `total` is null, which is an order that is broken anyway. Deleting it to tidy
+   up would silently read those orders as $0 — in revenue totals, among other
+   places.
+
+   To retire it for real: check whether any order has total_amount set and total
+   null (one filter on the backup's Orders tab). If none does, this fallback and
+   the eight others like it can go, and the column with them. */
 function orderTotal(order = {}) {
   return Number(order.total || order.total_amount || 0);
 }
 
+/* ── THE FOURTH NAME FOR AN ORDER ───────────────────────────────────────────
+
+   This file had its own derivation, and it used the ROW ID:
+
+       return order.id ? `#${String(order.id).slice(-8).toUpperCase()}` : '';
+
+   orderNo() uses the order number when there is one and the PAYMENT REFERENCE
+   when there is not. Those are different strings for the same order, so a
+   return whose stored label was missing was drawn with a name that appears
+   nowhere else — not on the order, not in the customer's email, not in the
+   panel's own Orders list — and searching for it found nothing.
+
+   That is exactly the class of bug that made order_number null on every order
+   in the first place: a second opinion about what something is called, written
+   because the shared one was one import away. There is one function for this
+   and this now calls it. */
 function orderLabel(order = {}) {
-  return order.id ? `#${String(order.id).slice(-8).toUpperCase()}` : '';
+  return orderNo(order);
 }
 
 function profileName(profile = {}) {

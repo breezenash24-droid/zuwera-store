@@ -38,6 +38,9 @@ import { recordTaxSale } from './_tax.js';
 import { shipFrom } from './_ship-from.js';
 import { mintOrderToken } from './_order-token.js';
 import { capture as captureStoredValue } from './_stored-value.js';
+/* One function decides what an order is called. Spelling the fallback out
+   here again is how a store ends up with six names for one order. */
+import { orderNoPlain } from './_order-no.js';
 
 const SERVICE_TOKEN_MAP = {
   'Priority Mail':         'usps_priority',
@@ -1100,7 +1103,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
   const emailC = getEmailContent(emailKeyCache, 'order_confirmation');
   const escE = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-  const orderId      = meta.order_number || pi.id.slice(-8).toUpperCase();
+  const orderId      = orderNoPlain({ order_number: meta.order_number, stripe_payment_intent_id: pi.id });
   const toName       = meta.customer_name || 'Customer';
   const totalDollars = (pi.amount / 100).toFixed(2);
   const carrier      = [meta.shipping_provider, meta.shipping_service].filter(Boolean).join(' ') || 'Standard Shipping';
