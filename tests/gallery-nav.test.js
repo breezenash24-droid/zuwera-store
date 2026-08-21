@@ -256,6 +256,59 @@ console.log('');
   boundaries = boundaries && perView;
 }
 
+/* ── THE PANE TAKES THE SHAPE OF THE PHOTOS IN IT ─────────────────────────
+   contain never crops; it has to put the leftover space somewhere, and a fixed
+   pane holding a differently-shaped photo puts it in bands. Measured, not
+   assumed: this store ships 1:1, 4:5 and 1836x1950, four of eleven products mix
+   ratios inside themselves, and a licensee's catalogue is whatever their
+   photographer handed them. A `4/5` written into the file would be a guess
+   about somebody else's shoot that nothing would ever correct. */
+console.log('');
+{
+  const fit = (w, h, cached) => {
+    G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, perView: 1 });
+    const first = media.children[0];
+    first.naturalWidth = w; first.naturalHeight = h;
+    if (cached) { first.complete = true; G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, perView: 1 }); }
+    else first.fire('load');
+    return media.style.getPropertyValue('aspect-ratio');
+  };
+
+  /* The two shapes this catalogue actually ships, and one it does not — the
+     point being that none of them is written down anywhere. */
+  const square = fit(2000, 2000);
+  const tall = fit(1070, 1338);
+  const odd = fit(1836, 1950);
+  console.log('  a 2000x2000 product   pane -> ' + (square || 'not set'));
+  console.log('  a 1070x1338 product   pane -> ' + (tall || 'not set'));
+  console.log('  an 1836x1950 product  pane -> ' + (odd || 'not set'));
+  const measured = square === '2000 / 2000' && tall === '1070 / 1338' && odd === '1836 / 1950';
+
+  /* And the pane has to be free to take that shape: a height from the
+     stylesheet would fight the ratio it was just given. */
+  const freed = media.style.getPropertyValue('height') === 'auto'
+    && media.style.getPropertyValue('min-height') === '0'
+    && media.children.every((k) => k.style.getPropertyValue('height') === '100%');
+  /* Capped through a custom property, so a licensee's theme can move the cap
+     without editing this file — the literal is only the fallback. */
+  const capped = /^var\(--zw-strip-max-h,/.test(media.style.getPropertyValue('max-height'));
+  console.log('  …and the pane is free to take it            ' + (freed ? 'yes' : 'NO'));
+  console.log('  …but still capped, themeably                ' + (capped ? 'yes' : 'NO'));
+
+  /* Nothing a product photo plausibly is. More likely a tracking pixel or a
+     broken decode, and the stylesheet's answer is a better wrong answer than a
+     squashed pane. */
+  media.style._p = {};
+  const silly = fit(4000, 40) || fit(40, 4000) || fit(0, 0);
+  console.log('  a 100:1 sliver leaves the pane alone       ' + (!silly ? 'yes' : 'NO — ' + silly));
+
+  const fitOk = measured && freed && capped && !silly;
+  console.log('\n  ' + (fitOk
+    ? 'PASS  the pane is measured, never assumed'
+    : 'FAIL  the pane is guessing at a shape'));
+  boundaries = boundaries && fitOk;
+}
+
 /* Regression guard for the fix this one sits on top of: opening a ONE-photo
    product straight after a seven-photo one must still clear the old arrows,
    which by then are wired to the previous product's strip. */

@@ -297,6 +297,60 @@
       }, { passive: true });
     }
 
+    /* ── THE PANE TAKES THE SHAPE OF THE PHOTOS IN IT ───────────────────────
+     *
+     * object-fit:contain never crops, which is the whole point — but it has to
+     * put the leftover space SOMEWHERE, and a fixed-height pane holding a photo
+     * of a different shape puts it in bands above and below.
+     *
+     * The pane could instead be told a ratio. It must not be told a CONSTANT
+     * one: this store alone ships 1:1 (2000x2000, 880x880, 750x750), 4:5
+     * (1070x1338) and 1836x1950, and four of its eleven products mix ratios
+     * inside themselves. A licensee's catalogue is whatever their photographer
+     * handed them, and a `4/5` written in here would be a guess about somebody
+     * else's shoot that nothing would ever correct.
+     *
+     * So it is MEASURED, from the first photo, once. Per PRODUCT, deliberately
+     * not per photo: every slide is in one flex row and a flex row has one
+     * height, so a per-photo pane would resize the modal as the shopper pages —
+     * moving Add to Bag out from under a cursor that is already on its way to
+     * it. A shape that is chosen at open and then held is the version of this
+     * that is worth having.
+     *
+     * Nothing is waited for. A cached photo already knows its size and the pane
+     * is right on the first frame; one that does not measures on `load`, which
+     * is the same moment the photo appears, so there is no interval where a
+     * visible photo sits in a pane of the wrong shape.
+     */
+    function fitPane() {
+      var first = host.querySelector('img');
+      if (!first) return;                    // a video-first strip keeps the CSS
+      var apply = function () {
+        var w = first.naturalWidth, h = first.naturalHeight;
+        if (!(w > 0 && h > 0)) return;
+        var r = w / h;
+        /* Outside anything a product photo plausibly is, the measurement is
+           more likely to be a tracking pixel or a broken decode than a shape
+           worth reshaping the modal to. Left alone rather than clamped: the
+           stylesheet's own answer is a better wrong answer than a squashed
+           pane. */
+        if (!isFinite(r) || r < 0.4 || r > 2.5) return;
+        pin(host, 'aspect-ratio', w + ' / ' + h);
+        pin(host, 'height', 'auto');
+        /* A very tall photo would otherwise make a pane taller than the screen.
+           Through a custom property so a licensee's theme can change the cap
+           without touching this file — the literal here is only the fallback. */
+        pin(host, 'max-height', 'var(--zw-strip-max-h, min(78vh, 760px))');
+        pin(host, 'min-height', '0');
+        /* The slides carry their own height from CSS, which would fight the
+           ratio the pane has just taken. Follow it instead. */
+        for (var i = 0; i < host.children.length; i++) pin(host.children[i], 'height', '100%');
+      };
+      if (first.complete && first.naturalWidth) apply();
+      else first.addEventListener('load', apply, { once: true });
+    }
+    if (perView) fitPane();
+
     /* Land on a photo boundary before anyone can see otherwise. Instant, not
        smooth: this is the strip arriving, not the shopper moving it — and it is
        also what stops a re-render inheriting the tail of a smooth scroll that
