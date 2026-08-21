@@ -36,7 +36,18 @@
     purchase: noop, lead: noop, completeRegistration: noop
   };
 
+  /* Stamped empty by scripts/stamp-project-config.js when a fork sets
+     ZW_META_PIXEL_ID=off, meaning this store does not advertise on Meta.
+     Left as a literal, a licensee posted its customers' Purchase events — with
+     value, order id and contents — into the ORIGINAL store's pixel. That is not
+     just wrong reporting, it is one store's order data arriving in another
+     company's ad account, so the empty case has to stop BOTH halves: no fbq,
+     and no /api/c relay either. The no-op zwPixel above stays in place, so
+     every call site keeps working and none of them needs to know. */
+  var PIXEL_ID = '1695269795093400';
+
   function start() {
+    if (!PIXEL_ID) return;
     /* ---- Meta Pixel base code (standard snippet, ID inlined) ---- */
     !function (f, b, e, v, n, t, s) {
       if (f.fbq) return; n = f.fbq = function () {
@@ -51,7 +62,7 @@
       });
     }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
 
-    fbq('init', '1695269795093400');
+    fbq('init', PIXEL_ID);
 
     /* ---- relay / dedup plumbing ---- */
     var RELAY_URL = '/api/c';

@@ -85,5 +85,61 @@
        Stamped at build time like the rest, so ZW_CLOUDINARY_CLOUD_NAME (or
        CLOUDINARY_CLOUD_NAME) rewrites all four. */
     cloudinaryCloudName: 'dubg4loah',
+
+    /* ── The five accounts a fork would otherwise report into ────────────────
+       Cloudinary was the first identifier found that a fork could not change.
+       These are the rest of them, and they fail in a nastier way, because the
+       Cloudinary one at least only spent the original store's credits.
+
+       Left as literals, a licensee's storefront sends its pageviews to THIS
+       GA4 property, its conversions to THIS Ads account, its Purchase events
+       to THIS pixel, its funnel to THIS PostHog project — and asks THIS
+       Turnstile site key to vouch for its visitors. Nothing errors. The
+       licensee sees a working shop; the original store sees a competitor's
+       traffic mixed into its own reporting and cannot unmix it after the fact.
+       The captcha is worse than useless: a site key is bound to a hostname
+       list, so a fork's widget fails the check on a domain it was never issued
+       for, and the form it guards stops working for real customers.
+
+       ── "OFF" IS A REAL ANSWER HERE, UNLIKE ABOVE ────────────────────────────
+
+       A store must have a database, so a missing ZW_SUPABASE_URL can only mean
+       "not configured yet". A store need not have Meta advertising. So the
+       build accepts off / none / false / 0 / - for any value below and stamps
+       an EMPTY string, and every consumer treats empty as "this store does not
+       use that service" and loads nothing at all. Substituting an id is one
+       valid answer; removing the vendor entirely is the other, and a fork that
+       can only substitute is a fork that has to keep somebody's pixel.
+
+       Each consumer already had to survive its vendor being blocked by an ad
+       blocker, so "absent" was a state they mostly handled. The guards below
+       make it the SAME state rather than a second one. */
+
+    /* Google tag — analytics and conversion tracking. Two destinations on one
+       gtag.js load, independently removable: a store can run GA4 with no ads. */
+    gaMeasurementId: 'G-DCVWDZ8ZBC',
+    googleAdsId: 'AW-18239653983',
+
+    /* Meta Pixel. Also reaches functions/api/_capi.js, which posts the
+       server-side half of the same events — but that one reads `env` already,
+       so a fork sets META_PIXEL_ID there and only the browser half was stuck. */
+    metaPixelId: '1695269795093400',
+
+    /* PostHog project key. Public — it is write-only ingestion. */
+    posthogKey: 'phc_mCL2GmGPncq5Twg7vK6FesuQHQZVTojTxHTpc4Bwp9yT',
+
+    /* Turnstile SITE key, the public half. The secret is a Cloudflare
+       environment variable the browser never sees, and stays that way.
+       In THREE browser files — zw-turnstile.js, auth.js and admin-main.js —
+       because the admin login widget renders before the storefront helper
+       could exist. All three are stamped from here. */
+    turnstileSiteKey: '0x4AAAAAADRcULYsa0xJEyZH',
+
+    /* The R2 bucket's public hostname. Product video is served from it, so it
+       is named in the CSP's media-src as well as in the admin's media census.
+       CAREFUL: the census asks `url.includes(host)`, and every string contains
+       the empty string — so an unset host must never reach a substring test.
+       zwIsOwnImageHost() in admin-main.js is the one place that decides. */
+    imageHost: 'images.zuwera.store',
   };
 }));

@@ -31,6 +31,14 @@
     else { _queue.push([event, props || {}]); }
   };
 
+  /* No key means this store does not use PostHog — a fork sets ZW_POSTHOG_KEY
+     to `off` and scripts/stamp-project-config.js empties the literal above.
+     zwTrack stays callable and simply stops queueing, because a queue nothing
+     will ever drain is a leak that grows with every event on a long session.
+     Same shape as the iframe bail at the top of this file, which is why the
+     no-op is assigned rather than the module returning with a live queue. */
+  if (!KEY) { window.zwTrack = function () {}; return; }
+
   function start() {
     /* Load PostHog's array.js directly from CDN, deferred to idle/first interaction. */
     var script = document.createElement('script');
