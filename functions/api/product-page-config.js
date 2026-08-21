@@ -57,6 +57,14 @@ const GALLERY_OPTS = {
   // instead of its own compact scale.
   modal_style:  ['product', 'compact'],
   modal_layout: ['dual', 'single'],
+  /* What fills the space beside a photo that does not fill its pane.
+     'auto' extends the photo's own edge, but ONLY where doing so is safe —
+     see zwEdgeStrips in image-utils.js, which measures whether the photo has a
+     backdrop touching all four corners and whether that backdrop is light.
+     Extending a detail crop smears the garment sideways; extending a dark
+     backdrop puts a slab of colour against the modal. 'edge' always extends,
+     'matte' never does. First entry is the default, as everywhere here. */
+  modal_fill:   ['auto', 'edge', 'matte'],
 };
 
 export function parseGalleryConfig(g) {

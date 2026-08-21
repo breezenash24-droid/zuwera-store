@@ -113,5 +113,46 @@ rules.forEach((block, i) => {
   });
 }
 
-console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
-process.exit(fail ? 1 : 0);
+/* ── "SPACE BESIDE A PHOTO" HAS TO MEAN THE SAME THING IN THREE FILES ──────
+   A gallery setting is spelled in the builder, whitelisted by the API and
+   defaulted by the storefront script. Those three drift silently: the builder
+   offers a value the API rejects, the API returns a value the script does not
+   read, and the control just does nothing. So they are compared here rather
+   than trusted. */
+(async () => {
+  const builder = fs.readFileSync(R + 'builder.html', 'utf8');
+  const script = fs.readFileSync(R + 'pdp-gallery.js', 'utf8');
+  const { parseGalleryConfig } = await import('../functions/api/product-page-config.js');
+
+  console.log('\n  the fill setting is wired end to end');
+
+  const offered = (builder.match(/modal_fill:\[([^\]]*)\]/) || [, ''])[1]
+    .split(',').map((s) => s.trim().replace(/^'|'$/g, '')).filter(Boolean);
+  ok('the builder offers three answers', offered.join(',') === 'auto,edge,matte', offered.join(','));
+  ok('…and a control that writes them', /gsel\('modal_fill'/.test(builder));
+
+  /* The API is the authority — anything it rejects becomes the default, so a
+     builder offering a fourth value would look like a control that does nothing. */
+  for (const v of offered) {
+    ok('the API accepts "' + v + '"', parseGalleryConfig({ modal_fill: v }).modal_fill === v);
+  }
+  ok('…and refuses one nobody defined',
+    parseGalleryConfig({ modal_fill: 'blurred' }).modal_fill === 'auto',
+    'first entry is the default everywhere in this file');
+  ok('…and treats a missing setting as auto',
+    parseGalleryConfig({}).modal_fill === 'auto' && parseGalleryConfig(null).modal_fill === 'auto',
+    'a store that never opens the tab must not be redesigned by upgrading');
+
+  /* And the storefront has to know the key exists, or the API's answer is
+     dropped on the floor by normalize(). */
+  ok('the storefront defaults it too', /modal_fill: 'auto'/.test(script));
+  ok('…and the modal passes it to the strip', /fill: colCfgEarly\.modal_fill,/.test(css));
+  /* The measurement it overrules lives in image-utils.js; naming it here is
+     what stops the setting being wired to nothing. */
+  ok('…which is what decides when to continue a photo',
+    /opts\.fill === 'edge' \|\| opts\.fill === 'matte'/.test(script)
+    && /strips\.safe === false/.test(script));
+
+  console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
+  process.exit(fail ? 1 : 0);
+})();

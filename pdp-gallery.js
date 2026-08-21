@@ -8,8 +8,9 @@
      modal_thumbs: 'none' | 'bottom' | 'left', // quick-add modal thumbnails
      modal_arrows: 'below' | 'overlay' | 'none',
      modal_style:  'product' | 'compact',        // quick-add modal look
-     modal_layout: 'dual' | 'single'             // filmstrip, or one image + arrows
-   }
+     modal_layout: 'dual' | 'single',            // filmstrip, or one image + arrows
+     modal_fill:   'auto' | 'edge' | 'matte'     // what sits beside a photo that
+   }                                             // does not fill its pane
 
    The gallery arrangement defaults to today's (single image, thumbnails beneath,
    arrows over the photo). modal_style is the one exception: it defaults to
@@ -32,7 +33,9 @@
   var CACHE = 'zw_pdp_gallery';
   var DEFAULTS = {
     layout: 'single', thumbs: 'bottom', arrows: 'overlay',
-    modal_thumbs: 'none', modal_arrows: 'below', modal_style: 'product', modal_layout: 'dual'
+    modal_thumbs: 'none', modal_arrows: 'below', modal_style: 'product', modal_layout: 'dual',
+    /* What goes beside a photo that does not fill its pane. See paintMargin. */
+    modal_fill: 'auto'
   };
   var cfg = null;
   var waiting = [];
@@ -381,6 +384,18 @@
       /* Within half a percent the photo fills the slot; painting anything would
          only risk a seam along an edge that has no margin beside it. */
       if (Math.abs(photo - slot) / slot < 0.005) {
+        pin(node, 'background-image', 'none');
+        return;
+      }
+      /* ── AND SOME PHOTOS MUST NOT BE CONTINUED AT ALL ───────────────────
+         Extending an edge assumes a backdrop is at that edge. On a close-up
+         crop the garment runs off the frame, so continuing it smears fabric
+         sideways; on a dark backdrop it puts a slab of colour against the
+         popup. zwEdgeStrips measures both and says so — see the numbers there.
+         `fill` lets a shop overrule it either way from the builder, because a
+         measurement that cannot be overruled is a guess with no appeal. */
+      var fill = opts.fill === 'edge' || opts.fill === 'matte' ? opts.fill : 'auto';
+      if (fill === 'matte' || (fill === 'auto' && strips.safe === false)) {
         pin(node, 'background-image', 'none');
         return;
       }

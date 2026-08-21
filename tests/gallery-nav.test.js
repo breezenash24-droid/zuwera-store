@@ -394,6 +394,37 @@ console.log('');
     && /rgb\([^)]*\) 0\.00%/.test(bg) && /rgb\([^)]*\) 100\.00%/.test(bg);
   console.log('  …reproduced with 16 stops each -> ' + (dense ? 'yes' : 'NO'));
 
+  /* ── AND SOME PHOTOS MUST NOT BE CONTINUED AT ALL ───────────────────────
+     Extending an edge assumes a backdrop is AT that edge. On a close-up crop the
+     garment runs off the frame and continuing it smears fabric sideways; on a
+     dark backdrop it puts a slab of colour against the popup. Both were
+     reported. zwEdgeStrips measures it — corner agreement separated this
+     catalogue with nothing near the line (0–33 for studio shots, 200 and 214 for
+     the two detail crops) — and says so with `safe`. */
+  const withSafety = (v) => { STRIPS.safe = v; };
+  withSafety(false);
+  const refused = paint(1070, 1338).getPropertyValue('background-image') === 'none';
+  console.log('  a close-up crop, or a dark wall-> ' + (refused ? 'left alone' : 'NO — continued anyway'));
+
+  /* A measurement that cannot be overruled is a guess with no appeal, so the
+     builder can force it either way. */
+  const forced = (fill) => {
+    G.renderStrip(media, ['a.jpg'], { alt: 'x', isVideo: () => false, perView: 1, fill: fill });
+    const n = media.children[0];
+    n.naturalWidth = 1070; n.naturalHeight = 1338;
+    n.fire('load');
+    return n.style.getPropertyValue('background-image');
+  };
+  const override = forced('edge') !== 'none';        // safe:false, but forced on
+  withSafety(true);
+  const suppress = forced('matte') === 'none';       // safe:true, but forced off
+  console.log('  …"always continue" overrules it-> ' + (override ? 'yes' : 'NO'));
+  console.log('  …"always plain" does too       -> ' + (suppress ? 'yes' : 'NO'));
+  /* An unknown value must read as the default rather than as "off": a store on a
+     newer builder than its storefront must not lose the feature silently. */
+  const unknown = forced('sepia') !== 'none';
+  console.log('  …and a value it does not know  -> ' + (unknown ? 'falls back to auto' : 'NO'));
+
   /* A store with no image-utils.js loaded must not throw — it simply keeps the
      pane's own background, which is where this started. */
   delete global.window.zwEdgeStrips;
@@ -401,7 +432,7 @@ console.log('');
   try { paint(1070, 1338); } catch (_) { survived = false; }
   console.log('  …and nothing breaks without it -> ' + (survived ? 'yes' : 'NO'));
 
-  const edgeOk = sides && stacked && clean && dense && survived;
+  const edgeOk = sides && stacked && clean && dense && refused && override && suppress && unknown && survived;
   console.log('\n  ' + (edgeOk
     ? 'PASS  the margin matches the edge it sits against'
     : 'FAIL  the margin is a colour of its own'));

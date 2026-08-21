@@ -165,7 +165,47 @@
           };
           const col = (x) => { const o = []; for (let y = 0; y < N; y++) o.push(at(x, y)); return o; };
           const row = (y) => { const o = []; for (let x = 0; x < N; x++) o.push(at(x, y)); return o; };
-          finish({ left: col(0), right: col(N - 1), top: row(0), bottom: row(N - 1) });
+          const edges = { left: col(0), right: col(N - 1), top: row(0), bottom: row(N - 1) };
+
+          /* ── IS THIS PHOTO SAFE TO CONTINUE PAST ITS OWN EDGE? ───────────
+           *
+           * Extending an edge assumes there is a BACKDROP at that edge. On a
+           * studio shot there is, and the join is invisible. On a close-up crop
+           * the garment runs off the frame, and continuing it smears the fabric
+           * sideways into a band that reads as a rendering fault.
+           *
+           * A backdrop touches all four corners, so on a studio shot the corners
+           * agree; on a crop they cannot, because at least one is subject.
+           * Measured over the catalogue, that separates cleanly with nothing
+           * near the line:
+           *
+           *     Zuwera Aero Pro, Classic, Raw      corner spread   0
+           *     Zuwera Tech                                        7
+           *     Zuwera Vogue                                   21-33
+           *     ---------------------------------------------------- 40
+           *     Zuwera Fleece   (collar close-up)                 200
+           *     Zuwera Flower Tee (fabric detail)                 214
+           *
+           * The second test is the shop's own observation: continuing a light
+           * backdrop looks like the photo carries on, continuing a dark or
+           * coloured one puts a slab against the popup. Both have to hold. */
+          const CORNER_TOLERANCE = 40;
+          const LIGHT = 200;
+          const lum = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+          const apart = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
+          const corners = [at(0, 0), at(N - 1, 0), at(0, N - 1), at(N - 1, N - 1)];
+          let spread = 0;
+          for (let a = 0; a < corners.length; a++) {
+            for (let b = a + 1; b < corners.length; b++) spread = Math.max(spread, apart(corners[a], corners[b]));
+          }
+          const light = corners.every((c) => lum(c) >= LIGHT);
+          finish(Object.assign(edges, {
+            corners,
+            cornerSpread: spread,
+            /* Reported alongside the verdict, not instead of it: a store that
+               overrides this in the builder still wants the numbers legible. */
+            safe: spread <= CORNER_TOLERANCE && light,
+          }));
         } catch (_) {
           finish(null);                       // tainted canvas, or no 2d context
         }
