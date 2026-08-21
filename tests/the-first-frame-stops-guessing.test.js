@@ -117,7 +117,12 @@ const ctx = () => ({
     ok('…nor legal_policies', !keys.includes('legal_policies'), '6,623 bytes');
     ok('one request for all of it, not one per key', /key=in\.\(/.test(MW));
     ok('…read by key, so the rows have to carry one', /select=key,value,updated_at/.test(MW));
-    ok('…and still cached at the edge', /const cf = \{ cacheTtl: TTL, cacheEverything: true \};/.test(MW));
+    /* Through the Cache API, because the `cf` hint this used to assert cached
+       nothing: Cloudflare will not cache a response to a request carrying
+       Authorization, and PostgREST requires one. This assertion passed for
+       weeks against a stamp that was landing on none of 24 requests. */
+    ok('…and still cached at the edge', /cachedRead\(url\(/.test(MW)
+      && /store\.put\(cacheKey, keep\)/.test(MW));
   }
 
   console.log('\n  what the layout actually contains, instead of what was remembered');

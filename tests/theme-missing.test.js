@@ -164,7 +164,7 @@ console.log('\n  the engine really is coherent on its own');
     /classList\.toggle\('super-light-mode', theme\.base === 'super-light'\)/.test(ENG));
   ok('…and refuses an id it does not have', /apply: function \(id, remember\) \{[\s\S]{0,120}?if \(!theme\) return false;/.test(ENG));
   ok('…having already resolved the request to something real',
-    /byId\(chosenId\(\)\)[\s\S]{0,200}?byId\(config\.default\)[\s\S]{0,60}?config\.modes\[0\]/.test(ENG));
+    /function resolveTheme\(\)[\s\S]{0,200}?byId\(chosenId\(\)\)[\s\S]{0,900}?byId\(config\.default\)[\s\S]{0,900}?config\.modes\[0\]/.test(ENG));
 }
 
 console.log('\n  and the way out is visible');

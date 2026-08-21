@@ -459,9 +459,8 @@
                opened in the modal downloaded a full-size photograph. The PDP's
                equivalent picker has always asked for 240. */
             if (thumbSrc && typeof window.optimizeImage === 'function') thumbSrc = window.optimizeImage(thumbSrc, 240);
-            var _im = (thumbSrc && typeof window.zwSwatchImg === 'function') ? window.zwSwatchImg(thumbSrc, 240) : '';
-            var styleAttr = _im ? '' : (thumbSrc ? "background-image:url('" + quickAddEscapeAttr(thumbSrc) + "')" : 'background:' + quickAddEscapeAttr(color.hex_color || '#888'));
-            return '<button type="button" class="quick-add-color' + active + (thumbSrc ? ' has-thumb' : '') + '" data-index="' + idx + '" title="' + quickAddEscapeAttr(name) + '" aria-label="' + quickAddEscapeAttr(name) + '" style="' + styleAttr + '">' + _im + '</button>';
+            var styleAttr = thumbSrc ? "background-image:url('" + quickAddEscapeAttr(thumbSrc) + "')" : 'background:' + quickAddEscapeAttr(color.hex_color || '#888');
+            return '<button type="button" class="quick-add-color' + active + (thumbSrc ? ' has-thumb' : '') + '" data-index="' + idx + '" title="' + quickAddEscapeAttr(name) + '" aria-label="' + quickAddEscapeAttr(name) + '" style="' + styleAttr + '"></button>';
           }).join('')
         : '<p class="quick-add-empty-option">Standard colorway</p>';
       colorWrap.querySelectorAll('.quick-add-color').forEach(function (button) {

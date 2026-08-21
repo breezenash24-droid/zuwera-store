@@ -316,7 +316,7 @@ console.log('\n  per-page themes');
   /* Someone who chose Dark asked for Dark. A checkout that overrules them reads
      as a bug rather than a design, so their pick is consulted first. */
   ok("a visitor's own choice still wins over the page pin",
-    /byId\(chosenId\(\)\)[\s\S]{0,40}\|\| byId\(themeForPath/.test(eng));
+    /var picked = byId\(chosenId\(\)\);[\s\S]{0,60}?if \(picked\) return picked;[\s\S]{0,80}?byId\(themeForPath/.test(eng));
 
   const at = fs.readFileSync(R + 'admin-themes.js', 'utf8');
   ok('the admin can assign one', /themeSetPage/.test(at) && /PAGE_TARGETS/.test(at));

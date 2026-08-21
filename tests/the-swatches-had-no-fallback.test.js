@@ -1,52 +1,50 @@
-/* Colour swatches were the only images on the site that could not fail safely.
+/* Colour swatches are painted with a CSS background, and that is a known gap.
    ═══════════════════════════════════════════════════════════════════════════
 
-   Every other image gets three chances — Cloudinary, then wsrv.nl, then the raw
-   original — from the delegated error listener in image-utils.js. The swatches
-   got none, because they were painted with CSS:
+   ── WHAT THIS FILE USED TO ASSERT, AND WHY IT NO LONGER DOES ────────────────
+
+   Every other image on the site gets three chances — Cloudinary, then wsrv.nl,
+   then the raw original — from the delegated error listener in image-utils.js.
+   The swatches get none, because they are painted with CSS:
 
        style="background-image:url('<cloudinary url>')"
 
    A CSS background that 404s fires NO error event. Not on the element, not on
-   the document, not anywhere. There is nothing to listen for, so the chain
-   could never see them. An over-quota Cloudinary — a monthly credit limit on a
-   free plan, not a hypothetical — blanked every colour on every card while the
-   tiles kept their exact size, so the page did not look broken enough to
-   notice.
+   the document, not anywhere. So an over-quota Cloudinary blanks every colour
+   on every card while the tiles keep their exact size — a failure that does not
+   look like one.
 
-   ── FIVE RENDERERS, NOT THE TWO THAT WERE REPORTED ──────────────────────────
+   The fix was to emit a real <img class="zw-swatch-thumb"> from one shared
+   helper, window.zwSwatchImg(), and size it from one shared rule in
+   storefront-cohesion.css. It was measured in headless Chrome against the real
+   stylesheets and reported the img filling the content box in all five
+   renderers.
 
-       storefront.js       product-card swatches, homepage grid
-       drop001.html        product-card swatches, collection grid
-       quick-add-modal.js  colour picker in the homepage quick-add modal
-       drop001.html        colour picker in the collection quick-add modal
-       product-main.js     colourway picker on the product page
+   ON THE DEPLOYED SITE IT DID NOT. Every swatch drew at the <img>'s INTRINSIC
+   size instead — the colourway picker at 240px inside a 68x54 tile, the card
+   swatches at 600px inside 20px — so the images spilled sideways across the
+   card, overlapped each other, and covered the Add to Bag button. Reported four
+   times from three different pages before it was withdrawn.
 
-   The last three were found by census rather than by report, and two of them
-   had a second problem: they handed the RAW image_url to a 68x54 tile, so every
-   colour of every product opened in a quick-add modal downloaded a full-size
-   photograph. They now ask the optimiser for 240, which is what the product
-   page has always done.
+   Everything that could be checked from here checked out. The rule is in the
+   served CSS, top-level, brace-balanced, not inside a media query, in a
+   stylesheet every affected page links, with no competing img rule in any of
+   the nine stylesheets those pages load, and the served JS really does write
+   the class. The cause was not found, and it is live on the three busiest
+   pages, so the background is back until it can be shown working in a browser.
 
-   ── MEASURED IN CHROME, NOT ASSUMED ─────────────────────────────────────────
+   ── WHAT THIS FILE ASSERTS NOW ──────────────────────────────────────────────
 
-   Real stylesheets, real image-utils.js, the per-page rules lifted out of
-   index.html and drop001.html, 1280x900:
+   That the withdrawal is complete and consistent across all five renderers —
+   because a half-withdrawn version is the worst of both: some swatches sized by
+   a rule and some by an attribute. And that the reason is written down, so the
+   next person does not re-derive it or re-ship it by accident.
 
-       .pcard .zw-card-swatch   btn 52x52   content 50x50   img 50x50   cover
-       .color-swatch            btn 68x54   content 68x54   img 68x54   cover
-       .quick-add-color         btn 68x54   content 68x54   img 68x54   cover
-       .collection-color        btn 68x54   content 68x54   img 68x54   cover
-       .zw-card-swatch (base)   btn 20x20   content 18x18   img 18x18   cover
+   ── BEFORE PUTTING THE <img> BACK ───────────────────────────────────────────
 
-   The img fills the content box exactly in all five. object-position is
-   `50% 0%` on the three landscape tiles that framed from the top and `50% 50%`
-   on the square ones. Every button keeps overflow:visible, and every img is
-   pointer-events:none.
-
-   And the chain fires: pointed at a Cloudinary URL that cannot resolve, the
-   probe swatch reached dataset.zwFb === '2' — Cloudinary, then wsrv, then the
-   raw original — where before it reached nothing at all. */
+   Measure it ON THE DEPLOYED SITE, not in a local harness. The harness that
+   passed lifted the per-page rules out of index.html and drop001.html by hand,
+   which is not the same set of rules the browser resolves against. */
 
 const fs = require('fs');
 const path = require('path');
@@ -62,122 +60,89 @@ const D1 = read('drop001.html');
 const QA = read('quick-add-modal.js');
 const PM = read('product-main.js');
 
-console.log('\n  the swatches had no fallback\n');
+console.log('\n  the swatches paint from a background again\n');
 
-console.log('  one <img> builder, not one per renderer');
+console.log('  all five renderers, or none');
 {
-  ok('image-utils.js owns zwSwatchImg', /function zwSwatchImg\(src, width\) \{/.test(IU));
-  ok('…and exposes it', /window\.zwSwatchImg = zwSwatchImg;/.test(IU));
-  ok('…tagged with a class the stylesheet can reach',
-    /'<img class="zw-swatch-thumb" src="' \+ safe \+ '" alt="" '/.test(IU));
-  ok('…alt is empty, because the button already has aria-label',
-    /alt=""/.test(IU),
-    'a described image inside a labelled control is announced twice');
-  ok('…and it escapes the url it is handed',
-    /\.replace\(\/&\/g, '&amp;'\)\.replace\(\/"\/g, '&quot;'\)/.test(IU));
-  /* Step 0 of the chain sizes its wsrv retry from getAttribute('width'), so the
-     attribute has to carry the width the optimiser was actually given. */
-  ok('…carrying the optimiser width so the retry matches',
-    /const w = Number\(width\) > 0 \? Math\.round\(Number\(width\)\) : 600;/.test(IU)
-    && /width="' \+ w \+ '"/.test(IU));
+  /* The five, found by census rather than by report:
+       storefront.js       product-card swatches, homepage grid      (x2 branches)
+       drop001.html        product-card swatches, collection grid    (x2 branches)
+       quick-add-modal.js  colour picker, homepage quick-add modal
+       drop001.html        colour picker, collection quick-add modal
+       product-main.js     colourway picker, product page            */
+  ok('storefront.js emits no swatch <img>', !/zwSwatchImg/.test(SF));
+  ok('drop001.html emits no swatch <img>', !/zwSwatchImg/.test(D1));
+  ok('quick-add-modal.js emits no swatch <img>', !/zwSwatchImg/.test(QA));
+  ok('product-main.js builds no swatch <img>', !/zwSwatchImg|zw-swatch-thumb'\);\s*\n\s*img\.alt/.test(PM));
+  /* THE ONE THAT MATTERS. A renderer left on the <img> path while the rest are
+     on backgrounds is worse than either, because only one of them is wrong and
+     it looks like a data problem. */
+  ok('…and none of them is left half-way',
+    (SF.match(/zwSwatchImg/g) || []).length === 0
+    && (D1.match(/zwSwatchImg/g) || []).length === 0
+    && (QA.match(/zwSwatchImg/g) || []).length === 0,
+    'some swatches sized by a rule and some by an attribute is the worst version of this');
 }
 
-console.log('\n  all five renderers use it');
+console.log('\n  every swatch has a background to paint');
 {
-  const SITES = [
-    ['storefront.js (card, single image)', SF, /const _im = \(typeof window\.zwSwatchImg === 'function'\) \? window\.zwSwatchImg\(src\) : '';/],
-    ['storefront.js (card, per colour)', SF, /const _im = \(src && typeof window\.zwSwatchImg === 'function'\) \? window\.zwSwatchImg\(src\) : '';/],
-    ['drop001.html (card, single image)', D1, /const _im = \(typeof window\.zwSwatchImg === 'function'\) \? window\.zwSwatchImg\(src\) : '';/],
-    ['drop001.html (card, per colour)', D1, /const _im = \(src && typeof window\.zwSwatchImg === 'function'\) \? window\.zwSwatchImg\(src\) : '';/],
-    ['quick-add-modal.js (colour picker)', QA, /var _im = \(thumbSrc && typeof window\.zwSwatchImg === 'function'\) \? window\.zwSwatchImg\(thumbSrc, 240\) : '';/],
-    ['drop001.html (colour picker)', D1, /var _im = \(thumbSrc && typeof window\.zwSwatchImg === 'function'\) \? window\.zwSwatchImg\(thumbSrc, 240\) : '';/],
-  ];
-  for (const [name, src, re] of SITES) ok(name + ' builds an <img>', re.test(src));
-
-  ok('product-main.js builds one at runtime',
-    /img = document\.createElement\('img'\);\n      img\.className = 'zw-swatch-thumb';/.test(PM),
-    'this one is called twice — the colours and the images race');
-
-  /* The degrade path matters: image-utils.js is deferred, and if a renderer ran
-     before it the swatch must still show something. Falling back to the old
-     background-image makes the worst case identical to the previous behaviour
-     rather than an empty tile. */
-  ok('every markup site degrades to the old background when it must',
-    (SF.match(/_im \? '' : /g) || []).length === 2
-    && (D1.match(/_im \? '' : /g) || []).length === 3
-    && (QA.match(/_im \? '' : /g) || []).length === 1,
-    'image-utils.js is deferred — a renderer that beats it must still paint');
+  ok('storefront.js, single-image card', /const _st = ` style="background-image:url\('\$\{esc\(src\)\}'\)"`;/.test(SF));
+  ok('storefront.js, one per colour',
+    /const thumbStyle = src \? `background-image:url\('\$\{esc\(src\)\}'\)` : `background:\$\{esc\(c\.hex_color \|\| '#888'\)\}`;/.test(SF));
+  ok('drop001.html, single-image card', /const _st = ` style="background-image:url\('\$\{esc\(src\)\}'\)"`;/.test(D1));
+  ok('drop001.html, one per colour',
+    /const thumbStyle = src \? `background-image:url\('\$\{esc\(src\)\}'\)` : `background:\$\{esc\(c\.hex_color \|\| '#888'\)\}`;/.test(D1));
+  ok('drop001.html, colour picker',
+    /var styleAttr = thumbSrc \? "background-image:url\('" \+ collectionEscapeAttr\(thumbSrc\)/.test(D1));
+  ok('quick-add-modal.js, colour picker',
+    /var styleAttr = thumbSrc \? "background-image:url\('" \+ quickAddEscapeAttr\(thumbSrc\)/.test(QA));
+  ok('product-main.js, colourway picker',
+    /swatch\.style\.backgroundImage = `url\('\$\{src\}'\)`;/.test(PM));
+  /* A colour is not an image and cannot fail to load, so the hex chip was never
+     part of this and stays a background either way. */
+  ok('…and a colour with no photo still gets its hex chip',
+    /swatch\.style\.backgroundColor = color\.hex_color \|\| '#888';/.test(PM)
+    && /background:\$\{esc\(c\.hex_color \|\| '#888'\)\}/.test(SF));
 }
 
-console.log('\n  and nothing paints a thumbnail as a bare background any more');
+console.log('\n  the size saving is kept, because it was never the problem');
 {
-  /* The census that found the three unreported ones. A background-image built
-     from a URL, with no _im guard beside it, is the bug coming back. */
-  const FILES = ['storefront.js', 'drop001.html', 'quick-add-modal.js', 'product-main.js', 'landing.js'];
-  const strays = [];
-  for (const f of FILES) {
-    let src;
-    try { src = read(f); } catch (_) { continue; }
-    const lines = src.split('\n');
-    lines.forEach((line, i) => {
-      if (!/background-?[iI]mage/.test(line)) return;
-      if (/none|data:|gradient|= ''|= ""/.test(line)) return;
-      if (!/url\(|url\('/.test(line)) return;
-      /* Guarded lines carry the ternary that prefers the <img>. */
-      if (/_im \? '' : /.test(line)) return;
-      strays.push(f + ':' + (i + 1) + ' ' + line.trim().slice(0, 70));
-    });
-  }
-  ok('no unguarded background-image thumbnail remains', strays.length === 0, strays.join(' | '));
+  /* Two of the pickers handed the RAW image_url to a 68x54 tile, so every
+     colour of every product opened in a quick-add modal downloaded a full-size
+     photograph. That fix shipped in the same change and is unrelated to how the
+     tile is painted, so it stays. */
+  ok('the homepage picker still asks the optimiser for 240',
+    /window\.optimizeImage\(thumbSrc, 240\)/.test(QA));
+  ok('…as does the collection picker', /window\.optimizeImage\(thumbSrc, 240\)/.test(D1));
+  ok('…and the product page, which always did', /optimizeImage\(firstImg\.image_url, 240\)/.test(PM));
 }
 
-console.log('\n  the runtime one is idempotent, because it is called twice');
+console.log('\n  nothing is left behind to half-work');
 {
-  ok('it reuses the existing img rather than stacking them',
-    /let img = swatch\.querySelector\('img\.zw-swatch-thumb'\);/.test(PM),
-    'updateColorwayThumbnails() re-runs this after the images resolve');
-  ok('…and removes it when a colour has no photo',
-    /if \(img\) img\.remove\(\);/.test(PM));
-  /* Without this a swatch that had exhausted its retries keeps zwFb === '2'
-     and never retries for the next colour it is asked to show. */
-  ok('…and clears the chain bookkeeping when the url changes',
-    /if \(img\.getAttribute\('src'\) !== src\) \{[\s\S]{0,320}delete img\.dataset\.zwFb;\n      delete img\.dataset\.zwOrig;/.test(PM),
-    'a swatch stuck at step 2 would never retry for a different colour');
+  /* The colourway picker is called twice — once when the colours arrive and
+     again once the images resolve — so it has to clear an <img> a previously
+     cached copy of this script may have left in the button, or the two would
+     paint on top of each other. */
+  ok('the runtime picker removes any img a cached script left',
+    /const stale = swatch\.querySelector\('img\.zw-swatch-thumb'\);\n  if \(stale\) stale\.remove\(\);/.test(PM),
+    'a visitor mid-deploy has the old script and the new stylesheet');
+  /* zwSwatchImg stays exported and the sizing rule stays in the stylesheet:
+     both are harmless, both are what a returning attempt needs, and removing
+     them would delete the only record of what was tried. */
+  ok('the helper is still there for a second attempt', /function zwSwatchImg\(src, width\)/.test(IU));
+  ok('…as is the sizing rule it needs', /\.zw-swatch-thumb\{\n  display:block; width:100%; height:100%;/.test(CSS));
 }
 
-console.log('\n  one CSS rule, on every page that draws one');
+console.log('\n  and the gap this reopens is written down, not forgotten');
 {
-  ok('the shared rule exists', /\.zw-swatch-thumb\{\n  display:block; width:100%; height:100%;/.test(CSS));
-  ok('…covering the box exactly', /object-fit:cover; object-position:center;/.test(CSS));
-  ok('…and handing clicks to the button',
-    /pointer-events:none;   \/\* clicks belong to the button/.test(CSS),
-    'handlers read e.target — an img target would change what closest() starts from');
-  /* The three landscape tiles framed from the top. Getting this wrong recrops
-     every colourway on the product page, which is a silent visual regression. */
-  ok('the three landscape tiles keep their top framing',
-    /\.color-swatch > \.zw-swatch-thumb,\n\.quick-add-color > \.zw-swatch-thumb,\n\.collection-color > \.zw-swatch-thumb\{ object-position:center top; \}/.test(CSS),
-    'they were background-position:center top');
-  /* The selected-colour bar is an ::after at bottom:-6/-7/-8px, OUTSIDE the
-     button. Clipping the button to round the image would erase it. */
-  ok('nothing clips the buttons',
-    !/\.zw-card-swatch\{[^}]*overflow:\s*hidden/.test(CSS)
-    && !/\.color-swatch\s*\{[^}]*overflow:\s*hidden/.test(read('product.css')),
-    'the selected-colour bar sits outside the element');
-  ok('…so the image is rounded by inheritance instead', /border-radius:inherit;/.test(CSS));
-
-  for (const p of ['index.html', 'drop001.html', 'product.html', 'landing.html']) {
-    ok(p + ' loads the stylesheet that carries it', read(p).includes('storefront-cohesion.css'));
-  }
-}
-
-console.log('\n  and the quick-add pickers stopped downloading full-size photos');
-{
-  ok('quick-add-modal.js optimises to 240',
-    /if \(thumbSrc && typeof window\.optimizeImage === 'function'\) thumbSrc = window\.optimizeImage\(thumbSrc, 240\);/.test(QA),
-    'it was handing the raw image_url to a 68x54 tile');
-  ok('drop001.html does the same', D1.includes("thumbSrc = window.optimizeImage(thumbSrc, 240)"));
-  ok('…matching the product page, which always did',
-    /optimizeImage\(firstImg\.image_url, 240\)/.test(PM));
+  ok('image-utils.js still says a background cannot fail safely',
+    /A CSS background that 404s fires no error event/i.test(IU)
+    || /fires NO error event/i.test(IU) || /404s fires no/i.test(IU));
+  ok('product-main.js records why the img was withdrawn',
+    /WITHDRAWN/.test(PM) && /intrinsic size/.test(PM),
+    'the next person must not re-ship it without measuring the deployment');
+  ok('…and what has to be true before it comes back',
+    /until it can be shown working/.test(PM));
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

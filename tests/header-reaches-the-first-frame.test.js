@@ -110,8 +110,22 @@ function stubFetch(value, { ok: isOk = true, throws = false } = {}) {
       && lastStamped.attrs['data-zw-hdr-actions'] === 'right'
       && lastStamped.attrs['data-zw-hdr-linksrow'] === '1');
     ok('...and the divider choice', lastStamped.attrs['data-zw-hdr-lines'] === 'off');
-    ok('the settings read is cached at the edge', /cacheTtl: TTL/.test(SRC),
+    /* NOT `cf: { cacheTtl }` — Cloudflare refuses to cache a response to a
+       request carrying Authorization, which PostgREST requires, so that hint
+       cached nothing at all and every visitor raced a cold read. Measured on
+       the deployed site: 0 stamps in 24. */
+    ok('the settings read is cached at the edge', /await store\.match\(cacheKey\)/.test(SRC)
+      && /store\.put\(cacheKey, keep\)/.test(SRC),
       'one origin read per location per TTL, not one per visitor');
+    ok('…with a key that carries no credential', /new Request\(origin \+ '\/__zw-fp\//.test(SRC)
+      && !/new Request\([^)]*headers/.test(SRC),
+      'storing the Authorization header is what made it uncacheable to begin with');
+    /* The comment explaining why is expected to survive; the OPTION must not. */
+    ok('…and not through the cf hint that never worked', !/\{ cacheTtl: TTL/.test(SRC)
+      && !/,\s*cf\s*\}/.test(SRC),
+      'it read as caching and cached nothing, which is worse than not trying');
+    ok('…with the reason kept where the next person will read it',
+      /Cloudflare does not cache a response to a\n \* request carrying an `Authorization` header/.test(SRC));
     ok('...and starts before the page is fetched, not after',
       SRC.indexOf('const pending = skip ? null : firstPaint') < SRC.indexOf('await context.next()'),
       'in sequence it would add its latency to every page load');
