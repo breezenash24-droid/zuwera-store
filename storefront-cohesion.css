@@ -4833,10 +4833,13 @@ body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img)
    values, expanded by theme-engine.js. One system with five shortcuts, rather
    than two systems that can disagree.
 
-   Known limit, stated rather than hidden: two parts placed in the same OUTER
-   zone both take the auto margin and spread apart instead of sitting together.
-   Left+left is exempt because only the first takes it. Right+right spreads,
-   and the admin says so rather than pretending otherwise. */
+   Grouping in an outer zone: left has always worked, because only the first
+   part takes the leading margin and the rest sit behind it in document order.
+   Right needed telling — two parts each claiming margin-left:auto split the
+   slack and drift apart — so the two right-hand groupings a mirror can produce
+   are built explicitly further down, giving the auto margin to the leading part
+   only. Every other right-hand pair is still refused by conflict() in
+   header-layouts.js, and the admin says so rather than pretending otherwise. */
 
 @media (min-width: 901px) {
   /* Only the parts that were given a placement move. A theme that sets none of
@@ -4991,6 +4994,61 @@ body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img)
   }
   html[data-zw-hdr-actions="right"] :is(#nav, .nav, .zw-nav) > :is(.nav-right, .nav-actions, .zw-nav-right, .zw-nav-actions) {
     order: 3; position: static; margin-left: auto;
+  }
+
+  /* ── TWO PARTS ON THE RIGHT, SITTING TOGETHER ─────────────────────────────
+     "Right" is one `margin-left: auto`, and two parts each claiming it split
+     the free space between them and drift APART rather than grouping. That is
+     why `links-left` and `all-left` were the only two arrangements the mirror
+     refused: their reflections put two and three parts on the right, and the
+     stylesheet could not build either.
+
+     Measured before this rule, at nav width 1280:
+
+       links-left            logo   32..92     cats  92..636.4   actions 1152.7..1248
+       links-left mirrored   logo 385.5..445.5 cats 703.6..1248  actions   32..127.3
+
+     The logo should have landed at 1188..1248 and the categories at
+     643.6..1188. Instead the two of them shared the slack and the logo ended up
+     near the middle of the bar.
+
+     The fix is the same one that makes LEFT repeat safely: only the leading
+     part takes the margin, and the rest ride along behind it. Left gets that
+     for free because the leading margin is where the flow starts; right has to
+     be told, which needs the order within the group spelled out — and that is
+     only knowable per combination, so these are combination rules like the
+     centred logo+categories pair above rather than another attribute.
+
+     ONLY THE TWO COMBINATIONS A MIRROR CAN PRODUCE are built. logo+links right
+     and all three right are the reflections of the two left-grouped
+     arrangements; every other right-hand pair is still refused by conflict(),
+     because nothing can ask for one and CSS for an unreachable arrangement is
+     CSS nobody will ever notice has rotted.
+
+     Reverse document order is the point, not a detail. Reflecting
+     [logo][cats] gives [cats][logo] — the parts swap places as well as sides,
+     which is exactly what the orders below do. Getting that wrong would put
+     the logo on the correct side of a header it no longer reads as a mirror
+     of. No gaps: the left-grouped originals sit flush (logo ends at 92,
+     categories begin at 92), so the reflection sits flush too. */
+
+  /* Mirror of `links-left`:  [actions] ......... [categories][logo] */
+  html[data-zw-hdr-logo="right"][data-zw-hdr-links="right"][data-zw-hdr-actions="left"][data-zw-hdr-linksrow="1"] :is(#nav, .nav, .zw-nav) > .nav-center {
+    order: 2;   /* keeps the auto margin it already has from links="right" */
+  }
+  html[data-zw-hdr-logo="right"][data-zw-hdr-links="right"][data-zw-hdr-actions="left"][data-zw-hdr-linksrow="1"] :is(#nav, .nav, .zw-nav) > :is(.nav-logo, .nav-logo-link, .zw-nav-logo, :first-child) {
+    order: 3; margin-left: 0;   /* rides behind the categories instead of pushing */
+  }
+
+  /* Mirror of `all-left`:  ......... [actions][categories][logo] */
+  html[data-zw-hdr-logo="right"][data-zw-hdr-links="right"][data-zw-hdr-actions="right"][data-zw-hdr-linksrow="1"] :is(#nav, .nav, .zw-nav) > :is(.nav-right, .nav-actions, .zw-nav-right, .zw-nav-actions) {
+    order: 1; margin-left: auto;   /* the leading part, so it takes the push */
+  }
+  html[data-zw-hdr-logo="right"][data-zw-hdr-links="right"][data-zw-hdr-actions="right"][data-zw-hdr-linksrow="1"] :is(#nav, .nav, .zw-nav) > .nav-center {
+    order: 2; margin-left: 0;
+  }
+  html[data-zw-hdr-logo="right"][data-zw-hdr-links="right"][data-zw-hdr-actions="right"][data-zw-hdr-linksrow="1"] :is(#nav, .nav, .zw-nav) > :is(.nav-logo, .nav-logo-link, .zw-nav-logo, :first-child) {
+    order: 3; margin-left: 0;
   }
 
   /* ── Links on a row of their own ──

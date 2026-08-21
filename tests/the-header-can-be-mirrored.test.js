@@ -102,42 +102,102 @@ console.log('\n  the four arrangements that already have a named twin');
     newOnes.length >= 7, newOnes.map((l) => l.id).join(', '));
 }
 
-console.log('\n  two arrangements cannot be mirrored, and the switch says so');
+console.log('\n  all eleven mirror now — two of them used to be refused');
 {
-  /* Found by running conflict() over every mirrored spec rather than assuming
-     the operation was total. `left` may hold two parts — only the first takes
-     the leading margin, so they sit in document order — but `right` is
-     margin-left:auto, and a second part claiming the same margin splits the
-     free space and pushes the pair APART. So the mirror of anything with two
-     parts on the left is an arrangement the stylesheet cannot build:
+  /* THE TWO THAT WERE BLOCKED, AND WHY THEY ARE NOT ANY MORE.
+
+     `left` may hold several parts: only the first takes the leading margin, so
+     the rest sit behind it in document order. `right` could not, because right
+     is margin-left:auto and a second part claiming the same margin splits the
+     free space and pushes the pair APART. So the mirror of anything grouped on
+     the left was an arrangement the stylesheet could not build:
 
          links-left   logo+links left  ->  logo+links right
          all-left     all three left   ->  all three right
 
-     Nine of eleven mirror cleanly. Rather than a switch that quietly does
-     nothing on those two, the builder turns it off with the reason on it.
+     Measured in Chrome with the real nav markup and the real stylesheet, at nav
+     width 1280, BEFORE the fix — the logo landed near the middle of the bar:
 
-     Making the right zone group would mean giving only the leading part the
-     auto margin and assigning explicit orders to the rest, across five nav
-     dialects — placement surgery, not a toggle. That is the work if these two
-     mirrors are ever wanted. */
-  const blocked = L.list.filter((l) => !L.mirrorable(l.id)).map((l) => l.id).sort();
-  ok('exactly the two with a pair on the left are blocked',
-    JSON.stringify(blocked) === JSON.stringify(['all-left', 'links-left']),
-    blocked.join(', '));
-  ok('…and every other arrangement mirrors into one the header can hold',
-    L.list.filter((l) => L.mirrorable(l.id)).length === L.list.length - 2);
-  ok('the reason is a sentence the modal can show, not a boolean',
-    /two parts on the right/.test(L.mirrorBlocked('links-left')),
-    L.mirrorBlocked('links-left'));
-  ok('…and it is empty for the ones that can', L.mirrorBlocked('classic') === '');
+         links-left            logo   32..92     cats  92..636.4
+         links-left mirrored   logo 385.5..445.5 cats 703.6..1248
 
-  ok('the builder refuses the click rather than accepting it',
+     Both are built now, by the principle that already makes left repeat safely:
+     only the LEADING part takes the auto margin and the rest ride behind it.
+     Reflection error against the unmirrored original is now 0px on all three
+     parts for both, and for the nine that always worked. */
+  ok('nothing is blocked any more',
+    L.list.every((l) => L.mirrorable(l.id)),
+    L.list.filter((l) => !L.mirrorable(l.id)).map((l) => l.id).join(', '));
+  ok('…including the two that were', L.mirrorable('links-left') && L.mirrorable('all-left'));
+  ok('…and mirrorBlocked() is empty for every one', L.list.every((l) => L.mirrorBlocked(l.id) === ''));
+
+  /* The general restriction did NOT go away — only the two shapes with a
+     stylesheet rule behind them are permitted. A rule for an arrangement
+     nothing can ask for is a rule nobody notices has rotted. */
+  ok('every other right-hand pair is still refused',
+    !!L.conflict({ logo: 'left', links: 'right', actions: 'right', linksRow: 1 })
+    && !!L.conflict({ logo: 'center', links: 'right', actions: 'right', linksRow: 1 })
+    && !!L.conflict({ logo: 'right', links: 'left', actions: 'right', linksRow: 1 }),
+    'permitting right+right in general would allow arrangements the CSS cannot build');
+  ok('…and the two that are permitted are named, not inferred',
+    /var GROUPED_RIGHT = \{ 'logo,links': 1, 'logo,links,actions': 1 \};/.test(HL));
+  ok('…still refusing two centred parts', !!L.conflict({ logo: 'center', links: 'right', actions: 'center', linksRow: 1 }));
+
+  /* The reflection swaps PLACES as well as sides: [logo][cats] on the left
+     becomes [cats][logo] on the right. A tile drawn in document order would
+     put the logo on the correct side of a header that no longer read as its
+     mirror — this gallery has shipped tiles that lied once already. */
+  const miniRight = L.miniature('links-left', 'desktop', true);
+  const iLogo = miniRight.indexOf('zwhl-logo');
+  const iLinks = miniRight.indexOf('zwhl-links');
+  ok('the tile draws the grouped right zone in reverse',
+    iLinks > -1 && iLogo > -1 && iLinks < iLogo,
+    'categories then logo, matching order:2 / order:3 in the stylesheet');
+  ok('…while a grouped LEFT zone stays in document order',
+    (() => {
+      const m = L.miniature('links-left', 'desktop', false);
+      return m.indexOf('zwhl-logo') < m.indexOf('zwhl-links');
+    })(),
+    'all-left really is [logo][categories][actions]');
+
+  /* Kept even though nothing triggers it: an arrangement added later could
+     have no expressible reflection, and the switch must not silently no-op. */
+  ok('the builder still asks before accepting the click',
     /const why=_L\.mirrorBlocked\(_sel\);/.test(B) && /cannot be mirrored/.test(B));
-  ok('…and disables the control with the reason on it',
+  ok('…and still disables the control with the reason on it',
     /on\.disabled=!!why;/.test(B) && /on\.title=why\?/.test(B));
   ok('…repainted when the selection changes, not only when the modal opens',
     /function pickHeaderLayout\(id\)\{[\s\S]{0,460}paintHdrFlip\(\)/.test(B));
+}
+
+console.log('\n  and the stylesheet actually builds both');
+{
+  const C = fs.readFileSync(path.join(ROOT, 'storefront-cohesion.css'), 'utf8').replace(/\r\n/g, '\n');
+  const sel = (logo, links, actions) =>
+    'html[data-zw-hdr-logo="' + logo + '"][data-zw-hdr-links="' + links + '"]'
+    + '[data-zw-hdr-actions="' + actions + '"][data-zw-hdr-linksrow="1"]';
+  ok('the mirror of links-left has a rule', C.includes(sel('right', 'right', 'left')));
+  ok('the mirror of all-left has a rule', C.includes(sel('right', 'right', 'right')));
+  /* The whole fix in one line: exactly one part in the group keeps the auto
+     margin. If a later edit gave a second one back, they would drift apart
+     again and the tiles would still claim otherwise. */
+  ok('only the leading part of the all-right group takes the auto margin',
+    (() => {
+      const at = C.indexOf(sel('right', 'right', 'right'));
+      if (at === -1) return false;
+      const block = C.slice(at, at + 1200);
+      return (block.match(/margin-left: auto;/g) || []).length === 1
+        && (block.match(/margin-left: 0;/g) || []).length === 2;
+    })(),
+    'two auto margins is the bug this rule exists to fix');
+  ok('…and the group is ordered actions, categories, logo',
+    (() => {
+      const at = C.indexOf(sel('right', 'right', 'right'));
+      const block = C.slice(at, at + 1200);
+      return block.indexOf('order: 1') < block.indexOf('order: 2')
+        && block.indexOf('order: 2') < block.indexOf('order: 3');
+    })(),
+    'reversed from document order, because that is what a reflection is');
 }
 
 console.log('\n  it travels with the other extras rather than as a special case');
