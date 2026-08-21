@@ -149,7 +149,7 @@ console.log('\n  and the server stops holding the page up for a nicety');
     /if \(!attrs\) return res;/.test(MW),
     'the baked answer, the visitor cache and the runtime fetch all still apply');
   ok('…and nothing is stamped when the read came back with nothing in it',
-    /if \(!attrs\.html && !attrs\.body && !hasSettings && !readLayout && !attrs\.theme && !attrs\.nav\) return res;/.test(MW),
+    /if \(!attrs\.html && !attrs\.body && !hasSettings && !readLayout && !attrs\.theme && !attrs\.nav && !attrs\.search\) return res;/.test(MW),
     'an empty stamp would still cost an HTMLRewriter pass over every page');
 }
 

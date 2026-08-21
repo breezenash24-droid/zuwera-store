@@ -265,7 +265,7 @@ async function firstPaint(env) {
   /* ONE request for all of it. The header arrangement used to be fetched on its
      own; asking for the rest alongside it costs the same round trip and the
      same edge-cache entry. */
-  const wanted = FIRST_PAINT_KEYS.concat(['page_builder_published']);
+  const wanted = FIRST_PAINT_KEYS.concat(['page_builder_published', 'feature_flags']);
   const res = await fetch(
     base + '/rest/v1/site_settings?select=key,value,updated_at&key=in.('
       + wanted.join(',') + ')',
@@ -303,6 +303,7 @@ async function firstPaint(env) {
     body: bodyAttrsFrom(hdr),
     classes: layoutClasses(byKey.page_builder_published),
     nav: navStripHtml(byKey.nav_menu),
+    search: searchAttr(byKey.feature_flags),
     theme: themeAttrs(byKey.theme_modes),
     settings,
     updatedAt,
@@ -422,6 +423,48 @@ export function navStripHtml(navMenu) {
 class NavStamp {
   constructor(html) { this.html = html; }
   element(el) { el.setInnerContent(this.html, { html: true }); }
+}
+
+/**
+ * Is the search magnifier on, for everybody, without needing to know who this
+ * visitor is?
+ *
+ * The header pre-paint draws the magnifier from a localStorage flag
+ * storefront-features.js wrote on the LAST visit, so a first-ever visitor
+ * watches it pop in when the module arrives. The flag row answers that — but
+ * only sometimes, and the "sometimes" is the whole design here.
+ *
+ * A flag is { enabled, rollout }. Two of the three cases are the same for every
+ * visitor and can be stamped:
+ *
+ *     enabled: false                 -> '0', nobody gets it
+ *     enabled: true, rollout >= 100  -> '1', everybody does
+ *     enabled: true, rollout 1..99   -> NOT STAMPED
+ *
+ * The third depends on a sticky per-visitor bucket flags.js keeps in the
+ * browser, and the edge cannot see it. Guessing would put the magnifier in
+ * front of somebody the rollout excludes and then take it away, which is worse
+ * than the flicker being fixed. Absent means the pre-paint falls back to the
+ * cache, which is exactly the behaviour it has today.
+ *
+ * @returns {'0'|'1'|''} '' when there is nothing certain to say.
+ */
+export function searchAttr(featureFlags) {
+  const root = (featureFlags && typeof featureFlags === 'object') ? featureFlags : null;
+  if (!root) return '';
+  const bag = (root.flags && typeof root.flags === 'object') ? root.flags : root;
+  const f = bag.feature_search;
+  if (f === undefined || f === null) return '';
+  /* A bare boolean is a legal shape for a flag row that predates rollouts. */
+  if (typeof f === 'boolean') return f ? '1' : '0';
+  if (typeof f !== 'object') return '';
+  if (f.enabled === false) return '0';
+  if (f.enabled !== true) return '';
+  const rollout = f.rollout === undefined ? 100 : Number(f.rollout);
+  if (!Number.isFinite(rollout)) return '';
+  if (rollout >= 100) return '1';
+  if (rollout <= 0) return '0';
+  return '';
 }
 
 export function themeAttrs(tm) {
@@ -600,10 +643,11 @@ export async function onRequest(context) {
        answer, and the preboot must stop guessing on the strength of it rather
        than only when something needs hiding. */
     const readLayout = !!attrs.classes;
-    if (!attrs.html && !attrs.body && !hasSettings && !readLayout && !attrs.theme && !attrs.nav) return res;
+    if (!attrs.html && !attrs.body && !hasSettings && !readLayout && !attrs.theme && !attrs.nav && !attrs.search) return res;
     let rw = new HTMLRewriter();
     if (attrs.html) rw = rw.on('html', new Stamp(attrs.html));
     if (attrs.theme) rw = rw.on('html', new ThemeStamp(attrs.theme));
+    if (attrs.search) rw = rw.on('html', new Stamp({ 'data-zw-search': attrs.search }));
     if (attrs.nav) rw = rw.on('#nav-category-links', new NavStamp(attrs.nav));
     if (readLayout) rw = rw.on('html', new ClassStamp(hasClasses ? attrs.classes.classes : [], true));
     if (attrs.body) rw = rw.on('body', new Stamp(attrs.body));

@@ -210,7 +210,12 @@ try {
   if(_ok)window.__zwSessionUser=_se.user;
   var st=document.createElement('style');
   st.id='zw-acct-prepaint';
-  st.textContent=_ok?'#acct-content{display:block!important}':'#auth-wall{display:block!important}';
+  /* The nav's Sign Out goes in here too. It carries an inline display:none and
+     was revealed only after the async getSession() resolved, so it arrived LAST
+     — after the search magnifier the header pre-paint had already drawn — and
+     pushed the whole action group sideways as it appeared. !important because
+     an inline style cannot be beaten any other way. */
+  st.textContent=_ok?'#acct-content{display:block!important}#nav-signout-btn{display:inline-block!important}':'#auth-wall{display:block!important}';
   document.head.appendChild(st);
 }catch(_){}})()</script>
   <meta name="mobile-web-app-capable" content="yes">
@@ -928,7 +933,8 @@ try {
         }
       }
     } catch (_) {}
-    if (localStorage.getItem('zw_srch') !== '1') return;
+    var _sa = document.documentElement.getAttribute('data-zw-search');
+    if (_sa !== null ? _sa !== '1' : localStorage.getItem('zw_srch') !== '1') return;
     var host = null, before = null, cls = '';
     var nr = document.querySelector('.nav-right');
     var ct = nr && nr.querySelector('#cart-btn');
@@ -2311,6 +2317,13 @@ async function init() {
     if (!_session) {
       // If the head pre-paint guessed signed-in, undo it.
       document.getElementById('zw-acct-prepaint')?.remove();
+      /* And the HEADER's half of that guess. theme-preboot.head.js adds
+         zw-authed from the same localStorage read, and auth.js — which owns
+         taking it back everywhere else — is not loaded on this page. So a token
+         the server rejects left the header showing a name and a Sign Out button
+         over an auth wall. A guess nothing corrects is worse than no guess. */
+      document.documentElement.classList.remove('zw-authed');
+      document.documentElement.style.removeProperty('--zw-acct-name');
       document.getElementById('acct-content').style.display = 'none';
       document.getElementById('auth-wall').style.display = 'block';
       return;

@@ -104,7 +104,20 @@
       }
     } catch (_) {}
 
-    if (localStorage.getItem('zw_srch') !== '1') return;
+    /* ── THE DOCUMENT BEFORE THE MEMORY, AGAIN ─────────────────────────────
+     * zw_srch is what storefront-features.js wrote on the LAST visit, so on a
+     * first-ever visit there is nothing here and the magnifier pops in when the
+     * module arrives — the exact flicker this block exists to prevent, just
+     * moved to the one visitor who has never seen the header before.
+     *
+     * functions/_middleware.js reads feature_flags as the page is served and
+     * stamps data-zw-search when the answer is UNAMBIGUOUS: off for everyone,
+     * or on for everyone at a full rollout. A partial rollout is deliberately
+     * not stamped, because who is in it depends on a sticky bucket the edge
+     * cannot see — so the attribute is absent and this falls back to the cache,
+     * which is exactly the old behaviour. */
+    var _sa = document.documentElement.getAttribute('data-zw-search');
+    if (_sa !== null ? _sa !== '1' : localStorage.getItem('zw_srch') !== '1') return;
 
     /* Dialect one: the browse header. Dialect two: the information header.
        Ordered, not merged — a page could in principle carry both, and the
