@@ -259,8 +259,27 @@ const settle = () => new Promise((r) => setTimeout(r, 400));   // the 340ms disp
     const CSS = read('storefront-cohesion.css').replace(/\r\n/g, '\n');
     const B = BAR_SRC.replace(/\r\n/g, '\n');
     ok('the hidden-header transform reads the lift the bar writes',
-      /translateY\(calc\(-110% - var\(--zw-nav-lift, 0px\)\)\)/.test(CSS)
+      /translateY\(calc\(-110% - var\(--zw-nav-lift\)\)\)/.test(CSS)
       && /setProperty\('--zw-nav-lift'/.test(B));
+    /* This used to require the fallback `var(--zw-nav-lift, 0px)`, and that
+       fallback was the bug: clean-css turns a zero inside calc() into a bare
+       `0` — every unit, and not as an option — which makes the subtraction
+       invalid, drops the declaration, and leaves transform at its initial value
+       of `none`. The header then did not move AT ALL on a phone, where there is
+       no announcement bar to write the variable and the fallback was the only
+       thing being read. Desktop was fine, which is why it went unnoticed.
+
+       So the variable is DECLARED with a length instead, and the calc reads it
+       with no fallback. tests/the-header-hides-on-a-phone-too.test.js checks the
+       minified output, which is where this only ever existed. */
+    /* Comments explain WHY the fallback is gone, so they necessarily quote it.
+       Read the code, not the prose — the same rule the rest of this suite
+       follows for absence assertions. */
+    ok('...with no zero fallback for the minifier to strip the unit off',
+      !/var\(--zw-nav-lift\s*,/.test(CSS.replace(/\/\*[\s\S]*?\*\//g, '')),
+      'a fallback of 0px, 0em, 0%, 0rem or 0vh all minify to a unitless 0');
+    ok('...because the variable is declared with a length instead',
+      /--zw-nav-lift:\s*0px;/.test(CSS));
     ok('and clears it where the bar sits BELOW the nav and there is nothing to clear',
       /removeProperty\('--zw-nav-lift'\)/.test(B));
 
