@@ -158,8 +158,12 @@ console.log('\nOne modal for the whole header\n');
     /<body\\b\(\[\^>\]\*\)>/.test(STAMP) && /OURS_BODY/.test(STAMP));
   ok('the edge stamps them too', /data-zw-iconlabels/.test(MID) && /bodyAttrsFrom/.test(MID)
     && /rw\.on\('body'/.test(MID));
+  /* Appended, never reordered: field 5 is `lines` in every tuple ever written,
+     so a cache from before an extra existed still reads correctly and only the
+     new field comes back empty. Asserted as a PREFIX rather than an exact list
+     so adding one (flip, most recently) does not fail this. */
   ok('the cache carries them, appended so an old tuple still reads',
-    /ATTR_FIELDS = \['lines', 'account', 'iconLabels', 'order'\]/.test(SRC)
+    /ATTR_FIELDS = \['lines', 'account', 'iconLabels', 'order'(,|\])/.test(SRC)
     && /parts\[5 \+ fi\]/.test(SRC));
   ok('the head pre-paint reads the words/glyphs field',
     /phone\|tablet\|desktop/.test(PRE) && /h\.setAttribute\(_il, _hc\[7\]\)/.test(PRE));
@@ -527,8 +531,13 @@ console.log('\nOne modal for the whole header\n');
     /id="hdrDvMob"/.test(B) && /id="hdrDvTab"/.test(B) && /id="hdrDvDesk"/.test(B)
     && /onclick="setPvMode\('mob'\)"/.test(B));
   ok('...and the tiles are drawn for the device you are viewing',
-    /L\.miniature\(l, hdrDevice\(\)\)/.test(B)
+    /L\.miniature\(l, hdrDevice\(\)/.test(B)
     && /function hdrDevice\(\)\{ return \{mob:'phone',tab:'tablet',desk:'desktop'\}/.test(B));
+  /* And mirrored when the arrangement is, or the gallery would show one thing
+     while the preview beside it showed another -- the exact failure this
+     picker was rebuilt to end. */
+  ok('...and mirrored when the arrangement is',
+    /L\.miniature\(l, hdrDevice\(\), chromeHdrFlip==='on'\)/.test(B));
   /* And the small tile is the header a phone REALLY gets, not a guess: the
      categories are display:none below 900 and the menu button appears. */
   ok('a phone tile shows the compact header, categories and all layouts alike',

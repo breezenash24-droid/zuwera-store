@@ -179,7 +179,17 @@ if (!process.env.CF_PAGES && !process.argv.includes('--local')) process.exit(0);
     if (chosen && chosen.id && !layout) {
       console.log('[stamp-header-layout] unknown layout "' + chosen.id + '" — placement cleared.');
     }
-    const spec = layout ? layout.spec : null;
+    /* Mirrored with the layout table's own mirror() — this script already
+       loads ZWHeaderLayouts, so there is no third copy of the operation here.
+       The Worker has its own because it cannot import a browser file; this
+       does not have that excuse. */
+    const flipped = !!(chosen && chosen.flip === 'on');
+    const spec = layout
+      ? (flipped && typeof L.mirror === 'function' ? L.mirror(layout.spec) : layout.spec)
+      : null;
+    if (flipped && typeof L.mirror !== 'function') {
+      console.log('[stamp-header-layout] flip requested but the layout table has no mirror() — baking it unflipped.');
+    }
 
     let changed = 0;
     for (const page of PAGES) {
