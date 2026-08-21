@@ -225,6 +225,113 @@ const getText = async (path) => {
     note('the top section is not a hero', 'nothing to preload; not a failure');
   }
 
+  /* ── 7. the first frame arrives already correct ────────────────────────────
+     None of this can be seen by reading a file: it is written by
+     functions/_middleware.js as the page is served, so the repository looks
+     identical whether it works or not. Which is exactly the class of defect
+     this script exists for. */
+  console.log('\n  the first frame, which only the deployment can show');
+  {
+    const html = home.text;
+    const openTag = (html.match(/<html[^>]*>/i) || [''])[0];
+
+    ok('the edge answered', /data-zw-pb="1"/.test(openTag),
+      'no marker means the middleware did not run, timed out, or could not read the settings — '
+      + 'the page still works, it just guesses again.\n      <html …> was: ' + openTag.slice(0, 220));
+
+    ok('the first-paint settings are in the document',
+      /<script type="application\/json" id="zw-first-paint">/.test(html),
+      'without it every module goes back to localStorage-then-fetch');
+
+    if (/id="zw-first-paint"/.test(html)) {
+      const m = html.match(/<script type="application\/json" id="zw-first-paint">([\s\S]*?)<\/script>/);
+      let payload = null;
+      try { payload = JSON.parse(m[1].replace(/<\\\/script/g, '</script')); } catch (_) {}
+      ok('…and it parses', !!(payload && payload.settings),
+        'a malformed block is ignored by zw-data.js, so this would fail silently');
+      if (payload && payload.settings) {
+        const keys = Object.keys(payload.settings);
+        console.log('      ' + keys.length + ' keys, ' + m[0].length + ' bytes: ' + keys.join(', '));
+        ok('…carrying the theme', keys.indexOf('theme_modes') > -1);
+        /* The two rows that would triple the cost of every HTML response. */
+        ok('…and NOT the page builder or the policies',
+          keys.indexOf('page_builder_published') === -1 && keys.indexOf('legal_policies') === -1,
+          'those are 12 KB and 6.6 KB and neither is visible before you scroll');
+      }
+    }
+
+    /* What the published layout actually contains, as CSS classes, so the
+       stylesheet hides the right things with no JavaScript at all. */
+    const cls = (openTag.match(/class="([^"]*)"/) || ['', ''])[1];
+    const hides = cls.split(/\s+/).filter((c) => /^zw-(hide-static-hero|hs-)/.test(c));
+    if (top && top.type !== 'hero') {
+      ok('a carousel-led layout hides the baked hero before first paint',
+        hides.indexOf('zw-hide-static-hero') > -1,
+        'without it the shipped hero paints and is then removed in front of the visitor.'
+        + '\n      <html class="' + cls + '">');
+    } else {
+      note('this layout leads with a static hero', 'nothing to hide; not a failure');
+    }
+    if (hides.length) console.log('      hidden before paint: ' + hides.join(', '));
+
+    ok('the theme default is stamped', /data-zw-theme-default="(light|super-light|dark)"/.test(openTag),
+      'the pre-paint block falls back to the shipped dark without it');
+  }
+
+  /* ── 8. the modules that moved ─────────────────────────────────────────── */
+  console.log('\n  the modules that moved');
+  {
+    const html = home.text;
+    const tags = [...html.matchAll(/<script[^>]*src="([^"]+)"/g)].map((m) => m[1].split('?')[0].replace(/^\//, ''));
+
+    const iHero = tags.indexOf('hero-render.js');
+    ok('hero-render.js is loaded', iHero > -1, 'the hero would still be rendered by storefront.js');
+    ok('…early, not behind the whole chain', iHero > -1 && iHero <= 3,
+      'position ' + (iHero + 1) + ' of ' + tags.length);
+    const hr = await get('/hero-render.js');
+    ok('…and it actually resolves', hr.status === 200, 'HTTP ' + hr.status);
+
+    const lazy = [...html.matchAll(/<script type="text\/zw-lazy"[^>]*src="([^"]+)"/g)].map((m) => m[1]);
+    ok('the lazy declarations are inert markup', lazy.length > 0,
+      'nothing declared lazy on this page');
+    if (lazy.length) {
+      console.log('      deferred to idle: ' + lazy.map((s) => s.split('?')[0]).join(', '));
+      ok('…with the loader ahead of them',
+        html.indexOf('src="/zw-lazy.js') > -1
+        && html.indexOf('src="/zw-lazy.js') < html.indexOf('<script type="text/zw-lazy"'),
+        'a declaration the loader never sees is a module that never runs');
+      const lz = await get('/zw-lazy.js');
+      ok('…and the loader resolves', lz.status === 200, 'HTTP ' + lz.status);
+    }
+  }
+
+  /* ── 9. the stylesheet, as minified and served ─────────────────────────────
+     clean-css has silently destroyed a rule in this file before — a zero inside
+     calc() became unitless and took the mobile header's hide transform with it.
+     So these are read from the SERVED css, not the source. */
+  console.log('\n  the stylesheet, after the minifier has been at it');
+  {
+    const cssHref = (home.text.match(/href="(\/?storefront-cohesion\.css[^"]*)"/) || [])[1];
+    if (!cssHref) { note('storefront-cohesion.css not linked', 'skipping'); }
+    else {
+      const css = await getText(cssHref.startsWith('/') ? cssHref : '/' + cssHref);
+      ok('it serves 200', css.status === 200, 'HTTP ' + css.status);
+      const flat = css.text.replace(/\s+/g, '');
+      ok('the swatch thumbnails have their sizing rule',
+        /\.zw-swatch-thumb\{[^}]*object-fit:cover/.test(flat),
+        'without it every colour swatch draws at its intrinsic size');
+      ok('…and the three landscape tiles keep their top framing',
+        /object-position:centertop/.test(flat),
+        'the product page colourways would recrop to the middle');
+      ok('the two mirrored right-hand groups survived minification',
+        /\[data-zw-hdr-logo="right"\]\[data-zw-hdr-links="right"\]\[data-zw-hdr-actions="left"\]/.test(flat)
+        && /\[data-zw-hdr-logo="right"\]\[data-zw-hdr-links="right"\]\[data-zw-hdr-actions="right"\]/.test(flat),
+        'Categories-beside-the-logo and Everything-to-the-left would spread apart when mirrored');
+      ok('…and the category gap is still a variable',
+        /gap:var\(--zw-nav-gap/.test(flat));
+    }
+  }
+
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed'
     + (warn ? ', ' + warn + ' note(s)' : '') + '\n');
   process.exit(fail ? 1 : 0);
