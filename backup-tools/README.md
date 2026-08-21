@@ -96,6 +96,41 @@ Runs on Google's servers, free, independent of the website.
 
 ---
 
+## If the Sheet stops updating
+
+The Apps Script trigger is the part that fails silently, so check it in this
+order. Everything you need is in the Sheet itself.
+
+1. **Sheet → Extensions → Apps Script → Executions.** Every run is listed with
+   its status and, for a failure, the exact line. This answers the question in
+   one look.
+2. **Triggers** (same project, left rail). Google **disables a trigger** after
+   repeated failures — if `backupToSheet` is missing or greyed out, that is what
+   happened. Re-run `setup` to reinstall it.
+3. **Gmail**, search `Summary of failures for Google Apps Script`. Google emails
+   these; they are easy to miss.
+4. **Drive storage.** A full Drive means the script cannot write to the Sheet at
+   all. Sheets count against your quota.
+5. **Prove the export itself still works**, independently of Google:
+   ```bash
+   curl -s -H "x-backup-token: <your-token>"      https://qfgnrsifcwdubkolsgsq.supabase.co/functions/v1/backup-export | head -c 400
+   ```
+   JSON back means the edge function is fine and the fault is on the Google side.
+6. **Compare against the GitHub repo backup** (Step 4). If that one kept running,
+   the fault is Apps Script alone. If both stopped, look at the token or the
+   function.
+
+**Known failure, fixed 2026-08-21.** `getBandings()` can return a banding whose
+range no longer exists, and `.remove()` on that handle throws *"The alternating
+colors range you selected does not exist."* One unguarded call in
+`getOrRenameSheet_` ended the whole run — every night, for six days, with the
+Sheet still showing the last date it succeeded. Both removal calls are guarded
+now, each tab is written independently, and the Overview carries a **This run**
+line that names any tab that failed. If you are running an older copy of
+`Code.gs`, paste the current one in.
+
+---
+
 ## Restoring
 
 - **Quick lookups / a few records:** open the Google Sheet or a CSV from the repo.
