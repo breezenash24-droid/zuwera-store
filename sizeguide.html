@@ -1192,7 +1192,8 @@ try {
         }
       }
     } catch (_) {}
-    if (localStorage.getItem('zw_srch') !== '1') return;
+    var _sa = document.documentElement.getAttribute('data-zw-search');
+    if (_sa !== null ? _sa !== '1' : localStorage.getItem('zw_srch') !== '1') return;
     var host = null, before = null, cls = '';
     var nr = document.querySelector('.nav-right');
     var ct = nr && nr.querySelector('#cart-btn');

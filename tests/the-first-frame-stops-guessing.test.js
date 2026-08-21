@@ -239,7 +239,7 @@ const ctx = () => ({
       'the baked answer, the visitor cache and the runtime fetch all still apply');
     ok('a timeout does too', /if \(!attrs\) return res;/.test(MW));
     ok('…and so does a read that found nothing',
-      /if \(!attrs\.html && !attrs\.body && !hasSettings && !readLayout && !attrs\.theme && !attrs\.nav\) return res;/.test(MW));
+      /if \(!attrs\.html && !attrs\.body && !hasSettings && !readLayout && !attrs\.theme && !attrs\.nav && !attrs\.search\) return res;/.test(MW));
   }
   {
     els = { __seed: {} };
