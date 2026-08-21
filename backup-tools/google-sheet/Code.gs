@@ -106,9 +106,10 @@ var DISPLAY = {
   return_requests: 'Returns (legacy table)'
 };
 var DESCRIPTION = {
-  orders: 'Every order — items, totals, shipping address, status',
+  orders: 'Every order — items, totals, shipping address, status. order_label is the name the admin and emails use',
   returns: 'Return & exchange requests', promotions: 'Discount / coupon codes',
-  refund_audit_log: 'Refunds you have issued', order_ops: 'Manual order edits (status, refunds, tracking)',
+  refund_audit_log: 'Every refund ATTEMPT — read the outcome column; blocked tries are recorded on purpose',
+  order_ops: 'Manual order edits (status, refunds, tracking)',
   customers: 'One row per person — login, sign-in history, name, saved preferences',
   admins: 'Who can get into the admin panel, and what they are allowed to do',
   customer_profiles: 'Per-customer admin notes / overlays', reviews: 'Product reviews',
@@ -123,7 +124,7 @@ var TAB_ORDER = ['orders', 'returns', 'promotions', 'refund_audit_log', 'order_o
   'customers', 'customer_profiles', 'reviews', 'waitlist', 'restock_requests', 'favorites',
   'products', 'color_variants', 'product_sizes', 'product_images', 'size_charts', 'inventory',
   'webhook_events', 'admins', 'admin_audit_log', 'zw_banned_words', 'site_settings', 'return_requests'];
-var PRIORITY_COLS = ['order_number', 'orderNumber', 'order_label', 'orderLabel', 'id', 'code',
+var PRIORITY_COLS = ['order_label', 'outcome', 'order_number', 'orderNumber', 'orderLabel', 'id', 'code',
   'created_at', 'createdAt', 'date', 'email', 'customer_email', 'customerEmail', 'user_email', 'userEmail',
   'customer_name', 'customerName', 'user_name', 'userName', 'full_name', 'name', 'status', 'resolution',
   'reason', 'rating', 'title', 'total', 'total_amount', 'order_total', 'orderTotal', 'value', 'amount_cents'];
@@ -344,11 +345,71 @@ function collectKeys_(rows) {
   return pri.concat(rest);
 }
 
+/* ── COLUMNS THE DATABASE DOES NOT HAVE, BECAUSE NOBODY CAN READ A UUID ─────
+
+   Two tabs were unusable for the thing people actually open them for.
+
+   ORDERS had no name you could look an order up by. `order_number` is null on
+   every real order (it is only generated when the first item's product has a
+   category set, and it is skipped silently when that is missing), so the column
+   is blank and `id` is a UUID. Meanwhile the admin panel, the Returns tab and
+   every customer email show `#0MWBS6VZ` — a label DERIVED from the payment
+   reference. The Sheet was the only place that did not, so a customer quoting a
+   number from an email could not be found in the backup at all.
+
+   This computes the same label the same way, so all three agree. It is a
+   display column and it says so: the fix for the empty database column is a
+   database fix, not this.
+
+   REFUNDS mixed two completely different kinds of row. A successful refund and
+   somebody typing the wrong authorization code both land in the audit log — by
+   design, that log is meant to record attempts — but the tab showed them side
+   by side with `success FALSE` as the only difference, and the reason sitting
+   in a `note` column far off the right-hand edge. Four blocked attempts on one
+   order read as four failed refunds. */
+var DERIVED = {
+  orders: function (r) {
+    var n = String(r.order_number == null ? '' : r.order_number).trim();
+    if (n) return { order_label: n.charAt(0) === '#' ? n : '#' + n };
+    var ref = String(r.stripe_payment_intent_id || r.id || '');
+    return { order_label: ref ? '#' + ref.slice(-8).toUpperCase() : '' };
+  },
+  refund_audit_log: function (r) {
+    var money = function (cents) { return '$' + (Math.abs(Number(cents || 0)) / 100).toFixed(2); };
+    if (r.success !== true) {
+      var why = String(r.note || '').trim();
+      return { outcome: why ? 'Blocked — ' + why : 'Blocked' };
+    }
+    if (Number(r.storeCreditCents) > 0) return { outcome: 'Store credit ' + money(r.storeCreditCents) };
+    if (Number(r.stripeRefundAmount) > 0) return { outcome: 'Refunded ' + money(r.stripeRefundAmount) };
+    if (r.action === 'cancel') return { outcome: 'Order cancelled' };
+    if (r.action === 'check') return { outcome: 'Preflight check — no money moved' };
+    return { outcome: 'Completed' };
+  },
+};
+
+function decorate_(table, rows) {
+  var fn = DERIVED[table];
+  if (!fn) return rows;
+  return rows.map(function (r) {
+    var extra;
+    /* One bad row must not cost the tab. The derivations above read fields that
+       may be absent on old records, and a throw here would be caught by the
+       per-table guard and lose every row rather than one column. */
+    try { extra = fn(r) || {}; } catch (e) { extra = {}; }
+    var out = {};
+    Object.keys(extra).forEach(function (k) { out[k] = extra[k]; });
+    Object.keys(r).forEach(function (k) { if (!(k in out)) out[k] = r[k]; });
+    return out;
+  });
+}
+
 function writeTab_(ss, table, rows) {
   var sheet = getOrRenameSheet_(ss, table, displayName_(table), false);
   sheet.setTabColor(colorFor_(table));
   if (!rows.length) { sheet.getRange(1, 1).setValue('(no rows yet)').setFontColor('#999999'); return; }
 
+  rows = decorate_(table, rows);
   var keys = collectKeys_(rows);
   var colIsDate = [];
   var values = [keys];
