@@ -142,7 +142,7 @@ console.log('\n  two arrangements cannot be mirrored, and the switch says so');
 
 console.log('\n  it travels with the other extras rather than as a special case');
 {
-  ok('flip is an extra key', /EXTRA_KEYS = \['lines', 'account', 'iconLabels', 'order', 'flip'\]/.test(HL));
+  ok('flip is an extra key', /EXTRA_KEYS = \['lines', 'account', 'iconLabels', 'order', 'flip'(,|\])/.test(HL));
   ok('…validated to on/off like the rest', /flip:\s*\{ on: 1, off: 1 \}/.test(HL));
   ok('apply() mirrors when it is on',
     /if \(spec && e\.flip === 'on'\) spec = mirror\(spec\);/.test(code(HL)));
@@ -167,7 +167,7 @@ console.log('\n  and it reaches the first frame, not just the second');
     /var cs = \(l && extras\(opts\)\.flip === 'on'\) \? mirror\(l\.spec\) : \(l && l\.spec\);/.test(code(HL)),
     'otherwise the first frame draws unmirrored and then swaps');
   ok('…and carries flip in the tuple, appended so an old cache still reads',
-    /ATTR_FIELDS = \['lines', 'account', 'iconLabels', 'order', 'flip'\]/.test(HL));
+    /ATTR_FIELDS = \['lines', 'account', 'iconLabels', 'order', 'flip'(,|\])/.test(HL));
 }
 
 console.log('\n  the two definitions of the mirror agree, on every shipped layout');
@@ -222,7 +222,7 @@ console.log('\n  the four placement attributes could not describe a mirror, and 
     /else root\.removeAttribute\('data-zw-hdr-flip'\);/.test(code(TE)),
     'left behind, a store that unmirrored would stay mirrored');
   ok('…and clear() takes it with the others',
-    /'data-zw-hdr-linksrow', 'data-zw-hdr-flip'\]/.test(TE));
+    /'data-zw-hdr-linksrow', 'data-zw-hdr-flip'(,|\])/.test(TE));
 
   ok('the edge stamps it too', /out\['data-zw-hdr-flip'\] = 'on';/.test(code(MID)));
   ok('the build stamp writes it', /if \(flipped\) keep \+= ' data-zw-hdr-flip="on"';/.test(code(STAMP)));
@@ -230,9 +230,9 @@ console.log('\n  the four placement attributes could not describe a mirror, and 
     /flip: pick\('flip', \['on', 'off'\]\)/.test(code(STAMP)),
     'a field fetchLayout does not pick up is a field that is always absent');
   ok('…counts it as an answer worth baking on its own',
-    /chosen\.order \|\| chosen\.flip;/.test(code(STAMP)));
+    /chosen\.order \|\| chosen\.flip\b/.test(code(STAMP)));
   ok('…and strips it, so turning the mirror off actually un-mirrors',
-    /'data-zw-hdr-flip'\];/.test(STAMP));
+    /'data-zw-hdr-flip'(,|\])/.test(STAMP));
 
   ok('the centred pair swaps sides when mirrored',
     /html\[data-zw-hdr-flip="on"\]\[data-zw-hdr-logo="center"\]\[data-zw-hdr-links="center"\]\[data-zw-hdr-linksrow="1"\]/.test(CSS));

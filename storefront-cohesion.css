@@ -4084,7 +4084,27 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
    No transform, deliberately: a transform would make this a containing block for
    the fixed mega-menu and trap it at this width instead of full-bleed. Matches
    what index/landing already did locally. */
-.nav-center{ position:absolute; left:0; right:0; margin:0 auto; width:fit-content; display:flex; align-items:center; justify-content:center; gap:2.4rem; }
+.nav-center{ position:absolute; left:0; right:0; margin:0 auto; width:fit-content; display:flex; align-items:center; justify-content:center; gap:var(--zw-nav-gap, 2.4rem); }
+
+/* --- How far apart the categories sit -------------------------------------
+   2.4rem was a literal, in three files, with no control anywhere. It is the
+   only thing about the header a store could not change, and it is the thing
+   that looks wrong first when the arrangement moves: a centred strip wants
+   air, a strip tucked beside the logo wants far less of it.
+
+   Named steps rather than a number, for the same reason every other answer in
+   the header modal is named: a pixel box invites fiddling and gives nobody a
+   sense of what "right" is. `normal` IS 2.4rem, so a store that never touches
+   this gets exactly what it has now.
+
+   The fallback is deliberately non-zero. clean-css rewrites a zero inside a
+   value to a bare 0 and that has already cost this site a header (see the
+   auto-hide note further down); 2.4rem survives untouched. */
+html[data-zw-hdr-gap="tight"]  { --zw-nav-gap: 1.1rem; }
+html[data-zw-hdr-gap="snug"]   { --zw-nav-gap: 1.7rem; }
+html[data-zw-hdr-gap="normal"] { --zw-nav-gap: 2.4rem; }
+html[data-zw-hdr-gap="roomy"]  { --zw-nav-gap: 3.2rem; }
+html[data-zw-hdr-gap="wide"]   { --zw-nav-gap: 4.4rem; }
 /* Matches .zw-mega-col a exactly (1.05rem/600/.02em) so the header categories and
    the mega-menu subcategories read as one system — they are the same nav. */
 .nav-link{ font-family:var(--zw-font-head,'Barlow Condensed',sans-serif); font-size:1.05rem; font-weight:600; font-style:normal; letter-spacing:.02em; text-transform:uppercase; line-height:1; color:inherit; text-decoration:none; opacity:.92; white-space:nowrap; background:none; border:none; cursor:pointer; display:inline-flex; align-items:center; padding:.6rem .7rem; margin:-.6rem 0; }
@@ -4896,7 +4916,12 @@ body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img)
      honest way too — add enough categories and they close on the centre again,
      which is what the layout test measures rather than assumes. */
   html[data-zw-hdr-logo="center"][data-zw-hdr-linksrow="1"] :is(#nav, .nav, .zw-nav) > .nav-center {
-    gap: clamp(.5rem, 1.2vw, 1.2rem);
+    /* Half the chosen gap, still floored and still capped by the viewport
+       clamp. At the default 2.4rem that is 1.2rem -- exactly the literal this
+       replaces, so nothing changes for a store that has not chosen -- and a
+       store that asks for a wider strip gets a proportionally wider one here
+       without ever giving up the collision guard this rule exists to be. */
+    gap: clamp(.5rem, 1.2vw, calc(var(--zw-nav-gap, 2.4rem) / 2));
   }
 
   /* ── A centred part cannot hold the bar open ──────────────────────────────

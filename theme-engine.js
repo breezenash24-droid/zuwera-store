@@ -171,6 +171,9 @@
     minimal: { logo: 'left',   links: 'none',   actions: 'right', linksRow: 1 },
   };
   var HDR_SPOTS = { left: 1, center: 1, right: 1 };
+  /* The five named category spacings. Same shape as HDR_SPOTS and for the same
+     reason: a value the stylesheet has no rule for must not be written through. */
+  var HDR_GAPS = { tight: 1, snug: 1, normal: 1, roomy: 1, wide: 1 };
 
   /* The header controls, by role rather than by element — the two button
      systems spell the same role differently and the stylesheet owns that
@@ -344,7 +347,8 @@
     applyHeaderOrder(root);
     if (hdrOverride) header = hdrOverride;
     var attrs = ['data-zw-hdr', 'data-zw-hdr-logo', 'data-zw-hdr-links',
-                 'data-zw-hdr-actions', 'data-zw-hdr-linksrow', 'data-zw-hdr-flip'];
+                 'data-zw-hdr-actions', 'data-zw-hdr-linksrow', 'data-zw-hdr-flip',
+                 'data-zw-hdr-gap'];
 
     /* ── CLEAR ONLY WHAT THIS FUNCTION PUT THERE ────────────────────────────
        Switching from a theme that places the header to one that does not has to
@@ -405,6 +409,11 @@
        does — every other placement still comes from the four. */
     if (spec.flip === 'on') root.setAttribute('data-zw-hdr-flip', 'on');
     else root.removeAttribute('data-zw-hdr-flip');
+    /* How far apart the categories sit. Validated the same way the placements
+       are: an unrecognised value writes nothing, so the stylesheet's own 2.4rem
+       stands rather than the strip collapsing to whatever a typo resolves to. */
+    if (HDR_GAPS[spec.navGap]) root.setAttribute('data-zw-hdr-gap', spec.navGap);
+    else root.removeAttribute('data-zw-hdr-gap');
     hdrWritten = true;
   }
 
