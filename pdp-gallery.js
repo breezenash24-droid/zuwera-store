@@ -145,15 +145,34 @@
      * one thing that kept coming out wrong. */
     var perView = Number(opts.perView) > 0 ? Number(opts.perView) : 0;
 
+    /* !important, on an inline style, is the top of the cascade — nothing in any
+       stylesheet can reach past it. That is a heavy hammer and it is deliberate:
+       this is the third round on the same pane. The stylesheet said one photo
+       per view, it was served, valid and uncontested, and the modal still drew
+       two. Twice more I shipped a fix that was correct in the repository and
+       correct in the deployed bundle, and twice more the photos came back cut.
+       So this stops being a request. */
+    var pin = function (el, prop, val) {
+      try { el.style.setProperty(prop, val, 'important'); }
+      catch (_) { el.style[prop] = val; }          // older engines, no setProperty
+    };
+
     host.innerHTML = '';
     host.classList.add('zw-strip');
     if (perView) {
       /* Without these the container is not a scroll container at all and the
          photos simply shrink to share the width — which is the two-up the
          modal was showing. */
-      host.style.display = 'flex';
-      host.style.overflowX = 'auto';
-      host.style.scrollSnapType = 'x mandatory';
+      pin(host, 'display', 'flex');
+      pin(host, 'overflow-x', 'auto');
+      pin(host, 'scroll-snap-type', 'x mandatory');
+      /* .collection-review-media centres its content, which is right for a
+         single photo and wrong for a strip: on an overflowing flex row,
+         justify-content:center pushes the overflow out BOTH ends, and the part
+         that goes off the left cannot be reached by scrolling at all — there is
+         no negative scrollLeft. The first photo becomes unreachable. */
+      pin(host, 'justify-content', 'flex-start');
+      pin(host, 'align-items', 'flex-start');
     }
     images.forEach(function (url, i) {
       var node;
@@ -172,14 +191,17 @@
         /* flex-basis AND width, because a flex item with a percentage basis
            still consults width when the container's own sizing is in doubt, and
            a photo that is 100% of the pane cannot be beside another one. */
-        node.style.flex = '0 0 ' + (100 / perView) + '%';
-        node.style.width = (100 / perView) + '%';
-        node.style.minWidth = '0';
+        pin(node, 'flex', '0 0 ' + (100 / perView) + '%');
+        pin(node, 'width', (100 / perView) + '%');
+        pin(node, 'min-width', '0');
         /* contain, not cover: the whole shot, letterboxed against the pane's own
-           background rather than trimmed to fill it. */
-        node.style.objectFit = 'contain';
-        node.style.scrollSnapAlign = 'start';
-        node.style.scrollSnapStop = 'always';
+           background rather than trimmed to fill it. The photos on this store
+           are 2000x2000 — square — so in a pane wider than it is tall `cover`
+           crops a tall sliver out of the middle of each one, which is exactly
+           what "the images are getting cut off" looks like. */
+        pin(node, 'object-fit', 'contain');
+        pin(node, 'scroll-snap-align', 'start');
+        pin(node, 'scroll-snap-stop', 'always');
       }
       host.appendChild(node);
     });
