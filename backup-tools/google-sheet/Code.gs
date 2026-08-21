@@ -30,6 +30,51 @@ function fitCell_(v) {
   return s.slice(0, CELL_LIMIT - 60) + '… [TRUNCATED ' + s.length + ' chars — see the GitHub backup for the full value]';
 }
 
+/* ── REMOVING THE DECORATION IS ITSELF A THING THAT THROWS ──────────────────
+
+   This is the third time the same lesson has been learnt on this file, and the
+   first two fixes both guarded the wrong half.
+
+   getBandings() can hand back a banding whose range no longer exists — a tab
+   that was cleared, resized, or had its banding half-applied by an earlier run
+   that failed between the remove and the apply. Calling .remove() on that
+   handle throws "The alternating colors range you selected does not exist."
+
+   bandRows_ was wrapped in a try/catch and survived it. getOrRenameSheet_ made
+   the identical call unwrapped, so the SAME error eleven seconds later killed
+   the whole nightly run — and kept killing it, every night, for six days. The
+   log shows both: a warning at 2:20:22 and the fatal at 2:20:33.
+
+   Worse, the two were connected. bandRows_'s catch swallowed the failed
+   REMOVAL, which meant applyRowBanding never ran and the bad banding was still
+   there for the next night. One tab in that state was enough to stop every
+   backup that followed.
+
+   So: removal is its own never-throwing function, each object removed
+   independently — one bad handle must not stop the eleven good ones — and it
+   is what both callers use. */
+function stripBandings_(sheet) {
+  var bandings;
+  try { bandings = sheet.getBandings(); } catch (e) { return; }
+  for (var i = 0; i < bandings.length; i++) {
+    try { bandings[i].remove(); } catch (e) {
+      console.warn('Could not remove a banding on ' + sheet.getName() + ': ' + e.message);
+    }
+  }
+}
+
+/* The filter, on the same terms. `getFilter().remove()` was also unguarded in
+   getOrRenameSheet_ — the same shape of bug, sitting one line above the one
+   that actually fired, waiting its turn. */
+function stripFilter_(sheet) {
+  try {
+    var f = sheet.getFilter();
+    if (f) f.remove();
+  } catch (e) {
+    console.warn('Could not remove the filter on ' + sheet.getName() + ': ' + e.message);
+  }
+}
+
 /* Row banding is decoration, and decoration must never be able to fail a
    backup. It did: applyRowBanding throws if the range already has banding, and
    the removal a few lines earlier had not been flushed yet, so a cosmetic call
@@ -39,8 +84,8 @@ function fitCell_(v) {
    still objects, shrug and carry on with an unbanded sheet. The data is the
    point; the stripes are not. */
 function bandRows_(sheet, range) {
+  stripBandings_(sheet);
   try {
-    sheet.getBandings().forEach(function (b) { b.remove(); });
     SpreadsheetApp.flush();
     range.applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY, false, false);
   } catch (e) {
@@ -109,11 +154,28 @@ function backupToSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var tables = payload.tables || {};
 
-  // Data tabs first (so the Overview can link to them), then the index, then order.
+  /* ── ONE BAD TAB MUST NOT COST YOU THE OTHER TWENTY ──────────────────────
+     This loop had no guard, so the first table that threw ended the run: every
+     tab after it stayed on last night's data, writeSummary_ never ran, and
+     "Last updated" went on saying a date that was no longer true. That is how a
+     cosmetic error on Customer Profiles turned into six days with no backup and
+     nothing saying so.
+
+     Now each table is written on its own, and a failure is recorded and
+     carried to the summary rather than thrown. A backup missing one tab is
+     enormously better than no backup — and it must be POSSIBLE TO SEE that it
+     is missing one, which is what the failure list on the Overview is for. */
+  var failed = [];
   Object.keys(tables).forEach(function (name) {
-    if (Array.isArray(tables[name])) writeTab_(ss, name, tables[name]);
+    if (!Array.isArray(tables[name])) return;
+    try {
+      writeTab_(ss, name, tables[name]);
+    } catch (e) {
+      failed.push({ table: name, error: String(e && e.message || e) });
+      console.error('Backup tab failed: ' + name + ' — ' + (e && e.message));
+    }
   });
-  writeSummary_(ss, payload);
+  writeSummary_(ss, payload, failed);
   orderAndColorTabs_(ss);
   var sum = ss.getSheetByName(SUMMARY_NAME);
   if (sum) sum.activate();
@@ -123,8 +185,8 @@ function getOrRenameSheet_(ss, raw, disp, insertFirst) {
   var sheet = ss.getSheetByName(disp) || ss.getSheetByName(raw);
   if (!sheet) sheet = insertFirst ? ss.insertSheet(disp, 0) : ss.insertSheet(disp);
   if (sheet.getName() !== disp) sheet.setName(disp);
-  var f = sheet.getFilter(); if (f) f.remove();
-  sheet.getBandings().forEach(function (b) { b.remove(); });
+  stripFilter_(sheet);
+  stripBandings_(sheet);
   sheet.clear();
   /* Flush before anyone tries to create a filter or banding on this sheet
      again. Apps Script queues these operations, so the removals above have not
@@ -219,13 +281,25 @@ function writeTab_(ss, table, rows) {
   addFilter_(sheet, sheet.getRange(1, 1, nRows, nCols));
 }
 
-function writeSummary_(ss, payload) {
+function writeSummary_(ss, payload, failed) {
   var sheet = getOrRenameSheet_(ss, '_summary', SUMMARY_NAME, true);
   var counts = payload.counts || {};
+  var bad = failed || [];
+
+  /* A partial backup that LOOKS complete is the dangerous one — you find out
+     which tab was stale on the day you need it. So the state of the run is the
+     second line of the sheet, above everything else, and it names the tabs that
+     did not make it. When every tab wrote, it says so in one word. */
+  var health = bad.length
+    ? bad.length + ' tab' + (bad.length === 1 ? '' : 's') + ' FAILED — '
+      + bad.map(function (f) { return displayName_(f.table) + ' (' + f.error + ')'; }).join('; ')
+      + '. Everything else on this sheet is current.'
+    : 'All tabs written.';
 
   var rows = [
     ['Zuwera data backup', '', ''],
     ['Last updated', formatWhen_(payload.exported_at), ''],
+    ['This run', health, ''],
     ['Tip', 'Click a tab name below to jump to it. On any tab, use the ▾ filter buttons to search, sort, or filter a column.', ''],
     ['', '', ''],
     ['Tab (click to open)', 'Rows', 'What it is']
@@ -243,12 +317,20 @@ function writeSummary_(ss, payload) {
 
   sheet.getRange(1, 1, rows.length, 3).setValues(rows).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
   sheet.getRange(1, 1).setFontSize(16).setFontWeight('bold');
-  sheet.getRange(2, 1, 2, 1).setFontWeight('bold');
-  sheet.getRange(2, 2, 2, 1).setFontColor('#666666');
-  sheet.getRange(5, 1, 1, 3).setBackground(HEADER_BG).setFontColor(HEADER_FG).setFontWeight('bold');
-  sheet.setFrozenRows(5);
-  var bodyRows = rows.length - 5;
-  if (bodyRows > 0) bandRows_(sheet, sheet.getRange(6, 1, bodyRows, 3));
+  /* Three label rows now, not two — "This run" sits between the date and the
+     tip. These offsets are positional and every one of them has to move
+     together when a row is added; getting one wrong paints the header stripe
+     across the data. */
+  sheet.getRange(2, 1, 3, 1).setFontWeight('bold');
+  sheet.getRange(2, 2, 3, 1).setFontColor('#666666');
+  /* Red and bold when a tab failed. A backup that quietly went partial is the
+     one that costs you — this is the line that has to catch an eye that was
+     only checking the date. */
+  if (bad.length) sheet.getRange(3, 2).setFontColor('#c5221f').setFontWeight('bold');
+  sheet.getRange(6, 1, 1, 3).setBackground(HEADER_BG).setFontColor(HEADER_FG).setFontWeight('bold');
+  sheet.setFrozenRows(6);
+  var bodyRows = rows.length - 6;
+  if (bodyRows > 0) bandRows_(sheet, sheet.getRange(7, 1, bodyRows, 3));
   sheet.setColumnWidth(1, 210); sheet.setColumnWidth(2, 70); sheet.setColumnWidth(3, 560);
   sheet.setTabColor('#d4af37');
 }
