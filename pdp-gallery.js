@@ -600,9 +600,6 @@
            top and bottom, which is what fitPane exists to remove. */
         var wide = w * (perView || 1);
         pin(host, 'aspect-ratio', (wide % 1 === 0 ? wide : wide.toFixed(2)) + ' / ' + h);
-        /* Written before the peek is worked out, because working it out needs
-           the pane to have been laid out with the cap applied. */
-        if (opts.peek) fitPeek(r);
         pin(host, 'height', 'auto');
         /* A very tall photo would otherwise make a pane taller than the screen.
            Through a custom property so a licensee's theme can change the cap
@@ -630,6 +627,16 @@
         /* The slides carry their own height from CSS, which would fight the
            ratio the pane has just taken. Follow it instead. */
         for (var i = 0; i < host.children.length; i++) pin(host.children[i], 'height', '100%');
+        /* ── AFTER THE CAP, NOT BEFORE IT ──────────────────────────────────
+           fitPeek reads the ceiling back with getComputedStyle to work out how
+           tall the photo may be. Called before max-height was pinned it read
+           the stylesheet's own answer — `max-height:none` on the strip — so it
+           computed the pane at the photo's full 729px and gave every slide the
+           whole width. The pin below then clamped the pane to 621 anyway, so a
+           4:5 photo was drawn 497 wide in a 583 slide and 86px of margin came
+           back on each side, painted, which is exactly what was reported. The
+           cap has to exist before anything measures against it. */
+        if (opts.peek) fitPeek(r);
         /* The pane has just changed shape, so which edges carry the margin may
            have changed with it. */
         repaintMargins();
