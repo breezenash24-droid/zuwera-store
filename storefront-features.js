@@ -705,6 +705,7 @@
     _overlay.style.top = headerBottom() + 'px';
   }
 
+
   // Scroll locking is NOT done here. modal-lock.js (ZWModalScrollLock) owns it for
   // every modal on the site: it observes class changes, tracks [role="dialog"]
   // among others, and treats pointer-events:none as closed — which is exactly how

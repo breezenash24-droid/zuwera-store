@@ -212,5 +212,44 @@ console.log('\n  and the divider setting can actually turn the line off');
     !/:is\(nav#nav, \.nav, header\.nav, \.zw-nav\) \{\s*border-bottom-color: transparent !important;\s*\}/.test(CSS));
 }
 
+console.log('\n  and the header holds still while the panel is measured against it');
+{
+  /* The panel's overlay is positioned at the header's MEASURED bottom edge.
+     Opening it also shrinks the header's padding to .3rem — and the header
+     transitions padding over 350ms, so that measurement was of a header still
+     moving. The panel opened low and crept up as trackHeader() re-measured for
+     520ms.
+
+     Live, at 1280px — overlay top, first frame -> settled:
+
+         classic      header 67.0px    92    -> 92       0px
+         links-left   header 67.0px    92    -> 92       0px
+         minimal      header 67.0px    92    -> 92       0px
+         stacked      header 89.4px    114.5 -> 110.5    4px
+         links-row    header 87.8px    113   -> 109      4px
+
+     67px is the min-height floor, so a one-row header has no padding it can
+     give up and never moves — which is why this was reported as happening on
+     "some" arrangements. Only the two-row layouts are above the floor.
+
+     With the fix, measured the same way: 110.5 -> 110.5 and 109 -> 109. */
+  ok('the padding shrink is named in the transition list at all',
+    /transition:[^;]*padding \.35s !important/.test(CSS),
+    'this is the declaration the fix has to opt out of');
+  ok('…and a panel being open takes padding OUT of it',
+    /body\.zwf-searching :is\(nav#nav, header\.nav, nav\.nav, nav\.zw-nav\)\{[\s\S]{0,320}?transition:[^;]*!important/.test(CSS));
+  const searching = (CSS.match(/body\.zwf-searching :is\(nav#nav, header\.nav, nav\.nav, nav\.zw-nav\)\{([\s\S]*?)\}/) || [])[1] || '';
+  ok('…so the header lands on its shrunk size in one step',
+    searching.length > 0 && !/padding/.test(searching),
+    searching.slice(0, 90));
+  /* Snapping `top` or `transform` would trade a 4px panel jump for a header
+     that stops sliding — a worse deal. */
+  ok('…while everything the auto-hide header rides on still transitions',
+    /top \.3s/.test(searching) && /transform \.35s/.test(searching));
+  ok('it is fixed in CSS, not with an inline style that cannot win',
+    !/style\.transition\s*=\s*'none'/.test(FEAT),
+    'the declaration it would have to beat is !important, so an inline value loses');
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
