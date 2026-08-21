@@ -4861,6 +4861,25 @@ body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img)
     left: calc((var(--zw-hdr-logo-w, 0px) + var(--zw-hdr-pair-gap, 2rem)) / 2);
     right: calc(-1 * (var(--zw-hdr-logo-w, 0px) + var(--zw-hdr-pair-gap, 2rem)) / 2);
   }
+  /* ── MIRRORED, THE PAIR SWAPS SIDES ────────────────────────────────────────
+     The offsets above put the logo left of centre and the categories right of
+     it. A mirror of this arrangement is [categories][logo], and the four
+     placement attributes cannot say which way round a centred pair is — both
+     orders are logo=center links=center. So the pair drew identically either
+     way and mirroring logo-beside moved nothing at all: measured at 1280px,
+     logo 512 and categories 681 before AND after, where the reflection wants
+     768 and 599.
+
+     data-zw-hdr-flip is what carries the missing fact. Negating both offsets is
+     the whole change — same arithmetic, opposite direction. */
+  html[data-zw-hdr-flip="on"][data-zw-hdr-logo="center"][data-zw-hdr-links="center"][data-zw-hdr-linksrow="1"] :is(#nav, .nav, .zw-nav) > :is(.nav-logo, .nav-logo-link, .zw-nav-logo, :first-child) {
+    left: calc((var(--zw-hdr-links-w, 0px) + var(--zw-hdr-pair-gap, 2rem)) / 2);
+    right: calc(-1 * (var(--zw-hdr-links-w, 0px) + var(--zw-hdr-pair-gap, 2rem)) / 2);
+  }
+  html[data-zw-hdr-flip="on"][data-zw-hdr-logo="center"][data-zw-hdr-links="center"][data-zw-hdr-linksrow="1"] :is(#nav, .nav, .zw-nav) > .nav-center {
+    left: calc(-1 * (var(--zw-hdr-logo-w, 0px) + var(--zw-hdr-pair-gap, 2rem)) / 2);
+    right: calc((var(--zw-hdr-logo-w, 0px) + var(--zw-hdr-pair-gap, 2rem)) / 2);
+  }
   /* The gap tightening below is for the arrangement where the categories run in
      FLOW past a centred logo. Here they are centred too, and the pair is placed
      from their measured width — squeezing them would only move the logo. */
@@ -4944,6 +4963,18 @@ body.zw-card-fit-contain :is(.pcard-img,.product-img,.lp-card-img,.zwf-card-img)
   html[data-zw-hdr-linksrow="2"][data-zw-hdr-logo="center"] :is(#nav, .nav, .zw-nav) > :is(.nav-right, .nav-actions, .zw-nav-right, .zw-nav-actions) {
     position: absolute; right: var(--zw-mobile-gutter, 2.5rem); top: 50%; transform: translateY(-50%);
     margin: 0;
+  }
+  /* That `right:` is a literal, and it outranks data-zw-hdr-actions entirely —
+     which was fine while no arrangement in the catalogue put the actions
+     anywhere else on a two-row centred header, and wrong the moment the mirror
+     could make one. Measured at 1280px: mirroring `stacked` left the actions at
+     1153.6 where the reflection wants 126.4. They did not move at all.
+
+     Pinned to the other side when the arrangement is mirrored. `right: auto` is
+     needed as well as `left:` — an absolutely positioned box with both set
+     stretches between them instead of moving. */
+  html[data-zw-hdr-flip="on"][data-zw-hdr-linksrow="2"][data-zw-hdr-logo="center"] :is(#nav, .nav, .zw-nav) > :is(.nav-right, .nav-actions, .zw-nav-right, .zw-nav-actions) {
+    left: var(--zw-mobile-gutter, 2.5rem); right: auto;
   }
   /* Breathing room between the two rows, and it belongs on the links rather
      than the logo — the logo's own margin would move it away from the bar's

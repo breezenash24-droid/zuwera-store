@@ -344,7 +344,7 @@
     applyHeaderOrder(root);
     if (hdrOverride) header = hdrOverride;
     var attrs = ['data-zw-hdr', 'data-zw-hdr-logo', 'data-zw-hdr-links',
-                 'data-zw-hdr-actions', 'data-zw-hdr-linksrow'];
+                 'data-zw-hdr-actions', 'data-zw-hdr-linksrow', 'data-zw-hdr-flip'];
 
     /* ── CLEAR ONLY WHAT THIS FUNCTION PUT THERE ────────────────────────────
        Switching from a theme that places the header to one that does not has to
@@ -388,6 +388,23 @@
     root.setAttribute('data-zw-hdr-links', links);
     root.setAttribute('data-zw-hdr-actions', actions);
     root.setAttribute('data-zw-hdr-linksrow', String(spec.linksRow) === '2' ? '2' : '1');
+    /* ── A FIFTH ATTRIBUTE, AND WHY FOUR WERE NOT ENOUGH ────────────────────
+       The four above were meant to describe an arrangement completely, and for
+       everything in the catalogue they do. The mirror found the gap: a CENTRED
+       PAIR reads either [logo][categories] or [categories][logo], and both are
+       logo=center links=center. The four attributes cannot tell them apart, so
+       the stylesheet drew the pair the same way round either way and mirroring
+       logo-beside moved nothing.
+
+       The two-row centred arrangement has the same problem from the other end:
+       its rule pins the actions with a literal `right:`, because no layout in
+       the catalogue ever wanted them anywhere else.
+
+       So the fact "this arrangement is mirrored" is written down rather than
+       inferred. Two rules in storefront-cohesion.css read it, and nothing else
+       does — every other placement still comes from the four. */
+    if (spec.flip === 'on') root.setAttribute('data-zw-hdr-flip', 'on');
+    else root.removeAttribute('data-zw-hdr-flip');
     hdrWritten = true;
   }
 
