@@ -158,6 +158,20 @@ rules.forEach((block, i) => {
      dropped on the floor by normalize(). */
   ok('the storefront defaults it too', /modal_fill: 'auto'/.test(script));
   ok('…and the modal passes it to the strip', /fill: colCfgEarly\.modal_fill,/.test(css));
+
+  /* ── SWITCHING COLOUR KEEPS YOUR PLACE IN THE STRIP ──────────────────────
+     The colour handler already tries to: it reads the current index, re-filters
+     the images for the new colourway and clamps to the same position. It was
+     always reading 1, because nothing told `item` when the strip moved — paging
+     goes through strip.page(), which scrolls and returns. The index has to be
+     written down on the one callback both the arrows and a swipe come through,
+     or the clamp below is arithmetic on a number that never changes. */
+  ok('paging records which photo you are on', /if \(images\[i\]\) item\.activeImage = images\[i\];/.test(css),
+    'strip.page() scrolls the strip; it does not tell the modal');
+  ok('…and the colour switch clamps to it',
+    /var prevIndex = collectionActiveImageIndex\(item, item\.images\);/.test(css)
+    && /var clampedIndex = Math\.min\(prevIndex, Math\.max\(item\.images\.length - 1, 0\)\);/.test(css),
+    'a colourway with fewer photos lands on its last one rather than nothing');
   /* The measurement it overrules lives in image-utils.js; naming it here is
      what stops the setting being wired to nothing. */
   /* And it overrules a PER-EDGE verdict, not a per-photo one. Judging the whole

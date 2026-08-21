@@ -563,7 +563,32 @@ console.log('');
   }
   console.log('  a video-first product          -> ' + (vidOk ? 'pane fitted ' + vidFit + ', edges from its poster' : 'NO — ' + (vidFit || 'not fitted')));
 
-  /* ── AND THE NEXT SLIDE IS ALREADY ON ITS WAY ──────────────────────────
+  /* ── AND IT SAYS WHERE IT IS AS SOON AS IT MOVES ───────────────────────
+   onIndex also fires from the scroll listener, which is what a swipe comes
+   through — but a smooth scroll reports its arrival several hundred milliseconds
+   after the press. Anything the caller keeps in step with the strip is stale for
+   that whole window, and the collection modal keeps the CURRENT PHOTO there so a
+   colourway switch can land on the same one. Pressing next and immediately
+   picking a colour would otherwise go back to the photo before it. */
+let reports = [];
+{
+  const s = G.renderStrip(media, shots, {
+    alt: 'x', isVideo: () => false, perView: 1,
+    onIndex: (i) => reports.push(i),
+  });
+  reports = [];                       // the initial goTo reports too; start clean
+  s.page(1);
+  const afterOne = reports.slice();
+  s.page(1);
+  s.page(-1);
+  console.log('  next, next, back              -> reported ' + reports.join(', '));
+  var saysNow = afterOne.length > 0 && afterOne[afterOne.length - 1] === 1
+    && reports[reports.length - 1] === 1;
+  console.log('  …and says so before the scroll settles ' + (saysNow ? 'yes' : 'NO'));
+  boundaries = boundaries && saysNow;
+}
+
+/* ── AND THE NEXT SLIDE IS ALREADY ON ITS WAY ──────────────────────────
      Everything past the second ships loading="lazy", so pressing the arrow used
      to show an empty pane while the photo arrived. Promoting the NEIGHBOURS to
      eager starts their fetch before they are needed; promoting all seventeen

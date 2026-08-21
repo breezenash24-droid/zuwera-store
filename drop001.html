@@ -4024,6 +4024,16 @@ function updateCountdown() {
              next. */
           startIndex: currentIndex,
           onIndex: function (i) {
+            /* ── WHICH PHOTO YOU ARE ON HAS TO BE WRITTEN DOWN ──────────────
+               Switching colourway already tries to keep your place: the handler
+               below reads the current index, re-filters the images and clamps to
+               the same position. It was always reading 1, because nothing told
+               `item` when the strip moved. Paging goes through strip.page(),
+               which scrolls the strip and returns — the item's idea of where you
+               were had not changed since the modal opened.
+               So it is recorded here, on the one callback both the arrows and a
+               swipe come through. */
+            if (images[i]) item.activeImage = images[i];
             if (window.ZWPdpGallery.setNavCount) window.ZWPdpGallery.setNavCount(gal, i, images.length);
           }
         });
