@@ -1174,7 +1174,11 @@ document.documentElement.classList.add('zw-collflash');
        page, where the slot is half of a very wide grid and already close to the
        photos' own ratio, so it has almost nothing to crop. */
     .collection-product-gallery[data-layout="dual"] .collection-review-media.zw-strip > *{
-      flex:0 0 100%;scroll-snap-align:start;min-width:0;
+      /* 80%, not 100%: the photo takes four fifths and the next one shows in
+         the last fifth, so the strip says it scrolls without anybody reading
+         the counter. pdp-gallery.js sets the same thing on the elements from
+         perView — this is the second voice, and the two have to agree. */
+      flex:0 0 80%;scroll-snap-align:start;min-width:0;
       /* A swipe must not carry past a photo and come to rest between two of
          them. `mandatory` on its own picks the NEAREST snap point at the end of
          a fling, which can be two photos away; `always` stops at the very next
@@ -3996,7 +4000,15 @@ function updateCountdown() {
              not reaching the photos — two shots at half width each, which reads
              as one photo sliced down the middle. Said on the element instead,
              where nothing has to match. */
-          perView: 1,
+          /* FOUR FIFTHS, with the next photo showing in the last fifth.
+             A strip that fills the pane edge to edge gives no sign there is
+             anything past it: the arrows say 1/6 but the pane looks like a
+             single photo, and a shopper has to read the counter to learn the
+             strip scrolls. A sliver of the next one says it without a word,
+             which is what every filmstrip that works does.
+             1.25 because each slide is 1/perView of the pane — 1/1.25 = 80%.
+             The 0.4rem gap comes out of the peek, not out of the photo. */
+          perView: 1.25,
           /* Builder → Product → Gallery → "Space beside a photo". */
           fill: colCfgEarly.modal_fill,
           /* Open on the colourway's own photo. Without this the strip started
