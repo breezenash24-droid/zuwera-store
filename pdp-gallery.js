@@ -484,6 +484,57 @@
       }
     }
 
+    /* ── A PEEK COSTS HEIGHT, SO IT ONLY TAKES WHAT IS ALREADY SPARE ────────
+     *
+     * Showing a sliver of the next photo tells the shopper the strip scrolls
+     * without them having to read the counter. But the pane's WIDTH is fixed by
+     * the modal's column, so every pixel given to the peek comes straight out of
+     * the photo's height. At four fifths, on a 583px pane with a 621px ceiling:
+     *
+     *     no peek     photo 583 x 619    fills the ceiling
+     *     4/5 peek    photo 466 x 495    peek 117px, and 124px of photo gone
+     *
+     * There is no fixed ratio that avoids that, because it is arithmetic.
+     *
+     * BUT IT IS ONLY TRUE WHEN THE PHOTO ALREADY FILLS THE PANE. A 4:5 photo in
+     * the same pane wants 729px of height, the ceiling allows 621, so it is
+     * drawn 497 wide and 86px of the pane is ALREADY margin — space the gradient
+     * was painting over. A peek there costs nothing at all; it just occupies
+     * what was going spare.
+     *
+     * So the peek is measured rather than chosen. Solve for the photo FIRST —
+     * the biggest it can be at full width, which is min(paneWidth / ratio, cap) —
+     * then make the slide exactly that wide and let whatever is left be the
+     * peek. Non-circular, one pass, and the photo is never smaller than it would
+     * have been with no peek at all.
+     *
+     * Consequence worth stating: the peek appears on some products and not
+     * others. That is the honest version — it shows up exactly where it is free,
+     * and steps aside where it would cost the photograph.
+     */
+    var MIN_PEEK = 24;      // below this it reads as a rendering fault, not a peek
+    var MAX_PEEK = 0.25;    // and past this the next photo stops being a hint
+
+    function fitPeek(r) {
+      var W = host.getBoundingClientRect().width;
+      if (!(W > 0) || !(r > 0)) return;
+      var capPx = parseFloat(getComputedStyle(host).maxHeight);
+      if (!isFinite(capPx) || capPx <= 0) capPx = Infinity;
+
+      var photoH = Math.min(W / r, capPx);     // the biggest it can be at full width
+      var photoW = photoH * r;
+      var spare = W - photoW;
+      if (!(spare >= MIN_PEEK)) return;        // it already fills: leave it alone
+      if (spare > W * MAX_PEEK) { photoW = W * (1 - MAX_PEEK); photoH = photoW / r; }
+
+      var pct = (photoW / W) * 100;
+      pin(host, 'aspect-ratio', W.toFixed(2) + ' / ' + photoH.toFixed(2));
+      for (var i = 0; i < host.children.length; i++) {
+        pin(host.children[i], 'flex', '0 0 ' + pct.toFixed(3) + '%');
+        pin(host.children[i], 'width', pct.toFixed(3) + '%');
+      }
+    }
+
     function fitPane() {
       /* Whichever comes first, photo or clip. This used to ask only for an
          `img`, so a product whose first slide is a video never got a fitted pane
@@ -513,6 +564,9 @@
            top and bottom, which is what fitPane exists to remove. */
         var wide = w * (perView || 1);
         pin(host, 'aspect-ratio', (wide % 1 === 0 ? wide : wide.toFixed(2)) + ' / ' + h);
+        /* Written before the peek is worked out, because working it out needs
+           the pane to have been laid out with the cap applied. */
+        if (opts.peek) fitPeek(r);
         pin(host, 'height', 'auto');
         /* A very tall photo would otherwise make a pane taller than the screen.
            Through a custom property so a licensee's theme can change the cap

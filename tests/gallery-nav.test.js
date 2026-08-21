@@ -96,7 +96,10 @@ global.window = {
 };
 global.document = doc;
 global.localStorage = { getItem: () => null, setItem: () => {} };
-global.getComputedStyle = () => ({ gap: '6px' });
+/* maxHeight is read back from the element, because fitPeek resolves the height
+   ceiling through getComputedStyle — it is written as a var() the browser has
+   to work out, and the peek is derived from the pixel answer. */
+global.getComputedStyle = (el) => ({ gap: '6px', maxHeight: (el && el._maxH) || '' });
 global.fetch = () => Promise.reject(new Error('offline in harness'));
 
 const src = fs.readFileSync(path, 'utf8');
@@ -242,12 +245,10 @@ console.log('');
   G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, perView: 2 });
   const two = media.children.every((k) => k.style.flex === '0 0 50%' && k.style.width === '50%');
 
-  /* And a FRACTION is what makes a peek possible: 1.25 slides in view is one
-     photo across four fifths with the next showing in the last fifth, which is
-     how a strip says it scrolls without anybody reading the counter. */
+  /* And a FRACTION is still expressible for a caller that wants a fixed one. */
   G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, perView: 1.25 });
   const peek = media.children.every((k) => k.style.flex === '0 0 80%' && k.style.width === '80%');
-  console.log('  a peek is expressible too                   ' + (peek ? '1.25 → 80% slides' : 'NO'));
+  console.log('  a fixed fraction is expressible             ' + (peek ? '1.25 → 80% slides' : 'NO'));
 
   /* And a caller that says nothing keeps the stylesheet in charge, so the
      product page is untouched by this. */
@@ -333,7 +334,44 @@ console.log('');
   const silly = fit(4000, 40) || fit(40, 4000) || fit(0, 0);
   console.log('  a 100:1 sliver leaves the pane alone       ' + (!silly ? 'yes' : 'NO — ' + silly));
 
-  const fitOk = measured && freed && capped && keeps && !silly;
+  /* ── AND THE PEEK ONLY TAKES SPACE THAT WAS ALREADY SPARE ─────────────
+     A peek costs height: the pane's width is fixed by its column, so anything
+     given to the peek comes out of the photo. Unless the height CEILING is
+     already binding — then the photo is drawn narrower than the pane and the
+     leftover is space the gradient was painting over anyway.
+
+     The shop's real numbers: a 583px pane with a 621px ceiling. */
+  const peekAt = (w, h) => {
+    media.clientWidth = 583;
+    media._maxH = '621px';
+    G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, perView: 1, peek: true });
+    const n = media.children[0];
+    n.naturalWidth = w; n.naturalHeight = h;
+    n.fire('load');
+    return {
+      slide: n.style.getPropertyValue('width'),
+      pane: media.style.getPropertyValue('aspect-ratio'),
+    };
+  };
+
+  /* 1836x1950 wants 619px of height at full width and the ceiling allows 621 —
+     it already fills the pane, so a peek could only come out of the photo. */
+  const fills = peekAt(1836, 1950);
+  /* 1070x1338 wants 729 and the ceiling allows 621, so it is drawn 497 wide in
+     a 583 pane. 86px is already margin; the peek is free. */
+  const spare = peekAt(1070, 1338);
+  console.log('  a photo that fills the ceiling-> slide ' + fills.slide + '  (no peek taken)');
+  console.log('  one the ceiling cuts short    -> slide ' + spare.slide + ', pane ' + spare.pane);
+  /* 100%, not blank: renderStrip pinned it and fitPeek left it alone, which is
+     the whole point — the photo is never smaller than it would have been with
+     no peek at all. */
+  const peekOk = fills.slide === '100%'
+    && /^85\.1\d+%$/.test(spare.slide)              // 497 / 583
+    && /^583\.00 \/ 621\.00$/.test(spare.pane);     // and the photo keeps its full height
+
+  media.clientWidth = 100; media._maxH = '';        // put the harness back
+
+  const fitOk = measured && freed && capped && keeps && peekOk && !silly;
   console.log('\n  ' + (fitOk
     ? 'PASS  the pane is measured, never assumed'
     : 'FAIL  the pane is guessing at a shape'));
