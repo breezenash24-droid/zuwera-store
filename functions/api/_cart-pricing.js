@@ -73,11 +73,51 @@ export function parseQuantity(value) {
   return Math.min(parsed, 99);
 }
 
+/**
+ * The order number. There is one of these, and this makes it.
+ *
+ * ── WHY THAT SENTENCE NEEDED WRITING ────────────────────────────────────────
+ *
+ * There used to be two. This one ran at payment time, went into the metadata,
+ * and was the number printed on the customer's confirmation email. A SECOND one
+ * in _fulfil.js then built `ZW-<category>-00001` from a row count and wrote THAT
+ * to orders.order_number — so the number the customer had and the number the
+ * database had were different strings for the same order, and the admin panel,
+ * which reads the column, showed neither: the column was null on every real
+ * order, because the category-based generator was skipped silently whenever the
+ * first item's product had no category, which was always.
+ *
+ * The visible cost: a customer quoting the number from their own email could
+ * not be found. guest-return.js matches on what the panel shows, so the guest
+ * return form rejected people holding a correct order number.
+ *
+ * ── THE ALPHABET ────────────────────────────────────────────────────────────
+ *
+ * No vowels, so it cannot spell anything. No 0/1/O/I, because this gets read
+ * down a phone line and typed by somebody who is already annoyed about their
+ * order. Exactly the reasoning _stored-value.js uses for gift card codes, and
+ * for exactly the same reason — it is the same act, a human reading a code
+ * aloud to another human.
+ *
+ * ── AND THE LENGTH ──────────────────────────────────────────────────────────
+ *
+ * Ten characters of a 28-symbol alphabet is 2.9e14 possibilities. At ten
+ * thousand orders the chance of any collision at all is about one in six
+ * million. That matters because the column now carries a UNIQUE index: a
+ * duplicate order number would point a refund or a return at the wrong order,
+ * which is permanent, while a collision at these odds is not a thing that
+ * happens. The insert path handles one anyway rather than trusting arithmetic.
+ *
+ * Modulo bias is not corrected: 256 % 28 leaves the first four symbols very
+ * slightly likelier. That shifts the collision odds by a fraction of a percent
+ * of an already negligible number, and this is an identifier, not a key.
+ */
+const ORDER_NO_ALPHABET = '23456789BCDFGHJKMNPQRSTVWXYZ';
+
 export function generateOrderNumber() {
-  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const bytes = new Uint8Array(8);
+  const bytes = new Uint8Array(10);
   crypto.getRandomValues(bytes);
-  return Array.from(bytes, b => chars[b % 36]).join('');
+  return Array.from(bytes, (b) => ORDER_NO_ALPHABET[b % ORDER_NO_ALPHABET.length]).join('');
 }
 
 function base64UrlEncode(value) {
