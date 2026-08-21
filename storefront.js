@@ -3068,13 +3068,8 @@ function zwCardSwatchRow(p, quickAddPayload, fallbackImg) {
     let src = fallbackImg || '';
     if (src && typeof window.optimizeImage === 'function') src = window.optimizeImage(src, 600);
     if (!src) return '';
-    /* A real <img> so a failing Cloudinary URL reaches the fallback chain in
-       image-utils.js; a CSS background that 404s fires no event at all. Degrades
-       to the old background-image if image-utils.js has not loaded, so the worst
-       case is exactly what this used to do. */
-    const _im = (typeof window.zwSwatchImg === 'function') ? window.zwSwatchImg(src) : '';
-    const _st = _im ? '' : ` style="background-image:url('${esc(src)}')"`;
-    return `<div class="zw-card-swatches" data-quick-add="${quickAddPayload}"><button type="button" class="zw-card-swatch" data-img="${esc(src)}" aria-label="${esc(p.title || 'View')}"${_st}>${_im}</button></div>`;
+    const _st = ` style="background-image:url('${esc(src)}')"`;
+    return `<div class="zw-card-swatches" data-quick-add="${quickAddPayload}"><button type="button" class="zw-card-swatch" data-img="${esc(src)}" aria-label="${esc(p.title || 'View')}"${_st}></button></div>`;
   }
   // All colours in one row (scrolls on mobile) — first swatch active on load so the
   // selected-bar sits under the colour the card is showing.
@@ -3083,11 +3078,8 @@ function zwCardSwatchRow(p, quickAddPayload, fallbackImg) {
     let src = (ci && ci.image_url) || fallbackImg || '';
     if (src && typeof window.optimizeImage === 'function') src = window.optimizeImage(src, 600);
     const nm = c.color_name || 'Color';
-    /* See the single-image branch above. The hex path stays a background — it
-       is a colour, not an image, so there is nothing that can fail to load. */
-    const _im = (src && typeof window.zwSwatchImg === 'function') ? window.zwSwatchImg(src) : '';
-    const thumbStyle = _im ? '' : (src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`);
-    return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}">${_im}</button>`;
+    const thumbStyle = src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`;
+    return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
   }).join('');
   return `<div class="zw-card-swatches" data-quick-add="${quickAddPayload}">${html}</div>`;
 }

@@ -76,22 +76,30 @@ const CANON = require(path.join(__dirname, '..', 'zw-config.js'));
 const PROJECT = (process.env.ZW_SUPABASE_URL || process.env.SUPABASE_URL || CANON.supabaseUrl).replace(/\/$/, '');
 const ANON = process.env.ZW_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || CANON.supabaseAnonKey;
 
-function fetchThemeModes() {
+/* Two rows, because two rows answer this question and they do not agree.
+   See pageMode() below for what that costs and which one wins. */
+function fetchSettings() {
   return new Promise((resolve) => {
-    if (!PROJECT || !ANON) return resolve(null);
-    const url = PROJECT + '/rest/v1/site_settings?select=value&key=eq.theme_modes';
+    if (!PROJECT || !ANON) return resolve({});
+    const url = PROJECT + '/rest/v1/site_settings?select=key,value'
+      + '&key=in.(theme_modes,page_builder_published)';
     https.get(url, { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON } }, (res) => {
       let body = '';
       res.on('data', (c) => { body += c; });
       res.on('end', () => {
         try {
           const rows = JSON.parse(body);
-          let raw = rows && rows[0] && rows[0].value;
-          if (typeof raw === 'string') raw = JSON.parse(raw);
-          resolve(raw && typeof raw === 'object' ? raw : null);
-        } catch (_) { resolve(null); }
+          const out = {};
+          for (const r of (Array.isArray(rows) ? rows : [])) {
+            if (!r || !r.key) continue;
+            let raw = r.value;
+            if (typeof raw === 'string') raw = JSON.parse(raw);
+            if (raw && typeof raw === 'object') out[r.key] = raw;
+          }
+          resolve(out);
+        } catch (_) { resolve({}); }
       });
-    }).on('error', () => resolve(null));
+    }).on('error', () => resolve({}));
   });
 }
 
@@ -104,37 +112,86 @@ function classesFor(base) {
   return null;
 }
 
+/* ── THE PAGE'S OWN THEME, WHICH IS NOT ALWAYS THE STORE'S ──────────────────
+ *
+ * Two rows name a theme and on this store they disagree:
+ *
+ *     theme_modes.default            imported-mslmiae8, whose base is LIGHT
+ *     page_builder_published.theme   "dark"
+ *
+ * Only the second is true of the homepage. storefront.js applies it — but
+ * storefront.js is the largest script on the page, so the sequence a visitor
+ * with an empty cache actually saw was: a white page baked here, a white page
+ * from theme-engine.js, and then the real dark one a few hundred milliseconds
+ * later. That is the flash, and it happened on every single load because
+ * nothing before storefront.js had ever been told.
+ *
+ * The builder only ever writes one of the three built-in ids, so this needs no
+ * mapping — but a value naming a theme the store has since deleted falls back
+ * rather than baking a palette that no longer exists.
+ *
+ * Deliberately the BUILD and not only the edge. functions/_middleware.js makes
+ * the same correction for the window between a settings change and the next
+ * deploy, but a build-time answer costs no round trip and cannot lose a race,
+ * so it is the one that should be right in the ordinary case.
+ */
+function pageMode(page, modes, def, pb) {
+  if (page !== 'index.html') return def;
+  const want = pb && typeof pb.theme === 'string' ? pb.theme.trim() : '';
+  if (!want) return def;
+  const mode = modes.filter((m) => m && m.id === want)[0];
+  if (!mode) return def;
+  /* An unrecognised base has no rules in base.css, so the class would name
+     nothing. The store default is a worse answer than this one but it is at
+     least a real one. */
+  return classesFor(String(mode.base || '')) === null ? def : mode;
+}
+
 (async () => {
   try {
-    const cfg = await fetchThemeModes();
+    const rows = await fetchSettings();
+    const cfg = rows.theme_modes;
     if (!cfg) {
       console.log('[stamp-theme-default] no theme config fetched — <body> left as committed.');
       return;
     }
     const modes = Array.isArray(cfg.modes) ? cfg.modes : [];
     const wanted = String(cfg.default || 'dark');
-    const mode = modes.filter((m) => m && m.id === wanted)[0];
+    const def = modes.filter((m) => m && m.id === wanted)[0];
     /* A default naming a theme that no longer exists is a config problem, not
        something to guess around. */
-    if (!mode) {
+    if (!def) {
       console.log('[stamp-theme-default] default theme "' + wanted + '" not found — <body> left as committed.');
       return;
     }
-    const classes = classesFor(String(mode.base || ''));
-    if (classes === null) {
-      console.log('[stamp-theme-default] unrecognised base "' + mode.base + '" — <body> left as committed.');
+    if (classesFor(String(def.base || '')) === null) {
+      console.log('[stamp-theme-default] unrecognised base "' + def.base + '" — <body> left as committed.');
       return;
     }
 
     /* The theme as CSS, plus the attributes that are shapes rather than values.
        Scoped to the same attribute the pre-paint block removes, so one visitor
-       who chose something else switches the whole thing off. */
-    const css = themeCss(mode.tokens, 'html[data-zw-theme-stamp]');
-    const attrs = themeAttrs(mode.tokens);
-    const styleBlock = CSS_OPEN + '<style id="zw-theme-stamp-vars">' + css + '</style>' + CSS_CLOSE;
+       who chose something else switches the whole thing off. Built once per
+       theme rather than once per page — fourteen pages, at most two answers. */
+    const baked = {};
+    const bakeFor = (mode) => {
+      if (baked[mode.id]) return baked[mode.id];
+      const css = themeCss(mode.tokens, 'html[data-zw-theme-stamp]');
+      baked[mode.id] = {
+        css,
+        attrs: themeAttrs(mode.tokens),
+        classes: classesFor(String(mode.base || '')),
+        styleBlock: CSS_OPEN + '<style id="zw-theme-stamp-vars">' + css + '</style>' + CSS_CLOSE,
+      };
+      return baked[mode.id];
+    };
 
     let changed = 0;
+    const used = {};
     for (const page of PAGES) {
+      const mode = pageMode(page, modes, def, rows.page_builder_published);
+      const { css, attrs, classes, styleBlock } = bakeFor(mode);
+      used[mode.id] = (used[mode.id] || 0) + 1;
       const file = path.join(ROOT, page);
       let html;
       try { html = fs.readFileSync(file, 'utf8'); } catch (_) { continue; }
@@ -211,9 +268,11 @@ function classesFor(base) {
       if (next !== html) { fs.writeFileSync(file, next); changed++; }
     }
 
-    console.log('[stamp-theme-default] default theme "' + wanted + '" (' + mode.base + ') → '
-      + (classes || 'no class') + ' + ' + css.length + ' bytes of baked CSS; '
-      + changed + ' page(s) updated.');
+    const summary = Object.keys(used).map((id) => {
+      const m = modes.filter((x) => x && x.id === id)[0];
+      return '"' + id + '" (' + (m && m.base) + ') × ' + used[id];
+    }).join(', ');
+    console.log('[stamp-theme-default] ' + summary + '; ' + changed + ' page(s) updated.');
   } catch (e) {
     console.log('[stamp-theme-default] skipped (' + (e && e.message) + ') — <body> unchanged.');
   }

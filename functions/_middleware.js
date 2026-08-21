@@ -258,7 +258,81 @@ export function layoutClasses(pb) {
   return { classes, hasStaticHero };
 }
 
-async function firstPaint(env, home) {
+/**
+ * One settings read, held at the edge.
+ *
+ * ── WHY NOT `cf: { cacheTtl, cacheEverything }`, WHICH IS WHAT THIS WAS ─────
+ *
+ * Because it never cached anything. Cloudflare does not cache a response to a
+ * request carrying an `Authorization` header — the header is the signal that the
+ * body is private — and PostgREST requires one. So every visitor raced a COLD
+ * Supabase round trip against sixty milliseconds. Measured against the deployed
+ * site: the stamp landed on 0 of 24 requests to `/` and `/about`.
+ *
+ * This repository has already learnt this once, for /api/catalog and friends:
+ * a Cache-Control header does not edge-cache a Function, and the Cache API is
+ * what does. See functions/api/_edge-cache.js, which does the same thing for
+ * responses this Worker OWNS; this one caches a response it FETCHES, so it
+ * cannot reuse it.
+ *
+ * The key is a synthetic same-origin URL with no headers on it at all. It has
+ * to be same-origin — the Cache API will not store a key for a host this zone
+ * does not answer for — and it has to be header-free, or the stored entry
+ * carries the credential that stopped it being cacheable in the first place.
+ *
+ * The body is re-wrapped rather than stored as it arrived: `Cache-Control:
+ * public` is what makes it storable, and it is a fresh Response so nothing
+ * downstream can consume the stream we are about to put away.
+ */
+async function cachedRead(target, headers, origin, tag) {
+  const store = (() => {
+    try { return (typeof caches !== 'undefined' && caches && caches.default) || null; } catch (_) { return null; }
+  })();
+  /* No cache at all in `wrangler dev` and in tests. Every path below has to
+     work when it is absent, not merely when it misses. */
+  const cacheKey = (store && origin)
+    ? new Request(origin + '/__zw-fp/' + tag + '/' + hashKey(target), { method: 'GET' })
+    : null;
+
+  if (cacheKey) {
+    try {
+      const hit = await store.match(cacheKey);
+      if (hit) return hit;
+    } catch (_) { /* a broken cache must not break the page */ }
+  }
+
+  const res = await fetch(target, { headers });
+  if (!res || !res.ok) return res;
+
+  if (cacheKey) {
+    try {
+      const body = await res.clone().text();
+      const keep = new Response(body, {
+        status: 200,
+        headers: {
+          'content-type': res.headers.get('content-type') || 'application/json',
+          'cache-control': 'public, max-age=' + TTL,
+        },
+      });
+      /* Not awaited: the caller already has its answer and the put is the next
+         visitor's business. onRequest registers the whole read with waitUntil,
+         which is what keeps this alive after the response goes out. */
+      store.put(cacheKey, keep).catch(() => {});
+    } catch (_) { /* over quota, unsupported, whatever — just do not cache */ }
+  }
+  return res;
+}
+
+/* Short, stable, and only ever used as a cache key — the URL itself cannot be
+   one because it carries the project ref and the key list, and a cache key is
+   visible in a way a settings query should not be. */
+function hashKey(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(36);
+}
+
+async function firstPaint(env, home, origin) {
   const base = supabaseUrl(env);
   const key = supabaseAnonKey(env);
   if (!base || !key) return null;
@@ -283,14 +357,13 @@ async function firstPaint(env, home) {
      cache entry and its own race, so a slow read of the big row can no longer
      cost the theme, the nav and the settings their stamp too. */
   const headers = { apikey: key, Authorization: 'Bearer ' + key };
-  const cf = { cacheTtl: TTL, cacheEverything: true };
   const url = (keys) => base + '/rest/v1/site_settings?select=key,value,updated_at&key=in.('
     + keys.join(',') + ')';
 
   const [small, big] = await Promise.all([
-    fetch(url(FIRST_PAINT_KEYS.concat(['feature_flags'])), { headers, cf }),
+    cachedRead(url(FIRST_PAINT_KEYS.concat(['feature_flags'])), headers, origin, 'fp'),
     /* Its own failure is not the small read's failure. */
-    fetch(url(['page_builder_published']), { headers, cf }).catch(() => null),
+    cachedRead(url(['page_builder_published']), headers, origin, 'pb').catch(() => null),
   ]);
 
   if (!small || !small.ok) return null;
@@ -674,7 +747,7 @@ export async function onRequest(context) {
      that row's theme. /index.html is the same document by another name and is
      routed here too. */
   const home = url.pathname === '/' || url.pathname === '/index.html';
-  const pending = skip ? null : firstPaint(env, home).catch(() => null);
+  const pending = skip ? null : firstPaint(env, home, url.origin).catch(() => null);
 
   /* ── THE READ HAS TO OUTLIVE THE RACE, OR THE CACHE NEVER WARMS ─────────
      The note below says giving up on the WAIT is not giving up on the REQUEST.

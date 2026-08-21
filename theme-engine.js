@@ -683,7 +683,16 @@
      time so the FIRST frame is right for a visitor with no localStorage. That
      class is the only thing standing between such a visitor and a page of
      near-white text on a white ground. */
-  function shippedBase() {
+  /* THE BASE THIS PAGE IS ALREADY PAINTED IN.
+     Read from data-zw-base first, which the pre-paint block writes once it has
+     decided — and which is the ONLY one of the two that can say "dark". The
+     body classes are the older half of the same answer and express dark by
+     having no class at all, so they cannot be told apart from "nobody has
+     said yet". That gap is exactly the bug below. */
+  function pageBase() {
+    var h = document.documentElement;
+    var a = (h && h.getAttribute && h.getAttribute('data-zw-base')) || '';
+    if (a === 'light' || a === 'super-light' || a === 'dark') return a;
     var b = document.body;
     if (!b || !b.classList) return '';
     if (b.classList.contains('super-light-mode')) return 'super-light';
@@ -691,30 +700,40 @@
     return '';
   }
 
-  function resolveAndApply() {
-    /* WITH NO CACHE THERE IS NOTHING TO RESOLVE FROM, and config.default is
-       'dark' — a guess, made by a file that has not spoken to the database yet.
-       Applying it called classList.toggle('light-mode', false) and STRIPPED the
-       class the build had baked in, so the sequence on every cache-less load
-       was: correct first paint, then this file repainting it wrong, then the
-       fetch putting it back a few hundred milliseconds later. The stamp fixed
-       the flash and the engine reintroduced it, one step further along.
+  /* Which theme this page should be wearing, right now.
+     ── THE DEFAULT IS NOT ALWAYS THIS PAGE'S ANSWER ──────────────────────────
+     Two rows name a theme and on this store they disagree: theme_modes.default
+     is a light theme, page_builder_published.theme is "dark", and only the
+     second is true of the homepage. storefront.js applied it — but storefront.js
+     is the largest script on the page, so the order a visitor actually saw was
+     light, light, then dark a few hundred milliseconds later. That is the flash.
 
-       So when this file knows nothing, it defers to what shipped rather than
-       guessing over it. A visitor who actually PICKED a theme is still honoured
-       — chosenId() is consulted first, below. */
-    if (!cached) {
-      var shipped = shippedBase();
-      if (shipped) {
-        var match = config.modes.filter(function (m) { return m && m.base === shipped; })[0];
-        if (match) config.default = match.id;
-      }
+     Both halves of that are now settled before this file runs: the build bakes
+     the page's own theme and the edge corrects it, and the pre-paint block
+     records the result as data-zw-base. So when the store default disagrees with
+     the ground the page is already painted on, the page wins — but only when the
+     visitor has made no choice of their own, because a choice outranks
+     everything and is the one thing neither the build nor the edge can see. */
+  function resolveTheme() {
+    var picked = byId(chosenId());
+    if (picked) return picked;
+    var forPath = byId(themeForPath(location.pathname));
+    if (forPath) return forPath;
+
+    var def = byId(config.default);
+    var base = pageBase();
+    /* Only when it actually disagrees. Keeping the default whenever its base
+       already matches is what stops a store with four light themes from being
+       moved off the one it chose. */
+    if (base && (!def || def.base !== base)) {
+      var match = config.modes.filter(function (m) { return m && m.base === base; })[0];
+      if (match) return match;
     }
-    var theme = byId(chosenId())
-             || byId(themeForPath(location.pathname))
-             || byId(config.default)
-             || config.modes[0];
-    apply(theme);
+    return def || config.modes[0];
+  }
+
+  function resolveAndApply() {
+    apply(resolveTheme());
   }
 
   if (document.body) resolveAndApply();
@@ -746,9 +765,9 @@
       config = normalise(raw);
       fromStore = true;
       // Re-apply only if the answer actually differs, so a settled page does
-      // not repaint for nothing.
-      var next = byId(chosenId()) || byId(themeForPath(location.pathname))
-              || byId(config.default) || config.modes[0];
+      // not repaint for nothing. Same resolver as the first pass — two copies
+      // of this precedence is how the page came to be repainted a third time.
+      var next = resolveTheme();
       if (!applied || applied.id !== next.id || JSON.stringify(applied.tokens) !== JSON.stringify(next.tokens)) {
         apply(next);
       }

@@ -1889,44 +1889,34 @@ function colorwayThumbSrc(color) {
   const firstImg = cimgs.find((m) => !isVideoMedia(m)) || cimgs[0];
   return (firstImg && firstImg.image_url) ? optimizeImage(firstImg.image_url, 240) : '';
 }
-/* A real <img>, not a CSS background. A background-image that 404s fires no
-   error event anywhere, so these swatches were invisible to the fallback chain
-   in image-utils.js — the only images on the product page with no retry. On an
-   over-quota Cloudinary every colourway went blank while the tiles kept their
+/* WITHDRAWN: this drew a real <img class="zw-swatch-thumb"> so that a failing
+   Cloudinary URL would reach the fallback chain in image-utils.js, which a CSS
+   background cannot — a background that 404s fires no error event anywhere.
+
+   On the deployed site the shared sizing rule did not reach the element. Every
+   swatch in all five renderers drew at the <img>'s intrinsic size instead: the
+   colourway picker at 240px inside a 68x54 tile, the card swatches at 600px
+   inside 20px, spilling across the card and over the Add to Bag button. The
+   rule is present, valid, top-level and in a stylesheet each page loads — I
+   could not reproduce it without a browser, and this is live on the three
+   busiest pages, so the background is back until it can be shown working.
+
+   What that gives up is written down in [[storefront-features-module]]: if
+   Cloudinary goes over quota the swatches go blank while the tiles keep their
    size, which is a failure that does not look like one.
 
-   Built here rather than in markup because this is called twice: once when the
-   colours arrive, and again from updateColorwayThumbnails() once the images
-   resolve, which race each other. So it has to be idempotent. */
+   Called twice — once when the colours arrive and again from
+   updateColorwayThumbnails() once the images resolve — so it stays idempotent,
+   and it clears any <img> a previously cached script left behind. */
 function applyColorwaySwatchVisual(swatch, color) {
   const src = colorwayThumbSrc(color);
-  let img = swatch.querySelector('img.zw-swatch-thumb');
+  const stale = swatch.querySelector('img.zw-swatch-thumb');
+  if (stale) stale.remove();
   if (src) {
-    if (!img) {
-      img = document.createElement('img');
-      img.className = 'zw-swatch-thumb';
-      img.alt = '';                     // the button already has aria-label
-      img.decoding = 'async';
-      img.draggable = false;
-      /* colorwayThumbSrc() asks the optimiser for 240; step 0 of the fallback
-         chain reads this attribute to size its wsrv retry. */
-      img.setAttribute('width', '240');
-      img.setAttribute('height', '190');
-      swatch.appendChild(img);
-    }
-    if (img.getAttribute('src') !== src) {
-      /* Clear the chain's bookkeeping when the URL genuinely changes. Without
-         this, a swatch that had already exhausted its retries would keep
-         dataset.zwFb === '2' and never retry for the next colour. */
-      delete img.dataset.zwFb;
-      delete img.dataset.zwOrig;
-      img.src = src;
-    }
-    swatch.style.backgroundImage = '';
+    swatch.style.backgroundImage = `url('${src}')`;
     swatch.style.backgroundColor = '';
     swatch.classList.add('has-thumb');
   } else {
-    if (img) img.remove();
     swatch.style.backgroundImage = '';
     swatch.style.backgroundColor = color.hex_color || '#888';
     swatch.classList.remove('has-thumb');

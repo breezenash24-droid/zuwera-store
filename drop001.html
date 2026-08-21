@@ -2996,14 +2996,8 @@ function updateCountdown() {
             let src = fallbackImg || '';
             if (src && typeof optimizeImage === 'function') src = optimizeImage(src, 600);
             if (!src) return '';
-            /* A real <img> so a failing Cloudinary URL reaches the fallback
-               chain in image-utils.js; a CSS background that 404s fires no
-               event at all. Degrades to the old background-image if
-               image-utils.js has not loaded. Kept identical to the homepage
-               grid in storefront.js — two implementations, one behaviour. */
-            const _im = (typeof window.zwSwatchImg === 'function') ? window.zwSwatchImg(src) : '';
-            const _st = _im ? '' : ` style="background-image:url('${esc(src)}')"`;
-            return `<div class="zw-card-swatches" data-quick-add="${payload}"><button type="button" class="zw-card-swatch" data-img="${esc(src)}" aria-label="${esc(p.title || 'View')}"${_st}>${_im}</button></div>`;
+            const _st = ` style="background-image:url('${esc(src)}')"`;
+            return `<div class="zw-card-swatches" data-quick-add="${payload}"><button type="button" class="zw-card-swatch" data-img="${esc(src)}" aria-label="${esc(p.title || 'View')}"${_st}></button></div>`;
           }
           // All colours in a single horizontal-scroll row — no "+N" cap now that
           // extra colours scroll (CSS: .zw-card-swatches overflow-x:auto) instead of
@@ -3015,10 +3009,7 @@ function updateCountdown() {
             let src = (ci && ci.image_url) || fallbackImg || '';
             if (src && typeof optimizeImage === 'function') src = optimizeImage(src, 600);
             const nm = c.color_name || 'Color';
-            /* See the single-image branch above. The hex path stays a
-               background — a colour cannot fail to load. */
-            const _im = (src && typeof window.zwSwatchImg === 'function') ? window.zwSwatchImg(src) : '';
-            const thumbStyle = _im ? '' : (src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`);
+            const thumbStyle = src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`;
             const _cm = _carOn ? zwCardMedia(p, c.id, _carVids) : [];
             const imgsAttr = (_carOn && _cm.length) ? ` data-imgs="${esc(encodeURIComponent(JSON.stringify(_cm)))}"` : '';
             // Colour-facet bucket for this swatch — same key space as the filter
@@ -3027,7 +3018,7 @@ function updateCountdown() {
             const _bkt = plpGrainBucket(plpColorBucket(c.hex_color)) || '';
             // First swatch active on load — its colour is the one shown on the card,
             // so the selected-bar (Nike-style) sits under it from the start.
-            return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-color-bucket="${esc(_bkt)}" data-img="${esc(src)}"${imgsAttr} title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}">${_im}</button>`;
+            return `<button type="button" class="zw-card-swatch${i === 0 ? ' active' : ''}" data-color-name="${esc(nm)}" data-color-bucket="${esc(_bkt)}" data-img="${esc(src)}"${imgsAttr} title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
           }).join('');
           return `<div class="zw-card-swatches" data-quick-add="${payload}">${html}</div>`;
         };
@@ -4060,14 +4051,11 @@ function updateCountdown() {
             var thumbSrc = '';
             for (var ci = 0; ci < cimgs.length; ci++) { if (!collectionIsVideo(cimgs[ci])) { thumbSrc = cimgs[ci]; break; } }
             if (!thumbSrc) thumbSrc = cimgs[0] || '';
-            /* A real <img>, not a CSS background — see quick-add-modal.js, which
-               is the same picker for the homepage grid and is kept identical.
-               optimizeImage() too: this handed the RAW image_url to a 68x54
+            /* optimizeImage() because this handed the RAW image_url to a 68x54
                tile, so every colour downloaded a full-size photograph. */
             if (thumbSrc && typeof window.optimizeImage === 'function') thumbSrc = window.optimizeImage(thumbSrc, 240);
-            var _im = (thumbSrc && typeof window.zwSwatchImg === 'function') ? window.zwSwatchImg(thumbSrc, 240) : '';
-            var styleAttr = _im ? '' : (thumbSrc ? "background-image:url('" + collectionEscapeAttr(thumbSrc) + "')" : 'background:' + collectionEscapeAttr(color.hex_color || '#888'));
-            return '<button type="button" class="collection-color' + active + (thumbSrc ? ' has-thumb' : '') + '" data-index="' + idx + '" title="' + collectionEscapeAttr(name) + '" aria-label="' + collectionEscapeAttr(name) + '" style="' + styleAttr + '">' + _im + '</button>';
+            var styleAttr = thumbSrc ? "background-image:url('" + collectionEscapeAttr(thumbSrc) + "')" : 'background:' + collectionEscapeAttr(color.hex_color || '#888');
+            return '<button type="button" class="collection-color' + active + (thumbSrc ? ' has-thumb' : '') + '" data-index="' + idx + '" title="' + collectionEscapeAttr(name) + '" aria-label="' + collectionEscapeAttr(name) + '" style="' + styleAttr + '"></button>';
           }).join('')
         : '<p class="collection-empty-option">Standard colorway</p>';
       colorWrap.querySelectorAll('.collection-color').forEach(function(button) {
