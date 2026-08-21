@@ -96,10 +96,21 @@ global.window = {
 };
 global.document = doc;
 global.localStorage = { getItem: () => null, setItem: () => {} };
-/* maxHeight is read back from the element, because fitPeek resolves the height
-   ceiling through getComputedStyle — it is written as a var() the browser has
-   to work out, and the peek is derived from the pixel answer. */
-global.getComputedStyle = (el) => ({ gap: '6px', maxHeight: (el && el._maxH) || '' });
+/* maxHeight is resolved FROM THE ELEMENT'S OWN PINNED STYLE, not handed over as
+   a fixed answer — and that distinction caught a real bug. fitPeek reads the
+   ceiling back through getComputedStyle to work out how tall the photo may be,
+   so it only sees one once max-height has actually been written. It was being
+   called a few lines too early, read the stylesheet's `none`, sized the pane to
+   the photo's full height and gave every slide the whole width — and the pin
+   below then clamped the pane anyway, putting the painted margin straight back.
+   A harness that answers whatever it was told cannot see that; one that answers
+   what the element says can. */
+global.getComputedStyle = (el) => ({
+  gap: '6px',
+  maxHeight: (el && el.style && /^var\(--zw-strip-max-h/.test(el.style.getPropertyValue('max-height')))
+    ? (el._maxH || 'none')      // the browser resolving the custom property
+    : 'none',                   // nothing pinned yet: what the stylesheet says
+});
 global.fetch = () => Promise.reject(new Error('offline in harness'));
 
 const src = fs.readFileSync(path, 'utf8');
@@ -344,6 +355,12 @@ console.log('');
   const peekAt = (w, h) => {
     media.clientWidth = 583;
     media._maxH = '621px';
+    /* A FIRST open, every time. The ceiling is only readable once max-height has
+       been pinned, so leaving the previous render's pin in place lets a version
+       that measures too early still read the right number on the second call and
+       pass. Clearing it is what makes the ordering observable. */
+    delete media.style._p['max-height'];
+    delete media.style.maxHeight;
     G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, perView: 1, peek: true });
     const n = media.children[0];
     n.naturalWidth = w; n.naturalHeight = h;
