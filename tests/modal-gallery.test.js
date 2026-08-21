@@ -44,6 +44,24 @@ rules.forEach((block, i) => {
     'aspect-ratio:' + ar + ' height:' + h + ' max-height:' + mh);
 });
 
+/* ── and the modal does not rely on any of it ────────────────────────────── */
+{
+  /* Everything below asserts the STYLESHEET, and the stylesheet was right the
+     whole time — one photo per view, contained, a definite height, all of it in
+     the served CSS, valid, outside any media query, uncontested by the nine
+     stylesheets that page loads. The modal still rendered two photos at half
+     width each, and it was reported three times.
+
+     A rule scoped four classes deep through an attribute the caller writes has
+     a lot of ways not to match. So the strip now says how many photos are in
+     view ON THE ELEMENTS, and this rule is the second voice rather than the
+     only one. If it ever drifts from perView, the two disagree in a way that is
+     visible rather than silent — which is what these assertions are for. */
+  ok('the modal asks for one photo per view in its own right',
+    /perView: 1,/.test(css),
+    'the stylesheet below says the same thing and was not reaching the photos');
+}
+
 /* ── nothing is cropped ──────────────────────────────────────────────────── */
 {
   const base = rules[0] || '';

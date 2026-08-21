@@ -120,8 +120,41 @@
     opts = opts || {};
     var isVideo = opts.isVideo || function (u) { return /\.(mp4|webm|mov)(\?|#|$)/i.test(u); };
 
+    /* ── HOW MANY PHOTOS ARE IN VIEW IS THE ELEMENT'S OWN BUSINESS ──────────
+     *
+     * The product page wants two side by side; the quick-add modal wants one,
+     * whole. That was expressed as a stylesheet rule scoped to
+     * `.collection-product-gallery[data-layout="dual"] .collection-review-media
+     * .zw-strip > *` — four classes deep, and DEPENDENT ON AN ATTRIBUTE THIS
+     * FILE'S CALLER SETS. It is in the served CSS, it is valid, it is outside
+     * any media query, nothing in the nine stylesheets that page loads competes
+     * with it, and the modal still rendered two photos at half width each.
+     *
+     * Reported three times — "cut in half", "cut off" — because two shots of the
+     * same garment separated by a hairline read as one photo sliced down the
+     * middle, which is exactly what it looks like.
+     *
+     * So the strip stops asking. `perView` is set on the elements themselves,
+     * where no selector has to match and no ancestor attribute has to have been
+     * written yet. The stylesheet rule stays: it says the same thing, it is the
+     * right home for it, and when it does apply the two agree.
+     *
+     * Only the properties that decide "how many, and whole or cropped" are set
+     * here. Height, background and snapping stay in CSS, where they can be
+     * responsive — the modal is not trying to own the whole layout, only the
+     * one thing that kept coming out wrong. */
+    var perView = Number(opts.perView) > 0 ? Number(opts.perView) : 0;
+
     host.innerHTML = '';
     host.classList.add('zw-strip');
+    if (perView) {
+      /* Without these the container is not a scroll container at all and the
+         photos simply shrink to share the width — which is the two-up the
+         modal was showing. */
+      host.style.display = 'flex';
+      host.style.overflowX = 'auto';
+      host.style.scrollSnapType = 'x mandatory';
+    }
     images.forEach(function (url, i) {
       var node;
       if (isVideo(url)) {
@@ -134,6 +167,19 @@
         node.alt = (opts.alt || 'Product') + ' view ' + (i + 1);
         node.loading = i < 2 ? 'eager' : 'lazy';
         node.decoding = 'async';
+      }
+      if (perView) {
+        /* flex-basis AND width, because a flex item with a percentage basis
+           still consults width when the container's own sizing is in doubt, and
+           a photo that is 100% of the pane cannot be beside another one. */
+        node.style.flex = '0 0 ' + (100 / perView) + '%';
+        node.style.width = (100 / perView) + '%';
+        node.style.minWidth = '0';
+        /* contain, not cover: the whole shot, letterboxed against the pane's own
+           background rather than trimmed to fill it. */
+        node.style.objectFit = 'contain';
+        node.style.scrollSnapAlign = 'start';
+        node.style.scrollSnapStop = 'always';
       }
       host.appendChild(node);
     });
