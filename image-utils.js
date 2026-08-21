@@ -191,6 +191,7 @@
            * coloured one puts a slab against the popup. Both have to hold. */
           const CORNER_TOLERANCE = 40;
           const LIGHT = 200;
+          const JUMP = 48;
           const lum = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
           const apart = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
           const corners = [at(0, 0), at(N - 1, 0), at(0, N - 1), at(N - 1, N - 1)];
@@ -198,13 +199,60 @@
           for (let a = 0; a < corners.length; a++) {
             for (let b = a + 1; b < corners.length; b++) spread = Math.max(spread, apart(corners[a], corners[b]));
           }
-          const light = corners.every((c) => lum(c) >= LIGHT);
+
+          /* ── PER EDGE, BECAUSE THAT IS THE QUESTION BEING ASKED ───────────
+           *
+           * The corner test asks "does this photo have a backdrop at all". It
+           * cannot ask "is THIS edge clean" — and that is the question the
+           * caller actually has, because it knows which two edges the margin
+           * sits against and only those two are ever seen.
+           *
+           * Judging the whole photo throws that away, and on this catalogue it
+           * throws away the answer. Measured per edge:
+           *
+           *                        left      right       top      bottom
+           *   Fleece #1            0/255     0/255    119/227    176/174
+           *   Aero Tennesee #1     4/234     3/237    113/216    119/106
+           *   Fleece #3 (close-up) 160/158  113/157   188/193     43/74
+           *
+           * The vertical edges are pure backdrop, because the model is centred.
+           * The horizontal ones almost never are: a head runs off the top and
+           * legs and a shadow off the bottom. A photo can have four agreeing
+           * corners and still have an arm crossing an edge in the middle, and
+           * continuing THAT is what puts the garment's colour in the margin.
+           *
+           *   jump  the worst step between neighbouring samples. A lit gradient
+           *         moves a few units per step — Senegal's backdrop runs 86 from
+           *         end to end and never steps more than about six. A garment
+           *         crossing the edge does it in one step. Clean edges here
+           *         measure 0 to 29; dirty ones 64 and up.
+           *   mean  average luminance. Continuing a dark backdrop puts a slab of
+           *         colour against the popup, which is the other half of what
+           *         was reported.
+           */
+          const usable = (strip) => {
+            let worst = 0, total = 0;
+            for (let i = 0; i < strip.length; i++) {
+              total += lum(strip[i]);
+              if (i) worst = Math.max(worst, apart(strip[i], strip[i - 1]));
+            }
+            return worst <= JUMP && (total / strip.length) >= LIGHT;
+          };
+          const ok = {
+            left: usable(edges.left), right: usable(edges.right),
+            top: usable(edges.top), bottom: usable(edges.bottom),
+          };
+
           finish(Object.assign(edges, {
             corners,
-            cornerSpread: spread,
             /* Reported alongside the verdict, not instead of it: a store that
                overrides this in the builder still wants the numbers legible. */
-            safe: spread <= CORNER_TOLERANCE && light,
+            cornerSpread: spread,
+            ok,
+            /* Kept so a cached copy of pdp-gallery.js from before the per-edge
+               test still gets a sensible answer rather than `undefined`, which
+               it would read as "safe". */
+            safe: ok.left && ok.right,
           }));
         } catch (_) {
           finish(null);                       // tainted canvas, or no 2d context
