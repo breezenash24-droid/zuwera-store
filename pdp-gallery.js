@@ -138,18 +138,75 @@
       host.appendChild(node);
     });
 
-    // Measured, not assumed: the flex-basis differs between two-up and the
-    // one-up fallback on narrow screens, and the gap counts.
-    function step() {
+    /* ── PAGE TO A PHOTO, NOT BY A NUMBER OF PIXELS ─────────────────────────
+     *
+     * This used to be `scrollBy(dir * step())`, where step() measured the first
+     * child and added the gap. Every part of that is a chance to land BETWEEN
+     * two photos, and the modal did — half of one shot on the left, a band of
+     * the pane's own background, half of the next on the right. Reported twice
+     * as "the product images are cut in half in the mini product modal".
+     *
+     * Three ways it drifted, and a fourth that snapping could not correct:
+     *
+     *   • step() ran before layout settled, so it measured a child that did not
+     *     yet have its flex-basis and paged by a fraction of a slide;
+     *   • sub-pixel widths accumulated, one scrollBy at a time, until the error
+     *     was visible;
+     *   • the fallback for an empty host is clientWidth/2, which is the PRODUCT
+     *     PAGE's two-up assumption applied to a one-up modal;
+     *   • collectionRenderGallery re-renders when the colourway fetch lands. A
+     *     smooth scroll already in flight keeps travelling to an absolute offset
+     *     that the new children do not line up with, and mandatory snapping has
+     *     nothing to pull it back to once it has finished.
+     *
+     * Scrolling to a child's own offsetLeft has none of those. There is no
+     * measurement, no gap arithmetic and no accumulated error: the target is a
+     * position an element actually occupies, so the strip can only ever come to
+     * rest showing a whole photo. .collection-review-media is position:relative,
+     * so it is the offsetParent and offsetLeft is already relative to it.
+     */
+    var current = 0;
+
+    function count() { return host.children.length; }
+
+    function goTo(i, behavior) {
+      var n = count();
+      if (!n) return;
+      current = Math.max(0, Math.min(n - 1, i | 0));
+      var el = host.children[current];
+      if (!el) return;
+      var left = (el.offsetLeft || 0) - (host.offsetLeft || 0);
+      /* A layout that has not happened yet reports nothing useful, and writing
+         NaN to scrollLeft would park the strip somewhere no photo is. Falling
+         back to the measured slot keeps the old behaviour for that one frame
+         rather than making it worse than it was. */
+      if (!isFinite(left)) left = current * slotWidth();
+      /* scrollTo with a behavior is not universally supported on elements; the
+         property assignment is, and is what an instant jump wants anyway. */
+      if (behavior === 'auto' || typeof host.scrollTo !== 'function') host.scrollLeft = left;
+      else host.scrollTo({ left: left, behavior: behavior || 'smooth' });
+    }
+
+    function slotWidth() {
       var first = host.firstElementChild;
-      if (!first) return host.clientWidth / 2;
-      return first.getBoundingClientRect().width + parseFloat(getComputedStyle(host).gap || 0);
+      if (!first) return host.clientWidth || 0;
+      var w = first.getBoundingClientRect().width;
+      return (w > 0 ? w : host.clientWidth) + (parseFloat(getComputedStyle(host).gap) || 0);
     }
+
+    /* Still measured, because a SWIPE is not one of ours to place — this only
+       has to name which photo the shopper has landed on, for the counter.
+       Clamped, so a rubber-band overscroll cannot report a photo that is not
+       there. */
     function index() {
-      var s = step();
-      return s ? Math.round(host.scrollLeft / s) : 0;
+      var s = slotWidth();
+      if (!s) return 0;
+      var i = Math.round(host.scrollLeft / s);
+      if (!isFinite(i)) return 0;
+      return Math.max(0, Math.min(count() - 1, i));
     }
-    function page(dir) { host.scrollBy({ left: dir * step(), behavior: 'smooth' }); }
+
+    function page(dir) { goTo(current + (dir > 0 ? 1 : -1)); }
 
     // The listener is bound once per host, but this function runs again on every
     // render — a modal opens with the product card's single photo and re-renders
@@ -163,10 +220,20 @@
     if (!host._zwStripBound) {
       host._zwStripBound = true;
       host.addEventListener('scroll', function () {
+        /* A swipe moves the strip without going through goTo, so the arrows
+           have to learn where the shopper left it or the next press would page
+           from a photo nobody is looking at. */
+        current = index();
         var o = host._zwStripOpts;
-        if (o && o.onIndex) o.onIndex(index(), host.scrollWidth - host.clientWidth <= host.scrollLeft + 1);
+        if (o && o.onIndex) o.onIndex(current, host.scrollWidth - host.clientWidth <= host.scrollLeft + 1);
       }, { passive: true });
     }
+
+    /* Land on a photo boundary before anyone can see otherwise. Instant, not
+       smooth: this is the strip arriving, not the shopper moving it — and it is
+       also what stops a re-render inheriting the tail of a smooth scroll that
+       was aimed at the previous set of children. */
+    goTo(opts.startIndex || 0, 'auto');
 
     // Only play a clip while it is actually on screen — otherwise every video in
     // the strip decodes at once and keeps running off to the side.
@@ -182,7 +249,7 @@
       host.querySelectorAll('video').forEach(function (v) { host._zwStripObs.observe(v); });
     }
 
-    return { page: page, index: index, total: images.length };
+    return { page: page, goTo: goTo, index: index, total: images.length };
   }
 
   /**

@@ -47,6 +47,17 @@ class El {
   addEventListener(t, fn) { (this._listeners[t] = this._listeners[t] || []).push(fn); }
   fire(t) { (this._listeners[t] || []).forEach(fn => fn({ type: t })); }
   getBoundingClientRect() { return { width: this.clientWidth, height: 100, top: 0, left: 0 }; }
+  /* A horizontal strip: each child starts one slot further along, and the slot
+     is the child's width plus the container's 6px gap. Modelled because the
+     strip now pages to a child's own offsetLeft instead of scrolling by a
+     measured number of pixels — which is what stopped it coming to rest between
+     two photos, and is therefore what has to be exercised here. */
+  get offsetLeft() {
+    if (!this.parentElement) return 0;
+    const i = this.parentElement.children.indexOf(this);
+    return i <= 0 ? 0 : i * (this.clientWidth + 6);
+  }
+  scrollTo(o) { if (o && typeof o.left === 'number') this.scrollLeft = o.left; }
   _walk(out) { this.children.forEach(c => { out.push(c); c._walk(out); }); return out; }
   matches(sel) {
     if (sel.startsWith('.')) return sel.slice(1).split('.').every(c => this.classList.contains(c));
@@ -139,6 +150,51 @@ console.log('  ' + (ok
   ? 'PASS  nav survives the click, counter advances to 2/7'
   : 'FAIL  nav destroyed by the first scroll  (was ' + before.arrows + ' arrows / ' + before.count + ')'));
 
+/* ── AND IT ONLY EVER RESTS ON A PHOTO ────────────────────────────────────
+   The strip pages by scrolling to a child's own offsetLeft. The point is not
+   that it moves — the old scrollBy(step) moved too — it is that where it STOPS
+   is a position an element actually occupies, so half of one photo can never
+   sit beside half of the next. Slot here is 100px wide + a 6px gap. */
+console.log('');
+const SLOT = 106;
+const shots = ['a.jpg','b.jpg','c.jpg','d.jpg','e.jpg','f.jpg','g.jpg'];
+let boundaries = true;
+const check = (label, expected) => {
+  const at = media.scrollLeft;
+  const onPhoto = at % SLOT === 0;
+  if (at !== expected || !onPhoto) boundaries = false;
+  console.log('  ' + label.padEnd(38) + 'scrollLeft: ' + String(at).padEnd(6)
+    + (onPhoto ? 'on photo ' + (at / SLOT + 1) : 'BETWEEN PHOTOS'));
+};
+
+let strip = render(shots);
+check('opens on the first photo', 0);
+strip.page(1); check('one press forward', SLOT);
+strip.page(1); check('two', SLOT * 2);
+strip.page(-1); check('and back', SLOT);
+
+/* Past the end, repeatedly. scrollBy had nothing to stop it walking off into
+   empty space and leaving a blank pane; goTo clamps to a real child. */
+for (let i = 0; i < 12; i++) strip.page(1);
+check('cannot page past the last photo', SLOT * (shots.length - 1));
+for (let i = 0; i < 12; i++) strip.page(-1);
+check('…nor before the first', 0);
+
+/* The modal opens on the colourway the shopper picked, not on photo one — and
+   THIS is the path that left half a photo showing, because collectionRender
+   Gallery runs again when the colour fetch lands. */
+strip = G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, startIndex: 3 });
+check('re-renders onto the chosen photo', SLOT * 3);
+/* A smooth scroll still travelling when the re-render happens must not leave
+   the new strip parked between two of its children. */
+media.scrollLeft = 47;
+strip = G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, startIndex: 2 });
+check('…even mid-scroll from the previous set', SLOT * 2);
+
+console.log('\n  ' + (boundaries
+  ? 'PASS  the strip only ever rests on a photo boundary'
+  : 'FAIL  the strip came to rest between two photos'));
+
 /* Regression guard for the fix this one sits on top of: opening a ONE-photo
    product straight after a seven-photo one must still clear the old arrows,
    which by then are wired to the previous product's strip. */
@@ -149,4 +205,4 @@ const pruned = !single.row && single.arrows === 0;
 console.log('\n  ' + (pruned
   ? 'PASS  stale arrows still pruned at render time'
   : 'FAIL  ' + single.arrows + ' dead arrows left behind') + '\n');
-process.exit(ok && pruned ? 0 : 1);
+process.exit(ok && pruned && boundaries ? 0 : 1);
