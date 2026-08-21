@@ -477,7 +477,18 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
       colorName: String(raw?.colorName || '').trim(),
       quantity: itemQty,
       amount: priceCents,
-      shippingWeightLb: Number.parseFloat(product.shipping_weight_lb) || Number.parseFloat(raw?.weightLb) || 0.5,
+      /* Face value, and the flag, in one number: 0 means an ordinary product,
+         anything above means this line IS a gift card worth that much. Read
+         from the catalogue like the price is, never from the cart — a browser
+         that could name the face value could name a larger one. See 0032. */
+      giftCardCents: Math.max(0, Number(product.gift_card_cents) || 0),
+      /* A gift card is a code in an email. It has no weight, so it must not
+         drag half a pound into the parcel estimate the shipping rate is signed
+         against — a cart of ten cards would otherwise be quoted for a 5lb box
+         that does not exist. */
+      shippingWeightLb: Number(product.gift_card_cents) > 0
+        ? 0
+        : (Number.parseFloat(product.shipping_weight_lb) || Number.parseFloat(raw?.weightLb) || 0.5),
       image: product.image_url || raw?.image || raw?.imageUrl || raw?.img || '',
       /* What this product IS, for tax. Blank falls back to the store-wide
          default, so an all-clothing catalogue needs no per-product setting and
@@ -544,7 +555,7 @@ async function getPromotionForCode(env, code) {
  */
 export function buildOrderMetadata({ orderNumber, address = {}, quote, featureFlagsMeta = '', attributionMeta = '', matchKeys = null }) {
   const {
-    attributedUser, lineItems, inventoryItems, subtotalCents, shipping,
+    attributedUser, lineItems, inventoryItems, subtotalCents, shipping, giftCardLines,
     normalizedPromoCode, discountCents, tax, taxStateCode, taxRate, taxCents, totalCents,
   } = quote;
 
@@ -573,6 +584,12 @@ export function buildOrderMetadata({ orderNumber, address = {}, quote, featureFl
     user_id: attributedUser?.id || '',
     items: metaItems,
     inv: JSON.stringify(inventoryItems),
+    /* Its own key on purpose. `items` above is trimmed to fit Stripe's 500-char
+       cap and the trim drops every field but sku/name/amount/quantity, so a
+       gift-card flag riding on a line item disappears exactly when a cart is
+       big — which is the cart most likely to contain them. Absent means no
+       gift cards, which is the common case and costs one empty string. */
+    gift_cards: giftCardLines && giftCardLines.length ? JSON.stringify(giftCardLines) : '',
     subtotal_amount_cents: String(subtotalCents),
     discount_code: normalizedPromoCode,
     discount_amount_cents: String(discountCents),
@@ -647,6 +664,24 @@ async function getLocalDeliveryConfig(env) {
 export async function resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env, deliveryMethod, say = shippedMessages }) {
   const policy = getShippingPolicy(env);
   const qualifiesFree = subtotalCents >= policy.thresholdCents;
+
+  /* ── NOTHING IN THIS CART IS A PARCEL ─────────────────────────────────────
+     A cart of gift cards has nothing to ship: no weight, no label, no address
+     to rate against. Charging the standard rate for one would be charging
+     postage on an email, and asking a carrier to rate a zero-weight shipment
+     is a question with no good answer.
+
+     EVERY line, not any — a card bought alongside a shirt still goes in a box,
+     and the card simply contributes nothing to its weight. */
+  const shipsNothing = Array.isArray(catalogItems) && catalogItems.length > 0
+    && catalogItems.every((item) => item && Number(item.giftCardCents) > 0);
+  if (shipsNothing) {
+    return {
+      qualifiesFree: true, handDelivery: false, signedRate: null,
+      actualShippingCents: 0, shippingCents: 0,
+      provider: '', servicelevel: '', rateObjectId: '', source: '', remoteShipmentId: '',
+    };
+  }
 
   // Campus hand-delivery: free shipping, but ONLY when the order's ZIP is on the
   // admin-managed allow-list. Server-authoritative — a forged deliveryMethod can
@@ -831,10 +866,67 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
 
   const shipping = await resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env, deliveryMethod, say });
 
+  /* ── A GIFT CARD IS NOT A DISCOUNTABLE GOOD ───────────────────────────────
+     Its value is stated in the catalogue (0032), not derived from what was
+     paid, and that is what makes a discount on one an arbitrage rather than a
+     saving: 20% off a $100 card would be $100 of spendable balance for $80.
+     Run it twice and the store is paying the customer.
+
+     So gift card lines come out of the base a promotion is calculated on, and
+     out of the taxable base below. The face-value column and these two
+     exclusions are one feature — the column WITHOUT them is the arbitrage. */
+  const giftCardSubtotalCents = catalogItems.reduce(
+    (sum, item) => sum + (Number(item.giftCardCents) > 0 ? item.amount * item.quantity : 0),
+    0
+  );
+  const discountableItems = catalogItems.filter((item) => !(Number(item.giftCardCents) > 0));
+  const discountableSubtotalCents = Math.max(0, subtotalCents - giftCardSubtotalCents);
+
+  /* What has to be ISSUED if this order completes: face value and how many of
+     it. Kept as a compact pair per line because it travels in Stripe metadata,
+     which caps each value at 500 characters — `[[5000,40]]` is forty cards.
+
+     Deliberately NOT carried on the line items. Those get trimmed to fit that
+     same cap, and the trim drops every field except sku/name/amount/quantity —
+     so on a large cart the flag saying "this line is a gift card" would vanish
+     and the codes would silently never be issued. A customer would be charged
+     for a gift card that does not exist. */
+  const giftCardLines = catalogItems
+    .filter((item) => Number(item.giftCardCents) > 0)
+    .map((item) => [Math.round(item.giftCardCents), item.quantity || 1]);
+
+  /* Each card is a separate code, because forty people cannot share one. That
+     makes the count a real cost at fulfilment — one write per card — and the
+     cart's own limits allow 25 lines of 99, which is 2,475 codes and a Worker
+     that times out holding somebody's money.
+
+     Refused HERE, while it is still a quote, rather than discovered after the
+     charge. A buyer who needs more than this is a conversation, not an error. */
+  const cardCount = giftCardLines.reduce((sum, [, qty]) => sum + qty, 0);
+  if (cardCount > 100) {
+    throw cartError(
+      'Orders are limited to 100 gift cards at a time. Get in touch and we will sort out a larger order.',
+      400
+    );
+  }
+
   const promotion = await getPromotionForCode(env, promoCode);
   const normalizedPromoCode = promotion ? normalizePromoCode(promotion.code) : normalizePromoCode(promoCode);
-  const discountCents = computePromotionDiscount(promotion, subtotalCents, shipping.shippingCents, catalogItems);
+  const discountCents = computePromotionDiscount(promotion, discountableSubtotalCents, shipping.shippingCents, discountableItems);
   const discountedSubtotalCents = Math.max(0, subtotalCents - discountCents);
+
+
+  /* ── AND IT IS NOT TAXED AT PURCHASE ──────────────────────────────────────
+     Tax is charged on what a gift card BUYS, when it is spent. Charging it here
+     as well charges it twice, and the store cannot un-charge the first half
+     without a refund and an apology.
+
+     0032 refuses to let a gift card product exist unless its tax_category is
+     'exempt', which is enough for engines that price line by line. It is NOT
+     enough for the ones that take a single taxable figure — the built-in table
+     is one of those, and it is the DEFAULT, so without this line the ordinary
+     store taxes every card it sells. */
+  const taxableCents = Math.max(0, discountedSubtotalCents - giftCardSubtotalCents);
 
   const taxSettings = await fetchSiteSettings(['tax_rate_overrides'], env);
   const dbOverrides = (() => { try { const v = taxSettings.tax_rate_overrides; return (v && typeof v === 'object') ? v : JSON.parse(v || '{}'); } catch (_) { return {}; } })();
@@ -856,24 +948,31 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
 
      Engines that cannot take lines (the table, Zip-Tax) ignore this entirely. */
   const taxLineItems = (() => {
-    if (!catalogItems.length || subtotalCents <= 0) return null;
-    const lines = catalogItems.map((item) => ({
+    /* Gift cards are left out entirely rather than sent as exempt lines. An
+       engine reads EITHER these lines or the single taxableCents figure above,
+       never both — so the two have to describe the same money. Sending lines
+       that sum to the whole cart while telling a table engine a smaller number
+       is two answers to one question, and which one applies would depend on
+       which engine the store happens to have selected. */
+    const taxable = discountableItems;
+    if (!taxable.length || discountableSubtotalCents <= 0) return null;
+    const lines = taxable.map((item) => ({
       sku: item.sku,
       name: item.name,
       quantity: item.quantity || 1,
-      amountTotal: Math.round(item.amount * (item.quantity || 1) * (discountedSubtotalCents / subtotalCents)),
+      amountTotal: Math.round(item.amount * (item.quantity || 1) * (taxableCents / discountableSubtotalCents)),
       /* What it is, in our vocabulary — each engine maps it to its own code. */
       taxCategory: item.taxCategory || '',
     }));
     const allocated = lines.reduce((sum, l) => sum + l.amountTotal, 0);
-    const remainder = discountedSubtotalCents - allocated;
+    const remainder = taxableCents - allocated;
     if (remainder !== 0 && lines.length) lines[lines.length - 1].amountTotal += remainder;
     return lines.filter((l) => l.amountTotal > 0);
   })();
 
   const tax = await resolveTax({
     env, request, address, dbOverrides,
-    taxableCents: discountedSubtotalCents,
+    taxableCents,
     shippingCents: shipping.shippingCents,
     lineItems: taxLineItems,
     /* So a held exemption certificate is honoured. Both identifiers, because a
@@ -932,6 +1031,8 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
 
   return {
     verifiedUser, attributedUser,
+    /* Face value and count per line, for the codes fulfilment has to mint. */
+    giftCardLines, giftCardSubtotalCents,
     /* `isMember` stays "is this a signed-in customer", because that is what the
        word means and what anything reading it later would expect. Whether they
        were PRICED as one is a separate fact, reported separately — folding the

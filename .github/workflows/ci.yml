@@ -43,6 +43,15 @@ jobs:
       - name: Typecheck (functions/, checkJs)
         run: npm run typecheck
 
+      # The one shape tsc is unable to see. TS2448 catches a plain reference
+      # above a const; it cannot catch one inside a function body, because a
+      # function body may legitimately run later — and it is right not to
+      # guess. An IIFE is the exception: the call is in the source, so it
+      # provably runs where it is written. A `const taxableCents` declared
+      # below one that read it was a ReferenceError on every checkout.
+      - name: Nothing immediately-invoked reads a value declared below it
+        run: node scripts/iife-reads-the-future.js
+
       - name: Deployment checklist (wiring + checkout/cart smoke)
         run: npm run deployment-checklist
 

@@ -37,7 +37,7 @@ import { incrementShippoMonthlyCount, recordLabelFailure } from './_shipping-usa
 import { recordTaxSale } from './_tax.js';
 import { shipFrom } from './_ship-from.js';
 import { mintOrderToken } from './_order-token.js';
-import { capture as captureStoredValue } from './_stored-value.js';
+import { capture as captureStoredValue, issue as issueStoredValue } from './_stored-value.js';
 /* One function decides what an order is called. Spelling the fallback out
    here again is how a store ends up with six names for one order. */
 import { orderNoPlain } from './_order-no.js';
@@ -172,6 +172,27 @@ export async function handleSuccessfulPayment(pi, meta, env, onTracking) {
       console.error('stored value capture threw for', meta.order_number, '—', e && e.message);
     }
   }
+
+  /* ── GIFT CARDS BOUGHT ON THIS ORDER ──────────────────────────────────────
+     The other direction: that block SPENDS a balance, this one CREATES the
+     balances somebody just paid for.
+
+     Its own metadata key rather than a flag on the line items, because those
+     are trimmed to fit Stripe's 500-char cap and the trim drops everything but
+     sku/name/amount/quantity — so on a big cart, which is the cart most likely
+     to hold gift cards, the flag would vanish and nothing would be issued. The
+     customer would be charged for cards that never existed.
+
+     ONE CODE PER CARD. Forty people cannot share one, which is why quoteCart
+     refuses more than a hundred on an order: this loop is one write each, and
+     the cart's own limits would otherwise permit 2,475 of them.
+
+     ISSUED BEFORE THE EMAILS BELOW, so the confirmation can carry the codes.
+     Failure is logged and does not stop fulfilment — the card has been charged
+     and the goods, if any, still have to go. What it leaves behind is an order
+     that is short some codes, which is recoverable by hand from the Coupons
+     page; refusing to fulfil would lose the whole order to save the recovery. */
+  const giftCardCodes = await issueGiftCardsFor(meta, env);
 
   // Pre-fetch email keys + branding from Supabase api_key_overrides (admin overrides take priority)
   const emailKeyCache = await fetchSiteSettings(
@@ -651,6 +672,59 @@ async function createShippingLabel(pi, meta, env) {
 // Reads the compact `inv` metadata field ({p: productId, s: size, q: qty}[])
 // and subtracts the purchased quantities from product_sizes.stock_quantity.
 // Non-fatal — a failed decrement never blocks order saving or emails.
+
+/**
+ * Mint the gift cards an order paid for, and hand back the codes.
+ *
+ * Never throws. Every failure mode here leaves the order intact and some codes
+ * unissued, which is a thing a human can put right from the Coupons page. The
+ * alternative — failing fulfilment — loses the whole order to save the
+ * recovery, and the card has already been charged.
+ *
+ * Bound to the buyer's account when the order has one, so the cards show up on
+ * their account page as well as in the email. A guest order has no account to
+ * bind, and the email is the only copy — which is why the email carries them
+ * rather than linking to a page.
+ */
+export async function issueGiftCardsFor(meta, env) {
+  let lines;
+  try {
+    lines = JSON.parse(meta.gift_cards || '[]');
+  } catch (_) {
+    console.error('gift cards: could not parse metadata for', meta.order_number, '—', meta.gift_cards);
+    return [];
+  }
+  if (!Array.isArray(lines) || !lines.length) return [];
+
+  const issued = [];
+  for (const line of lines) {
+    const cents = Math.round(Number(Array.isArray(line) ? line[0] : line && line.v) || 0);
+    const qty = Math.max(1, Math.min(100, Math.round(Number(Array.isArray(line) ? line[1] : line && line.q) || 1)));
+    if (cents <= 0) continue;
+    for (let n = 0; n < qty; n += 1) {
+      try {
+        const out = await issueStoredValue(env, {
+          kind: 'gift_card',
+          cents,
+          ownerUserId: meta.user_id || null,
+          ownerEmail: meta.customer_email || '',
+          reason: 'Bought on order ' + (meta.order_number || ''),
+          /* Which order paid for it. The same shape admin-refund uses, so
+             "where did this card come from" has one answer format. */
+          sourceRef: 'order:' + String(meta.order_number || ''),
+        });
+        issued.push({ code: out.code, cents });
+      } catch (e) {
+        /* Logged with the amount so the shortfall is recoverable by hand, and
+           never with a code — a log carrying live codes is spendable money
+           sitting where more people can read it than can issue it. */
+        console.error('gift card NOT issued on', meta.order_number, '—', cents, 'cents —', e && e.message);
+      }
+    }
+  }
+  if (issued.length) console.log('gift cards issued on', meta.order_number, '—', issued.length);
+  return issued;
+}
 
 export async function decrementInventory(meta, env) {
   const serviceKey = getSupabaseServiceKey(env);
