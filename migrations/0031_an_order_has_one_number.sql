@@ -1,0 +1,70 @@
+-- ============================================================================
+-- 0031 — an order has one number, and no two orders share it
+--
+-- There were two order-number generators and they never met.
+--
+--   AT PAYMENT   create-payment-intent and paypal-create-order call
+--                generateOrderNumber(), put the result in the metadata, and it
+--                is what the customer's confirmation email prints.
+--   AT FULFILMENT  _fulfil.js built a SECOND one — `ZW-<category>-00001`, from
+--                a row count — and wrote that to orders.order_number, throwing
+--                away the number the customer had just been given.
+--
+-- So one order had two names. And the second generator usually produced
+-- neither, because it required the first item's product to have a `category`
+-- and did nothing at all when that was empty:
+--
+--     const categoryCode = catRows[0]?.category || '';
+--     if (categoryCode) { … }      -- no else, no log
+--
+-- Which is why order_number is NULL on every real order in production, why the
+-- admin panel falls back to a label derived from the payment reference
+-- (`#0MWBS6VZ`), and why a customer quoting the number from their own email
+-- could not be found. guest-return.js matches on what the panel shows, so the
+-- guest return form rejected people holding a correct order number.
+--
+-- The code fix is the whole of it: the number generated at payment time is now
+-- the number written here. This migration is the part the code cannot do.
+--
+-- ── WHY A UNIQUE INDEX, AND WHY IT COULD NOT HAVE EXISTED BEFORE ────────────
+--
+-- The count-based scheme was a lost-update race with money attached. Two orders
+-- placed in the same second both read the count as N and both write N+1 — the
+-- same read-modify-write shape as the promo counters and the stock decrements
+-- this codebase has already fixed twice. Two orders sharing a number is not a
+-- display bug: a refund or a return matched by number lands on the wrong one,
+-- and there is no way to tell afterwards which was meant.
+--
+-- A unique index would have rejected the second of those inserts, which is why
+-- it could not be added until the generator changed. The replacement is ten
+-- random characters from a 28-symbol alphabet — 2.9e14 possibilities, about a
+-- one-in-six-million chance of any collision across ten thousand orders — so
+-- the index now costs nothing and forbids the thing that matters.
+--
+-- ── PARTIAL, BECAUSE HISTORY IS FULL OF NULLS ───────────────────────────────
+--
+-- Every order placed before this has order_number = NULL. Postgres already
+-- allows repeated NULLs in a unique index, so `WHERE order_number IS NOT NULL`
+-- changes no behaviour — it is written down to say the nulls are known about
+-- and deliberate rather than looking like an oversight to whoever reads this
+-- next.
+--
+-- ── AND WHY NOTHING IS BACKFILLED ───────────────────────────────────────────
+--
+-- The number those older customers were given still exists, in the Stripe and
+-- PayPal metadata for their payment. It could be recovered. It is deliberately
+-- NOT recovered here, because the label an old order currently shows —
+-- `#0MWBS6VZ`, from the payment reference — is already written into things:
+-- the `orderLabel` stored on every return request, the return-status emails
+-- already sent, the admin's own history. Filling the column would silently move
+-- the panel to a different name for those orders while the returns beside them
+-- kept the old one, which trades a known inconsistency for a moving one.
+--
+-- orderNo() still falls back for NULL, so old orders keep the name they have
+-- always had. A backfill is a separate, considered job that has to update the
+-- stored labels in the same breath.
+-- ============================================================================
+
+create unique index if not exists orders_order_number_key
+  on public.orders (order_number)
+  where order_number is not null;

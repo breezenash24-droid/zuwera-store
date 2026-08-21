@@ -781,46 +781,37 @@ export async function saveOrderToSupabase(pi, meta, tracking, env) {
     image: pickItemImage(i, variantImgMap, productImgSnap),
   }));
 
-  // Generate structured order number (e.g. ZW-MTP-00143)
-  let orderNumber = null;
-  try {
-    const firstProductId = items[0]?.productId || items[0]?.product_id || '';
-    if (firstProductId) {
-      const catRes = await fetch(
-        `${env.SUPABASE_URL}/rest/v1/products?select=category&id=eq.${encodeURIComponent(firstProductId)}&limit=1`,
-        { headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey } }
-      );
-      const catRows = catRes.ok ? await catRes.json().catch(() => []) : [];
-      const categoryCode = catRows[0]?.category || '';
-      if (categoryCode) {
-        const prefix = `ZW-${categoryCode}-`;
-        const countRes = await fetch(
-          `${env.SUPABASE_URL}/rest/v1/orders?select=id&order_number=like.${encodeURIComponent(prefix + '%')}`,
-          { headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey, Prefer: 'count=exact' } }
-        );
-        const countHeader = countRes.headers?.get('content-range') || '';
-        const total = parseInt(countHeader.split('/')[1] || '0', 10) || 0;
-        orderNumber = prefix + String(total + 1).padStart(5, '0');
-      }
-    }
-  } catch (e) {
-    console.warn('Order number generation failed (non-fatal):', e.message);
-  }
+  /* ── THE ORDER NUMBER IS NOT INVENTED HERE ────────────────────────────────
+
+     It used to be. This built `ZW-<category>-00001` from a row count and wrote
+     it to the column — while the number the CUSTOMER was given had already been
+     generated at payment time, put in the metadata, and printed on their
+     confirmation email. Two numbers for one order, and the one in the email was
+     thrown away here.
+
+     Worse, this one usually produced nothing: it needed the first item's
+     product to have a `category`, and when that was empty the `if` simply did
+     not run. Non-fatal, unlogged, and null in the column on every real order.
+     So the panel fell back to a label derived from the payment reference, the
+     email showed the metadata number, and neither matched the other or the
+     database. Three names, one order.
+
+     It also counted rows to find the next one, which two simultaneous orders do
+     at the same time — both read N, both write N+1, and two orders share a
+     number permanently. The column now carries a unique index (0031), which
+     that scheme could not have satisfied.
+
+     The number the customer already has is the number. It comes in on the
+     metadata from create-payment-intent or paypal-create-order, and this writes
+     it down. */
+  const orderNumber = String(meta.order_number || '').trim() || null;
 
   const subtotalCents = parseInt(meta.subtotal_amount_cents    || '0', 10);
   // charged_shipping_cents = what the customer actually paid (0 for free shipping)
   const shippingCents = parseInt(meta.charged_shipping_cents   || meta.shipping_amount_cents || '0', 10);
   const taxCents      = parseInt(meta.tax_amount_cents         || '0', 10);
 
-  const resp = await fetch(env.SUPABASE_URL + '/rest/v1/orders', {
-    method:  'POST',
-    headers: {
-      apikey:         serviceKey,
-      Authorization:  'Bearer ' + serviceKey,
-      'Content-Type': 'application/json',
-      Prefer:         'return=minimal',
-    },
-    body: JSON.stringify({
+  const orderRow = {
       stripe_payment_intent_id: pi.id,
       /* Who took the money. The column above holds the reference and no longer
          implies the processor — a PayPal capture id goes in it too, so that
@@ -868,8 +859,44 @@ export async function saveOrderToSupabase(pi, meta, tracking, env) {
       label_url:         tracking.label,
       status:           'confirmed',
       order_number:      orderNumber,
-    }),
+  };
+
+  const insertOrder = (row) => fetch(env.SUPABASE_URL + '/rest/v1/orders', {
+    method:  'POST',
+    headers: {
+      apikey:         serviceKey,
+      Authorization:  'Bearer ' + serviceKey,
+      'Content-Type': 'application/json',
+      Prefer:         'return=minimal',
+    },
+    body: JSON.stringify(row),
   });
+
+  let resp = await insertOrder(orderRow);
+
+  /* ── A COLLISION MUST NOT COST THE ORDER ──────────────────────────────────
+     0031 puts a unique index on order_number, which is what stops two orders
+     sharing a name and sending a refund to the wrong one. The cost of an index
+     that can reject is that a rejection here happens AFTER the customer has
+     been charged: the throw below would fail the webhook, Stripe would redeliver
+     the identical metadata, it would collide again, and the order would never
+     save. An infinite retry over an order that is already paid for.
+
+     Ten random characters of a 28-symbol alphabet makes this about a one-in-six-
+     million event across ten thousand orders, so this is the branch that should
+     never run. It exists because "should never" and "cannot" are different, and
+     the difference is a paid order that does not exist.
+
+     The retry keeps the customer's number and appends to it, so what they were
+     emailed is still a prefix of what the panel shows — findable by search,
+     which is what somebody quoting a number actually needs. Logged loudly,
+     because a collision at these odds means the generator is wrong. */
+  if (resp.status === 409 && orderNumber) {
+    const detail = await resp.text().catch(() => '');
+    console.error('order number collision on', orderNumber, '—', detail.slice(0, 200));
+    const suffixed = orderNumber + '-' + Math.floor(Math.random() * 900 + 100);
+    resp = await insertOrder({ ...orderRow, order_number: suffixed });
+  }
 
   if (!resp.ok) {
     const detail = await resp.text();

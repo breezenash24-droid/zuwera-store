@@ -191,8 +191,17 @@ if (notClaimed.length) {
    password — so it cannot be done from here and is not something a build step
    can quietly fix. It is one command, recorded in scripts/build-install-sql.js,
    and every migration past 0017 is a thing a NEW project does not get until
-   somebody runs it. That is the real cost this number is counting. */
-const DRIFT_BUDGET = 13;
+   somebody runs it. That is the real cost this number is counting.
+
+   13 → 14 for 0031 (a unique index on orders.order_number). The index is the
+   half of that fix the code cannot do: there were two order-number generators,
+   the one at fulfilment counted existing rows to find the next number — two
+   simultaneous orders both read N and both write N+1 — and a unique index is
+   what forbids the duplicate that produces. A fresh project installing from
+   this snapshot gets the corrected generator and not the constraint, so it can
+   still write two orders with one number until somebody runs 0031. Which is
+   exactly the cost this number exists to keep visible. */
+const DRIFT_BUDGET = 14;
 ok('install.sql has not fallen further behind', notClaimed.length <= DRIFT_BUDGET,
   notClaimed.length + ' migrations post-date the snapshot (budget ' + DRIFT_BUDGET + ') — '
   + 'regenerate it, then lower DRIFT_BUDGET to ' + notClaimed.length);
