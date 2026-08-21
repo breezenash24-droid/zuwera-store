@@ -157,9 +157,14 @@ rules.forEach((block, i) => {
   ok('…and the modal passes it to the strip', /fill: colCfgEarly\.modal_fill,/.test(css));
   /* The measurement it overrules lives in image-utils.js; naming it here is
      what stops the setting being wired to nothing. */
+  /* And it overrules a PER-EDGE verdict, not a per-photo one. Judging the whole
+     photo refused shots whose sides are clean backdrop because their bottom
+     edge has legs running off it — an edge nobody was going to see, since the
+     margin was left and right. */
   ok('…which is what decides when to continue a photo',
     /opts\.fill === 'edge' \|\| opts\.fill === 'matte'/.test(script)
-    && /strips\.safe === false/.test(script));
+    && /var need = sideways \? \['left', 'right'\] : \['top', 'bottom'\];/.test(script)
+    && /strips\.ok\[need\[0\]\] && strips\.ok\[need\[1\]\]/.test(script));
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
   process.exit(fail ? 1 : 0);

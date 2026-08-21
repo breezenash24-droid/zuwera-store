@@ -419,10 +419,33 @@ console.log('');
      reported. zwEdgeStrips measures it — corner agreement separated this
      catalogue with nothing near the line (0–33 for studio shots, 200 and 214 for
      the two detail crops) — and says so with `safe`. */
-  const withSafety = (v) => { STRIPS.safe = v; };
+  const withSafety = (v) => {
+    STRIPS.safe = v;
+    STRIPS.ok = { left: v, right: v, top: v, bottom: v };
+  };
   withSafety(false);
   const refused = paint(1070, 1338).getPropertyValue('background-image') === 'none';
   console.log('  a close-up crop, or a dark wall-> ' + (refused ? 'left alone' : 'NO — continued anyway'));
+
+  /* ── AND IT IS JUDGED PER EDGE, NOT PER PHOTO ─────────────────────────
+     Measured over both products the shop reported: the vertical edges are pure
+     backdrop (jump 0–29) because the model is centred, and the horizontal ones
+     almost never are (72–220) because a head runs off the top and legs off the
+     bottom. Judging the whole photo refused a shot whose SIDES are clean
+     because its BOTTOM has legs crossing it — an edge nobody was going to see,
+     since the margin was left and right. */
+  STRIPS.ok = { left: true, right: true, top: false, bottom: false };
+  STRIPS.safe = true;
+  const sidesOnly = paint(1070, 1338).getPropertyValue('background-image') !== 'none';
+  const topsRefused = paint(1338, 1070).getPropertyValue('background-image') === 'none';
+  console.log('  clean sides, legs off the bottom-> '
+    + (sidesOnly ? 'sides continued' : 'NO') + ', ' + (topsRefused ? 'top/bottom refused' : 'NO'));
+  /* And the other way round, so this is a real per-edge test rather than a
+     rule that happens to favour one axis. */
+  STRIPS.ok = { left: false, right: false, top: true, bottom: true };
+  const flipped = paint(1070, 1338).getPropertyValue('background-image') === 'none'
+    && paint(1338, 1070).getPropertyValue('background-image') !== 'none';
+  console.log('  …and the same rule the other way-> ' + (flipped ? 'yes' : 'NO'));
 
   /* A measurement that cannot be overruled is a guess with no appeal, so the
      builder can force it either way. */
@@ -493,7 +516,7 @@ console.log('');
   }
   console.log('  …neighbours warmed, not all 7  -> ' + (warmed ? 'yes' : 'NO'));
 
-  const edgeOk = sides && stacked && clean && dense && refused && override && suppress && unknown
+  const edgeOk = sides && stacked && clean && dense && refused && sidesOnly && topsRefused && flipped && override && suppress && unknown
     && survived && vidOk && warmed;
   console.log('\n  ' + (edgeOk
     ? 'PASS  the margin matches the edge it sits against'

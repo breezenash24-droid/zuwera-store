@@ -430,11 +430,23 @@
          `fill` lets a shop overrule it either way from the builder, because a
          measurement that cannot be overruled is a guess with no appeal. */
       var fill = opts.fill === 'edge' || opts.fill === 'matte' ? opts.fill : 'auto';
-      if (fill === 'matte' || (fill === 'auto' && strips.safe === false)) {
+      if (fill === 'matte') {
         pin(node, 'background-image', 'none');
         return;
       }
       var sideways = photo < slot;            // photo relatively taller → margin left and right
+      /* Only the two edges the margin actually sits against. Judging the whole
+         photo refused a shot whose vertical edges are clean backdrop because its
+         BOTTOM edge has legs running off it — an edge nobody was going to see.
+         Both of the two must be usable, because both are on screen. */
+      var need = sideways ? ['left', 'right'] : ['top', 'bottom'];
+      var edgesOk = strips.ok
+        ? (strips.ok[need[0]] && strips.ok[need[1]])
+        : strips.safe !== false;              // a copy from before the per-edge test
+      if (fill === 'auto' && !edgesOk) {
+        pin(node, 'background-image', 'none');
+        return;
+      }
       pin(node, 'background-image', sideways
         ? gradient('to bottom', strips.left) + ',' + gradient('to bottom', strips.right)
         : gradient('to right', strips.top) + ',' + gradient('to right', strips.bottom));
