@@ -3189,7 +3189,7 @@ function updateCountdown() {
                 <div class="product-info">
                   <p class="product-name">${productName}</p>
                   <p class="product-category">${productType}</p>
-                  <p class="product-price" data-zw-price-for="${p.id}">${productPrice ? '$' + Number(productPrice).toFixed(2) : 'Price TBA'}</p>
+                  <p class="product-price" data-zw-price-for="${p.id}" data-zw-price-fallback="${productPrice ? '$' + Number(productPrice).toFixed(2) : 'Price TBA'}"></p>
                   ${isLowStock ? `<span class="stock-badge-low">${collectionEscapeHtml(colMsg('lowStockBadge'))}</span>` : ''}
                   ${!isLive
                     ? `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>`
@@ -3225,14 +3225,22 @@ function updateCountdown() {
           });
         }
 
-        /* The cards printed the CATALOGUE price. Ask the resolver — the same one
-           the product page, the bag and the till use — and correct any a price
-           list has moved. Inside renderProducts so every path gets it: first
-           paint, filters, sort. Ids the server does not answer for keep what
-           they rendered, so a slow or failed request shows the catalogue figure
-           rather than a gap. */
+        /* The cards render BLANK and carry the catalogue figure as a fallback.
+           This asks the resolver — the same one the product page, the bag and
+           the till use — and writes whichever answer it has, so the first number
+           a shopper sees is the one they will be charged. Inside renderProducts
+           so every path gets it: first paint, filters, sort. */
         if (window.ZWVariantPrice && window.ZWVariantPrice.paintCards) {
           try { window.ZWVariantPrice.paintCards(grid); } catch (_) {}
+        } else {
+          /* variant-price.js is deferred and can be missing entirely — a blocked
+             request, an extension, an old cache. Nothing filling the cards in
+             would leave a grid with no prices at all, which is far worse than
+             the flash this replaced. */
+          var _pf = grid.querySelectorAll('[data-zw-price-fallback]');
+          for (var _pi = 0; _pi < _pf.length; _pi++) {
+            if (!_pf[_pi].textContent) _pf[_pi].textContent = _pf[_pi].getAttribute('data-zw-price-fallback') || '';
+          }
         }
       }
     })();
