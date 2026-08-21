@@ -3975,6 +3975,13 @@ function updateCountdown() {
         var strip = window.ZWPdpGallery.renderStrip(media, images, {
           isVideo: collectionIsVideo,
           alt: item.title,
+          /* ONE photo, whole. The stylesheet below says the same thing and is
+             the right home for it, but it is scoped four classes deep through an
+             attribute this very function writes, and on the deployed page it was
+             not reaching the photos — two shots at half width each, which reads
+             as one photo sliced down the middle. Said on the element instead,
+             where nothing has to match. */
+          perView: 1,
           /* Open on the colourway's own photo. Without this the strip started
              at 0 whatever the shopper had selected, and — because this function
              runs again when the colour fetch lands — a smooth scroll still in

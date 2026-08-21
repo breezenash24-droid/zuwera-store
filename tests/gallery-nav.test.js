@@ -195,6 +195,46 @@ console.log('\n  ' + (boundaries
   ? 'PASS  the strip only ever rests on a photo boundary'
   : 'FAIL  the strip came to rest between two photos'));
 
+/* ── ONE PHOTO PER VIEW, SAID ON THE ELEMENT ──────────────────────────────
+   The stylesheet says this too, in the right place, and on the deployed page
+   it was not reaching the photos: two shots at half width each, which reads as
+   one photo sliced down the middle. A rule scoped four classes deep through an
+   attribute the caller writes has a lot of ways not to match; a property on the
+   element has none. */
+console.log('');
+{
+  const s = G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, perView: 1 });
+  const kids = media.children;
+  const geom = kids.every((k) => k.style.flex === '0 0 100%' && k.style.width === '100%'
+    && k.style.objectFit === 'contain' && k.style.minWidth === '0');
+  const snap = kids.every((k) => k.style.scrollSnapAlign === 'start' && k.style.scrollSnapStop === 'always');
+  /* Without these the host is not a scroll container at all and the photos just
+     shrink to share the width — which IS the two-up that was showing. */
+  const cont = media.style.display === 'flex' && media.style.overflowX === 'auto'
+    && media.style.scrollSnapType === 'x mandatory';
+  console.log('  every photo is the full pane          ' + (geom ? 'yes' : 'NO'));
+  console.log('  …and stops at the next one, not the nearest  ' + (snap ? 'yes' : 'NO'));
+  console.log('  …in a container that actually scrolls       ' + (cont ? 'yes' : 'NO'));
+
+  /* Two-up is still expressible — the product page's arrangement, and the
+     reason this is a number rather than a boolean. */
+  G.renderStrip(media, shots, { alt: 'x', isVideo: () => false, perView: 2 });
+  const two = media.children.every((k) => k.style.flex === '0 0 50%' && k.style.width === '50%');
+
+  /* And a caller that says nothing keeps the stylesheet in charge, so the
+     product page is untouched by this. */
+  G.renderStrip(media, shots, { alt: 'x', isVideo: () => false });
+  const none = media.children.every((k) => !k.style.flex && !k.style.width);
+  console.log('  two-up is still expressible                 ' + (two ? 'yes' : 'NO'));
+  console.log('  …and saying nothing leaves it to the css    ' + (none ? 'yes' : 'NO'));
+
+  var perView = geom && snap && cont && two && none;
+  console.log('\n  ' + (perView
+    ? 'PASS  the strip carries its own geometry'
+    : 'FAIL  the strip is still asking a stylesheet'));
+  boundaries = boundaries && perView;
+}
+
 /* Regression guard for the fix this one sits on top of: opening a ONE-photo
    product straight after a seven-photo one must still clear the old arrows,
    which by then are wired to the previous product's strip. */
