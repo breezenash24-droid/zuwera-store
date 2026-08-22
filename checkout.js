@@ -691,7 +691,12 @@ function initPaymentRequestButton(subtotalCents) {
     try {
       const data = await postJSON('/api/shippo-rates', {
         items: cartItems,
-        totalWeightLb: cartItems.reduce((s, i) => s + ((parseFloat(i.weightLb) || 0.5) * (i.quantity || 1)), 0),
+        /* Same falsy-zero as doFetchRates: a weightless item is a real
+           figure, not a missing one. */
+        totalWeightLb: cartItems.reduce((s, i) => {
+          const w = parseFloat(i.weightLb);
+          return s + ((Number.isFinite(w) ? w : 0.5) * (i.quantity || 1));
+        }, 0),
         address: {
           name: '',
           line1: addr.addressLine?.[0] || '',
@@ -849,7 +854,20 @@ let ratesFetchTimeout = null;
 let ratesFetchPromise = null;
 
 async function doFetchRates(zip, state) {
-  const totalWeightLb = cartItems.reduce((s, i) => s + ((parseFloat(i.weightLb) || 0.5) * (i.quantity || 1)), 0);
+  /* Nothing in this bag ships, so there is no rate to ask for. Short-circuited
+     the same way hand-delivery is below: a carrier quote for a code in an email
+     is a number that can only ever be wrong, and asking for one puts a real
+     USPS price on screen against a parcel that does not exist. */
+  if (window.ZWGiftCard?.cartIsAllCards(cartItems)) { updateCartSummaryShipping(0); return; }
+
+  /* `parseFloat(i.weightLb) || 0.5` defaulted a genuine ZERO to half a pound,
+     because zero is falsy — so marking gift cards weightless on the cart item
+     would have changed nothing here. The default belongs to "no figure at all",
+     not to "a figure that happens to be nought". */
+  const totalWeightLb = cartItems.reduce((s, i) => {
+    const w = parseFloat(i.weightLb);
+    return s + ((Number.isFinite(w) ? w : 0.5) * (i.quantity || 1));
+  }, 0);
   const data = await postJSON('/api/shippo-rates', {
     items: cartItems,
     totalWeightLb,

@@ -1137,6 +1137,33 @@ function updateCartSummary(subtotal) {
     if (to) to.textContent = '-';
     return;
   }
+  /* ── A BAG OF GIFT CARDS IS NOT A PARCEL ──────────────────────────────────
+     Nothing here ships and nothing here is taxed — tax on a gift card is
+     charged when it is SPENT, on whatever it buys, which is why the product is
+     tax-exempt at purchase in the first place.
+
+     Handled before the tax quote is even requested, so the page never asks a
+     question whose answer it must then discard, and never paints a figure it
+     is about to take away. The rows say "—" rather than "$0.00": zero is a
+     claim about an amount, and the honest statement is that neither applies.
+
+     The till reaches the same conclusion independently — resolveShipping()
+     early-returns zero when every line is a gift card, and gift card lines are
+     excluded from the taxable base. This is the browser agreeing with it, not
+     the browser deciding it. */
+  if (window.ZWGiftCard?.cartIsAllCards(cartItems)) {
+    const sh = document.getElementById('summary-shipping');
+    const tx = document.getElementById('summary-tax');
+    const txNote = document.getElementById('tax-note');
+    const to = document.getElementById('summary-total');
+    if (note) note.textContent = 'Nothing to ship — your codes arrive by email';
+    if (sh) sh.textContent = '—';
+    if (tx) tx.textContent = '—';
+    if (txNote) txNote.textContent = 'Not charged on gift cards';
+    if (to) to.textContent = '$' + subtotal.toFixed(2);
+    return;
+  }
+
   const state = getCheckoutTaxStateCode ? getCheckoutTaxStateCode() : '';
   const zip   = (document.getElementById('pay-zip')?.value || '').trim();
 

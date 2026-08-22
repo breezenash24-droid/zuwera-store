@@ -2738,7 +2738,18 @@ function addToCart() {
     memberPrice,
     price: effectivePrice,
     image: currentProduct.images[0]?.image_url || '',
-    weightLb: parseFloat(currentProduct.shipping_weight_lb) || 0.5,
+    /* Carried so the bag and the checkout can tell what they are holding. The
+       till reads it off the catalogue and always will — this copy decides
+       nothing, it only stops the browser drawing a shipping line and a tax line
+       against a code in an email. */
+    giftCardCents: Number(currentProduct.gift_card_cents) || 0,
+    /* A gift card weighs nothing. Every cart item used to default to half a
+       pound, so a $50 card was quoted a real USPS rate against a parcel that
+       does not exist and the bag read $55.58 for an order the server was going
+       to charge $50.00 for. */
+    weightLb: Number(currentProduct.gift_card_cents) > 0
+      ? 0
+      : (parseFloat(currentProduct.shipping_weight_lb) || 0.5),
     stockQty,
     quantity: 1
   };
