@@ -10058,22 +10058,50 @@
                 if (!box || !list) return;
                 if (error || !data || !data.length) { _restockDemandProductIds = []; box.style.display = 'none'; return; }
                 _restockDemandProductIds = [...new Set(data.map(r => r.product_id).filter(Boolean))];
+                /* The product id is kept alongside the count, not folded into
+                   the label. It used to be discarded the moment the chip was
+                   built, which is why these read as a report rather than a list
+                   of things to act on: you were told two people want a small
+                   white jersey and then had to go and find it yourself. */
                 const groups = {};
                 data.forEach(r => {
                     const key = `${r.products?.title || r.product_id} · ${r.size}${r.color_name ? ' · ' + r.color_name : ''}`;
-                    groups[key] = (groups[key] || 0) + 1;
+                    if (!groups[key]) groups[key] = { n: 0, productId: r.product_id || '' };
+                    groups[key].n += 1;
                 });
                 list.innerHTML = Object.entries(groups)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([label, n]) =>
-                        `<span style="display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border:1px solid var(--border);border-radius:999px;font-size:.8rem;">
+                    .sort((a, b) => b[1].n - a[1].n)
+                    .map(([label, g]) =>
+                        `<button type="button" class="zw-restock-chip"${g.productId ? ` onclick="openRestockProduct('${escapeHtml(g.productId)}')"` : ' disabled'}
+                                 title="${g.productId ? 'Open ' + escapeHtml(label.split(' · ')[0]) + ' and show its sizes and stock' : 'This request has no product attached'}"
+                                 style="display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border:1px solid var(--border);border-radius:999px;font-size:.8rem;font:inherit;font-size:.8rem;color:var(--text-primary);background:transparent;cursor:${g.productId ? 'pointer' : 'default'};">
                             ${escapeHtml(label)}
-                            <strong style="background:var(--accent);color:#fff;border-radius:99px;font-size:.7rem;padding:1px 8px;">${n}</strong>
-                        </span>`
+                            <strong style="background:var(--accent);color:#fff;border-radius:99px;font-size:.7rem;padding:1px 8px;">${g.n}</strong>
+                        </button>`
                     ).join('');
                 box.style.display = '';
             } catch (_) {}
         }
+
+        /* A restock chip is a thing to act on, so it opens the thing.
+           Straight to Variants & Stock, because "two people want a small in
+           white" is a question about a size grid and nothing else on the form
+           answers it.
+
+           It clicks the real tab button rather than setting .active itself. The
+           click handler also calls rebuildStockMatrix(), which is what actually
+           draws the sizes — set the class alone and you arrive at an empty grid,
+           which reads as "no stock" rather than "not drawn yet". */
+        window.openRestockProduct = async function (productId) {
+            if (!productId) return;
+            try {
+                await editProduct(productId);
+                const btn = document.querySelector('#productFormModal .tab-button[data-tab="colors"]');
+                if (btn) btn.click();
+            } catch (e) {
+                showToast('Could not open that product: ' + (e && e.message ? e.message : 'unknown error'), 'error');
+            }
+        };
 
         /* Manually process the waitlist: calls notify-restock for each product with
            pending demand. It emails everyone whose size+colour is back in stock and
@@ -13729,14 +13757,105 @@ function escapeAttr(value) {
             }
         }
 
+        /* ── GIFT CARDS, FROM THE PRODUCT FORM ───────────────────────────────
+           A gift card is an ordinary catalogue row with one extra number on it.
+           Everything that draws products already draws these; nothing new
+           renders and nothing new gets priced. See migration 0032.
+
+           THE PART THAT MATTERS IS WHAT THE FORM WILL NOT LET YOU SAVE.
+
+           Face value above the price is the mint. Anybody who can edit a
+           product could put $500 on a $5 item, buy it, and be $495 ahead —
+           which is the theft the issue endpoint is guarded against, arriving by
+           a door that has no guard on it at all. The till clamps face value to
+           what was actually charged, so the money can never be made; this warns
+           at the moment the number is typed, so the mistake is caught before a
+           customer meets it.
+
+           Tax is forced to exempt and the control locked, because the database
+           refuses a gift card that is taxable (0032) and an admin should meet
+           that as a sentence rather than as a constraint violation. */
+        function _isGiftCardChecked() {
+            const box = document.getElementById('isGiftCard');
+            return !!(box && box.checked);
+        }
+
+        /* Is this save about a gift card at all? True while the box is ticked,
+           and true for a row that already carries a value so that UNticking it
+           can write the NULL back. False for every ordinary product, which is
+           what keeps the column off their saves. */
+        function _giftCardTouched() {
+            if (_isGiftCardChecked()) return true;
+            return !!(typeof currentProduct !== 'undefined' && currentProduct
+              && currentProduct.gift_card_cents != null);
+        }
+
+        function _giftCardCentsFromForm() {
+            if (!_isGiftCardChecked()) return null;
+            const dollars = parseFloat(document.getElementById('giftCardValue')?.value);
+            if (!Number.isFinite(dollars) || dollars <= 0) return null;
+            return Math.round(dollars * 100);
+        }
+
+        function _taxCategoryFromForm() {
+            /* Belt and braces: the toggle already forces the select, but a save
+               that slipped past it would be rejected by the check constraint
+               with a message nobody can act on. */
+            if (_isGiftCardChecked()) return 'exempt';
+            return document.getElementById('taxCategory').value || null;
+        }
+
+        function syncGiftCardFields() {
+            const on = _isGiftCardChecked();
+            const fields = document.getElementById('giftCardFields');
+            const tax = document.getElementById('taxCategory');
+            if (fields) fields.style.display = on ? '' : 'none';
+            if (tax) {
+                if (on) { tax.value = 'exempt'; tax.disabled = true; tax.title = 'A gift card is not taxed when it is bought — tax is charged when it is spent.'; }
+                else { tax.disabled = false; tax.title = ''; }
+            }
+
+            const warn = document.getElementById('giftCardWarn');
+            if (!warn) return;
+            const face = parseFloat(document.getElementById('giftCardValue')?.value);
+            const price = parseFloat(document.getElementById('currentPrice')?.value);
+            let msg = '';
+            if (on && Number.isFinite(face) && face > 0 && Number.isFinite(price) && price > 0 && face > price) {
+                msg = '<strong>This card is worth more than it costs.</strong> A buyer would pay $' + price.toFixed(2)
+                    + ' and receive $' + face.toFixed(2) + ' to spend — the store loses $' + (face - price).toFixed(2)
+                    + ' on every one sold. The till will only ever issue what was actually paid ($' + price.toFixed(2)
+                    + '), so nobody can profit from this, but the customer will get less than this page promises. '
+                    + 'Set the price and the face value to match unless you mean it.';
+            } else if (on && (!Number.isFinite(face) || face <= 0)) {
+                msg = 'Give this card a face value. Saved without one it is not a gift card, just a product that sells nothing.';
+            }
+            warn.innerHTML = msg;
+            warn.style.display = msg ? '' : 'none';
+        }
+
+        document.addEventListener('input', function (e) {
+            if (!e.target || !e.target.id) return;
+            if (e.target.id === 'isGiftCard' || e.target.id === 'giftCardValue' || e.target.id === 'currentPrice') syncGiftCardFields();
+        });
+        document.addEventListener('change', function (e) {
+            if (e.target && e.target.id === 'isGiftCard') syncGiftCardFields();
+        });
+
         async function saveProduct(publish) {
-            const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'materialComposition', 'msrp', 'currentPrice', 'productStatus', 'shippingWeightLb'];
+            /* A gift card is a code in an email. Demanding a shipping weight for
+               one is asking a question with no answer — and a made-up half pound
+               would drag a parcel estimate into a cart that has no parcel. The
+               till zeroes it either way; this stops the form insisting on it.
+               Its own face value takes its place as the required number. */
+            const isGiftCard = _isGiftCardChecked();
+            const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'materialComposition', 'msrp', 'currentPrice', 'productStatus']
+                .concat(isGiftCard ? ['giftCardValue'] : ['shippingWeightLb']);
             const form = document.getElementById('productForm');
 
             // Map each mandatory field to the tab that contains it
             const fieldTabMap = {
                 sku: 'core', title: 'core', subtitle: 'core', gender: 'core', materialComposition: 'core',
-                msrp: 'tab-pricing', currentPrice: 'tab-pricing',
+                msrp: 'tab-pricing', currentPrice: 'tab-pricing', giftCardValue: 'tab-pricing',
                 productStatus: 'tab-status',
                 shippingWeightLb: 'technical',
             };
@@ -13822,7 +13941,24 @@ function escapeAttr(value) {
                        says NULL falls back to site_settings.tax_engine, and an
                        empty string is a value that matches no category and
                        would send no code where the default was wanted. */
-                    tax_category: document.getElementById('taxCategory').value || null,
+                    tax_category: _taxCategoryFromForm(),
+                    /* NULL for an ordinary product; a positive number means this
+                       product IS a gift card worth that many cents. One column
+                       rather than a boolean plus a value, because a pair can be
+                       half-set — a card marked as a card with no value, or a
+                       value on something that ships — and a single nullable
+                       integer has no third state. See migration 0032.
+
+                       SENT ONLY WHEN IT IS ACTUALLY ABOUT A GIFT CARD, and that
+                       is not tidiness. PostgREST rejects the entire row for one
+                       unknown column, so on a store that has not run 0032 yet,
+                       writing this on every save would break saving EVERY
+                       product — the exact failure that once took out the whole
+                       of fulfilment, from one new column written before its
+                       migration. This way the only thing that cannot be saved
+                       before the migration is a gift card, which could not have
+                       worked anyway. */
+                    ...(_giftCardTouched() ? { gift_card_cents: _giftCardCentsFromForm() } : {}),
                     model_height: document.getElementById('modelHeight').value,
                     model_size_worn: document.getElementById('modelSizeWorn').value,
                     fit_type: document.getElementById('fitType').value,
@@ -14071,6 +14207,19 @@ function escapeAttr(value) {
             document.getElementById('currentPrice').value = product.current_price;
             document.getElementById('memberPrice').value = product.member_price || '';
             document.getElementById('taxCategory').value = product.tax_category || '';
+            /* One column carries both facts: a positive number means gift card,
+               and says what it is worth. Read before syncGiftCardFields(), which
+               then locks the tax control and re-runs the price warning against
+               whatever this row already had — a card someone saved at the wrong
+               value should say so the moment it is opened, not on save. */
+            {
+                const cents = Number(product.gift_card_cents) || 0;
+                const box = document.getElementById('isGiftCard');
+                const val = document.getElementById('giftCardValue');
+                if (box) box.checked = cents > 0;
+                if (val) val.value = cents > 0 ? (cents / 100).toFixed(2) : '';
+                syncGiftCardFields();
+            }
             document.getElementById('modelHeight').value = product.model_height || '';
             document.getElementById('modelSizeWorn').value = product.model_size_worn || '';
             document.getElementById('fitType').value = product.fit_type || '';
@@ -14210,6 +14359,11 @@ function escapeAttr(value) {
         function resetProductForm() {
             _formDirty = false;
             document.getElementById('productForm').reset();
+            /* form.reset() clears the checkbox but nothing tells the panel it
+               changed, so a new product opened straight after editing a gift
+               card would show the face-value field and a tax control still
+               locked to Not taxable — with the box unticked above them. */
+            syncGiftCardFields();
             _selectedSports.clear(); ensureSportsList().then(renderSportsChips);
             // Start with ONE empty rich media card (identical to "+ Add Media") instead
             // of the old bare .image-row, so the first row matches every other row (and

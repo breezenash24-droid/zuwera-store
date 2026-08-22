@@ -59,7 +59,18 @@ const TAXJS = fs.readFileSync(path.join(ROOT, 'admin-tax.js'), 'utf8');
 
   console.log('\n  it saves and loads');
   {
-    ok('it is written on save', /tax_category: document\.getElementById\('taxCategory'\)\.value \|\| null/.test(ADMIN));
+    /* This read the inline expression until gift cards arrived. The value now
+       comes from _taxCategoryFromForm(), because a gift card must save as
+       'exempt' whatever the select says — migration 0032 has a check constraint
+       refusing a taxable gift card, and an admin should meet that as a sentence
+       rather than as a Postgres violation. The ordinary path is unchanged, which
+       is what the second half asserts. */
+    ok('it is written on save',
+      /tax_category: _taxCategoryFromForm\(\)/.test(ADMIN)
+      && /return document\.getElementById\('taxCategory'\)\.value \|\| null;/.test(ADMIN));
+    ok('…and a gift card overrides it, because the database refuses anything else',
+      /if \(_isGiftCardChecked\(\)\) return 'exempt';/.test(ADMIN),
+      'tax on a gift card is charged twice: once at purchase and again on whatever it buys');
     /* NULL, not ''. The column's own comment says NULL means "fall back to the
        store-wide default"; an empty string is a value that matches no category
        and would send no code where the default was wanted. */
