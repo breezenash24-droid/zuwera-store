@@ -300,4 +300,51 @@
     _reset: function () { settingsPromise = null; },
   };
   window.zwFetchCatalog = fetchCatalog;
+
+  /* ── IS THIS A GIFT CARD? THE BROWSER'S COPY OF THE TILL'S RULE ────────────
+   *
+   * _cart-pricing.js has known this for as long as gift cards have existed: a
+   * line with giftCardCents above zero takes no shipping weight, is excluded
+   * from promotions and member pricing, and a cart where EVERY line is one gets
+   * zero shipping and zero tax.
+   *
+   * The browser knew none of it. So a $50 gift card went into the bag with the
+   * default half-pound weight every cart item gets, the bag fetched a real USPS
+   * rate against that phantom parcel, and the summary read:
+   *
+   *     Subtotal   $50.00
+   *     Shipping    $5.58
+   *     Total      $55.58
+   *
+   * while the server was going to charge $50.00. Every one of those numbers was
+   * produced honestly by code that had no way to know what it was holding.
+   *
+   * This is the missing fact, in one place, so the bag, the product page and the
+   * checkout cannot each grow their own version of it — which is the shape of
+   * every money bug this codebase has already paid for.
+   *
+   * IT IS FOR DISPLAY ONLY. The till still decides, off the catalogue, exactly
+   * as before: a browser that could declare its own cart untaxable would.
+   */
+  window.ZWGiftCard = {
+    /** One line. Reads the flag the cart carries, and falls back to a raw
+        product row so the product page can ask before anything is in a bag. */
+    is: function (item) {
+      if (!item) return false;
+      return Number(item.giftCardCents || item.gift_card_cents || 0) > 0;
+    },
+    /** Nothing in this cart ships, so nothing about shipping applies to it.
+        An EMPTY cart is not a gift-card cart — `every` says true for one, and
+        an empty bag must keep saying "Free on orders $100+" rather than
+        quietly becoming a digital order. */
+    cartIsAllCards: function (items) {
+      var list = Array.isArray(items) ? items : [];
+      if (!list.length) return false;
+      return list.every(window.ZWGiftCard.is);
+    },
+    /** Mixed carts still ship, and still need an address. */
+    cartHasACard: function (items) {
+      return (Array.isArray(items) ? items : []).some(window.ZWGiftCard.is);
+    },
+  };
 })();

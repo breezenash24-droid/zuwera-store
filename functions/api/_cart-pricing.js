@@ -670,7 +670,15 @@ export function buildOrderMetadata({ orderNumber, address = {}, quote, featureFl
 export function getExpectedParcelWeight(catalogItems) {
   const totalItems = catalogItems.reduce((sum, item) => sum + (item.quantity || 1), 0) || 1;
   const totalWeight = catalogItems.reduce(
-    (sum, item) => sum + ((Number.parseFloat(item.shippingWeightLb) || 0.5) * (item.quantity || 1)),
+    /* `|| 0.5` treated a genuine ZERO as missing, because zero is falsy — so
+       the deliberate `shippingWeightLb: 0` that resolveCatalogItems sets on
+       every gift card line was handed straight back as half a pound here, and
+       a cart of ten cards was weighed as a five-pound box. The default belongs
+       to "no figure at all", not to "a figure that happens to be nought". */
+    (sum, item) => {
+      const w = Number.parseFloat(item.shippingWeightLb);
+      return sum + ((Number.isFinite(w) ? w : 0.5) * (item.quantity || 1));
+    },
     0
   );
   return totalWeight > 0 ? totalWeight.toFixed(2) : (0.5 + totalItems * 0.5).toFixed(1);
