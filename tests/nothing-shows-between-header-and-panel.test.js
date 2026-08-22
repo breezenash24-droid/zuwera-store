@@ -141,7 +141,32 @@ console.log('  the two surfaces meet on a whole device row, and no further');
 
   ok('the search and bag panels are placed from it',
     /function headerBottom\(\)/.test(FEAT)
-    && /_overlay\.style\.top = headerBottom\(\) \+ 'px';/.test(FEAT));
+    && /putTop\(_overlay, isDesktop\(\) \? headerBottom\(\) : 0\)/.test(FEAT)
+    && /putTop\(_bagOverlay, isDesktop\(\) \? headerBottom\(\) : 0\)/.test(FEAT));
+
+  /* ── AND THEY KEEP BEING PLACED FROM IT, FOR AS LONG AS THEY ARE OPEN ──────
+     The placement used to be re-measured for a fixed 520ms, a window sized for
+     the header's ~350ms padding shrink — the only thing that moves when the
+     page is at the top.
+
+     It is not the only thing that moves. Scroll down and the auto-hide header
+     leaves on `transform`; open a panel from there and the header slides BACK
+     IN, starting when the reveal fires rather than when the click did. Anything
+     that lands after the window closes leaves the panel pinned to where the
+     header was, and that difference is a visible gap — reported on the product
+     page, scrolled, opening the bag.
+
+     So the loop now ends when the panel closes, not when a timer that was
+     guessed from one of several animations runs out. */
+  ok('…for as long as they are open, not for a guessed number of milliseconds',
+    /trackHeader\(syncBagTop, function \(\) \{ return isOpen\(_bagOverlay\); \}\)/.test(FEAT)
+    && /trackHeader\(syncSearchTop, function \(\) \{ return isOpen\(_overlay\); \}\)/.test(FEAT),
+    'a header that moves while nothing is watching is every version of this bug');
+
+  /* Running every frame is only affordable if it stops short of a layout it
+     does not need. */
+  ok('…and a frame that measures the same number writes nothing',
+    /if \(el\.style\.top !== next\) el\.style\.top = next;/.test(FEAT));
   ok('the mega panel is placed from it',
     /setProperty\('--zw-megatop', v\)/.test(NAV)
     && /top: *var\(--zw-megatop/.test(CSS));

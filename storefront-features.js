@@ -699,10 +699,17 @@
     return Math.max(0, Math.ceil(bottom * dpr) / dpr);
   }
 
+  /* Written only when it actually changes. These run once a frame for as long
+     as a panel is open, and a style write every frame — even of an identical
+     value — is a layout the browser did not need to do. */
+  function putTop(el, px) {
+    var next = px + 'px';
+    if (el.style.top !== next) el.style.top = next;
+  }
+
   function syncSearchTop() {
     if (!_overlay) return;
-    if (!isDesktop()) { _overlay.style.top = '0px'; return; }
-    _overlay.style.top = headerBottom() + 'px';
+    putTop(_overlay, isDesktop() ? headerBottom() : 0);
   }
 
 
@@ -719,14 +726,40 @@
   // panel stays glued to it — sampling at a couple of timeouts instead left the
   // panel hanging in a gap and snapping into place at the end.
   var _trackRaf = 0;
-  function trackHeader(sync, ms) {
+  /* ── 520ms WAS A GUESS ABOUT WHICH ANIMATION IT WAS FOLLOWING ─────────────
+     The window was sized for the header's ~350ms padding shrink, which is the
+     only thing that moves when the page is at the top. It is not the only thing
+     that moves.
+
+     Scroll down and the auto-hide header rides away on `transform`; scroll far
+     enough and it is fully gone. Open the bag from there and the sequence is:
+     measure a header that is not on screen (bottom clamps to 0), place the
+     panel at 0, and then the header slides BACK IN over its own transition —
+     which begins when the reveal fires, not when the click did. If any of that
+     lands after the window closes, the last measurement stands: the panel is
+     left pinned to where the header WAS, and the difference is the gap.
+
+     Every version of that bug is a header that moved while nothing was
+     watching, so the fix is to keep watching for exactly as long as the panel
+     is open rather than for a duration guessed from one of the animations. A
+     panel lives for seconds and the loop does one getBoundingClientRect a
+     frame, which is the same work it was already doing, just not stopping
+     early. `alive` is what ends it, so a closed panel cannot leave a loop
+     running behind it.
+
+     The old signature still works: a numeric `ms` keeps the fixed window, for
+     callers that genuinely want one. */
+  function trackHeader(sync, msOrAlive) {
     var fn = typeof sync === 'function' ? sync : syncSearchTop;
-    var until = (window.performance ? performance.now() : Date.now()) + (ms || 520);
+    var alive = typeof msOrAlive === 'function' ? msOrAlive : null;
+    var until = alive ? Infinity
+      : (window.performance ? performance.now() : Date.now()) + (msOrAlive || 520);
     cancelAnimationFrame(_trackRaf);
     (function step() {
+      if (alive && !alive()) return;
       fn();
       var now = window.performance ? performance.now() : Date.now();
-      if (now < until) _trackRaf = requestAnimationFrame(step);
+      if (alive || now < until) _trackRaf = requestAnimationFrame(step);
     })();
   }
 
@@ -812,7 +845,9 @@
     // next frame; only the focus has to be immediate.
     try { _input.focus({ preventScroll: true }); } catch (_) { _input.focus(); }
     requestAnimationFrame(function () { _overlay.classList.add('open'); });
-    trackHeader(syncSearchTop);
+    /* Same reasoning as the bag: the header can move at any point while this is
+       open, not only during the shrink it was originally timed against. */
+    trackHeader(syncSearchTop, function () { return isOpen(_overlay); });
     armScrollClose();
     window.addEventListener('resize', syncSearchTop);
   }
@@ -2128,8 +2163,7 @@
 
   function syncBagTop() {
     if (!_bagOverlay) return;
-    if (!isDesktop()) { _bagOverlay.style.top = '0px'; return; }
-    _bagOverlay.style.top = headerBottom() + 'px';
+    putTop(_bagOverlay, isDesktop() ? headerBottom() : 0);
   }
 
   function openBag() {
@@ -2139,7 +2173,10 @@
     document.body.classList.add('zwf-searching');   // same header shrink as search
     syncBagTop();
     requestAnimationFrame(function () { _bagOverlay.classList.add('open'); });
-    trackHeader(syncBagTop);
+    /* For as long as it is open, not for a guessed number of milliseconds.
+       See trackHeader: the header also moves when the auto-hide reveals it,
+       and that can start after any fixed window has closed. */
+    trackHeader(syncBagTop, function () { return isOpen(_bagOverlay); });
     armScrollClose();
     window.addEventListener('resize', syncBagTop);
   }
