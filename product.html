@@ -1100,6 +1100,34 @@ body .product-page :is(#priceDisplay, .price-current) {
   justify-content: start;
 }
 
+/* ── THE GIFT CARD PAGE TYPE ──────────────────────────────────────────────
+   One attribute on <body>, set by product-main.js when the product carries a
+   face value, and every block that is about a garment goes away with it.
+
+   Marked as `data-zw-garment` on the sections rather than hidden one id at a
+   time, because the list of things a gift card does not have is open-ended —
+   colourways, sizes, fit, fabric — and the next person to add a
+   fabric-weight block should not have to remember this stylesheet exists.
+   They mark it as garment furniture and it is handled.
+
+   THE SIZE PICKER WAS NOT MERELY WRONG, IT WAS INVENTED. With no rows in
+   product_sizes the page falls back to ['XS','S','M','L','XL','XXL','3XL'],
+   so a $50 gift card was offered in seven sizes and went into the bag as a
+   medium.
+
+   Reviews stay. A gift card is a product people have opinions about — chiefly
+   whether it arrived and whether it worked — and those are the reviews worth
+   reading on one. */
+body[data-zw-product="gift-card"] [data-zw-garment] { display: none !important; }
+/* The fit finder is appended into .size-header at runtime by
+   storefront-features.js, so it is hidden by its container going, not by name. */
+
+.gc-note { margin: 1.6rem 0 1.2rem; }
+.gc-note p:not(.section-label) {
+  font-size: .9rem; line-height: 1.75; opacity: .75; max-width: 46ch; margin: .5rem 0 0;
+}
+body[data-zw-product="gift-card"] .gc-note[hidden] { display: block; }
+
 .product-page .size-btn {
   font-family: var(--font-mono) !important;
   font-size: .6rem !important;
@@ -1535,14 +1563,26 @@ body.super-light-mode { background: var(--ink) !important; }
         </div>
 
         <!-- COLORWAY SELECTION -->
-        <div class="colorway-section">
+        <div class="colorway-section" data-zw-garment>
           <p class="section-label">Colorway</p>
           <div class="color-swatches" id="colorSwatches"></div>
           <p class="selected-color" id="selectedColor"></p>
         </div>
 
+        <!-- ── WHAT A GIFT CARD PUTS WHERE THE SIZES WERE ────────────────────
+             Not an empty space. The size picker is the block that answers "what
+             am I choosing?", and removing it without replacing it leaves a
+             product page that says only a price. This answers the two questions
+             a gift card actually raises — how does it reach me, and do I have
+             to spend it all at once — in the place the shopper is already
+             looking. Hidden by default; the gift-card page type reveals it. -->
+        <div class="gc-note" id="giftCardNote" hidden>
+          <p class="section-label">Gift card</p>
+          <p>Delivered by email as a code, usually within a few minutes. Enter it at checkout — it does not have to be spent all at once, and whatever is left stays on the card for next time.</p>
+        </div>
+
         <!-- SIZE SELECTION -->
-        <div class="size-section">
+        <div class="size-section" data-zw-garment>
           <div class="size-header">
             <p class="section-label" id="sizeSectionLabel">Select Size</p>
             <!-- "Find My Size" removed as redundant — the "Find your size" fit finder
@@ -1574,7 +1614,7 @@ body.super-light-mode { background: var(--ink) !important; }
         <div class="accordions-section">
 
           <!-- SIZE & FIT -->
-          <div class="accordion">
+          <div class="accordion" data-zw-garment>
             <button type="button" class="accordion-header" aria-expanded="false" onclick="toggleAccordion(this)">
               <span>Size & Fit</span>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -1593,7 +1633,7 @@ body.super-light-mode { background: var(--ink) !important; }
           </div>
 
           <!-- FABRIC & MATERIALS -->
-          <div class="accordion">
+          <div class="accordion" data-zw-garment>
             <button type="button" class="accordion-header" aria-expanded="false" onclick="toggleAccordion(this)">
               <span>Fabric & Materials</span>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
