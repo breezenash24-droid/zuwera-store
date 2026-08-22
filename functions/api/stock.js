@@ -148,21 +148,36 @@ async function buildStock(env) {
         const raw = s && s.commerce_config;
         const cfg = typeof raw === 'string' ? JSON.parse(raw) : raw;
         const cx = cfg?.customerExperience;
+        const gc = (cfg && typeof cfg.giftCards === 'object' && cfg.giftCards) || {};
         return {
           limitToStock: cx?.limitQtyToStock !== false,
           messages: (cx?.messages && typeof cx.messages === 'object') ? cx.messages : {},
+          /* The gift-card policy rides along for the same reason the wording
+             does: the product page needs it at exactly the moment it needs
+             stock, and a second round trip lets the two arrive out of step.
+             OFF unless a store has said otherwise — an unread setting must
+             never become permission for a customer to name a price. */
+          giftCards: {
+            customAmounts: gc.customAmounts === true,
+            minCents: Math.round(Number(gc.minCents)) || 1000,
+            maxCents: Math.round(Number(gc.maxCents)) || 50000,
+          },
         };
       })
-      .catch(() => ({ limitToStock: true, messages: {} }));
+      .catch(() => ({
+        limitToStock: true, messages: {},
+        giftCards: { customAmounts: false, minCents: 1000, maxCents: 50000 },
+      }));
 
     const [sizes, settings] = await Promise.all([sizesP, settingsP]);
-    const { limitToStock, messages } = settings;
+    const { limitToStock, messages, giftCards } = settings;
 
     return json({
       ok: true,
       sizes: Array.isArray(sizes) ? sizes : [],
       limitToStock,
       messages,
+      giftCards,
       // Present only when colour precision was lost, so the cause is visible in
       // the payload and not just in a log nobody is reading at 2am.
       ...(degraded ? { degraded } : {}),

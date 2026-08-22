@@ -152,6 +152,11 @@
        sends them hunting for a typo in a code they typed correctly. It says
        what happened and what to do about it, without naming the account. */
     giftCardLocked:   { label: 'Gift card is locked to an account', text: 'That card is saved to an account. Sign in to that account to spend it.', color: ROLE.bad },
+    /* Only reachable from a stale or edited cart — the amount box refuses
+       below the minimum before it sends. It is a sentence rather than a silent
+       upgrade because quietly raising somebody's figure charges them more than
+       the page showed, which the price guard then refuses as a price change. */
+    giftCardAmountTooSmall: { label: 'Chosen gift card amount is below the minimum', text: 'The smallest gift card we sell is {min}.', color: ROLE.bad },
     giftCardOffline:  { label: 'Could not check the card just now', text: 'We could not check that just now. Please try again in a moment.', color: ROLE.bad },
     giftCardPending:  { label: 'Card accepted, total not worked out yet', text: '{balance} on the card. It comes off once your total is worked out.', color: ROLE.good },
     giftCardPartial:  { label: 'Card covers part of the order', text: '{balance} on the card — {applied} of it covers this order, {left} left over.', color: ROLE.good },
@@ -375,7 +380,9 @@
          a product unpublished or priced at nothing while sitting in a bag --
          and checkoutRateInvalid means a shipping token failed its signature.
          Real, worth having, and not things a working store produces. */
-      rare: ['checkoutUnavailable', 'checkoutNoPrice', 'checkoutRateInvalid'],
+      /* Reachable only from a stale or edited cart: the amount box refuses
+         below the minimum before it sends. */
+      rare: ['checkoutUnavailable', 'checkoutNoPrice', 'checkoutRateInvalid', 'giftCardAmountTooSmall'],
     },
     {
       name: 'Log in',

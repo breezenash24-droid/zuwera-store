@@ -1128,6 +1128,43 @@ body[data-zw-product="gift-card"] [data-zw-garment] { display: none !important; 
 }
 body[data-zw-product="gift-card"] .gc-note[hidden] { display: block; }
 
+.gc-amount-btn {
+  margin-top: 1rem; background: none; border: 1px solid rgb(var(--fg-rgb) / 30%);
+  color: inherit; font-family: var(--fm); font-size: .6rem; letter-spacing: .12em;
+  text-transform: uppercase; padding: .7rem 1.2rem; cursor: pointer; transition: border-color .2s;
+}
+.gc-amount-btn:hover { border-color: currentColor; }
+.gc-modal[hidden] { display: none; }
+.gc-modal {
+  position: fixed; inset: 0; z-index: 200; display: grid; place-items: center;
+  background: rgb(0 0 0 / 55%); padding: 1.25rem;
+}
+.gc-modal-card {
+  width: min(24rem, 100%); background: var(--zw-theme-surface, #0b0b0d); color: inherit;
+  border: 1px solid rgb(var(--fg-rgb) / 20%); padding: 1.6rem;
+}
+.gc-amount-row { display: flex; align-items: baseline; gap: .4rem; margin: 1rem 0 .5rem; }
+.gc-amount-currency { font-size: 1.6rem; opacity: .55; }
+.gc-amount-input {
+  flex: 1; min-width: 0; background: none; border: none; border-bottom: 1px solid rgb(var(--fg-rgb) / 30%);
+  color: inherit; font: inherit; font-size: 1.9rem; padding: .2rem 0; outline: none;
+  font-variant-numeric: tabular-nums;
+}
+.gc-amount-input:focus-visible { border-bottom-color: currentColor; }
+/* The spinners fight a large type size and add nothing a keyboard does not. */
+.gc-amount-input::-webkit-outer-spin-button,
+.gc-amount-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.gc-amount-input { -moz-appearance: textfield; appearance: textfield; }
+.gc-amount-hint { font-size: .78rem; opacity: .65; line-height: 1.6; min-height: 2.6em; margin: 0; }
+.gc-amount-hint[data-tone="bad"] { color: var(--err, #ef4444); opacity: 1; }
+.gc-amount-actions { display: flex; gap: .6rem; justify-content: flex-end; margin-top: 1.2rem; }
+.gc-amount-actions button {
+  font-family: var(--fm); font-size: .6rem; letter-spacing: .12em; text-transform: uppercase;
+  padding: .7rem 1.1rem; cursor: pointer; border: 1px solid rgb(var(--fg-rgb) / 25%);
+  background: none; color: inherit;
+}
+.gc-amount-ok { background: var(--white, #f4f1eb); color: var(--black, #09090b); border-color: transparent; font-weight: 600; }
+
 .product-page .size-btn {
   font-family: var(--font-mono) !important;
   font-size: .6rem !important;
@@ -1579,6 +1616,32 @@ body.super-light-mode { background: var(--ink) !important; }
         <div class="gc-note" id="giftCardNote" hidden>
           <p class="section-label">Gift card</p>
           <p>Delivered by email as a code, usually within a few minutes. Enter it at checkout — it does not have to be spent all at once, and whatever is left stays on the card for next time.</p>
+          <!-- Shown only when the store allows a buyer-chosen amount. The
+               listed price stays the default, so doing nothing still works. -->
+          <button type="button" class="gc-amount-btn" id="giftCardAmountBtn" hidden
+                  onclick="openGiftCardAmount()">Choose your own amount</button>
+        </div>
+
+        <!-- ── CHOOSE AN AMOUNT ──────────────────────────────────────────────
+             The one place in the storefront where a shopper names a figure that
+             becomes money. It is safe because the server makes that figure BOTH
+             the price and the face value from one input — see the note in
+             _cart-pricing.js — and because the bounds are the store's, stated
+             here before anything is typed rather than as a refusal afterwards. -->
+        <div class="gc-modal" id="giftCardAmountModal" hidden role="dialog" aria-modal="true" aria-labelledby="gcAmountTitle">
+          <div class="gc-modal-card">
+            <p class="section-label" id="gcAmountTitle">Choose an amount</p>
+            <div class="gc-amount-row">
+              <span class="gc-amount-currency" aria-hidden="true">$</span>
+              <input type="number" id="gcAmountInput" class="gc-amount-input"
+                     inputmode="decimal" step="1" aria-describedby="gcAmountHint">
+            </div>
+            <p class="gc-amount-hint" id="gcAmountHint"></p>
+            <div class="gc-amount-actions">
+              <button type="button" class="gc-amount-cancel" onclick="closeGiftCardAmount()">Cancel</button>
+              <button type="button" class="gc-amount-ok" onclick="applyGiftCardAmount()">Use this amount</button>
+            </div>
+          </div>
         </div>
 
         <!-- SIZE SELECTION -->

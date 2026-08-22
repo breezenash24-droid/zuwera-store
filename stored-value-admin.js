@@ -26,7 +26,7 @@
    * caused it, so the switch is the first thing on the card.
    */
 
-  const state = { enabled: null, summary: null, lastCode: '', busy: false };
+  const state = { enabled: null, summary: null, lastCode: '', busy: false, policy: null };
 
   function $(id) { return document.getElementById(id); }
 
@@ -87,6 +87,38 @@
     if (result.error) throw new Error(result.error.message || 'Could not save that.');
   }
 
+  /* ── STORE POLICY, ON commerce_config RATHER THAN stored_value ────────────
+     Two rows, two different questions. `stored_value.enabled` is whether the
+     TILL accepts a card — server-only, never near a browser flag. These are
+     what the STOREFRONT offers, and they live with the rest of the customer
+     experience settings the storefront already reads on /api/stock, so the
+     policy and the price it governs arrive on one response.
+
+     Read-modify-write, narrow: it touches three keys and carries everything
+     else in the blob through untouched. */
+  async function readPolicy() {
+    const { data } = await window.sb
+      .from('site_settings').select('key,value').eq('key', 'commerce_config');
+    const cfg = (data && data[0] && data[0].value) || {};
+    const g = (cfg && typeof cfg.giftCards === 'object' && cfg.giftCards) || {};
+    return {
+      customAmounts: g.customAmounts === true,
+      promptBalanceAtCheckout: g.promptBalanceAtCheckout === true,
+      minCents: Math.round(Number(g.minCents)) || 1000,
+      maxCents: Math.round(Number(g.maxCents)) || 50000,
+    };
+  }
+
+  async function writePolicy(next) {
+    const { data } = await window.sb
+      .from('site_settings').select('key,value').eq('key', 'commerce_config');
+    const cfg = (data && data[0] && data[0].value) || {};
+    cfg.giftCards = { ...(cfg.giftCards || {}), ...next };
+    const result = await window.sb
+      .from('site_settings').upsert([{ key: 'commerce_config', value: cfg }], { onConflict: 'key' });
+    if (result.error) throw new Error(result.error.message || 'Could not save that.');
+  }
+
   function mountStyles() {
     if ($('stored-value-admin-style')) return;
     const style = document.createElement('style');
@@ -127,6 +159,53 @@
             <input type="checkbox" id="svEnabled" ${on ? 'checked' : ''}>
             ${on ? 'On — the till accepts them' : 'Off — the till will not accept them'}
           </label>
+        </div>
+
+        <!-- ── Store policy ─────────────────────────────────────────────────
+             Three switches that change what shoppers are offered, all stored on
+             commerce_config.giftCards. Separate from the master switch above:
+             that one decides whether the till accepts a card at all, these
+             decide what the storefront proposes. -->
+        <div class="sv-grid" style="margin-top:18px">
+          <div class="sv-field" style="grid-column:1/-1">
+            <label style="display:flex;align-items:flex-start;gap:.5rem;cursor:pointer;font-weight:400">
+              <input type="checkbox" id="svCustomAmounts" ${state.policy && state.policy.customAmounts ? 'checked' : ''} style="margin-top:.2rem">
+              <span><strong>Let buyers choose their own amount.</strong>
+                <span class="sv-muted">Adds a “Choose your own amount” button on every gift card page. The listed price stays the default, so a shopper who ignores it still gets a card. The amount they pick becomes both what they pay and what the card is worth — the server computes them from one number, so the two can never disagree.</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        <div class="sv-grid" id="svAmountBounds" style="${state.policy && state.policy.customAmounts ? '' : 'display:none'}">
+          <div class="sv-field">
+            <label for="svMinAmount">Smallest amount</label>
+            <input class="form-input" id="svMinAmount" type="number" min="1" step="1"
+                   value="${((state.policy && state.policy.minCents) || 1000) / 100}">
+          </div>
+          <div class="sv-field">
+            <label for="svMaxAmount">Largest amount</label>
+            <input class="form-input" id="svMaxAmount" type="number" min="1" step="1"
+                   value="${((state.policy && state.policy.maxCents) || 50000) / 100}">
+          </div>
+          <div class="sv-field" style="grid-column:1/-1">
+            <div class="sv-muted">An unbounded amount is one typo away from a $50,000 card, and gift cards are the ideal thing to buy with a stolen card because they turn into money immediately. Keep the ceiling near the largest order you would expect.</div>
+          </div>
+        </div>
+
+        <!-- Asked for directly: the prompt is useful and not everybody wants it. -->
+        <div class="sv-grid">
+          <div class="sv-field" style="grid-column:1/-1">
+            <label style="display:flex;align-items:flex-start;gap:.5rem;cursor:pointer;font-weight:400">
+              <input type="checkbox" id="svPromptBalance" ${state.policy && state.policy.promptBalanceAtCheckout ? 'checked' : ''} style="margin-top:.2rem">
+              <span><strong>Remind signed-in customers of their balance at checkout.</strong>
+                <span class="sv-muted">A one-tap prompt when somebody with a card reaches the payment step, so they do not have to go and find the code. No password: they are already signed in, and asking again protects nothing.</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        <div class="sv-actions" style="margin-top:4px">
+          <button class="btn btn-secondary" id="svPolicySave">Save these settings</button>
+          <span id="svPolicyMsg" class="sv-muted"></span>
         </div>
 
         <div id="svStatus" class="sv-muted" style="margin-top:10px;min-height:16px"></div>
@@ -254,6 +333,43 @@
   }
 
   function bind() {
+    /* Bounds appear with the switch that needs them. A min and a max sitting
+       under an unticked box are two questions about something not happening. */
+    $('svCustomAmounts')?.addEventListener('change', (e) => {
+      const box = $('svAmountBounds');
+      if (box) box.style.display = e.target.checked ? '' : 'none';
+    });
+
+    $('svPolicySave')?.addEventListener('click', async () => {
+      const btn = $('svPolicySave');
+      const msg = $('svPolicyMsg');
+      const minD = parseFloat($('svMinAmount')?.value);
+      const maxD = parseFloat($('svMaxAmount')?.value);
+      const next = {
+        customAmounts: !!$('svCustomAmounts')?.checked,
+        promptBalanceAtCheckout: !!$('svPromptBalance')?.checked,
+      };
+      if (next.customAmounts) {
+        if (!(minD > 0) || !(maxD > 0)) {
+          if (msg) { msg.textContent = 'Give both amounts a value above zero.'; msg.style.color = 'var(--error,#ef4444)'; }
+          return;
+        }
+        next.minCents = Math.round(minD * 100);
+        next.maxCents = Math.round(maxD * 100);
+      }
+      if (btn) btn.disabled = true;
+      if (msg) { msg.style.color = 'var(--text-secondary)'; msg.textContent = 'Saving…'; }
+      try {
+        await writePolicy(next);
+        state.policy = await readPolicy();
+        if (msg) msg.textContent = 'Saved.';
+      } catch (err) {
+        if (msg) { msg.textContent = err.message || 'Could not save that.'; msg.style.color = 'var(--error,#ef4444)'; }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
+
     $('svEnabled')?.addEventListener('change', async (e) => {
       const on = !!e.target.checked;
       note('Saving…');
@@ -431,6 +547,10 @@
     } catch (_) {
       state.enabled = false;
     }
+    /* Non-fatal on its own: an unreadable policy means the shipped defaults,
+       which offer nothing extra. The switch above is what somebody came here
+       to use and it must not go down with this. */
+    try { state.policy = await readPolicy(); } catch (_) { state.policy = null; }
     await refreshSummary();
     render();
   }

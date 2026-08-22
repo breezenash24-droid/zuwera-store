@@ -184,6 +184,15 @@
            Before it lands, ZWMessages answers from the shipped defaults — every
            caller here is a click handler or a render pass that cannot wait. */
         try { if (w.ZWMessages && d) w.ZWMessages.setOverrides(d.messages); } catch (_) {}
+        /* Published for the product page's gift-card amount modal. Same
+           response and the same reasoning as the wording above: it is read at
+           the moment the page renders a price, and a separate fetch would let
+           the policy and the price arrive out of step. */
+        try {
+          if (d && d.giftCards) {
+            w.ZWCommerceConfig = Object.assign(w.ZWCommerceConfig || {}, { giftCards: d.giftCards });
+          }
+        } catch (_) {}
         _resolved = {
           rows: (d && Array.isArray(d.sizes)) ? d.sizes : [],
           /* Whether the storefront should stop a shopper exceeding stock, set

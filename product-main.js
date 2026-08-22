@@ -382,12 +382,109 @@ function applyGiftCardPageType() {
   const note = document.getElementById('giftCardNote');
   if (note) note.hidden = !on;
 
+  /* Shown only when the store allows a buyer-chosen amount. The listed price
+     stays the default, so a shopper who never touches the button still gets a
+     perfectly good card at the price on the page. */
+  const amountBtn = document.getElementById('giftCardAmountBtn');
+  if (amountBtn) amountBtn.hidden = !(on && gcPolicy().on);
+  if (!on) _gcCustomCents = 0;
+
   /* The size guide link lives in the header of a section that is now gone, but
      storefront-features.js also injects a "Find your size" button in there
      after this runs. Both go with the container; this only clears the label so
      nothing reads it out to a screen reader from a hidden subtree. */
   const label = document.getElementById('sizeSectionLabel');
   if (label && on) label.textContent = '';
+}
+
+/* ── A GIFT CARD THE BUYER PRICES THEMSELVES ─────────────────────────────────
+ *
+ * Nothing here decides anything. The amount is sent as `customAmountCents` and
+ * the server turns it into BOTH the price and the face value from that one
+ * input — which is the only reason a customer-named figure is safe at all, and
+ * why this file must never send a price and a face value separately.
+ *
+ * The bounds are shown before anything is typed. A limit that only appears as a
+ * refusal after somebody has committed to a number is a limit that reads as a
+ * mistake on the store's part.
+ */
+let _gcCustomCents = 0;
+
+function gcPolicy() {
+  const cfg = (window.ZWCommerceConfig && window.ZWCommerceConfig.giftCards) || {};
+  const min = Math.round(Number(cfg.minCents));
+  const max = Math.round(Number(cfg.maxCents));
+  return {
+    on: cfg.customAmounts === true,
+    minCents: Number.isFinite(min) && min > 0 ? min : 1000,
+    maxCents: Number.isFinite(max) && max > 0 ? max : 50000,
+  };
+}
+
+const gcMoney = (cents) => '$' + (Math.max(0, Number(cents) || 0) / 100).toFixed(2);
+
+window.openGiftCardAmount = function () {
+  const p = gcPolicy();
+  const modal = document.getElementById('giftCardAmountModal');
+  const input = document.getElementById('gcAmountInput');
+  const hint = document.getElementById('gcAmountHint');
+  if (!modal || !input) return;
+  input.min = String(p.minCents / 100);
+  input.max = String(p.maxCents / 100);
+  input.value = String(Math.round((_gcCustomCents || currentProductPriceCents()) / 100));
+  if (hint) {
+    hint.dataset.tone = '';
+    hint.textContent = 'Any amount between ' + gcMoney(p.minCents) + ' and ' + gcMoney(p.maxCents) + '.';
+  }
+  modal.hidden = false;
+  input.focus();
+  input.select();
+};
+
+window.closeGiftCardAmount = function () {
+  const modal = document.getElementById('giftCardAmountModal');
+  if (modal) modal.hidden = true;
+};
+
+function currentProductPriceCents() {
+  return Math.round((Number(currentProduct && currentProduct.current_price) || 0) * 100);
+}
+
+window.applyGiftCardAmount = function () {
+  const p = gcPolicy();
+  const input = document.getElementById('gcAmountInput');
+  const hint = document.getElementById('gcAmountHint');
+  const dollars = parseFloat(input && input.value);
+  if (!Number.isFinite(dollars) || dollars <= 0) {
+    if (hint) { hint.dataset.tone = 'bad'; hint.textContent = 'Enter an amount.'; }
+    return;
+  }
+  const cents = Math.round(dollars * 100);
+  /* Refused here rather than clamped, even though the server clamps: a shopper
+     who typed $2 into a box that says "from $10" should be told, not quietly
+     handed a $10 card they did not ask for. The server's clamp is the backstop
+     for anything that reaches it another way. */
+  if (cents < p.minCents || cents > p.maxCents) {
+    if (hint) {
+      hint.dataset.tone = 'bad';
+      hint.textContent = 'Please choose between ' + gcMoney(p.minCents) + ' and ' + gcMoney(p.maxCents) + '.';
+    }
+    return;
+  }
+  _gcCustomCents = cents;
+  paintGiftCardAmount();
+  window.closeGiftCardAmount();
+};
+
+/* The price on the page follows the choice, because a page still showing $50
+   under a button that says "$73 chosen" is the bag-says-35-checkout-says-40
+   problem in miniature. */
+function paintGiftCardAmount() {
+  if (!_gcCustomCents) return;
+  const el = document.getElementById('productPrice');
+  if (el) el.textContent = gcMoney(_gcCustomCents);
+  const btn = document.getElementById('giftCardAmountBtn');
+  if (btn) btn.textContent = gcMoney(_gcCustomCents) + ' — change amount';
 }
 
 function getDefaultProductSizes() {
@@ -2795,13 +2892,24 @@ function addToCart() {
     colorHex: selectedColor?.hex_color || '',
     regularPrice,
     memberPrice,
-    price: effectivePrice,
+    /* The displayed price, which for a buyer-priced gift card is the amount
+       they chose. It has to be: the till refuses to charge more than the cart
+       says it showed, so a line still claiming $50 against a $73 card would be
+       rejected as a price change — the guard doing exactly its job against the
+       one case where the higher figure is the shopper's own instruction. */
+    price: _gcCustomCents > 0 ? (_gcCustomCents / 100) : effectivePrice,
     image: currentProduct.images[0]?.image_url || '',
     /* Carried so the bag and the checkout can tell what they are holding. The
        till reads it off the catalogue and always will — this copy decides
        nothing, it only stops the browser drawing a shipping line and a tax line
        against a code in an email. */
     giftCardCents: Number(currentProduct.gift_card_cents) || 0,
+    /* The buyer's figure, when they chose one. The SERVER turns this single
+       input into both the price and the face value — see the note in
+       _cart-pricing.js. Sending a price and a face value separately is the one
+       thing that would make a customer-named amount unsafe, so this file sends
+       neither: it sends the amount, once. */
+    ...(_gcCustomCents > 0 ? { customAmountCents: _gcCustomCents } : {}),
     /* A gift card weighs nothing. Every cart item used to default to half a
        pound, so a $50 card was quoted a real USPS rate against a parcel that
        does not exist and the bag read $55.58 for an order the server was going
