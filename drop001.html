@@ -227,7 +227,7 @@ document.documentElement.classList.add('zw-collflash');
   <link rel="manifest" href="/site.webmanifest">
   <link rel="canonical" href="https://zuwera.store/drop001.html">
   <script src="preview-mode.js?v=799782ba" defer></script>
-  <script src="/zw-data.js?v=54eabcad" defer></script>
+  <script src="/zw-data.js?v=f3253604" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=a6453cd7" defer></script>
 <script src="pdp-gallery.js?v=2192736c" defer></script>
@@ -3928,7 +3928,11 @@ function updateCountdown() {
     try {
       cart = JSON.parse(localStorage.getItem('cart') || '[]');
     } catch(_) { cart = []; }
-    var existIdx = cart.findIndex(function(i){ return i.productId === cartItem.productId && i.size === cartItem.size && i.colorName === cartItem.colorName; });
+    /* The buyer-chosen amount is part of the key: a $25 gift card and a $300 one
+         are the same product, size and colour, and without it the second add lands
+         on the first and makes two of it. */
+      var existIdx = cart.findIndex(function(i){ return i.productId === cartItem.productId && i.size === cartItem.size && i.colorName === cartItem.colorName
+        && (Number(i.customAmountCents) || 0) === (Number(cartItem.customAmountCents) || 0); });
     if (existIdx > -1) {
       cart[existIdx].quantity += 1;
     } else {
@@ -4374,8 +4378,8 @@ function updateCountdown() {
      overrides; without it this page would only ever show the defaults. -->
 <!-- Sizes go in size order, not in the order the rows were written. -->
 <script src="size-order.js?v=a41d2b34"></script>
-<script src="customer-messages.js?v=977fa40a"></script>
-<script src="stock-rules.js?v=efc11b57"></script>
+<script src="customer-messages.js?v=11117c5d"></script>
+<script src="stock-rules.js?v=26fa2888"></script>
 <script src="/nav-menu.js?v=5735cc2b" defer></script>
 <script src="/zw-copy.js?v=5b4f7680" defer></script>
 <script src="/header-layouts.js?v=7d3d3cdb" defer></script>

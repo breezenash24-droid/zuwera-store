@@ -382,12 +382,12 @@ function applyGiftCardPageType() {
   const note = document.getElementById('giftCardNote');
   if (note) note.hidden = !on;
 
-  /* Shown only when the store allows a buyer-chosen amount. The listed price
-     stays the default, so a shopper who never touches the button still gets a
-     perfectly good card at the price on the page. */
-  const amountBtn = document.getElementById('giftCardAmountBtn');
-  if (amountBtn) amountBtn.hidden = !(on && gcPolicy().on);
+  /* The amounts, and the Custom chip when the store allows a buyer-chosen
+     figure. Both live in one row that draws itself; a card with neither shows
+     no row at all and sells at its listed price, exactly as it did before any
+     of this existed. */
   if (!on) _gcCustomCents = 0;
+  renderGiftCardAmounts();
 
   /* The size guide link lives in the header of a section that is now gone, but
      storefront-features.js also injects a "Find your size" button in there
@@ -395,6 +395,29 @@ function applyGiftCardPageType() {
      nothing reads it out to a screen reader from a hidden subtree. */
   const label = document.getElementById('sizeSectionLabel');
   if (label && on) label.textContent = '';
+
+  if (on) paintGiftCardDelivery();
+}
+
+/* ── HOW IT GETS THERE ───────────────────────────────────────────────────────
+ * The same sentence in the two places a gift card page says it: beside the
+ * price, and in the section that stands where Shipping & Returns does on a
+ * garment. ONE key for both — a store that edited one and not the other would
+ * be contradicting itself on a single screen.
+ *
+ * An empty answer leaves what the markup shipped with rather than blanking the
+ * line, which is the only direction that cannot go wrong: the worst case is
+ * yesterday's wording, not a gift card page that says nothing about how a gift
+ * card arrives.
+ */
+function paintGiftCardDelivery() {
+  let text = '';
+  try { text = (window.ZWMessages && window.ZWMessages.get('giftCardDelivery')) || ''; } catch (_) {}
+  if (!text) return;
+  ['giftCardDeliveryNote', 'giftCardDeliveryText'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  });
 }
 
 /* ── A GIFT CARD THE BUYER PRICES THEMSELVES ─────────────────────────────────
@@ -421,7 +444,96 @@ function gcPolicy() {
   };
 }
 
+/* --- THE AMOUNTS THIS CARD IS SOLD IN --------------------------------------
+ * Set per product, in the admin product form, because they belong to the card
+ * rather than to the store: two gift cards can reasonably be sold in different
+ * denominations, and a store-wide list would make the product form write a
+ * global setting.
+ *
+ * Empty is the ordinary state and means exactly what it meant before this
+ * existed: the card sells at its listed price. That is also what a store sees
+ * before migration 0035 has been run -- the column simply is not in the row,
+ * the list comes back empty, and the page behaves as it did yesterday.
+ *
+ * NOT bounded by minCents/maxCents. Those bound what a BUYER may type; these
+ * are amounts the store chose deliberately, and refusing a store its own $500
+ * card because free entry is capped at $500 would be the setting arguing with
+ * the shopkeeper.
+ */
+function gcDenominations() {
+  const raw = currentProduct && currentProduct.gift_card_denominations;
+  const out = [];
+  (Array.isArray(raw) ? raw : []).forEach((v) => {
+    const cents = Math.round(Number(v));
+    if (Number.isFinite(cents) && cents > 0 && out.indexOf(cents) === -1) out.push(cents);
+  });
+  out.sort((a, b) => a - b);
+  /* Eight is a row that still reads as a row. A store that types twenty is
+     asking for a dropdown, and the twenty-first would be off the bottom of a
+     phone. */
+  return out.slice(0, 8);
+}
+
 const gcMoney = (cents) => '$' + (Math.max(0, Number(cents) || 0) / 100).toFixed(2);
+/* Chips say $25, not $25.00. A row of trailing zeroes is noise on a control
+   whose whole job is to be scanned at a glance; the full figure is printed
+   directly above it as the price. */
+const gcMoneyShort = (cents) => {
+  const n = Math.max(0, Number(cents) || 0) / 100;
+  return '$' + (Number.isInteger(n) ? String(n) : n.toFixed(2));
+};
+
+/* --- THE CHIPS -------------------------------------------------------------
+ * Deliberately `.size-btn`, the site's own control for picking a variant, with
+ * only layout added. An amount IS the variant on a gift card -- it is the one
+ * choice a shopper makes before adding to the bag -- and a bespoke button
+ * beside a page full of size buttons is what made this section read as bolted
+ * on. Reusing the class also inherits light mode, super-light, the hover and
+ * selected states and the mobile sizing, none of which a new class would have
+ * had until somebody noticed.
+ */
+function renderGiftCardAmounts() {
+  const wrap = document.getElementById('giftCardAmounts');
+  const row = document.getElementById('giftCardAmountRow');
+  if (!wrap || !row) return;
+
+  const list = isGiftCardProduct() ? gcDenominations() : [];
+  const custom = isGiftCardProduct() && gcPolicy().on;
+  wrap.hidden = !(list.length || custom);
+  if (wrap.hidden) { _gcCustomCents = 0; return; }
+
+  row.textContent = '';
+  list.forEach((cents) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'size-btn gc-amt';
+    b.dataset.cents = String(cents);
+    b.textContent = gcMoneyShort(cents);
+    b.addEventListener('click', () => { _gcCustomCents = cents; paintGiftCardAmount(); });
+    row.appendChild(b);
+  });
+
+  if (custom) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'size-btn gc-amt gc-amt-custom';
+    b.id = 'giftCardAmountBtn';
+    b.textContent = 'Custom';
+    b.addEventListener('click', () => window.openGiftCardAmount());
+    row.appendChild(b);
+  }
+
+  /* SOMETHING IS ALWAYS CHOSEN once chips exist. Left unset, the line would go
+     into the bag at the catalogue price while the row showed nothing selected
+     -- a shopper picking no chip and getting a figure that appears on none of
+     them. The listed price wins where it is one of the amounts, because that is
+     the figure the page has been showing all along. */
+  if (!_gcCustomCents && list.length) {
+    const face = currentProductPriceCents();
+    _gcCustomCents = list.indexOf(face) > -1 ? face : list[0];
+  }
+  paintGiftCardAmount();
+}
 
 window.openGiftCardAmount = function () {
   const p = gcPolicy();
@@ -436,14 +548,30 @@ window.openGiftCardAmount = function () {
     hint.dataset.tone = '';
     hint.textContent = 'Any amount between ' + gcMoney(p.minCents) + ' and ' + gcMoney(p.maxCents) + '.';
   }
-  modal.hidden = false;
+  /* `.open`, not `hidden`. The class is what the whole storefront's modal
+     appearance keys off — scrim, blur, panel, motion, the mobile sheet — and it
+     is also what modal-lock.js looks for when it decides whether the page
+     behind should stop scrolling. */
+  modal.classList.add('open');
   input.focus();
   input.select();
+  if (!modal.__zwWired) {
+    modal.__zwWired = true;
+    /* Tapping the scrim closes it; tapping the panel does not. Every other
+       dialog on the site behaves this way and a shopper will try it. */
+    modal.addEventListener('click', (e) => { if (e.target === modal) window.closeGiftCardAmount(); });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); window.applyGiftCardAmount(); }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('open')) window.closeGiftCardAmount();
+    });
+  }
 };
 
 window.closeGiftCardAmount = function () {
   const modal = document.getElementById('giftCardAmountModal');
-  if (modal) modal.hidden = true;
+  if (modal) modal.classList.remove('open');
 };
 
 function currentProductPriceCents() {
@@ -477,14 +605,33 @@ window.applyGiftCardAmount = function () {
 };
 
 /* The price on the page follows the choice, because a page still showing $50
-   under a button that says "$73 chosen" is the bag-says-35-checkout-says-40
-   problem in miniature. */
+   under a button that says "$300.00" is the bag-says-35-checkout-says-40
+   problem in miniature.
+
+   IT WROTE TO #productPrice, WHICH THIS PAGE DOES NOT HAVE. The price element
+   is #priceDisplay. getElementById answered null, the assignment did nothing,
+   and a shopper who chose $300 read $50 above a button reading $300 -- with no
+   error anywhere, because writing to nothing is not an error.
+
+   So it no longer writes the price at all. It asks renderPrice() to run, and
+   renderPrice() knows about the chosen amount. One writer for the price
+   element, which is the only arrangement in which the two cannot disagree. */
 function paintGiftCardAmount() {
-  if (!_gcCustomCents) return;
-  const el = document.getElementById('productPrice');
-  if (el) el.textContent = gcMoney(_gcCustomCents);
-  const btn = document.getElementById('giftCardAmountBtn');
-  if (btn) btn.textContent = gcMoney(_gcCustomCents) + ' — change amount';
+  const row = document.getElementById('giftCardAmountRow');
+  if (row) {
+    /* "Custom" is selected when the chosen figure is not one of the chips --
+       which is how a typed $300 is told from a tapped $300 without keeping a
+       second piece of state that could fall out of step with the first. */
+    const chosen = _gcCustomCents > 0;
+    const onAChip = chosen && !!row.querySelector('.gc-amt[data-cents="' + _gcCustomCents + '"]');
+    row.querySelectorAll('.gc-amt').forEach((b) => {
+      const cents = Number(b.dataset.cents) || 0;
+      b.classList.toggle('selected', cents > 0 ? cents === _gcCustomCents : (chosen && !onAChip));
+    });
+    const custom = document.getElementById('giftCardAmountBtn');
+    if (custom) custom.textContent = (chosen && !onAChip) ? gcMoneyShort(_gcCustomCents) : 'Custom';
+  }
+  try { renderPrice(); } catch (_) {}
 }
 
 function getDefaultProductSizes() {
@@ -1535,11 +1682,20 @@ function normalisePriceLook(raw) {
 
 function renderPrice() {
   const p = resolvedPrices(currentProduct);
+
+  /* --- A GIFT CARD IS WORTH WHAT THE BUYER CHOSE ---------------------------
+     And nothing else on this line is true of one. Gift cards are excluded from
+     promotions and member pricing at the till (see migration 0032: a 20% promo
+     on a $100 card is the store paying the customer), so a struck-through
+     figure or a "Member price" badge here advertises a discount checkout will
+     refuse to give. Suppressed on the product BEING a gift card, not on an
+     amount having been chosen -- the claim was wrong either way. */
+  const isGC = isGiftCardProduct();
   /* The SELECTED COLOUR's compare-at, not the product's. A colourway with its
      own price inherits no compare-at, so reading currentProduct.msrp here would
      strike through a figure this colour never cost and advertise a saving
      nobody is offering. */
-  const effective = p.priceCents / 100;
+  const effective = (isGC && _gcCustomCents > 0) ? _gcCustomCents / 100 : p.priceCents / 100;
 
   /* WHAT TO STRIKE THROUGH. One question, asked once.
 
@@ -1557,7 +1713,7 @@ function renderPrice() {
      the higher of the two means one rule covers both rather than a branch per
      case — and a branch per case is how the old version ended up able to show
      "Regular" beside a price that was not a member discount at all. */
-  const wasCents = Math.max(p.msrpCents || 0, p.usingMember ? (p.regularCents || 0) : 0);
+  const wasCents = isGC ? 0 : Math.max(p.msrpCents || 0, p.usingMember ? (p.regularCents || 0) : 0);
   const was = wasCents / 100;
   const saving = was > effective && was > 0
     /* FLOOR, not round. 12.5% rounds up to 13, and a store that advertises a
@@ -1613,7 +1769,7 @@ function renderPrice() {
   const escLabel = (v) => String(v == null ? '' : v)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const look = PRICE_LOOK;
-  const badge = p.usingMember && look.member_position !== 'hidden'
+  const badge = !isGC && p.usingMember && look.member_position !== 'hidden'
     ? `<span class="zw-price-member-tag zw-mtag-${look.member_style}">`
       + escLabel(look.member_label || 'Member price') + '</span>'
     : '';
@@ -1640,7 +1796,7 @@ function renderPrice() {
      beside a price-list figure that had discounted nothing. */
   const member = (p.memberCents || 0) / 100;
   const regular = (p.regularCents || 0) / 100;
-  if (p.usingMember) {
+  if (!isGC && p.usingMember) {
     /* Only when the badge was asked to live on its own line. Beside the price
        it has already been printed above, and saying it twice is the trailing
        line that made the member price look like an afterthought. */
@@ -2355,6 +2511,9 @@ function renderSizes() {
     if (!window.ZWMessages || !ZWMessages.subscribe) return;
     ZWMessages.subscribe(function () {
       try { if (typeof selectedSize !== 'undefined' && selectedSize) updateStockInfo(); } catch (_) {}
+      /* Unconditional: the delivery copy is drawn before an admin's edits land
+         and there is no size to have selected on a gift card page. */
+      try { paintGiftCardDelivery(); } catch (_) {}
     });
   }
   if (window.ZWMessages) attach();
@@ -2924,10 +3083,16 @@ function addToCart() {
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
   // Check if item already in cart
+  /* Product, size and colour used to be the whole list, and it was the whole
+     list for as long as those three decided the price. A buyer-named amount
+     broke it: a $25 card and a $300 card are the same product, the same (empty)
+     size and the same colour, so adding the second found the first and made two
+     of it -- the shopper asked for $300 and got a second $25. */
   const existingIdx = cart.findIndex(
     item => item.productId === cartItem.productId &&
              item.size === cartItem.size &&
-             item.colorName === cartItem.colorName
+             item.colorName === cartItem.colorName &&
+             (Number(item.customAmountCents) || 0) === (Number(cartItem.customAmountCents) || 0)
   );
 
   /* How many more of THIS variant may be added, not how many exist. Saying

@@ -463,7 +463,40 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
      * a customer-supplied price, and that is theft. */
     let pricedByBuyer = false;
     const faceFromCatalogue = Math.max(0, Number(product.gift_card_cents) || 0);
-    if (faceFromCatalogue > 0 && giftCardConfig.customAmounts) {
+
+    /* ── THE AMOUNTS THE STORE ITSELF OFFERS ────────────────────────────────
+     * A denomination is not a customer naming a price. It is the store naming
+     * several, on the product row, the same place the single price has always
+     * come from — so it is allowed whether or not free entry is switched on,
+     * and it is NOT subject to the free-entry bounds. Those bounds exist to
+     * cap what a stranger may type; refusing a store its own $500 card because
+     * typing is capped at $500 would be the setting arguing with the shopkeeper.
+     *
+     * Matched EXACTLY, never clamped to the nearest. A near miss means the cart
+     * and the catalogue disagree — a stale bag, or an edited one — and the
+     * honest answer is to fall through to the listed price rather than to
+     * charge the closest number the store happens to sell.
+     *
+     * Read off the product row, which this function already has. No second
+     * settings read, and therefore no window in which the allowed set and the
+     * price it governs could arrive out of step. Missing entirely (the column
+     * is not there yet) reads as an empty list, which is the state every gift
+     * card is in today. */
+    const denominations = Array.isArray(product.gift_card_denominations)
+      ? product.gift_card_denominations
+        .map((v) => Math.round(Number(v)))
+        .filter((v) => Number.isFinite(v) && v > 0)
+      : [];
+
+    if (faceFromCatalogue > 0 && denominations.length) {
+      const asked = Math.round(Number(raw?.customAmountCents) || 0);
+      if (asked > 0 && denominations.includes(asked)) {
+        priceCents = asked;
+        pricedByBuyer = true;
+      }
+    }
+
+    if (faceFromCatalogue > 0 && !pricedByBuyer && giftCardConfig.customAmounts) {
       const asked = Math.round(Number(raw?.customAmountCents) || 0);
       if (asked > 0) {
         /* ── THE CEILING CLAMPS, THE FLOOR REFUSES ─────────────────────────

@@ -33,7 +33,7 @@ const PKG   = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'
    `known` is whether the server has answered for this product yet — the page
    prints no figure at all until it has. Default true, because almost every case
    below is about what a settled price LOOKS like. */
-function render(prices, member, known, look) {
+function render(prices, member, known, look, gift) {
   const els = {};
   const doc = { getElementById: (id) => (els[id] = els[id] || { id, innerHTML: '' }) };
   const src = PROD.slice(PROD.indexOf('function renderPrice() {'));
@@ -43,10 +43,14 @@ function render(prices, member, known, look) {
   /* Builder → Product → Price. Defaults are what the page does with nobody
      having opened that tab, so most cases below pass nothing. */
   const LOOK = Object.assign({ member_position: 'inline', member_style: 'pill', member_label: '' }, look || {});
+  /* `gift` is {card:true, chosenCents:N} for the gift-card cases. Everything
+     else passes nothing and gets a product that is not one. */
+  const G = gift || {};
   new Function('resolvedPrices', 'currentProduct', 'document', 'syncProductSaveButton', 'isMemberSignedIn', 'window',
-    'PRICE_LOOK', 'PRICE_LOOK_READY',
+    'PRICE_LOOK', 'PRICE_LOOK_READY', 'isGiftCardProduct', '_gcCustomCents',
     body + '\nrenderPrice();')(
-    () => prices, { id: 'p-1' }, doc, () => {}, () => !!member, win, LOOK, known !== false);
+    () => prices, { id: 'p-1' }, doc, () => {}, () => !!member, win, LOOK, known !== false,
+    () => !!G.card, Number(G.chosenCents) || 0);
   return {
     now: (els.priceDisplay || {}).innerHTML || '',
     was: (els.msrpDisplay || {}).innerHTML || '',
@@ -56,6 +60,37 @@ function render(prices, member, known, look) {
 }
 
 console.log('\n  what a price looks like\n');
+
+console.log('  a gift card is worth what the buyer chose');
+{
+  /* THE BUG, EXACTLY AS IT WAS REPORTED: "if you put in a different amount it
+     should show the different amount you put instead of just whatever the face
+     value is of the card". It did not, and not because of the arithmetic —
+     paintGiftCardAmount() wrote to #productPrice, an element this page does not
+     have. getElementById answered null, the assignment did nothing, and the
+     page went on showing $50 above a button reading $300.00. Writing to nothing
+     is not an error, so nothing anywhere said so.
+
+     There is one writer for the price element now, and this is it. */
+  const r = render({ priceCents: 5000, regularCents: 5000, memberCents: 0, msrpCents: 0, usingMember: false, source: 'catalog' },
+    false, true, null, { card: true, chosenCents: 30000 });
+  ok('the page shows the amount that was chosen', /\$300\.00/.test(r.now),
+    'got ' + r.now + ' — a shopper reading $50 under a $300 button has been told two prices');
+  ok('…and not the listed face value', !/\$50\.00/.test(r.now));
+}
+
+{
+  /* A gift card is excluded from promotions and member pricing at the till, so
+     a struck-through figure or a Member badge on this page advertises a
+     discount checkout will refuse to give. Suppressed on the product BEING a
+     card, not on an amount having been chosen — the claim was wrong either way. */
+  const r = render({ priceCents: 5000, regularCents: 6500, memberCents: 5000, msrpCents: 6500, usingMember: true, source: 'catalog' },
+    true, true, null, { card: true });
+  ok('no struck-through figure on a gift card', r.was === '',
+    'got ' + r.was + ' — the till gives no discount on a card, so the page must not advertise one');
+  ok('and no member badge either', !/zw-price-member-tag/.test(r.now + r.member));
+  ok('the listed price still shows when nothing was chosen', /\$50\.00/.test(r.now));
+}
 
 console.log('  a discounted price, the way every store shows one');
 {

@@ -43,7 +43,7 @@
     <!-- Render-blocking on purpose (matches the storefront): cached woff2 means
          no font swap on every admin visit after the first. -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-    <link rel="stylesheet" href="admin.css?v=89dde3c0">
+    <link rel="stylesheet" href="admin.css?v=48f6c733">
 <script src="error-reporter.js?v=6622e7d7" defer></script>
 </head>
 <body>
@@ -4605,8 +4605,18 @@
                             <label class="form-label" for="giftCardValue">Face value <span class="required">*</span></label>
                             <input type="number" id="giftCardValue" class="form-input" step="0.01" min="0.01" placeholder="e.g. 50.00" style="max-width:220px;">
                             <p class="form-hint" style="margin-top:6px;">What the buyer's card is worth to spend. Kept separate from the price on purpose: a member paying&nbsp;$45 for a&nbsp;$50 card should still get&nbsp;$50, and a 20% promo on a&nbsp;$100 card must never buy&nbsp;$100 of balance for&nbsp;$80. Gift cards are excluded from promotions and member pricing for that reason.</p>
-                            <p class="form-hint" style="margin-top:8px;">Make each denomination its own product — $25, $50, $100 — so the catalogue, the grid and the bag draw them the way they already draw everything else.</p>
                             <div id="giftCardWarn" style="display:none;margin-top:12px;padding:10px 12px;border-radius:6px;border:1px solid #c9832b;background:rgba(201,131,43,.12);font-size:.83rem;line-height:1.55;color:var(--text-primary);"></div>
+
+                            <!-- The amounts this ONE card is sold in. It used to be
+                                 one product per denomination, which meant four SKUs,
+                                 four photo sets, four review threads and a shopper
+                                 going back to the collection to change their mind
+                                 about $50. See migration 0035 for why that changed. -->
+                            <label class="form-label" for="giftCardDenominations" style="margin-top:18px;">Amounts offered</label>
+                            <input type="text" id="giftCardDenominations" class="form-input" placeholder="25, 50, 75, 100" style="max-width:340px;" autocomplete="off">
+                            <div id="giftCardDenomPreview" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
+                            <p class="form-hint" style="margin-top:8px;">Dollar amounts, separated by commas, up to eight. The shopper picks one on the product page and it becomes both what they pay and what the card is worth &mdash; one number, so the two can never disagree. Leave this empty and the card simply sells at its face value.</p>
+                            <p class="form-hint" style="margin-top:6px;">A <strong>Custom</strong> button appears beside these when <em>Let buyers choose their own amount</em> is on, under Coupons &amp; Promotions &rarr; Gift Cards. The floor and ceiling there apply to what a buyer <em>types</em>; the amounts above are yours and are offered exactly as written.</p>
                         </div>
                     </div>
                     <div class="form-grid">
@@ -5031,9 +5041,9 @@
      run on page load, and a deferred copy would render the first list before
      the formatter existed. -->
 <script src="order-number.js?v=7a8bb114"></script>
-<script src="customer-messages.js?v=977fa40a"></script>
-    <script src="/zw-data.js?v=54eabcad"></script>
-    <script src="admin-main.js?v=370b11f8"></script>
+<script src="customer-messages.js?v=11117c5d"></script>
+    <script src="/zw-data.js?v=f3253604"></script>
+    <script src="admin-main.js?v=a4a09c87"></script>
     <!-- After admin-main: it needs `sb`, which that file creates at top level. -->
     <script src="admin-themes.js?v=15ad5372"></script>
     <script src="admin-theme-presets.js?v=f4b3ae29"></script>
@@ -5046,7 +5056,7 @@
          AFTER commerce-admin.js: that module also wraps navigateTo and handles
          `commerce` without calling through, so the wrapper installed second is
          the one that survives. -->
-    <script src="stored-value-admin.js?v=ca92af35"></script>
+    <script src="stored-value-admin.js?v=4d6f5aeb"></script>
 <!-- API Key Editor Modal -->
 <div id="api-key-modal">
     <div class="api-key-modal-box" style="position:relative;">
