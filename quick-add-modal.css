@@ -50,11 +50,12 @@
      place something now invisible, and a direction flip is a standing risk to
      any child that ever relies on an auto margin or an end-aligned flex item.
 
-     Hiding a bar removes the only signal there is more, though, and here the
-     thing past the edge is ADD TO BAG: a shopper who cannot find the button has
-     not been inconvenienced, they have been stopped. So the actions stay put
-     and only the form above them scrolls. Nothing important can be below the
-     fold, because the fold is above them. */
+     Pinning the actions row to the foot of the pane was tried, so the button
+     could never sit below the fold. It looked as bad as it sounds: a
+     full-bleed bar with its own border, across the middle of the form and over
+     the email field. A five-field form whose submit is reached by scrolling is
+     the most ordinary thing on the web, and the pane already clips its last
+     field mid-height — which is what "there is more" looks like. */
   .quick-add-product-box .quick-add-review-body{
     overflow-y:auto; min-height:0; overscroll-behavior:contain;
     scrollbar-width:none; -ms-overflow-style:none;
@@ -63,19 +64,6 @@
     border-left:1px solid var(--c08);
   }
   .quick-add-product-box .quick-add-review-body::-webkit-scrollbar{ display:none; }
-  /* Only where the pane actually overflows, which is the gift card: its amount
-     row and four fields are what run past the fold. A garment's options fit, so
-     `position:sticky` would never move the row — but the hairline and the
-     full-bleed background would still paint, leaving a bordered bar floating in
-     the middle of a centred block. :has(.zwgc) is the class gift-card-buy.js puts
-     on its own mount, so the footer appears exactly where it is doing something. */
-  .quick-add-product-box .quick-add-review-body:has(.zwgc) .quick-add-review-actions{
-    position:sticky; bottom:0; z-index:2;
-    background:var(--ink);
-    /* Clears the pane's own bottom padding so the row sits flush on the edge. */
-    margin:0 -2.2rem -2.2rem; padding:1rem 2.2rem 2.2rem;
-    border-top:1px solid var(--c08);
-  }
   .quick-add-product-box .quick-add-review-body::-webkit-scrollbar{ width:6px; }
   .quick-add-product-box .quick-add-review-body::-webkit-scrollbar-thumb{
     background:var(--border,var(--c20)); border-radius:3px;
