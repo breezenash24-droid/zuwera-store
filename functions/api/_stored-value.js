@@ -101,6 +101,11 @@ export async function lookup(env, code) {
       expiresAt: out.expires_at || null,
       ownerUserId: out.owner_user_id || null,
       ownerEmail: out.owner_email || null,
+      /* Set only when a signed-in customer deliberately claimed this card. NOT
+         the same as having an owner — returns and admin issuance both bind an
+         owner so the balance is listed on an account, and neither is a lock.
+         See migration 0034. */
+      lockedToOwner: out.locked_to_owner === true,
     };
   } catch (e) {
     console.error('stored value lookup —', e && e.message);
@@ -109,11 +114,16 @@ export async function lookup(env, code) {
 }
 
 /** Reserve up to `cents`. Returns what was actually held, which may be less. */
-export async function hold(env, code, cents, ref, seconds = 1800) {
+export async function hold(env, code, cents, ref, seconds = 1800, userId = null) {
   try {
     const out = await rpc(env, 'zw_stored_value_hold', {
       p_code: normalizeCode(code), p_cents: Math.max(0, Math.round(cents) || 0),
       p_ref: String(ref || ''), p_seconds: seconds,
+      /* Who is spending it. A locked card is refused in the SQL when this does
+         not match the owner — checked there rather than only in the quote,
+         because the hold is where money stops being spendable and it is the one
+         gate no future caller can forget to go through. */
+      p_user: userId || null,
     });
     return { ok: !!(out && out.ok), heldCents: Number(out?.held_cents) || 0, reason: out?.reason || '' };
   } catch (e) {
@@ -217,10 +227,18 @@ export async function voidCode(env, code, reason = '') {
  * would shrink the taxable amount, which is somebody else's money to decide
  * about, and would under-collect tax the store still owes.
  */
-export async function quoteAgainst(env, code, totalCents) {
+export async function quoteAgainst(env, code, totalCents, userId = null) {
   const info = await lookup(env, code);
   if (!info.found || !info.usable) {
     return { applied: 0, remaining: totalCents, info };
+  }
+  /* Refused at quote time as well as at the hold, and not for its own sake:
+     without this the card is accepted by the box, priced into the summary, and
+     then fails at the moment of payment with nothing useful to say. The shopper
+     gets the sentence before they reach for a card; the hold stays the gate
+     that cannot be bypassed. */
+  if (info.lockedToOwner && (!userId || String(userId) !== String(info.ownerUserId))) {
+    return { applied: 0, remaining: totalCents, info: { ...info, usable: false, reason: 'locked' } };
   }
   const applied = Math.max(0, Math.min(info.balanceCents, Math.max(0, totalCents)));
   return { applied, remaining: Math.max(0, totalCents - applied), info };

@@ -95,7 +95,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
       env, request,
     });
     const {
-      attributedUser, lineItems, inventoryItems, subtotalCents,
+      attributedUser, verifiedUser, lineItems, inventoryItems, subtotalCents,
       shipping, normalizedPromoCode, discountCents, tax, taxStateCode,
       taxRate, taxCents, totalCents, storedValue,
     } = quote;
@@ -147,7 +147,11 @@ export async function onRequestPost({ request, env, waitUntil }) {
     let heldCents = 0;
     if (storedValue.appliedCents > 0 && storedValue.code) {
       svHoldRef = idempotencyKey;
-      const h = await hold(env, storedValue.code, storedValue.appliedCents, svHoldRef, 1800);
+      /* The signed-in identity travels with the reservation. A card the
+         customer locked to their account is refused in the SQL when this does
+         not match — the quote refuses first so they get a sentence, and this
+         is the gate that holds even if a future caller skips the quote. */
+      const h = await hold(env, storedValue.code, storedValue.appliedCents, svHoldRef, 1800, verifiedUser?.id || null);
       heldCents = h.heldCents;
       if (!h.ok && h.reason === 'unavailable') {
         /* The ledger could not be reached. Charging the full amount would take

@@ -53,6 +53,7 @@ const REASON_KEY = {
   empty:       'giftCardSpent',
   expired:     'giftCardExpired',
   void:        'giftCardVoid',
+  locked:      'giftCardLocked',
   unavailable: 'giftCardOffline',
   no_code:     'giftCardEmpty',
 };
