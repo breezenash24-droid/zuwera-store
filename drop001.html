@@ -228,7 +228,7 @@ document.documentElement.classList.add('zw-collflash');
   <link rel="canonical" href="https://zuwera.store/drop001.html">
   <script src="preview-mode.js?v=799782ba" defer></script>
   <script src="/zw-data.js?v=b1d82c08" defer></script>
-  <script src="gift-card-buy.js?v=e5fbe55c" defer></script>
+  <script src="gift-card-buy.js?v=623c7f3e" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=a6453cd7" defer></script>
 <script src="pdp-gallery.js?v=2192736c" defer></script>
@@ -1007,6 +1007,30 @@ document.documentElement.classList.add('zw-collflash');
     }
     .collection-review-modal.closing .collection-review-box{animation:collectionModalOut .2s ease forwards}
     .collection-product-box{width:min(1080px,94vw);max-height:min(820px,92dvh);overflow:hidden}
+    /* ── A GIFT CARD ASKS FOR MORE THAN A COLOUR AND A SIZE ─────────────────
+       An amount row, four fields and a note. The panel is a fixed-height
+       dialog, so the extra content pushed it to its limit and the gallery
+       column stretched under a photograph that carries a max-height and cannot
+       stretch to meet it — leaving a band of empty tint above the picture.
+       Centring the media only moved the band from below it to above it.
+
+       So the media is allowed to FILL the column when a gift card is in the
+       panel: object-fit:contain still letterboxes the photograph rather than
+       cropping it, and there is no band left to move. The dialog also opens
+       wider, which is free on a desktop and irrelevant on a phone, where this
+       is already a full-width bottom sheet.
+
+       Keyed on :has(.zwgc) — the class gift-card-buy.js puts on its mount —
+       rather than on a marker the module reaches out to set, because how wide
+       this dialog opens is this stylesheet's business. */
+    @media(min-width:901px){
+      .collection-product-box:has(.zwgc){width:min(1240px,96vw)}
+      .collection-product-box:has(.zwgc) .collection-product-layout{
+        grid-template-columns:minmax(340px,1fr) minmax(460px,1fr);
+      }
+      .collection-product-box:has(.zwgc) .collection-review-body{overflow-y:auto}
+      .collection-product-box:has(.zwgc) .collection-review-media{max-height:none}
+    }
     .collection-product-layout{
       display:grid;
       grid-template-columns:minmax(420px,1.08fr) minmax(360px,.92fr);
