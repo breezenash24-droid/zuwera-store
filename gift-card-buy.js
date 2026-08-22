@@ -133,14 +133,13 @@
       '  border-color:rgb(var(--fg-rgb,244 241 235));color:rgb(var(--bg-rgb,9 9 11))}',
       '.zwgc-amt.is-on:hover{opacity:.9}',
 
-      /* HOW WIDE THE DIALOG OPENS IS THE DIALOG'S BUSINESS, not this form's.
-         It was done from here — a marker class on the nearest panel shell and a
-         !important width injected with the rest of these rules — and half of it
-         silently did nothing: the grid re-proportioned and the box never grew.
-         Chasing which selector lost is the wrong repair for a rule that should
-         not have been written here in the first place. Each panel sizes itself
-         off `:has(.zwgc)` in its own stylesheet now, where every other rule
-         about that panel's shape already lives. */
+      /* NOTHING HERE SIZES THE DIALOG THIS BLOCK IS SITTING IN. That was tried
+         from this file — a marker class stamped on the nearest panel shell and
+         an !important width injected alongside these rules — and half of it
+         silently did nothing while the other half only moved the empty space
+         around. A form asking for more than the pane beside it is what a
+         scrolling pane is for, and each panel sets that up in its own
+         stylesheet, where every other rule about its shape already lives. */
 
       '.zwgc-custom{margin-top:.8rem}',
       '.zwgc-custom[hidden]{display:none}',
