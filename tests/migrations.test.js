@@ -135,5 +135,52 @@ console.log('\n  the runner');
   ok('the bundle is rebuilt on every deploy', /build-migrations/.test(pkg.scripts.postinstall));
 }
 
+/* ── SQL POSTGRES WILL REFUSE, CAUGHT BEFORE IT REACHES POSTGRES ────────────
+   0035 shipped with this in a CHECK constraint:
+
+       0 = (select count(*) from unnest(gift_card_denominations) as d where d <= 0)
+
+   which reads perfectly and is illegal. A CHECK may only look at the row in
+   front of it, and Postgres answers `cannot use subquery in check constraint`.
+   Nothing in the repo could have known: the file parses, the bundle builds, the
+   suite passes, and the first thing that objects is the live database with the
+   migration half-applied and an admin watching a red toast.
+
+   That is the whole reason this test exists rather than a note in the file.
+   A rule Postgres enforces at APPLY time is worth restating here, where it is
+   enforced at commit time — this class of mistake is invisible until the worst
+   possible moment.
+
+   Deliberately narrow: it looks for SELECT inside a CHECK, not for clever SQL
+   in general. A test that tried to be a SQL parser would be wrong more often
+   than the migrations it guards. */
+console.log('\n  no migration ships SQL that Postgres will reject on sight');
+{
+  const offenders = [];
+  for (const f of files) {
+    const sql = codeOnly(fs.readFileSync(path.join(dir, f), 'utf8'));
+    /* Every `check (` and the parenthesised expression after it, matched by
+       counting brackets rather than by regex — a check constraint is full of
+       nested parentheses and a lazy match stops at the first one. */
+    let i = 0;
+    for (;;) {
+      const at = sql.toLowerCase().indexOf('check (', i);
+      if (at === -1) break;
+      let depth = 0, end = at + 6;
+      for (; end < sql.length; end++) {
+        if (sql[end] === '(') depth++;
+        else if (sql[end] === ')') { depth--; if (depth === 0) { end++; break; } }
+      }
+      const body = sql.slice(at, end);
+      if (/\bselect\b/i.test(body)) offenders.push(f + ': ' + body.replace(/\s+/g, ' ').slice(0, 90));
+      i = end;
+    }
+  }
+  ok('no CHECK constraint contains a subquery', offenders.length === 0,
+    offenders.join(' | ') + ' — Postgres answers "cannot use subquery in check '
+    + 'constraint" at APPLY time. For "every element is positive" over an array, '
+    + 'the quantified form `0 < all (col)` says the same thing in place.');
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
