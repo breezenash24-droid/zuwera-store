@@ -125,6 +125,14 @@
     style.id = 'stored-value-admin-style';
     style.textContent = `
       .sv-card { background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:20px; margin-top:18px; }
+      .sv-ledger-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+      .sv-ledger-table th { text-align:left; font-weight:600; font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; color:var(--text-secondary); padding:6px 10px; border-bottom:1px solid var(--border); }
+      .sv-ledger-table td { padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+      .sv-ledger-table code { font-size:.85rem; letter-spacing:.08em; }
+      /* Figures line up so a column of money reads as a column of money. */
+      .sv-ledger-table td[style*="right"] { font-variant-numeric:tabular-nums; }
+      .sv-ledger-sub { margin:4px 0 8px; background:var(--bg-primary); }
+      .sv-ledger-sub th, .sv-ledger-sub td { padding:6px 10px; }
       .sv-muted { color:var(--text-secondary); font-size:13px; line-height:1.55; }
       .sv-head { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; }
       .sv-switch { display:flex; align-items:center; gap:8px; font-size:.8rem; color:var(--text-muted); cursor:pointer; }
@@ -314,7 +322,7 @@
 
         <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
           <div class="sv-total-label">Look one up</div>
-          <div class="sv-muted" style="margin-top:4px">Needs the whole code. There is no search and no list — that is the point of a bearer instrument.</div>
+          <div class="sv-muted" style="margin-top:4px">Needs the whole code. There is no search <em>by</em> code — that is the point of a bearer instrument, and a box that answered “does this prefix exist” would be an oracle for guessing one. The ledger below lists what has been issued, with the codes masked.</div>
           <div class="sv-grid">
             <div class="sv-field" style="grid-column:span 2">
               <label for="svLookupCode">Code</label>
@@ -326,6 +334,41 @@
             <button class="btn btn-secondary" id="svVoidBtn">Void it</button>
           </div>
           <div id="svLookupResult" class="sv-muted" style="margin-top:10px;min-height:16px"></div>
+        </div>
+
+        <!-- ── THE LEDGER ─────────────────────────────────────────────────────
+             Migration 0030 is called "stored value is one ledger" and it always
+             was one: every issue, hold, capture, release, refund and void has
+             been writing a signed row since the day it shipped, and a balance
+             is the sum of those rows. That is why this screen and the till can
+             never disagree about what a card is worth — they are not comparing
+             two totals, they are reading the same one.
+
+             What never existed was any way to LOOK at it. The panel could check
+             a code, show a total, issue and void, and could not answer "which
+             cards are out", "what happened to this one", or "where did that $50
+             go". A ledger nobody can read is a table.
+
+             Codes are MASKED here, deliberately. This is a screen that may be
+             open on a shared display, and a full code is spendable money. The
+             lookup above still returns one, because that is somebody typing a
+             code they are already holding. -->
+        <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+          <div class="sv-head" style="align-items:center">
+            <div>
+              <div class="sv-total-label">Ledger</div>
+              <div class="sv-muted" style="margin-top:4px">Every card issued, newest first. Open one to see what has happened to it — the entries are what the balance is made of.</div>
+            </div>
+            <div class="sv-actions" style="margin:0">
+              <select class="form-select" id="svLedgerStatus" style="max-width:150px">
+                <option value="active">Active</option>
+                <option value="void">Voided</option>
+                <option value="all">All</option>
+              </select>
+              <button class="btn btn-secondary btn-sm" id="svLedgerBtn">Load</button>
+            </div>
+          </div>
+          <div id="svLedger" style="margin-top:12px"></div>
         </div>
       </div>
     `;
@@ -455,6 +498,10 @@
     });
 
     $('svDismissBtn')?.addEventListener('click', () => { state.lastCode = ''; render(); });
+    $('svLedgerBtn')?.addEventListener('click', loadLedger);
+    /* Changing the filter loads it: a dropdown that changes nothing until a
+       second button is pressed is a dropdown that looks broken. */
+    $('svLedgerStatus')?.addEventListener('change', loadLedger);
 
     $('svRefreshBtn')?.addEventListener('click', async () => {
       note('Counting…');
@@ -501,6 +548,105 @@
         if (out) out.textContent = err.message || 'Could not void that.';
       }
     });
+  }
+
+  const KIND_WORDS = {
+    issue: 'Issued', hold: 'Held at checkout', capture: 'Spent',
+    release: 'Hold released', refund: 'Refunded onto the card', void: 'Voided',
+  };
+
+  function when(iso) {
+    if (!iso) return '';
+    try { return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
+    catch (_) { return String(iso).slice(0, 10); }
+  }
+
+  /* Signed, and shown signed. An issue is +$50 and a capture is −$20, and the
+     column adds up to the balance — which is the point of showing it at all. */
+  function signed(cents) {
+    const n = Number(cents) || 0;
+    return (n < 0 ? '−' : '+') + money(Math.abs(n));
+  }
+
+  function renderLedger(cards) {
+    const host = $('svLedger');
+    if (!host) return;
+    if (!cards.length) {
+      host.innerHTML = '<div class="sv-muted">Nothing issued yet under that filter.</div>';
+      return;
+    }
+    host.innerHTML = `
+      <table class="sv-ledger-table">
+        <thead><tr>
+          <th>Card</th><th>Issued to</th><th>Reason</th>
+          <th style="text-align:right">Face</th><th style="text-align:right">Left</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${cards.map((c) => `
+            <tr data-sv-id="${esc(c.id)}">
+              <td>
+                <code>${esc(c.masked)}</code>
+                <div class="sv-muted" style="font-size:.72rem">
+                  ${c.kind === 'store_credit' ? 'Store credit' : 'Gift card'}${c.status !== 'active' ? ' · ' + esc(c.status) : ''}${c.locked ? ' · locked' : ''}
+                  ${c.createdAt ? ' · ' + esc(when(c.createdAt)) : ''}
+                </div>
+              </td>
+              <td>${esc(c.ownerEmail || '—')}${c.claimed ? '<div class="sv-muted" style="font-size:.72rem">claimed to an account</div>' : ''}</td>
+              <td class="sv-muted" style="font-size:.78rem">${esc(c.reason || c.sourceRef || '')}</td>
+              <td style="text-align:right">${esc(money(c.initialCents))}</td>
+              <td style="text-align:right"><strong>${esc(money(c.balanceCents))}</strong></td>
+              <td style="text-align:right"><button type="button" class="btn btn-secondary btn-sm sv-entries-btn" data-sv-id="${esc(c.id)}">History</button></td>
+            </tr>
+            <tr class="sv-entries-row" data-sv-for="${esc(c.id)}" style="display:none"><td colspan="6"></td></tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+
+    host.querySelectorAll('.sv-entries-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.svId;
+        const row = host.querySelector('.sv-entries-row[data-sv-for="' + id + '"]');
+        if (!row) return;
+        if (row.style.display !== 'none') { row.style.display = 'none'; return; }
+        row.style.display = '';
+        const cell = row.firstElementChild;
+        cell.innerHTML = '<div class="sv-muted">Reading the ledger…</div>';
+        try {
+          const r = await api({ action: 'entries', id });
+          const entries = r.entries || [];
+          if (!entries.length) { cell.innerHTML = '<div class="sv-muted">No entries — which should be impossible for a card that exists.</div>'; return; }
+          let running = 0;
+          cell.innerHTML = `
+            <table class="sv-ledger-table sv-ledger-sub">
+              <thead><tr><th>What happened</th><th>Order</th><th style="text-align:right">Amount</th><th style="text-align:right">Balance after</th><th>When</th></tr></thead>
+              <tbody>${entries.map((en) => {
+                running += Number(en.cents) || 0;
+                return `<tr>
+                  <td>${esc(KIND_WORDS[en.kind] || en.kind)}</td>
+                  <td class="sv-muted">${esc(en.orderRef || '')}</td>
+                  <td style="text-align:right">${esc(signed(en.cents))}</td>
+                  <td style="text-align:right">${esc(money(running))}</td>
+                  <td class="sv-muted">${esc(when(en.createdAt))}</td>
+                </tr>`;
+              }).join('')}</tbody>
+            </table>`;
+        } catch (err) {
+          cell.innerHTML = '<div class="sv-muted">' + esc(err.message || 'Could not read that.') + '</div>';
+        }
+      });
+    });
+  }
+
+  async function loadLedger() {
+    const host = $('svLedger');
+    if (!host) return;
+    host.innerHTML = '<div class="sv-muted">Loading…</div>';
+    try {
+      const r = await api({ action: 'list', status: $('svLedgerStatus')?.value || 'active', limit: 100 });
+      renderLedger(r.cards || []);
+    } catch (e) {
+      host.innerHTML = '<div class="sv-muted">' + esc(e.message || 'Could not read the ledger.') + '</div>';
+    }
   }
 
   async function refreshSummary() {

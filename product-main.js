@@ -3891,15 +3891,46 @@ window.openSizeGuideModal = async function() {
 // GLOBAL ESCAPE KEY (Close Modals)
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 document.addEventListener('keydown', (e) => {
+  /* ── ESCAPE FIRST, BEFORE THE TYPING GUARD ────────────────────────────────
+     The guard below exists so the arrow keys do not page the gallery while
+     somebody is filling in a field. It was swallowing Escape too — and the
+     cursor is in a field for most of the time any dialog on this page is open:
+     the amount box is focused and selected the moment it opens, Find My Size
+     lands on height, the review form on a textarea, the sign-in form on an
+     email. So Escape did nothing at exactly the moment it was wanted. */
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal.open').forEach(m => { m.classList.remove('open'); document.body.style.overflow = ''; });
+    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
+    return;
+  }
+
   // Ignore if user is typing in a form
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   if (e.key === 'ArrowLeft') { const p = document.getElementById('prevImg'); if (p && p.offsetParent !== null) updateMainImage(currentImageIndex - 1); }
   if (e.key === 'ArrowRight') { const n = document.getElementById('nextImg'); if (n && n.offsetParent !== null) updateMainImage(currentImageIndex + 1); }
+});
 
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.modal.open').forEach(m => { m.classList.remove('open'); document.body.style.overflow = ''; });
-    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
-  }
+/* ── AND TAPPING THE BACKDROP CLOSES IT ─────────────────────────────────────
+ * Two of the nine modals on this page did: the amount box and Find My Size,
+ * each with its own inline onclick. The other seven — sign in, account, all
+ * reviews, write a review, size & fit, the size guide — swallowed the click and
+ * sat there. A shopper who taps outside a dialog and watches nothing happen
+ * learns the page is stuck, not that this particular dialog is different.
+ *
+ * One delegated listener rather than seven more inline handlers, so the tenth
+ * modal gets it without anybody remembering.
+ *
+ * PAYMENT IS EXCLUDED, deliberately: a stray tap must never dismiss a sheet
+ * with a charge in flight behind it. Same for the mobile menu, which has its
+ * own close, and the success screen, which is not a thing to dismiss at all. */
+document.addEventListener('click', (e) => {
+  const overlay = e.target;
+  if (!overlay || !overlay.classList || !overlay.classList.contains('modal')) return;
+  if (!overlay.classList.contains('open')) return;
+  if (['payment-modal', 'payment-success', 'mobile-menu'].indexOf(overlay.id) > -1) return;
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+  if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
 });
 
 // Mobile menu backdrop click to close

@@ -234,9 +234,46 @@ ok('it draws into its own mount, not the one the coupons module rewrites',
   && !/commerceMount/.test(adminMod),
   'two modules writing one innerHTML is how a card disappears on the first save');
 
-ok('there is no list of codes anywhere in it',
-  !/action: 'list'/.test(adminMod) && !/'list'/.test(adminApi),
-  'a list of live codes is a list of spendable money');
+/* ── THIS INVARIANT WAS DELIBERATELY CHANGED, AND NARROWED ──────────────────
+   It used to read "there is no list of codes anywhere in it", enforced by
+   refusing the word `list` outright. That was too blunt by exactly one word.
+   The thing that must never exist is a list of SPENDABLE CODES; the thing that
+   must exist, and did not, is a list of CARDS — migration 0030 is called
+   "stored value is one ledger" and the admin had no way to read it. It could
+   check one code, show a total, issue and void, and could not answer "which
+   cards are out" or "where did that $50 go". A ledger nobody can read is a
+   table.
+
+   So the rule is now the sharper one it always meant: the listing may show what
+   a card is, what it is worth and who it went to, and it may never show enough
+   of a code to spend it. */
+ok('the ledger lists cards, and never a spendable code',
+  /action === 'list'/.test(adminApi) && /masked: maskCode\(row\.code\)/.test(adminApi)
+  && !/\bcode: row\.code\b/.test(adminApi),
+  'a list of live codes is a list of spendable money — last four is enough to '
+  + 'tell two cards apart and useless to somebody reading over a shoulder');
+
+ok('…and the mask keeps only the last four',
+  /function maskCode\(code\)[\s\S]{0,220}slice\(-4\)/.test(adminApi));
+
+ok('…while a full code still comes back for somebody who typed one',
+  /action === 'lookup'/.test(adminApi),
+  'that is a deliberate act about a card they are already holding, not a listing');
+
+ok('one card\'s history is a separate request from the listing',
+  /action === 'entries'/.test(adminApi),
+  'a card spent in ten parts has ten rows, and folding those into the listing '
+  + 'would make opening the panel fetch the entire history of every card ever issued');
+
+ok('…and a page of balances is one request, not one per card',
+  /async function balancesFor\(env, ids\)/.test(adminApi)
+  && /stored_value_id=in\.\(/.test(adminApi),
+  'fifty rows would otherwise be fifty round trips to the same RPC');
+
+ok('the panel renders the entries as a running balance',
+  /const KIND_WORDS = \{/.test(adminMod) && /Balance after/.test(adminMod),
+  'the sum IS the balance — showing the column adding up to it is the whole '
+  + 'reason a ledger beats a stored total');
 
 ok('…but the outstanding liability is visible, which needs no codes',
   /action === 'summary'/.test(adminApi) && /Outstanding/.test(adminMod));
