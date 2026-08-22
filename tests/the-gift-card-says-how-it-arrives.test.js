@@ -161,7 +161,21 @@ ok('the dialog collects a number and lets the module judge it',
 {
   const MOD = read('gift-card-buy.js');
   ok('the amount chips are the module\'s, so they look the same in all three places',
-    /class="zwgc-amt"/.test(MOD) && /\.zwgc-amt\.is-on\{background:currentColor/.test(MOD));
+    /class="zwgc-amt"/.test(MOD)
+    && /\.zwgc-amt\.is-on\{background:rgb\(var\(--fg-rgb/.test(MOD));
+  /* It WAS `background:currentColor` with the label inverted by filter and
+     mix-blend-mode. Both halves did exactly what they say and cancelled each
+     other out — white text inverted to black, differenced against the now-white
+     fill, came back white — so the selected chip had no readable label. The
+     page's ink/paper pair is the honest answer and cannot cancel itself out. */
+  {
+    /* Scoped to the RULE, not the file: the note above it in the module names
+       both properties on purpose, and a test that could not tell an explanation
+       from a declaration would forbid writing the explanation down. */
+    const rule = /\.zwgc-amt\.is-on\{[\s\S]{0,240}?\}/.exec(MOD);
+    ok('…and the selected one is not painted by a blend-mode trick',
+      !!rule && !/mix-blend-mode|filter:\s*invert/.test(rule[0]));
+  }
   ok('…and the product page no longer draws its own',
     !/className = 'size-btn gc-amt'/.test(PM),
     'two implementations of one control is what this module exists to end');

@@ -116,10 +116,45 @@
       '  font-family:var(--fm,monospace);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;',
       '  font-variant-numeric:tabular-nums;transition:border-color .18s,background .18s,color .18s}',
       '.zwgc-amt:hover{border-color:color-mix(in srgb, currentColor 55%, transparent)}',
-      /* Filled from the PAGE's own foreground, so it inverts correctly in every
-         theme without a light-mode branch. */
-      '.zwgc-amt.is-on{background:currentColor;border-color:currentColor}',
-      '.zwgc-amt.is-on span{filter:invert(1);mix-blend-mode:difference}',
+      /* ── THE SELECTED CHIP, AND WHY IT WAS BLANK ────────────────────────
+         This was `background:currentColor` with the label inverted by
+         `filter:invert(1); mix-blend-mode:difference`. Both halves worked
+         exactly as specified and cancelled each other out: white text inverted
+         to black, then differenced against the now-white background, came back
+         white. A filled chip with an invisible label.
+
+         Being clever here was the mistake. The site already has one honest
+         answer for "the page's ink and the page's paper" — --fg-rgb and
+         --bg-rgb, the pair theme-engine stamps and .zwf-modal already fills
+         from — so the chip uses it: ink for the fill, paper for the label,
+         correct in dark, light and super-light with no branch and nothing to
+         cancel out. */
+      '.zwgc-amt.is-on{background:rgb(var(--fg-rgb,244 241 235));',
+      '  border-color:rgb(var(--fg-rgb,244 241 235));color:rgb(var(--bg-rgb,9 9 11))}',
+      '.zwgc-amt.is-on:hover{opacity:.9}',
+
+      /* ── AND THE PANEL GETS WIDER, NOT TALLER ───────────────────────────
+         An amount row plus four fields and a note is a lot more than a colour
+         swatch and a size grid, and the quick-add panels are fixed-height
+         dialogs: the extra content pushed the box to its max, which left the
+         photograph sitting at the top of a column that had stretched under it.
+         "It moved the photo up" was the gallery being asked to fill a height
+         the right-hand side had grown into.
+
+         Widening is the fix that costs nothing — a dialog has room sideways on
+         a desktop and none downwards. The two panel shells are named here
+         because there are exactly two, and how wide a dialog opens is the
+         dialog's business rather than the form's. On a phone both are bottom
+         sheets at full width already, so this changes nothing there. */
+      '@media(min-width:901px){',
+      '  .zwgc-wide{width:min(1240px,96vw)!important;max-width:min(1240px,96vw)!important}',
+      '  .zwgc-wide .collection-product-layout,',
+      '  .zwgc-wide .quick-add-product-layout{grid-template-columns:minmax(340px,1fr) minmax(460px,1fr)}',
+      /* And the form side scrolls on its own if it still runs long, so the
+         gallery keeps its height instead of being stretched by it. */
+      '  .zwgc-wide .collection-review-body,',
+      '  .zwgc-wide .quick-add-review-body{overflow-y:auto}',
+      '}',
 
       '.zwgc-custom{margin-top:.8rem}',
       '.zwgc-custom[hidden]{display:none}',
@@ -202,6 +237,11 @@
     var chosen = 0;
 
     host.classList.add('zwgc');
+    /* The dialog this block is sitting in, if it is sitting in one. Null on the
+       product page, which is a page rather than a panel and has all the room it
+       needs. */
+    var shell = host.closest ? host.closest('.collection-product-box, .quick-add-product-box') : null;
+    if (shell) shell.classList.add('zwgc-wide');
     host.innerHTML =
       (list.length || pol.customAmounts ? (
         '<div class="zwgc-sec">'
@@ -378,7 +418,11 @@
         return line;
       },
       setAmount: function (cents) { return commit(cents); },
-      destroy: function () { host.innerHTML = ''; host.classList.remove('zwgc'); },
+      destroy: function () {
+        host.innerHTML = '';
+        host.classList.remove('zwgc');
+        if (shell) shell.classList.remove('zwgc-wide');
+      },
     };
   }
 
