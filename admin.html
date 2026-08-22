@@ -4028,7 +4028,7 @@
                     <!-- Ordered as a natural create flow: identify → price → define
                          variants → add photos of them → specs → publish last. -->
                     <button type="button" class="tab-button active" data-tab="core">Core Identity</button>
-                    <button type="button" class="tab-button" data-tab="pricing">Pricing</button>
+                    <button type="button" class="tab-button" data-tab="tab-pricing">Pricing</button>
                     <button type="button" class="tab-button" data-tab="colors">Variants & Stock</button>
                     <button type="button" class="tab-button" data-tab="visuals">Visuals & Model</button>
                     <button type="button" class="tab-button" data-tab="technical">Technical</button>
@@ -4526,8 +4526,20 @@
                     </div>
                 </div>
 
-                <!-- Tab: Pricing -->
-                <div id="pricing" class="tab-content">
+                <!-- Tab: Pricing.
+
+                     `tab-pricing`, not `pricing`. There is already a
+                     <div id="pricing" class="page"> higher up — the Pricing
+                     admin page — and the tab switcher resolves its target with a
+                     bare getElementById(tab), which returns the FIRST match in
+                     document order. Clicking Pricing in this form therefore put
+                     `.active` on the whole Pricing PAGE, and `.page.active` is
+                     how this panel shows a page: an entire admin section
+                     appeared inside Add Product.
+
+                     `tab-status` beside it was already prefixed. Somebody hit
+                     this once and renamed the one tab that bit them. -->
+                <div id="tab-pricing" class="tab-content">
                     <div class="form-grid">
                         <div class="form-group">
                             <label class="form-label">MSRP <span class="required">*</span></label>
@@ -4952,7 +4964,7 @@
 <script src="order-number.js?v=7a8bb114"></script>
 <script src="customer-messages.js?v=2c5164d0"></script>
     <script src="/zw-data.js?v=54eabcad"></script>
-    <script src="admin-main.js?v=44096fb7"></script>
+    <script src="admin-main.js?v=370b11f8"></script>
     <!-- After admin-main: it needs `sb`, which that file creates at top level. -->
     <script src="admin-themes.js?v=15ad5372"></script>
     <script src="admin-theme-presets.js?v=f4b3ae29"></script>
