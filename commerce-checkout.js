@@ -435,21 +435,56 @@
     const appliedCents = svAppliedCents();
     const totalCents = svTotalCents();
 
-    if (n.rows) n.rows.style.display = appliedCents > 0 ? '' : 'none';
+    /* ── APPLIED IS APPLIED, EVEN BEFORE THE TOTAL IS KNOWN ──────────────────
+       These rows were shown only once appliedCents was above zero — and that is
+       zero until shipping resolves, because a total still being worked out is
+       written as an em dash and read as unknown rather than as nothing.
+
+       So a shopper applied a card, saw the summary not mention it, and
+       concluded it had not worked. Which is the reasonable conclusion: the one
+       place a customer looks to check whether something took effect said
+       nothing at all.
+
+       The rows now appear the moment a code is accepted, and carry the same
+       em dash the rest of the summary uses while it is waiting. Pending is a
+       state this page already knows how to say. */
+    const known = totalCents > 0;
+    const applying = !!SV.code;
+
+    if (n.rows) n.rows.style.display = applying ? '' : 'none';
     if (n.label) n.label.textContent = SV.kind === 'store_credit' ? 'Store credit' : 'Gift card';
-    if (n.applied) n.applied.textContent = `-${formatMoney(appliedCents)}`;
-    if (n.dueRow) n.dueRow.style.display = appliedCents > 0 ? '' : 'none';
-    if (n.due) n.due.textContent = formatMoney(Math.max(0, totalCents - appliedCents));
+    if (n.applied) n.applied.textContent = known ? `-${formatMoney(appliedCents)}` : '—';
+    if (n.dueRow) n.dueRow.style.display = applying ? '' : 'none';
+    if (n.due) n.due.textContent = known ? formatMoney(Math.max(0, totalCents - appliedCents)) : '—';
     if (n.apply) n.apply.textContent = SV.code ? 'Remove' : 'Apply';
     if (n.input) n.input.disabled = !!SV.code;
 
-    svToggleExpress(appliedCents > 0);
+    /* Hidden as soon as a card is APPLIED, not once it covers something. PayPal
+       and the wallet sheet cannot honour one at any amount, so the moment the
+       shopper has committed to using it those buttons would charge the wrong
+       number — whether or not the total has finished loading. */
+    svToggleExpress(applying);
 
     if (n.message && SV.code) {
-      const left = Math.max(0, SV.balanceCents - appliedCents);
-      n.message.textContent = left > 0
-        ? `${formatMoney(SV.balanceCents)} on the card — ${formatMoney(appliedCents)} of it covers this order, ${formatMoney(left)} left over.`
-        : `${formatMoney(SV.balanceCents)} on the card, all of it going to this order.`;
+      /* ── "$0.00 OF IT COVERS THIS ORDER" WAS TRUE AND USELESS ──────────────
+         A total still waiting on shipping is written as an em dash, and
+         svTotalCents() correctly reports that as unknown rather than as zero.
+         The message then did the arithmetic anyway and announced that a $50
+         card covers nothing — which reads as a broken card, not as a total
+         that has not finished loading. It was the single most confident
+         sentence on the page about the one number nobody knew yet.
+
+         So an unknown total gets said out loud. The balance is real and worth
+         confirming — the code was checked against the server to get it — and
+         what happens next is a promise the till will keep, not a figure. */
+      if (totalCents <= 0) {
+        n.message.textContent = `${formatMoney(SV.balanceCents)} on the card. It comes off once your total is worked out.`;
+      } else {
+        const left = Math.max(0, SV.balanceCents - appliedCents);
+        n.message.textContent = left > 0
+          ? `${formatMoney(SV.balanceCents)} on the card — ${formatMoney(appliedCents)} of it covers this order, ${formatMoney(left)} left over.`
+          : `${formatMoney(SV.balanceCents)} on the card, all of it going to this order.`;
+      }
       n.message.style.color = 'rgba(110,210,130,.9)';
     }
   }

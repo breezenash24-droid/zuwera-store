@@ -77,10 +77,33 @@ ok('the browser sends a code and never an applied amount',
 ok('…and only to the route that can actually hold and capture one',
   /paypal-create-order/.test(cc) && !/storedValueCode[\s\S]{0,80}paypal/i.test(cc));
 
+/* Hidden the moment a card is APPLIED, not once it covers something. It used
+   to be gated on appliedCents > 0, which is zero until shipping resolves — so
+   between applying a card and the total arriving, PayPal and the wallet were
+   still offered on a cart they cannot honour at any amount. */
 ok('the express buttons come down while a card is applied',
   /EXPRESS_IDS\s*=\s*\[[^\]]*'paypal-button'[^\]]*\]/.test(cc)
-  && /svToggleExpress\(appliedCents > 0\)/.test(cc),
+  && /svToggleExpress\(applying\)/.test(cc)
+  && /const applying = !!SV\.code;/.test(cc),
   'a wallet sheet showing one total and an intent charging another');
+
+/* ── AND THE SUMMARY SAYS SO IMMEDIATELY ─────────────────────────────────────
+   The gift-card rows were shown only once appliedCents was above zero, which
+   is zero while the total is still an em dash. A shopper applied a card, the
+   one place they look to check said nothing, and they reported it as broken —
+   correctly, on the evidence they had. */
+ok('the summary shows the card the moment it is accepted',
+  /n\.rows\.style\.display = applying \? '' : 'none'/.test(cc)
+  && /n\.dueRow\.style\.display = applying \? '' : 'none'/.test(cc));
+
+ok('…carrying the same em dash the rest of the summary uses while it waits',
+  /n\.applied\.textContent = known \? `-\$\{formatMoney\(appliedCents\)\}` : '—'/.test(cc)
+  && /n\.due\.textContent = known \?/.test(cc),
+  'pending is a state this page already knows how to say');
+
+ok('…and the message does not announce a confident $0.00 against an unknown total',
+  /if \(totalCents <= 0\) \{[\s\S]{0,220}?It comes off once your total is worked out/.test(cc),
+  '"$0.00 of it covers this order" reads as a dead card, not as a pending total');
 
 /* Most of those elements are hidden already for their own reasons — PayPal is
    not configured, the browser has no wallet. Restoring them all to visible
