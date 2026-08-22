@@ -10523,7 +10523,14 @@
                 button.classList.add('active');
 
                 document.querySelectorAll('#productFormModal .tab-content').forEach(c => c.classList.remove('active'));
-                document.getElementById(tab).classList.add('active');
+                /* Scoped to the modal. A bare getElementById on a tab name
+                   returns the first match in the WHOLE document, and one of
+                   those names collided with an admin page id — so a tab click
+                   put `.active` on a `.page`, which is exactly how this panel
+                   shows a page. Renaming the duplicate fixed today's collision;
+                   scoping the lookup means the next duplicate cannot cause it. */
+                const panel = document.querySelector('#productFormModal #' + CSS.escape(tab));
+                if (panel) panel.classList.add('active');
 
                 if (tab === 'colors') rebuildStockMatrix();
                 if (tab === 'visuals') syncMediaColorFilter();
@@ -13729,7 +13736,7 @@ function escapeAttr(value) {
             // Map each mandatory field to the tab that contains it
             const fieldTabMap = {
                 sku: 'core', title: 'core', subtitle: 'core', gender: 'core', materialComposition: 'core',
-                msrp: 'pricing', currentPrice: 'pricing',
+                msrp: 'tab-pricing', currentPrice: 'tab-pricing',
                 productStatus: 'tab-status',
                 shippingWeightLb: 'technical',
             };
@@ -13755,7 +13762,7 @@ function escapeAttr(value) {
                     document.querySelectorAll('#productFormModal .tab-content').forEach(c => c.classList.remove('active'));
                     const btn = document.querySelector(`#productFormModal .tab-button[data-tab="${targetTab}"]`);
                     if (btn) btn.classList.add('active');
-                    const content = document.getElementById(targetTab);
+                    const content = document.querySelector('#productFormModal #' + CSS.escape(targetTab));
                     if (content) content.classList.add('active');
                 }
                 document.getElementById(firstInvalidField)?.focus();
