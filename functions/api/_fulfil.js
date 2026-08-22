@@ -37,7 +37,7 @@ import { incrementShippoMonthlyCount, recordLabelFailure } from './_shipping-usa
 import { recordTaxSale } from './_tax.js';
 import { shipFrom } from './_ship-from.js';
 import { mintOrderToken } from './_order-token.js';
-import { capture as captureStoredValue } from './_stored-value.js';
+import { capture as captureStoredValue, issue as issueStoredValue } from './_stored-value.js';
 /* One function decides what an order is called. Spelling the fallback out
    here again is how a store ends up with six names for one order. */
 import { orderNoPlain } from './_order-no.js';
@@ -173,6 +173,27 @@ export async function handleSuccessfulPayment(pi, meta, env, onTracking) {
     }
   }
 
+  /* ── GIFT CARDS BOUGHT ON THIS ORDER ──────────────────────────────────────
+     The other direction: that block SPENDS a balance, this one CREATES the
+     balances somebody just paid for.
+
+     Its own metadata key rather than a flag on the line items, because those
+     are trimmed to fit Stripe's 500-char cap and the trim drops everything but
+     sku/name/amount/quantity — so on a big cart, which is the cart most likely
+     to hold gift cards, the flag would vanish and nothing would be issued. The
+     customer would be charged for cards that never existed.
+
+     ONE CODE PER CARD. Forty people cannot share one, which is why quoteCart
+     refuses more than a hundred on an order: this loop is one write each, and
+     the cart's own limits would otherwise permit 2,475 of them.
+
+     ISSUED BEFORE THE EMAILS BELOW, so the confirmation can carry the codes.
+     Failure is logged and does not stop fulfilment — the card has been charged
+     and the goods, if any, still have to go. What it leaves behind is an order
+     that is short some codes, which is recoverable by hand from the Coupons
+     page; refusing to fulfil would lose the whole order to save the recovery. */
+  const giftCardCodes = await issueGiftCardsFor(meta, env);
+
   // Pre-fetch email keys + branding from Supabase api_key_overrides (admin overrides take priority)
   const emailKeyCache = await fetchSiteSettings(
     ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL',
@@ -269,7 +290,7 @@ export async function handleSuccessfulPayment(pi, meta, env, onTracking) {
       ? onTracking(tracking)
       : Promise.resolve(null),
 
-    sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache),
+    sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache, giftCardCodes),
 
     // Decrement product_sizes stock_quantity for each purchased item
     decrementInventory(meta, env),
@@ -652,6 +673,59 @@ async function createShippingLabel(pi, meta, env) {
 // and subtracts the purchased quantities from product_sizes.stock_quantity.
 // Non-fatal — a failed decrement never blocks order saving or emails.
 
+/**
+ * Mint the gift cards an order paid for, and hand back the codes.
+ *
+ * Never throws. Every failure mode here leaves the order intact and some codes
+ * unissued, which is a thing a human can put right from the Coupons page. The
+ * alternative — failing fulfilment — loses the whole order to save the
+ * recovery, and the card has already been charged.
+ *
+ * Bound to the buyer's account when the order has one, so the cards show up on
+ * their account page as well as in the email. A guest order has no account to
+ * bind, and the email is the only copy — which is why the email carries them
+ * rather than linking to a page.
+ */
+export async function issueGiftCardsFor(meta, env) {
+  let lines;
+  try {
+    lines = JSON.parse(meta.gift_cards || '[]');
+  } catch (_) {
+    console.error('gift cards: could not parse metadata for', meta.order_number, '—', meta.gift_cards);
+    return [];
+  }
+  if (!Array.isArray(lines) || !lines.length) return [];
+
+  const issued = [];
+  for (const line of lines) {
+    const cents = Math.round(Number(Array.isArray(line) ? line[0] : line && line.v) || 0);
+    const qty = Math.max(1, Math.min(100, Math.round(Number(Array.isArray(line) ? line[1] : line && line.q) || 1)));
+    if (cents <= 0) continue;
+    for (let n = 0; n < qty; n += 1) {
+      try {
+        const out = await issueStoredValue(env, {
+          kind: 'gift_card',
+          cents,
+          ownerUserId: meta.user_id || null,
+          ownerEmail: meta.customer_email || '',
+          reason: 'Bought on order ' + (meta.order_number || ''),
+          /* Which order paid for it. The same shape admin-refund uses, so
+             "where did this card come from" has one answer format. */
+          sourceRef: 'order:' + String(meta.order_number || ''),
+        });
+        issued.push({ code: out.code, cents });
+      } catch (e) {
+        /* Logged with the amount so the shortfall is recoverable by hand, and
+           never with a code — a log carrying live codes is spendable money
+           sitting where more people can read it than can issue it. */
+        console.error('gift card NOT issued on', meta.order_number, '—', cents, 'cents —', e && e.message);
+      }
+    }
+  }
+  if (issued.length) console.log('gift cards issued on', meta.order_number, '—', issued.length);
+  return issued;
+}
+
 export async function decrementInventory(meta, env) {
   const serviceKey = getSupabaseServiceKey(env);
   if (!env.SUPABASE_URL || !serviceKey) return;
@@ -991,10 +1065,51 @@ export async function saveOrderToSupabase(pi, meta, tracking, env) {
 // Assembles the order-confirmation email on the shared shell from pre-built HTML
 // fragments (items/address/carrier). Exported so the admin email preview can
 // render it with sample data — a real order can't be placed just to preview it.
-export function buildOrderConfirmation({ appearance, content, orderId, toName, itemsHtml, subtotalCents, discountRow, shippingDisplay, taxCents, totalDollars, addressHtml, carrierHtml, userId, orderNumber, token }) {
+export function buildOrderConfirmation({ appearance, content, orderId, toName, itemsHtml, subtotalCents, discountRow, shippingDisplay, taxCents, totalDollars, addressHtml, carrierHtml, userId, orderNumber, token, giftCardCodes = [] }) {
   const a = appearance;
   const emailC = content;
+
+  /* The codes come from a fixed alphabet with no HTML-special characters in it,
+     so this can never currently matter — which is exactly why it is here. That
+     is a fact about today's generator, not about this template, and a template
+     that interpolates into HTML without escaping is one refactor away from
+     being wrong. */
+  const escHtml = (v) => String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+  /* ── THE CODES, WHERE THE BUYER WILL ACTUALLY LOOK ────────────────────────
+     A gift card is not shipped and there is no tracking link to wait for — this
+     email IS the delivery. For a guest order it is the ONLY copy: there is no
+     account page to fall back on, nothing can look a code back up, and the
+     store cannot reissue what it cannot identify.
+
+     So it goes ABOVE the items rather than below the total. A block under the
+     shipping address is a block that gets skimmed past on a phone, and the one
+     thing this email exists to hand over would be the thing nobody saw.
+
+     Monospaced, and spaced out, because these get read aloud and typed. */
+  const cards = Array.isArray(giftCardCodes) ? giftCardCodes.filter((c) => c && c.code) : [];
+  const giftCardBlock = cards.length ? `
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid ${a.border};border-radius:8px;margin-bottom:24px;">
+          <tr><td style="padding:16px 18px 6px;">
+            <p style="margin:0;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:${a.muted};font-family:${a.fontMono};">${cards.length === 1 ? 'Your gift card' : 'Your gift cards'}</p>
+            <p style="margin:6px 0 0;font-size:13px;color:${a.muted};line-height:1.6;">Enter ${cards.length === 1 ? 'this code' : 'a code'} in the <strong style="color:${a.text};">Gift Card or Store Credit</strong> box at checkout. Whatever is left over stays on the ${cards.length === 1 ? 'card' : 'cards'} for next time. <strong style="color:${a.text};">Keep this email</strong> — it is the only copy we send.</p>
+          </td></tr>
+          ${cards.map((c) => `
+          <tr><td style="padding:10px 18px;">
+            <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px dashed ${a.border};border-radius:6px;">
+              <tr>
+                <td style="padding:12px 14px;font-family:${a.fontMono};font-size:17px;letter-spacing:.16em;color:${a.text};">${escHtml(c.code)}</td>
+                <td style="padding:12px 14px;text-align:right;font-size:15px;font-weight:700;color:${a.text};">$${(Number(c.cents || 0) / 100).toFixed(2)}</td>
+              </tr>
+            </table>
+          </td></tr>`).join('')}
+          <tr><td style="padding:4px 18px 16px;"></td></tr>
+        </table>` : '';
+
   const body = `
+        ${giftCardBlock}
         <!-- Items -->
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
           ${itemsHtml}
@@ -1079,7 +1194,7 @@ export function buildOrderConfirmation({ appearance, content, orderId, toName, i
   });
 }
 
-async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}) {
+async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}, giftCardCodes = []) {
   const resendKey = resolveSetting('RESEND_API_KEY', env, emailKeyCache);
   if (!resendKey) return null;
 
@@ -1221,6 +1336,10 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
        /account and a guest to the lookup. Passed explicitly rather than reached
        for off `meta` — see the note in buildOrderConfirmation. */
     userId: meta.user_id, orderNumber: meta.order_number, token: statusToken,
+    /* The one delivery a gift card gets. Nothing can look a code back up, so if
+       this email does not carry it, a guest order has bought nothing it can
+       ever use. */
+    giftCardCodes,
   });
 
   // ── Try Resend first ────────────────────────────────────────────────

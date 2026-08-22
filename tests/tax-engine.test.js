@@ -403,7 +403,16 @@ const OHIO = { state: 'OH', zip: '45202', country: 'US', city: 'Cincinnati', lin
     ok('the quote sends the cart as lines', /lineItems: taxLineItems/.test(pricing));
     /* Lines that do not add up to what is charged would have the provider tax
        money nobody paid, which a promo makes routine rather than rare. */
-    ok('…scaled to the discounted total, exactly', /remainder/.test(pricing) && /discountedSubtotalCents \/ subtotalCents/.test(pricing));
+    /* Was pinned to `discountedSubtotalCents / subtotalCents`. The base moved
+       when gift cards arrived: they are not taxed at purchase, so they are out
+       of the taxable figure AND out of these lines. What has to hold is that
+       the lines are scaled to whatever WILL be taxed and reconciled against
+       that same number — an engine reads either the lines or the single figure,
+       never both, so the two describing different money is two answers to one
+       question. */
+    ok('…scaled to exactly what will be taxed, and reconciled to the cent',
+      /taxableCents \/ discountableSubtotalCents/.test(pricing)
+      && /const remainder = taxableCents - allocated;/.test(pricing));
     /* In the shared metadata builder, so PayPal carries it too — a tax provider
        only files a sale it can refer back to, and an order paid the other way
        would have been unreportable. */

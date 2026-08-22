@@ -200,8 +200,14 @@ if (notClaimed.length) {
    what forbids the duplicate that produces. A fresh project installing from
    this snapshot gets the corrected generator and not the constraint, so it can
    still write two orders with one number until somebody runs 0031. Which is
-   exactly the cost this number exists to keep visible. */
-const DRIFT_BUDGET = 14;
+   exactly the cost this number exists to keep visible.
+
+   14 → 15 for 0032 (products.gift_card_cents, and the two checks that keep a
+   gift card positive and tax-exempt). The checks are the half of that feature
+   code cannot supply: without them a product can be marked as a gift card with
+   no value, or sold with tax charged at purchase and charged again when it is
+   spent — which is a refund and an apology, per card. */
+const DRIFT_BUDGET = 15;
 ok('install.sql has not fallen further behind', notClaimed.length <= DRIFT_BUDGET,
   notClaimed.length + ' migrations post-date the snapshot (budget ' + DRIFT_BUDGET + ') — '
   + 'regenerate it, then lower DRIFT_BUDGET to ' + notClaimed.length);

@@ -10,6 +10,7 @@
     "checkout-cart-smoke": "node scripts/checkout-cart-smoke.js",
     "audit:repo": "node scripts/repo-audit.js",
     "typecheck": "node scripts/typecheck.js",
+    "iife-check": "node scripts/iife-reads-the-future.js",
     "ci": "node scripts/repo-audit.js && node scripts/typecheck.js && node scripts/deployment-checklist.js && node tests/run.js",
     "bump-cache": "node scripts/bump-cache-version.js",
     "test": "node tests/run.js",
