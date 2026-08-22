@@ -89,6 +89,40 @@ function discountLabel(s) {
  * already on screen by the time this runs. A mail provider being down must not
  * turn a successful capture into an error the shopper sees.
  */
+/* Exported so the admin's Emails pane can render it, and so a test can call it.
+ *
+ * It was built inline inside the sender, which meant it was the one customer
+ * email with no way to look at it before it went out — you wrote the wording in
+ * Admin → Emails, saved, and found out what it looked like when a real signup
+ * received one. Extracting the builder costs nothing and is how every other
+ * email here is already shaped.
+ *
+ * That matters beyond convenience: buildOrderConfirmation once read a `meta`
+ * that was not in its scope, and every order confirmation threw ReferenceError
+ * before it reached the send — silently, for every order, because the failure
+ * was swallowed by Promise.allSettled. Nothing static finds a free variable in
+ * a template string. Only calling the function does.
+ *
+ * {code} and {discount} are both empty when the popup is collecting addresses
+ * with no offer attached, which is why the code block disappears rather than
+ * rendering an empty dashed box. */
+export function buildPopupWelcomeEmail({ appearance, content, code = '', label = '' }) {
+  const a = appearance;
+  const vars = { code: code || '', discount: label || '' };
+  const codeBlock = code
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:4px 0 18px;">
+         <div style="display:inline-block;padding:14px 26px;border:1px dashed ${a.border};border-radius:6px;font-family:${a.fontMono};font-size:20px;letter-spacing:.18em;color:${a.text};">${String(code).replace(/[<>&]/g, '')}</div>
+       </td></tr></table>`
+    : '';
+  return renderEmailShell(a, {
+    kicker: fillTemplate(content.kicker, vars),
+    heading: fillTemplate(content.heading, vars),
+    intro: fillTemplate(content.intro, vars),
+    bodyHtml: codeBlock,
+    footer: fillTemplate(content.footer, vars),
+  });
+}
+
 async function sendWelcomeEmail(env, { to, code, label }) {
   // Same key set every other email function loads, so the theme, the logo and
   // the editable copy all resolve exactly as they do elsewhere.
@@ -101,19 +135,7 @@ async function sendWelcomeEmail(env, { to, code, label }) {
   const c = getEmailContent(cache, 'popup_welcome');
   const vars = { code: code || '', discount: label || '' };
 
-  const codeBlock = code
-    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:4px 0 18px;">
-         <div style="display:inline-block;padding:14px 26px;border:1px dashed ${a.border};border-radius:6px;font-family:${a.fontMono};font-size:20px;letter-spacing:.18em;color:${a.text};">${String(code).replace(/[<>&]/g, '')}</div>
-       </td></tr></table>`
-    : '';
-
-  const html = renderEmailShell(a, {
-    kicker: fillTemplate(c.kicker, vars),
-    heading: fillTemplate(c.heading, vars),
-    intro: fillTemplate(c.intro, vars),
-    bodyHtml: codeBlock,
-    footer: fillTemplate(c.footer, vars),
-  });
+  const html = buildPopupWelcomeEmail({ appearance: a, content: c, code, label });
   const subject = fillTemplate(c.subject, vars);
 
   // The shared chain: Resend → SendGrid → Brevo → Loops.

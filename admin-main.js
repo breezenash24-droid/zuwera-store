@@ -15381,6 +15381,23 @@ function escapeAttr(value) {
                 minimal: { subject: 'Start your return — order #{order}', kicker: 'Return', heading: 'Start your return', intro: 'Your link for order #{order} is below. It opens your order directly.', footer: 'If you did not request this, ignore this email.' },
                 playful: { subject: 'Sending it back? Here you go 📦', kicker: 'Return', heading: 'No hard feelings', intro: "It happens! Here's your link for order #{order} — one tap and you're in, no password required.", footer: "Didn't ask for this? Ignore away. Nothing has changed." },
             },
+            /* The card's own email. {amount} is the total across every card on
+               the order. None of these tones make a joke of the footer — it is
+               the line that tells somebody the code is spendable by whoever has
+               it, and finding that out afterwards is the expensive way. */
+            gift_card_delivered: {
+                warm:    { subject: 'A gift card, just for you 💛', kicker: 'Gift card', heading: 'Here it is', intro: "Here's your gift card and what it's worth. Use it whenever you like — it doesn't have to go all at once, and whatever's left stays on the card.", footer: 'Keep this email safe: the code IS the card, and anyone who has it can spend it.' },
+                minimal: { subject: 'Your gift card', kicker: 'Gift card', heading: 'Your gift card', intro: 'Your code and its value are below. Enter it at checkout. Any unused balance stays on the card.', footer: 'Keep this email: the code is the card. Anyone who has it can spend it.' },
+                playful: { subject: 'Someone sent you money to spend 🎁', kicker: 'Gift card', heading: 'Go on then', intro: "There's {amount} with your name on it. Punch the code in at checkout and treat yourself — no need to spend it all in one go.", footer: 'Guard this email like cash, because it basically is — whoever has the code can spend it.' },
+            },
+            /* Goes to whoever BOUGHT the card, and only when somebody else
+               spent it. {amount} came off, {balance} is left, {code} is the
+               last four characters. It says nothing about what was bought. */
+            gift_card_spent: {
+                warm:    { subject: 'Your gift card was used', kicker: 'Gift card', heading: 'It got used', intro: 'The card you bought has been spent from — {amount} came off, and {balance} is still on it. We hope it went to something good.', footer: "You're getting this because you bought the card. We don't share what it was spent on." },
+                minimal: { subject: 'Gift card used — {amount}', kicker: 'Gift card', heading: 'Card ending {code}', intro: '{amount} was spent. {balance} remains.', footer: "You bought this card. We don't share what it was spent on." },
+                playful: { subject: 'Your gift card just did its job 🎉', kicker: 'Gift card', heading: 'Well spent', intro: '{amount} came off the card you bought — {balance} left to go. No, we are not telling you what they got.', footer: "You're getting this because you bought the card. What it bought stays between them and us." },
+            },
             abandoned_cart: {
                 warm:    { subject: 'You left something behind 💛', kicker: 'Still in your bag', heading: 'Your picks are waiting', intro: "Your bag is still here whenever you're ready. We saved everything for you — but popular sizes don't wait forever.", footer: 'You started a checkout at zuwera.store.' },
                 minimal: { subject: 'You left something in your bag', kicker: 'Still in your bag', heading: 'Your bag is waiting', intro: 'Your items are still saved. They may sell out soon.', footer: 'You started a checkout at zuwera.store.' },

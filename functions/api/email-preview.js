@@ -26,6 +26,8 @@ import { buildRefundEmail } from './admin-refund.js';
 import { buildOrderConfirmation } from './_fulfil.js';
 import { shippedEmail, deliveredEmail } from './shippo-webhook.js';
 import { buildJournalEmail } from './send-journal.js';
+import { buildGiftCardDelivered, buildGiftCardSpent } from './_gift-card-emails.js';
+import { buildPopupWelcomeEmail } from './popup-claim.js';
 
 const SITE = 'https://zuwera.store';
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
@@ -36,6 +38,8 @@ export const PREVIEWABLE_TYPES = [
   'order_confirmation', 'shipped', 'delivered', 'back_in_stock',
   'review_request', 'abandoned_cart', 'return_status', 'return_link',
   'return_label', 'refund', 'journal',
+  'gift_card_delivered', 'gift_card_spent',
+  'popup_welcome',
 ];
 
 export async function onRequestOptions({ env }) {
@@ -173,6 +177,29 @@ export function renderPreview(type, appearance, content, cache, logoUrl) {
 
     case 'return_status':
       return buildReturnStatus({ r: { orderLabel: '#AB12CD', orderId: 'AB12CD', customerMessage: '', carrier: 'USPS', service: 'Ground Advantage', labelUrl: '#', trackingNumber: '9400 1000 0000 0000', trackingUrl: '#', resolution: 'return' }, status: 'approved', resolution: 'return', fromFirstName: 'Alex', logoUrl, appearance });
+
+    /* Two cards rather than one, on purpose: the multi-card total line only
+       renders above one, and a preview that never shows it is a preview of
+       half the template. */
+    case 'gift_card_delivered':
+      return buildGiftCardDelivered({
+        appearance, content, toName: 'Alex',
+        cards: [{ code: 'ZW-4KTM-8PQR-C7WJ-2NHD', cents: 5000 }, { code: 'ZW-9BXF-3RGT-M6VK-5SYZ', cents: 2500 }],
+        shopUrl: SITE,
+      });
+
+    case 'gift_card_spent':
+      return buildGiftCardSpent({
+        appearance, content, toName: 'Alex',
+        code: 'ZW-4KTM-8PQR-C7WJ-2NHD', spentCents: 3200, remainingCents: 1800,
+        shopUrl: SITE,
+      });
+
+    /* With a code, because that is the version worth eyeballing — the block
+       disappears entirely when the popup is collecting addresses with no offer,
+       and an empty dashed box would be the thing to catch. */
+    case 'popup_welcome':
+      return buildPopupWelcomeEmail({ appearance, content, code: 'WELCOME10', label: '10% off' });
 
     case 'journal': {
       let js = cache.journal_settings;
