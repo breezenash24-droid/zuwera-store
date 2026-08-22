@@ -56,10 +56,27 @@ export function maskCode(code) {
  * assuming the reader knows, since somebody who has never been sent one has no
  * reason to guess that forwarding it gives it away.
  */
-export function buildGiftCardDelivered({ appearance, content, toName = '', cards = [], shopUrl = '' }) {
+export function buildGiftCardDelivered({ appearance, content, toName = '', cards = [], shopUrl = '', note = '' }) {
   const a = appearance;
   const list = (Array.isArray(cards) ? cards : []).filter((c) => c && c.code);
   const totalCents = list.reduce((sum, c) => sum + (Number(c.cents) || 0), 0);
+
+  /* ── A NOTE FROM WHOEVER SENT IT ────────────────────────────────────────
+     Free text written by an admin, so it is escaped and then has its line
+     breaks put back — a message typed across three lines that arrives as one
+     paragraph reads as machine-generated, which is the opposite of the point.
+
+     Set apart from the store's own wording with a rule and italics, because a
+     card issued to fix a bad experience is usually accompanied by an apology,
+     and an apology that looks like boilerplate is worse than none. */
+  const noteBlock = String(note || '').trim() ? `
+    <tr><td style="padding:0 0 22px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr><td style="border-left:2px solid ${a.border};padding:2px 0 2px 16px;font-size:15px;line-height:1.75;color:${a.text};font-style:italic;">
+          ${esc(String(note).trim()).replace(/\r?\n/g, '<br>')}
+        </td></tr>
+      </table>
+    </td></tr>` : '';
 
   const codeBlocks = list.map((c) => `
     <tr><td style="padding:0 0 12px;">
@@ -85,6 +102,7 @@ export function buildGiftCardDelivered({ appearance, content, toName = '', cards
     </td></tr>` : '';
 
   const body = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    ${noteBlock}
     ${codeBlocks}
     ${totalRow}
     <tr><td style="padding:20px 0 0;font-size:14px;line-height:1.7;color:${a.muted};">

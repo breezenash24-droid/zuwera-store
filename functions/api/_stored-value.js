@@ -143,15 +143,60 @@ export async function release(env, ref) {
   }
 }
 
+/**
+ * ── TWO CARDS MAY NEVER SHARE A CODE ────────────────────────────────────────
+ *
+ * `stored_value.code` is `text not null unique`, and that constraint is the
+ * whole guarantee. Not a SELECT-then-INSERT in this file — two issues racing
+ * would both find the code free and both proceed, which is the same
+ * lost-update shape already fixed in promo counts, stock and the balance. The
+ * database is the only place uniqueness cannot be raced, so it decides.
+ *
+ * Collisions are not the threat model. Sixteen characters from a 28-symbol
+ * alphabet is about 1.4 × 10²³ codes (~2⁷⁷); a million cards in the ledger puts
+ * the chance of the next draw colliding at roughly 7 × 10⁻¹⁸, and an even
+ * chance of ANY collision needs a few hundred billion cards.
+ *
+ * WHICH IS EXACTLY WHY A COLLISION IS WORTH SHOUTING ABOUT. At those odds it is
+ * not bad luck — it means the generator has stopped being random: a broken
+ * crypto.getRandomValues, a polyfill, a seeded stub left in a test harness. The
+ * retry keeps one unlucky customer from meeting an error; the console.error is
+ * the point, because the second time it happens somebody needs to know the
+ * codes are becoming guessable.
+ *
+ * A CALLER-SUPPLIED CODE IS NEVER RETRIED. Re-rolling it would hand back a
+ * different code than the one asked for, silently. That is a genuine conflict
+ * and gets reported as one.
+ */
 export async function issue(env, { kind, cents, ownerUserId = null, ownerEmail = '', issuedBy = null, reason = '', sourceRef = '', expiresAt = null, code = '' }) {
-  const c = code ? normalizeCode(code) : generateCode(kind === 'store_credit' ? 'ZWC' : 'ZWG');
-  const out = await rpc(env, 'zw_stored_value_issue', {
-    p_code: c, p_kind: kind, p_cents: Math.round(cents),
-    p_owner: ownerUserId, p_email: ownerEmail || null, p_by: issuedBy,
-    p_reason: reason || null, p_source: sourceRef || null, p_expires: expiresAt,
-  });
-  if (!out || !out.ok) throw new Error(out?.reason || 'Could not issue that.');
-  return { code: c, id: out.id, balanceCents: Number(out.balance_cents) || 0 };
+  const supplied = !!code;
+  const MAX_TRIES = supplied ? 1 : 3;
+
+  for (let attempt = 1; attempt <= MAX_TRIES; attempt += 1) {
+    const c = supplied ? normalizeCode(code) : generateCode(kind === 'store_credit' ? 'ZWC' : 'ZWG');
+    try {
+      const out = await rpc(env, 'zw_stored_value_issue', {
+        p_code: c, p_kind: kind, p_cents: Math.round(cents),
+        p_owner: ownerUserId, p_email: ownerEmail || null, p_by: issuedBy,
+        p_reason: reason || null, p_source: sourceRef || null, p_expires: expiresAt,
+      });
+      if (!out || !out.ok) throw new Error(out?.reason || 'Could not issue that.');
+      return { code: c, id: out.id, balanceCents: Number(out.balance_cents) || 0 };
+    } catch (e) {
+      /* 23505 is Postgres for unique_violation; PostgREST passes the SQLSTATE
+         through in the body, which rpc() has already put in the message. */
+      const isDuplicate = /23505|duplicate key|already exists/i.test((e && e.message) || '');
+      if (!isDuplicate || attempt === MAX_TRIES) throw e;
+      console.error(
+        'STORED VALUE CODE COLLISION on attempt ' + attempt + ' — this should be impossible at ~2^77 '
+        + 'of entropy. Check that crypto.getRandomValues is real in this runtime; if this repeats, '
+        + 'the codes are becoming guessable.'
+      );
+    }
+  }
+  /* Unreachable: the loop either returns or throws. Here so a reader does not
+     have to prove that to themselves. */
+  throw new Error('Could not issue that.');
 }
 
 export async function voidCode(env, code, reason = '') {

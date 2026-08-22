@@ -10827,15 +10827,33 @@
             const id = Math.random().toString(36).substr(2, 9);
             const item = document.createElement('div');
             item.className = 'color-variant-item';
+            /* ── CAPTIONS, NOT PLACEHOLDERS ───────────────────────────────────
+               A placeholder is the one label that disappears exactly when you
+               need it. Seven inputs sat in this row identified only by
+               placeholder, so a saved row read as: a colour chip, "Yellow",
+               "#e0b65a", "224,182,90", and three unlabelled numbers. Nothing on
+               screen said which of those was the member price and which was the
+               MSRP, and putting the wrong number in the wrong one is a pricing
+               error that ships silently.
+
+               The title attributes stay — they carry the rule about inheritance
+               being all-or-nothing, which is longer than a caption should be. */
             item.innerHTML = `
-                <div class="color-swatch" id="swatch-${id}" style="background-color: #000000;"></div>
-                <input type="text" class="form-input color-name-input color-name-${id}" placeholder="Color name" style="flex: 1;">
-                <input type="text" class="form-input color-hex-input color-hex-${id}" placeholder="#000000" maxlength="7" style="flex: 1;">
-                <input type="text" class="form-input color-rgb-input color-rgb-${id}" placeholder="0,0,0" style="flex: 1;">
-                <input type="number" step="0.01" min="0" class="form-input color-price-input color-price-${id}" placeholder="Price" title="Leave blank to use the product price. Setting it makes this colourway's own member price and MSRP apply too — including when they are blank." style="width:92px;">
-                <input type="number" step="0.01" min="0" class="form-input color-member-input color-member-${id}" placeholder="Member" title="Member price for this colourway. Only used when this row has its own price." style="width:92px;">
-                <input type="number" step="0.01" min="0" class="form-input color-msrp-input color-msrp-${id}" placeholder="MSRP" title="Compare-at price for this colourway. Only used when this row has its own price." style="width:92px;">
-                <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">Delete</button>
+                <div class="color-swatch" id="swatch-${id}"style="background-color: #000000;"></div>
+                <label class="cv-field cv-text"><span>Colour name</span>
+                    <input type="text" class="form-input color-name-input color-name-${id}" placeholder="e.g. Tennessee"></label>
+                <label class="cv-field cv-text"><span>Hex</span>
+                    <input type="text" class="form-input color-hex-input color-hex-${id}" placeholder="#000000" maxlength="7"></label>
+                <label class="cv-field cv-text"><span>RGB</span>
+                    <input type="text" class="form-input color-rgb-input color-rgb-${id}" placeholder="0,0,0"></label>
+                <label class="cv-field cv-money" title="Leave blank to use the product price. Setting it makes this colourway's own member price and MSRP apply too — including when they are blank."><span>Price</span>
+                    <input type="number" step="0.01" min="0" class="form-input color-price-input color-price-${id}" placeholder="—"></label>
+                <label class="cv-field cv-money" title="Member price for this colourway. Only used when this row has its own price."><span>Member</span>
+                    <input type="number" step="0.01" min="0" class="form-input color-member-input color-member-${id}" placeholder="—"></label>
+                <label class="cv-field cv-money" title="Compare-at price for this colourway. Only used when this row has its own price."><span>MSRP</span>
+                    <input type="number" step="0.01" min="0" class="form-input color-msrp-input color-msrp-${id}" placeholder="—"></label>
+                <button type="button" class="btn btn-danger btn-sm cv-del"
+                        onclick="this.closest('.color-variant-item').remove()">Remove</button>
             `;
             container.appendChild(item);
 
@@ -13805,6 +13823,78 @@ function escapeAttr(value) {
             return document.getElementById('taxCategory').value || null;
         }
 
+        /* ── WHAT A GIFT CARD HAS NONE OF ────────────────────────────────────
+           It has no colourways, no sizes, no stock, no fabric, no fit, no model
+           wearing it and nothing to measure. Leaving those on screen is not
+           merely untidy: a required field somebody cannot sensibly fill is a
+           Publish button that appears to do nothing, because validation stops
+           the save and the field it is complaining about is on a tab the person
+           has no reason to open.
+
+           Hidden AND excused from validation, together — hiding a field that is
+           still required is the same dead button with the explanation removed.
+           The values still saved are set in giftCardDefaults() below, because a
+           column that is NOT NULL does not care that the form stopped asking. */
+        const GIFT_CARD_HIDES_TABS = ['colors', 'technical'];
+        const GIFT_CARD_HIDES_FIELDS = [
+            'gender', 'materialComposition', 'productTags', 'colorway',
+            'modelHeight', 'modelSizeWorn', 'fitType',
+        ];
+
+        function _setFieldHidden(id, hidden) {
+            const el = document.getElementById(id);
+            const group = el && (el.closest('.form-group') || el.parentElement);
+            if (group) group.style.display = hidden ? 'none' : '';
+        }
+
+        /* The form stopped asking; the database did not stop requiring. These
+           columns predate the migration system, so nothing here can prove which
+           of them are NOT NULL — and finding out from a failed insert, after the
+           admin has filled in everything else, is the worst place to learn it.
+           Sensible values, written into the fields so the ordinary save path
+           picks them up rather than a second code path existing for gift cards.
+
+           Only ever fills a BLANK. Somebody who typed a subtitle meant it. */
+        function giftCardDefaults() {
+            const fill = (id, value) => {
+                const el = document.getElementById(id);
+                if (el && !String(el.value || '').trim()) el.value = value;
+            };
+            fill('gender', 'Unisex');
+            fill('materialComposition', 'Digital gift card — nothing is shipped');
+            fill('subtitle', 'Digital gift card');
+            /* MSRP is the compare-at price. A gift card is never on sale against
+               itself, so it matches the price rather than sitting empty and
+               failing a NOT NULL. */
+            const price = document.getElementById('currentPrice');
+            if (price) fill('msrp', price.value);
+            /* Weightless, and the till zeroes it anyway — but 0 saves cleanly
+               where '' may not. */
+            fill('shippingWeightLb', '0');
+        }
+
+        function syncGiftCardMode(on) {
+            GIFT_CARD_HIDES_FIELDS.forEach((id) => _setFieldHidden(id, on));
+
+            let activeWasHidden = false;
+            GIFT_CARD_HIDES_TABS.forEach((tab) => {
+                const btn = document.querySelector('#productFormModal .tab-button[data-tab="' + tab + '"]');
+                const panel = document.querySelector('#productFormModal #' + CSS.escape(tab));
+                if (btn) {
+                    if (on && btn.classList.contains('active')) activeWasHidden = true;
+                    btn.style.display = on ? 'none' : '';
+                }
+                if (panel && on) panel.classList.remove('active');
+            });
+
+            /* Hiding the tab you are standing on leaves the modal blank. Send
+               them somewhere that exists. */
+            if (activeWasHidden) {
+                const core = document.querySelector('#productFormModal .tab-button[data-tab="core"]');
+                if (core) core.click();
+            }
+        }
+
         function syncGiftCardFields() {
             const on = _isGiftCardChecked();
             const fields = document.getElementById('giftCardFields');
@@ -13814,6 +13904,7 @@ function escapeAttr(value) {
                 if (on) { tax.value = 'exempt'; tax.disabled = true; tax.title = 'A gift card is not taxed when it is bought — tax is charged when it is spent.'; }
                 else { tax.disabled = false; tax.title = ''; }
             }
+            syncGiftCardMode(on);
 
             const warn = document.getElementById('giftCardWarn');
             if (!warn) return;
@@ -13848,8 +13939,14 @@ function escapeAttr(value) {
                till zeroes it either way; this stops the form insisting on it.
                Its own face value takes its place as the required number. */
             const isGiftCard = _isGiftCardChecked();
-            const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'materialComposition', 'msrp', 'currentPrice', 'productStatus']
-                .concat(isGiftCard ? ['giftCardValue'] : ['shippingWeightLb']);
+            if (isGiftCard) giftCardDefaults();
+            const mandatoryFields = (isGiftCard
+                /* Everything a gift card genuinely has. Gender, fabric, MSRP and
+                   a shipping weight are not among them, and demanding one is how
+                   Publish becomes a button that does nothing — validation blocks
+                   on a field that is hidden, on a tab that is also hidden. */
+                ? ['sku', 'title', 'currentPrice', 'productStatus', 'giftCardValue']
+                : ['sku', 'title', 'subtitle', 'gender', 'materialComposition', 'msrp', 'currentPrice', 'productStatus', 'shippingWeightLb']);
             const form = document.getElementById('productForm');
 
             // Map each mandatory field to the tab that contains it
@@ -14182,6 +14279,22 @@ function escapeAttr(value) {
                     } else {
                         msg = 'A duplicate entry was detected while saving. Check your size or color data for conflicts.';
                     }
+                }
+                /* The two ways a gift card fails to save, both of which arrive
+                   as Postgres talking to itself. PostgREST rejects the ENTIRE
+                   row for one unknown column, so "gift_card_cents does not
+                   exist" reads as the whole product being wrong rather than as
+                   one migration not having been run. */
+                if (msg && /gift_card_cents/.test(msg) && /does not exist|schema cache|column/i.test(msg)) {
+                    msg = 'This store has not run migration 0032 yet, so there is nowhere to record the gift '
+                        + 'card value. Apply it under Admin → APIs → Database migrations, then save again. '
+                        + 'Everything else about this product is fine.';
+                } else if (msg && /products_gift_card_is_tax_exempt/.test(msg)) {
+                    msg = 'A gift card cannot be taxable — tax is charged when the card is SPENT, on whatever '
+                        + 'it buys. Set Tax category to “Not taxable”.';
+                } else if (msg && /products_gift_card_cents_positive/.test(msg)) {
+                    msg = 'A gift card needs a face value above zero. Untick “This product is a gift card” if '
+                        + 'it is an ordinary product.';
                 }
                 showToast('Error saving product: ' + msg, 'error');
             }

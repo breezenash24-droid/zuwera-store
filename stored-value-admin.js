@@ -173,8 +173,32 @@
           </div>
           <div class="sv-grid">
             <div class="sv-field" style="grid-column:1/-1">
-              <label for="svReason">Why (kept on the record, not shown to the customer)</label>
+              <label for="svReason">Why — kept on the record, <strong>never shown to the customer</strong></label>
               <input class="form-input" id="svReason" type="text" maxlength="300" placeholder="Return #1042 — damaged in transit">
+            </div>
+          </div>
+          <!-- Two fields, two audiences, and they are next to each other on
+               purpose so the difference is impossible to miss. "Return #1042 —
+               damaged in transit" is the right thing to write on the record and
+               the wrong thing to send to the person it happened to. -->
+          <div class="sv-grid">
+            <div class="sv-field" style="grid-column:1/-1">
+              <label for="svMessage">Message — <strong>this is what they read</strong></label>
+              <textarea class="form-input" id="svMessage" rows="3" maxlength="600"
+                        placeholder="Sorry about the jacket — here's something towards your next one."></textarea>
+              <div class="sv-muted" style="margin-top:.35rem">
+                Optional. Appears above the code in the email, in your store's own branding. Line breaks are kept.
+              </div>
+            </div>
+          </div>
+          <div class="sv-grid">
+            <div class="sv-field" style="grid-column:1/-1">
+              <label style="display:flex;align-items:flex-start;gap:.5rem;cursor:pointer;font-weight:400">
+                <input type="checkbox" id="svSendEmail" checked style="margin-top:.2rem">
+                <span>Email the card to them.
+                  <span class="sv-muted">Off means the code is yours to pass on — it is still shown once below, and nothing can look it back up afterwards.</span>
+                </span>
+              </label>
             </div>
           </div>
           <!-- The same code refunds ask for, and for the same reason: issuing a
@@ -258,6 +282,13 @@
          admin may have a reason — but the screen asks. */
       if (kind === 'store_credit' && !email) { note('Store credit needs an email, so it can reach an account.', 'error'); return; }
 
+      /* Asked before the money is made, not after. Ticking "email it to them"
+         with no address is a plan that fails silently at the last step, by
+         which point the card exists and the only copy of the code is on this
+         screen. */
+      const sendEmail = !!$('svSendEmail')?.checked;
+      if (sendEmail && !email) { note('Add an email address, or untick “Email the card to them”.', 'error'); return; }
+
       state.busy = true;
       note('Issuing…');
       try {
@@ -267,14 +298,25 @@
           amountCents: Math.round(amount * 100),
           ownerEmail: email,
           reason: String($('svReason')?.value || ''),
+          message: String($('svMessage')?.value || ''),
+          sendEmail,
           expiresAt: $('svExpires')?.value || null,
           authKey: $('svAuthKey')?.value || '',
         });
         /* Cleared on success so it is not sitting in the DOM for the next
            person at this screen. */
         if ($('svAuthKey')) $('svAuthKey').value = '';
+        if ($('svMessage')) $('svMessage').value = '';
         state.lastCode = out.code || '';
-        note('Issued ' + money(Math.round(amount * 100)) + '.');
+        /* Say what happened to the email, both ways. "Issued $50" while the
+           delivery quietly failed is how a customer ends up waiting for
+           something that was never sent — and the code is still on screen, so
+           an admin told the truth can act on it now rather than tomorrow. */
+        note('Issued ' + money(Math.round(amount * 100)) + '.'
+          + (out.emailed ? ' Emailed to ' + out.emailTo + '.'
+             : sendEmail ? ' NOT emailed (' + (out.emailError || 'unknown reason') + ') — send them the code below yourself.'
+             : ' Not emailed — the code below is yours to pass on.'),
+          out.emailed || !sendEmail ? '' : 'error');
         await refreshSummary();
         render();
       } catch (err) {
