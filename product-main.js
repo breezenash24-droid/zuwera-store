@@ -350,6 +350,46 @@ function compareProductSizeLabels(left, right) {
   return String(left || '').localeCompare(String(right || ''), undefined, { numeric: true, sensitivity: 'base' });
 }
 
+/* ── THE GIFT CARD PAGE TYPE ─────────────────────────────────────────────────
+ *
+ * One attribute on <body>; product.html's stylesheet takes it from there and
+ * removes every block marked as garment furniture — the colourway swatches, the
+ * size picker, the fit finder appended into it at runtime, and the Size & Fit
+ * and Fabric & Materials accordions.
+ *
+ * Reviews stay, deliberately. A gift card is a product people have opinions
+ * about — chiefly whether it arrived and whether it worked — and those are the
+ * reviews most worth reading on one.
+ *
+ * Shipping & Returns stays too: "how does this reach me" is a fair question
+ * about a gift card and the answer is not "nothing", it is "by email". The note
+ * that replaces the size picker says so where the shopper is already looking.
+ *
+ * WHY AN ATTRIBUTE AND NOT display:none FROM HERE. The second product layout in
+ * the page builder is a different arrangement of the same blocks, so a rule that
+ * keys off the body reaches both, while a list of element ids reaches whichever
+ * one somebody remembered.
+ */
+function isGiftCardProduct() {
+  return Number(currentProduct && currentProduct.gift_card_cents) > 0;
+}
+
+function applyGiftCardPageType() {
+  const on = isGiftCardProduct();
+  if (on) document.body.setAttribute('data-zw-product', 'gift-card');
+  else document.body.removeAttribute('data-zw-product');
+
+  const note = document.getElementById('giftCardNote');
+  if (note) note.hidden = !on;
+
+  /* The size guide link lives in the header of a section that is now gone, but
+     storefront-features.js also injects a "Find your size" button in there
+     after this runs. Both go with the container; this only clears the label so
+     nothing reads it out to a screen reader from a hidden subtree. */
+  const label = document.getElementById('sizeSectionLabel');
+  if (label && on) label.textContent = '';
+}
+
 function getDefaultProductSizes() {
   const categoryLower = categoryLabelFromProduct(currentProduct).toLowerCase();
   if (/(hat|cap|beanie|visor|bag|sock|headband|wristband)/.test(categoryLower)) {
@@ -838,9 +878,18 @@ function renderProduct() {
     const _cat = window.zwSingularCat((currentProduct.subtitle || '').trim());
     const _poss = _g === 'Men' ? "Men's" : _g === 'Women' ? "Women's" : _g === 'Kids' ? "Kids'" : (_g || '');
     const _custom = (currentProduct.descriptor || '').trim();
-    const _desc = _custom || ((_poss && _cat) ? (_poss + ' ' + _cat) : (_poss || _cat || 'All'));
+    /* "Unisex Gift Card" is the gender line doing its job on something with no
+       gender. A gift card is not men's or women's, it is a gift card — and the
+       auto-build is Gender + Category precisely because every OTHER product
+       needs both halves to read correctly. */
+    const _isCard = Number(currentProduct.gift_card_cents) > 0;
+    const _desc = _custom
+      || (_isCard ? 'Gift Card'
+        : ((_poss && _cat) ? (_poss + ' ' + _cat) : (_poss || _cat || 'All')));
     document.getElementById('genderTag').textContent = _desc;
   }
+
+  applyGiftCardPageType();
   renderProductCategoryNavigation(currentProduct).catch((error) => console.warn('Failed to render category navigation:', error));
 
   // Dynamic SEO meta — update page title and social tags per product
@@ -2714,7 +2763,16 @@ function addToCart() {
     if (typeof openAuthModal === 'function') openAuthModal('signin');
     return;
   }
-  if (!selectedSize) {
+  /* A gift card has no size, so there is nothing to ask for and nothing to
+     refuse over. It went into the bag as a MEDIUM before this — the page falls
+     back to XS–3XL when a product has no rows in product_sizes, so the picker
+     invented seven sizes and the shopper picked one of them.
+
+     The empty string is deliberate rather than 'One Size': the till's stock
+     check is `if (itemSize && limitToStock)`, so no size means no check at all,
+     and the order line then says nothing about a size instead of claiming a
+     medium on the record and in the confirmation email. */
+  if (!selectedSize && !isGiftCardProduct()) {
     alert('Please select a size');
     return;
   }
@@ -2731,7 +2789,8 @@ function addToCart() {
     productId: currentProduct.id,
     sku: selectedColorSku || currentProduct.sku,
     title: currentProduct.title,
-    size: selectedSize,
+    /* Empty for a gift card, not a made-up size — see addToCart above. */
+    size: isGiftCardProduct() ? '' : selectedSize,
     colorName: selectedColor?.color_name || 'Standard',
     colorHex: selectedColor?.hex_color || '',
     regularPrice,
