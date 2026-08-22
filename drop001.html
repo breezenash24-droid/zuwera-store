@@ -3175,7 +3175,13 @@ function updateCountdown() {
             image: originalImg || '',
             weightLb: parseFloat(p.shipping_weight_lb) || 0.5,
             panelId: colCardId,
-            imageFocalY: p.image_focal_y ?? 0
+            imageFocalY: p.image_focal_y ?? 0,
+            /* A gift card is not quick-addable — the panel asks colour and
+               size, and a card needs an amount and a recipient it cannot ask
+               for. Carried so the click can go straight to the product page:
+               the panel's own check happens after its fetch resolves, which
+               would open the broken panel for a moment first. */
+            giftCardCents: Number(p.gift_card_cents) || 0
           }));
           return `
             <a href="${productHref(p)}" style="text-decoration:none;color:inherit" onclick="${isLive ? `if(event.target.closest('.product-add-btn,.quick-size-panel-col,.qback-btn,.qcol-swatch,.qsz-btn,.zw-card-swatches')){event.preventDefault();event.stopPropagation();}` : ''}">
@@ -3404,6 +3410,12 @@ function updateCountdown() {
       console.error('Collection quick add payload parse failed:', err);
       showToast('Unable to open product options');
       return;
+    }
+
+    if (Number(payload.giftCardCents) > 0) {
+      window.location.assign('/product.html?id=' + encodeURIComponent(payload.productId)
+        + (payload.sku ? '&sku=' + encodeURIComponent(payload.sku) : ''));
+      return false;
     }
 
     colQuickAdd(

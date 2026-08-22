@@ -3168,7 +3168,13 @@ function renderProductCards(products, grid) {
       sku: p.sku || '',
       image: firstImg || '',
       weightLb: parseFloat(p.shipping_weight_lb) || 0.5,
-      imageFocalY: p.image_focal_y ?? 50
+      imageFocalY: p.image_focal_y ?? 50,
+      /* A gift card is not quick-addable — the panel asks colour and size, and
+         a card needs an amount and a recipient it cannot ask for. Carried so
+         the click can go straight to the product page: the panel's own check
+         happens only after its fetch resolves, which would open the broken
+         panel for a moment first. */
+      giftCardCents: Number(p.gift_card_cents) || 0
     }));
     return `
       <div data-zw-reveal class="pcard${hasSwatches ? ' pcard--swatched' : ''}" onclick="if(!event.target.closest('.quick-size-panel,.pcard-add-btn,.zw-card-swatches')){window.location.href='${productHref(p)}'}" style="cursor:pointer;position:relative;overflow:hidden">
@@ -4124,7 +4130,9 @@ window.__zwQuickAddClick = function(e, btn) {
     return;
   }
 
-  if (shouldBypassQuickAddModal()) {
+  /* Same reasoning as the mobile bypass directly below: this panel cannot ask
+     the two questions a gift card needs answered. */
+  if (Number(payload.giftCardCents) > 0 || shouldBypassQuickAddModal()) {
     quickAddGoToProduct(payload);
     return false;
   }

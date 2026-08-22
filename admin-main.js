@@ -14439,7 +14439,24 @@ function escapeAttr(value) {
                     const { error } = await sb.from('product_sizes').delete().eq('product_id', productId);
                     if (error) throw error;
                 }
-                const stockEntries = getStockMatrixEntries();
+                /* ── A GIFT CARD WRITES NO SIZE ROWS ──────────────────────
+                   The Variants & Stock tab is hidden for a gift card, and
+                   hiding it did nothing at all: the stock matrix is still in
+                   the DOM, still holding the seven default sizes, and this read
+                   it and inserted them. Every save wrote XS–3XL at zero stock
+                   against a product that is minted on demand.
+
+                   Which is how a live gift card came to read SOLD OUT. The
+                   collection card sums a product's stock, seven zeroes sum to
+                   zero, and zero is indistinguishable from "the last one sold"
+                   — while the admin, correctly, offered nowhere to fix it.
+
+                   The same trap as the hidden `required` field that killed
+                   Publish, and the hidden member price that saved anyway: a
+                   control nobody can see is still a control that submits. The
+                   delete above runs unconditionally, so saving a card that
+                   already has rows clears them. */
+                const stockEntries = _isGiftCardChecked() ? [] : getStockMatrixEntries();
                 const colorHexMap = {};
                 getColorVariantEntries().forEach(e => {
                     if (e.color_name && e.hex_color) colorHexMap[e.color_name.trim()] = e.hex_color.trim();

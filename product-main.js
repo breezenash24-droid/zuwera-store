@@ -163,7 +163,7 @@ document.addEventListener('visibilitychange', async () => {
     if (!resp.ok) return;
     const rows = await resp.json();
     if (!currentProduct || String(currentProduct.id) !== pid) return; // navigated away meanwhile
-    currentProduct.inventory = (Array.isArray(rows) ? rows : []).filter(r => String(r.product_id) === pid);
+    currentProduct.inventory = giftCardInventory(currentProduct, rows, pid);
     if (typeof renderSizes === 'function') renderSizes();
   } catch (_) {}
 });
@@ -370,6 +370,27 @@ function compareProductSizeLabels(left, right) {
  * keys off the body reaches both, while a list of element ids reaches whichever
  * one somebody remembered.
  */
+/* ── A GIFT CARD HAS NO INVENTORY, WHATEVER THE TABLE SAYS ───────────────────
+ * Rows exist. They should not, and the admin no longer writes them — but seven
+ * of them, XS to 3XL at zero stock, are sitting against a live gift card right
+ * now because every save used to insert the hidden size grid's defaults.
+ *
+ * Emptied here rather than fixed only at the source, because the whole product
+ * page branches on `inventory.length`: with rows present it draws a size
+ * picker, computes availability for a size nobody chose, and refuses to add.
+ * With none it takes the "no stock data, allow adding" path, which is the
+ * correct behaviour for something minted when somebody pays for it.
+ *
+ * Both writers go through here. There are two — the render, and a later
+ * no-store refresh that exists so an admin stock edit shows up immediately —
+ * and a rule applied to one of them is a rule that holds until the second
+ * request lands a moment later.
+ */
+function giftCardInventory(product, rows, productId) {
+  if (Number(product && product.gift_card_cents) > 0) return [];
+  return (Array.isArray(rows) ? rows : []).filter((r) => String(r && r.product_id) === String(productId));
+}
+
 function isGiftCardProduct() {
   return Number(currentProduct && currentProduct.gift_card_cents) > 0;
 }
@@ -1114,8 +1135,7 @@ async function loadProduct() {
   const colors = (Array.isArray(colorsData) ? colorsData : [])
     .filter((color) => String(color?.product_id) === strictProductId)
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  const inventory = (Array.isArray(sizesData) ? sizesData : [])
-    .filter((size) => String(size?.product_id) === strictProductId);
+  const inventory = giftCardInventory(productData, sizesData, strictProductId);
 
   currentProduct          = productData;
   currentProduct.images   = ensureProductImageFallback([], productData);
@@ -3871,15 +3891,46 @@ window.openSizeGuideModal = async function() {
 // GLOBAL ESCAPE KEY (Close Modals)
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 document.addEventListener('keydown', (e) => {
+  /* ── ESCAPE FIRST, BEFORE THE TYPING GUARD ────────────────────────────────
+     The guard below exists so the arrow keys do not page the gallery while
+     somebody is filling in a field. It was swallowing Escape too — and the
+     cursor is in a field for most of the time any dialog on this page is open:
+     the amount box is focused and selected the moment it opens, Find My Size
+     lands on height, the review form on a textarea, the sign-in form on an
+     email. So Escape did nothing at exactly the moment it was wanted. */
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal.open').forEach(m => { m.classList.remove('open'); document.body.style.overflow = ''; });
+    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
+    return;
+  }
+
   // Ignore if user is typing in a form
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   if (e.key === 'ArrowLeft') { const p = document.getElementById('prevImg'); if (p && p.offsetParent !== null) updateMainImage(currentImageIndex - 1); }
   if (e.key === 'ArrowRight') { const n = document.getElementById('nextImg'); if (n && n.offsetParent !== null) updateMainImage(currentImageIndex + 1); }
+});
 
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.modal.open').forEach(m => { m.classList.remove('open'); document.body.style.overflow = ''; });
-    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
-  }
+/* ── AND TAPPING THE BACKDROP CLOSES IT ─────────────────────────────────────
+ * Two of the nine modals on this page did: the amount box and Find My Size,
+ * each with its own inline onclick. The other seven — sign in, account, all
+ * reviews, write a review, size & fit, the size guide — swallowed the click and
+ * sat there. A shopper who taps outside a dialog and watches nothing happen
+ * learns the page is stuck, not that this particular dialog is different.
+ *
+ * One delegated listener rather than seven more inline handlers, so the tenth
+ * modal gets it without anybody remembering.
+ *
+ * PAYMENT IS EXCLUDED, deliberately: a stray tap must never dismiss a sheet
+ * with a charge in flight behind it. Same for the mobile menu, which has its
+ * own close, and the success screen, which is not a thing to dismiss at all. */
+document.addEventListener('click', (e) => {
+  const overlay = e.target;
+  if (!overlay || !overlay.classList || !overlay.classList.contains('modal')) return;
+  if (!overlay.classList.contains('open')) return;
+  if (['payment-modal', 'payment-success', 'mobile-menu'].indexOf(overlay.id) > -1) return;
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+  if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
 });
 
 // Mobile menu backdrop click to close

@@ -1146,7 +1146,6 @@ body[data-zw-product="gift-card"] .gc-note[hidden] { display: block; }
    would strand "Custom" on a line of its own. */
 .gc-amounts { margin: 1.6rem 0 1.2rem; }
 .gc-amt-row { display: flex; flex-wrap: wrap; gap: .5rem; }
-.size-grid.gc-amt-row { grid-template-columns: none; }
 .gc-amt { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
 /* Wider than a size chip: it holds a figure that grows, and "Custom" replaced
    by "$300" must not make the row jump. */
@@ -1201,6 +1200,31 @@ body[data-zw-product="gift-card"] .gc-note[hidden] { display: block; }
 .gc-amount-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .gc-amount-input { -moz-appearance: textfield; appearance: textfield; }
 .gc-amount-box .fs-submit { margin-top: 1.4rem; }
+
+/* ── THE TITLE WAS A 66-PIXEL HEADLINE OVER ONE NUMBER FIELD ────────────────
+   .review-modal-title is clamp(2.5rem, 4.6vw, 4.1rem) — a hero size, and the
+   right one for ALL REVIEWS or WRITE A REVIEW in a wide dialog. In a panel
+   sized by --zw-panel-width (24–34rem) with a single input in it, "CHOOSE AN
+   AMOUNT" wrapped to three lines and dwarfed everything under it.
+
+   The mistake was upstream of the CSS: #find-size-modal, which this was
+   modelled on, is UNREFERENCED — its trigger was removed when the fit finder
+   replaced it. The Find Your Size a shopper actually sees is .zwf-modal, built
+   in storefront-features.js, and it is a far more restrained thing: a 1.35rem
+   italic title, a .85rem subtitle at 60% opacity, 440px wide, 2rem of padding.
+
+   So the structure stays .modal > .mbox — that is what carries the scrim, the
+   panel, the radius, the light and super-light repaints and the mobile bottom
+   sheet, none of which .zwf-modal gets from the cascade — and the TYPE SCALE
+   comes from the modal people are actually looking at. */
+#giftCardAmountModal .review-modal-intro { padding: 2rem 1.9rem 0; }
+#giftCardAmountModal .review-modal-title {
+  font-size: 1.35rem; line-height: 1.15; margin: .55rem 0 0; letter-spacing: .04em;
+}
+#giftCardAmountModal .review-modal-copy {
+  font-size: .85rem; line-height: 1.5; margin-top: .5rem; max-width: none;
+}
+#giftCardAmountModal .review-modal-body { padding: 1.3rem 1.9rem 1.9rem; }
 /* Filled, like every other primary action on the site. --white and --black are
    both redefined per theme (see base.css), so this one pair is correct in all
    three without a light-mode branch.
@@ -1688,7 +1712,7 @@ body.super-light-mode { background: var(--ink) !important; }
              where the store allows a buyer-chosen figure. -->
         <div class="gc-amounts" id="giftCardAmounts" hidden>
           <p class="section-label">Amount</p>
-          <div class="size-grid gc-amt-row" id="giftCardAmountRow" role="group" aria-label="Gift card amount"></div>
+          <div class="gc-amt-row" id="giftCardAmountRow" role="group" aria-label="Gift card amount"></div>
         </div>
 
         <!-- ── WHO IT IS FOR ──────────────────────────────────────────────────
@@ -2114,7 +2138,7 @@ body.super-light-mode { background: var(--ink) !important; }
      rearrange after load. -->
 <script src="pdp-gallery.js?v=2192736c"></script>
 <script src="auth.js?v=fac9d15e" defer></script>
-<script src="product-main.js?v=c5191d5a"></script>
+<script src="product-main.js?v=41a84953"></script>
 
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <!-- CART MODAL                                                        -->

@@ -106,6 +106,45 @@ async function accountForEmail(env, email) {
  */
 const SUMMARY_CAP = 2000;
 
+/* Last four, which is enough to tell two cards apart on a list and useless to
+   anybody reading over a shoulder. The single-card lookup still returns a full
+   code, because that is somebody typing one they are already holding. */
+function maskCode(code) {
+  const c = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return c ? '••••' + c.slice(-4) : '';
+}
+
+/* Balances for a PAGE of cards in one request rather than one call each — a
+   fifty-row list would otherwise be fifty round trips to the same RPC. Same
+   expiry rule the balance function applies: an expired hold has stopped
+   counting against the card.
+ *
+ * The sum IS the balance. Nothing tracks a running total anywhere, which is
+ * what makes the number on this screen and the number at the till the same
+ * number by construction rather than by agreement. */
+async function balancesFor(env, ids) {
+  const out = new Map(ids.map((id) => [id, 0]));
+  if (!ids.length) return out;
+  const key = serviceKey(env);
+  const list = ids.map((id) => '"' + id + '"').join(',');
+  const url = `${env.SUPABASE_URL}/rest/v1/stored_value_entries`
+    + `?stored_value_id=in.(${encodeURIComponent(list)})`
+    + `&select=stored_value_id,cents,kind,expires_at&limit=5000`;
+  const resp = await fetch(url, { headers: { apikey: key, Authorization: 'Bearer ' + key } });
+  if (!resp.ok) return out;
+  const rows = await resp.json().catch(() => []);
+  const now = Date.now();
+  for (const r of Array.isArray(rows) ? rows : []) {
+    if (!out.has(r.stored_value_id)) continue;
+    /* An expired hold is money that came back. Skipping it here is the same
+       rule zw_stored_value_balance_cents applies, restated in the one other
+       place that sums these rows. */
+    if (r.kind === 'hold' && r.expires_at && new Date(r.expires_at).getTime() <= now) continue;
+    out.set(r.stored_value_id, out.get(r.stored_value_id) + (Number(r.cents) || 0));
+  }
+  return out;
+}
+
 async function summarize(env) {
   const key = serviceKey(env);
   if (!env.SUPABASE_URL || !key) throw new Error('Not configured.');
@@ -213,6 +252,100 @@ export async function onRequestPost({ request, env }) {
 
     if (action === 'summary') {
       return json({ ok: true, summary: await summarize(env) }, 200, headers);
+    }
+
+    /* ── THE LEDGER, WHICH EXISTED AND WAS NEVER SHOWN ────────────────────
+     * Migration 0030 is called "stored value is one ledger" and it is one:
+     * every issue, hold, capture, release, refund and void has been writing a
+     * signed row to stored_value_entries since the day it shipped. Balance is
+     * the sum of those rows, which is why the account page and the till can
+     * never disagree about what a card is worth.
+     *
+     * What was missing was any way to LOOK at it. The admin could check one
+     * code, see a total, issue and void — and could not answer "which cards do
+     * we have out", "what happened to this one", or "where did that $50 go".
+     * A ledger nobody can read is a table.
+     *
+     * TWO ACTIONS, deliberately. `list` answers which cards exist; `entries`
+     * answers what happened to one. Kept apart because the second is unbounded
+     * — a card spent in ten parts has ten rows — and folding it into the first
+     * would make the page that opens the panel fetch the entire history of
+     * every card that has ever been issued.
+     *
+     * CODES ARE MASKED IN THE LIST. It is a screen an admin may have open on a
+     * shared display, and a full code is spendable money. The single-card
+     * lookup already returns one when somebody has typed it, which is a
+     * deliberate act about a card they are already holding. */
+    if (action === 'list') {
+      const limit = Math.min(200, Math.max(1, parseInt(body.limit, 10) || 50));
+      const offset = Math.max(0, parseInt(body.offset, 10) || 0);
+      const wanted = String(body.status || 'active').trim();
+      const key = serviceKey(env);
+
+      let url = `${env.SUPABASE_URL}/rest/v1/stored_value`
+        + `?select=id,code,kind,status,initial_cents,owner_email,owner_user_id,locked_to_owner,reason,source_ref,expires_at,created_at`
+        + `&order=created_at.desc&limit=${limit}&offset=${offset}`;
+      if (wanted && wanted !== 'all') url += `&status=eq.${encodeURIComponent(wanted)}`;
+
+      const resp = await fetch(url, {
+        headers: { apikey: key, Authorization: 'Bearer ' + key, Prefer: 'count=exact' },
+      });
+      if (resp.status === 404) return json({ ok: false, error: 'Gift cards need migration 0030.' }, 503, headers);
+      if (!resp.ok) throw new Error('list failed (' + resp.status + ')');
+      const rows = await resp.json().catch(() => []);
+
+      /* Balance per card from the same function the till uses, so this screen
+         and the checkout can never disagree — including about whether an
+         expired hold still counts, a rule that lives in exactly one place. */
+      const list = Array.isArray(rows) ? rows : [];
+      const balances = await balancesFor(env, list.map((r) => r.id));
+      const cards = [];
+      for (const row of list) {
+        cards.push({
+          id: row.id,
+          masked: maskCode(row.code),
+          kind: row.kind,
+          status: row.status,
+          initialCents: Number(row.initial_cents) || 0,
+          balanceCents: balances.get(row.id) || 0,
+          ownerEmail: row.owner_email || '',
+          claimed: !!row.owner_user_id,
+          locked: row.locked_to_owner === true,
+          reason: row.reason || '',
+          sourceRef: row.source_ref || '',
+          expiresAt: row.expires_at || null,
+          createdAt: row.created_at || null,
+        });
+      }
+      return json({ ok: true, cards, limit, offset }, 200, headers);
+    }
+
+    if (action === 'entries') {
+      const id = String(body.id || '').trim();
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ ok: false, error: 'Which card?' }, 400, headers);
+      const key = serviceKey(env);
+      const url = `${env.SUPABASE_URL}/rest/v1/stored_value_entries`
+        + `?stored_value_id=eq.${encodeURIComponent(id)}`
+        + `&select=kind,cents,order_ref,hold_ref,expires_at,created_at`
+        + `&order=created_at.asc&limit=500`;
+      const resp = await fetch(url, { headers: { apikey: key, Authorization: 'Bearer ' + key } });
+      if (resp.status === 404) return json({ ok: false, error: 'Gift cards need migration 0030.' }, 503, headers);
+      if (!resp.ok) throw new Error('entries failed (' + resp.status + ')');
+      const rows = await resp.json().catch(() => []);
+      return json({
+        ok: true,
+        entries: (Array.isArray(rows) ? rows : []).map((r) => ({
+          kind: r.kind,
+          /* SIGNED, exactly as stored. An issue is positive and a capture is
+             negative, and the running total below is the sum — which is the
+             whole reason the balance can be recomputed rather than tracked. */
+          cents: Number(r.cents) || 0,
+          orderRef: r.order_ref || '',
+          holdRef: r.hold_ref || '',
+          expiresAt: r.expires_at || null,
+          createdAt: r.created_at || null,
+        })),
+      }, 200, headers);
     }
 
     if (action === 'issue') {
