@@ -26,9 +26,10 @@
  * tell the server to deduct more.
  */
 
-import { cors, json } from './_commerce.js';
+import { cors, json, getSetting } from './_commerce.js';
 import { limit } from './_ratelimit.js';
 import { lookup, storedValueEnabled, normalizeCode } from './_stored-value.js';
+import { messagesFrom } from './_messages.js';
 
 export async function onRequestOptions({ env }) {
   return new Response(null, { status: 204, headers: cors(env) });
@@ -38,13 +39,22 @@ export async function onRequestOptions({ env }) {
    card in their hand. "not_found" and "empty" are deliberately different: the
    first means check the code, the second means the card is real and spent, and
    telling somebody to re-type a code that was right is its own small cruelty. */
-const SAY = {
-  not_found: 'We could not find that code. Check it and try again.',
-  empty: 'That card has already been used up.',
-  expired: 'That card has expired.',
-  void: 'That card is no longer valid.',
-  unavailable: 'We could not check that just now. Please try again in a moment.',
-  no_code: 'Enter the code from your gift card.',
+/* The ledger's word for what went wrong, mapped to the shopper's. The sentences
+   themselves are no longer here: every other refusal a shopper meets at checkout
+   has been editable from Settings for months, and a store that can rewrite "out
+   of stock" but not "that card has already been used up" has a gap somebody
+   finds at the worst possible moment.
+
+   "not_found" and "empty" stay deliberately different — the first means check
+   the code, the second means the card is real and spent, and telling somebody to
+   re-type a code that was right is its own small cruelty. */
+const REASON_KEY = {
+  not_found:   'giftCardNotFound',
+  empty:       'giftCardSpent',
+  expired:     'giftCardExpired',
+  void:        'giftCardVoid',
+  unavailable: 'giftCardOffline',
+  no_code:     'giftCardEmpty',
 };
 
 export async function onRequestPost({ request, env }) {
@@ -60,14 +70,18 @@ export async function onRequestPost({ request, env }) {
 
   let body = {};
   try { body = await request.json(); } catch (_) { body = {}; }
+
+  /* One settings read, reused for every answer below. */
+  const say = messagesFrom(await getSetting(env, 'commerce_config', {}).catch(() => ({})));
+
   const code = normalizeCode(body.code);
-  if (!code) return json({ ok: false, enabled: true, error: SAY.no_code }, 400, headers);
+  if (!code) return json({ ok: false, enabled: true, error: say('giftCardEmpty') }, 400, headers);
 
   const info = await lookup(env, code);
   if (!info.found || !info.usable) {
     return json({
       ok: false, enabled: true,
-      error: SAY[info.reason] || SAY.not_found,
+      error: say(REASON_KEY[info.reason] || 'giftCardNotFound'),
     }, 200, headers);
   }
 
