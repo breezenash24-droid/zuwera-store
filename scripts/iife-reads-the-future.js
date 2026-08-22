@@ -32,6 +32,18 @@
  * where the general case is not, and it is the whole reason this file is
  * narrow. It looks at nothing else.
  *
+ * ── NOT IN CI YET, AND THAT IS THE POINT ────────────────────────────────────
+ *
+ * This gated CI for two commits and failed on Linux while passing on Windows,
+ * against a file set that was verified identical — 154 files, same counts, same
+ * commit. The run's log is unreadable without repository admin (403), so the
+ * cause is not yet known, and a gate that fails where nobody can see it is
+ * worse than no gate: it teaches people the red is meaningless.
+ *
+ * So it is `npm run iife-check` until somebody has read that log. It stays here
+ * because the bug it caught was real and would have taken checkout down; it
+ * stays OUT of the blocking chain because it has not earned that back.
+ *
  * ── HOW ─────────────────────────────────────────────────────────────────────
  *
  * TypeScript's own parser, which is already a dependency, rather than regexes
