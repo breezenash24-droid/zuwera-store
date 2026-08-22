@@ -95,7 +95,7 @@ console.log('\n  …but only where the store can honour it');
 console.log('\n  a return can now actually issue it, which is what changed');
 {
   ok('the refund route issues credit instead of calling a processor',
-    /import \{ issue as issueStoredValue, storedValueEnabled \} from '\.\/_stored-value\.js'/.test(refund)
+    /import \{ issue as issueStoredValue, storedValueEnabled(, voidCode)? \} from '\.\/_stored-value\.js'/.test(refund)
     && /kind: 'store_credit'/.test(refund));
 
   /* It goes through the route that already asks who you are, asks for

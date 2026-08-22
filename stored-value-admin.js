@@ -177,6 +177,18 @@
               <input class="form-input" id="svReason" type="text" maxlength="300" placeholder="Return #1042 — damaged in transit">
             </div>
           </div>
+          <!-- The same code refunds ask for, and for the same reason: issuing a
+               gift card creates money out of nothing, and being signed in as an
+               admin should not be enough to do that. It is a Cloudflare
+               environment variable, so it is not in the database and there is no
+               reset button here — which is the entire point of it. -->
+          <div class="sv-grid">
+            <div class="sv-field" style="grid-column:1/-1">
+              <label for="svAuthKey">Authorization code</label>
+              <input class="form-input" id="svAuthKey" type="password" autocomplete="off" placeholder="REFUND_SECRET">
+              <div class="sv-muted" style="margin-top:.35rem">Five wrong tries locks issuing for an hour. Looking a card up and voiding one do not need it — cancelling a code somebody should not have must never be the slow path.</div>
+            </div>
+          </div>
           <div class="sv-muted" style="margin-top:10px">
             An email that already has an account gets the balance attached to it, so it shows up on their account page. One that does not still issues — the code is how it travels.
           </div>
@@ -239,6 +251,7 @@
       const amount = Number($('svAmount')?.value || 0);
       if (!(amount > 0)) { note('Enter an amount greater than zero.', 'error'); return; }
       const email = String($('svEmail')?.value || '').trim();
+      if (!String($('svAuthKey')?.value || '').trim()) { note('The authorization code is required to issue.', 'error'); return; }
       const kind = $('svKind')?.value || 'gift_card';
       /* Store credit given to nobody in particular is a gift card with a
          confusing name on the accounts. The server does not enforce it — an
@@ -255,7 +268,11 @@
           ownerEmail: email,
           reason: String($('svReason')?.value || ''),
           expiresAt: $('svExpires')?.value || null,
+          authKey: $('svAuthKey')?.value || '',
         });
+        /* Cleared on success so it is not sitting in the DOM for the next
+           person at this screen. */
+        if ($('svAuthKey')) $('svAuthKey').value = '';
         state.lastCode = out.code || '';
         note('Issued ' + money(Math.round(amount * 100)) + '.');
         await refreshSummary();

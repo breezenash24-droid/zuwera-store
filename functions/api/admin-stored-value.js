@@ -25,7 +25,10 @@
  * is the same rule any gift card in a shop follows.
  */
 
-import { cors, json, decide, limitResponse, limitError } from './_commerce.js';
+import { cors, json, decide, limitResponse, limitError, mutateSetting, getSetting } from './_commerce.js';
+import {
+  checkMoneySecret, ISSUE_LEDGER_KEY, dailyCapCents, todayKey, pruneLedger,
+} from './_money-secret.js';
 import { record } from './_audit.js';
 import { issue, voidCode, lookup, normalizeCode, storedValueEnabled } from './_stored-value.js';
 
@@ -214,8 +217,92 @@ export async function onRequestPost({ request, env }) {
          against a mistyped amount turning $50 into $50,000. */
       if (amountCents > 500000) return json({ ok: false, error: 'That is over the $5,000 issuing limit.' }, 400, headers);
 
+      /* ── THE FACTOR ADMIN ACCESS ALONE DOES NOT GIVE YOU ──────────────────
+         Refunding money has always required this. Issuing it required only a
+         permission, which meant a stolen session could write itself the
+         per-call maximum and the audit log — which records the amount and
+         deliberately never the code — could not even say which card to cancel.
+
+         Checked for `issue` only. A lookup and a void both need to stay
+         reachable in a hurry: void is how you CANCEL a card that should not
+         exist, and putting the mint's lock on the fire exit would mean a stolen
+         code could not be killed by whoever noticed. */
+      const secret = await checkMoneySecret(env, {
+        key: body.authKey || body.refundKey,
+        adminId: admin.id,
+        rateLimitKey: 'stored_value_rate_limit',
+      });
+      if (!secret.ok) {
+        await record(env, admin, {
+          action: 'stored_value.issue_refused',
+          resource_type: 'stored_value',
+          metadata: { amountCents, reason: secret.locked ? 'locked' : 'bad_key' },
+        }, request);
+        return json({ ok: false, error: secret.error, needsAuthKey: true }, secret.status, headers);
+      }
+
       const ownerEmail = String(body.ownerEmail || '').trim();
       const ownerUserId = body.ownerUserId || await accountForEmail(env, ownerEmail);
+
+      /* ── NOBODY ISSUES TO THEMSELVES ──────────────────────────────────────
+         The plainest theft on this system is issuing to your own address and
+         spending it. Refused outright rather than reported afterwards — a rule
+         that fires before the money exists beats a row in a log that describes
+         money which already does.
+
+         Said honestly: somebody determined can use a second address they
+         control. What this removes is the INVISIBLE case, and it forces the
+         record to name a recipient who is not the person who signed the
+         request. A store owner who wants a card for testing can issue to
+         another address of their own; that is ten seconds, and it leaves a
+         trail that reads correctly. */
+      const mine = String(admin.email || '').trim().toLowerCase();
+      if ((ownerUserId && String(ownerUserId) === String(admin.id))
+        || (mine && ownerEmail.toLowerCase() === mine)) {
+        await record(env, admin, {
+          action: 'stored_value.issue_refused',
+          resource_type: 'stored_value',
+          metadata: { amountCents, reason: 'self_issue', ownerEmail },
+        }, request);
+        return json({
+          ok: false,
+          error: 'You cannot issue stored value to your own account. Ask another admin, '
+            + 'or issue it to the address it is actually for.',
+        }, 403, headers);
+      }
+
+      /* ── AND A DAY HAS A CEILING ──────────────────────────────────────────
+         The $5,000 below is per CALL, which stops a mistyped amount and nothing
+         else: a hundred calls of $4,999 were a hundred separate decisions each
+         of which passed. A ceiling that resets every request is not a ceiling.
+
+         Per admin, per UTC day, claimed through mutateSetting so two issues at
+         once cannot both read the same total and both be allowed. Per admin
+         rather than per store on purpose — the point is to bound what ONE
+         compromised session does before somebody notices, and a shared budget
+         lets the busiest person's ordinary work hide somebody else's theft. */
+      const cfg = await getSetting(env, 'stored_value', {}).catch(() => ({}));
+      const cap = dailyCapCents(cfg);
+      const day = todayKey();
+      let overBy = 0;
+      await mutateSetting(env, ISSUE_LEDGER_KEY, (cur) => {
+        const ledger = pruneLedger(cur, day);
+        const mineToday = ledger[admin.id] && ledger[admin.id].day === day ? ledger[admin.id].cents : 0;
+        if (mineToday + amountCents > cap) { overBy = mineToday + amountCents - cap; return ledger; }
+        return { ...ledger, [admin.id]: { day, cents: mineToday + amountCents } };
+      });
+      if (overBy > 0) {
+        await record(env, admin, {
+          action: 'stored_value.issue_refused',
+          resource_type: 'stored_value',
+          metadata: { amountCents, reason: 'daily_cap', capCents: cap },
+        }, request);
+        return json({
+          ok: false,
+          error: `That would put you $${(overBy / 100).toFixed(2)} over the $${(cap / 100).toFixed(2)} `
+            + 'you can issue in a day. It resets at midnight UTC, and the limit is on the Gift Cards settings.',
+        }, 429, headers);
+      }
 
       const out = await issue(env, {
         kind,

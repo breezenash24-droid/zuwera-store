@@ -1003,6 +1003,30 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
      leave their own money locked against a checkout that never happened. The
      hold is taken at the moment of payment, by the caller. */
   let storedValue = { code: '', appliedCents: 0, balanceCents: 0, reason: '', kind: '' };
+
+  /* ── STORED VALUE CANNOT BUY STORED VALUE ─────────────────────────────
+     Paying for a gift card with a gift card moves no money, and on its own it
+     is not theft. What it is, is a laundry: a code with a history — a known
+     owner, a known origin, an expiry, a reason it might be about to be voided
+     — goes in, and a clean one comes out with none of that attached. It is
+     precisely what somebody does with a code they should not be holding.
+
+     It also breaks the one thing that makes the refund guard work. Refunding an
+     order voids the cards it minted; if those were bought with another card,
+     voiding them destroys value that traces back to a payment nobody is
+     refunding, and the arithmetic stops being answerable at all.
+
+     Refused for the WHOLE cart, not just the gift-card line. Splitting the
+     tender per line is a second pricing path in the place where a bug means
+     money, to serve a cart nobody has ever built on purpose. */
+  if (storedValueCode && giftCardSubtotalCents > 0) {
+    throw cartError(
+      'A gift card cannot be paid for with a gift card or store credit. '
+      + 'Take the gift card out of your bag, or pay for this order with a card.',
+      400
+    );
+  }
+
   if (storedValueCode && await storedValueEnabled(env)) {
     const q = await quoteAgainst(env, storedValueCode, totalCents);
     storedValue = {

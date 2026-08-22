@@ -30,7 +30,69 @@ import { getEmailAppearance, renderEmailShell } from './_email-theme.js';
    are, asks for the authorization code, checks the limits and refuses a second
    payout — so it happens HERE rather than in a second endpoint that would have
    to grow its own copy of all of that. */
-import { issue as issueStoredValue, storedValueEnabled } from './_stored-value.js';
+import { issue as issueStoredValue, storedValueEnabled, voidCode } from './_stored-value.js';
+
+/**
+ * The gift cards this order created, and what is left on them.
+ *
+ * ── THE HOLE THIS CLOSES ───────────────────────────────────────────────
+ *
+ * Buy a $100 gift card, receive the code, spend it, then ask for a refund. The
+ * refund route knew nothing about gift cards, so the store paid twice: once in
+ * goods bought with the code, once in cash back to the payment card. A
+ * chargeback does the same thing without needing anybody's cooperation, and
+ * neither half leaves a trace pointing at the other.
+ *
+ * Found by source_ref, which _fulfil.js stamps as `order:<number>` when it
+ * mints them.
+ *
+ * NEVER THROWS, and "could not tell" is not "nothing to worry about". A failed
+ * lookup returns known:false, and the caller stops rather than refunding
+ * blind — the same rule the processor ledger already follows, where an unknown
+ * refunded-so-far must not be read as zero.
+ */
+async function cardsIssuedByOrder(env, orderNumber) {
+  const key = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '';
+  if (!env.SUPABASE_URL || !key || !orderNumber) return { known: false, cards: [] };
+  const head = { apikey: key, Authorization: `Bearer ${key}` };
+  try {
+    const resp = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/stored_value`
+      + `?source_ref=eq.${encodeURIComponent('order:' + orderNumber)}`
+      + '&select=id,code,kind,initial_cents,status&limit=200',
+      { headers: head }
+    );
+    /* A 404 is the table not existing — migration 0030 not run — which means no
+       card can have been issued by anything, so there is nothing to void. */
+    if (resp.status === 404) return { known: true, cards: [] };
+    if (!resp.ok) return { known: false, cards: [] };
+    const rows = await resp.json().catch(() => null);
+    if (!Array.isArray(rows)) return { known: false, cards: [] };
+
+    const cards = [];
+    for (const row of rows) {
+      let balance = 0;
+      if (row.status !== 'void') {
+        const b = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/zw_stored_value_balance_cents`, {
+          method: 'POST',
+          headers: { ...head, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ p_id: row.id }),
+        });
+        if (!b.ok) return { known: false, cards: [] };
+        balance = Number(await b.json().catch(() => 0)) || 0;
+      }
+      cards.push({
+        code: row.code,
+        issuedCents: Number(row.initial_cents) || 0,
+        balanceCents: balance,
+        alreadyVoid: row.status === 'void',
+      });
+    }
+    return { known: true, cards };
+  } catch (_) {
+    return { known: false, cards: [] };
+  }
+}
 
 const RATE_LIMIT_KEY = 'refund_rate_limit';
 const AUDIT_LOG_KEY  = 'refund_audit_log';
@@ -239,6 +301,69 @@ export async function onRequestPost({ request, env }) {
      money and touches no processor. */
   const processor = String(order.processor || 'stripe').toLowerCase();
 
+  /* Cards this refund cancelled on its way through, so the response and the
+     audit row can say so. An admin who refunds an order and is not told a $100
+     card went with it will find out from the customer. */
+  const voidedCards = [];
+
+
+  /* ── 7b. A REFUND MUST NOT LEAVE A LIVE CARD THIS ORDER PAID FOR ─────────
+     Buy a card, take the code, spend it, ask for the money back. Both halves
+     are ordinary on their own and nothing connected them, so the store paid
+     twice — in goods against the code, and in cash to the payment card.
+
+     Three outcomes, and only one of them is automatic:
+
+       nothing issued        proceed, this is every other order
+       issued and unspent    void it here, then refund, and say what was voided
+       issued and SPENT      refuse, with the amount, because this is now a
+                             decision about who absorbs a loss and that is not
+                             a decision an endpoint should make quietly
+
+     A lookup that FAILED is treated as the third case. "Could not tell" is not
+     "nothing to worry about" — the same rule the processor ledger already
+     follows, where an unknown refunded-so-far must never be read as zero.
+
+     Voided BEFORE the money moves. The other order — refund, then void — has a
+     window where the customer has both the cash and a live code, and the void
+     is the half more likely to fail. */
+  if (action === 'refund' || action === 'cancel_refund') {
+    const issued = await cardsIssuedByOrder(env, orderNo(order));
+    const live = issued.cards.filter((c) => !c.alreadyVoid && c.balanceCents > 0);
+    const spent = issued.cards.filter((c) => !c.alreadyVoid && c.balanceCents < c.issuedCents);
+
+    if (!issued.known) {
+      await audit(env, { adminId, adminEmail, orderId, action, success: false, note: 'blocked: could not read the gift cards this order issued' });
+      return json({
+        error: 'This order may have issued gift cards and we could not check them. '
+             + 'Refunding now could pay for the same money twice — check the ledger and try again.',
+      }, 503, h);
+    }
+
+    if (spent.length) {
+      const spentCents = spent.reduce((sum, c) => sum + (c.issuedCents - c.balanceCents), 0);
+      await audit(env, { adminId, adminEmail, orderId, action, success: false, note: `blocked: ${spent.length} gift card(s) from this order already spent` });
+      return json({
+        error: `This order bought gift cards and $${(spentCents / 100).toFixed(2)} of them has already been spent. `
+             + 'Refunding in full would pay for that twice. Refund the unspent part, or void the cards first '
+             + 'from Coupons and refund what is left.',
+        giftCardsSpentCents: spentCents,
+      }, 409, h);
+    }
+
+    for (const card of live) {
+      try {
+        await voidCode(env, card.code, 'Order ' + orderNo(order) + ' refunded');
+        voidedCards.push({ cents: card.balanceCents });
+      } catch (e) {
+        /* Nothing has moved yet, which is the whole reason this runs first. */
+        await audit(env, { adminId, adminEmail, orderId, action, success: false, note: 'blocked: could not void a gift card this order issued' });
+        return json({
+          error: 'Could not cancel a gift card this order paid for, so nothing was refunded. ' + ((e && e.message) || ''),
+        }, 503, h);
+      }
+    }
+  }
 
   // ── 8. Block refund if associated return item not yet received ───────────────
   if (action === 'refund' || action === 'cancel_refund') {
@@ -677,6 +802,12 @@ ${line}` : line);
        refund that no card ever received. */
     settlement,
     ...(storeCreditCents > 0 ? { storeCreditCents } : {}),
+    /* Cards this refund cancelled. The amount, never the code — same rule the
+       issuing log follows, and these are dead codes either way. */
+    ...(voidedCards.length ? {
+      giftCardsVoided: voidedCards.length,
+      giftCardsVoidedCents: voidedCards.reduce((sum, c) => sum + c.cents, 0),
+    } : {}),
     newStatus:         patch.status,
     customerEmail:     order.email,
     orderTotal:        order.total,
@@ -709,6 +840,10 @@ ${line}` : line);
        the email does not arrive. Nothing stores it anywhere they can get it
        back from. */
     ...(storeCreditCode ? { storeCreditCode, storeCreditCents } : {}),
+    ...(voidedCards.length ? {
+      giftCardsVoided: voidedCards.length,
+      giftCardsVoidedCents: voidedCards.reduce((sum, c) => sum + c.cents, 0),
+    } : {}),
   }, 200, h);
 }
 
