@@ -99,7 +99,22 @@
   function mountStyles() {
     if (d.getElementById(STYLE_ID)) return;
     var css = [
-      '.zwgc{display:block}',
+      /* ── THE ONE PAIR A HOST HAS TO SUPPLY ──────────────────────────────
+         A filled chip needs the surface's own ink and paper, and only the host
+         knows what those are. The defaults here are the PAGE's pair, which is
+         right on the product page and right in every built-in theme — but the
+         quick-add panel paints itself from --ink/--paper, and the note beside
+         that panel's alpha ladder is explicit that an imported theme is free to
+         set those apart from the page. That is the same class of mistake
+         theme-tokens.test.js catches: a value keyed to the page, used on a
+         panel, resolving against the wrong foreground.
+
+         So the pair is a variable the panels override, and everything else in
+         this file stays keyed to `currentColor` — which is always whatever
+         surface the block was actually dropped onto. */
+      '.zwgc{display:block;',
+      '  --zwgc-on-fg:rgb(var(--fg-rgb,244 241 235));',
+      '  --zwgc-on-bg:rgb(var(--bg-rgb,9 9 11))}',
       '.zwgc-sec{margin:0 0 1.4rem}',
       '.zwgc-sec:last-child{margin-bottom:0}',
       '.zwgc-label{font-family:var(--fm,monospace);font-size:.62rem;letter-spacing:.14em;',
@@ -129,8 +144,8 @@
          from — so the chip uses it: ink for the fill, paper for the label,
          correct in dark, light and super-light with no branch and nothing to
          cancel out. */
-      '.zwgc-amt.is-on{background:rgb(var(--fg-rgb,244 241 235));',
-      '  border-color:rgb(var(--fg-rgb,244 241 235));color:rgb(var(--bg-rgb,9 9 11))}',
+      '.zwgc-amt.is-on{background:var(--zwgc-on-fg);',
+      '  border-color:var(--zwgc-on-fg);color:var(--zwgc-on-bg)}',
       '.zwgc-amt.is-on:hover{opacity:.9}',
 
       /* NOTHING HERE SIZES THE DIALOG THIS BLOCK IS SITTING IN. That was tried

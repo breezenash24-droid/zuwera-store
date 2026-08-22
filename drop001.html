@@ -228,7 +228,7 @@ document.documentElement.classList.add('zw-collflash');
   <link rel="canonical" href="https://zuwera.store/drop001.html">
   <script src="preview-mode.js?v=799782ba" defer></script>
   <script src="/zw-data.js?v=b1d82c08" defer></script>
-  <script src="gift-card-buy.js?v=7599b27c" defer></script>
+  <script src="gift-card-buy.js?v=16421e5f" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=a6453cd7" defer></script>
 <script src="pdp-gallery.js?v=2192736c" defer></script>
@@ -1020,11 +1020,10 @@ document.documentElement.classList.add('zw-collflash');
 
        min-height:0 is the load-bearing half. A grid child will not scroll
        without it, because its automatic minimum size is its own content.
-       The scrollbar itself is the one this site already uses for a pane that
-       scrolls beside something that does not — .plp-sidebar on this page, and
-       #mediaGrid in the builder: thin, a --border thumb on a transparent track,
-       6px in the browsers that need it spelled out. A second scrollbar style
-       would be a second thing to notice. */
+       The structure is the one this site already uses for a pane that scrolls
+       beside something that does not — .plp-sidebar on this page, #mediaGrid in
+       the builder. Their thumb styling is not copied: the bar is hidden here,
+       and painting something nobody can see is how dead rules start. */
     @media(min-width:901px){
       /* ── THE BAR IS HIDDEN, SO THE BUTTON IS PINNED ──────────────────────
          Same idiom the pill row on this page uses: scrollbar-width:none, the
@@ -1054,9 +1053,14 @@ document.documentElement.classList.add('zw-collflash');
         border-left:1px solid var(--c08);
       }
       .collection-review-body::-webkit-scrollbar{ display:none; }
-      .collection-review-body::-webkit-scrollbar{ width:6px; }
-      .collection-review-body::-webkit-scrollbar-thumb{ background:var(--border); border-radius:3px; }
-      .collection-review-body::-webkit-scrollbar-thumb:hover{ background:var(--muted); }
+    }
+    /* The panel's own ground, which is --zw-surface here rather than the page
+       background. Outside the media query: a chip is filled at every width. */
+    .collection-product-box .zwgc{
+      --zwgc-on-fg:var(--paper);
+      --zwgc-on-bg:var(--zw-surface);
+    }
+    @media(min-width:901px){
     }
     .collection-product-layout{
       display:grid;
