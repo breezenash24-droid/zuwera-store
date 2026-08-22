@@ -62,7 +62,24 @@ comment on column public.products.gift_card_denominations is
    storefront needs a dropdown instead, and the twenty-first would be off the
    bottom of a phone. Nothing here compares them to the price: what a card may
    be sold for is settled at the till, which is the only place that knows what
-   was charged. */
+   was charged.
+
+   ── WHY THIS IS `0 < all (...)` AND NOT A COUNT ───────────────────────────
+   The obvious way to say "every element is positive" is to unnest the array
+   and count the ones that are not. Postgres refuses it outright:
+
+       cannot use subquery in check constraint
+
+   A CHECK may only look at the row in front of it, and `(select ... from
+   unnest(...))` is a subquery even though it reads nothing but this column.
+   The quantified form is not — `0 < all (array)` is a scalar compared against
+   an array, evaluated in place, and it says the same thing.
+
+   It is also correct on the two edges that matter. Over an empty array `{}`
+   the comparison is vacuously TRUE, and array_length answers NULL there rather
+   than 0, which is why the length test is wrapped in coalesce: without it an
+   empty array made the whole expression NULL, and a NULL check passes by
+   accident rather than on purpose. */
 alter table public.products
   drop constraint if exists products_gift_card_denominations_sane;
 alter table public.products
@@ -70,10 +87,7 @@ alter table public.products
   check (
     gift_card_denominations is null
     or (
-      array_length(gift_card_denominations, 1) is null
-      or (
-        array_length(gift_card_denominations, 1) <= 8
-        and 0 = (select count(*) from unnest(gift_card_denominations) as d where d <= 0)
-      )
+      coalesce(array_length(gift_card_denominations, 1), 0) <= 8
+      and 0 < all (gift_card_denominations)
     )
   );
