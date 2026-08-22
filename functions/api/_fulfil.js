@@ -28,7 +28,8 @@ import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { sendOrderAlerts } from './_order-alerts.js';
 import { mutateSetting } from './_commerce.js';
 import { notifyOps } from './_notify-ops.js';
-import { loopsFallback, orderStatusUrl } from './_email.js';
+import { loopsFallback, orderStatusUrl, sendTransactional } from './_email.js';
+import { buildGiftCardDelivered, buildGiftCardSpent } from './_gift-card-emails.js';
 import { getEmailAppearance, getEmailContent, fillTemplate, renderEmailShell } from './_email-theme.js';
 import { buildUserData, sendCapiEvents } from './_capi.js';
 import { attributionFromMeta } from './_attribution.js';
@@ -37,7 +38,7 @@ import { incrementShippoMonthlyCount, recordLabelFailure } from './_shipping-usa
 import { recordTaxSale } from './_tax.js';
 import { shipFrom } from './_ship-from.js';
 import { mintOrderToken } from './_order-token.js';
-import { capture as captureStoredValue, issue as issueStoredValue } from './_stored-value.js';
+import { capture as captureStoredValue, issue as issueStoredValue, lookup as lookupStoredValue } from './_stored-value.js';
 /* One function decides what an order is called. Spelling the fallback out
    here again is how a store ends up with six names for one order. */
 import { orderNoPlain } from './_order-no.js';
@@ -281,7 +282,7 @@ export async function handleSuccessfulPayment(pi, meta, env, onTracking) {
     }
   } catch (_) {}
 
-  const [stripeUpdateResult, emailResult, invResult, promoResult, capiResult, loyaltyResult, referralResult, taxFilingResult] = await Promise.allSettled([
+  const [stripeUpdateResult, emailResult, invResult, promoResult, capiResult, loyaltyResult, referralResult, taxFilingResult, giftDeliveredResult, giftSpentResult] = await Promise.allSettled([
     /* Writing tracking back onto the payment record is the one thing here that
        was ever processor-specific. The Stripe route passes a callback that
        updates its PaymentIntent; a processor with nothing to write back passes
@@ -317,6 +318,15 @@ export async function handleSuccessfulPayment(pi, meta, env, onTracking) {
        is already taken, so a provider outage is a bookkeeping retry rather than
        a reason to fail an order. */
     reportSaleToTaxProvider(pi, meta, env),
+
+    /* The card's own email, separate from the confirmation that also carries
+       the codes. A receipt cannot be forwarded to the person a gift is FOR
+       without also forwarding what was paid and where it ships to. */
+    sendGiftCardDeliveredEmail(meta, env, emailKeyCache, giftCardCodes),
+
+    /* And the other direction: tell whoever bought a card that it has been
+       used — but only when somebody else used it. See the function. */
+    sendGiftCardSpentNotice(meta, env, emailKeyCache),
   ]);
 
   if (stripeUpdateResult.status === 'rejected') console.error('Tracking write-back failed:', stripeUpdateResult.reason);
@@ -327,6 +337,8 @@ export async function handleSuccessfulPayment(pi, meta, env, onTracking) {
   if (loyaltyResult.status   === 'rejected') console.error('Loyalty points failed:',          loyaltyResult.reason);
   if (referralResult.status  === 'rejected') console.error('Referral credit failed:',         referralResult.reason);
   if (taxFilingResult.status === 'rejected') console.error('Tax filing record failed:',       taxFilingResult.reason);
+  if (giftDeliveredResult.status === 'rejected') console.error('Gift card email failed:',     giftDeliveredResult.reason);
+  if (giftSpentResult.status === 'rejected') console.error('Gift card spent notice failed:',  giftSpentResult.reason);
 }
 
 /* Report the completed sale to whichever tax provider priced it.
@@ -686,6 +698,128 @@ async function createShippingLabel(pi, meta, env) {
  * bind, and the email is the only copy — which is why the email carries them
  * rather than linking to a page.
  */
+/* ── THE CARD'S OWN EMAIL ────────────────────────────────────────────────────
+   The codes ride on the order confirmation as well, and that was the entire
+   delivery mechanism: a block halfway down a receipt, under the items, above
+   the shipping address. Fine as a record, poor as a gift — it cannot be
+   forwarded to the person it is for without also forwarding what was paid and
+   where it ships to, and six months later it is findable only by remembering
+   which order it was on.
+
+   Sent to the buyer, because nothing on a gift-card line says who it is for.
+   Adding a recipient field to the cart is the obvious next step and a bigger
+   one: it needs a place to type it, validation, and a decision about what
+   happens when it bounces. Until then the buyer forwards it, which is what
+   somebody buying a gift card by hand does anyway.
+
+   Non-fatal, like everything else after the charge. A card that issued but did
+   not email still exists, is still on the confirmation, and is still findable
+   from the Coupons page. */
+async function sendGiftCardDeliveredEmail(meta, env, cache = {}, giftCardCodes = []) {
+  const cards = (Array.isArray(giftCardCodes) ? giftCardCodes : []).filter((c) => c && c.code);
+  if (!cards.length) return null;
+
+  const toEmail = String(meta.customer_email || '').trim();
+  if (!toEmail) return null;
+
+  const a = getEmailAppearance(cache, env);
+  const logoUrl = resolveSetting('BRAND_LOGO_URL', env, cache);
+  if (logoUrl) a.logo = logoUrl;
+  const content = getEmailContent(cache, 'gift_card_delivered', env);
+
+  const totalCents = cards.reduce((sum, c) => sum + (Number(c.cents) || 0), 0);
+  const toName = String(meta.customer_name || '').trim();
+  const html = buildGiftCardDelivered({
+    appearance: a, content, toName, cards,
+    shopUrl: (env.SITE_URL || 'https://zuwera.store'),
+  });
+
+  return sendTransactional({
+    env, cache, to: toEmail, toName: toName || undefined,
+    subject: fillTemplate(content.subject, { name: toName, amount: '$' + (totalCents / 100).toFixed(2) }),
+    html,
+    fromEmail: resolveSetting('EMAIL_FROM', env, cache) || undefined,
+    fromName: a.brand,
+  });
+}
+
+/* ── AND TELLING WHOEVER BOUGHT IT THAT IT HAS BEEN USED ─────────────────────
+   "Let me know when the card I bought gets spent" is a reasonable thing to
+   want and an unreasonable thing to send unconditionally, because most gift
+   cards are bought by the person who then spends them. Emailing them about
+   their own purchase, seconds after the receipt that already carries the
+   gift-card line, is noise that teaches people to ignore the address.
+
+   SO IT IS SENT ONLY WHEN THE SPENDER IS NOT THE PURCHASER. Finding out who
+   the purchaser was takes two reads: the card carries source_ref = 'order:X'
+   from when it was issued, and that order carries an email. Both are wrapped
+   so that a card issued by hand from the Coupons page — which has no origin
+   order at all — is simply not a case that sends anything, rather than an
+   error on the fulfilment path.
+
+   What it does NOT say is what was bought, where it shipped, or who spent it.
+   See _gift-card-emails.js. */
+async function sendGiftCardSpentNotice(meta, env, cache = {}) {
+  const code = String(meta.stored_value_code || '').trim().toUpperCase().replace(/\s+/g, '');
+  const spentCents = parseInt(meta.stored_value_cents || '0', 10) || 0;
+  if (!code || spentCents <= 0) return null;
+
+  const key = getSupabaseServiceKey(env);
+  if (!env.SUPABASE_URL || !key) return null;
+  const h = { apikey: key, Authorization: 'Bearer ' + key };
+
+  /* Which order minted this card. */
+  const svUrl = `${env.SUPABASE_URL}/rest/v1/stored_value`
+    + `?code=eq.${encodeURIComponent(code)}&select=source_ref&limit=1`;
+  const svRows = await fetch(svUrl, { headers: h }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  const sourceRef = String((Array.isArray(svRows) && svRows[0] && svRows[0].source_ref) || '');
+  if (!sourceRef.startsWith('order:')) return null;   // issued by hand — nobody bought it
+
+  const originOrder = sourceRef.slice('order:'.length);
+  if (!originOrder) return null;
+
+  const ordUrl = `${env.SUPABASE_URL}/rest/v1/orders`
+    + `?order_number=eq.${encodeURIComponent(originOrder)}&select=email,customer_name&limit=1`;
+  const ordRows = await fetch(ordUrl, { headers: h }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  const buyer = (Array.isArray(ordRows) && ordRows[0]) || null;
+  const buyerEmail = String((buyer && buyer.email) || '').trim();
+  if (!buyerEmail) return null;
+
+  /* The whole point of the condition. Same address, no email. */
+  const spenderEmail = String(meta.customer_email || '').trim();
+  if (buyerEmail.toLowerCase() === spenderEmail.toLowerCase()) return null;
+
+  /* What is left, asked of the same function the till uses, so this number and
+     the checkout can never disagree. Read AFTER the capture above. */
+  const info = await lookupStoredValue(env, code);
+  const remainingCents = Number(info && info.balanceCents) || 0;
+
+  const a = getEmailAppearance(cache, env);
+  const logoUrl = resolveSetting('BRAND_LOGO_URL', env, cache);
+  if (logoUrl) a.logo = logoUrl;
+  const content = getEmailContent(cache, 'gift_card_spent', env);
+  const toName = String((buyer && buyer.customer_name) || '').trim();
+
+  const vars = {
+    name: toName,
+    code: '••••' + code.replace(/[^A-Z0-9]/g, '').slice(-4),
+    amount: '$' + (spentCents / 100).toFixed(2),
+    balance: '$' + (remainingCents / 100).toFixed(2),
+  };
+
+  return sendTransactional({
+    env, cache, to: buyerEmail, toName: toName || undefined,
+    subject: fillTemplate(content.subject, vars),
+    html: buildGiftCardSpent({
+      appearance: a, content, toName, code,
+      spentCents, remainingCents,
+      shopUrl: (env.SITE_URL || 'https://zuwera.store'),
+    }),
+    fromEmail: resolveSetting('EMAIL_FROM', env, cache) || undefined,
+    fromName: a.brand,
+  });
+}
+
 export async function issueGiftCardsFor(meta, env) {
   let lines;
   try {

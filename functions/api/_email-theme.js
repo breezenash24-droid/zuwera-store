@@ -146,6 +146,21 @@ const CONTENT_DEFAULTS = {
   // empty when the popup is running in email-only mode, so the default wording
   // has to make sense either way.
   popup_welcome:      { subject: 'Welcome in — here is your code', kicker: 'Welcome', heading: 'You are on the list', intro: 'Thanks for signing up. Here is your code — use it at checkout.', footer: "You're receiving this because you signed up at {site}. Unsubscribe any time." },
+  /* The card's own email. The codes ride on the order confirmation too, but a
+     receipt cannot be forwarded to the person the gift is for without also
+     forwarding what was paid and where it ships to. {amount} is the total
+     across every card on the order.
+
+     The footer says the code is the card in as many words. Somebody who has
+     never been sent one has no reason to guess that forwarding it gives it
+     away, and finding that out afterwards is the expensive way. */
+  gift_card_delivered: { subject: 'Your {brand} gift card', kicker: 'Gift card', heading: 'Your gift card', intro: "Here's the code and what it's worth. Enter it at checkout — it can be spent over as many orders as it takes to use up.", footer: 'Keep this email: the code IS the card, and anyone who has it can spend it.' },
+  /* Sent to whoever BOUGHT the card, and only when somebody else spent it —
+     see _gift-card-emails.js. {amount} came off, {balance} is left, {code} is
+     masked to its last four characters. It deliberately says nothing about what
+     was bought: a gift card is often given to somebody whose shopping is not
+     the buyer's business. */
+  gift_card_spent:     { subject: 'Your gift card was used', kicker: 'Gift card', heading: 'A card you bought was used', intro: '{amount} was spent from the card ending {code}. {balance} is still on it.', footer: "You're receiving this because you bought this gift card. We don't share what it was spent on." },
 };
 
 export function getEmailContent(cache, type, env = null) {

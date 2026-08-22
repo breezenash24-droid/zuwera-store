@@ -480,8 +480,32 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
       /* Face value, and the flag, in one number: 0 means an ordinary product,
          anything above means this line IS a gift card worth that much. Read
          from the catalogue like the price is, never from the cart — a browser
-         that could name the face value could name a larger one. See 0032. */
-      giftCardCents: Math.max(0, Number(product.gift_card_cents) || 0),
+         that could name the face value could name a larger one. See 0032.
+
+         ── AND NEVER WORTH MORE THAN WAS PAID FOR IT ──────────────────────────
+         Clamped to the line's own price, which is the one rule that closes the
+         mint. Without it, anybody who can edit a product can put $500 of face
+         value on a $5 item, buy it, and walk away with $495 — which is exactly
+         the "theft by giving yourself gift cards" this system is supposed to
+         refuse, arriving through the product form instead of the issue button.
+         The issue endpoint is behind REFUND_SECRET, a daily cap and a
+         no-self-dealing rule; the product form is behind neither, and it does
+         not need to be if a card cannot be worth more than its price.
+
+         Enforced HERE rather than as a database check because this is the only
+         place that knows what was actually charged. A constraint could compare
+         face value to products.current_price and still be wrong: price lists,
+         effective dates and per-colourway pricing all mean the charged amount
+         is decided at the till, not in the row.
+
+         It clamps rather than refusing the sale. A misconfigured card that
+         issues $5 for $5 is an admin mistake somebody notices; a checkout that
+         fails is a customer punished for it. The admin form warns at the point
+         the number is typed, which is where prevention belongs. */
+      giftCardCents: Math.min(
+        Math.max(0, Number(product.gift_card_cents) || 0),
+        priceCents,
+      ),
       /* A gift card is a code in an email. It has no weight, so it must not
          drag half a pound into the parcel estimate the shipping rate is signed
          against — a cart of ten cards would otherwise be quoted for a 5lb box

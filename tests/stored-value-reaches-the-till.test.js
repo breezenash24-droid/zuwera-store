@@ -171,9 +171,28 @@ ok('…and the code, because the till takes a code',
   /class="gc-code" data-code=/.test(account),
   'a balance with no code is a number that mocks them');
 
-ok('…and the tab only appears when there is something in it',
-  /if \(r && r\.ok && r\.enabled && r\.cards && r\.cards\.length\)/.test(account),
-  'a wallet tab that is always empty teaches people not to open it');
+/* This asserted `cards.length` — the tab appeared only when the account already
+   held one — and that was right for exactly as long as the panel could only
+   LIST. An empty tab said nothing, so hiding it was a kindness.
+ *
+ * It became wrong the moment the panel could also check a code and save one,
+ * because the person who most needs those two things is precisely the person
+ * with no cards on the account and a code sitting in their inbox. They were the
+ * one person who could not reach it. The feature and its entrance were gated on
+ * each other.
+ *
+ * So the rule flips, and the reason behind it does not: the tab may only exist
+ * when opening it is worth doing. That is now guaranteed by the panel always
+ * carrying the add box, which is what the second half asserts — without it this
+ * would be back to an empty tab, just a differently-empty one. */
+ok('…and the tab appears whenever the store runs gift cards',
+  /if \(r && r\.ok && r\.enabled\) \{/.test(account),
+  'somebody holding a code and no cards could not find the panel that takes codes');
+
+ok('…and it always has something to do in it',
+  /id="gc-add-form"/.test(account)
+  && (account.match(/\$\{lookupBox\}|host\.innerHTML = lookupBox/g) || []).length >= 2,
+  'the add box has to render in BOTH states, or an empty wallet is an empty tab again');
 
 /* owner_email exists so an admin can issue to somebody with no account yet.
    Matching on the email in a session would hand the balance to anyone who can

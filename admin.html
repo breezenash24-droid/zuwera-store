@@ -1235,6 +1235,16 @@
                             <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;letter-spacing:.08em;">📬 Restock Demand</div>
                             <button type="button" id="restock-notify-btn" class="btn btn-secondary" style="font-size:.72rem;padding:6px 14px;" onclick="processRestockDemand()">✉ Notify waitlist now</button>
                         </div>
+                        <!-- Each chip opens its product on Variants & Stock. It has
+                             to look like it does something, or it stays a report. -->
+                        <style>
+                          .zw-restock-chip{transition:border-color .12s ease, background .12s ease, transform .12s ease;}
+                          .zw-restock-chip:not([disabled]):hover{border-color:var(--accent);background:var(--bg-tertiary,rgba(255,255,255,.04));}
+                          .zw-restock-chip:not([disabled]):active{transform:translateY(1px);}
+                          .zw-restock-chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+                          .zw-restock-chip[disabled]{opacity:.6;}
+                          @media (prefers-reduced-motion: reduce){ .zw-restock-chip{transition:none;} }
+                        </style>
                         <div id="restock-demand-list" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
                         <p id="restock-demand-msg" style="font-size:.75rem;color:var(--text-secondary);margin:10px 0 0;min-height:1rem;"></p>
                     </div>
@@ -4013,6 +4023,8 @@
                                     <option value="abandoned_cart">Abandoned cart</option>
                                     <option value="return_link">Start-a-return link</option>
                                     <option value="popup_welcome">Email popup welcome</option>
+                                    <option value="gift_card_delivered">Gift card — delivered</option>
+                                    <option value="gift_card_spent">Gift card — used</option>
                                 </select>
                                 <p style="font-size:.76rem;color:var(--text-secondary);margin-top:6px;opacity:.85"><strong>Email popup welcome</strong> uses <code>{code}</code> (the discount code) and <code>{discount}</code> (&ldquo;10% off&rdquo;). Both are empty when the popup is collecting emails without an offer, so keep the wording sensible either way. Whether it sends at all is the toggle in <strong>Marketing &rarr; Email Popup</strong>.</p>
                                 <p style="font-size:.76rem;color:var(--text-secondary);margin-top:6px;opacity:.85">Leave a field blank to use the default. Placeholders: <code>{order}</code>, <code>{product}</code>, <code>{size}</code>, <code>{name}</code> where relevant.<br><span style="opacity:.85">Your fonts, colours and logo apply to <em>every</em> email. The shipped &amp; return-status emails word themselves automatically (by shipping/return stage), so only the look is themed — they aren't listed here.</span></p>
@@ -4053,6 +4065,10 @@
                                         <option value="return_label">Return label</option>
                                         <option value="refund">Refund</option>
                                         <option value="journal">Journal</option>
+                                        <option value="gift_card_delivered">Gift card — delivered</option>
+                                        <option value="gift_card_spent">Gift card — used</option>
+                                        <option value="return_link">Start-a-return link</option>
+                                        <option value="popup_welcome">Email popup welcome</option>
                                     </select>
                                     <button type="button" class="btn btn-secondary" style="font-size:.72rem;padding:6px 14px" onclick="loadEmailPreview()">↻ Refresh</button>
                                 </div>
@@ -4540,6 +4556,31 @@
                      `tab-status` beside it was already prefixed. Somebody hit
                      this once and renamed the one tab that bit them. -->
                 <div id="tab-pricing" class="tab-content">
+                    <!-- ── A gift card is a product ─────────────────────────────
+                         Until now the only way a code came into being was an admin
+                         issuing one by hand, which answers "make it right for this
+                         customer" and does not answer "can we buy forty of these
+                         for the team". This is the ordinary way anybody gets one:
+                         somebody buys it.
+
+                         It sits at the top of Pricing because it changes what every
+                         field below it means. See migration 0032. -->
+                    <div class="form-group" style="border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:20px;background:var(--bg-secondary);">
+                        <label for="isGiftCard" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="isGiftCard" style="margin-top:3px;accent-color:var(--accent);cursor:pointer;">
+                            <span>
+                                <strong style="display:block;font-size:.95rem;color:var(--text-primary);">This product is a gift card</strong>
+                                <span class="form-hint" style="display:block;margin-top:4px;">It does not ship, holds no stock and can never sell out. It is not taxed when bought — tax is charged when the card is <em>spent</em>, on whatever it buys, and charging at both ends charges it twice.</span>
+                            </span>
+                        </label>
+                        <div id="giftCardFields" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+                            <label class="form-label" for="giftCardValue">Face value <span class="required">*</span></label>
+                            <input type="number" id="giftCardValue" class="form-input" step="0.01" min="0.01" placeholder="e.g. 50.00" style="max-width:220px;">
+                            <p class="form-hint" style="margin-top:6px;">What the buyer's card is worth to spend. Kept separate from the price on purpose: a member paying&nbsp;$45 for a&nbsp;$50 card should still get&nbsp;$50, and a 20% promo on a&nbsp;$100 card must never buy&nbsp;$100 of balance for&nbsp;$80. Gift cards are excluded from promotions and member pricing for that reason.</p>
+                            <p class="form-hint" style="margin-top:8px;">Make each denomination its own product — $25, $50, $100 — so the catalogue, the grid and the bag draw them the way they already draw everything else.</p>
+                            <div id="giftCardWarn" style="display:none;margin-top:12px;padding:10px 12px;border-radius:6px;border:1px solid #c9832b;background:rgba(201,131,43,.12);font-size:.83rem;line-height:1.55;color:var(--text-primary);"></div>
+                        </div>
+                    </div>
                     <div class="form-grid">
                         <div class="form-group">
                             <label class="form-label">MSRP <span class="required">*</span></label>
