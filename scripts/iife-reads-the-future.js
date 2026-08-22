@@ -43,7 +43,11 @@
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
-const ts = require(path.join(ROOT, 'node_modules', 'typescript'));
+/* Resolved by name, not by path. A hardcoded node_modules path assumes this
+   repository's install layout is the only one that will ever exist — it breaks
+   under workspaces, under a hoisted monorepo, and anywhere the dependency lives
+   somewhere Node would still find it perfectly well on its own. */
+const ts = require('typescript');
 
 const DIRS = ['functions/api', 'scripts'];
 
@@ -104,15 +108,33 @@ function boundInside(fn) {
   return names;
 }
 
-/* Identifiers the IIFE READS. Property accesses (`a.b`), property names in
-   object literals and declaration names are all skipped — none of them is a
-   reference to a binding in an enclosing scope. */
+/* Identifiers the IIFE reads AS IT RUNS.
+ *
+ * The distinction that makes this check correct rather than merely suspicious:
+ * a nested function is NOT descended into. An IIFE provably runs where it is
+ * written, but a function it merely CREATES does not — this is fine, and
+ * extremely common:
+ *
+ *     const make = (() => () => LATER)();     // returns a closure
+ *     const LATER = 1;                        // read only when called
+ *
+ * Descending into that closure would report a bug that cannot happen, and a
+ * check that cries wolf on ordinary code is a check somebody removes. The one
+ * exception is a nested IIFE, which runs immediately too and so is followed.
+ *
+ * Property accesses (`a.b`), property names in object literals, and the names
+ * being declared are all skipped: none of them is a reference to a binding in
+ * an enclosing scope. */
 function readsInside(fn) {
   const names = new Map();
   const visit = (n) => {
     if (ts.isPropertyAccessExpression(n)) { visit(n.expression); return; }
     if (ts.isPropertyAssignment(n) && !ts.isComputedPropertyName(n.name)) { visit(n.initializer); return; }
     if (ts.isVariableDeclaration(n)) { if (n.initializer) visit(n.initializer); return; }
+    /* A function that is not immediately invoked runs later, by definition. */
+    if ((ts.isArrowFunction(n) || ts.isFunctionExpression(n) || ts.isFunctionDeclaration(n)
+      || ts.isMethodDeclaration(n) || ts.isGetAccessor(n) || ts.isSetAccessor(n))
+      && !iifeBody(n.parent)) return;
     if (ts.isIdentifier(n) && !names.has(n.text)) names.set(n.text, n.getStart());
     ts.forEachChild(n, visit);
   };
@@ -121,8 +143,10 @@ function readsInside(fn) {
 }
 
 const findings = [];
+let scanned = 0;
 
 for (const rel of sourceFiles()) {
+  scanned += 1;
   const text = fs.readFileSync(path.join(ROOT, rel), 'utf8');
   const sf = ts.createSourceFile(rel, text, ts.ScriptTarget.ES2022, true);
 
@@ -158,6 +182,11 @@ for (const rel of sourceFiles()) {
 }
 
 console.log('\n  values used before they exist  (immediately-invoked only)\n');
+/* Printed on every run, pass or fail. This check reads the filesystem, and a
+   disagreement between one machine and another is otherwise invisible: a green
+   local run and a red CI run look identical in the output, and the first thing
+   anybody needs to know is whether the two even looked at the same files. */
+console.log(`  scanned ${scanned} files under ${DIRS.join(', ')}  ·  node ${process.version}  ·  typescript ${ts.version}`);
 
 if (findings.length) {
   for (const f of findings) {

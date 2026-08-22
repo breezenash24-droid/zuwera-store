@@ -290,7 +290,7 @@ export async function handleSuccessfulPayment(pi, meta, env, onTracking) {
       ? onTracking(tracking)
       : Promise.resolve(null),
 
-    sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache),
+    sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache, giftCardCodes),
 
     // Decrement product_sizes stock_quantity for each purchased item
     decrementInventory(meta, env),
@@ -1065,10 +1065,51 @@ export async function saveOrderToSupabase(pi, meta, tracking, env) {
 // Assembles the order-confirmation email on the shared shell from pre-built HTML
 // fragments (items/address/carrier). Exported so the admin email preview can
 // render it with sample data — a real order can't be placed just to preview it.
-export function buildOrderConfirmation({ appearance, content, orderId, toName, itemsHtml, subtotalCents, discountRow, shippingDisplay, taxCents, totalDollars, addressHtml, carrierHtml, userId, orderNumber, token }) {
+export function buildOrderConfirmation({ appearance, content, orderId, toName, itemsHtml, subtotalCents, discountRow, shippingDisplay, taxCents, totalDollars, addressHtml, carrierHtml, userId, orderNumber, token, giftCardCodes = [] }) {
   const a = appearance;
   const emailC = content;
+
+  /* The codes come from a fixed alphabet with no HTML-special characters in it,
+     so this can never currently matter — which is exactly why it is here. That
+     is a fact about today's generator, not about this template, and a template
+     that interpolates into HTML without escaping is one refactor away from
+     being wrong. */
+  const escHtml = (v) => String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+  /* ── THE CODES, WHERE THE BUYER WILL ACTUALLY LOOK ────────────────────────
+     A gift card is not shipped and there is no tracking link to wait for — this
+     email IS the delivery. For a guest order it is the ONLY copy: there is no
+     account page to fall back on, nothing can look a code back up, and the
+     store cannot reissue what it cannot identify.
+
+     So it goes ABOVE the items rather than below the total. A block under the
+     shipping address is a block that gets skimmed past on a phone, and the one
+     thing this email exists to hand over would be the thing nobody saw.
+
+     Monospaced, and spaced out, because these get read aloud and typed. */
+  const cards = Array.isArray(giftCardCodes) ? giftCardCodes.filter((c) => c && c.code) : [];
+  const giftCardBlock = cards.length ? `
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid ${a.border};border-radius:8px;margin-bottom:24px;">
+          <tr><td style="padding:16px 18px 6px;">
+            <p style="margin:0;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:${a.muted};font-family:${a.fontMono};">${cards.length === 1 ? 'Your gift card' : 'Your gift cards'}</p>
+            <p style="margin:6px 0 0;font-size:13px;color:${a.muted};line-height:1.6;">Enter ${cards.length === 1 ? 'this code' : 'a code'} in the <strong style="color:${a.text};">Gift Card or Store Credit</strong> box at checkout. Whatever is left over stays on the ${cards.length === 1 ? 'card' : 'cards'} for next time. <strong style="color:${a.text};">Keep this email</strong> — it is the only copy we send.</p>
+          </td></tr>
+          ${cards.map((c) => `
+          <tr><td style="padding:10px 18px;">
+            <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px dashed ${a.border};border-radius:6px;">
+              <tr>
+                <td style="padding:12px 14px;font-family:${a.fontMono};font-size:17px;letter-spacing:.16em;color:${a.text};">${escHtml(c.code)}</td>
+                <td style="padding:12px 14px;text-align:right;font-size:15px;font-weight:700;color:${a.text};">$${(Number(c.cents || 0) / 100).toFixed(2)}</td>
+              </tr>
+            </table>
+          </td></tr>`).join('')}
+          <tr><td style="padding:4px 18px 16px;"></td></tr>
+        </table>` : '';
+
   const body = `
+        ${giftCardBlock}
         <!-- Items -->
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
           ${itemsHtml}
@@ -1153,7 +1194,7 @@ export function buildOrderConfirmation({ appearance, content, orderId, toName, i
   });
 }
 
-async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}) {
+async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}, giftCardCodes = []) {
   const resendKey = resolveSetting('RESEND_API_KEY', env, emailKeyCache);
   if (!resendKey) return null;
 
@@ -1295,6 +1336,10 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
        /account and a guest to the lookup. Passed explicitly rather than reached
        for off `meta` — see the note in buildOrderConfirmation. */
     userId: meta.user_id, orderNumber: meta.order_number, token: statusToken,
+    /* The one delivery a gift card gets. Nothing can look a code back up, so if
+       this email does not carry it, a guest order has bought nothing it can
+       ever use. */
+    giftCardCodes,
   });
 
   // ── Try Resend first ────────────────────────────────────────────────
