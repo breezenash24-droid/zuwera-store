@@ -1043,6 +1043,20 @@ document.documentElement.classList.add('zw-collflash');
       max-height:inherit;
       min-height:min(620px,84dvh);
     }
+    /* ── PINNED, SO THE PANE SCROLLS INSTEAD OF THE PANEL GROWING ────────────
+       The scroll never appeared because nothing ever overflowed. min-height set
+       the floor and max-height the ceiling, so a gift card's amount row and four
+       fields simply pushed the dialog from its usual 620 up towards 820 — taller
+       than the same panel is for every other product, and still short of needing
+       a scrollbar.
+
+       A fixed height is what makes the options a scrolling pane rather than a
+       growing one. It is the SAME figure the floor already used, so a garment is
+       pixel-for-pixel what it was: its content fits, it never scrolls, and only
+       the panel that has more to say than the picture beside it does. */
+    @media(min-width:901px){
+      .collection-product-layout{ height:min(620px,84dvh); }
+    }
     .collection-product-gallery{
       min-height:100%;
       display:flex;
@@ -1103,7 +1117,14 @@ document.documentElement.classList.add('zw-collflash');
       padding:2.1rem 2.2rem 2.2rem;
       display:flex;
       flex-direction:column;
-      justify-content:center;
+      /* `safe center`, not plain `center`. A flex column that centres its
+         children puts the overflow half above the scroll origin when the
+         content is taller than the box — the top is clipped and cannot be
+         scrolled back to, which is precisely what a gift card's four fields
+         would have done to the price and the amount chips above them. `safe`
+         keeps the centring while the content fits and falls back to start the
+         moment it does not, so a garment looks exactly as it did. */
+      justify-content:safe center;
       overflow-y:auto;
       /* Match the homepage quick-add modal: mono (--fm) for the small text (price,
          sizes, labels, actions); the title overrides to the heading font below. */
