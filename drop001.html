@@ -1026,27 +1026,46 @@ document.documentElement.classList.add('zw-collflash');
        6px in the browsers that need it spelled out. A second scrollbar style
        would be a second thing to notice. */
     @media(min-width:901px){
-      /* ── THE SCROLLBAR SITS BETWEEN THE PANES, NOT ON THE OUTER EDGE ──────
-         A scrolling pane puts its bar on the side the writing runs towards, so
-         it landed against the outside of the dialog — furthest from the thing
-         it scrolls and reading as a bar on the window rather than on the form.
-         Between the two panes it is a divider that happens to be draggable,
-         which is what it is.
+      /* ── THE BAR IS HIDDEN, SO THE BUTTON IS PINNED ──────────────────────
+         Same idiom the pill row on this page uses: scrollbar-width:none, the
+         -ms fallback, and the webkit pseudo-element switched off.
 
-         `direction:rtl` moves it; the children set `ltr` straight back, so
-         nothing inside is laid out or read right to left. That pair is the only
-         way to choose a scrollbar's side — there is no property for it — and
-         the reset has to be on the children rather than the container, because
-         the container is what the bar belongs to. */
+         The direction:rtl trick that moved the bar between the panes went with
+         it. It existed only to place something now invisible, and a direction
+         flip is a standing risk to any child that ever relies on an auto margin
+         or an end-aligned flex item — carrying that for a bar nobody can see
+         would be paying a cost for nothing.
+
+         But the note beside the pill row is exactly right that hiding the bar
+         removes the only signal there is more: "a row that runs past the edge
+         simply looked cut off". Here the thing past the edge is ADD TO BAG,
+         and a shopper who cannot find the button has not been inconvenienced,
+         they have been stopped. The fade that answers it for a row of pills
+         answers the wrong half of this — so the ACTIONS stay put instead, and
+         only the form above them scrolls. Nothing important can be below the
+         fold, because the fold is above them. */
       .collection-review-body{
         overflow-y:auto; min-height:0; overscroll-behavior:contain;
-        scrollbar-width:thin; scrollbar-color:var(--border) transparent;
-        direction:rtl;
+        scrollbar-width:none; -ms-overflow-style:none;
         /* A hairline so the two panes read as two panes rather than as one that
            has come loose. */
         border-left:1px solid var(--c08);
       }
-      .collection-review-body > *{ direction:ltr; }
+      .collection-review-body::-webkit-scrollbar{ display:none; }
+      /* Only where the pane actually overflows, which is the gift card: its amount
+         row and four fields are what run past the fold. A garment's options fit, so
+         `position:sticky` would never move the row — but the hairline and the
+         full-bleed background would still paint, leaving a bordered bar floating in
+         the middle of a centred block. :has(.zwgc) is the class gift-card-buy.js puts
+         on its own mount, so the footer appears exactly where it is doing something. */
+      .collection-review-body:has(.zwgc) .collection-review-actions{
+        position:sticky; bottom:0; z-index:2;
+        background:var(--zw-surface);
+        /* Clears the pane's own bottom padding, so the row sits flush on the
+           edge rather than floating with a gap of scrolled content beneath it. */
+        margin:0 -2.2rem -2.2rem; padding:1rem 2.2rem 2.2rem;
+        border-top:1px solid var(--c08);
+      }
       .collection-review-body::-webkit-scrollbar{ width:6px; }
       .collection-review-body::-webkit-scrollbar-thumb{ background:var(--border); border-radius:3px; }
       .collection-review-body::-webkit-scrollbar-thumb:hover{ background:var(--muted); }
