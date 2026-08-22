@@ -1026,13 +1026,27 @@ document.documentElement.classList.add('zw-collflash');
        6px in the browsers that need it spelled out. A second scrollbar style
        would be a second thing to notice. */
     @media(min-width:901px){
+      /* ── THE SCROLLBAR SITS BETWEEN THE PANES, NOT ON THE OUTER EDGE ──────
+         A scrolling pane puts its bar on the side the writing runs towards, so
+         it landed against the outside of the dialog — furthest from the thing
+         it scrolls and reading as a bar on the window rather than on the form.
+         Between the two panes it is a divider that happens to be draggable,
+         which is what it is.
+
+         `direction:rtl` moves it; the children set `ltr` straight back, so
+         nothing inside is laid out or read right to left. That pair is the only
+         way to choose a scrollbar's side — there is no property for it — and
+         the reset has to be on the children rather than the container, because
+         the container is what the bar belongs to. */
       .collection-review-body{
         overflow-y:auto; min-height:0; overscroll-behavior:contain;
         scrollbar-width:thin; scrollbar-color:var(--border) transparent;
+        direction:rtl;
         /* A hairline so the two panes read as two panes rather than as one that
            has come loose. */
         border-left:1px solid var(--c08);
       }
+      .collection-review-body > *{ direction:ltr; }
       .collection-review-body::-webkit-scrollbar{ width:6px; }
       .collection-review-body::-webkit-scrollbar-thumb{ background:var(--border); border-radius:3px; }
       .collection-review-body::-webkit-scrollbar-thumb:hover{ background:var(--muted); }
