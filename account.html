@@ -663,6 +663,33 @@ try {
     }
     body.light-mode .order-next strong { color: rgb(var(--fg-rgb) / 75%); }
 
+    /* -- ORDER RECEIPT --
+       Right-aligned, tabular figures so the decimal points line up, and capped
+       narrow so it reads as a column of money rather than a full-width table
+       stretched across the card. */
+    .order-receipt {
+      margin: .9rem 0 0 auto; padding-top: .8rem; border-top: 1px solid var(--c06);
+      max-width: 19rem; font-size: .82rem;
+    }
+    body.light-mode .order-receipt { border-top-color: var(--c07); }
+    .rcp-row {
+      display: flex; justify-content: space-between; gap: 1.2rem;
+      padding: .28rem 0; font-variant-numeric: tabular-nums;
+    }
+    .rcp-row > span:first-child { opacity: .65; }
+    .rcp-row > span:last-child { white-space: nowrap; }
+    .rcp-off > span:last-child { color: var(--ok, #4caf6d); }
+    .rcp-total {
+      margin-top: .35rem; padding-top: .5rem; border-top: 1px solid var(--c06);
+      font-weight: 600;
+    }
+    body.light-mode .rcp-total { border-top-color: var(--c07); }
+    .rcp-total > span:first-child { opacity: 1; }
+    .rcp-code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: .74rem; letter-spacing: .08em; opacity: .8;
+    }
+
     /* -- ORDER FOOTER -- */
     .order-footer {
       display: flex; align-items: flex-end; justify-content: space-between;
@@ -1815,8 +1842,24 @@ async function loadOrders() {
             const safeImg = validStored || productImgMap[nameKey] || productImgMap[rawPid] || productImgMap[i.sku] || '';
             const name = escHtml(itemName);
             const attrs = itemMetaHtml(i.size, i.colorName || i.color, i.quantity || 1);
-            const rawItemPrice = parseFloat(i.price || i.unit_price || i.amount || 0);
-            const itemPrice = rawItemPrice > 0 ? `$${(rawItemPrice > 500 ? rawItemPrice / 100 : rawItemPrice).toFixed(2)}` : '';
+            /* ── THE UNIT IS KNOWN, SO STOP GUESSING IT ─────────────────────
+               This was `rawItemPrice > 500 ? raw / 100 : raw` — a heuristic
+               reading "a big number is probably cents". It is right for most
+               of the catalogue and wrong for all of the cheap end: an item at
+               $5.00 stores 500, which is not greater than 500, and rendered as
+               $500.00. Anything at or under five dollars was shown at a
+               hundred times its price, on the customer's own order history.
+
+               No guess is needed. `amount` is written in cents by
+               _cart-pricing.js and always has been; `price` and `unit_price`
+               are the older dollar-denominated fields some historic rows still
+               carry. Each is read in its own unit and the heuristic is gone. */
+            const amountCents = Number(i.amount);
+            const legacyDollars = Number(i.price != null ? i.price : i.unit_price);
+            const itemDollars = Number.isFinite(amountCents) && amountCents > 0
+              ? amountCents / 100
+              : (Number.isFinite(legacyDollars) && legacyDollars > 0 ? legacyDollars : 0);
+            const itemPrice = itemDollars > 0 ? `$${itemDollars.toFixed(2)}` : '';
             const itemHref = resolvedId ? `/product.html?id=${encodeURIComponent(resolvedId)}` : '';
             const rowTag = itemHref ? `a href="${escHtml(itemHref)}"` : 'div';
             const rowClose = itemHref ? 'a' : 'div';
@@ -1879,6 +1922,59 @@ async function loadOrders() {
         : `<button class="order-return-link" onclick="switchTab('returns')">Start a Return →</button>`;
       const footer = `<div class="order-footer">${addrHtml}<div style="padding-bottom:.05rem">${returnAction}</div></div>`;
 
+      /* ── THE RECEIPT ──────────────────────────────────────────────────────
+         The card showed item prices and one total with nothing in between, so
+         an order of $22.00 and $70.00 read as a total of $47.68 and the
+         customer was left to work out — or more likely to worry about — where
+         the other forty-four dollars went.
+
+         Every line is drawn only when the order actually carries it. NULL means
+         "not recorded", which is what every order placed before migration 0033
+         has for the discount and the gift card, and it is NOT the same as zero:
+         printing a confident "Discount $0.00" over an order that may well have
+         had one is a worse answer than saying nothing.
+
+         Tender sits BELOW the total, not among the lines that build it — the
+         same shape the confirmation email uses, and for the same reason. A gift
+         card pays a bill; it does not reduce one, which is why tax is charged
+         on the full amount. Folding it in above the line would show a customer
+         tax on a number they can see is smaller. */
+      const receipt = (() => {
+        const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
+        const money = (v) => '$' + Number(v).toFixed(2);
+        const row = (label, value, cls) =>
+          `<div class="rcp-row${cls ? ' ' + cls : ''}"><span>${label}</span><span>${value}</span></div>`;
+
+        const subtotal = num(o.subtotal);
+        const tax = num(o.tax);
+        const shipping = num(o.shipping);
+        const total = num(orderTotal);
+        const discount = num(o.discount_cents);
+        const sv = num(o.stored_value_cents);
+
+        /* With no subtotal there is nothing to break down, and a lone "Total"
+           repeating the number already in the header is noise. */
+        if (subtotal === null || total === null) return '';
+
+        let html = row('Subtotal', money(subtotal));
+        if (discount !== null && discount > 0) {
+          const code = String(o.discount_code || '').trim();
+          html += row('Discount' + (code ? ' (' + escHtml(code) + ')' : ''), '−' + money(discount / 100), 'rcp-off');
+        }
+        if (shipping !== null) html += row('Shipping', shipping > 0 ? money(shipping) : 'Free');
+        if (tax !== null) html += row('Tax', money(tax));
+        html += row('Total', money(total), 'rcp-total');
+
+        if (sv !== null && sv > 0) {
+          const kind = o.stored_value_kind === 'store_credit' ? 'Store credit' : 'Gift card';
+          const last4 = String(o.stored_value_last4 || '').trim();
+          html += row(kind + (last4 ? ' <span class="rcp-code">••••' + escHtml(last4) + '</span>' : ''),
+            '−' + money(sv / 100), 'rcp-off');
+          html += row('Charged', money(Math.max(0, total - sv / 100)), 'rcp-total');
+        }
+        return `<div class="order-receipt">${html}</div>`;
+      })();
+
       return `
         <div class="order-card">
           <div class="order-card-head">
@@ -1892,6 +1988,7 @@ async function loadOrders() {
             </div>
           </div>
           ${itemsHtml}
+          ${receipt}
           ${orderTimelineHtml(o, returnRequests)}
           ${trackRow}
           ${nextHtml}
@@ -1947,9 +2044,13 @@ async function loadSaved() {
     list.innerHTML = data.map(f => {
       const name = escHtml((f.product_name || 'Product').replace(/\p{Extended_Pictographic}/gu, '').trim());
       const rawPrice = parseFloat(f.price);
-      const price = !isNaN(rawPrice) && rawPrice > 0
-        ? (rawPrice > 500 ? (rawPrice / 100).toFixed(2) : rawPrice.toFixed(2))
-        : null;
+      /* favorites.price is written in DOLLARS by all three writers that touch
+         it (auth.js, product-main.js and drop001.html all pass a data-price
+         formatted with toFixed(2)), so the old "over 500 means cents" guess was
+         wrong in the expensive direction: the first product listed above $500
+         would render at a hundredth of its price. Latent rather than live only
+         because nothing in this catalogue is that dear yet. */
+      const price = !isNaN(rawPrice) && rawPrice > 0 ? rawPrice.toFixed(2) : null;
       const img = f.product_image && /^https?:\/\//i.test(f.product_image) ? f.product_image : '';
       const pid = escHtml(f.product_id || '');
       const href = f.product_id ? `/product.html?id=${pid}` : '#';
@@ -1990,7 +2091,10 @@ function acctAddToBag(productId, btn) {
     return;
   }
   const raw = parseFloat(f.price);
-  const price = !isNaN(raw) && raw > 0 ? (raw > 500 ? raw / 100 : raw) : 0;
+  /* Dollars — see the note in the saved-items renderer. This one is passed
+     straight into quickAddToCart, so a mis-scaled figure is a wrong price in
+     the bag rather than only on screen. */
+  const price = !isNaN(raw) && raw > 0 ? raw : 0;
   const img = f.product_image && /^https?:\/\//i.test(f.product_image) ? f.product_image : '';
   window.quickAddToCart(productId, (f.product_name || 'Product'), price, '', img, 0.5, btn);
 }

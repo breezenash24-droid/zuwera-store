@@ -10638,6 +10638,33 @@
         // Auto Generate SKU
         document.getElementById('autoGenSkuBtn').addEventListener('click', async (e) => {
             e.preventDefault();
+
+            /* ── A GIFT CARD GETS ITS OWN SERIES ─────────────────────────────
+               The ordinary code is gender + garment category — ZW-MTP-001 is a
+               men's top. A gift card is neither: the generator asked for a
+               gender it does not have, off a category dropdown it does not
+               appear in, and would have filed a $50 card as a men's t-shirt.
+
+               ZW-GC-### instead, in its own sequence, so the denominations sit
+               together in the catalogue and a SKU says what it is at a glance.
+               The lookup is scoped to the same prefix, so gift cards and
+               garments cannot advance each other's numbering. */
+            if (_isGiftCardChecked()) {
+                const { data: cards } = await sb
+                    .from('products')
+                    .select('sku')
+                    .ilike('sku', 'ZW-GC-%');
+                let n = 1;
+                if (cards && cards.length) {
+                    const nums = cards.map((p) => parseInt(String(p.sku).split('-')[2], 10) || 0);
+                    n = Math.max(...nums) + 1;
+                }
+                const cardSku = 'ZW-GC-' + String(n).padStart(3, '0');
+                document.getElementById('sku').value = cardSku;
+                showToast('Gift card style code: ' + cardSku, 'success');
+                return;
+            }
+
             const gender = document.getElementById('gender').value;
             const category = document.getElementById('subtitle').value;
 
@@ -13893,14 +13920,32 @@ function escapeAttr(value) {
            column that is NOT NULL does not care that the form stopped asking. */
         const GIFT_CARD_HIDES_TABS = ['colors', 'technical'];
         const GIFT_CARD_HIDES_FIELDS = [
-            'gender', 'materialComposition', 'productTags', 'colorway',
-            'modelHeight', 'modelSizeWorn', 'fitType',
+            'gender', 'subtitle', 'materialComposition', 'productTags', 'colorway',
+            'sportsChips', 'modelHeight', 'modelSizeWorn', 'fitType',
         ];
 
+        /* ── HIDING A REQUIRED FIELD IS HOW PUBLISH DIES SILENTLY ────────────
+           Publish is <button type="submit">, so it runs the browser's own form
+           validation before any of our code sees it. A field that is `required`
+           and `display:none` fails that check, and the browser cannot show a
+           bubble on something it cannot scroll to — Chrome refuses the submit,
+           writes "An invalid form control is not focusable" to a console nobody
+           has open, and the button appears to do nothing at all.
+
+           So `required` comes off with the field and goes back on with it.
+           Remembered on the element rather than assumed, because not every
+           field in the list carries it. */
         function _setFieldHidden(id, hidden) {
             const el = document.getElementById(id);
-            const group = el && (el.closest('.form-group') || el.parentElement);
+            if (!el) return;
+            const group = el.closest('.form-group') || el.parentElement;
             if (group) group.style.display = hidden ? 'none' : '';
+            if (hidden) {
+                if (el.required) { el.dataset.wasRequired = '1'; el.required = false; }
+            } else if (el.dataset.wasRequired === '1') {
+                el.required = true;
+                delete el.dataset.wasRequired;
+            }
         }
 
         /* The form stopped asking; the database did not stop requiring. These
@@ -13918,7 +13963,11 @@ function escapeAttr(value) {
             };
             fill('gender', 'Unisex');
             fill('materialComposition', 'Digital gift card — nothing is shipped');
-            fill('subtitle', 'Digital gift card');
+            /* A real option on the category select, not free text — setting a
+               <select> to a value it has no option for silently leaves it
+               empty, which is the NOT NULL failure this function exists to
+               prevent, arriving quietly. */
+            fill('subtitle', 'Gift Card');
             /* MSRP is the compare-at price. A gift card is never on sale against
                itself, so it matches the price rather than sitting empty and
                failing a NOT NULL. */
