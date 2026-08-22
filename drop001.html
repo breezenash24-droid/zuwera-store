@@ -228,6 +228,7 @@ document.documentElement.classList.add('zw-collflash');
   <link rel="canonical" href="https://zuwera.store/drop001.html">
   <script src="preview-mode.js?v=799782ba" defer></script>
   <script src="/zw-data.js?v=b1d82c08" defer></script>
+  <script src="gift-card-buy.js?v=449f2a8f" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=a6453cd7" defer></script>
 <script src="pdp-gallery.js?v=2192736c" defer></script>
@@ -3294,6 +3295,12 @@ function updateCountdown() {
             <div class="collection-option-head"><span>Size</span><strong id="collection-review-size">Choose size</strong></div>
             <div class="collection-option-grid collection-sizes" id="collection-review-sizes"></div>
           </div>
+          <!-- Where a gift card asks its two questions. Filled by
+               gift-card-buy.js — the SAME module the product page and the
+               shared quick-add panel use. This page has its own copy of the
+               panel, which is exactly how a gift card came to be sold three
+               different ways and broken in two of them. -->
+          <div id="collection-gift-card"></div>
           <p class="collection-review-message" id="collection-review-message">Choose your options.</p>
           <div class="collection-review-actions">
             <button type="button" class="collection-review-confirm" id="collection-review-confirm">Add to Bag</button>
@@ -3363,11 +3370,16 @@ function updateCountdown() {
       var results = await Promise.all([
         fetch(_colSB_URL + '/rest/v1/color_variants?select=id,color_name,hex_color,variant_sku&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers }),
         fetch(_colSB_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodedId + '&order=created_at.asc', { headers: headers, cache: 'no-store' }),
-        fetch(_colSB_URL + '/rest/v1/product_images?select=image_url,alt_text,sort_order,color_variant_id,media_type&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers })
+        fetch(_colSB_URL + '/rest/v1/product_images?select=image_url,alt_text,sort_order,color_variant_id,media_type&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers }),
+        /* What a gift card needs instead of colour and size: an amount and
+           somebody to send it to. Both come off this row. */
+        fetch(_colSB_URL + '/rest/v1/products?select=gift_card_cents,gift_card_denominations,current_price&id=eq.' + encodeURIComponent(productId) + '&limit=1', { headers: headers })
       ]);
       var colors = results[0].ok ? await results[0].json() : [];
       var sizeRows = results[1].ok ? await results[1].json() : [];
       var imageRows = results[2].ok ? await results[2].json() : [];
+      var prodRows = results[3] && results[3].ok ? await results[3].json() : [];
+      modalItem.product = (Array.isArray(prodRows) && prodRows[0]) || null;
       var sizeEntries = collectionSizeEntries(sizeRows);
 
       modalItem.allImageRows = Array.isArray(imageRows) ? imageRows : [];
@@ -3410,12 +3422,6 @@ function updateCountdown() {
       console.error('Collection quick add payload parse failed:', err);
       showToast('Unable to open product options');
       return;
-    }
-
-    if (Number(payload.giftCardCents) > 0) {
-      window.location.assign('/product.html?id=' + encodeURIComponent(payload.productId)
-        + (payload.sku ? '&sku=' + encodeURIComponent(payload.sku) : ''));
-      return false;
     }
 
     colQuickAdd(
@@ -3958,7 +3964,10 @@ function updateCountdown() {
          are the same product, size and colour, and without it the second add lands
          on the first and makes two of it. */
       var existIdx = cart.findIndex(function(i){ return i.productId === cartItem.productId && i.size === cartItem.size && i.colorName === cartItem.colorName
-        && (Number(i.customAmountCents) || 0) === (Number(cartItem.customAmountCents) || 0); });
+        && (Number(i.customAmountCents) || 0) === (Number(cartItem.customAmountCents) || 0)
+        /* And who it is for: two $50 cards for two different people are not two
+           of one card, and merging them drops the second recipient. */
+        && JSON.stringify(i.giftCardTo || null) === JSON.stringify(cartItem.giftCardTo || null); });
     if (existIdx > -1) {
       cart[existIdx].quantity += 1;
     } else {
@@ -4179,11 +4188,52 @@ function updateCountdown() {
     });
   }
 
+  /* One controller at a time — the panel shows one product. Out here so a
+     re-render for the same card does not wipe a half-typed address. */
+  var _colGc = null;
+  var _colGcFor = '';
+
   function collectionRenderOptions(item) {
     var colorWrap = document.getElementById('collection-review-colors');
     var sizeWrap = document.getElementById('collection-review-sizes');
     var message = document.getElementById('collection-review-message');
     var confirm = document.getElementById('collection-review-confirm');
+
+    /* ── THE GIFT CARD SHAPE ────────────────────────────────────────────────
+       Colour and size go; the amount and the recipient take their place. The
+       size block especially — a gift card has no rows in product_sizes, so a
+       size grid drawn against it is either empty or, where stale rows survive,
+       seven struck-through sizes above a disabled Add to Bag. */
+    var gcHost = document.getElementById('collection-gift-card');
+    var isCard = !!(item.product && window.ZWGiftCardBuy && window.ZWGiftCardBuy.is(item.product));
+    if (gcHost) {
+      var colorBlock = colorWrap && colorWrap.closest ? colorWrap.closest('.collection-option-block') : null;
+      var sizeBlock = sizeWrap && sizeWrap.closest ? sizeWrap.closest('.collection-option-block') : null;
+      if (colorBlock) colorBlock.style.display = isCard ? 'none' : '';
+      if (sizeBlock) sizeBlock.style.display = isCard ? 'none' : '';
+      gcHost.style.display = isCard ? '' : 'none';
+      if (isCard) {
+        if (_colGc && _colGcFor !== item.productId) { _colGc.destroy(); _colGc = null; }
+        if (!_colGc) {
+          _colGcFor = item.productId;
+          _colGc = window.ZWGiftCardBuy.mount(gcHost, item.product, {
+            onChange: function (cents) {
+              var priceEl = document.getElementById('collection-review-price');
+              if (priceEl) priceEl.textContent = window.ZWGiftCardBuy.money(cents > 0 ? cents : Math.round((item.price || 0) * 100));
+            },
+          });
+        }
+      } else if (_colGc) {
+        _colGc.destroy(); _colGc = null; _colGcFor = '';
+      }
+    }
+    if (isCard) {
+      /* Everything below decides whether a SIZE has been chosen. None of it has
+         anything to say about a card. */
+      if (message) message.textContent = '';
+      if (confirm) { confirm.disabled = false; confirm.classList.remove('disabled'); }
+      return;
+    }
     var colors = Array.isArray(item.colors) ? item.colors : [];
     var sizes = Array.isArray(item.sizes) ? item.sizes : [];
 
@@ -4334,6 +4384,28 @@ function updateCountdown() {
       var item = _collectionReviewItem;
       var colorName = item.selectedColor ? item.selectedColor.color_name : 'Standard';
       var size = item.selectedSize || 'One Size';
+
+      /* A gift card with nowhere to go is refused beside the field rather than
+         at the till — the module's check, not a third copy of it. */
+      if (_colGc) {
+        if (_colGc.problem()) return;
+        collectionCommitReviewedItem(_colGc.applyTo({
+          productId: item.productId,
+          sku: item.sku || item.baseSku || '',
+          title: item.title,
+          size: '',
+          colorName: colorName,
+          colorHex: '',
+          regularPrice: item.regularPrice,
+          memberPrice: item.memberPrice,
+          price: item.price,
+          image: item.activeImage || item.image || '',
+          quantity: 1
+        }));
+        closeCollectionReviewModal();
+        return;
+      }
+
       closeCollectionReviewModal();
       collectionCommitReviewedItem({
         productId: item.productId,

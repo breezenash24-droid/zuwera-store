@@ -172,13 +172,21 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g,
 
   {
     const pm = read('product-main.js');
+    /* All three writers, because a bag is one bag however a line reached it. */
     ok('the merge key includes who it is for',
-      /JSON\.stringify\(item\.giftCardTo \|\| null\) === JSON\.stringify\(cartItem\.giftCardTo \|\| null\)/.test(pm),
+      /giftCardTo \|\| null\)/.test(pm)
+      && /giftCardTo \|\| null\)/.test(read('quick-add-modal.js'))
+      && /giftCardTo \|\| null\)/.test(read('drop001.html')),
       'two $50 cards for two different people are not two of one card — merging '
       + 'them sends both to whoever was typed first');
-    ok('the line carries the recipient', /giftCardTo: _gcTo/.test(pm));
+    const mod = read('gift-card-buy.js');
+    ok('the line carries the recipient', /if \(to\) line\.giftCardTo = to;/.test(mod));
     ok('…and Add to Bag refuses a card with nowhere to go',
-      /const problem = gcRecipientProblem\(_gcTo\);/.test(pm));
+      /_gcBuy\.problem\(\)\) return;/.test(pm),
+      'the module owns the check, so all three surfaces refuse identically');
+    ok('…the panels too',
+      /_quickAddGc\.problem\(\)\) return;/.test(read('quick-add-modal.js'))
+      && /_colGc\.problem\(\)\) return;/.test(read('drop001.html')));
   }
 
   console.log('\n  a gift card has no shelf to be empty');
@@ -238,30 +246,35 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g,
       'a gift card read "Standard / " with nothing after it');
   }
 
-  console.log('\n  a gift card cannot be quick-added');
+  console.log('\n  all three surfaces sell one the same way');
 
   {
-    /* The panel asks colour and size. A gift card has neither, and needs two
-       things it cannot ask for: an amount, and somebody to send it to. Adding
-       one anyway produced a line with no face value, no chosen amount, no
-       recipient and a made-up half pound of shipping weight — so the bag quoted
-       a real USPS rate against a code in an email. Same class as the size
-       picker inventing seven sizes for a $50 card, still reachable from the
-       collection grid, the homepage grid and saved items. */
-    const qa = read('quick-add-modal.js');
-    ok('the panel asks whether the product is one',
-      /products\?select=gift_card_cents&id=eq\./.test(qa),
-      'the three grids that open this panel do not all carry the flag, and the '
-      + 'saved-items path carries almost nothing');
-    ok('…and sends it to the product page instead of adding it',
-      /Number\(prodRows\[0\]\.gift_card_cents\) > 0\) \{[\s\S]{0,400}window\.location\.assign\(qaProductHref/.test(qa));
-    ok('…checked in ONE place rather than at each grid',
-      (qa.match(/gift_card_cents/g) || []).length <= 2,
-      'a rule about gift cards enforced in three grids is one that will be '
-      + 'enforced in two of them by whoever adds a fourth');
-    ok('…using the URL the panel already builds for "Full Product Page"',
-      /qaProductHref\(modalItem\)/.test(qa),
-      'a second URL shape is a second thing that can drift from the first');
+    /* THREE of them, which is the whole reason gift-card-buy.js exists: the
+       product page, the shared quick-add panel, and the collection page's own
+       copy of that panel. For a while the panels refused to sell gift cards and
+       sent shoppers to the product page — honest, and worse: the surface a
+       shopper meets on the collection grid could not sell what it was showing
+       them. Now all three mount the same module. */
+    const hosts = [
+      ['product-main.js', read('product-main.js')],
+      ['quick-add-modal.js', read('quick-add-modal.js')],
+      ['drop001.html', read('drop001.html')],
+    ];
+    for (const [name, src] of hosts) {
+      ok(name + ' mounts the module', /ZWGiftCardBuy\.mount\(/.test(src));
+      ok('…and takes colour and size away for a card', /isCard/.test(src) || name === 'product-main.js');
+      ok('…and none of them redirects a card away any more',
+        !/giftCardCents\) > 0[\s\S]{0,120}location\.assign/.test(src));
+    }
+
+    /* The module ships its own CSS because the hosts do not share a stylesheet
+       — the panel appears on four pages that never load product.css. */
+    const mod = read('gift-card-buy.js');
+    ok('the module brings its own styles', /var STYLE_ID = 'zwgc-styles'/.test(mod));
+    ok('…injected once, not per mount', /if \(d\.getElementById\(STYLE_ID\)\) return;/.test(mod));
+    ok('…and coloured from the page, so it follows every theme',
+      /color-mix\(in srgb, currentColor/.test(mod) && !/#(fff|000)\b/i.test(mod),
+      'a fixed palette would be a cream panel on a dark store, or the reverse');
   }
 
   console.log('\n  seven phantom sizes, and the sell-out they caused');
@@ -321,11 +334,13 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g,
       /giftCardCents: Number\(p\.gift_card_cents\) \|\| 0/.test(plp));
     ok('…and so does the homepage grid',
       /giftCardCents: Number\(p\.gift_card_cents\) \|\| 0/.test(home));
-    ok('the collection click goes straight to the product page',
-      /if \(Number\(payload\.giftCardCents\) > 0\) \{/.test(plp));
-    ok('…and the homepage click rides the same branch as the mobile bypass',
-      /Number\(payload\.giftCardCents\) > 0 \|\| shouldBypassQuickAddModal\(\)/.test(home),
-      'one branch, so a card and a phone reach the product page the same way');
+    /* The flag still rides the payload — the grids read it off the product row
+       for free — but nothing redirects on it any more. Both panels sell a gift
+       card now, so a click opens the panel like any other product. */
+    ok('neither grid bounces a gift card away',
+      !/giftCardCents\) > 0[\s\S]{0,140}location\.assign/.test(plp)
+      && !/giftCardCents\) > 0 \|\| shouldBypassQuickAddModal/.test(home),
+      'refusing to sell the thing you are showing somebody is honest and worse');
   }
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

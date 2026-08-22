@@ -160,19 +160,26 @@ async function resolve(product, raw, policy) {
   console.log('\n  the browser sends the amount, never a face value');
 
   {
-    const pm = fs.readFileSync(path.join(ROOT, 'product-main.js'), 'utf8').replace(/\r\n/g, '\n');
-    ok('the cart line carries customAmountCents',
-      /customAmountCents: _gcCustomCents/.test(pm));
+    /* This lives in gift-card-buy.js now — one module, mounted by the product
+       page and by both quick-add panels. It was written out longhand on the
+       product page and nowhere else, which is exactly why the panels could not
+       sell a gift card: every rule that would have had to be copied into them
+       decides money or decides where an email goes. */
+    const mod = fs.readFileSync(path.join(ROOT, 'gift-card-buy.js'), 'utf8').replace(/\r\n/g, '\n');
+    ok('the cart line carries the chosen amount',
+      /line\.customAmountCents = chosen;/.test(mod));
     ok('…and never a client-side face value',
-      !/giftCardCents: _gcCustomCents/.test(pm),
-      'a price and a face value sent separately is the whole hole');
+      !/giftCardCents = chosen/.test(mod)
+      && /line\.giftCardCents = Number\(product\.gift_card_cents/.test(mod),
+      'the face value is read off the catalogue; a price and a face value sent '
+      + 'separately is the whole hole');
 
     /* The till refuses to charge more than the cart says it displayed, so a
        line still claiming $50 against a $73 card is rejected as a price change
        — the guard doing its job against the one case where the higher figure
        is the shopper's own instruction. */
     ok('the displayed price follows the chosen amount',
-      /price: _gcCustomCents > 0 \? \(_gcCustomCents \/ 100\) : effectivePrice/.test(pm),
+      /line\.price = chosen \/ 100;/.test(mod),
       'otherwise checkoutPriceChanged refuses the order');
   }
 

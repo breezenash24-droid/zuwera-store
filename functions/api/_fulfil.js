@@ -1362,7 +1362,49 @@ export function buildOrderConfirmation({ appearance, content, orderId, toName, i
      thing this email exists to hand over would be the thing nobody saw.
 
      Monospaced, and spaced out, because these get read aloud and typed. */
-  const cards = Array.isArray(giftCardCodes) ? giftCardCodes.filter((c) => c && c.code) : [];
+  /* ── THE CODE GOES TO EXACTLY ONE INBOX ────────────────────────────────────
+     A card bought FOR SOMEBODY ELSE had its code printed here as well as in the
+     recipient's own email, and that is two things wrong at once.
+
+     It is a present. The code IS the present, and anyone who can read it can
+     spend it — so the buyer could empty their friend's card, by accident or on
+     a bad day, and the friend would open a gift that had already been used.
+     There is no way to tell those two stories apart afterwards.
+
+     And it doubles the copies of spendable money. Everything else about these
+     codes is built to limit where one can be read; putting each one in two
+     mailboxes makes a single compromised inbox worth twice as much for no gain
+     the buyer actually needed.
+
+     What the buyer needs is proof they bought it and a way to fix a wrong
+     address — so the block still appears, still says what was bought and what
+     it is worth, and says WHO IT WENT TO instead of what to type. If the
+     address was wrong, the card is findable in the admin ledger and can be
+     voided and reissued, which is the honest remedy rather than handing the
+     giver a spendable copy in case.
+
+     A card with NO recipient is the buyer's own, and they get the code — that
+     is every gift card sold before recipients existed, and every one somebody
+     buys for themselves. */
+  const all = Array.isArray(giftCardCodes) ? giftCardCodes.filter((c) => c && c.code) : [];
+  const cards = all.filter((c) => !(c.to && c.to.email));
+  const gifted = all.filter((c) => c.to && c.to.email);
+
+  const giftedBlock = gifted.length ? `
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid ${a.border};border-radius:8px;margin-bottom:24px;">
+          <tr><td style="padding:16px 18px;">
+            <p style="margin:0;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:${a.muted};font-family:${a.fontMono};">${gifted.length === 1 ? 'Gift card sent' : 'Gift cards sent'}</p>
+            <p style="margin:6px 0 12px;font-size:13px;color:${a.muted};line-height:1.6;">The code ${gifted.length === 1 ? 'has' : 'codes have'} gone straight to ${gifted.length === 1 ? 'them' : 'each of them'}, so ${gifted.length === 1 ? 'it is' : 'they are'} not repeated here. If an address is wrong, reply to this email and we will sort it out.</p>
+            ${gifted.map((c) => `
+            <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px dashed ${a.border};border-radius:6px;margin-bottom:8px;">
+              <tr>
+                <td style="padding:12px 14px;font-size:14px;color:${a.text};">${escHtml([c.to.name, c.to.email].filter(Boolean).join(' · '))}</td>
+                <td style="padding:12px 14px;text-align:right;font-size:15px;font-weight:700;color:${a.text};">$${(Number(c.cents || 0) / 100).toFixed(2)}</td>
+              </tr>
+            </table>`).join('')}
+          </td></tr>
+        </table>` : '';
+
   const giftCardBlock = cards.length ? `
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid ${a.border};border-radius:8px;margin-bottom:24px;">
           <tr><td style="padding:16px 18px 6px;">
@@ -1383,6 +1425,7 @@ export function buildOrderConfirmation({ appearance, content, orderId, toName, i
 
   const body = `
         ${giftCardBlock}
+        ${giftedBlock}
         <!-- Items -->
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
           ${itemsHtml}

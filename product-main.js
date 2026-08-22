@@ -403,12 +403,6 @@ function applyGiftCardPageType() {
   const note = document.getElementById('giftCardNote');
   if (note) note.hidden = !on;
 
-  /* The amounts, and the Custom chip when the store allows a buyer-chosen
-     figure. Both live in one row that draws itself; a card with neither shows
-     no row at all and sells at its listed price, exactly as it did before any
-     of this existed. */
-  if (!on) _gcCustomCents = 0;
-  renderGiftCardAmounts();
 
   /* The size guide link lives in the header of a section that is now gone, but
      storefront-features.js also injects a "Find your size" button in there
@@ -417,7 +411,8 @@ function applyGiftCardPageType() {
   const label = document.getElementById('sizeSectionLabel');
   if (label && on) label.textContent = '';
 
-  if (on) { paintGiftCardDelivery(); paintGiftCardRecipient(); }
+  if (on) paintGiftCardDelivery();
+  mountGiftCardBuy();
 }
 
 /* ── HOW IT GETS THERE ───────────────────────────────────────────────────────
@@ -441,296 +436,101 @@ function paintGiftCardDelivery() {
   });
 }
 
-/* ── A GIFT CARD THE BUYER PRICES THEMSELVES ─────────────────────────────────
+/* ── BUYING A GIFT CARD ──────────────────────────────────────────────────────
  *
- * Nothing here decides anything. The amount is sent as `customAmountCents` and
- * the server turns it into BOTH the price and the face value from that one
- * input — which is the only reason a customer-named figure is safe at all, and
- * why this file must never send a price and a face value separately.
+ * All of it lives in gift-card-buy.js now, which the quick-add panel mounts
+ * too. It was written out longhand here and nowhere else, and that is exactly
+ * why the panel could not sell a gift card: every rule that would have had to
+ * be copied into it decides money, or decides where an email goes — which
+ * amounts are offered, the floor and ceiling on a typed one, that the chosen
+ * figure becomes BOTH the price and the face value, that a card with no
+ * recipient is refused rather than quietly sent to the buyer.
  *
- * The bounds are shown before anything is typed. A limit that only appears as a
- * refusal after somebody has committed to a number is a limit that reads as a
- * mistake on the store's part.
+ * What stays here is the part that genuinely belongs to this page: the dialog
+ * that asks for a custom amount. The module hands it a `commit` rather than a
+ * setter, so the BOUNDS still live in one place — a host that both collected a
+ * number and judged it would be the second implementation the module exists to
+ * prevent.
  */
-let _gcCustomCents = 0;
+let _gcBuy = null;
+let _gcCommit = null;
 
-function gcPolicy() {
-  const cfg = (window.ZWCommerceConfig && window.ZWCommerceConfig.giftCards) || {};
-  const min = Math.round(Number(cfg.minCents));
-  const max = Math.round(Number(cfg.maxCents));
-  return {
-    on: cfg.customAmounts === true,
-    minCents: Number.isFinite(min) && min > 0 ? min : 1000,
-    maxCents: Number.isFinite(max) && max > 0 ? max : 50000,
-  };
+function gcMoney(cents) {
+  return window.ZWGiftCardBuy ? ZWGiftCardBuy.money(cents) : '$' + ((cents || 0) / 100).toFixed(2);
 }
 
-/* --- THE AMOUNTS THIS CARD IS SOLD IN --------------------------------------
- * Set per product, in the admin product form, because they belong to the card
- * rather than to the store: two gift cards can reasonably be sold in different
- * denominations, and a store-wide list would make the product form write a
- * global setting.
- *
- * Empty is the ordinary state and means exactly what it meant before this
- * existed: the card sells at its listed price. That is also what a store sees
- * before migration 0035 has been run -- the column simply is not in the row,
- * the list comes back empty, and the page behaves as it did yesterday.
- *
- * NOT bounded by minCents/maxCents. Those bound what a BUYER may type; these
- * are amounts the store chose deliberately, and refusing a store its own $500
- * card because free entry is capped at $500 would be the setting arguing with
- * the shopkeeper.
- */
-function gcDenominations() {
-  const raw = currentProduct && currentProduct.gift_card_denominations;
-  const out = [];
-  (Array.isArray(raw) ? raw : []).forEach((v) => {
-    const cents = Math.round(Number(v));
-    if (Number.isFinite(cents) && cents > 0 && out.indexOf(cents) === -1) out.push(cents);
+/* What the shopper chose, or 0 for "whatever the card is listed at". */
+function gcChosenCents() {
+  return _gcBuy ? _gcBuy.amountCents() : 0;
+}
+
+function mountGiftCardBuy() {
+  const host = document.getElementById('giftCardBuy');
+  if (!host || !window.ZWGiftCardBuy) return;
+  if (!isGiftCardProduct()) {
+    if (_gcBuy) { _gcBuy.destroy(); _gcBuy = null; }
+    return;
+  }
+  if (_gcBuy) return;
+  _gcBuy = ZWGiftCardBuy.mount(host, currentProduct, {
+    /* This page has a dialog for it, dressed like the rest of the site's
+       dialogs. The panel, which cannot sensibly open a modal over itself, falls
+       back to the module's inline field — same bounds, same refusal, same
+       commit. */
+    onCustom: openGiftCardAmount,
+    /* renderPrice() draws the price and nothing else does, which is the one
+       arrangement in which the figure above the chips and the figure on the
+       chips cannot disagree. */
+    onChange: () => { try { renderPrice(); } catch (_) {} },
   });
-  out.sort((a, b) => a - b);
-  /* Eight is a row that still reads as a row. A store that types twenty is
-     asking for a dropdown, and the twenty-first would be off the bottom of a
-     phone. */
-  return out.slice(0, 8);
 }
 
-const gcMoney = (cents) => '$' + (Math.max(0, Number(cents) || 0) / 100).toFixed(2);
-/* Chips say $25, not $25.00. A row of trailing zeroes is noise on a control
-   whose whole job is to be scanned at a glance; the full figure is printed
-   directly above it as the price. */
-const gcMoneyShort = (cents) => {
-  const n = Math.max(0, Number(cents) || 0) / 100;
-  return '$' + (Number.isInteger(n) ? String(n) : n.toFixed(2));
-};
-
-/* --- WHO THE CARD IS FOR ---------------------------------------------------
- * The buyer names a stranger's email address and writes them a note, and both
- * ride all the way to a message this store sends. Two things follow from that.
- *
- * It is CAPPED and TRIMMED here and again on the server, because the server is
- * the one that counts and this one is only being polite about it.
- *
- * And it costs money to use: nothing is sent until a payment succeeds, which
- * is the rate limit that matters on a form that can email arbitrary people.
- * That is worth saying out loud, because "send a message to any address" is a
- * spam relay in every other context, and the only reason this one is not is
- * that each message has a card paid for behind it.
- */
-function gcRecipientFromForm() {
-  const val = (id, cap) => String(document.getElementById(id)?.value || '').trim().slice(0, cap);
-  const first = val('gcFirstName', 50);
-  const last = val('gcLastName', 50);
-  const email = val('gcEmail', 120);
-  const message = val('gcMessage', 250);
-  if (!email && !first && !last && !message) return null;
-  return { first, last, email, message };
-}
-
-/* The same shape the server accepts, checked here so the refusal lands beside
-   the field rather than at the till.
-
-   Returns the SENTENCE and the box to put the cursor in, and names each message
-   key literally at the point it is used — tests/map-matches-code.test.js reads
-   this file to check that the admin's list of "what this screen says" matches
-   what the screen actually says, and a key fetched through a variable is a key
-   that list cannot see. */
-function gcRecipientProblem(to) {
-  const say = (key) => { try { return (window.ZWMessages && ZWMessages.get(key)) || ''; } catch (_) { return ''; } };
-  if (!to || !to.email) return { text: say('giftCardNeedEmail'), focus: 'gcEmail' };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to.email)) return { text: say('giftCardBadEmail'), focus: 'gcEmail' };
-  if (!to.first) return { text: say('giftCardNeedName'), focus: 'gcFirstName' };
-  return null;
-}
-
-function paintGiftCardRecipient() {
-  const intro = document.getElementById('giftCardSendToIntro');
-  const hint = document.getElementById('giftCardMessageHint');
-  try {
-    if (intro && window.ZWMessages) intro.textContent = ZWMessages.get('giftCardSendTo') || '';
-    if (hint && window.ZWMessages) hint.textContent = ZWMessages.get('giftCardMessageHint') || '';
-  } catch (_) {}
-  const box = document.getElementById('gcMessage');
-  const count = document.getElementById('gcMessageCount');
-  if (box && count) count.textContent = String((box.value || '').length);
-}
-
-(function wireGiftCardRecipient() {
-  function attach() {
-    const box = document.getElementById('gcMessage');
-    if (box && !box.__zwWired) {
-      box.__zwWired = true;
-      box.addEventListener('input', () => {
-        const count = document.getElementById('gcMessageCount');
-        if (count) count.textContent = String((box.value || '').length);
-      });
-    }
-    /* Typing anywhere in the block clears a refusal about it. Leaving it up
-       while somebody fixes the thing it names reads as a second, still-unfixed
-       problem. */
-    const shell = document.getElementById('giftCardRecipient');
-    if (shell && !shell.__zwWired) {
-      shell.__zwWired = true;
-      shell.addEventListener('input', () => {
-        const err = document.getElementById('giftCardRecipientError');
-        if (err) err.textContent = '';
-      });
-    }
-    paintGiftCardRecipient();
-  }
-  if (document.readyState !== 'loading') attach();
-  else document.addEventListener('DOMContentLoaded', attach, { once: true });
-})();
-
-/* --- THE CHIPS -------------------------------------------------------------
- * Deliberately `.size-btn`, the site's own control for picking a variant, with
- * only layout added. An amount IS the variant on a gift card -- it is the one
- * choice a shopper makes before adding to the bag -- and a bespoke button
- * beside a page full of size buttons is what made this section read as bolted
- * on. Reusing the class also inherits light mode, super-light, the hover and
- * selected states and the mobile sizing, none of which a new class would have
- * had until somebody noticed.
- */
-function renderGiftCardAmounts() {
-  const wrap = document.getElementById('giftCardAmounts');
-  const row = document.getElementById('giftCardAmountRow');
-  if (!wrap || !row) return;
-
-  const list = isGiftCardProduct() ? gcDenominations() : [];
-  const custom = isGiftCardProduct() && gcPolicy().on;
-  wrap.hidden = !(list.length || custom);
-  if (wrap.hidden) { _gcCustomCents = 0; return; }
-
-  row.textContent = '';
-  list.forEach((cents) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'size-btn gc-amt';
-    b.dataset.cents = String(cents);
-    b.textContent = gcMoneyShort(cents);
-    b.addEventListener('click', () => { _gcCustomCents = cents; paintGiftCardAmount(); });
-    row.appendChild(b);
-  });
-
-  if (custom) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'size-btn gc-amt gc-amt-custom';
-    b.id = 'giftCardAmountBtn';
-    b.textContent = 'Custom';
-    b.addEventListener('click', () => window.openGiftCardAmount());
-    row.appendChild(b);
-  }
-
-  /* SOMETHING IS ALWAYS CHOSEN once chips exist. Left unset, the line would go
-     into the bag at the catalogue price while the row showed nothing selected
-     -- a shopper picking no chip and getting a figure that appears on none of
-     them. The listed price wins where it is one of the amounts, because that is
-     the figure the page has been showing all along. */
-  if (!_gcCustomCents && list.length) {
-    const face = currentProductPriceCents();
-    _gcCustomCents = list.indexOf(face) > -1 ? face : list[0];
-  }
-  paintGiftCardAmount();
-}
-
-window.openGiftCardAmount = function () {
-  const p = gcPolicy();
+/* Collect a number and report back what the module said about it. */
+function openGiftCardAmount(commit, pol, startCents) {
   const modal = document.getElementById('giftCardAmountModal');
   const input = document.getElementById('gcAmountInput');
   const hint = document.getElementById('gcAmountHint');
   if (!modal || !input) return;
-  input.min = String(p.minCents / 100);
-  input.max = String(p.maxCents / 100);
-  input.value = String(Math.round((_gcCustomCents || currentProductPriceCents()) / 100));
-  /* The bounds are a description of the field, so they sit in the description
-     slot — the same place Find My Size explains itself. What is left under the
-     input speaks only when something is wrong. */
+  _gcCommit = commit;
+  input.min = String(pol.minCents / 100);
+  input.max = String(pol.maxCents / 100);
+  input.value = String(Math.round((startCents || pol.minCents) / 100));
+  /* The bounds describe the field, so they sit in the description slot — the
+     same place Find My Size explains itself. What is left under the input
+     speaks only when something is wrong. */
   const copy = document.getElementById('gcAmountCopy');
-  if (copy) copy.textContent = 'Any amount between ' + gcMoney(p.minCents) + ' and ' + gcMoney(p.maxCents) + '.';
+  if (copy) copy.textContent = 'Any amount between ' + gcMoney(pol.minCents) + ' and ' + gcMoney(pol.maxCents) + '.';
   if (hint) hint.textContent = '';
-  /* `.open`, not `hidden`. The class is what the whole storefront's modal
-     appearance keys off — scrim, blur, panel, motion, the mobile sheet — and it
-     is also what modal-lock.js looks for when it decides whether the page
-     behind should stop scrolling. */
+
+  /* `.open`, not `hidden`: the class is what the storefront's whole modal
+     appearance keys off, and what modal-lock.js looks for when it decides
+     whether the page behind should stop scrolling. */
   modal.classList.add('open');
   input.focus();
   input.select();
   if (!modal.__zwWired) {
     modal.__zwWired = true;
-    /* Tapping the scrim closes it; tapping the panel does not. Every other
-       dialog on the site behaves this way and a shopper will try it. */
     modal.addEventListener('click', (e) => { if (e.target === modal) window.closeGiftCardAmount(); });
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); window.applyGiftCardAmount(); }
     });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.classList.contains('open')) window.closeGiftCardAmount();
-    });
   }
-};
+}
 
 window.closeGiftCardAmount = function () {
   const modal = document.getElementById('giftCardAmountModal');
   if (modal) modal.classList.remove('open');
 };
 
-function currentProductPriceCents() {
-  return Math.round((Number(currentProduct && currentProduct.current_price) || 0) * 100);
-}
-
 window.applyGiftCardAmount = function () {
-  const p = gcPolicy();
   const input = document.getElementById('gcAmountInput');
   const hint = document.getElementById('gcAmountHint');
   const dollars = parseFloat(input && input.value);
-  if (!Number.isFinite(dollars) || dollars <= 0) {
-    if (hint) hint.textContent = 'Enter an amount.';
-    return;
-  }
-  const cents = Math.round(dollars * 100);
-  /* Refused here rather than clamped, even though the server clamps: a shopper
-     who typed $2 into a box that says "from $10" should be told, not quietly
-     handed a $10 card they did not ask for. The server's clamp is the backstop
-     for anything that reaches it another way. */
-  if (cents < p.minCents || cents > p.maxCents) {
-    if (hint) hint.textContent = 'Please choose between ' + gcMoney(p.minCents) + ' and ' + gcMoney(p.maxCents) + '.';
-    return;
-  }
-  _gcCustomCents = cents;
-  paintGiftCardAmount();
+  if (!_gcCommit) { window.closeGiftCardAmount(); return; }
+  const r = _gcCommit(Math.round((Number.isFinite(dollars) ? dollars : 0) * 100));
+  if (!r.ok) { if (hint) hint.textContent = r.error; return; }
   window.closeGiftCardAmount();
 };
-
-/* The price on the page follows the choice, because a page still showing $50
-   under a button that says "$300.00" is the bag-says-35-checkout-says-40
-   problem in miniature.
-
-   IT WROTE TO #productPrice, WHICH THIS PAGE DOES NOT HAVE. The price element
-   is #priceDisplay. getElementById answered null, the assignment did nothing,
-   and a shopper who chose $300 read $50 above a button reading $300 -- with no
-   error anywhere, because writing to nothing is not an error.
-
-   So it no longer writes the price at all. It asks renderPrice() to run, and
-   renderPrice() knows about the chosen amount. One writer for the price
-   element, which is the only arrangement in which the two cannot disagree. */
-function paintGiftCardAmount() {
-  const row = document.getElementById('giftCardAmountRow');
-  if (row) {
-    /* "Custom" is selected when the chosen figure is not one of the chips --
-       which is how a typed $300 is told from a tapped $300 without keeping a
-       second piece of state that could fall out of step with the first. */
-    const chosen = _gcCustomCents > 0;
-    const onAChip = chosen && !!row.querySelector('.gc-amt[data-cents="' + _gcCustomCents + '"]');
-    row.querySelectorAll('.gc-amt').forEach((b) => {
-      const cents = Number(b.dataset.cents) || 0;
-      b.classList.toggle('selected', cents > 0 ? cents === _gcCustomCents : (chosen && !onAChip));
-    });
-    const custom = document.getElementById('giftCardAmountBtn');
-    if (custom) custom.textContent = (chosen && !onAChip) ? gcMoneyShort(_gcCustomCents) : 'Custom';
-  }
-  try { renderPrice(); } catch (_) {}
-}
 
 function getDefaultProductSizes() {
   const categoryLower = categoryLabelFromProduct(currentProduct).toLowerCase();
@@ -1792,7 +1592,8 @@ function renderPrice() {
      own price inherits no compare-at, so reading currentProduct.msrp here would
      strike through a figure this colour never cost and advertise a saving
      nobody is offering. */
-  const effective = (isGC && _gcCustomCents > 0) ? _gcCustomCents / 100 : p.priceCents / 100;
+  const gcChosen = isGC ? gcChosenCents() : 0;
+  const effective = gcChosen > 0 ? gcChosen / 100 : p.priceCents / 100;
 
   /* WHAT TO STRIKE THROUGH. One question, asked once.
 
@@ -2611,7 +2412,6 @@ function renderSizes() {
       /* Unconditional: the delivery copy is drawn before an admin's edits land
          and there is no size to have selected on a gift card page. */
       try { paintGiftCardDelivery(); } catch (_) {}
-      try { paintGiftCardRecipient(); } catch (_) {}
     });
   }
   if (window.ZWMessages) attach();
@@ -3131,22 +2931,11 @@ function addToCart() {
     return;
   }
 
-  /* A gift card with nowhere to go. Refused here rather than at the till,
+  /* A gift card with nowhere to go. Refused here rather than at the till, and
      beside the field rather than as a toast, because every one of these is a
-     box on screen that the shopper can see is empty. */
-  let _gcTo = null;
-  if (isGiftCardProduct()) {
-    _gcTo = gcRecipientFromForm();
-    const problem = gcRecipientProblem(_gcTo);
-    if (problem) {
-      const err = document.getElementById('giftCardRecipientError');
-      if (err) err.textContent = problem.text;
-      const el = document.getElementById(problem.focus);
-      if (el) { el.focus(); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
-      else if (problem.text) showToast(problem.text);
-      return;
-    }
-  }
+     box on screen the shopper can see is empty. Literally the same function the
+     quick-add panel calls — it belongs to the module, not to this page. */
+  if (isGiftCardProduct() && _gcBuy && _gcBuy.problem()) return;
 
   const regularPrice = getRegularProductPrice(currentProduct);
   const memberPrice = getMemberProductPrice(currentProduct);
@@ -3171,7 +2960,7 @@ function addToCart() {
        says it showed, so a line still claiming $50 against a $73 card would be
        rejected as a price change — the guard doing exactly its job against the
        one case where the higher figure is the shopper's own instruction. */
-    price: _gcCustomCents > 0 ? (_gcCustomCents / 100) : effectivePrice,
+    price: effectivePrice,
     image: currentProduct.images[0]?.image_url || '',
     /* Carried so the bag and the checkout can tell what they are holding. The
        till reads it off the catalogue and always will — this copy decides
@@ -3183,21 +2972,16 @@ function addToCart() {
        _cart-pricing.js. Sending a price and a face value separately is the one
        thing that would make a customer-named amount unsafe, so this file sends
        neither: it sends the amount, once. */
-    ...(_gcCustomCents > 0 ? { customAmountCents: _gcCustomCents } : {}),
-    /* Where the code is emailed, and what is written on it. Normalized and
-       re-capped on the server — this copy is what the bag displays and what
-       tells two cards for two different people apart. */
-    ...(_gcTo ? { giftCardTo: _gcTo } : {}),
-    /* A gift card weighs nothing. Every cart item used to default to half a
-       pound, so a $50 card was quoted a real USPS rate against a parcel that
-       does not exist and the bag read $55.58 for an order the server was going
-       to charge $50.00 for. */
-    weightLb: Number(currentProduct.gift_card_cents) > 0
-      ? 0
-      : (parseFloat(currentProduct.shipping_weight_lb) || 0.5),
+    weightLb: parseFloat(currentProduct.shipping_weight_lb) || 0.5,
     stockQty,
     quantity: 1
   };
+
+  /* The amount, the recipient, the zero weight and the empty size — all from
+     the module, so this page and the quick-add panel put an identical line in
+     the bag. It sends the chosen amount and never a face value beside it: a
+     price and a face value sent separately is the whole hole. */
+  if (isGiftCardProduct() && _gcBuy) _gcBuy.applyTo(cartItem);
 
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
