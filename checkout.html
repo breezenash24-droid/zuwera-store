@@ -259,7 +259,10 @@ try {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: calc(env(safe-area-inset-top, 0px) + .55rem) 1.25rem .55rem;
+      /* 2.5rem to match nav#nav, which every other page's header uses. At
+         1.25rem the logo sat visibly further left here than anywhere else on
+         the site. */
+      padding: calc(env(safe-area-inset-top, 0px) + .55rem) 2.5rem .55rem;
       /* --zw-nav-bg first. This header is .co-header — a sixth dialect that
          every previous nav-colour pass missed, because each one enumerated the
          dialects it knew and this page names its header after the checkout
@@ -671,7 +674,15 @@ try {
 <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- HEADER -->
-<header class="co-header">
+<!-- `nav` and `zw-nav` are SCOPE MARKERS, not styling. This header was a sixth
+     dialect: the icon-label rules are scoped :is(#nav, .nav, .zw-nav) and the
+     shared sizing rules :is(nav#nav, .nav, header.nav), and .co-header matched
+     neither — so the store's "show words instead of icons" setting silently did
+     not apply here, and the bag control drifted its own way. The file's own
+     comment below already names the problem: each pass enumerated the dialects
+     it knew, and this page names its header after the checkout. The fix is to
+     stop being a dialect rather than to add a sixth name to sixty-three lists. -->
+<header class="co-header nav zw-nav">
   <!-- Logo is left-aligned to match the rest of the site (storefront nav, etc.).
        The bag icon at top-right links to /bag.html. -->
   <a href="/" class="co-logo-wrap" aria-label="Zuwera home">
@@ -679,9 +690,9 @@ try {
     <span style="display:none;font-family:var(--font-head);font-size:1.4rem;letter-spacing:.15em">ZUWERA</span>
   </a>
   <div class="co-header-right">
-    <a href="/bag.html" class="co-bag-icon" aria-label="Bag" id="co-bag-pill">
+    <a href="/bag.html" class="co-bag-icon zw-hdr-bag" aria-label="Bag" id="co-bag-pill">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-      <span class="co-bag-count" id="co-bag-count">0</span>
+      <span class="co-bag-count zw-hdr-bag-count" id="co-bag-count">0</span>
     </a>
   </div>
 </header>
