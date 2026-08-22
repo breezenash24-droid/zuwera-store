@@ -146,13 +146,26 @@ ok('the private overlay is gone, not merely unused',
   !/\.gc-modal\b/.test(HTML),
   'a second modal system left in the stylesheet is the one the next person copies');
 
-ok('the amount chips are .size-btn, the control this site picks variants with',
-  /className = 'size-btn gc-amt'/.test(PM),
-  'an amount IS the variant on a gift card, and a bespoke button beside a page '
-  + 'full of size buttons is what made the section read as bolted on');
-ok('…so they inherit light mode, super-light, hover and selected for free',
-  /\.gc-amt \{ flex: 0 0 auto/.test(HTML),
-  'the local rules must be layout only');
+ok('the dialog collects a number and lets the module judge it',
+  /_gcCommit\(Math\.round\(/.test(PM) && /onCustom: openGiftCardAmount/.test(PM),
+  'a host that both collected the figure and applied the bounds would be the '
+  + 'second implementation the module exists to prevent');
+
+/* ── THE CHIPS LEFT .size-btn, AND THAT WAS THE RIGHT CALL ─────────────────
+   They were .size-btn, the product page's own control, which inherited light
+   mode, super-light, hover and selected for nothing. Then the same block had to
+   appear inside the quick-add panel — which shows up on four pages that never
+   load product.css — and an inherited class is worth nothing on a page that
+   does not have it. The module paints them itself, from currentColor, so the
+   filled state inverts correctly on any ground without a per-theme branch. */
+{
+  const MOD = read('gift-card-buy.js');
+  ok('the amount chips are the module\'s, so they look the same in all three places',
+    /class="zwgc-amt"/.test(MOD) && /\.zwgc-amt\.is-on\{background:currentColor/.test(MOD));
+  ok('…and the product page no longer draws its own',
+    !/className = 'size-btn gc-amt'/.test(PM),
+    'two implementations of one control is what this module exists to end');
+}
 
 ok('tapping the scrim closes it, the way every other dialog here behaves',
   /if \(e\.target === modal\) window\.closeGiftCardAmount\(\)/.test(PM));

@@ -55,9 +55,16 @@ function all() {
   return html() + '\n' + EXTRACTED.map(read).join('\n');
 }
 
-/** The files a "which file implements this?" census should name. */
+/** The files a "which file implements this?" census should name.
+ *
+ *  gift-card-buy.js is NOT part of this page's extracted code — it is a shared
+ *  module the product page and both quick-add panels mount. It belongs in the
+ *  census anyway, because the copy it renders (the "send to" line, the message
+ *  hint, the three refusals) is copy that appears on this page, and a census
+ *  that could not see it would report those messages as listed in the admin and
+ *  used nowhere. */
 function files() {
-  return ['product.html'].concat(EXTRACTED);
+  return ['gift-card-buy.js', 'product.html'].concat(EXTRACTED);
 }
 
 module.exports = { html, code, all, files, EXTRACTED, ROOT };

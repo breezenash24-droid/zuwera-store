@@ -179,17 +179,36 @@ async function resolve(product, raw, policy) {
   console.log('\n  the browser sends the amount, never a face value');
 
   {
-    const pm = read('product-main.js');
-    ok('a chip sets the same field free entry sets',
-      /_gcCustomCents = cents; paintGiftCardAmount\(\)/.test(pm),
+    const mod = read('gift-card-buy.js');
+    ok('a chip sets the same field a typed amount sets',
+      /chosen = Number\(b\.dataset\.cents\) \|\| 0;/.test(mod)
+      && /chosen = c;\n\s*paint\(\);/.test(mod),
       'a second field for "the chip they tapped" is a second thing to fall out of step');
     ok('…and the cart line still carries no client-side face value',
-      !/giftCardCents: _gcCustomCents/.test(pm),
+      !/giftCardCents = chosen/.test(mod),
       'a price and a face value sent separately is the whole hole');
     ok('the denominations are read off the product, not off settings',
-      /currentProduct && currentProduct\.gift_card_denominations/.test(pm),
+      /product\.gift_card_denominations/.test(mod),
       'a second settings read is a window in which the allowed set and the price '
       + 'it governs arrive out of step');
+
+    /* ── AND THERE IS ONLY ONE OF IT ──────────────────────────────────────
+       Three surfaces sell a gift card: the product page, the shared quick-add
+       panel, and the collection page's own copy of that panel. All three mount
+       the module; none of them re-derives what an amount may be. */
+    const hosts = [
+      ['product-main.js', read('product-main.js')],
+      ['quick-add-modal.js', read('quick-add-modal.js')],
+      ['drop001.html', read('drop001.html')],
+    ];
+    for (const [name, src] of hosts) {
+      ok(name + ' mounts the module rather than repeating it',
+        /ZWGiftCardBuy\.mount\(/.test(src));
+      ok('…and does not carry its own bounds',
+        !/minCents\s*[:=]/.test(src) || name === 'product-main.js',
+        'a host that judged a number itself would be the second implementation '
+        + 'this module exists to prevent');
+    }
   }
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

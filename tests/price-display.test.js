@@ -47,10 +47,10 @@ function render(prices, member, known, look, gift) {
      else passes nothing and gets a product that is not one. */
   const G = gift || {};
   new Function('resolvedPrices', 'currentProduct', 'document', 'syncProductSaveButton', 'isMemberSignedIn', 'window',
-    'PRICE_LOOK', 'PRICE_LOOK_READY', 'isGiftCardProduct', '_gcCustomCents',
+    'PRICE_LOOK', 'PRICE_LOOK_READY', 'isGiftCardProduct', 'gcChosenCents',
     body + '\nrenderPrice();')(
     () => prices, { id: 'p-1' }, doc, () => {}, () => !!member, win, LOOK, known !== false,
-    () => !!G.card, Number(G.chosenCents) || 0);
+    () => !!G.card, () => Number(G.chosenCents) || 0);
   return {
     now: (els.priceDisplay || {}).innerHTML || '',
     was: (els.msrpDisplay || {}).innerHTML || '',

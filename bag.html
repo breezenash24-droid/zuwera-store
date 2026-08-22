@@ -1308,6 +1308,20 @@ function applyStockLimits(cart) {
          whichever DOM exists when they finish, so the note appeared twice.
          Rebuilding the list does not help: the second lookup lands after it. */
       card.querySelectorAll('.cart-item-stock-note').forEach((n) => n.remove());
+
+      /* ── A GIFT CARD HAS NO SHELF TO BE EMPTY ─────────────────────────────
+         It is minted when somebody pays for it. But a card that once carried
+         size rows — and one on this store does, seven of them at zero stock,
+         written by a save that read a hidden size grid — looks exactly like a
+         product whose last one just sold. The bag then printed "sold out" and
+         offered a back-in-stock signup UNDER A LINE IT WAS HAPPY TO CHECK OUT:
+         out of stock and in stock at the same time, on the same row.
+
+         Skipped rather than fixed by cleaning the rows, because the rows are
+         live right now and the till already ignores them — _cart-pricing.js
+         only checks stock when a line has a size, and a gift card has none. */
+      if (window.ZWGiftCard && window.ZWGiftCard.is(item)) return;
+
       const available = ZWStock.stockFor(data.rows, item.productId, item.size, item.colorName);
       // null = this product has no inventory configured. Not a limit.
       if (available === null || !data.limitToStock) return;
@@ -1694,7 +1708,8 @@ window.__zwOpenAuth = function(tab) {
 
 <script src="image-utils.js?v=a6e18aa4"></script>
 <script src="pdp-gallery.js?v=2192736c" defer></script>
-<script src="quick-add-modal.js?v=5194e46b" defer></script>
+<script src="gift-card-buy.js?v=449f2a8f"></script>
+<script src="quick-add-modal.js?v=978b7823" defer></script>
 <script src="auth.js?v=fac9d15e" defer></script>
 <script>
 /* ── Saved items visibility + member pricing: flip as soon as auth state is known ── */

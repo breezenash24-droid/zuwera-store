@@ -53,6 +53,11 @@
             '<div class="quick-add-product-meta"><span id="quick-add-review-price">$0.00</span><span id="quick-add-review-sku">-</span></div>' +
             '<div class="quick-add-option-block"><div class="quick-add-option-head"><span>Color</span><strong id="quick-add-review-color">Standard</strong></div><div class="quick-add-option-grid quick-add-colors" id="quick-add-review-colors"></div></div>' +
             '<div class="quick-add-option-block"><div class="quick-add-option-head"><span>Size</span><strong id="quick-add-review-size">Choose size</strong></div><div class="quick-add-option-grid quick-add-sizes" id="quick-add-review-sizes"></div></div>' +
+            /* Where a gift card asks its two questions. Empty and unstyled for
+               every other product; gift-card-buy.js fills it and brings its own
+               CSS, because the four pages this panel appears on do not share a
+               stylesheet with the product page. */
+            '<div id="quick-add-gift-card"></div>' +
             '<p class="quick-add-review-message" id="quick-add-review-message">Choose your options.</p>' +
             '<div class="quick-add-review-actions">' +
               '<button type="button" class="quick-add-review-confirm" id="quick-add-review-confirm">Add to Bag</button>' +
@@ -308,6 +313,11 @@
     catch (_) { element.focus(); window.scrollTo(x, y); }
   }
 
+  /* One controller at a time — the panel shows one product. Kept out here so a
+     re-render for the same card does not wipe a half-typed address. */
+  var _quickAddGc = null;
+  var _quickAddGcFor = '';
+
   function quickAddFinalizeReviewedItem(cartItem) {
     var cart; try { cart = JSON.parse(localStorage.getItem('cart') || '[]') || []; } catch (_) { cart = []; }
     /* The key includes the buyer-chosen amount, where there is one: a $25 gift
@@ -317,7 +327,10 @@
        it must never land on a line that has one. */
     var existIdx = cart.findIndex(function (i) {
       return i.productId === cartItem.productId && i.size === cartItem.size && i.colorName === cartItem.colorName
-        && (Number(i.customAmountCents) || 0) === (Number(cartItem.customAmountCents) || 0);
+        && (Number(i.customAmountCents) || 0) === (Number(cartItem.customAmountCents) || 0)
+        /* And who it is for: two $50 cards for two different people are not two
+           of one card, and merging them drops the second recipient. */
+        && JSON.stringify(i.giftCardTo || null) === JSON.stringify(cartItem.giftCardTo || null);
     });
     if (existIdx > -1) cart[existIdx].quantity += 1;
     else cart.push(cartItem);
@@ -440,6 +453,51 @@
     var colorWrap = document.getElementById('quick-add-review-colors');
     var sizeWrap = document.getElementById('quick-add-review-sizes');
     var message = document.getElementById('quick-add-review-message');
+
+    /* ── THE GIFT CARD SHAPE ──────────────────────────────────────────────
+       Colour and size go, and the amount and recipient take their place. The
+       size block especially: a gift card has no rows in product_sizes, so a
+       size grid drawn against it is either empty or — where a stale row
+       survives — seven struck-through sizes over a disabled Add to Bag. */
+    var gcHost = document.getElementById('quick-add-gift-card');
+    var isCard = !!(item.product && window.ZWGiftCardBuy && window.ZWGiftCardBuy.is(item.product));
+    if (gcHost) {
+      var colorBlock = colorWrap && colorWrap.closest && colorWrap.closest('.quick-add-option-block');
+      var sizeBlock = sizeWrap && sizeWrap.closest && sizeWrap.closest('.quick-add-option-block');
+      if (colorBlock) colorBlock.style.display = isCard ? 'none' : '';
+      if (sizeBlock) sizeBlock.style.display = isCard ? 'none' : '';
+      gcHost.style.display = isCard ? '' : 'none';
+
+      if (isCard) {
+        /* Rebuilt whenever the panel opens on a different card, and left alone
+           when it re-renders for the same one — otherwise a colourway click or
+           a stock refresh would wipe a half-typed address. */
+        if (_quickAddGc && _quickAddGcFor !== item.productId) { _quickAddGc.destroy(); _quickAddGc = null; }
+        if (!_quickAddGc) {
+          _quickAddGcFor = item.productId;
+          _quickAddGc = window.ZWGiftCardBuy.mount(gcHost, item.product, {
+            onChange: function (cents) {
+              var priceEl = document.getElementById('quick-add-review-price');
+              if (priceEl) {
+                priceEl.textContent = window.ZWGiftCardBuy.money(cents > 0 ? cents : Math.round((item.price || 0) * 100));
+              }
+            },
+          });
+        }
+      } else if (_quickAddGc) {
+        _quickAddGc.destroy();
+        _quickAddGc = null;
+        _quickAddGcFor = '';
+      }
+    }
+    if (isCard) {
+      /* Everything below decides whether a SIZE has been chosen. None of it
+         has anything to say about a card. */
+      if (message) message.textContent = '';
+      var confirmEarly = document.getElementById('quick-add-review-confirm');
+      if (confirmEarly) { confirmEarly.disabled = false; confirmEarly.classList.remove('disabled'); }
+      return;
+    }
     var confirm = document.getElementById('quick-add-review-confirm');
     var selectedColor = item.selectedColor;
     var selectedSize = item.selectedSize;
@@ -618,35 +676,30 @@
         // stock edit immediately — never a cached "previous" quantity.
         fetch(SUPABASE_URL + '/rest/v1/product_sizes?select=size,stock_quantity,color_name&product_id=eq.' + encodedId + '&order=created_at.asc', { headers: headers, cache: 'no-store' }),
         fetch(SUPABASE_URL + '/rest/v1/product_images?select=image_url,alt_text,sort_order,color_variant_id,media_type&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers }),
-        /* ── A GIFT CARD CANNOT BE QUICK-ADDED ────────────────────────────────
-           This panel asks two questions — colour and size — and a gift card has
-           neither. What it needs is an AMOUNT and somebody to send it to, and
-           there is nowhere here to ask for either.
+        /* ── WHAT A GIFT CARD NEEDS INSTEAD OF COLOUR AND SIZE ───────────────
+           An amount, and somebody to send it to. This panel used to have
+           nowhere to ask for either, so it produced a cart line with no face
+           value, no chosen amount, no recipient and a made-up half pound of
+           shipping weight — a real USPS rate quoted against a code in an email.
+           For a while it refused to sell them at all and sent shoppers to the
+           product page, which was honest and worse: the surface a shopper meets
+           on the collection grid could not sell what it was showing them.
 
-           Adding one anyway produced a cart line with no face value, no chosen
-           amount, no recipient and a made-up half pound of shipping weight, so
-           the bag quoted a real USPS rate against a code in an email and the
-           card went to the buyer with no message on it. That is the same class
-           of bug as the size picker inventing seven sizes for a $50 card, still
-           reachable from the collection grid, the homepage grid and saved items.
+           It asks both now, through gift-card-buy.js, which is the SAME module
+           the product page uses. Everything that could differ between two
+           copies is something that decides money or where an email goes.
 
-           Checked HERE rather than at each of those three, because a rule about
-           gift cards enforced in three places is a rule that will be enforced
-           in two of them by the next person who adds a fourth grid. */
-        fetch(SUPABASE_URL + '/rest/v1/products?select=gift_card_cents&id=eq.' + encodedId + '&limit=1', { headers: headers })
+           Fetched here rather than passed in, because the saved-items path on
+           the account page carries almost nothing about the product. */
+        fetch(SUPABASE_URL + '/rest/v1/products?select=gift_card_cents,gift_card_denominations,current_price&id=eq.' + encodedId + '&limit=1', { headers: headers })
       ]);
       var colors = results[0].ok ? await results[0].json() : [];
       var sizeRows = results[1].ok ? await results[1].json() : [];
       var imageRows = results[2].ok ? await results[2].json() : [];
       var prodRows = results[3] && results[3].ok ? await results[3].json() : [];
-      if (Array.isArray(prodRows) && prodRows[0] && Number(prodRows[0].gift_card_cents) > 0) {
-        closeQuickAddReviewModal();
-        /* qaProductHref, not a second URL shape: it is what this panel's own
-           "Full Product Page" link already builds, so a card lands exactly
-           where clicking through would have put it. */
-        window.location.assign(qaProductHref(modalItem));
-        return;
-      }
+      /* The row itself, not just a flag: gift-card-buy.js reads the
+         denominations and the face value off it. */
+      modalItem.product = (Array.isArray(prodRows) && prodRows[0]) || null;
       var sizeEntries = quickAddSizeEntries(sizeRows);
       modalItem.allImageRows = Array.isArray(imageRows) ? imageRows : [];
       var images = quickAddGetImagesForColor(modalItem.allImageRows, productImage, null);
@@ -687,6 +740,29 @@
       var item = _quickAddReviewItem;
       var colorName = (item.selectedColor && item.selectedColor.color_name) || 'Standard';
       var size = item.selectedSize || 'One Size';
+
+      /* A gift card with nowhere to go is refused here, beside the field,
+         rather than at the till. Same check the product page runs, because it
+         is literally the same function. */
+      if (_quickAddGc) {
+        if (_quickAddGc.problem()) return;
+        quickAddFinalizeReviewedItem(_quickAddGc.applyTo({
+          productId: item.productId,
+          sku: item.sku || item.baseSku || '',
+          title: item.title,
+          size: '',
+          colorName: colorName,
+          colorHex: '',
+          regularPrice: item.regularPrice,
+          memberPrice: item.memberPrice,
+          price: item.price,
+          image: item.activeImage || item.image || '',
+          quantity: 1
+        }));
+        closeQuickAddReviewModal();
+        return;
+      }
+
       quickAddFinalizeReviewedItem({
         productId: item.productId,
         sku: item.sku || item.baseSku || '',

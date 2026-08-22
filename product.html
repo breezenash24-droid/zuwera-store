@@ -1710,56 +1710,18 @@ body.super-light-mode { background: var(--ink) !important; }
              Filled by renderGiftCardAmounts(). The denominations are the
              store's, set per product; the trailing "Custom" chip appears only
              where the store allows a buyer-chosen figure. -->
-        <div class="gc-amounts" id="giftCardAmounts" hidden>
-          <p class="section-label">Amount</p>
-          <div class="gc-amt-row" id="giftCardAmountRow" role="group" aria-label="Gift card amount"></div>
-        </div>
+        <!-- ── AMOUNT, AND WHO IT IS FOR ───────────────────────────────────
+             Both drawn by gift-card-buy.js, the same module the quick-add panel
+             uses. They were static markup here and nowhere else, which is why
+             the panel could not sell a gift card at all: everything that would
+             have had to be copied into it — which amounts are offered, the
+             floor and ceiling on a typed one, that the chosen figure becomes
+             both the price and the face value, that a card with no recipient is
+             refused — is something that decides money or where an email goes.
 
-        <!-- ── WHO IT IS FOR ──────────────────────────────────────────────────
-             The card's own email used to go to the BUYER, with a note in
-             _fulfil.js saying why: "nothing on a gift-card line says who it is
-             for. Adding a recipient field to the cart is the obvious next step
-             and a bigger one — it needs a place to type it, validation, and a
-             decision about what happens when it bounces." This is that place.
-
-             The fields are .fs-input, the site's own form control, for the same
-             reason the amount chips are .size-btn: a bespoke input beside a page
-             of site inputs is what makes a section read as bolted on.
-
-             The message is OPTIONAL and capped at 250, which is what it can
-             carry through to the delivery email — see _gift-card-emails.js,
-             where it is escaped and its line breaks preserved. -->
-        <div class="gc-recipient" id="giftCardRecipient" data-zw-giftcard>
-          <p class="section-label">Send to</p>
-          <p class="gc-recipient-copy" id="giftCardSendToIntro"></p>
-
-          <div class="gc-field-grid">
-            <div class="gc-field">
-              <label class="gc-label" for="gcFirstName">First name</label>
-              <input type="text" id="gcFirstName" class="fs-input" maxlength="50" autocomplete="given-name">
-            </div>
-            <div class="gc-field">
-              <label class="gc-label" for="gcLastName">Last name</label>
-              <input type="text" id="gcLastName" class="fs-input" maxlength="50" autocomplete="family-name">
-            </div>
-          </div>
-
-          <div class="gc-field">
-            <label class="gc-label" for="gcEmail">Their email</label>
-            <input type="email" id="gcEmail" class="fs-input" maxlength="120" inputmode="email" autocomplete="off">
-          </div>
-
-          <div class="gc-field">
-            <label class="gc-label" for="gcMessage">Add a message <span class="gc-optional">optional</span></label>
-            <textarea id="gcMessage" class="fs-input gc-textarea" maxlength="250" rows="3"></textarea>
-            <p class="gc-count">
-              <span id="giftCardMessageHint"></span>
-              <span class="gc-count-n"><span id="gcMessageCount">0</span>/250</span>
-            </p>
-          </div>
-
-          <p class="gc-recipient-error" id="giftCardRecipientError" role="alert"></p>
-        </div>
+             The module brings its own styles, so this block looks the same on
+             the product page and inside the panel on four other pages. -->
+        <div id="giftCardBuy" data-zw-giftcard></div>
 
         <!-- ── CHOOSE AN AMOUNT ──────────────────────────────────────────────
              The one place in the storefront where a shopper names a figure that
@@ -2138,7 +2100,8 @@ body.super-light-mode { background: var(--ink) !important; }
      rearrange after load. -->
 <script src="pdp-gallery.js?v=2192736c"></script>
 <script src="auth.js?v=fac9d15e" defer></script>
-<script src="product-main.js?v=41a84953"></script>
+<script src="gift-card-buy.js?v=449f2a8f"></script>
+<script src="product-main.js?v=21bd1e49"></script>
 
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <!-- CART MODAL                                                        -->

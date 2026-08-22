@@ -4130,9 +4130,7 @@ window.__zwQuickAddClick = function(e, btn) {
     return;
   }
 
-  /* Same reasoning as the mobile bypass directly below: this panel cannot ask
-     the two questions a gift card needs answered. */
-  if (Number(payload.giftCardCents) > 0 || shouldBypassQuickAddModal()) {
+  if (shouldBypassQuickAddModal()) {
     quickAddGoToProduct(payload);
     return false;
   }
