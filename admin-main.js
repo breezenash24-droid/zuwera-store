@@ -13978,6 +13978,29 @@ function escapeAttr(value) {
         const GIFT_CARD_HIDES_FIELDS = [
             'gender', 'subtitle', 'materialComposition', 'productTags', 'colorway',
             'sportsChips', 'modelHeight', 'modelSizeWorn', 'fitType',
+            /* ── AND THE PRICING FIELDS THAT MEAN NOTHING ON A CARD ─────────
+               MSRP is the compare-at figure — what a struck-through price and a
+               "27% off" badge are computed from. A gift card is excluded from
+               promotions and member pricing at the till, so any saving shown on
+               one is a discount checkout will refuse to give. renderPrice()
+               already suppresses the badge; the field goes too, and
+               giftCardDefaults() keeps it equal to the price so the NOT NULL is
+               still satisfied.
+
+               MEMBER PRICE is the same story with teeth: typing 45 here does
+               nothing at all — the till ignores it for a card — so it is a
+               control that appears to work and does not. Nulled on save.
+
+               INSTALLMENT is Klarna's four-payments display. Most BNPL
+               agreements prohibit gift cards outright, and "4 payments of
+               $12.50" on a $50 code is absurd before it is against the rules.
+
+               Tax category deliberately STAYS: it is forced to Not taxable and
+               disabled, and seeing why is worth more than hiding it.
+
+               CURRENT PRICE also stays, and it is the one that matters — see
+               the note in syncGiftCardFields(). */
+            'msrp', 'memberPrice', 'installmentDisplay',
         ];
 
         /* ── HIDING A REQUIRED FIELD IS HOW PUBLISH DIES SILENTLY ────────────
@@ -14012,6 +14035,15 @@ function escapeAttr(value) {
            picks them up rather than a second code path existing for gift cards.
 
            Only ever fills a BLANK. Somebody who typed a subtitle meant it. */
+        /* A member price on a gift card is ignored by the till, so a row that
+           carries one is a row that disagrees with what it sells for. Cleared
+           on save rather than merely hidden — a hidden field still submits. */
+        function _memberPriceFromForm() {
+            if (_isGiftCardChecked()) return null;
+            const v = document.getElementById('memberPrice').value;
+            return v ? parseFloat(v) : null;
+        }
+
         function giftCardDefaults() {
             const fill = (id, value) => {
                 const el = document.getElementById(id);
@@ -14067,6 +14099,28 @@ function escapeAttr(value) {
             }
             syncGiftCardMode(on);
 
+            /* ── THE FACE VALUE IS NOT REDUNDANT, EVEN WITH A LIST ──────────
+               It is tempting to drop it once amounts exist. It cannot go, and
+               not for a small reason: gift_card_cents is the ONLY thing that
+               makes this row a gift card. Migration 0032 chose a single
+               nullable integer over a boolean plus a value precisely so the two
+               could never half-agree — NULL means ordinary product, positive
+               means card. Empty it and the tick box above silently does
+               nothing: no tax exemption, no promo exclusion, no weightless
+               parcel, and a chip amount ignored at the till, which gates every
+               one of those on a face value above zero.
+
+               So it stays required, and instead of asking for it twice it is
+               FILLED IN from the first amount typed. A store that types
+               "25, 50, 100" has already said what the card is worth. */
+            if (on) {
+                const list = _giftCardDenominations();
+                const valEl = document.getElementById('giftCardValue');
+                if (list.length && valEl && !String(valEl.value || '').trim()) {
+                    valEl.value = (list[0] / 100).toFixed(2);
+                }
+            }
+
             const warn = document.getElementById('giftCardWarn');
             if (!warn) return;
             const face = parseFloat(document.getElementById('giftCardValue')?.value);
@@ -14080,6 +14134,19 @@ function escapeAttr(value) {
                     + 'Set the price and the face value to match unless you mean it.';
             } else if (on && (!Number.isFinite(face) || face <= 0)) {
                 msg = 'Give this card a face value. Saved without one it is not a gift card, just a product that sells nothing.';
+            } else if (on && Number.isFinite(price) && price > 0) {
+                /* Not an error — the page copes, selecting the first amount and
+                   moving the price to match. It is worth saying because the
+                   figure in Current Price is what a shopper is shown for the
+                   instant before the chips resolve, and a price that appears on
+                   none of the buttons under it reads as a glitch. */
+                const list = _giftCardDenominations();
+                if (list.length && list.indexOf(Math.round(price * 100)) === -1) {
+                    msg = '<strong>The current price is not one of the amounts offered.</strong> The page will '
+                        + 'select $' + (list[0] / 100).toFixed(2) + ' and move the price to match, so nothing '
+                        + 'breaks — but for the moment before that happens a shopper sees $' + price.toFixed(2)
+                        + ', which appears on none of the buttons. Set Current Price to one of them.';
+                }
             }
             warn.innerHTML = msg;
             warn.style.display = msg ? '' : 'none';
@@ -14195,7 +14262,7 @@ function escapeAttr(value) {
                     best_for: Array.from(document.querySelectorAll('.bestfor-check:checked')).map(cb => cb.value),
                     msrp: parseFloat(document.getElementById('msrp').value),
                     current_price: parseFloat(document.getElementById('currentPrice').value),
-                    member_price: document.getElementById('memberPrice').value ? parseFloat(document.getElementById('memberPrice').value) : null,
+                    member_price: _memberPriceFromForm(),
                     /* NULL, not '', for "store default" — the column's comment
                        says NULL falls back to site_settings.tax_engine, and an
                        empty string is a value that matches no category and

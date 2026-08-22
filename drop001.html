@@ -2961,7 +2961,21 @@ function updateCountdown() {
           ...product,
           product_images: (imagesByProductId.get(product.id) || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
           color_variants: (colorsByProductId.get(product.id) || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
-          totalStock: stockByProductId[product.id] ?? null
+          /* ── A GIFT CARD IS NEVER SOLD OUT ──────────────────────────────
+             It has no rows in product_sizes, so the sum of its stock is zero,
+             and zero reads as "the last one sold" everywhere downstream: the
+             SOLD OUT badge, the swatches disappearing, quick-add refusing. It
+             is not out of stock — there is no shelf. A code is minted when
+             somebody pays for one, which is what migration 0032 means by "holds
+             no stock and can never sell out".
+
+             NULL, not a large number: null already means "no stock data, so say
+             nothing about stock" in every reader below, and inventing a
+             quantity would put a real figure in front of the low-stock badge
+             the moment somebody set a threshold above it. */
+          totalStock: (window.ZWGiftCard && window.ZWGiftCard.is(product))
+            ? null
+            : (stockByProductId[product.id] ?? null)
         }));
       } catch(e) {
         console.error('loadProducts error:', e);
@@ -4378,7 +4392,7 @@ function updateCountdown() {
      overrides; without it this page would only ever show the defaults. -->
 <!-- Sizes go in size order, not in the order the rows were written. -->
 <script src="size-order.js?v=a41d2b34"></script>
-<script src="customer-messages.js?v=11117c5d"></script>
+<script src="customer-messages.js?v=cb115f08"></script>
 <script src="stock-rules.js?v=26fa2888"></script>
 <script src="/nav-menu.js?v=5735cc2b" defer></script>
 <script src="/zw-copy.js?v=5b4f7680" defer></script>

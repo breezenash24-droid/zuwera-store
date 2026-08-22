@@ -396,7 +396,7 @@ function applyGiftCardPageType() {
   const label = document.getElementById('sizeSectionLabel');
   if (label && on) label.textContent = '';
 
-  if (on) paintGiftCardDelivery();
+  if (on) { paintGiftCardDelivery(); paintGiftCardRecipient(); }
 }
 
 /* ── HOW IT GETS THERE ───────────────────────────────────────────────────────
@@ -483,6 +483,84 @@ const gcMoneyShort = (cents) => {
   return '$' + (Number.isInteger(n) ? String(n) : n.toFixed(2));
 };
 
+/* --- WHO THE CARD IS FOR ---------------------------------------------------
+ * The buyer names a stranger's email address and writes them a note, and both
+ * ride all the way to a message this store sends. Two things follow from that.
+ *
+ * It is CAPPED and TRIMMED here and again on the server, because the server is
+ * the one that counts and this one is only being polite about it.
+ *
+ * And it costs money to use: nothing is sent until a payment succeeds, which
+ * is the rate limit that matters on a form that can email arbitrary people.
+ * That is worth saying out loud, because "send a message to any address" is a
+ * spam relay in every other context, and the only reason this one is not is
+ * that each message has a card paid for behind it.
+ */
+function gcRecipientFromForm() {
+  const val = (id, cap) => String(document.getElementById(id)?.value || '').trim().slice(0, cap);
+  const first = val('gcFirstName', 50);
+  const last = val('gcLastName', 50);
+  const email = val('gcEmail', 120);
+  const message = val('gcMessage', 250);
+  if (!email && !first && !last && !message) return null;
+  return { first, last, email, message };
+}
+
+/* The same shape the server accepts, checked here so the refusal lands beside
+   the field rather than at the till.
+
+   Returns the SENTENCE and the box to put the cursor in, and names each message
+   key literally at the point it is used — tests/map-matches-code.test.js reads
+   this file to check that the admin's list of "what this screen says" matches
+   what the screen actually says, and a key fetched through a variable is a key
+   that list cannot see. */
+function gcRecipientProblem(to) {
+  const say = (key) => { try { return (window.ZWMessages && ZWMessages.get(key)) || ''; } catch (_) { return ''; } };
+  if (!to || !to.email) return { text: say('giftCardNeedEmail'), focus: 'gcEmail' };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to.email)) return { text: say('giftCardBadEmail'), focus: 'gcEmail' };
+  if (!to.first) return { text: say('giftCardNeedName'), focus: 'gcFirstName' };
+  return null;
+}
+
+function paintGiftCardRecipient() {
+  const intro = document.getElementById('giftCardSendToIntro');
+  const hint = document.getElementById('giftCardMessageHint');
+  try {
+    if (intro && window.ZWMessages) intro.textContent = ZWMessages.get('giftCardSendTo') || '';
+    if (hint && window.ZWMessages) hint.textContent = ZWMessages.get('giftCardMessageHint') || '';
+  } catch (_) {}
+  const box = document.getElementById('gcMessage');
+  const count = document.getElementById('gcMessageCount');
+  if (box && count) count.textContent = String((box.value || '').length);
+}
+
+(function wireGiftCardRecipient() {
+  function attach() {
+    const box = document.getElementById('gcMessage');
+    if (box && !box.__zwWired) {
+      box.__zwWired = true;
+      box.addEventListener('input', () => {
+        const count = document.getElementById('gcMessageCount');
+        if (count) count.textContent = String((box.value || '').length);
+      });
+    }
+    /* Typing anywhere in the block clears a refusal about it. Leaving it up
+       while somebody fixes the thing it names reads as a second, still-unfixed
+       problem. */
+    const shell = document.getElementById('giftCardRecipient');
+    if (shell && !shell.__zwWired) {
+      shell.__zwWired = true;
+      shell.addEventListener('input', () => {
+        const err = document.getElementById('giftCardRecipientError');
+        if (err) err.textContent = '';
+      });
+    }
+    paintGiftCardRecipient();
+  }
+  if (document.readyState !== 'loading') attach();
+  else document.addEventListener('DOMContentLoaded', attach, { once: true });
+})();
+
 /* --- THE CHIPS -------------------------------------------------------------
  * Deliberately `.size-btn`, the site's own control for picking a variant, with
  * only layout added. An amount IS the variant on a gift card -- it is the one
@@ -544,10 +622,12 @@ window.openGiftCardAmount = function () {
   input.min = String(p.minCents / 100);
   input.max = String(p.maxCents / 100);
   input.value = String(Math.round((_gcCustomCents || currentProductPriceCents()) / 100));
-  if (hint) {
-    hint.dataset.tone = '';
-    hint.textContent = 'Any amount between ' + gcMoney(p.minCents) + ' and ' + gcMoney(p.maxCents) + '.';
-  }
+  /* The bounds are a description of the field, so they sit in the description
+     slot — the same place Find My Size explains itself. What is left under the
+     input speaks only when something is wrong. */
+  const copy = document.getElementById('gcAmountCopy');
+  if (copy) copy.textContent = 'Any amount between ' + gcMoney(p.minCents) + ' and ' + gcMoney(p.maxCents) + '.';
+  if (hint) hint.textContent = '';
   /* `.open`, not `hidden`. The class is what the whole storefront's modal
      appearance keys off — scrim, blur, panel, motion, the mobile sheet — and it
      is also what modal-lock.js looks for when it decides whether the page
@@ -584,7 +664,7 @@ window.applyGiftCardAmount = function () {
   const hint = document.getElementById('gcAmountHint');
   const dollars = parseFloat(input && input.value);
   if (!Number.isFinite(dollars) || dollars <= 0) {
-    if (hint) { hint.dataset.tone = 'bad'; hint.textContent = 'Enter an amount.'; }
+    if (hint) hint.textContent = 'Enter an amount.';
     return;
   }
   const cents = Math.round(dollars * 100);
@@ -593,10 +673,7 @@ window.applyGiftCardAmount = function () {
      handed a $10 card they did not ask for. The server's clamp is the backstop
      for anything that reaches it another way. */
   if (cents < p.minCents || cents > p.maxCents) {
-    if (hint) {
-      hint.dataset.tone = 'bad';
-      hint.textContent = 'Please choose between ' + gcMoney(p.minCents) + ' and ' + gcMoney(p.maxCents) + '.';
-    }
+    if (hint) hint.textContent = 'Please choose between ' + gcMoney(p.minCents) + ' and ' + gcMoney(p.maxCents) + '.';
     return;
   }
   _gcCustomCents = cents;
@@ -2514,6 +2591,7 @@ function renderSizes() {
       /* Unconditional: the delivery copy is drawn before an admin's edits land
          and there is no size to have selected on a gift card page. */
       try { paintGiftCardDelivery(); } catch (_) {}
+      try { paintGiftCardRecipient(); } catch (_) {}
     });
   }
   if (window.ZWMessages) attach();
@@ -3033,6 +3111,23 @@ function addToCart() {
     return;
   }
 
+  /* A gift card with nowhere to go. Refused here rather than at the till,
+     beside the field rather than as a toast, because every one of these is a
+     box on screen that the shopper can see is empty. */
+  let _gcTo = null;
+  if (isGiftCardProduct()) {
+    _gcTo = gcRecipientFromForm();
+    const problem = gcRecipientProblem(_gcTo);
+    if (problem) {
+      const err = document.getElementById('giftCardRecipientError');
+      if (err) err.textContent = problem.text;
+      const el = document.getElementById(problem.focus);
+      if (el) { el.focus(); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+      else if (problem.text) showToast(problem.text);
+      return;
+    }
+  }
+
   const regularPrice = getRegularProductPrice(currentProduct);
   const memberPrice = getMemberProductPrice(currentProduct);
   const effectivePrice = getEffectiveProductPrice(currentProduct);
@@ -3069,6 +3164,10 @@ function addToCart() {
        thing that would make a customer-named amount unsafe, so this file sends
        neither: it sends the amount, once. */
     ...(_gcCustomCents > 0 ? { customAmountCents: _gcCustomCents } : {}),
+    /* Where the code is emailed, and what is written on it. Normalized and
+       re-capped on the server — this copy is what the bag displays and what
+       tells two cards for two different people apart. */
+    ...(_gcTo ? { giftCardTo: _gcTo } : {}),
     /* A gift card weighs nothing. Every cart item used to default to half a
        pound, so a $50 card was quoted a real USPS rate against a parcel that
        does not exist and the bag read $55.58 for an order the server was going
@@ -3093,6 +3192,10 @@ function addToCart() {
              item.size === cartItem.size &&
              item.colorName === cartItem.colorName &&
              (Number(item.customAmountCents) || 0) === (Number(cartItem.customAmountCents) || 0)
+             /* And who it is for. Two $50 cards for two different people are
+                not two of one card, and merging them sends both to whoever was
+                typed first — with the second recipient silently dropped. */
+             && JSON.stringify(item.giftCardTo || null) === JSON.stringify(cartItem.giftCardTo || null)
   );
 
   /* How many more of THIS variant may be added, not how many exist. Saying

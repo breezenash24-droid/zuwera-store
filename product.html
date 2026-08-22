@@ -1156,34 +1156,51 @@ body[data-zw-product="gift-card"] .gc-note[hidden] { display: block; }
    the radius, the scrim and the motion all arrive from storefront-cohesion.css
    with the rest of the site's modals. What is left here is only what is
    particular to naming an amount. */
-/* No width here on purpose: storefront-cohesion.css sizes every centred .mbox
-   from --zw-panel-width with !important, and a dialog that argued with that
-   would be the one modal on the site that is a different width. */
-.gc-amount-row { display: flex; align-items: baseline; gap: .4rem; margin: 1rem 0 .5rem; }
-.gc-amount-currency { font-family: var(--fw); font-size: 1.6rem; opacity: .55; }
-.gc-amount-input {
-  flex: 1; min-width: 0; background: none; border: none;
-  border-bottom: 1px solid rgb(var(--fg-rgb) / 30%);
-  color: inherit; font-family: var(--fw); font-weight: 700; font-size: 1.9rem;
-  padding: .2rem 0; outline: none; font-variant-numeric: tabular-nums;
+/* WHO IT IS FOR. The controls are .fs-input — the site's own — so only the
+   arrangement is here. Same reasoning as the chips being .size-btn: the look
+   is not this section's to invent. */
+.gc-recipient { margin: 1.8rem 0 1.4rem; }
+.gc-recipient-copy {
+  font-size: .85rem; line-height: 1.7; opacity: .7; max-width: 46ch; margin: -.5rem 0 1.1rem;
 }
-.gc-amount-input:focus-visible { border-bottom-color: currentColor; }
-/* The spinners fight a large type size and add nothing a keyboard does not. */
+.gc-field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
+.gc-field { display: flex; flex-direction: column; gap: .45rem; margin-bottom: .95rem; min-width: 0; }
+.gc-label {
+  font-family: var(--fm); font-size: .6rem; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--c65);
+}
+.gc-optional { opacity: .55; letter-spacing: .06em; }
+.gc-textarea { min-height: 5.5rem; resize: vertical; font-family: var(--fb); line-height: 1.6; }
+.gc-count {
+  display: flex; justify-content: space-between; gap: 1rem; margin: -.1rem 0 0;
+  font-family: var(--fm); font-size: .6rem; letter-spacing: .06em; color: var(--c55);
+}
+.gc-count-n { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+.gc-recipient-error {
+  font-family: var(--fb); font-size: .82rem; line-height: 1.55; margin: .2rem 0 0;
+  color: var(--zw-accent, #F891A5);
+}
+.gc-recipient-error:empty { display: none; }
+@media (max-width: 560px) { .gc-field-grid { grid-template-columns: 1fr; gap: 0; } }
+
+/* THE AMOUNT DIALOG, built on Find My Size — .mbox.fs-box, the review-modal
+   intro block, an .fs-field and a full-width .fs-submit. No width and no panel
+   chrome here: storefront-cohesion.css sizes and paints every centred .mbox
+   with !important, and a dialog that argued with that would be the one modal on
+   the site that is a different width.
+
+   The bounds live in .review-modal-copy — the description slot — rather than
+   under the field, because that is where Find My Size says what to do. What is
+   left below the input is .fs-error, which speaks only when something is
+   wrong. */
+.gc-amount-row { display: flex; align-items: center; gap: .5rem; }
+.gc-amount-currency { font-family: var(--fm); font-size: .95rem; opacity: .55; flex: 0 0 auto; }
+.gc-amount-input { flex: 1; min-width: 0; font-variant-numeric: tabular-nums; }
+/* The spinners add nothing a keyboard does not, and crowd the field. */
 .gc-amount-input::-webkit-outer-spin-button,
 .gc-amount-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .gc-amount-input { -moz-appearance: textfield; appearance: textfield; }
-.gc-amount-hint {
-  font-family: var(--fm); font-size: .68rem; letter-spacing: .04em; line-height: 1.6;
-  opacity: .65; min-height: 2.6em; margin: 0;
-}
-.gc-amount-hint[data-tone="bad"] { color: var(--zw-accent, #F891A5); opacity: 1; }
-.gc-amount-actions { display: flex; gap: .6rem; justify-content: flex-end; margin-top: 1.2rem; }
-.gc-amount-actions button {
-  font-family: var(--fm); font-size: .6rem; letter-spacing: .16em; text-transform: uppercase;
-  padding: .8rem 1.2rem; cursor: pointer; border: 1px solid var(--c20);
-  background: none; color: inherit; transition: border-color .2s, opacity .2s;
-}
-.gc-amount-cancel:hover { border-color: var(--c40); }
+.gc-amount-box .fs-submit { margin-top: 1.4rem; }
 /* Filled, like every other primary action on the site. --white and --black are
    both redefined per theme (see base.css), so this one pair is correct in all
    three without a light-mode branch.
@@ -1193,11 +1210,12 @@ body[data-zw-product="gift-card"] .gc-note[hidden] { display: block; }
    right for the secondary ones and paints this one's text out against its own
    fill. #find-size-modal .fs-submit carries the identical fix for the identical
    reason; a class-level rule loses to that selector even with !important. */
-#giftCardAmountModal .gc-amount-ok {
-  background: var(--white); color: var(--black) !important;
-  border-color: var(--white); font-weight: 600;
-}
-#giftCardAmountModal .gc-amount-ok:hover { opacity: .88; }
+/* Identical to the #find-size-modal rule and for the identical reason:
+   `body.light-mode .mbox button[type="button"]` forces a muted grey onto every
+   button in a modal panel with !important, which is right for the secondary
+   ones and paints this one's text out against its own fill. A class-level rule
+   loses to that selector even with !important. */
+#giftCardAmountModal .fs-submit { color: var(--black) !important; }
 
 .product-page .size-btn {
   font-family: var(--font-mono) !important;
@@ -1673,6 +1691,52 @@ body.super-light-mode { background: var(--ink) !important; }
           <div class="size-grid gc-amt-row" id="giftCardAmountRow" role="group" aria-label="Gift card amount"></div>
         </div>
 
+        <!-- ── WHO IT IS FOR ──────────────────────────────────────────────────
+             The card's own email used to go to the BUYER, with a note in
+             _fulfil.js saying why: "nothing on a gift-card line says who it is
+             for. Adding a recipient field to the cart is the obvious next step
+             and a bigger one — it needs a place to type it, validation, and a
+             decision about what happens when it bounces." This is that place.
+
+             The fields are .fs-input, the site's own form control, for the same
+             reason the amount chips are .size-btn: a bespoke input beside a page
+             of site inputs is what makes a section read as bolted on.
+
+             The message is OPTIONAL and capped at 250, which is what it can
+             carry through to the delivery email — see _gift-card-emails.js,
+             where it is escaped and its line breaks preserved. -->
+        <div class="gc-recipient" id="giftCardRecipient" data-zw-giftcard>
+          <p class="section-label">Send to</p>
+          <p class="gc-recipient-copy" id="giftCardSendToIntro"></p>
+
+          <div class="gc-field-grid">
+            <div class="gc-field">
+              <label class="gc-label" for="gcFirstName">First name</label>
+              <input type="text" id="gcFirstName" class="fs-input" maxlength="50" autocomplete="given-name">
+            </div>
+            <div class="gc-field">
+              <label class="gc-label" for="gcLastName">Last name</label>
+              <input type="text" id="gcLastName" class="fs-input" maxlength="50" autocomplete="family-name">
+            </div>
+          </div>
+
+          <div class="gc-field">
+            <label class="gc-label" for="gcEmail">Their email</label>
+            <input type="email" id="gcEmail" class="fs-input" maxlength="120" inputmode="email" autocomplete="off">
+          </div>
+
+          <div class="gc-field">
+            <label class="gc-label" for="gcMessage">Add a message <span class="gc-optional">optional</span></label>
+            <textarea id="gcMessage" class="fs-input gc-textarea" maxlength="250" rows="3"></textarea>
+            <p class="gc-count">
+              <span id="giftCardMessageHint"></span>
+              <span class="gc-count-n"><span id="gcMessageCount">0</span>/250</span>
+            </p>
+          </div>
+
+          <p class="gc-recipient-error" id="giftCardRecipientError" role="alert"></p>
+        </div>
+
         <!-- ── CHOOSE AN AMOUNT ──────────────────────────────────────────────
              The one place in the storefront where a shopper names a figure that
              becomes money. It is safe because the server makes that figure BOTH
@@ -1688,19 +1752,26 @@ body.super-light-mode { background: var(--ink) !important; }
              treatment. A hand-rolled overlay opted out of every one of them at
              once, which is precisely what "does not fit the rest of the site"
              looked like. -->
-        <div class="modal" id="giftCardAmountModal" role="dialog" aria-modal="true" aria-labelledby="gcAmountTitle">
-          <div class="mbox gc-amount-box">
-            <button type="button" class="mclose" aria-label="Close" onclick="closeGiftCardAmount()">&times;</button>
-            <p class="section-label" id="gcAmountTitle">Choose an amount</p>
-            <div class="gc-amount-row">
-              <span class="gc-amount-currency" aria-hidden="true">$</span>
-              <input type="number" id="gcAmountInput" class="gc-amount-input"
-                     inputmode="decimal" step="1" aria-describedby="gcAmountHint">
+        <div class="modal" id="giftCardAmountModal" role="dialog" aria-modal="true" aria-labelledby="gcAmountTitle"
+             onclick="if(event.target===this) closeGiftCardAmount()">
+          <div class="mbox fs-box gc-amount-box">
+            <button type="button" class="mclose review-modal-close" aria-label="Close" onclick="closeGiftCardAmount()">&#215;</button>
+            <div class="review-modal-intro">
+              <p class="review-modal-eyebrow">Gift Card</p>
+              <h2 class="review-modal-title" id="gcAmountTitle">Choose an amount</h2>
+              <p class="review-modal-copy" id="gcAmountCopy"></p>
             </div>
-            <p class="gc-amount-hint" id="gcAmountHint"></p>
-            <div class="gc-amount-actions">
-              <button type="button" class="gc-amount-cancel" onclick="closeGiftCardAmount()">Cancel</button>
-              <button type="button" class="gc-amount-ok" onclick="applyGiftCardAmount()">Use this amount</button>
+            <div class="review-modal-body">
+              <div class="fs-field">
+                <div class="fs-label"><span>Amount</span></div>
+                <div class="gc-amount-row">
+                  <span class="gc-amount-currency" aria-hidden="true">$</span>
+                  <input type="number" id="gcAmountInput" class="fs-input gc-amount-input"
+                         inputmode="decimal" step="1" aria-describedby="gcAmountHint">
+                </div>
+              </div>
+              <button type="button" class="fs-submit gc-amount-ok" onclick="applyGiftCardAmount()">Use this amount</button>
+              <p class="fs-error" id="gcAmountHint" role="alert"></p>
             </div>
           </div>
         </div>
@@ -2043,7 +2114,7 @@ body.super-light-mode { background: var(--ink) !important; }
      rearrange after load. -->
 <script src="pdp-gallery.js?v=2192736c"></script>
 <script src="auth.js?v=fac9d15e" defer></script>
-<script src="product-main.js?v=2f18adef"></script>
+<script src="product-main.js?v=c5191d5a"></script>
 
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <!-- CART MODAL                                                        -->
@@ -2217,7 +2288,7 @@ body.super-light-mode { background: var(--ink) !important; }
 <script src="zw-login.js?v=09e6833c" defer></script>
 <!-- Shared stock rules. The page must subtract what is already in the bag from
      what it advertises, using the same matching the bag and checkout use. -->
-<script src="customer-messages.js?v=11117c5d" defer></script>
+<script src="customer-messages.js?v=cb115f08" defer></script>
 <script src="stock-rules.js?v=26fa2888" defer></script>
 <script src="/nav-menu.js?v=5735cc2b" defer></script>
 <script src="/zw-copy.js?v=5b4f7680" defer></script>
