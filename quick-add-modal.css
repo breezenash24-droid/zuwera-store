@@ -22,6 +22,28 @@
 .quick-add-review-modal.open{display:flex}
 .quick-add-review-box{width:min(520px,92vw);padding:0;overflow:hidden}
 .quick-add-product-box{width:min(920px,94vw);max-height:min(760px,92vh);overflow:auto}
+/* ── A GIFT CARD ASKS FOR MORE THAN A COLOUR AND A SIZE ──────────────────────
+   An amount row, four fields and a note, where a garment has a swatch strip and
+   a size grid. The extra height pushed this dialog to its limit and stretched
+   the gallery column under a photograph that cannot stretch with it, leaving a
+   band of empty ground above the picture — centring the media only moved the
+   band to the other side of it.
+
+   The media fills the column instead. aspect-ratio has to go with the
+   max-height: a ratio pins the box just as firmly as a height does, and
+   object-fit:contain still letterboxes rather than cropping. The dialog opens
+   wider too, which costs nothing on a desktop and nothing at all below 901px,
+   where this is a bottom sheet at full width already.
+
+   Keyed on :has(.zwgc), the class gift-card-buy.js puts on its own mount. */
+@media(min-width:901px){
+  .quick-add-product-box:has(.zwgc){width:min(1240px,96vw)}
+  .quick-add-product-box:has(.zwgc) .quick-add-product-layout{
+    grid-template-columns:minmax(340px,1fr) minmax(460px,1fr);
+  }
+  .quick-add-product-box:has(.zwgc) .quick-add-review-body{overflow-y:auto}
+  .quick-add-product-box:has(.zwgc) .quick-add-review-media{aspect-ratio:auto;flex:1 1 auto;min-height:0}
+}
 @media (min-width:901px){
   /* Pin the close so it stays visible while the product box scrolls — it was
      position:absolute, anchored to the content top, so it scrolled away.
