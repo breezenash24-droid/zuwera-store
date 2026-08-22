@@ -163,7 +163,7 @@ document.addEventListener('visibilitychange', async () => {
     if (!resp.ok) return;
     const rows = await resp.json();
     if (!currentProduct || String(currentProduct.id) !== pid) return; // navigated away meanwhile
-    currentProduct.inventory = (Array.isArray(rows) ? rows : []).filter(r => String(r.product_id) === pid);
+    currentProduct.inventory = giftCardInventory(currentProduct, rows, pid);
     if (typeof renderSizes === 'function') renderSizes();
   } catch (_) {}
 });
@@ -370,6 +370,27 @@ function compareProductSizeLabels(left, right) {
  * keys off the body reaches both, while a list of element ids reaches whichever
  * one somebody remembered.
  */
+/* ── A GIFT CARD HAS NO INVENTORY, WHATEVER THE TABLE SAYS ───────────────────
+ * Rows exist. They should not, and the admin no longer writes them — but seven
+ * of them, XS to 3XL at zero stock, are sitting against a live gift card right
+ * now because every save used to insert the hidden size grid's defaults.
+ *
+ * Emptied here rather than fixed only at the source, because the whole product
+ * page branches on `inventory.length`: with rows present it draws a size
+ * picker, computes availability for a size nobody chose, and refuses to add.
+ * With none it takes the "no stock data, allow adding" path, which is the
+ * correct behaviour for something minted when somebody pays for it.
+ *
+ * Both writers go through here. There are two — the render, and a later
+ * no-store refresh that exists so an admin stock edit shows up immediately —
+ * and a rule applied to one of them is a rule that holds until the second
+ * request lands a moment later.
+ */
+function giftCardInventory(product, rows, productId) {
+  if (Number(product && product.gift_card_cents) > 0) return [];
+  return (Array.isArray(rows) ? rows : []).filter((r) => String(r && r.product_id) === String(productId));
+}
+
 function isGiftCardProduct() {
   return Number(currentProduct && currentProduct.gift_card_cents) > 0;
 }
@@ -1114,8 +1135,7 @@ async function loadProduct() {
   const colors = (Array.isArray(colorsData) ? colorsData : [])
     .filter((color) => String(color?.product_id) === strictProductId)
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  const inventory = (Array.isArray(sizesData) ? sizesData : [])
-    .filter((size) => String(size?.product_id) === strictProductId);
+  const inventory = giftCardInventory(productData, sizesData, strictProductId);
 
   currentProduct          = productData;
   currentProduct.images   = ensureProductImageFallback([], productData);

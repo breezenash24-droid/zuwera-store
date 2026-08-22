@@ -264,6 +264,70 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g,
       'a second URL shape is a second thing that can drift from the first');
   }
 
+  console.log('\n  seven phantom sizes, and the sell-out they caused');
+
+  {
+    /* THE ACTUAL CAUSE, found by asking the live API rather than reading code:
+       /api/stock returned SEVEN rows for the gift card — XS, S, M, L, XL, 2XL,
+       3XL, every one at zero stock.
+
+       Hiding the Variants & Stock tab did nothing to stop them. The stock
+       matrix was still in the DOM holding the seven default sizes, and the save
+       read it and inserted them, on every save. Seven zeroes sum to zero, and
+       zero is indistinguishable from "the last one sold" — so a live gift card
+       read SOLD OUT on the collection card, and the quick-add panel drew seven
+       struck-through sizes and disabled Add to Bag.
+
+       The same trap as the hidden `required` field that killed Publish and the
+       hidden member price that saved anyway: a control nobody can see is still
+       a control that submits. */
+    const admin = read('admin-main.js');
+    ok('a gift card writes no size rows at all',
+      /const stockEntries = _isGiftCardChecked\(\) \? \[\] : getStockMatrixEntries\(\);/.test(admin),
+      'hiding the tab left the matrix in the DOM, and the save read it anyway');
+
+    /* The delete runs unconditionally just above, so saving a card that already
+       carries rows is also what clears them. */
+    const del = admin.indexOf("from('product_sizes').delete()");
+    const write = admin.indexOf('const stockEntries = _isGiftCardChecked()');
+    ok('…and the existing ones are cleared by the same save',
+      del > -1 && write > -1 && del < write,
+      'otherwise a card already carrying seven rows keeps them forever');
+  }
+
+  {
+    /* Belt and braces: rows that DO exist must not be able to matter. The whole
+       product page branches on inventory.length — with rows it draws a size
+       picker, computes availability for a size nobody chose, and refuses to
+       add; with none it takes the "no stock data, allow adding" path, which is
+       correct for something minted when somebody pays for it. */
+    const pm = read('product-main.js');
+    ok('the product page gives a gift card no inventory, whatever the table says',
+      /function giftCardInventory\(product, rows, productId\)/.test(pm)
+      && /if \(Number\(product && product\.gift_card_cents\) > 0\) return \[\];/.test(pm));
+    ok('…through BOTH writers, not just the first',
+      (pm.match(/giftCardInventory\(/g) || []).length === 3,
+      'there is a render and a later no-store refresh — a rule applied to one '
+      + 'holds until the second request lands a moment later');
+  }
+
+  {
+    /* And the grids navigate rather than opening a panel that cannot ask what a
+       card needs. Gated at the CLICK, because the panel's own check runs after
+       its fetch resolves — which would show the broken panel for a moment. */
+    const plp = read('drop001.html');
+    const home = read('storefront.js');
+    ok('the collection grid carries the flag on its quick-add payload',
+      /giftCardCents: Number\(p\.gift_card_cents\) \|\| 0/.test(plp));
+    ok('…and so does the homepage grid',
+      /giftCardCents: Number\(p\.gift_card_cents\) \|\| 0/.test(home));
+    ok('the collection click goes straight to the product page',
+      /if \(Number\(payload\.giftCardCents\) > 0\) \{/.test(plp));
+    ok('…and the homepage click rides the same branch as the mobile bypass',
+      /Number\(payload\.giftCardCents\) > 0 \|\| shouldBypassQuickAddModal\(\)/.test(home),
+      'one branch, so a card and a phone reach the product page the same way');
+  }
+
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
   process.exit(fail ? 1 : 0);
 })().catch((e) => { console.log('  ✗ suite crashed: ' + e.stack); process.exit(1); });
