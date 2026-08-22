@@ -58,6 +58,7 @@ export const DEFAULTS = {
   giftCardExpired:  'That card has expired.',
   giftCardVoid:     'That card is no longer valid.',
   giftCardLocked:   'That card is saved to an account. Sign in to that account to spend it.',
+  giftCardAmountTooSmall: 'The smallest gift card we sell is {min}.',
   giftCardOffline:  'We could not check that just now. Please try again in a moment.',
 };
 

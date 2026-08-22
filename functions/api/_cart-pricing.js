@@ -360,7 +360,28 @@ export async function verifyAccessToken(accessToken, env) {
    permits overselling, so the unsafe value must be the one you have to ask for
    — a caller that omits it gets the guard, not a store quietly taking orders it
    cannot fill. */
-export async function resolveCatalogItems(items, env, isMember, limitToStock = true, say = shippedMessages, isWholesale = false) {
+/* The store's gift-card policy, with shipped defaults. OFF unless a store has
+   said otherwise — an unread setting must never become permission for a
+   customer to name a price. */
+export const GIFT_CARD_DEFAULTS = { customAmounts: false, minCents: 1000, maxCents: 50000 };
+
+export function giftCardPolicy(cfg) {
+  const g = (cfg && typeof cfg.giftCards === 'object' && cfg.giftCards) || {};
+  const min = Math.round(Number(g.minCents));
+  const max = Math.round(Number(g.maxCents));
+  const lo = Number.isFinite(min) && min > 0 ? min : GIFT_CARD_DEFAULTS.minCents;
+  const hi = Number.isFinite(max) && max > 0 ? max : GIFT_CARD_DEFAULTS.maxCents;
+  return {
+    customAmounts: g.customAmounts === true,
+    minCents: Math.min(lo, hi),
+    /* Swapped rather than refused if a store types them the wrong way round —
+       a bound that is backwards clamps everything to nothing, and a checkout
+       that issues $0 cards is a worse answer than reading the intent. */
+    maxCents: Math.max(lo, hi),
+  };
+}
+
+export async function resolveCatalogItems(items, env, isMember, limitToStock = true, say = shippedMessages, isWholesale = false, giftCardConfig = GIFT_CARD_DEFAULTS) {
   if (!Array.isArray(items) || items.length === 0) throw cartError('Missing cart items.', 400);
   if (items.length > 25) throw cartError('Cart has too many line items.', 400);
 
@@ -413,7 +434,60 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
       rows: pricingContext.rows, lists: pricingContext.lists,
       shopper, now: Date.now(),
     });
-    const priceCents = priced.priceCents;
+    let priceCents = priced.priceCents;
+
+    /* ── A GIFT CARD THE BUYER PRICES THEMSELVES ──────────────────────────────
+     *
+     * This is the one place in the system where the browser names a figure that
+     * becomes money, and it cuts directly against the rule the rest of the file
+     * is built on — the face value is read from the catalogue precisely because
+     * a browser that could name it could name a larger one.
+     *
+     * It is safe here for one reason, and only that reason: THE CHOSEN AMOUNT
+     * BECOMES BOTH NUMBERS. It is what the card is charged and what the card is
+     * worth, computed here from a single input, so there is no pair to put out
+     * of step and no arbitrage to find. Pick $73, pay $73, receive $73.
+     *
+     * What the server must never do is accept a price and a face value
+     * separately — that is the $500-card-for-$5 hole wearing a customer's
+     * clothes rather than an admin's.
+     *
+     * Bounded because an unbounded amount is a typo away from a $50,000 card
+     * and a fraud tool away from being the ideal way to launder a stolen card.
+     * The bounds are the store's, read once for the whole cart, and CLAMPED
+     * rather than refused: a shopper who typed 500000 in a box that said
+     * "up to $500" gets a $500 card, not a failed checkout — and the box tells
+     * them the limit before they type.
+     *
+     * Only for gift cards. On anything else a customer-supplied price is simply
+     * a customer-supplied price, and that is theft. */
+    let pricedByBuyer = false;
+    const faceFromCatalogue = Math.max(0, Number(product.gift_card_cents) || 0);
+    if (faceFromCatalogue > 0 && giftCardConfig.customAmounts) {
+      const asked = Math.round(Number(raw?.customAmountCents) || 0);
+      if (asked > 0) {
+        /* ── THE CEILING CLAMPS, THE FLOOR REFUSES ─────────────────────────
+           Not symmetry for its own sake. Clamping DOWN charges less than the
+           page displayed, which is always safe and always allowed. Clamping UP
+           charges MORE than displayed, which is precisely what the price guard
+           forty lines below exists to prevent — so a $0.01 amount silently
+           raised to a $10 floor was refused as a price change, telling a
+           shopper their price had changed when what had happened was that we
+           had quietly rewritten their instruction.
+
+           The browser refuses below the minimum before it sends, so reaching
+           here means a stale or edited cart. It gets a sentence rather than a
+           number it did not ask for. */
+        if (asked < giftCardConfig.minCents) {
+          throw cartError(say('giftCardAmountTooSmall', {
+            min: '$' + (giftCardConfig.minCents / 100).toFixed(2),
+          }), 409);
+        }
+        priceCents = Math.min(asked, giftCardConfig.maxCents);
+        pricedByBuyer = true;
+      }
+    }
+
     /* A merchant data problem rather than a shopper one, but the shopper is the
        one standing at the till and the item genuinely cannot be sold, so it is
        reported as a cart conflict. It stays loud in the logs either way. */
@@ -502,10 +576,13 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
          issues $5 for $5 is an admin mistake somebody notices; a checkout that
          fails is a customer punished for it. The admin form warns at the point
          the number is typed, which is where prevention belongs. */
-      giftCardCents: Math.min(
-        Math.max(0, Number(product.gift_card_cents) || 0),
-        priceCents,
-      ),
+      /* What the card is worth. Normally the catalogue's figure, clamped to
+         what was actually paid. When the BUYER set the amount it is the price
+         itself — the two are one number by construction, which is the whole
+         reason a customer-supplied figure is safe here. Taking the catalogue's
+         value in that case would charge $73 and issue $50. */
+      giftCardCents: faceFromCatalogue <= 0 ? 0
+        : Math.min(pricedByBuyer ? priceCents : faceFromCatalogue, priceCents),
       /* A gift card is a code in an email. It has no weight, so it must not
          drag half a pound into the parcel estimate the shipping rate is signed
          against — a cart of ten cards would otherwise be quoted for a 5lb box
@@ -846,7 +923,7 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
   /* One settings read covers both the rule and the words it is explained in.
      Two reads would let them arrive out of step, and this is the request that
      takes money. */
-  const { limitToStock, say, memberPricingOn } = await (async () => {
+  const { limitToStock, say, memberPricingOn, giftCards } = await (async () => {
     try {
       const cfg = sanitizeCommerceConfig(await getSetting(env, 'commerce_config', {}));
       return {
@@ -856,10 +933,11 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
            every store predates the switch, and reading a missing key as "off"
            would withdraw a discount shoppers are currently being shown. */
         memberPricingOn: cfg?.memberPricing?.enabled !== false,
+        giftCards: giftCardPolicy(cfg),
       };
     } catch (_) {
       // Unreadable settings must not become permission to oversell, nor silence.
-      return { limitToStock: true, say: shippedMessages, memberPricingOn: true };
+      return { limitToStock: true, say: shippedMessages, memberPricingOn: true, giftCards: GIFT_CARD_DEFAULTS };
     }
   })();
 
@@ -874,7 +952,7 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
      charged $40. */
   const chargeAsMember = isMember && memberPricingOn;
 
-  const catalogItems = await resolveCatalogItems(items, env, chargeAsMember, limitToStock, say, isWholesale);
+  const catalogItems = await resolveCatalogItems(items, env, chargeAsMember, limitToStock, say, isWholesale, giftCards);
   const subtotalCents = catalogItems.reduce((sum, item) => sum + item.amount * item.quantity, 0);
 
   /* The account's own minimum, checked on the GOODS before shipping, tax or a
