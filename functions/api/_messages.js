@@ -57,6 +57,7 @@ export const DEFAULTS = {
   giftCardSpent:    'That card has already been used up.',
   giftCardExpired:  'That card has expired.',
   giftCardVoid:     'That card is no longer valid.',
+  giftCardLocked:   'That card is saved to an account. Sign in to that account to spend it.',
   giftCardOffline:  'We could not check that just now. Please try again in a moment.',
 };
 

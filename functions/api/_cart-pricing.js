@@ -1052,7 +1052,14 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
   }
 
   if (storedValueCode && await storedValueEnabled(env)) {
-    const q = await quoteAgainst(env, storedValueCode, totalCents);
+    /* verifiedUser, NOT attributedUser. A locked card asks "who is signed in",
+       which is a different question from "whose order is this" — attribution
+       additionally requires the delivery email to match the account, and a
+       customer sending a present to a friend's address is still the owner of
+       their own card. Refusing them there would be the lock working against
+       the person it belongs to. Member pricing follows the session for exactly
+       the same reason; see the note above. */
+    const q = await quoteAgainst(env, storedValueCode, totalCents, verifiedUser?.id || null);
     storedValue = {
       code: q.applied > 0 ? String(storedValueCode).trim().toUpperCase().replace(/\s+/g, '') : '',
       appliedCents: q.applied,

@@ -147,6 +147,11 @@
     giftCardSpent:    { label: 'Gift card has nothing left on it', text: 'That card has already been used up.', color: ROLE.bad },
     giftCardExpired:  { label: 'Gift card has expired', text: 'That card has expired.', color: ROLE.bad },
     giftCardVoid:     { label: 'Gift card was cancelled', text: 'That card is no longer valid.', color: ROLE.bad },
+    /* Deliberately not "that code is not valid". The code IS valid — somebody
+       locked this card to their account, and telling the holder it is wrong
+       sends them hunting for a typo in a code they typed correctly. It says
+       what happened and what to do about it, without naming the account. */
+    giftCardLocked:   { label: 'Gift card is locked to an account', text: 'That card is saved to an account. Sign in to that account to spend it.', color: ROLE.bad },
     giftCardOffline:  { label: 'Could not check the card just now', text: 'We could not check that just now. Please try again in a moment.', color: ROLE.bad },
     giftCardPending:  { label: 'Card accepted, total not worked out yet', text: '{balance} on the card. It comes off once your total is worked out.', color: ROLE.good },
     giftCardPartial:  { label: 'Card covers part of the order', text: '{balance} on the card — {applied} of it covers this order, {left} left over.', color: ROLE.good },
@@ -351,7 +356,7 @@
       name: 'Checkout — gift card box',
       where: 'The line under the code field, and the summary rows',
       keys: ['giftCardPending', 'giftCardPartial', 'giftCardAll',
-             'giftCardNotFound', 'giftCardSpent', 'giftCardExpired'],
+             'giftCardNotFound', 'giftCardSpent', 'giftCardExpired', 'giftCardLocked'],
       /* A cancelled card, an unreadable ledger, an empty box. Real, and not
          things a working store produces on an ordinary day. */
       rare: ['giftCardVoid', 'giftCardOffline', 'giftCardEmpty', 'giftCardNoWallet'],

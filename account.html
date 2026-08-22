@@ -1579,7 +1579,12 @@ function bindGiftCardAdd() {
         body: JSON.stringify({ code, accessToken: token }),
       }).then(res => res.json());
       if (!r || !r.ok) { show((r && r.error) || 'We could not save that card.', 'bad'); return; }
-      show(r.already ? 'That card is already on your account.' : 'Saved. It will be here whenever you need it.', 'good');
+      /* Two different sentences, because the store may be one migration
+             behind and a promise of protection that is not there is worse than
+             no promise. */
+      show(r.already ? 'That card is already on your account.'
+        : r.locked ? 'Saved and locked to your account — only you can spend it now.'
+        : 'Saved to your account. It will be here whenever you need it.', 'good');
       hideSave();
       if (input) input.value = '';
       /* Re-read rather than splice the new card into the list by hand: the
@@ -1626,7 +1631,7 @@ async function loadGiftCards() {
       <p class="gc-add-msg" id="gc-add-msg" role="status" aria-live="polite"></p>
       <div class="gc-add-save" id="gc-add-save" hidden>
         <button type="button" class="zw-btn primary" id="gc-add-claim">Save it to my account</button>
-        <p class="gc-add-note">Saving it means you can find it here whenever you like instead of hunting for the email. The code still works at checkout exactly as it does now — anyone who has it can still spend it, so keep it to yourself.</p>
+        <p class="gc-add-note">Saving it locks the card to this account: from then on it can only be spent while you are signed in, so the email it arrived in is no longer worth anything to anyone else. It also means you never have to go and find that email again.</p>
       </div>
     </form>`;
 
