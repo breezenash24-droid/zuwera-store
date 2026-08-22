@@ -37,10 +37,10 @@
    min-height:0 is the load-bearing half: a grid child will not scroll without
    it, because its automatic minimum size is its own content.
    The scrollbar itself is the one this site already uses for a pane that
-   scrolls beside something that does not — .plp-sidebar on this page, and
-   #mediaGrid in the builder: thin, a --border thumb on a transparent track,
-   6px in the browsers that need it spelled out. A second scrollbar style
-   would be a second thing to notice. */
+   scrolls beside something that does not — .plp-sidebar on the collection page,
+   #mediaGrid in the builder. The bar itself is hidden here (see below), so the
+   thumb styling those two carry would be styling for something nobody can see;
+   what is shared is the structure, not the paint. */
 @media(min-width:901px){
   .quick-add-product-box{ overflow:hidden; }
   /* ── THE BAR IS HIDDEN, SO THE BUTTON IS PINNED ────────────────────────
@@ -64,18 +64,14 @@
     border-left:1px solid var(--c08);
   }
   .quick-add-product-box .quick-add-review-body::-webkit-scrollbar{ display:none; }
-  .quick-add-product-box .quick-add-review-body::-webkit-scrollbar{ width:6px; }
-  .quick-add-product-box .quick-add-review-body::-webkit-scrollbar-thumb{
-    background:var(--border,var(--c20)); border-radius:3px;
-  }
-  .quick-add-product-box .quick-add-review-body::-webkit-scrollbar-thumb:hover{
-    /* --c50, not --c40: the rungs this panel re-keys from its own --paper are
-       08/10/12/20/50/55 (see the alpha-ladder note above), and a rung declared
-       only on body resolves against the PAGE's foreground and inherits the
-       finished colour — which is the bug that whole note exists to describe. */
-    background:var(--c50);
-  }
 }
+/* This panel paints from --ink/--paper, not from the page pair, and the alpha
+   ladder above says why: an imported theme may set them apart, and a filled
+   control keyed to the page would then be page-ink on a panel-coloured ground.
+   Outside the media query on purpose — a chip is filled at every width. */
+.quick-add-product-box .zwgc{
+  --zwgc-on-fg:var(--paper);
+  --zwgc-on-bg:var(--ink);
 }
 @media (min-width:901px){
   /* Pin the close so it stays visible while the product box scrolls — it was

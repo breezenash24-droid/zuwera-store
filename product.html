@@ -1140,6 +1140,29 @@ body[data-zw-product="gift-card"] [data-zw-giftcard] { display: revert; }
 }
 body[data-zw-product="gift-card"] .gc-note[hidden] { display: block; }
 
+/* ── THE GIFT CARD BLOCK, AT THIS PAGE'S SCALE ──────────────────────────────
+   gift-card-buy.js ships the type scale of the quick-add panel, which is where
+   it appears twice out of three times and where space is tight: a .62rem label
+   and a .68rem chip. On this page that put "AMOUNT" and "SEND TO" a size and a
+   half below "GIFT CARD" directly above them — .section-label is .8rem — and
+   the chips a size above the size buttons they stand in for.
+
+   Overridden here rather than parameterised in the module, because this is the
+   page's own stylesheet and a page-versus-panel type scale is exactly what a
+   page's own stylesheet is for. The module keeps one variable for the one thing
+   CSS cannot reach from outside: the surface's ink and paper. */
+#giftCardBuy .zwgc-label {
+  font-size: .8rem; letter-spacing: .12em; opacity: 1; color: var(--white);
+  margin-bottom: 1rem;
+}
+#giftCardBuy .zwgc-flabel { font-size: .6rem; }
+#giftCardBuy .zwgc-amt {
+  font-size: .6rem; letter-spacing: .1em; min-width: 84px; min-height: 40px;
+}
+/* Matching .colorway-section / .size-section, which are the blocks this one
+   stands in place of. */
+#giftCardBuy .zwgc-sec { margin-bottom: 2rem; }
+
 /* The amount chips. Layout only — everything about how they LOOK comes from
    .size-btn, which they also carry. A row rather than the size grid's fixed
    columns, because $25 and $100 are not the same width and a five-column track
@@ -2100,7 +2123,7 @@ body.super-light-mode { background: var(--ink) !important; }
      rearrange after load. -->
 <script src="pdp-gallery.js?v=2192736c"></script>
 <script src="auth.js?v=fac9d15e" defer></script>
-<script src="gift-card-buy.js?v=7599b27c"></script>
+<script src="gift-card-buy.js?v=16421e5f"></script>
 <script src="product-main.js?v=21bd1e49"></script>
 
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->

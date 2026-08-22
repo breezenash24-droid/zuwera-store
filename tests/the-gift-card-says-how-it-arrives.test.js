@@ -162,7 +162,23 @@ ok('the dialog collects a number and lets the module judge it',
   const MOD = read('gift-card-buy.js');
   ok('the amount chips are the module\'s, so they look the same in all three places',
     /class="zwgc-amt"/.test(MOD)
-    && /\.zwgc-amt\.is-on\{background:rgb\(var\(--fg-rgb/.test(MOD));
+    && /\.zwgc-amt\.is-on\{background:var\(--zwgc-on-fg\)/.test(MOD));
+  /* The one thing a host has to supply. A filled chip needs the SURFACE's ink
+     and paper, and only the host knows them — the quick-add panel paints from
+     --ink/--paper, and an imported theme may set those apart from the page's
+     pair. Everything else in the module stays keyed to currentColor, which is
+     whatever surface the block was dropped onto. */
+  ok('…and the filled state takes its pair from the host, not from the page',
+    /--zwgc-on-fg:rgb\(var\(--fg-rgb/.test(MOD),
+    'the page pair is the DEFAULT, correct on the product page and in every '
+    + 'built-in theme');
+  ok('…which both panels override with their own surface',
+    /\.quick-add-product-box \.zwgc\{[\s\S]{0,120}--zwgc-on-fg:var\(--paper\)/
+      .test(read('quick-add-modal.css'))
+    && /\.collection-product-box \.zwgc\{[\s\S]{0,140}--zwgc-on-fg:var\(--paper\)/
+      .test(read('drop001.html')),
+    'a value keyed to the page and used on a panel is the mistake '
+    + 'theme-tokens.test.js exists to catch');
   /* It WAS `background:currentColor` with the label inverted by filter and
      mix-blend-mode. Both halves did exactly what they say and cancelled each
      other out — white text inverted to black, differenced against the now-white
