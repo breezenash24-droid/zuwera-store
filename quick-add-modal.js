@@ -617,11 +617,36 @@
         // no-store: the mini quick-add modal's per-size stock must reflect an admin
         // stock edit immediately — never a cached "previous" quantity.
         fetch(SUPABASE_URL + '/rest/v1/product_sizes?select=size,stock_quantity,color_name&product_id=eq.' + encodedId + '&order=created_at.asc', { headers: headers, cache: 'no-store' }),
-        fetch(SUPABASE_URL + '/rest/v1/product_images?select=image_url,alt_text,sort_order,color_variant_id,media_type&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers })
+        fetch(SUPABASE_URL + '/rest/v1/product_images?select=image_url,alt_text,sort_order,color_variant_id,media_type&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers }),
+        /* ── A GIFT CARD CANNOT BE QUICK-ADDED ────────────────────────────────
+           This panel asks two questions — colour and size — and a gift card has
+           neither. What it needs is an AMOUNT and somebody to send it to, and
+           there is nowhere here to ask for either.
+
+           Adding one anyway produced a cart line with no face value, no chosen
+           amount, no recipient and a made-up half pound of shipping weight, so
+           the bag quoted a real USPS rate against a code in an email and the
+           card went to the buyer with no message on it. That is the same class
+           of bug as the size picker inventing seven sizes for a $50 card, still
+           reachable from the collection grid, the homepage grid and saved items.
+
+           Checked HERE rather than at each of those three, because a rule about
+           gift cards enforced in three places is a rule that will be enforced
+           in two of them by the next person who adds a fourth grid. */
+        fetch(SUPABASE_URL + '/rest/v1/products?select=gift_card_cents&id=eq.' + encodedId + '&limit=1', { headers: headers })
       ]);
       var colors = results[0].ok ? await results[0].json() : [];
       var sizeRows = results[1].ok ? await results[1].json() : [];
       var imageRows = results[2].ok ? await results[2].json() : [];
+      var prodRows = results[3] && results[3].ok ? await results[3].json() : [];
+      if (Array.isArray(prodRows) && prodRows[0] && Number(prodRows[0].gift_card_cents) > 0) {
+        closeQuickAddReviewModal();
+        /* qaProductHref, not a second URL shape: it is what this panel's own
+           "Full Product Page" link already builds, so a card lands exactly
+           where clicking through would have put it. */
+        window.location.assign(qaProductHref(modalItem));
+        return;
+      }
       var sizeEntries = quickAddSizeEntries(sizeRows);
       modalItem.allImageRows = Array.isArray(imageRows) ? imageRows : [];
       var images = quickAddGetImagesForColor(modalItem.allImageRows, productImage, null);

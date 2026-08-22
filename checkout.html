@@ -202,7 +202,7 @@ try {
        fallback. The preconnect above keeps the cold-cache cost small. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
   <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
-  <script src="/zw-data.js?v=f3253604" defer></script>
+  <script src="/zw-data.js?v=b1d82c08" defer></script>
   <script src="/supabase.min.js?v=4b6a655b" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/header-scroll.js?v=0a0efce9" defer></script>
@@ -869,7 +869,7 @@ try {
      server-verified version arrives long after the decision that needs it, so
      without this the pricing fell back to a page-local guess and the price
      alternated. checkout.js overwrites it with the verified answer later. -->
-<script src="customer-messages.js?v=cb115f08"></script>
+<script src="customer-messages.js?v=250f3c12"></script>
 <script src="stock-rules.js?v=26fa2888"></script>
 <script>
 /* -- Globals expected by checkout.js / commerce-checkout.js -- */
@@ -1159,8 +1159,11 @@ window.zwClearPromo = function() {
         var colorPart = item.colorName ? (zwColorDot(item) + esc(item.colorName)) : '';
         var sizePart = item.size ? esc(item.size) : '';
         var meta = [colorPart, sizePart].filter(Boolean).join(' / ');
+        /* The last screen before the money moves, and the last chance to notice
+           the address is wrong. See ZWGiftCard.recipientLine. */
+        var toLine = window.ZWGiftCard ? window.ZWGiftCard.recipientLine(item) : '';
         var cleanTitle = esc((item.title||item.name||'').replace(/\p{Extended_Pictographic}/gu,'').replace(/\s+/g,' ').trim());
-        return '<div class="pm-item">'+imgHtml+'<div class="pm-item-info"><div class="pm-item-title">'+cleanTitle+'</div>'+(meta?'<div class="pm-item-meta" style="display:flex;align-items:center">'+meta+'</div>':'')+'<div class="pm-item-meta">Qty '+(item.quantity||1)+'</div><button class="pm-item-remove" type="button" data-idx="'+i+'" aria-label="Remove item">Remove</button></div><div class="pm-item-price">$'+price+'</div></div>';
+        return '<div class="pm-item">'+imgHtml+'<div class="pm-item-info"><div class="pm-item-title">'+cleanTitle+'</div>'+(meta?'<div class="pm-item-meta" style="display:flex;align-items:center">'+meta+'</div>':'')+(toLine?'<div class="pm-item-meta">'+esc(toLine)+'</div>':'')+'<div class="pm-item-meta">Qty '+(item.quantity||1)+'</div><button class="pm-item-remove" type="button" data-idx="'+i+'" aria-label="Remove item">Remove</button></div><div class="pm-item-price">$'+price+'</div></div>';
       }).join('');
     }
 

@@ -346,5 +346,23 @@
     cartHasACard: function (items) {
       return (Array.isArray(items) ? items : []).some(window.ZWGiftCard.is);
     },
+    /** Who a bagged card is addressed to, as one plain line, or ''.
+     *
+     *  THE ADDRESS IS SHOWN IN FULL, on purpose. A shopper types a friend's
+     *  email into a box on the product page and, until this existed, nothing
+     *  else in the entire flow mentioned it again — the first confirmation was
+     *  the card arriving, or not arriving, at whatever they actually typed. The
+     *  bag is the last place a typo can be caught, so it prints what will be
+     *  used rather than a reassuring summary of it.
+     *
+     *  One implementation because two renderers draw a bag line — bag.html and
+     *  checkout.html — and a rule about gift cards living in both is the shape
+     *  of every drift this codebase has had to fix twice. */
+    recipientLine: function (item) {
+      var to = item && item.giftCardTo;
+      if (!to || !to.email) return '';
+      var name = [to.first, to.last].filter(Boolean).join(' ').trim();
+      return name ? 'To ' + name + ' (' + to.email + ')' : 'To ' + to.email;
+    },
   };
 })();
