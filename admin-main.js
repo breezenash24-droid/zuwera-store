@@ -10713,6 +10713,13 @@
             const g = (gender || '').toLowerCase();
             const s = (subtitle || '').toLowerCase();
             const prefix = g === 'men' ? 'M' : g === 'women' ? 'W' : g === 'unisex' ? 'U' : '';
+            /* Before this, a gift card fell through to the catch-all on the last
+               line and came out 'UTP' — a Unisex Top. It then appeared under
+               Tops in the header category menu and sorted with the t-shirts on
+               the collection page, which is how a product that is genuinely
+               live reads as missing: it is filed where nobody would look for
+               it. Gender-neutral by definition, so no prefix. */
+            if (s === 'gift card') return 'GFT';
             // Gender-neutral categories
             if (s === 'sports bras') return 'SBR';
             if (s === 'caps' || s === 'beanies') return 'HAT';
