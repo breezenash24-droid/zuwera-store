@@ -127,7 +127,18 @@ ok('the dialog is the site\'s own .modal',
   'a private overlay opts out of the scrim, the blur, the panel, the motion, '
   + 'the light themes and the mobile sheet, all at once');
 ok('…with the site\'s own .mbox panel inside it',
-  /<div class="mbox gc-amount-box">/.test(HTML));
+  /<div class="mbox fs-box gc-amount-box">/.test(HTML),
+  'fs-box as well as mbox: Find My Size is the dialog this one is modelled on, '
+  + 'and .fs-box is what carries its padding and its shadow');
+ok('…and the same intro block Find My Size uses',
+  /<p class="review-modal-eyebrow">Gift Card<\/p>/.test(HTML)
+  && /<h2 class="review-modal-title" id="gcAmountTitle">/.test(HTML)
+  && /<p class="review-modal-copy" id="gcAmountCopy">/.test(HTML));
+ok('…with one full-width .fs-submit rather than a pair of small buttons',
+  /<button type="button" class="fs-submit gc-amount-ok"/.test(HTML)
+  && !/gc-amount-cancel/.test(HTML),
+  'Find My Size has one action and a close cross; two right-aligned buttons '
+  + 'was the shape of a dialog from somewhere else');
 ok('…and it opens by the class the rest of the site opens by',
   /modal\.classList\.add\('open'\)/.test(PM) && /modal\.classList\.remove\('open'\)/.test(PM),
   'toggling `hidden` skips every rule keyed on .open, including the scroll lock');

@@ -174,6 +174,16 @@
        garment. One key for both, because they are the same claim and a store
        that edited one and not the other would be contradicting itself on a
        single screen. */
+    /* Who the card is for. The delivery email used to go to the BUYER, because
+       nothing on a gift-card line said otherwise; these are the words around
+       the fields that changed that. */
+    giftCardSendTo:      { label: 'Above the "send to" fields on a gift card', text: 'We email the card and its code straight to them, usually within a few minutes.', color: ROLE.plain },
+    giftCardMessageHint: { label: 'Under the gift card message box', text: 'Your note appears in the email, beside the code.', color: ROLE.plain },
+    /* Empty and malformed are deliberately different. "Check it and try again"
+       sends somebody hunting a typo in a box they never filled in. */
+    giftCardNeedEmail:   { label: 'No recipient email was entered', text: 'Enter the email address to send this card to.', color: ROLE.bad },
+    giftCardBadEmail:    { label: 'The recipient email looks wrong', text: 'That email address does not look right. Check it and try again.', color: ROLE.bad },
+    giftCardNeedName:    { label: 'No recipient name was entered', text: 'Enter the name of the person this card is for.', color: ROLE.bad },
     giftCardDelivery: { label: 'How a gift card is delivered', text: 'Delivered by email as a code, usually within a few minutes. Enter it at checkout — it does not have to be spent all at once, and whatever is left stays on the card for next time.', color: ROLE.plain },
 
     /* ── promo codes ──────────────────────────────────────────────────────────
@@ -346,13 +356,16 @@
          the store owner hunting two lists for one page. */
       keys: ['soldOut', 'lowStock', 'lastInBag', 'allInBag', 'maxedOut',
              'lowStockBadge', 'restockPrompt', 'restockSuccess', 'restockAlready',
-             'giftCardDelivery'],
+             'giftCardDelivery', 'giftCardSendTo', 'giftCardMessageHint'],
       /* Referenced here, but only as a safety net: Add to Bag is already
          disabled by the time either could fire, so a shopper should never meet
          them on this screen. Kept because the guard is correct -- a disabled
          button is a display, not a rule -- but listed separately so nobody
          spends time on wording that is not read. */
-      rare: ['soldOutItem', 'restockFailed'],
+      /* The three refusals a shopper meets only by leaving a gift card's
+         recipient blank or mistyped, which the fields ask for plainly. */
+      rare: ['soldOutItem', 'restockFailed',
+             'giftCardNeedEmail', 'giftCardBadEmail', 'giftCardNeedName'],
     },
     {
       name: 'Bag',

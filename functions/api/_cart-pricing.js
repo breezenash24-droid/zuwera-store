@@ -365,6 +365,49 @@ export async function verifyAccessToken(accessToken, env) {
    customer to name a price. */
 export const GIFT_CARD_DEFAULTS = { customAmounts: false, minCents: 1000, maxCents: 50000 };
 
+/* ── WHO A GIFT CARD IS FOR ──────────────────────────────────────────────────
+ *
+ * The browser supplies this and the browser is not trusted with it, but the
+ * risk here is not the usual one. Nothing about a recipient decides money: the
+ * amount, the face value and the tax are settled elsewhere and a recipient
+ * cannot move any of them. What it decides is WHO THIS STORE SENDS MAIL TO,
+ * and that is the thing worth being careful about — an unbounded "email any
+ * address with any text" form is a spam relay wearing a checkout.
+ *
+ * Three things make it not one. It is capped hard, here, where the caller
+ * cannot argue. It is escaped where it is rendered (see _gift-card-emails.js).
+ * And nothing is sent until a payment has actually succeeded, which is a rate
+ * limit no attacker gets around cheaply — every message has a card paid for
+ * behind it.
+ *
+ * Returns null rather than a half-filled object. A recipient with no address is
+ * not a recipient, and the card falls back to the buyer, which is exactly what
+ * happened for every gift card sold before this existed.
+ */
+const GIFT_TO_CAPS = { first: 50, last: 50, email: 120, message: 250 };
+
+export function normalizeGiftRecipient(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const take = (v, cap) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, cap);
+  const email = take(raw.email, GIFT_TO_CAPS.email).toLowerCase();
+  /* Deliberately the same shape the field checks, and deliberately loose: this
+     is an address a stranger typed for a friend, and a clever regex that
+     refuses a valid unusual address costs a sale to prove a point. What it
+     really rules out is the shapes that are not addresses at all. */
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return null;
+  const first = take(raw.first, GIFT_TO_CAPS.first);
+  if (!first) return null;
+  return {
+    first,
+    last: take(raw.last, GIFT_TO_CAPS.last),
+    email,
+    /* Newlines survive the trim above losing them, because a note somebody
+       laid out in lines should arrive in lines — _gift-card-emails.js turns
+       them into <br> after escaping. */
+    message: String(raw.message == null ? '' : raw.message).trim().slice(0, GIFT_TO_CAPS.message),
+  };
+}
+
 export function giftCardPolicy(cfg) {
   const g = (cfg && typeof cfg.giftCards === 'object' && cfg.giftCards) || {};
   const min = Math.round(Number(g.minCents));
@@ -616,6 +659,10 @@ export async function resolveCatalogItems(items, env, isMember, limitToStock = t
          value in that case would charge $73 and issue $50. */
       giftCardCents: faceFromCatalogue <= 0 ? 0
         : Math.min(pricedByBuyer ? priceCents : faceFromCatalogue, priceCents),
+      /* Where the code goes. Null on every ordinary product and on any card
+         whose buyer left the fields blank — the card then goes to the buyer,
+         which is what happened to every gift card sold before this existed. */
+      giftCardTo: faceFromCatalogue > 0 ? normalizeGiftRecipient(raw?.giftCardTo) : null,
       /* A gift card is a code in an email. It has no weight, so it must not
          drag half a pound into the parcel estimate the shipping rate is signed
          against — a cart of ten cards would otherwise be quoted for a 5lb box
@@ -687,6 +734,37 @@ async function getPromotionForCode(env, code) {
  * keeping it for both means the webhook and the capture path parse identically
  * and neither has to know which one built the map.
  */
+const MAX_GIFT_RECIPIENT_KEYS = 8;
+
+/* `gc_to_0` … `gc_to_7`, each a compact JSON object well inside Stripe's
+   500-character cap. Short field names because every byte here is one the note
+   cannot have. */
+function giftRecipientMetadata(recipients) {
+  const list = Array.isArray(recipients) ? recipients : [];
+  const out = {};
+  let overflow = 0;
+  list.forEach((to, i) => {
+    if (!to || !to.email) return;
+    if (i >= MAX_GIFT_RECIPIENT_KEYS) { overflow += 1; return; }
+    const packed = JSON.stringify({
+      n: [to.first, to.last].filter(Boolean).join(' '),
+      e: to.email,
+      m: to.message || undefined,
+    });
+    /* Belt and braces against a cap this should never reach: drop the note
+       rather than the address, because a card that arrives without its message
+       is a smaller failure than one that arrives nowhere. */
+    out['gc_to_' + i] = packed.length <= 480
+      ? packed
+      : JSON.stringify({ n: [to.first, to.last].filter(Boolean).join(' '), e: to.email });
+  });
+  if (overflow > 0) {
+    console.warn('gift cards: ' + overflow + ' recipient(s) past the metadata cap — '
+      + 'those cards go to the buyer to forward');
+  }
+  return out;
+}
+
 export function buildOrderMetadata({ orderNumber, address = {}, quote, featureFlagsMeta = '', attributionMeta = '', matchKeys = null }) {
   const {
     attributedUser, lineItems, inventoryItems, subtotalCents, shipping, giftCardLines,
@@ -724,6 +802,13 @@ export function buildOrderMetadata({ orderNumber, address = {}, quote, featureFl
        big — which is the cart most likely to contain them. Absent means no
        gift cards, which is the common case and costs one empty string. */
     gift_cards: giftCardLines && giftCardLines.length ? JSON.stringify(giftCardLines) : '',
+    /* One key per gift-card line that named somebody, index-matched to
+       gift_cards above. Capped at eight because Stripe allows fifty metadata
+       keys in total and roughly thirty are already spoken for; past that the
+       remaining cards go to the buyer to forward, which is the behaviour every
+       gift card had before recipients existed. Silent truncation would be the
+       worse answer, so the overflow is logged. */
+    ...giftRecipientMetadata(quote.giftCardRecipients),
     subtotal_amount_cents: String(subtotalCents),
     discount_code: normalizedPromoCode,
     discount_amount_cents: String(discountCents),
@@ -1034,9 +1119,16 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
      so on a large cart the flag saying "this line is a gift card" would vanish
      and the codes would silently never be issued. A customer would be charged
      for a gift card that does not exist. */
-  const giftCardLines = catalogItems
-    .filter((item) => Number(item.giftCardCents) > 0)
+  const giftCardItems = catalogItems.filter((item) => Number(item.giftCardCents) > 0);
+  const giftCardLines = giftCardItems
     .map((item) => [Math.round(item.giftCardCents), item.quantity || 1]);
+  /* ALIGNED BY INDEX with giftCardLines, and travelling in its own metadata
+     key per line rather than folded into the pair above. A 250-character note
+     plus a name and an address is most of Stripe's 500-character budget on its
+     own, so two cards in one tuple would silently truncate — and a truncated
+     recipient is a card emailed to half an address. One line, one key, or the
+     recipient is dropped whole and the card goes to the buyer. */
+  const giftCardRecipients = giftCardItems.map((item) => item.giftCardTo || null);
 
   /* Each card is a separate code, because forty people cannot share one. That
      makes the count a real cost at fulfilment — one write per card — and the
@@ -1206,7 +1298,8 @@ export async function quoteCart({ items, address = {}, shippingRate, promoCode =
   return {
     verifiedUser, attributedUser,
     /* Face value and count per line, for the codes fulfilment has to mint. */
-    giftCardLines, giftCardSubtotalCents,
+    giftCardLines,
+    giftCardRecipients, giftCardSubtotalCents,
     /* `isMember` stays "is this a signed-in customer", because that is what the
        word means and what anything reading it later would expect. Whether they
        were PRICED as one is a separate fact, reported separately — folding the

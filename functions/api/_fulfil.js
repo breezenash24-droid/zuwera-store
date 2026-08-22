@@ -706,11 +706,17 @@ async function createShippingLabel(pi, meta, env) {
    where it ships to, and six months later it is findable only by remembering
    which order it was on.
 
-   Sent to the buyer, because nothing on a gift-card line says who it is for.
-   Adding a recipient field to the cart is the obvious next step and a bigger
-   one: it needs a place to type it, validation, and a decision about what
-   happens when it bounces. Until then the buyer forwards it, which is what
-   somebody buying a gift card by hand does anyway.
+   SENT TO WHOEVER IT IS FOR, which is a question a gift-card line could not
+   answer until the product page grew somewhere to type it. It still cannot
+   always answer it — a card bought before that existed, or by somebody who
+   left the fields blank, has no recipient — and then it goes to the buyer to
+   forward, which is what somebody buying a gift card by hand does anyway.
+
+   GROUPED, because one order can hold cards for several people. Sending one
+   email per card would put three messages in one inbox for three cards bought
+   together; sending one email to everybody would show each recipient the
+   others' codes, which is spendable money belonging to strangers. Grouping by
+   address is the only arrangement that is neither.
 
    Non-fatal, like everything else after the charge. A card that issued but did
    not email still exists, is still on the confirmation, and is still findable
@@ -719,28 +725,59 @@ async function sendGiftCardDeliveredEmail(meta, env, cache = {}, giftCardCodes =
   const cards = (Array.isArray(giftCardCodes) ? giftCardCodes : []).filter((c) => c && c.code);
   if (!cards.length) return null;
 
-  const toEmail = String(meta.customer_email || '').trim();
-  if (!toEmail) return null;
+  const buyerEmail = String(meta.customer_email || '').trim();
+  const buyerName = String(meta.customer_name || '').trim();
+
+  /* Keyed by address. The empty key is the buyer's pile: everything nobody was
+     named for. */
+  const groups = new Map();
+  for (const c of cards) {
+    const key = (c.to && c.to.email) ? c.to.email : '';
+    if (!groups.has(key)) {
+      groups.set(key, {
+        email: key || buyerEmail,
+        name: key ? (c.to.name || '') : buyerName,
+        /* The buyer writes one note per line, so cards grouped to one address
+           may carry several. The first non-empty one is used rather than all of
+           them concatenated — two notes stacked in one email reads as a
+           mistake, and a shopper writing different notes for the same person
+           has done something no arrangement here can render sensibly. */
+        note: '',
+        cards: [],
+      });
+    }
+    const g = groups.get(key);
+    if (key && !g.note && c.to.message) g.note = c.to.message;
+    g.cards.push({ code: c.code, cents: c.cents });
+  }
 
   const a = getEmailAppearance(cache, env);
   const logoUrl = resolveSetting('BRAND_LOGO_URL', env, cache);
   if (logoUrl) a.logo = logoUrl;
   const content = getEmailContent(cache, 'gift_card_delivered', env);
+  const shopUrl = env.SITE_URL || 'https://zuwera.store';
+  const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || undefined;
 
-  const totalCents = cards.reduce((sum, c) => sum + (Number(c.cents) || 0), 0);
-  const toName = String(meta.customer_name || '').trim();
-  const html = buildGiftCardDelivered({
-    appearance: a, content, toName, cards,
-    shopUrl: (env.SITE_URL || 'https://zuwera.store'),
-  });
-
-  return sendTransactional({
-    env, cache, to: toEmail, toName: toName || undefined,
-    subject: fillTemplate(content.subject, { name: toName, amount: '$' + (totalCents / 100).toFixed(2) }),
-    html,
-    fromEmail: resolveSetting('EMAIL_FROM', env, cache) || undefined,
-    fromName: a.brand,
-  });
+  const sends = [];
+  for (const g of groups.values()) {
+    if (!g.email) continue;
+    const totalCents = g.cards.reduce((sum, c) => sum + (Number(c.cents) || 0), 0);
+    sends.push(sendTransactional({
+      env, cache, to: g.email, toName: g.name || undefined,
+      subject: fillTemplate(content.subject, {
+        name: g.name, amount: '$' + (totalCents / 100).toFixed(2),
+      }),
+      html: buildGiftCardDelivered({
+        appearance: a, content, toName: g.name, cards: g.cards, shopUrl, note: g.note,
+      }),
+      fromEmail,
+      fromName: a.brand,
+    }));
+  }
+  if (!sends.length) return null;
+  /* allSettled, not all: one bounced address must not stop the other
+     recipients hearing about their card. */
+  return Promise.allSettled(sends);
 }
 
 /* ── AND TELLING WHOEVER BOUGHT IT THAT IT HAS BEEN USED ─────────────────────
@@ -820,6 +857,21 @@ async function sendGiftCardSpentNotice(meta, env, cache = {}) {
   });
 }
 
+/* One recipient out of metadata, or null. Everything here is already capped and
+   validated by normalizeGiftRecipient before it was written; this only has to
+   survive a value that is missing, empty, or not JSON at all — a card that
+   issued but could not be addressed still goes to the buyer, which is the
+   behaviour every gift card had before this existed. */
+function readGiftRecipient(raw) {
+  if (!raw) return null;
+  let o;
+  try { o = JSON.parse(raw); } catch (_) { return null; }
+  if (!o || typeof o !== 'object') return null;
+  const email = String(o.e || '').trim();
+  if (!email || !email.includes('@')) return null;
+  return { email, name: String(o.n || '').trim(), message: String(o.m || '') };
+}
+
 export async function issueGiftCardsFor(meta, env) {
   let lines;
   try {
@@ -831,23 +883,37 @@ export async function issueGiftCardsFor(meta, env) {
   if (!Array.isArray(lines) || !lines.length) return [];
 
   const issued = [];
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
     const cents = Math.round(Number(Array.isArray(line) ? line[0] : line && line.v) || 0);
     const qty = Math.max(1, Math.min(100, Math.round(Number(Array.isArray(line) ? line[1] : line && line.q) || 1)));
     if (cents <= 0) continue;
+    /* Who this LINE was bought for, written by the buyer on the product page.
+       Index-matched to gift_cards — see giftRecipientMetadata in
+       _cart-pricing.js — and absent for every card sold before recipients
+       existed, and for anyone who left the fields blank. */
+    const to = readGiftRecipient(meta['gc_to_' + i]);
     for (let n = 0; n < qty; n += 1) {
       try {
         const out = await issueStoredValue(env, {
           kind: 'gift_card',
           cents,
-          ownerUserId: meta.user_id || null,
-          ownerEmail: meta.customer_email || '',
+          /* ── A GIFT DOES NOT BELONG TO WHOEVER PAID FOR IT ──────────────
+             owner_user_id is where a balance is LISTED — the wallet on the
+             account page. Leaving the buyer's id on a card they bought for
+             somebody else would put the present in the giver's wallet and
+             leave the recipient holding a code the store thinks is not
+             theirs. It is deliberately NULL for a gifted card: nobody's
+             wallet until it is claimed, spendable by whoever has the code,
+             which is what bearer paper means. */
+          ownerUserId: to ? null : (meta.user_id || null),
+          ownerEmail: to ? to.email : (meta.customer_email || ''),
           reason: 'Bought on order ' + (meta.order_number || ''),
           /* Which order paid for it. The same shape admin-refund uses, so
              "where did this card come from" has one answer format. */
           sourceRef: 'order:' + String(meta.order_number || ''),
         });
-        issued.push({ code: out.code, cents });
+        issued.push({ code: out.code, cents, to });
       } catch (e) {
         /* Logged with the amount so the shortfall is recoverable by hand, and
            never with a code — a log carrying live codes is spendable money
