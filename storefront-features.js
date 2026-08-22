@@ -237,7 +237,15 @@
          spread alone doesn't save the parked case (still bleeds to ~113), so the
          shadow only exists while open. */
       '.zwf-bag:not(.open) .zwf-bag-panel,.zwf-search:not(.open) .zwf-search-panel{box-shadow:none}',
-      '.zwf-bag-inner{overflow-y:auto;padding:clamp(1.2rem,3vw,2rem) clamp(1rem,4vw,2.5rem) clamp(1.6rem,4vw,2.4rem);max-width:1100px;margin:0 auto;width:100%}',
+      /* TOP padding tightened from clamp(1.2rem,3vw,2rem). At a wide viewport
+         that clamped to 32px of empty panel above the heading — and because
+         the panel and the page behind it are the same near-black, that space
+         reads as a gap between the header and the panel rather than as the
+         panel's own inset. Reported three times as "the gap"; measured flush
+         at 0.6px every time. The sides and bottom are unchanged: it is only
+         the top edge that has a header directly above it to be confused
+         with. */
+      '.zwf-bag-inner{overflow-y:auto;padding:clamp(.7rem,1.4vw,1rem) clamp(1rem,4vw,2.5rem) clamp(1.6rem,4vw,2.4rem);max-width:1100px;margin:0 auto;width:100%}',
       '.zwf-bag-hd{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.2rem}',
       '.zwf-bag-hd h2{font-family:var(--fw,inherit);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:clamp(1.3rem,3vw,1.9rem);margin:0}',
       '.zwf-bag-review{border:none;border-radius:var(--zw-radius-pill, 999px);background:rgb(var(--fg-rgb));color:rgb(var(--bg-rgb));padding:.72rem 1.5rem;cursor:pointer;font-family:var(--fm,inherit);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}',

@@ -132,6 +132,27 @@
     checkoutRateExpired:  { label: 'Shipping quote went stale', text: 'Selected shipping rate expired. Please reload shipping options.', color: ROLE.bad },
     checkoutRateInvalid:  { label: 'Shipping quote was not usable', text: 'Invalid shipping rate — please reload shipping options.', color: ROLE.bad },
 
+    /* ── GIFT CARDS AND STORE CREDIT ─────────────────────────────────
+       These were hardcoded in two places — a SAY map in the Worker and template
+       literals in commerce-checkout.js — while every other sentence a shopper
+       can be shown at checkout has been editable for months. A store that can
+       rewrite "out of stock" but not "that card has already been used up" has
+       a gap somebody will find at the worst moment.
+
+       giftCardPending is the one that mattered: it used to do the arithmetic
+       against a total that had not resolved and announce that a $50 card
+       covered $0.00, which reads as a dead card rather than a pending total. */
+    giftCardEmpty:    { label: 'Gift card code box is empty', text: 'Enter the code from your gift card.', color: ROLE.plain },
+    giftCardNotFound: { label: 'Gift card code is not recognised', text: 'We could not find that code. Check it and try again.', color: ROLE.bad },
+    giftCardSpent:    { label: 'Gift card has nothing left on it', text: 'That card has already been used up.', color: ROLE.bad },
+    giftCardExpired:  { label: 'Gift card has expired', text: 'That card has expired.', color: ROLE.bad },
+    giftCardVoid:     { label: 'Gift card was cancelled', text: 'That card is no longer valid.', color: ROLE.bad },
+    giftCardOffline:  { label: 'Could not check the card just now', text: 'We could not check that just now. Please try again in a moment.', color: ROLE.bad },
+    giftCardPending:  { label: 'Card accepted, total not worked out yet', text: '{balance} on the card. It comes off once your total is worked out.', color: ROLE.good },
+    giftCardPartial:  { label: 'Card covers part of the order', text: '{balance} on the card — {applied} of it covers this order, {left} left over.', color: ROLE.good },
+    giftCardAll:      { label: 'Card goes entirely to this order', text: '{balance} on the card, all of it going to this order.', color: ROLE.good },
+    giftCardNoWallet: { label: 'Why PayPal and wallets disappeared', text: 'Gift cards and store credit are paid with a card. Remove the card below to use PayPal or a wallet instead.', color: ROLE.plain },
+
     /* ── promo codes ──────────────────────────────────────────────────────────
        A coupon can also carry its OWN message (set per code in admin), and that
        still wins where it exists -- "expired on 1 June" beats a generic refusal.
@@ -327,6 +348,15 @@
       keys: ['soldOutBadge', 'lowStockBadge'],
     },
     {
+      name: 'Checkout — gift card box',
+      where: 'The line under the code field, and the summary rows',
+      keys: ['giftCardPending', 'giftCardPartial', 'giftCardAll',
+             'giftCardNotFound', 'giftCardSpent', 'giftCardExpired'],
+      /* A cancelled card, an unreadable ledger, an empty box. Real, and not
+         things a working store produces on an ordinary day. */
+      rare: ['giftCardVoid', 'giftCardOffline', 'giftCardEmpty', 'giftCardNoWallet'],
+    },
+    {
       name: 'Checkout — paying',
       where: 'The line under the card fields',
       keys: ['declineFunds', 'declineCvc', 'declineNumber', 'declineExpired', 'declinePostcode',
@@ -392,6 +422,10 @@
     authNeedEmail: 1, authPasswordShort: 1, authNoConnection: 1, authFailed: 1, capReached: 1, allInBag: 1, maxedOut: 1,
     restockHint: 1, restockInvite: 1, restockAlready: 1, restockInvalid: 1, restockFailed: 1,
     declinePostcode: 1, declineCallBank: 1, declineNoReason: 1, declineRetry: 1,
+    /* The three a shopper meets least: a cancelled card, an unreadable ledger,
+       and an empty box. The three above them — pending, partial, all — are what
+       somebody actually reads, so those stay first. */
+    giftCardVoid: 1, giftCardOffline: 1, giftCardEmpty: 1, giftCardNoWallet: 1,
   };
 
   /** Is this one of the messages the editor leads with? */
@@ -409,6 +443,7 @@
     { title: 'Back-in-stock signup', keys: ['restockHint', 'restockInvite', 'restockPrompt', 'restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed'] },
     { title: 'Signing in', keys: ['authBadCredentials', 'authEmailInUse', 'authMissingFields', 'authNeedEmail', 'authPasswordShort', 'authNoConnection', 'authFailed'] },
     { title: 'Refused at checkout', keys: ['checkoutNotEnough', 'checkoutUnavailable', 'checkoutPriceChanged', 'checkoutNoPrice', 'checkoutRateExpired', 'checkoutRateInvalid'] },
+    { title: 'Gift cards & store credit', keys: ['giftCardPending', 'giftCardPartial', 'giftCardAll', 'giftCardNotFound', 'giftCardSpent', 'giftCardExpired', 'giftCardVoid', 'giftCardOffline', 'giftCardEmpty', 'giftCardNoWallet'] },
     { title: 'Promo codes', keys: ['promoApplied', 'promoEmpty', 'promoInvalid', 'promoFailed'] },
     { title: 'Starting a return', keys: ['returnAlreadyRefunded', 'returnCancelled', 'returnAlreadyOpen', 'returnItemsSpent', 'returnItemsInvalid', 'returnNoItems', 'returnWindowClosed'] },
     { title: 'When a card is declined', keys: ['declineFunds', 'declineCvc', 'declineNumber', 'declineExpired', 'declinePostcode', 'declineCallBank', 'declineNoReason', 'declineRetry', 'declined'] },

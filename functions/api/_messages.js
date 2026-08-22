@@ -47,6 +47,17 @@ export const DEFAULTS = {
      instead would tell somebody who was granted an extension a sentence they
      can disprove, and make the exception read as a mistake. */
   returnWindowExtendedClosed: 'Returns on this order were open until {date}, which has now passed.',
+
+  /* Gift cards. The Worker only ever needs the refusals — the sentences about a
+     card that WORKED are composed in the browser, where the total lives. Every
+     key here also exists in customer-messages.js with identical text; the
+     parity test compares them character for character. */
+  giftCardEmpty:    'Enter the code from your gift card.',
+  giftCardNotFound: 'We could not find that code. Check it and try again.',
+  giftCardSpent:    'That card has already been used up.',
+  giftCardExpired:  'That card has expired.',
+  giftCardVoid:     'That card is no longer valid.',
+  giftCardOffline:  'We could not check that just now. Please try again in a moment.',
 };
 
 /* Same substitution as the browser's: a token with no value collapses, empty
