@@ -1021,6 +1021,9 @@ export async function saveOrderToSupabase(pi, meta, tracking, env) {
   // charged_shipping_cents = what the customer actually paid (0 for free shipping)
   const shippingCents = parseInt(meta.charged_shipping_cents   || meta.shipping_amount_cents || '0', 10);
   const taxCents      = parseInt(meta.tax_amount_cents         || '0', 10);
+  /* Read here rather than only in the email builder, because the order total
+     below is assembled from the same four numbers the customer sees. */
+  const discountCents = parseInt(meta.discount_amount_cents    || '0', 10) || 0;
 
   const orderRow = {
       stripe_payment_intent_id: pi.id,
@@ -1055,7 +1058,33 @@ export async function saveOrderToSupabase(pi, meta, tracking, env) {
       // Which engine produced that figure, so a year of collections can still be
       // attributed after the setting changes. NULL on orders older than this.
       tax_engine:       meta.tax_engine || null,
-      total:            (pi.amount      / 100).toFixed(2),
+      /* ── THE COLUMN CALLED total HOLDS THE TOTAL ──────────────────────────
+         It was `pi.amount`, which is what the CARD was charged. Those were the
+         same number for the entire history of this table, because until stored
+         value became spendable nothing could sit between the order's value and
+         the amount taken — a promo code reduces the real total, so a discounted
+         order's charge IS its total.
+
+         Gift cards break that, and they break it in the direction that matters:
+         a $92 order settled with a $44 card would have been recorded as a $47.68
+         order. The store's own revenue reporting reads this column, so every
+         redeemed gift card would quietly shrink reported revenue while the goods
+         really did leave at full price — and the tax already charged would be
+         tax on a number the row no longer shows.
+
+         So: total is what the order was worth. What the card paid is
+         stored_value_cents (0033), and what the processor took is the
+         difference. Three facts, three fields, none of them inferred.
+
+         Guarded the same way the receipt email is: if the parts do not add up
+         to at least what was charged, something is missing from the metadata
+         and the charged figure is the one that is certainly true. */
+      total:            (() => {
+        const partsCents = subtotalCents - discountCents + shippingCents + taxCents;
+        const svCents = parseInt(meta.stored_value_cents || '0', 10) || 0;
+        const reconciles = partsCents >= pi.amount && partsCents === pi.amount + svCents;
+        return ((reconciles ? partsCents : pi.amount) / 100).toFixed(2);
+      })(),
       free_shipping:    meta.free_shipping === 'true',
       ship_line1:       meta.ship_line1,
       ship_line2:       meta.ship_line2    || '',
@@ -1156,6 +1185,50 @@ export async function saveOrderToSupabase(pi, meta, tracking, env) {
       });
     }
   } catch (_) { /* column not present / parse issue — non-fatal, order already saved */ }
+
+  /* ── WHAT CAME OFF THE ORDER, AND WHAT PAID FOR IT (migration 0033) ───────
+     The promo code and the gift card were read a few lines above to build the
+     confirmation email and then dropped on the floor. So the email could
+     explain the order and the account page could not, out of the same
+     fulfilment run — one had the numbers in scope, the other had only the row.
+     That is how $22 + $70 renders as a $47.68 total with nothing in between.
+
+     STAMPED AFTER THE INSERT, non-fatal, exactly like the three above it, and
+     for the reason this file has already paid for once: PostgREST rejects the
+     WHOLE row over one unknown column. Putting these in the insert would mean
+     every order failing to save until 0033 is applied. A breakdown is worth
+     having; it is not worth an order.
+
+     Only what was actually there. A NULL means "not recorded" and a 0 means
+     "there wasn't one", and writing 0 into every order would erase that
+     difference for the orders placed before this shipped. */
+  try {
+    const svCents = parseInt(meta.stored_value_cents || '0', 10) || 0;
+    const dsCents = parseInt(meta.discount_amount_cents || '0', 10) || 0;
+    const dsCode = String(meta.discount_code || '').trim().toUpperCase();
+    const breakdown = {};
+    if (dsCents > 0 || dsCode) {
+      breakdown.discount_cents = dsCents;
+      if (dsCode) breakdown.discount_code = dsCode;
+    }
+    if (svCents > 0) {
+      breakdown.stored_value_cents = svCents;
+      breakdown.stored_value_kind = String(meta.stored_value_kind || '') || null;
+      /* Four characters, never the code. A column of live gift card codes is a
+         list of spendable money in a table more people can read than can issue
+         — the same rule the audit log and the receipt email already follow.
+         Enough to match an order to a card in a support conversation. */
+      const svCode = String(meta.stored_value_code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (svCode) breakdown.stored_value_last4 = svCode.slice(-4);
+    }
+    if (Object.keys(breakdown).length && env.SUPABASE_URL && serviceKey) {
+      await fetch(env.SUPABASE_URL + '/rest/v1/orders?stripe_payment_intent_id=eq.' + encodeURIComponent(pi.id), {
+        method: 'PATCH',
+        headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify(breakdown),
+      });
+    }
+  } catch (_) { /* columns not present (0033 not run) — non-fatal, order already saved */ }
 
   // Best-effort: record hand-delivery so admin can distinguish it from mail orders.
   // Non-fatal — if orders.delivery_method hasn't been added yet (see

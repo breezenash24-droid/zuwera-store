@@ -4454,6 +4454,12 @@
                         <label class="form-label">Category <span class="required">*</span></label>
                         <select id="subtitle" class="form-select" required>
                         <option value="">Select Category</option>
+                        <!-- Its own group, above the garments. A gift card is not a kind
+                             of clothing, and its style code (ZW-GC-###) keys off the
+                             gift-card toggle rather than off this list. -->
+                        <optgroup label="Not clothing">
+                            <option value="Gift Card">Gift Card</option>
+                        </optgroup>
                         <optgroup label="Tops">
                             <option value="T-Shirts">T-Shirts</option>
                             <option value="Tank Tops">Tank Tops</option>
