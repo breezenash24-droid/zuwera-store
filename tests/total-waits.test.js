@@ -163,5 +163,31 @@ console.log('\n  one assembler, not three');
   ok('pending figures are visibly pending', /\.dash \{ opacity/.test(HTML));
 }
 
+console.log('\n  a known zero is written down like any other number');
+{
+  const co = fs.readFileSync(path.join(ROOT, 'checkout.js'), 'utf8').replace(/\r\n/g, '\n');
+
+  /* THE BRANCH THAT WAS NOT THERE. The rate handler read:
+
+         if (data.rates?.length) { … }
+         else if (!qualifiesFree) { updateCartSummaryShipping(standard) }
+
+     — so an order that ships FREE, on a store whose rate provider answered
+     with nothing, set no shipping figure at all. _shipDollars stayed null,
+     shipping rendered as an em dash, and a total is only a total once every
+     part of it is known: the total dashed too, and so did the gift card and
+     the amount due hanging off it.
+
+     'Free shipping needs no rate' is true. It just never said so, and an unset
+     zero is indistinguishable from never having asked. Reported live — a $234
+     basket that would not show a total no matter what address was typed. */
+  ok('no rates on a free-shipping order still writes zero',
+    /updateCartSummaryShipping\(qualifiesFree \? 0 : \(policy\.standardRate \|\| 8\)\);/.test(co),
+    'the customer this stranded is always the one with the biggest basket');
+
+  ok('…and it is an unconditional else, not another condition to forget an arm of',
+    !/\} else if \(!qualifiesFree\) \{/.test(co));
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

@@ -896,9 +896,26 @@ async function doFetchRates(zip, state) {
       _pay.ratesField.style.display = 'none';
     }
     updateCartSummaryShipping(qualifiesFree ? 0 : parseFloat(selectedShippingRate.amount));
-  } else if (!qualifiesFree) {
-    // Show standard fallback rate so the customer knows what they'll pay
-    updateCartSummaryShipping(policy.standardRate || 8);
+  } else {
+    /* ── NO RATES CAME BACK ──────────────────────────────────────────
+       This was `else if (!qualifiesFree)`, and the missing arm is the whole
+       bug: an order that ships FREE, on a store where the rate provider
+       answered with nothing, set no shipping figure at all. _shipDollars stayed
+       null, so the summary showed an em dash for shipping — and a total is only
+       a total once every part of it is known, so the total stayed a dash too,
+       and so did anything waiting on the total, which now includes the gift
+       card and the amount due.
+
+       The condition was written thinking "free shipping needs no rate", which
+       is true. It just never said so. Zero is a KNOWN figure and has to be
+       written down like any other; leaving it unset is indistinguishable from
+       not having asked.
+
+       Worse the more somebody spends: it takes a subtotal over the free
+       threshold to reach it, so the affected customer is always the one with
+       the biggest basket, looking at a checkout that will not tell them what it
+       costs. */
+    updateCartSummaryShipping(qualifiesFree ? 0 : (policy.standardRate || 8));
   }
 }
 
