@@ -186,8 +186,7 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g,
   {
     const plp = read('drop001.html');
     ok('the collection grid does not infer a sell-out from having no stock rows',
-      /window\.ZWGiftCard && window\.ZWGiftCard\.is\(product\)/.test(plp)
-      && /\? null/.test(plp.slice(plp.indexOf('totalStock:'), plp.indexOf('totalStock:') + 600)),
+      /totalStock: Number\(product\.gift_card_cents\) > 0\s*\n\s*\? null/.test(plp),
       'the sum of no stock rows is zero, and zero read as "the last one sold" — '
       + 'SOLD OUT on a product that is minted when somebody pays for it');
   }
@@ -204,6 +203,65 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g,
       'a hidden field still submits');
     ok('the face value is filled in from the first amount rather than asked for twice',
       /valEl\.value = \(list\[0\] \/ 100\)\.toFixed\(2\)/.test(admin));
+  }
+
+  console.log('\n  every surface that shows a bag says who the card is for');
+
+  {
+    /* One implementation. Two renderers draw a bag line — bag.html and
+       checkout.html — and a rule about gift cards living in both is the shape
+       of every drift this codebase has had to fix twice. */
+    global.window = global.window || {};
+    require(path.join(ROOT, 'zw-data.js'));
+    const GC = global.window.ZWGiftCard;
+
+    ok('a gifted line names its recipient',
+      GC.recipientLine({ giftCardTo: { first: 'Ada', last: 'Lovelace', email: 'ada@example.com' } })
+        === 'To Ada Lovelace (ada@example.com)');
+    ok('…with the address in full, so a typo can still be caught',
+      /ada@example\.com/.test(GC.recipientLine({ giftCardTo: { first: 'Ada', email: 'ada@example.com' } })),
+      'the bag is the LAST place a mistyped address is visible — after this the '
+      + 'only feedback is the card arriving, or not, at whatever was typed');
+    ok('an ordinary line says nothing', GC.recipientLine({ title: 'Tee' }) === '');
+    ok('…and neither does a card nobody was named for', GC.recipientLine({ giftCardTo: {} }) === '');
+
+    const bag = read('bag.html');
+    const checkout = read('checkout.html');
+    ok('the bag reads it from the shared helper', /ZWGiftCard\.recipientLine\(item\)/.test(bag));
+    ok('…and so does the checkout summary', /ZWGiftCard\.recipientLine\(item\)/.test(checkout));
+
+    /* A gift card has no size, so this line printed "Standard / " with nothing
+       after the slash. checkout.html already filtered its empty parts; the bag
+       concatenated them unconditionally. */
+    ok('the bag drops an empty size instead of printing a bare slash',
+      /\[esc\(item\.colorName\), esc\(item\.size\)\]\.filter\(Boolean\)\.join\(' \/ '\)/.test(bag),
+      'a gift card read "Standard / " with nothing after it');
+  }
+
+  console.log('\n  a gift card cannot be quick-added');
+
+  {
+    /* The panel asks colour and size. A gift card has neither, and needs two
+       things it cannot ask for: an amount, and somebody to send it to. Adding
+       one anyway produced a line with no face value, no chosen amount, no
+       recipient and a made-up half pound of shipping weight — so the bag quoted
+       a real USPS rate against a code in an email. Same class as the size
+       picker inventing seven sizes for a $50 card, still reachable from the
+       collection grid, the homepage grid and saved items. */
+    const qa = read('quick-add-modal.js');
+    ok('the panel asks whether the product is one',
+      /products\?select=gift_card_cents&id=eq\./.test(qa),
+      'the three grids that open this panel do not all carry the flag, and the '
+      + 'saved-items path carries almost nothing');
+    ok('…and sends it to the product page instead of adding it',
+      /Number\(prodRows\[0\]\.gift_card_cents\) > 0\) \{[\s\S]{0,400}window\.location\.assign\(qaProductHref/.test(qa));
+    ok('…checked in ONE place rather than at each grid',
+      (qa.match(/gift_card_cents/g) || []).length <= 2,
+      'a rule about gift cards enforced in three grids is one that will be '
+      + 'enforced in two of them by whoever adds a fourth');
+    ok('…using the URL the panel already builds for "Full Product Page"',
+      /qaProductHref\(modalItem\)/.test(qa),
+      'a second URL shape is a second thing that can drift from the first');
   }
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

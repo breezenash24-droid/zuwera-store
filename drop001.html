@@ -227,7 +227,7 @@ document.documentElement.classList.add('zw-collflash');
   <link rel="manifest" href="/site.webmanifest">
   <link rel="canonical" href="https://zuwera.store/drop001.html">
   <script src="preview-mode.js?v=799782ba" defer></script>
-  <script src="/zw-data.js?v=f3253604" defer></script>
+  <script src="/zw-data.js?v=b1d82c08" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=a6453cd7" defer></script>
 <script src="pdp-gallery.js?v=2192736c" defer></script>
@@ -2973,7 +2973,7 @@ function updateCountdown() {
              nothing about stock" in every reader below, and inventing a
              quantity would put a real figure in front of the low-stock badge
              the moment somebody set a threshold above it. */
-          totalStock: (window.ZWGiftCard && window.ZWGiftCard.is(product))
+          totalStock: Number(product.gift_card_cents) > 0
             ? null
             : (stockByProductId[product.id] ?? null)
         }));
@@ -4392,7 +4392,7 @@ function updateCountdown() {
      overrides; without it this page would only ever show the defaults. -->
 <!-- Sizes go in size order, not in the order the rows were written. -->
 <script src="size-order.js?v=a41d2b34"></script>
-<script src="customer-messages.js?v=cb115f08"></script>
+<script src="customer-messages.js?v=250f3c12"></script>
 <script src="stock-rules.js?v=26fa2888"></script>
 <script src="/nav-menu.js?v=5735cc2b" defer></script>
 <script src="/zw-copy.js?v=5b4f7680" defer></script>

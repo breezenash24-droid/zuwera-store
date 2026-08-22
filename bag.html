@@ -247,7 +247,7 @@ html.zw-authed #account-btn{display:inline-flex!important}
   <link rel="stylesheet" href="cart.css?v=a4e16320">
   <link rel="stylesheet" href="storefront-cohesion.css?v=48bc109f">
 <script src="preview-mode.js?v=799782ba" defer></script>
-<script src="/zw-data.js?v=f3253604" defer></script>
+<script src="/zw-data.js?v=b1d82c08" defer></script>
 <script src="header-scroll.js?v=0a0efce9" defer></script>
   <link rel="stylesheet" href="quick-add-modal.css?v=dc3088fe">
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
@@ -904,7 +904,7 @@ body.super-light-mode .zw-fav-size-picker{background: var(--ink) !important;bord
      "how many are there?" the same way the payment path does — the bag used to
      answer it from a stockQty snapshot taken when the item was added and never
      refreshed, which is why a bag could hold 3 of something with 1 in stock. -->
-<script src="customer-messages.js?v=cb115f08"></script>
+<script src="customer-messages.js?v=250f3c12"></script>
 <script src="stock-rules.js?v=26fa2888"></script>
 <!-- Before the summary code that calls it. Classic script, so it defines
      window.ZWWholesaleMinimum synchronously and the first recalculation can
@@ -1255,7 +1255,14 @@ function renderCart() {
       <div class="cart-item-details">
         <div>
           <div class="cart-item-title">${esc(item.title)}</div>
-          <div class="cart-item-meta">${bagColorSwatch(item)}${esc(item.colorName)} / ${esc(item.size)}</div>
+          <div class="cart-item-meta">${bagColorSwatch(item)}${[esc(item.colorName), esc(item.size)].filter(Boolean).join(' / ')}</div>${(() => {
+            /* A gift card has no size, so this line read "Standard / " with
+               nothing after the slash — and said nothing at all about the one
+               thing that makes a gift card line different from every other
+               line, which is that it is going to somebody else. */
+            const to = window.ZWGiftCard ? window.ZWGiftCard.recipientLine(item) : '';
+            return to ? `<div class="cart-item-meta">${esc(to)}</div>` : '';
+          })()}
         </div>
         <div class="cart-item-qty-pill">
           <button class="cart-qty-btn" onclick="updateCartQuantity(${idx},-1)" aria-label="Decrease quantity">−</button>
@@ -1687,7 +1694,7 @@ window.__zwOpenAuth = function(tab) {
 
 <script src="image-utils.js?v=a6e18aa4"></script>
 <script src="pdp-gallery.js?v=2192736c" defer></script>
-<script src="quick-add-modal.js?v=7f4cdd70" defer></script>
+<script src="quick-add-modal.js?v=5194e46b" defer></script>
 <script src="auth.js?v=fac9d15e" defer></script>
 <script>
 /* ── Saved items visibility + member pricing: flip as soon as auth state is known ── */

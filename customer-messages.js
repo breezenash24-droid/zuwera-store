@@ -486,7 +486,13 @@
     { title: 'Back-in-stock signup', keys: ['restockHint', 'restockInvite', 'restockPrompt', 'restockSuccess', 'restockAlready', 'restockInvalid', 'restockFailed'] },
     { title: 'Signing in', keys: ['authBadCredentials', 'authEmailInUse', 'authMissingFields', 'authNeedEmail', 'authPasswordShort', 'authNoConnection', 'authFailed'] },
     { title: 'Refused at checkout', keys: ['checkoutNotEnough', 'checkoutUnavailable', 'checkoutPriceChanged', 'checkoutNoPrice', 'checkoutRateExpired', 'checkoutRateInvalid'] },
-    { title: 'Gift cards & store credit', keys: ['giftCardPending', 'giftCardPartial', 'giftCardAll', 'giftCardNotFound', 'giftCardSpent', 'giftCardExpired', 'giftCardVoid', 'giftCardOffline', 'giftCardEmpty', 'giftCardNoWallet'] },
+    /* BUYING one and SPENDING one are two different screens and two different
+       people — the shopper filling in a friend's address, and whoever is
+       standing at a checkout with a code. Both were landing in one list, and
+       the buying half was landing in "Other", which is where a message goes to
+       be editable and never found. */
+    { title: 'Buying a gift card', keys: ['giftCardDelivery', 'giftCardSendTo', 'giftCardMessageHint', 'giftCardNeedName', 'giftCardNeedEmail', 'giftCardBadEmail', 'giftCardAmountTooSmall'] },
+    { title: 'Spending a gift card or store credit', keys: ['giftCardPending', 'giftCardPartial', 'giftCardAll', 'giftCardNotFound', 'giftCardSpent', 'giftCardExpired', 'giftCardVoid', 'giftCardLocked', 'giftCardOffline', 'giftCardEmpty', 'giftCardNoWallet'] },
     { title: 'Promo codes', keys: ['promoApplied', 'promoEmpty', 'promoInvalid', 'promoFailed'] },
     { title: 'Starting a return', keys: ['returnAlreadyRefunded', 'returnCancelled', 'returnAlreadyOpen', 'returnItemsSpent', 'returnItemsInvalid', 'returnNoItems', 'returnWindowClosed'] },
     { title: 'When a card is declined', keys: ['declineFunds', 'declineCvc', 'declineNumber', 'declineExpired', 'declinePostcode', 'declineCallBank', 'declineNoReason', 'declineRetry', 'declined'] },
