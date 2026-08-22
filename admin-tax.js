@@ -1653,13 +1653,31 @@
                     }
                     window.taxEngineHealth = taxEngineHealth;
 
+                    /* ── A WARNING NOBODY CAN READ IS NOT A WARNING ───────────────
+                       This was built as an eight-digit hex — `background:#ef444414`
+                       — for an 8% wash. Reported as rendering close to solid, with
+                       the body text nearly illegible against it. I could not
+                       reproduce which rule wins, and guessing at a cascade is how
+                       an afternoon disappears, so the shape is made unambiguous
+                       instead:
+
+                         · rgba() rather than #RRGGBBAA, which some pipelines
+                           rewrite and some parsers treat as a colour they do not
+                           know — either way the fallback is the bare hue at full
+                           strength, which is exactly the symptom;
+                         · an explicit `color` on the wrapper, so nothing inherits
+                           the alarm colour into the body text;
+                         · the body in --text-primary, not --text-secondary. This
+                           is the most important sentence on the page when it
+                           appears, and it was set in the palette's quietest ink. */
                     function healthBanner(colour, mark, title, body) {
-                      return '<div style="display:flex;gap:10px;padding:12px 14px;border:1px solid ' + colour +
-                        '55;background:' + colour + '14;border-radius:8px;max-width:640px;">' +
-                        '<span style="color:' + colour + ';font-weight:700;line-height:1.5;">' + mark + '</span>' +
-                        '<div style="font-size:12px;line-height:1.6;">' +
+                      const rgb = [1, 3, 5].map((i) => parseInt(colour.slice(i, i + 2), 16)).join(',');
+                      return '<div style="display:flex;gap:10px;padding:12px 14px;border:1px solid rgba(' + rgb +
+                        ',.34);background:rgba(' + rgb + ',.08);color:var(--text-primary);border-radius:8px;max-width:640px;">' +
+                        '<span style="color:' + colour + ';font-weight:700;line-height:1.5;flex:0 0 auto;">' + mark + '</span>' +
+                        '<div style="font-size:12px;line-height:1.6;color:var(--text-primary);">' +
                         '<div style="color:' + colour + ';font-weight:600;margin-bottom:2px;">' + title + '</div>' +
-                        '<div style="color:var(--text-secondary);">' + body + '</div></div></div>';
+                        '<div style="color:var(--text-primary);">' + body + '</div></div></div>';
                     }
 
                     /* ─── Which engine, chosen deliberately ─────────────────────
