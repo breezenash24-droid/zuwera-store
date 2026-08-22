@@ -379,6 +379,28 @@ try {
     .gc-copy { font-family: var(--fm, inherit); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase; opacity: .55; }
     .gc-meta { font-size: .74rem; opacity: .5; margin-top: 8px; }
     .gc-hint { font-size: .78rem; opacity: .6; margin-top: 16px; max-width: 420px; line-height: 1.6; }
+    /* Check a code / keep a code. Sits above an empty wallet and below a full
+       one, so it reads as the next thing to do in both. */
+    .gc-add { border: 1px solid var(--c14); border-radius: 12px; padding: 18px 20px; max-width: 420px; margin-top: 22px; }
+    .gc-add:first-child { margin-top: 0; margin-bottom: 20px; }
+    .gc-add-label { display: block; font-size: .68rem; letter-spacing: .18em; text-transform: uppercase; opacity: .55; margin-bottom: 10px; }
+    .gc-add-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .gc-add-input { flex: 1 1 200px; min-width: 0; background: transparent; color: inherit; border: 1px solid var(--c14);
+                    border-radius: 8px; padding: 10px 12px; font: inherit; font-size: .9rem; letter-spacing: .06em; }
+    .gc-add-input:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+    .gc-add-btn { border: 1px solid var(--c14); border-radius: 8px; padding: 10px 16px; background: transparent;
+                  color: inherit; font: inherit; font-size: .82rem; cursor: pointer; white-space: nowrap; }
+    .gc-add-btn:hover:not([disabled]) { border-color: currentColor; }
+    .gc-add-btn[disabled] { opacity: .5; cursor: default; }
+    /* Same two tokens .zw-btn.primary already uses, so this inverts correctly in
+       both themes instead of guessing at a colour that only works in one. */
+    .gc-add-btn-primary { background: var(--paper); color: var(--ink); border-color: var(--paper); font-weight: 600; }
+    .gc-add-btn-primary:hover:not([disabled]) { filter: brightness(.94); }
+    .gc-add-msg { font-size: .82rem; line-height: 1.6; margin: 10px 0 0; min-height: 1.2em; }
+    .gc-add-msg[data-tone="good"] { color: var(--ok); }
+    .gc-add-msg[data-tone="bad"] { color: var(--err); }
+    .gc-add-save { margin-top: 12px; }
+    .gc-add-note { font-size: .76rem; opacity: .6; line-height: 1.6; margin: 10px 0 0; }
     .rw-card { border: 1px solid var(--c14); border-radius: 12px; padding: 26px 22px; text-align: center; max-width: 420px; }
     body.light-mode .rw-card { border-color: var(--c14); }
     .rw-balance { font-family: var(--fw); font-size: 3.2rem; font-weight: 800; line-height: 1; }
@@ -1407,12 +1429,19 @@ async function fetchGiftCards() {
     body: JSON.stringify({ accessToken: token })
   }).then(r => r.json()).catch(() => null);
 }
-/* Revealed only when there is something in it. The endpoint already drops
-   spent and expired cards, so "cards.length" means "money you can spend". */
+/* Shown whenever the store runs gift cards, not only when this account already
+   holds one.
+ *
+ * It used to require cards.length, which was right while the panel could only
+ * list what you had: an empty tab said nothing. It became wrong the moment the
+ * panel could also CHECK a code and SAVE one — because the person who most
+ * needs those two things is exactly the person with no cards on the account and
+ * a code sitting in their inbox, and they were the one person who could not
+ * find the panel. The feature and its entrance were gated on each other. */
 async function initGiftCardsTab() {
   const r = await fetchGiftCards();
   _giftCards = r;
-  if (r && r.ok && r.enabled && r.cards && r.cards.length) {
+  if (r && r.ok && r.enabled) {
     const t = document.getElementById('acct-tab-giftcards');
     if (t) t.style.display = '';
   }
@@ -1426,6 +1455,93 @@ function gcExpiryLine(card) {
   if (isNaN(when.getTime())) return '';
   return 'Expires ' + when.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) + '.';
 }
+/* Check a code, then optionally keep it.
+ *
+ * Two steps rather than one button that does both, because they answer
+ * different questions and only one of them writes anything. "What is this
+ * worth?" is asked by people who have no intention of saving it — a card they
+ * are about to spend, a card they are about to pass on — and making them attach
+ * it to their account to find out would be a bad trade offered as a courtesy.
+ *
+ * The check goes to /api/stored-value, the same endpoint the checkout box uses,
+ * so a card reads the same here as it does at the till. Both share one rate
+ * limit bucket: they answer the same yes-or-no question about a secret, and
+ * separate budgets would just be twice as many guesses. */
+function bindGiftCardAdd() {
+  const form = document.getElementById('gc-add-form');
+  if (!form || form._bound) return;
+  form._bound = true;
+
+  const input = document.getElementById('gc-add-code');
+  const msg   = document.getElementById('gc-add-msg');
+  const save  = document.getElementById('gc-add-save');
+  const check = document.getElementById('gc-add-check');
+  const claim = document.getElementById('gc-add-claim');
+
+  const show = (text, tone) => {
+    if (!msg) return;
+    msg.textContent = text || '';
+    msg.dataset.tone = tone || '';
+  };
+  const hideSave = () => { if (save) save.hidden = true; };
+
+  /* A new code invalidates the previous answer. Leaving the old balance and a
+     Save button under a field somebody has just retyped is how you save the
+     wrong card. */
+  if (input) input.addEventListener('input', () => { show(''); hideSave(); });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const code = (input && input.value || '').trim();
+    if (!code) { show('Enter the code from your gift card.', 'bad'); return; }
+    hideSave();
+    show('Checking…');
+    if (check) check.disabled = true;
+    try {
+      const r = await fetch('/api/stored-value', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      }).then(res => res.json());
+      if (!r || !r.ok) { show((r && r.error) || 'We could not check that code.', 'bad'); return; }
+      show('$' + r.balance + ' on this card.', 'good');
+      if (save) save.hidden = false;
+    } catch (_) {
+      show('We could not check that just now. Please try again in a moment.', 'bad');
+    } finally {
+      if (check) check.disabled = false;
+    }
+  });
+
+  if (claim) claim.addEventListener('click', async () => {
+    const code = (input && input.value || '').trim();
+    if (!code) return;
+    claim.disabled = true;
+    show('Saving…');
+    try {
+      const { data } = await _sb.auth.getSession();
+      const token = data && data.session && data.session.access_token;
+      const r = await fetch('/api/claim-stored-value', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, accessToken: token }),
+      }).then(res => res.json());
+      if (!r || !r.ok) { show((r && r.error) || 'We could not save that card.', 'bad'); return; }
+      show(r.already ? 'That card is already on your account.' : 'Saved. It will be here whenever you need it.', 'good');
+      hideSave();
+      if (input) input.value = '';
+      /* Re-read rather than splice the new card into the list by hand: the
+         totals, the ordering and the spent-card filtering all live in the
+         endpoint, and a second copy of those rules here would be a second copy
+         to get wrong. */
+      _giftCards = null;
+      await loadGiftCards();
+    } catch (_) {
+      show('We could not save that just now. Please try again in a moment.', 'bad');
+    } finally {
+      claim.disabled = false;
+    }
+  });
+}
+
 async function loadGiftCards() {
   const loading = document.getElementById('gc-loading');
   const host = document.getElementById('gc-content');
@@ -1441,8 +1557,29 @@ async function loadGiftCards() {
     return;
   }
   const cards = Array.isArray(r.cards) ? r.cards : [];
+
+  /* Check a code, and keep it. Rendered in both states — with cards and
+     without — because "what is this worth?" and "stop making me find the
+     email" are questions somebody has whether or not they already hold one. */
+  const lookupBox = `
+    <form class="gc-add" id="gc-add-form" autocomplete="off">
+      <label class="gc-add-label" for="gc-add-code">Check a gift card</label>
+      <div class="gc-add-row">
+        <input id="gc-add-code" class="gc-add-input" type="text" inputmode="latin"
+               placeholder="ZW-XXXX-XXXX-XXXX-XXXX" aria-describedby="gc-add-msg" spellcheck="false">
+        <button type="submit" class="gc-add-btn" id="gc-add-check">Check balance</button>
+      </div>
+      <p class="gc-add-msg" id="gc-add-msg" role="status" aria-live="polite"></p>
+      <div class="gc-add-save" id="gc-add-save" hidden>
+        <button type="button" class="gc-add-btn gc-add-btn-primary" id="gc-add-claim">Save it to my account</button>
+        <p class="gc-add-note">Saving it means you can find it here whenever you like instead of hunting for the email. The code still works at checkout exactly as it does now — anyone who has it can still spend it, so keep it to yourself.</p>
+      </div>
+    </form>`;
+
   if (!cards.length) {
-    host.innerHTML = '<p class="acct-empty">Nothing here yet. Gift cards and store credit show up on this page as soon as they are issued to your account.</p>';
+    host.innerHTML = lookupBox
+      + '<p class="acct-empty">No cards on your account yet. Gift cards and store credit appear here as soon as they are issued to you — or add one above.</p>';
+    bindGiftCardAdd();
     return;
   }
 
@@ -1464,7 +1601,9 @@ async function loadGiftCards() {
           <p class="gc-meta">${escHtml(gcExpiryLine(c))}</p>
         </div>`).join('')}
     </div>
-    <p class="gc-hint">Enter one of these at checkout. A card larger than the order keeps whatever is left over for next time.</p>`;
+    <p class="gc-hint">Enter one of these at checkout. A card larger than the order keeps whatever is left over for next time.</p>
+    ${lookupBox}`;
+  bindGiftCardAdd();
 
   host.querySelectorAll('.gc-code').forEach(btn => {
     btn.addEventListener('click', async () => {

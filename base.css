@@ -92,6 +92,10 @@
   --zw-density: 1;
 
   --err: #ef4444;
+  /* --err's counterpart. Every "that worked" green in this codebase has been a
+     literal, which is why there are so many slightly different ones — and why a
+     theme could recolour a failure but not a success. */
+  --ok: #4caf6d;
 }
 
 /* ── Alpha ladder ─────────────────────────────────────────────────────────
