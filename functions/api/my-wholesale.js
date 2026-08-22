@@ -36,7 +36,7 @@
  * somebody else's judgement. Both are refused, and both say so.
  */
 
-import { cors, json, verifyUser } from './_commerce.js';
+import { cors, json, verifyUser, getSetting } from './_commerce.js';
 import { isWholesaleBuyer, wholesaleMinimumCents } from './_price-resolution.js';
 
 function H(env) {
@@ -67,14 +67,29 @@ export async function onRequestGet({ request, env }) {
     /* Not an error. A signed-out shopper asking about trade terms has none,
        and answering 401 would make every bag page log a failure for the normal
        case. */
-    if (!user?.id) return json({ ok: true, signedIn: false, status: '', minOrderCents: 0 }, 200, cors(env));
+    if (!user?.id) return json({ ok: true, signedIn: false, status: '', minOrderCents: 0, acceptingApplications: false }, 200, cors(env));
 
     const profile = await ownProfile(env, user.id);
     const w = (profile && profile.wholesale && typeof profile.wholesale === 'object') ? profile.wholesale : {};
 
+    /* ── IS THE STORE ASKING FOR TRADE APPLICATIONS? ──────────────────────────
+       The account page showed a "Wholesale" tab to every signed-in retail
+       customer, inviting them to apply for something the store may not offer.
+       That is a lead-generation form published by default, which is not a
+       decision anybody made.
+
+       Default FALSE, like every other switch here: a store that has not decided
+       has not opted in. An existing trade account is unaffected — the page
+       always shows the tab to somebody who already has one, because that is
+       their account and hiding it would strand them. */
+    const commerce = await getSetting(env, 'commerce_config', {}).catch(() => ({}));
+    const acceptingApplications = !!(commerce && commerce.wholesale
+      && commerce.wholesale.acceptApplications === true);
+
     return json({
       ok: true,
       signedIn: true,
+      acceptingApplications,
       status: String(w.status || ''),
       /* Read through the same helper the till uses, so the figure the bag
          promises and the figure checkout enforces cannot come apart. It

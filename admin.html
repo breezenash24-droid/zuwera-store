@@ -1100,6 +1100,28 @@
                             </p>
                         </div>
                     </div>
+                    <!-- ── Do you want applications at all? ──────────────────
+                         The account page used to show a "Wholesale" tab to every
+                         signed-in retail customer, inviting them to apply for a
+                         trade account whether or not this store offers one. That
+                         is a lead-generation form published by default, which is
+                         not a decision anybody made. It is a decision now, and it
+                         is off until it is made. -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:18px 20px;margin-bottom:22px;max-width:720px;">
+                        <label for="whAcceptApps" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin:0;">
+                            <input type="checkbox" id="whAcceptApps" style="margin-top:3px;accent-color:var(--accent);cursor:pointer;">
+                            <span>
+                                <strong style="display:block;font-size:.95rem;color:var(--text-primary);">Take trade applications from the website</strong>
+                                <span style="display:block;color:var(--text-secondary);font-size:.83rem;line-height:1.6;margin-top:4px;">
+                                    Adds a <strong>Wholesale</strong> tab to every signed-in customer's account page with a short
+                                    application form. Leave it off and buyers reach you however they do now — anyone who
+                                    already has a trade account still sees theirs either way.
+                                </span>
+                            </span>
+                        </label>
+                        <button type="button" class="btn btn-primary btn-sm" id="whAcceptAppsSave" style="margin-top:14px;">Save</button>
+                        <span id="whAcceptAppsMsg" style="margin-left:10px;font-size:.82rem;color:var(--text-secondary);"></span>
+                    </div>
                     <div id="wholesale-body"></div>
                     <script src="admin-wholesale.js?v=3e7012dc"></script>
                 </div>

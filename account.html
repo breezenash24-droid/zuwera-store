@@ -381,24 +381,26 @@ try {
     .gc-hint { font-size: .78rem; opacity: .6; margin-top: 16px; max-width: 420px; line-height: 1.6; }
     /* Check a code / keep a code. Sits above an empty wallet and below a full
        one, so it reads as the next thing to do in both. */
-    .gc-add { border: 1px solid var(--c14); border-radius: 12px; padding: 18px 20px; max-width: 420px; margin-top: 22px; }
-    .gc-add:first-child { margin-top: 0; margin-bottom: 20px; }
-    .gc-add-label { display: block; font-size: .68rem; letter-spacing: .18em; text-transform: uppercase; opacity: .55; margin-bottom: 10px; }
-    .gc-add-row { display: flex; gap: 8px; flex-wrap: wrap; }
-    .gc-add-input { flex: 1 1 200px; min-width: 0; background: transparent; color: inherit; border: 1px solid var(--c14);
-                    border-radius: 8px; padding: 10px 12px; font: inherit; font-size: .9rem; letter-spacing: .06em; }
-    .gc-add-input:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
-    .gc-add-btn { border: 1px solid var(--c14); border-radius: 8px; padding: 10px 16px; background: transparent;
-                  color: inherit; font: inherit; font-size: .82rem; cursor: pointer; white-space: nowrap; }
-    .gc-add-btn:hover:not([disabled]) { border-color: currentColor; }
-    .gc-add-btn[disabled] { opacity: .5; cursor: default; }
-    /* Same two tokens .zw-btn.primary already uses, so this inverts correctly in
-       both themes instead of guessing at a colour that only works in one. */
-    .gc-add-btn-primary { background: var(--paper); color: var(--ink); border-color: var(--paper); font-weight: 600; }
-    .gc-add-btn-primary:hover:not([disabled]) { filter: brightness(.94); }
+    /* ── In the page's own language, not a dialect of its own ──────────────
+       The first version of this box arrived with 12px corners, a rounded input
+       with a focus ring, and a sentence-case "Check balance" button, sitting on
+       a page whose every other control is square, uppercase and letterspaced.
+       It read as something pasted in from a different site — which it was.
+
+       Square, because --zw-radius on this storefront is 0 and the buttons,
+       cards and inputs around it all follow that. The controls are .zw-input
+       and .zw-btn now rather than lookalikes: one fewer vocabulary to keep in
+       step, and a theme change reaches them for free. */
+    .gc-add { border: 1px solid var(--c14); padding: 20px; max-width: 420px; margin-top: 22px; }
+    .gc-add:first-child { margin-top: 0; margin-bottom: 24px; }
+    .gc-add-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; }
+    .gc-add-row .zw-input { flex: 1 1 200px; max-width: none; letter-spacing: .1em; }
+    .gc-add-row .zw-btn { flex: 0 0 auto; }
     .gc-add-msg { font-size: .82rem; line-height: 1.6; margin: 10px 0 0; min-height: 1.2em; }
-    .gc-add-msg[data-tone="good"] { color: var(--ok); }
-    .gc-add-msg[data-tone="bad"] { color: var(--err); }
+    /* base.css is not loaded on this page, so the tokens need a fallback or
+       they resolve to nothing and the tone is lost. */
+    .gc-add-msg[data-tone="good"] { color: var(--ok, #4caf6d); }
+    .gc-add-msg[data-tone="bad"] { color: var(--err, #ef4444); }
     .gc-add-save { margin-top: 12px; }
     .gc-add-note { font-size: .76rem; opacity: .6; line-height: 1.6; margin: 10px 0 0; }
     .rw-card { border: 1px solid var(--c14); border-radius: 12px; padding: 26px 22px; text-align: center; max-width: 420px; }
@@ -494,6 +496,31 @@ try {
     .zw-check-row input { width: auto; accent-color: var(--paper); }
     body.light-mode .zw-check-row input { accent-color: rgb(var(--fg-rgb)); }
     .zw-actions { display: flex; align-items: center; gap: .75rem; margin-top: .75rem; flex-wrap: wrap; }
+    /* ── .zw-label and .zw-input were used and never defined ────────────────
+       wholesale-apply.js builds the trade application out of `.zw-label` and
+       `.zw-input`, and neither class exists in any stylesheet this page loads.
+       So the form rendered as raw HTML: inline labels butted against inline
+       inputs, the textarea floating beside its own caption, everything on one
+       run-on line. It was not styled badly — it was not styled at all.
+
+       Defined here in the page's own language rather than invented: same border
+       token, same focus treatment and the same square corners as everything
+       else on this page. */
+    .zw-label {
+      display: block; margin-bottom: .4rem;
+      font-family: var(--fm); font-size: .6rem; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--c65);
+    }
+    .zw-input {
+      display: block; width: 100%; max-width: 420px;
+      padding: .8rem .9rem; background: transparent; color: inherit;
+      border: 1px solid var(--c20); font: inherit; font-size: .92rem;
+      transition: border-color .2s;
+    }
+    textarea.zw-input { min-height: 5.5rem; resize: vertical; }
+    .zw-input::placeholder { color: var(--c40); }
+    .zw-input:focus-visible { outline: none; border-color: currentColor; }
+
     .zw-btn {
       border: 1px solid rgb(var(--fg-rgb) / 18%); background: transparent; color: var(--c65);
       padding: .75rem 1.4rem; font-family: var(--fm); font-size: .6rem; letter-spacing: .12em;
@@ -1563,15 +1590,15 @@ async function loadGiftCards() {
      email" are questions somebody has whether or not they already hold one. */
   const lookupBox = `
     <form class="gc-add" id="gc-add-form" autocomplete="off">
-      <label class="gc-add-label" for="gc-add-code">Check a gift card</label>
+      <label class="zw-label" for="gc-add-code">Check a gift card</label>
       <div class="gc-add-row">
-        <input id="gc-add-code" class="gc-add-input" type="text" inputmode="latin"
+        <input id="gc-add-code" class="zw-input" type="text" inputmode="latin"
                placeholder="ZW-XXXX-XXXX-XXXX-XXXX" aria-describedby="gc-add-msg" spellcheck="false">
-        <button type="submit" class="gc-add-btn" id="gc-add-check">Check balance</button>
+        <button type="submit" class="zw-btn" id="gc-add-check">Check balance</button>
       </div>
       <p class="gc-add-msg" id="gc-add-msg" role="status" aria-live="polite"></p>
       <div class="gc-add-save" id="gc-add-save" hidden>
-        <button type="button" class="gc-add-btn gc-add-btn-primary" id="gc-add-claim">Save it to my account</button>
+        <button type="button" class="zw-btn primary" id="gc-add-claim">Save it to my account</button>
         <p class="gc-add-note">Saving it means you can find it here whenever you like instead of hunting for the email. The code still works at checkout exactly as it does now — anyone who has it can still spend it, so keep it to yourself.</p>
       </div>
     </form>`;

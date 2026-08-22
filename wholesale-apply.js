@@ -128,9 +128,30 @@
     else if (status === 'suspended') host.innerHTML = suspendedView();
     else host.innerHTML = formView();
 
+    /* ── WHO SEES THIS TAB ────────────────────────────────────────────────
+       Everyone signed in, until now — every retail customer got a "Wholesale"
+       tab inviting them to open a trade account, whether or not the store
+       wanted trade applications at all. It looked like a bug because from the
+       shop owner's side it is one: a lead-generation form nobody asked to
+       publish, sitting between Gift Cards and Profile.
+
+       Now: a customer who ALREADY has a trade account always sees it — that is
+       their account and hiding it would strand them — and everybody else sees
+       the application form only when the store is accepting applications.
+
+       Default OFF, matching every other feature switch here. A store that has
+       not decided has not opted in. */
     if (tab) {
-      tab.style.display = '';
+      var known = status === 'approved' || status === 'applied' || status === 'suspended';
+      var show = known || s.acceptingApplications === true;
+      tab.style.display = show ? '' : 'none';
       tab.textContent = status === 'approved' ? 'Trade Account' : 'Wholesale';
+      /* A hidden tab must not stay selected, or the panel is the only thing on
+         screen with no way back to it. */
+      if (!show && tab.classList.contains('active')) {
+        var orders = document.querySelector('.acct-tab[data-tab="orders"]');
+        if (orders) orders.click();
+      }
     }
 
     var btn = $('wa-submit');

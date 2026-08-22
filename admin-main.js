@@ -1127,6 +1127,7 @@
                 if (!firstAllowed || firstAllowed.id === page) return;
                 page = firstAllowed.id;
             }
+            if (page === 'wholesale') setTimeout(loadWholesaleApplyToggle, 100);
             if (page === 'website') {
                 setTimeout(loadWebsiteSettings, 100); setTimeout(loadFonts, 120); setTimeout(loadEmailSettings, 140);
                 /* Last, and only here: an iframe of the whole storefront on every
@@ -2835,6 +2836,61 @@
         /* Read-modify-write on the commerce_config blob, like every other
            setting stored in it. Narrow on purpose — it touches one boolean and
            carries everything else through untouched. */
+        /* ── Whether the storefront asks for trade applications ───────────────
+           Read-modify-write on the commerce_config blob, narrow on purpose: it
+           touches one boolean and carries everything else through untouched,
+           the same shape paypalToggleOffer() below uses.
+
+           Default false. The account page showed a Wholesale tab to every
+           signed-in retail customer, which is a lead-generation form published
+           by nobody's decision. */
+        async function loadWholesaleApplyToggle() {
+            const box = document.getElementById('whAcceptApps');
+            if (!box) return;
+            try {
+                const { data: rows } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
+                const cfg = (rows && rows[0] && rows[0].value) || {};
+                box.checked = !!(cfg.wholesale && cfg.wholesale.acceptApplications === true);
+            } catch (_) { /* leave it unticked — the safe reading of unknown */ }
+
+            const btn = document.getElementById('whAcceptAppsSave');
+            if (btn && !btn._bound) {
+                btn._bound = true;
+                btn.addEventListener('click', saveWholesaleApplyToggle);
+            }
+        }
+
+        async function saveWholesaleApplyToggle() {
+            const box = document.getElementById('whAcceptApps');
+            const msg = document.getElementById('whAcceptAppsMsg');
+            const btn = document.getElementById('whAcceptAppsSave');
+            if (!box) return;
+            const on = !!box.checked;
+            if (btn) btn.disabled = true;
+            if (msg) msg.textContent = 'Saving…';
+            try {
+                const { data: rows, error } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
+                if (error) throw error;
+                const cfg = (rows && rows[0] && rows[0].value) || {};
+                cfg.wholesale = { ...(cfg.wholesale || {}), acceptApplications: on };
+                const { error: sErr } = await sb.from('site_settings').upsert({ key: 'commerce_config', value: cfg }, { onConflict: 'key' });
+                if (sErr) throw sErr;
+                try { await logAdminAudit('settings.update', 'site_settings', 'commerce_config', { wholesale: { acceptApplications: on } }); } catch (_) {}
+                if (msg) msg.textContent = on
+                    ? 'Saved — customers can now apply from their account page.'
+                    : 'Saved — the Wholesale tab is hidden from customers who do not have an account.';
+                showToast('Saved.', 'success');
+            } catch (e) {
+                /* Put the switch back. A toggle that stays where it was clicked
+                   after a failed write is a lie about what the store is doing. */
+                box.checked = !on;
+                if (msg) msg.textContent = '';
+                showToast('Could not save that: ' + (e.message || 'unknown error'), 'error');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
         async function paypalToggleOffer(cb) {
             const on = !!cb.checked;
             cb.disabled = true;
