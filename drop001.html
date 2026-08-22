@@ -228,7 +228,7 @@ document.documentElement.classList.add('zw-collflash');
   <link rel="canonical" href="https://zuwera.store/drop001.html">
   <script src="preview-mode.js?v=799782ba" defer></script>
   <script src="/zw-data.js?v=b1d82c08" defer></script>
-  <script src="gift-card-buy.js?v=623c7f3e" defer></script>
+  <script src="gift-card-buy.js?v=7599b27c" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=a6453cd7" defer></script>
 <script src="pdp-gallery.js?v=2192736c" defer></script>
@@ -1007,29 +1007,35 @@ document.documentElement.classList.add('zw-collflash');
     }
     .collection-review-modal.closing .collection-review-box{animation:collectionModalOut .2s ease forwards}
     .collection-product-box{width:min(1080px,94vw);max-height:min(820px,92dvh);overflow:hidden}
-    /* ── A GIFT CARD ASKS FOR MORE THAN A COLOUR AND A SIZE ─────────────────
-       An amount row, four fields and a note. The panel is a fixed-height
-       dialog, so the extra content pushed it to its limit and the gallery
-       column stretched under a photograph that carries a max-height and cannot
-       stretch to meet it — leaving a band of empty tint above the picture.
-       Centring the media only moved the band from below it to above it.
+    /* ── THE OPTIONS SCROLL, THE PICTURE STAYS ─────────────────────────────
+       A gift card asks for an amount, four fields and a note where a garment
+       asks for a colour and a size, and this is a fixed-height dialog. Three
+       things were tried before the obvious one: stretching the media to fill
+       its column, centring it so the empty band sat above rather than below,
+       and opening the whole dialog wider. Every one of them was a rearrangement
+       of the same problem — one column with more to say than the one beside it.
 
-       So the media is allowed to FILL the column when a gift card is in the
-       panel: object-fit:contain still letterboxes the photograph rather than
-       cropping it, and there is no band left to move. The dialog also opens
-       wider, which is free on a desktop and irrelevant on a phone, where this
-       is already a full-width bottom sheet.
+       A pane that scrolls is the ordinary answer, and it needs no special case
+       for a gift card: a long description scrolls the same way.
 
-       Keyed on :has(.zwgc) — the class gift-card-buy.js puts on its mount —
-       rather than on a marker the module reaches out to set, because how wide
-       this dialog opens is this stylesheet's business. */
+       min-height:0 is the load-bearing half. A grid child will not scroll
+       without it, because its automatic minimum size is its own content.
+       The scrollbar itself is the one this site already uses for a pane that
+       scrolls beside something that does not — .plp-sidebar on this page, and
+       #mediaGrid in the builder: thin, a --border thumb on a transparent track,
+       6px in the browsers that need it spelled out. A second scrollbar style
+       would be a second thing to notice. */
     @media(min-width:901px){
-      .collection-product-box:has(.zwgc){width:min(1240px,96vw)}
-      .collection-product-box:has(.zwgc) .collection-product-layout{
-        grid-template-columns:minmax(340px,1fr) minmax(460px,1fr);
+      .collection-review-body{
+        overflow-y:auto; min-height:0; overscroll-behavior:contain;
+        scrollbar-width:thin; scrollbar-color:var(--border) transparent;
+        /* A hairline so the two panes read as two panes rather than as one that
+           has come loose. */
+        border-left:1px solid var(--c08);
       }
-      .collection-product-box:has(.zwgc) .collection-review-body{overflow-y:auto}
-      .collection-product-box:has(.zwgc) .collection-review-media{max-height:none}
+      .collection-review-body::-webkit-scrollbar{ width:6px; }
+      .collection-review-body::-webkit-scrollbar-thumb{ background:var(--border); border-radius:3px; }
+      .collection-review-body::-webkit-scrollbar-thumb:hover{ background:var(--muted); }
     }
     .collection-product-layout{
       display:grid;
@@ -1041,10 +1047,6 @@ document.documentElement.classList.add('zw-collflash');
       min-height:100%;
       display:flex;
       flex-direction:column;
-      /* Centred, so a right-hand column taller than the media band leaves even
-         space above and below rather than stranding the photograph at the top.
-         The media has a max-height and cannot stretch to meet it. */
-      justify-content:center;
       overflow:hidden;
       background:rgb(var(--fg-rgb) / 2.5%);
     }

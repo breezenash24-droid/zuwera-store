@@ -22,27 +22,46 @@
 .quick-add-review-modal.open{display:flex}
 .quick-add-review-box{width:min(520px,92vw);padding:0;overflow:hidden}
 .quick-add-product-box{width:min(920px,94vw);max-height:min(760px,92vh);overflow:auto}
-/* ── A GIFT CARD ASKS FOR MORE THAN A COLOUR AND A SIZE ──────────────────────
-   An amount row, four fields and a note, where a garment has a swatch strip and
-   a size grid. The extra height pushed this dialog to its limit and stretched
-   the gallery column under a photograph that cannot stretch with it, leaving a
-   band of empty ground above the picture — centring the media only moved the
-   band to the other side of it.
+/* ── THE OPTIONS SCROLL, THE PICTURE STAYS ───────────────────────────────────
+   A gift card asks for an amount, four fields and a note where a garment asks
+   for a colour and a size, and this is a fixed-height dialog. Stretching the
+   media to fill its column, centring it so the empty band sat above rather than
+   below, and opening the dialog wider were all rearrangements of one problem: a
+   column with more to say than the one beside it.
 
-   The media fills the column instead. aspect-ratio has to go with the
-   max-height: a ratio pins the box just as firmly as a height does, and
-   object-fit:contain still letterboxes rather than cropping. The dialog opens
-   wider too, which costs nothing on a desktop and nothing at all below 901px,
-   where this is a bottom sheet at full width already.
+   A pane that scrolls is the ordinary answer, and it wants no special case for
+   gift cards — a long description scrolls the same way. The box itself stops
+   scrolling as a whole, so the photograph no longer slides out of view while
+   the form beside it is being read.
 
-   Keyed on :has(.zwgc), the class gift-card-buy.js puts on its own mount. */
+   min-height:0 is the load-bearing half: a grid child will not scroll without
+   it, because its automatic minimum size is its own content.
+   The scrollbar itself is the one this site already uses for a pane that
+   scrolls beside something that does not — .plp-sidebar on this page, and
+   #mediaGrid in the builder: thin, a --border thumb on a transparent track,
+   6px in the browsers that need it spelled out. A second scrollbar style
+   would be a second thing to notice. */
 @media(min-width:901px){
-  .quick-add-product-box:has(.zwgc){width:min(1240px,96vw)}
-  .quick-add-product-box:has(.zwgc) .quick-add-product-layout{
-    grid-template-columns:minmax(340px,1fr) minmax(460px,1fr);
+  .quick-add-product-box{ overflow:hidden; }
+  .quick-add-product-box .quick-add-review-body{
+    overflow-y:auto; min-height:0; overscroll-behavior:contain;
+    scrollbar-width:thin; scrollbar-color:var(--border,var(--c20)) transparent;
+    /* A hairline so the two panes read as two panes rather than as one that has
+       come loose. */
+    border-left:1px solid var(--c08);
   }
-  .quick-add-product-box:has(.zwgc) .quick-add-review-body{overflow-y:auto}
-  .quick-add-product-box:has(.zwgc) .quick-add-review-media{aspect-ratio:auto;flex:1 1 auto;min-height:0}
+  .quick-add-product-box .quick-add-review-body::-webkit-scrollbar{ width:6px; }
+  .quick-add-product-box .quick-add-review-body::-webkit-scrollbar-thumb{
+    background:var(--border,var(--c20)); border-radius:3px;
+  }
+  .quick-add-product-box .quick-add-review-body::-webkit-scrollbar-thumb:hover{
+    /* --c50, not --c40: the rungs this panel re-keys from its own --paper are
+       08/10/12/20/50/55 (see the alpha-ladder note above), and a rung declared
+       only on body resolves against the PAGE's foreground and inherits the
+       finished colour — which is the bug that whole note exists to describe. */
+    background:var(--c50);
+  }
+}
 }
 @media (min-width:901px){
   /* Pin the close so it stays visible while the product box scrolls — it was
@@ -218,11 +237,6 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
   min-height:100%;
   display:flex;
   flex-direction:column;
-  /* Centred, so a right-hand column taller than the media band leaves even
-     space above and below rather than stranding the photograph at the top. The
-     media carries a max-height and cannot stretch to meet it — which is what a
-     gift card's amount row and four fields made visible. */
-  justify-content:center;
   overflow:hidden;
 }
 .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-media{
