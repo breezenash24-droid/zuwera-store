@@ -31,6 +31,13 @@ import {
 } from './_money-secret.js';
 import { record } from './_audit.js';
 import { issue, voidCode, lookup, normalizeCode, storedValueEnabled } from './_stored-value.js';
+/* Issuing now delivers the card as well as creating it — same builder, same
+   themed shell and same admin-editable copy the purchased ones use, so a card
+   given by hand and a card bought on the site arrive looking identical. */
+import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { getEmailAppearance, getEmailContent, fillTemplate } from './_email-theme.js';
+import { sendTransactional } from './_email.js';
+import { buildGiftCardDelivered } from './_gift-card-emails.js';
 
 export async function onRequestOptions({ env }) {
   return new Response(null, { status: 204, headers: cors(env) });
@@ -315,17 +322,81 @@ export async function onRequestPost({ request, env }) {
         expiresAt: body.expiresAt || null,
       });
 
+      /* ── AND SEND IT TO THEM ──────────────────────────────────────────────
+         Issuing used to end at a dialog saying "copy this now". The code had to
+         reach a person somehow, and the only mechanism was an admin pasting it
+         into an email they wrote themselves — which is slower, loses the
+         branding, and means the one artefact that IS the money exists only in
+         somebody's clipboard until they get round to it.
+
+         The note is separate from `reason` on purpose, and both fields say so
+         on their labels: reason is why the store did this and stays on the
+         record; the note is what the customer reads. Collapsing them would put
+         "Return #1042 — damaged in transit" in front of the customer, or lose
+         the reference from the audit row, depending which way it collapsed.
+
+         AFTER the audit write, and non-fatal. The card exists either way, and
+         an issue that succeeded must never report failure because a mail
+         provider was briefly down — the code is already spendable, and telling
+         an admin it failed invites them to issue a second one. What comes back
+         instead is whether it was sent, so the panel can say "emailed to jane@"
+         or "not emailed — send them the code yourself". */
+      let emailed = false;
+      let emailError = '';
+      const wantsEmail = body.sendEmail !== false && !!ownerEmail;
+      if (wantsEmail) {
+        try {
+          const cache = await fetchSiteSettings(
+            ['RESEND_API_KEY', 'SENDGRID_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL',
+             'fonts', 'brand', 'email_theme', 'email_settings'], env
+          );
+          const a = getEmailAppearance(cache, env);
+          const logo = resolveSetting('BRAND_LOGO_URL', env, cache);
+          if (logo) a.logo = logo;
+          const content = getEmailContent(cache, 'gift_card_delivered', env);
+          const sent = await sendTransactional({
+            env, cache, to: ownerEmail,
+            subject: fillTemplate(content.subject, { amount: '$' + (amountCents / 100).toFixed(2) }),
+            html: buildGiftCardDelivered({
+              appearance: a, content,
+              cards: [{ code: out.code, cents: amountCents }],
+              note: String(body.message || '').slice(0, 600),
+              shopUrl: env.SITE_URL || 'https://zuwera.store',
+            }),
+            fromEmail: resolveSetting('EMAIL_FROM', env, cache) || undefined,
+            fromName: a.brand,
+          });
+          emailed = !!(sent && sent.provider);
+          if (!emailed) emailError = 'no email provider is configured';
+        } catch (e) {
+          emailError = (e && e.message) || 'the email could not be sent';
+          console.error('gift card issue email —', emailError);
+        }
+      }
+
       /* Recorded with the amount and the kind, never the code. An audit log that
          carries live gift card codes is a list of spendable money sitting in a
-         table that more people can read than can issue. */
+         table that more people can read than can issue.
+
+         The note is recorded, because "what did we actually say to them" is a
+         question that gets asked after a complaint, and the code is the only
+         thing here that must not be. */
       await record(env, admin, {
         action: 'stored_value.issue',
         resource_type: 'stored_value',
         resource_id: out.id,
-        metadata: { kind, amountCents, ownerEmail, bound: !!ownerUserId, reason: body.reason || '' },
+        metadata: {
+          kind, amountCents, ownerEmail, bound: !!ownerUserId,
+          reason: body.reason || '',
+          emailed,
+          message: String(body.message || '').slice(0, 300),
+        },
       }, request);
 
-      return json({ ok: true, code: out.code, balance: (out.balanceCents / 100).toFixed(2) }, 200, headers);
+      return json({
+        ok: true, code: out.code, balance: (out.balanceCents / 100).toFixed(2),
+        emailed, emailTo: emailed ? ownerEmail : '', emailError,
+      }, 200, headers);
     }
 
     if (action === 'void') {

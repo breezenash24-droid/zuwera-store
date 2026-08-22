@@ -148,9 +148,30 @@ async function resolveOne(product) {
       /This card is worth more than it costs/.test(admin),
       'the till will refuse to mint it, but the customer would get less than the page promised');
 
-    ok('a gift card is not asked for a shipping weight',
-      /\.concat\(isGiftCard \? \['giftCardValue'\] : \['shippingWeightLb'\]\)/.test(admin),
-      'a code in an email has no weight, and a made-up one drags a parcel estimate into a cart with no parcel');
+    /* The two lists are now written out separately rather than composed with
+       .concat(), because a gift card is excused from more than the shipping
+       weight: gender, fabric and MSRP are equally meaningless on one, and a
+       required field somebody cannot sensibly fill is a Publish button that
+       appears to do nothing — validation blocks on a hidden field, on a tab
+       that is also hidden. */
+    const giftMandatory = /\? \['sku', 'title', 'currentPrice', 'productStatus', 'giftCardValue'\]/.exec(admin);
+    ok('a gift card is asked only for what it has',
+      !!giftMandatory,
+      'the required-field list for a gift card should name its own fields');
+    ok('…so no shipping weight, gender, fabric or MSRP is demanded',
+      !!giftMandatory && !/shippingWeightLb|gender|materialComposition|msrp/.test(giftMandatory[0]),
+      'a code in an email has no weight, no fabric and nothing to compare its price against');
+    ok('…and the values those columns still need are filled in anyway',
+      /function giftCardDefaults\(\)/.test(admin)
+      && /fill\('gender', 'Unisex'\);/.test(admin),
+      'the form stopped asking; a NOT NULL column did not stop requiring');
+
+    ok('a gift card hides the tabs it has nothing on',
+      /const GIFT_CARD_HIDES_TABS = \['colors', 'technical'\];/.test(admin),
+      'no colourways, no sizes, no stock, no fabric, no fit, nothing to measure');
+    ok('…and does not strand you on a tab it just hid',
+      /if \(activeWasHidden\) \{[\s\S]{0,220}?core\.click\(\)/.test(admin),
+      'hiding the tab you are standing on leaves the modal blank');
 
     /* The column is new. PostgREST rejects an entire row for one unknown field,
        so writing it unconditionally would break saving EVERY product on a store

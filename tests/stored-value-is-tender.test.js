@@ -185,10 +185,25 @@ console.log('\n  nobody but the till can touch the ledger');
     'issuing stored value is creating money — the instrument IS the value');
   ok('…and the amount is part of the question a rule can narrow on',
     /amountCents,\s*\n\s*resource: 'stored_value',/.test(ADMIN));
-  ok('the audit row never carries the code',
-    /metadata: \{ kind, amountCents, ownerEmail[^}]*\}/.test(ADMIN)
-    && !/metadata: \{[^}]*code/.test(ADMIN),
-    'an audit log full of live codes is spendable money in a table more people can read');
+  /* Read as the contents of every metadata object, rather than as one expected
+     line. The previous version matched `metadata: { kind, amountCents, ownerEmail`
+     literally and went red the moment that object grew a third line — which is
+     a test failing over formatting while the property it guards is still true.
+     A rule about what a log may CONTAIN should not care how it is typed. */
+  {
+    const metaBlocks = [...ADMIN.matchAll(/metadata:\s*\{([^{}]*)\}/g)].map((m) => m[1]);
+    ok('every audit row still records what was issued',
+      metaBlocks.length >= 2 && metaBlocks.some((b) => /kind/.test(b) && /amountCents/.test(b)),
+      'found ' + metaBlocks.length + ' metadata objects');
+    ok('…and none of them carries the code',
+      metaBlocks.every((b) => !/\bcode\b/.test(b)),
+      'an audit log full of live codes is spendable money in a table more people can read');
+  }
+  /* The note the customer reads IS recorded — "what did we actually say to
+     them" is the question asked after a complaint, and the code is the only
+     thing in this flow that must never be written down. */
+  ok('the message sent to the customer is on the record',
+    /message: String\(body\.message \|\| ''\)\.slice\(0, 300\)/.test(ADMIN));
   ok('a mistyped amount cannot issue $50,000',
     /amountCents > 500000/.test(ADMIN));
 }

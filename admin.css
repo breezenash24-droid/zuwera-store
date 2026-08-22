@@ -1184,12 +1184,33 @@
         .toggle-switch input:checked + .toggle-slider { background:var(--accent); }
         .toggle-switch input:checked + .toggle-slider:before { transform:translateX(20px); }
 
-        /* Color Variant */
+        /* ── Color Variant ────────────────────────────────────────────────────
+           FLEX-WRAP, NOT A FIXED GRID, AND THAT IS THE WHOLE POINT.
+
+           This was `grid-template-columns: 50px 1fr 1fr 1fr auto` — five tracks.
+           When per-colourway pricing (migration 0021) added Price, Member and
+           MSRP, the row went to eight children and nobody came back here. Grid
+           does not complain about that; it silently auto-places the overflow
+           into implicit rows, so the row rendered as:
+
+             row 1  [50px]swatch [1fr]name [1fr]hex [1fr]rgb [auto]PRICE
+             row 2  [50px]MEMBER [1fr]MSRP [1fr]DELETE
+
+           which is exactly what shipped: a Member field crushed into the 50px
+           swatch column with its placeholder truncated to "Membe", and a Delete
+           button stretched across a whole 1fr track because grid items default
+           to justify-self: stretch.
+
+           A fixed track count is a number that has to be kept in step with a
+           child count living in another file, by hand, forever. It was wrong
+           within one feature. So the coupling goes: flex-wrap has nothing to
+           count, reflows at any width without a media query, and cannot fall
+           out of step with markup it does not know about. */
         .color-variant-item {
-            display: grid;
-            grid-template-columns: 50px 1fr 1fr 1fr auto;
-            gap: 15px;
-            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
             padding: 16px;
             background-color: var(--bg-primary);
             border-radius: 6px;
@@ -1197,12 +1218,28 @@
         }
 
         .color-swatch {
+            flex: 0 0 50px;
             width: 50px;
             height: 50px;
             border-radius: 6px;
             border: 1px solid var(--border);
-            cursor: pointer;
+            /* No cursor:pointer. Nothing is bound to it — it is a preview of the
+               hex beside it, and an affordance that does nothing is a small lie. */
         }
+
+        /* A caption above each field. min-width:0 so a long value shrinks the
+           field instead of pushing the row wider than the modal. */
+        .cv-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .cv-field > span {
+            font-size: .66rem; letter-spacing: .09em; text-transform: uppercase;
+            color: var(--text-secondary); white-space: nowrap;
+        }
+        .cv-field > .form-input { width: 100%; }
+        .cv-text  { flex: 1 1 150px; }
+        .cv-money { flex: 0 0 96px; }
+        /* Pushed to the end of whichever line it lands on, at its own width —
+           never stretched to fill a column. */
+        .cv-del { flex: 0 0 auto; margin-left: auto; }
 
         /* Size Grid */
         .size-guide-panel {
@@ -1527,10 +1564,8 @@
             .form-grid {
                 grid-template-columns: 1fr;
             }
-
-            .color-variant-item {
-                grid-template-columns: 50px 1fr auto;
-            }
+            /* .color-variant-item needs no override here — it is flex-wrap now,
+               so it reflows at every width without a track count to maintain. */
         }
 
         /* ── Mobile bottom nav (hidden on desktop) ─────────────────── */
