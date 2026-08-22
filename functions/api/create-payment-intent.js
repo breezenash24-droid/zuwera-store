@@ -181,6 +181,10 @@ export async function onRequestPost({ request, env, waitUntil }) {
       meta.payment_provider = 'stored_value';
       meta.stored_value_cents = String(cap.capturedCents);
       meta.stored_value_code = storedValue.code;
+      /* Which instrument, so the receipt can say "Store credit" rather than
+         calling a refund somebody was given a gift card. Same word the shopper
+         saw at checkout. */
+      meta.stored_value_kind = storedValue.kind || '';
       svHoldRef = '';   // captured — nothing left to release
       const payment = { id: 'sv_' + orderNumber, amount: totalCents };
       try {
@@ -261,6 +265,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
             stored_value_ref: svHoldRef,
             stored_value_cents: String(heldCents),
             stored_value_code: storedValue.code,
+            stored_value_kind: storedValue.kind || '',
           } : {}),
         },
     };

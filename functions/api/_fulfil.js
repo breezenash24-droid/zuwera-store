@@ -1065,7 +1065,7 @@ export async function saveOrderToSupabase(pi, meta, tracking, env) {
 // Assembles the order-confirmation email on the shared shell from pre-built HTML
 // fragments (items/address/carrier). Exported so the admin email preview can
 // render it with sample data — a real order can't be placed just to preview it.
-export function buildOrderConfirmation({ appearance, content, orderId, toName, itemsHtml, subtotalCents, discountRow, shippingDisplay, taxCents, totalDollars, addressHtml, carrierHtml, userId, orderNumber, token, giftCardCodes = [] }) {
+export function buildOrderConfirmation({ appearance, content, orderId, toName, itemsHtml, subtotalCents, discountRow, shippingDisplay, taxCents, totalDollars, tenderRows = '', addressHtml, carrierHtml, userId, orderNumber, token, giftCardCodes = [] }) {
   const a = appearance;
   const emailC = content;
 
@@ -1137,6 +1137,7 @@ export function buildOrderConfirmation({ appearance, content, orderId, toName, i
             <td style="font-size:16px;font-weight:700;color:${a.text};">Total</td>
             <td style="font-size:16px;font-weight:700;text-align:right;color:${a.text};">$${totalDollars}</td>
           </tr>
+          ${tenderRows}
         </table>
 
         <!-- Shipping address + carrier -->
@@ -1220,13 +1221,42 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
 
   const orderId      = orderNoPlain({ order_number: meta.order_number, stripe_payment_intent_id: pi.id });
   const toName       = meta.customer_name || 'Customer';
-  const totalDollars = (pi.amount / 100).toFixed(2);
   const carrier      = [meta.shipping_provider, meta.shipping_service].filter(Boolean).join(' ') || 'Standard Shipping';
   const subtotalCents = parseInt(meta.subtotal_amount_cents  || '0', 10);
   const shippingCents = parseInt(meta.charged_shipping_cents || '0', 10);
   const taxCents      = parseInt(meta.tax_amount_cents       || '0', 10);
   const discountCode  = (meta.discount_code || '').toUpperCase();
   const discountCents = parseInt(meta.discount_amount_cents  || '0', 10);
+
+  /* ── THE ROW LABELLED "TOTAL" HAS TO BE THE TOTAL ──────────────────────────
+     It was `pi.amount`, which is what the CARD was charged. On an order that
+     used a gift card those are two different numbers, and the receipt printed
+     the smaller one under the larger word: a $234 subtotal, free shipping, no
+     tax, and then "Total $184.00" with nothing anywhere to account for the $50.
+     A customer reading that has been shown a $50 arithmetic error; anyone
+     reconciling it against the order row finds two values for one word.
+
+     Stored value is tender, not a discount — the rule the till already follows,
+     and the reason it is applied after tax rather than before. So the receipt
+     says the same thing the till does: the order is worth what it is worth, the
+     card paid part of it, and the balance went on the card.
+
+     The components add to the total by construction. `totalCents` in
+     _cart-pricing.js is discountedSubtotal + shipping + tax, which is exactly
+     the four numbers printed above the line, so the receipt now visibly adds
+     up — which is the whole point of showing them.
+
+     Ordinary orders are untouched: with no stored value this is pi.amount, the
+     same value printed before. The reconciliation guard means a metadata gap
+     cannot turn a correct receipt into a wrong one — it falls back rather than
+     printing a total assembled from pieces that do not agree. */
+  const svCents = parseInt(meta.stored_value_cents || '0', 10) || 0;
+  const svCode  = String(meta.stored_value_code || '');
+  const svKind  = String(meta.stored_value_kind || '');
+  const partsCents = subtotalCents - discountCents + shippingCents + taxCents;
+  const usedStoredValue = svCents > 0 && partsCents >= svCents;
+  const orderTotalCents = usedStoredValue ? partsCents : pi.amount;
+  const totalDollars = (orderTotalCents / 100).toFixed(2);
 
   // Fetch product images from Supabase by SKU/name (images are NOT stored in metadata
   // because long URLs exceed Stripe's 500-char per-value metadata limit)
@@ -1299,6 +1329,30 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
               <td style="padding:4px 0;font-size:14px;text-align:right;color:${discountColor};">−$${(discountCents / 100).toFixed(2)}</td>
             </tr>` : '';
 
+  /* ── THE TENDER LINES, BELOW THE TOTAL RATHER THAN INSIDE IT ───────────────
+     A discount changes what the order is worth. A gift card does not — it pays
+     for it. So these sit under the Total, not among the lines that build it,
+     and the last row is the money that actually moved.
+
+     Only the last four characters of the code. It is going to the person who
+     spent it, who has it already, so this is not secrecy — it is so somebody
+     holding three cards can tell which one this was. Receipts get forwarded,
+     and a full code in a forwarded receipt is a spendable code in somebody
+     else's inbox.
+
+     The mask is built from a whitelist rather than escaped: everything that
+     survives is A–Z or 0–9, so there is nothing left that could be markup. */
+  const maskSv = (c) => '••••' + String(c).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(-4);
+  const tenderRows = usedStoredValue ? `
+          <tr>
+            <td style="padding:4px 0;font-size:14px;color:${a.muted};">${svKind === 'store_credit' ? 'Store credit' : 'Gift card'}${svCode ? ` <span style="font-family:${a.fontMono};font-size:12px;color:${a.muted};">${maskSv(svCode)}</span>` : ''}</td>
+            <td style="padding:4px 0;font-size:14px;text-align:right;color:${discountColor};">−$${(svCents / 100).toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0 0;font-size:14px;font-weight:700;color:${a.text};">${(orderTotalCents - svCents) > 0 ? 'Charged' : 'Left to pay'}</td>
+            <td style="padding:4px 0 0;font-size:14px;font-weight:700;text-align:right;color:${a.text};">$${((orderTotalCents - svCents) / 100).toFixed(2)}</td>
+          </tr>` : '';
+
   const shippingDisplay = meta.free_shipping === 'true' ? 'Free' : `$${(shippingCents / 100).toFixed(2)}`;
 
   const etaText = (() => {
@@ -1331,6 +1385,8 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
   const html = buildOrderConfirmation({
     appearance: a, content: emailC, orderId, toName, itemsHtml,
     subtotalCents, discountRow, shippingDisplay, taxCents, totalDollars,
+    /* Gift card / store credit, under the Total rather than folded into it. */
+    tenderRows,
     addressHtml, carrierHtml,
     /* Who this order belongs to, so the footer can send an account holder to
        /account and a guest to the lookup. Passed explicitly rather than reached
