@@ -113,5 +113,31 @@ export async function onRequestPost({ request, env }) {
  */
 export async function onRequestGet({ env }) {
   const headers = cors(env);
-  return json({ ok: true, enabled: await storedValueEnabled(env) }, 200, headers);
+  const enabled = await storedValueEnabled(env);
+
+  /* ── AND WHETHER TO OFFER A BALANCE THE SHOPPER FORGOT ABOUT ──────────────
+     Two different switches, deliberately in two different rows. `stored_value`
+     is whether the TILL accepts a card at all; `commerce_config.giftCards` is
+     what the STOREFRONT offers, and a store can reasonably run redemption
+     without wanting a panel to appear over its checkout.
+
+     It rides on this response rather than /api/stock because this is the
+     answer the gift-card box's existence already depends on — one probe, one
+     arrival, no window in which the page knows redemption is on but not yet
+     whether to ask about it. And it is a store-wide setting on a response with
+     no session in it, so nothing here is about the person asking; the balance
+     itself comes later, from an endpoint that requires one. */
+  let promptBalance = false;
+  if (enabled) {
+    try {
+      const cfg = await getSetting(env, 'commerce_config', {});
+      promptBalance = !!(cfg && cfg.giftCards && cfg.giftCards.promptBalanceAtCheckout === true);
+    } catch (_) {
+      /* Off. An unreadable setting must never become permission to interrupt
+         somebody in the middle of paying. */
+      promptBalance = false;
+    }
+  }
+
+  return json({ ok: true, enabled, promptBalance }, 200, headers);
 }

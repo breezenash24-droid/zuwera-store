@@ -515,6 +515,22 @@ async function getCheckoutAuthPayload() {
     for (const item of cart) {
       const p = byId.get(String(item.productId || '')) || bySku.get(String(item.sku || ''));
       if (!p) continue;   // product deleted — server rejects it at payment; leave display as-is
+
+      /* ── A BUYER-PRICED GIFT CARD IS NOT REPRICED ─────────────────────────
+         This loop exists to correct a stale bag against the catalogue, and it
+         is right about every line but one. A gift card whose amount the SHOPPER
+         chose has no catalogue price to be corrected to: the amount is the
+         price. Repricing it wrote the listed $50 straight over the $300 they
+         had asked for, in localStorage AND in window.cartItems, so the bag, the
+         header and the checkout summary all agreed on a number the shopper had
+         never chosen — and the one place that still knew was the line's own
+         customAmountCents, which nothing displayed.
+
+         The server reaches the identical figure from that same field, and
+         reaches it independently: it makes the chosen amount both the price and
+         the face value. Skipping here is not the browser deciding a price; it
+         is the browser declining to overwrite the instruction it is carrying. */
+      if (Number(item.customAmountCents) > 0) continue;
       const variant = byColor.get(String(p.id) + '|' + canon(item.colorName)) || null;
 
       /* The SERVER's figure when it has arrived — it is the only thing that

@@ -310,8 +310,14 @@
 
   function quickAddFinalizeReviewedItem(cartItem) {
     var cart; try { cart = JSON.parse(localStorage.getItem('cart') || '[]') || []; } catch (_) { cart = []; }
+    /* The key includes the buyer-chosen amount, where there is one: a $25 gift
+       card and a $300 one are the same product, the same (empty) size and the
+       same colour, so without it the second add lands on the first and makes
+       two of that. Quick-add cannot set an amount at all, which is exactly why
+       it must never land on a line that has one. */
     var existIdx = cart.findIndex(function (i) {
-      return i.productId === cartItem.productId && i.size === cartItem.size && i.colorName === cartItem.colorName;
+      return i.productId === cartItem.productId && i.size === cartItem.size && i.colorName === cartItem.colorName
+        && (Number(i.customAmountCents) || 0) === (Number(cartItem.customAmountCents) || 0);
     });
     if (existIdx > -1) cart[existIdx].quantity += 1;
     else cart.push(cartItem);

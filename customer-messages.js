@@ -162,6 +162,19 @@
     giftCardPartial:  { label: 'Card covers part of the order', text: '{balance} on the card — {applied} of it covers this order, {left} left over.', color: ROLE.good },
     giftCardAll:      { label: 'Card goes entirely to this order', text: '{balance} on the card, all of it going to this order.', color: ROLE.good },
     giftCardNoWallet: { label: 'Why PayPal and wallets disappeared', text: 'Gift cards and store credit are paid with a card. Remove the card below to use PayPal or a wallet instead.', color: ROLE.plain },
+    /* ── HOW A GIFT CARD ACTUALLY REACHES SOMEBODY ────────────────────────────
+       Not a refusal, and the only entry here that is a policy rather than an
+       outcome. It is in this file anyway, because it is the sentence a store is
+       most likely to want in its own words -- delivery speed, whether a card
+       can be spent in parts, whether it expires -- and the alternative was a
+       hardcoded paragraph in product.html that nobody could reach.
+
+       Read in TWO places on a gift card page: the note beside the price, and
+       the Delivery section that stands where Shipping & Returns does on a
+       garment. One key for both, because they are the same claim and a store
+       that edited one and not the other would be contradicting itself on a
+       single screen. */
+    giftCardDelivery: { label: 'How a gift card is delivered', text: 'Delivered by email as a code, usually within a few minutes. Enter it at checkout — it does not have to be spent all at once, and whatever is left stays on the card for next time.', color: ROLE.plain },
 
     /* ── promo codes ──────────────────────────────────────────────────────────
        A coupon can also carry its OWN message (set per code in admin), and that
@@ -326,9 +339,14 @@
     },
     {
       name: 'Product page',
-      where: 'Under the size buttons, and the toasts',
+      where: 'Under the size buttons, the toasts, and the gift card blocks',
+      /* giftCardDelivery does not belong to a screen of its own. A gift card
+         page IS the product page -- the same file, the same template -- so a
+         separate surface would have named the same three source files and left
+         the store owner hunting two lists for one page. */
       keys: ['soldOut', 'lowStock', 'lastInBag', 'allInBag', 'maxedOut',
-             'lowStockBadge', 'restockPrompt', 'restockSuccess', 'restockAlready'],
+             'lowStockBadge', 'restockPrompt', 'restockSuccess', 'restockAlready',
+             'giftCardDelivery'],
       /* Referenced here, but only as a safety net: Add to Bag is already
          disabled by the time either could fire, so a shopper should never meet
          them on this screen. Kept because the guard is correct -- a disabled

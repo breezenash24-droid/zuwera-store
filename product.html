@@ -211,7 +211,7 @@ try {
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
 <script src="preview-mode.js?v=799782ba" defer></script>
-<script src="/zw-data.js?v=54eabcad" defer></script>
+<script src="/zw-data.js?v=f3253604" defer></script>
 <script src="/favicon-utils.js?v=64984ef7" defer></script>
 <script src="/flags.js?v=a6453cd7" defer></script>
 <script src="fit-finder.js?v=daf3b4fd" defer></script>
@@ -238,7 +238,7 @@ try {
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
 
 <!-- Stylesheets -->
-<link rel="stylesheet" href="base.css?v=c2947b26">
+<link rel="stylesheet" href="base.css?v=c2a61f19">
 <link rel="stylesheet" href="/motion.css?v=3c8c99bd">
 <link rel="stylesheet" href="nav.css?v=7e04029d">
 <link rel="stylesheet" href="product.css?v=c8959933">
@@ -1122,48 +1122,82 @@ body[data-zw-product="gift-card"] [data-zw-garment] { display: none !important; 
 /* The fit finder is appended into .size-header at runtime by
    storefront-features.js, so it is hidden by its container going, not by name. */
 
+/* And the counterpart: furniture only a gift card has. A page type that could
+   only ever REMOVE things had to leave the shipping section standing with
+   garment copy in it — "free standard shipping on orders $100+" above a product
+   that is emailed — because there was no way to say "and this goes here
+   instead". The pair covers both halves of a swap, in CSS, with no ordering to
+   lose against whatever writes those paragraphs over the network.
+
+   `revert` rather than `block`, so a <span> in a flex row stays a span and a
+   <p> stays a paragraph. */
+[data-zw-giftcard] { display: none; }
+body[data-zw-product="gift-card"] [data-zw-giftcard] { display: revert; }
+
 .gc-note { margin: 1.6rem 0 1.2rem; }
 .gc-note p:not(.section-label) {
   font-size: .9rem; line-height: 1.75; opacity: .75; max-width: 46ch; margin: .5rem 0 0;
 }
 body[data-zw-product="gift-card"] .gc-note[hidden] { display: block; }
 
-.gc-amount-btn {
-  margin-top: 1rem; background: none; border: 1px solid rgb(var(--fg-rgb) / 30%);
-  color: inherit; font-family: var(--fm); font-size: .6rem; letter-spacing: .12em;
-  text-transform: uppercase; padding: .7rem 1.2rem; cursor: pointer; transition: border-color .2s;
-}
-.gc-amount-btn:hover { border-color: currentColor; }
-.gc-modal[hidden] { display: none; }
-.gc-modal {
-  position: fixed; inset: 0; z-index: 200; display: grid; place-items: center;
-  background: rgb(0 0 0 / 55%); padding: 1.25rem;
-}
-.gc-modal-card {
-  width: min(24rem, 100%); background: var(--zw-theme-surface, #0b0b0d); color: inherit;
-  border: 1px solid rgb(var(--fg-rgb) / 20%); padding: 1.6rem;
-}
+/* The amount chips. Layout only — everything about how they LOOK comes from
+   .size-btn, which they also carry. A row rather than the size grid's fixed
+   columns, because $25 and $100 are not the same width and a five-column track
+   would strand "Custom" on a line of its own. */
+.gc-amounts { margin: 1.6rem 0 1.2rem; }
+.gc-amt-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+.size-grid.gc-amt-row { grid-template-columns: none; }
+.gc-amt { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+/* Wider than a size chip: it holds a figure that grows, and "Custom" replaced
+   by "$300" must not make the row jump. */
+.product-page .gc-amt { min-width: 92px; }
+
+/* The dialog is .modal > .mbox now, so the panel surface, the accent border,
+   the radius, the scrim and the motion all arrive from storefront-cohesion.css
+   with the rest of the site's modals. What is left here is only what is
+   particular to naming an amount. */
+/* No width here on purpose: storefront-cohesion.css sizes every centred .mbox
+   from --zw-panel-width with !important, and a dialog that argued with that
+   would be the one modal on the site that is a different width. */
 .gc-amount-row { display: flex; align-items: baseline; gap: .4rem; margin: 1rem 0 .5rem; }
-.gc-amount-currency { font-size: 1.6rem; opacity: .55; }
+.gc-amount-currency { font-family: var(--fw); font-size: 1.6rem; opacity: .55; }
 .gc-amount-input {
-  flex: 1; min-width: 0; background: none; border: none; border-bottom: 1px solid rgb(var(--fg-rgb) / 30%);
-  color: inherit; font: inherit; font-size: 1.9rem; padding: .2rem 0; outline: none;
-  font-variant-numeric: tabular-nums;
+  flex: 1; min-width: 0; background: none; border: none;
+  border-bottom: 1px solid rgb(var(--fg-rgb) / 30%);
+  color: inherit; font-family: var(--fw); font-weight: 700; font-size: 1.9rem;
+  padding: .2rem 0; outline: none; font-variant-numeric: tabular-nums;
 }
 .gc-amount-input:focus-visible { border-bottom-color: currentColor; }
 /* The spinners fight a large type size and add nothing a keyboard does not. */
 .gc-amount-input::-webkit-outer-spin-button,
 .gc-amount-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .gc-amount-input { -moz-appearance: textfield; appearance: textfield; }
-.gc-amount-hint { font-size: .78rem; opacity: .65; line-height: 1.6; min-height: 2.6em; margin: 0; }
-.gc-amount-hint[data-tone="bad"] { color: var(--err, #ef4444); opacity: 1; }
+.gc-amount-hint {
+  font-family: var(--fm); font-size: .68rem; letter-spacing: .04em; line-height: 1.6;
+  opacity: .65; min-height: 2.6em; margin: 0;
+}
+.gc-amount-hint[data-tone="bad"] { color: var(--zw-accent, #F891A5); opacity: 1; }
 .gc-amount-actions { display: flex; gap: .6rem; justify-content: flex-end; margin-top: 1.2rem; }
 .gc-amount-actions button {
-  font-family: var(--fm); font-size: .6rem; letter-spacing: .12em; text-transform: uppercase;
-  padding: .7rem 1.1rem; cursor: pointer; border: 1px solid rgb(var(--fg-rgb) / 25%);
-  background: none; color: inherit;
+  font-family: var(--fm); font-size: .6rem; letter-spacing: .16em; text-transform: uppercase;
+  padding: .8rem 1.2rem; cursor: pointer; border: 1px solid var(--c20);
+  background: none; color: inherit; transition: border-color .2s, opacity .2s;
 }
-.gc-amount-ok { background: var(--white, #f4f1eb); color: var(--black, #09090b); border-color: transparent; font-weight: 600; }
+.gc-amount-cancel:hover { border-color: var(--c40); }
+/* Filled, like every other primary action on the site. --white and --black are
+   both redefined per theme (see base.css), so this one pair is correct in all
+   three without a light-mode branch.
+
+   THE ID IS LOAD-BEARING. `body.light-mode .mbox button[type="button"]` forces
+   a muted grey onto every button in a modal panel, with !important — which is
+   right for the secondary ones and paints this one's text out against its own
+   fill. #find-size-modal .fs-submit carries the identical fix for the identical
+   reason; a class-level rule loses to that selector even with !important. */
+#giftCardAmountModal .gc-amount-ok {
+  background: var(--white); color: var(--black) !important;
+  border-color: var(--white); font-weight: 600;
+}
+#giftCardAmountModal .gc-amount-ok:hover { opacity: .88; }
 
 .product-page .size-btn {
   font-family: var(--font-mono) !important;
@@ -1615,11 +1649,28 @@ body.super-light-mode { background: var(--ink) !important; }
              looking. Hidden by default; the gift-card page type reveals it. -->
         <div class="gc-note" id="giftCardNote" hidden>
           <p class="section-label">Gift card</p>
-          <p>Delivered by email as a code, usually within a few minutes. Enter it at checkout — it does not have to be spent all at once, and whatever is left stays on the card for next time.</p>
-          <!-- Shown only when the store allows a buyer-chosen amount. The
-               listed price stays the default, so doing nothing still works. -->
-          <button type="button" class="gc-amount-btn" id="giftCardAmountBtn" hidden
-                  onclick="openGiftCardAmount()">Choose your own amount</button>
+          <!-- Written over by product-main.js from the giftCardDelivery message,
+               the same key the Delivery section reads. The sentence is here in
+               full rather than left empty so it survives a failed settings load
+               — and tests/the-gift-card-says-how-it-arrives.test.js holds it
+               character-for-character against the shipped default, because a
+               fallback that has quietly drifted is worse than no fallback. -->
+          <p id="giftCardDeliveryNote">Delivered by email as a code, usually within a few minutes. Enter it at checkout — it does not have to be spent all at once, and whatever is left stays on the card for next time.</p>
+        </div>
+
+        <!-- ── AMOUNT ─────────────────────────────────────────────
+             Standing exactly where the size grid stands on a garment, because
+             it is the same act: the one choice made before the bag. The chips
+             are .size-btn, the site's own control for it — a bespoke button
+             beside a page full of size buttons is what made this section read
+             as bolted on.
+
+             Filled by renderGiftCardAmounts(). The denominations are the
+             store's, set per product; the trailing "Custom" chip appears only
+             where the store allows a buyer-chosen figure. -->
+        <div class="gc-amounts" id="giftCardAmounts" hidden>
+          <p class="section-label">Amount</p>
+          <div class="size-grid gc-amt-row" id="giftCardAmountRow" role="group" aria-label="Gift card amount"></div>
         </div>
 
         <!-- ── CHOOSE AN AMOUNT ──────────────────────────────────────────────
@@ -1628,8 +1679,18 @@ body.super-light-mode { background: var(--ink) !important; }
              the price and the face value from one input — see the note in
              _cart-pricing.js — and because the bounds are the store's, stated
              here before anything is typed rather than as a refusal afterwards. -->
-        <div class="gc-modal" id="giftCardAmountModal" hidden role="dialog" aria-modal="true" aria-labelledby="gcAmountTitle">
-          <div class="gc-modal-card">
+        <!-- .modal > .mbox, the site's own dialog, rather than a private
+             overlay. That is not tidiness: the whole of the storefront's modal
+             appearance lives on those two class names — the scrim and its blur
+             (body[data-mbd-*], set in Admin → Design), the panel surface, the
+             accent top border, the radius and shadow, the open/close motion,
+             the light and super-light repaints, and the mobile bottom-sheet
+             treatment. A hand-rolled overlay opted out of every one of them at
+             once, which is precisely what "does not fit the rest of the site"
+             looked like. -->
+        <div class="modal" id="giftCardAmountModal" role="dialog" aria-modal="true" aria-labelledby="gcAmountTitle">
+          <div class="mbox gc-amount-box">
+            <button type="button" class="mclose" aria-label="Close" onclick="closeGiftCardAmount()">&times;</button>
             <p class="section-label" id="gcAmountTitle">Choose an amount</p>
             <div class="gc-amount-row">
               <span class="gc-amount-currency" aria-hidden="true">$</span>
@@ -1711,17 +1772,33 @@ body.super-light-mode { background: var(--ink) !important; }
             </div>
           </div>
 
-          <!-- SHIPPING & RETURNS -->
+          <!-- SHIPPING & RETURNS  —  and, on a gift card, DELIVERY
+               Nothing ships, so "free standard shipping on orders $100+" and a
+               60-day return window are answers to questions nobody asked about
+               a code that arrives by email. The section itself is still the
+               right place to look; only its contents were wrong.
+
+               Swapped in CSS rather than by rewriting the paragraphs, because
+               loadSiteSettings() writes shippingPolicyText1/2 from
+               site_settings whenever that row lands — and a race between "make
+               this say Delivery" and "make this say the shipping policy" is one
+               the network wins at random. Hidden text can be overwritten all
+               day and stay hidden.
+
+               The delivery sentence itself is an admin's to write: see
+               giftCardDelivery in customer-messages.js. -->
           <div class="accordion">
             <button type="button" class="accordion-header" aria-expanded="false" onclick="toggleAccordion(this)">
-              <span>Shipping & Returns</span>
+              <span data-zw-garment>Shipping & Returns</span>
+              <span data-zw-giftcard>Delivery</span>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
             <div class="accordion-body">
-              <p id="shippingPolicyText1">Free standard shipping on orders $100+</p>
-              <p id="shippingPolicyText2">60-day returns for members, 30-day for non-members</p>
+              <p id="shippingPolicyText1" data-zw-garment>Free standard shipping on orders $100+</p>
+              <p id="shippingPolicyText2" data-zw-garment>60-day returns for members, 30-day for non-members</p>
+              <p id="giftCardDeliveryText" data-zw-giftcard></p>
             </div>
           </div>
 
@@ -1966,7 +2043,7 @@ body.super-light-mode { background: var(--ink) !important; }
      rearrange after load. -->
 <script src="pdp-gallery.js?v=2192736c"></script>
 <script src="auth.js?v=fac9d15e" defer></script>
-<script src="product-main.js?v=8ca36ec0"></script>
+<script src="product-main.js?v=2f18adef"></script>
 
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <!-- CART MODAL                                                        -->
@@ -2140,8 +2217,8 @@ body.super-light-mode { background: var(--ink) !important; }
 <script src="zw-login.js?v=09e6833c" defer></script>
 <!-- Shared stock rules. The page must subtract what is already in the bag from
      what it advertises, using the same matching the bag and checkout use. -->
-<script src="customer-messages.js?v=977fa40a" defer></script>
-<script src="stock-rules.js?v=efc11b57" defer></script>
+<script src="customer-messages.js?v=11117c5d" defer></script>
+<script src="stock-rules.js?v=26fa2888" defer></script>
 <script src="/nav-menu.js?v=5735cc2b" defer></script>
 <script src="/zw-copy.js?v=5b4f7680" defer></script>
 <script src="/header-layouts.js?v=7d3d3cdb" defer></script>

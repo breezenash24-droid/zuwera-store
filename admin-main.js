@@ -13905,6 +13905,55 @@ function escapeAttr(value) {
             return Math.round(dollars * 100);
         }
 
+        /* ── THE AMOUNTS THIS CARD IS SOLD IN ────────────────────────────
+           Typed as dollars because that is what a shopkeeper thinks in, stored
+           as cents because that is what everything downstream is. Read straight
+           off the box every time rather than kept in a variable beside it: a
+           second copy of a number a person is still typing is a second thing to
+           forget to update.
+
+           Junk is DROPPED rather than refused. Somebody typing "25, 50," has a
+           trailing comma, not an error, and stopping the save to say so about a
+           field that is optional in the first place would be the form arguing
+           with its own hint. What is kept is shown back as chips underneath, so
+           anything that vanished is visible before Save rather than after. */
+        function _giftCardDenominations() {
+            const raw = document.getElementById('giftCardDenominations')?.value || '';
+            const out = [];
+            String(raw).split(/[,\s]+/).forEach(function (part) {
+                const dollars = parseFloat(String(part).replace(/[$]/g, ''));
+                if (!Number.isFinite(dollars) || dollars <= 0) return;
+                const cents = Math.round(dollars * 100);
+                if (out.indexOf(cents) === -1) out.push(cents);
+            });
+            out.sort(function (a, b) { return a - b; });
+            return out.slice(0, 8);
+        }
+
+        function _renderGiftCardDenomPreview() {
+            const host = document.getElementById('giftCardDenomPreview');
+            if (!host) return;
+            const list = _giftCardDenominations();
+            host.textContent = '';
+            list.forEach(function (cents) {
+                const chip = document.createElement('span');
+                const n = cents / 100;
+                chip.textContent = '$' + (Number.isInteger(n) ? String(n) : n.toFixed(2));
+                chip.style.cssText = 'display:inline-block;padding:4px 10px;border:1px solid var(--border);'
+                    + 'border-radius:999px;font-size:.78rem;color:var(--text-primary);';
+                host.appendChild(chip);
+            });
+            /* Said only when something was typed and nothing survived it —
+               silence on an empty box, which is a perfectly good state. */
+            const typed = (document.getElementById('giftCardDenominations')?.value || '').trim();
+            if (typed && !list.length) {
+                const note = document.createElement('span');
+                note.textContent = 'No amounts read from that. Try: 25, 50, 100';
+                note.style.cssText = 'font-size:.8rem;color:#c9832b;';
+                host.appendChild(note);
+            }
+        }
+
         function _taxCategoryFromForm() {
             /* Belt and braces: the toggle already forces the select, but a save
                that slipped past it would be rejected by the check constraint
@@ -14039,6 +14088,7 @@ function escapeAttr(value) {
         document.addEventListener('input', function (e) {
             if (!e.target || !e.target.id) return;
             if (e.target.id === 'isGiftCard' || e.target.id === 'giftCardValue' || e.target.id === 'currentPrice') syncGiftCardFields();
+            if (e.target.id === 'giftCardDenominations') _renderGiftCardDenomPreview();
         });
         document.addEventListener('change', function (e) {
             if (e.target && e.target.id === 'isGiftCard') syncGiftCardFields();
@@ -14168,6 +14218,24 @@ function escapeAttr(value) {
                        before the migration is a gift card, which could not have
                        worked anyway. */
                     ...(_giftCardTouched() ? { gift_card_cents: _giftCardCentsFromForm() } : {}),
+                    /* Sent on a NARROWER condition than the face value above,
+                       and the difference matters. gift_card_cents rides on
+                       "is this about a gift card", which is right because a
+                       card cannot exist without it. Denominations are optional,
+                       and a store that has run 0032 but not 0035 can still sell
+                       gift cards perfectly well — so writing this column on
+                       every gift card save would break saving gift cards for
+                       them, to carry a list they never typed. It goes only when
+                       there is a list, or when there is one on the row already
+                       that is being cleared. */
+                    ...((_giftCardTouched()
+                        && (_giftCardDenominations().length
+                            || (typeof currentProduct !== 'undefined' && currentProduct
+                                && Array.isArray(currentProduct.gift_card_denominations)
+                                && currentProduct.gift_card_denominations.length)))
+                        ? { gift_card_denominations: (_isGiftCardChecked() && _giftCardDenominations().length)
+                            ? _giftCardDenominations() : null }
+                        : {}),
                     model_height: document.getElementById('modelHeight').value,
                     model_size_worn: document.getElementById('modelSizeWorn').value,
                     fit_type: document.getElementById('fitType').value,
@@ -14401,6 +14469,12 @@ function escapeAttr(value) {
                     msg = 'This store has not run migration 0032 yet, so there is nowhere to record the gift '
                         + 'card value. Apply it under Admin → APIs → Database migrations, then save again. '
                         + 'Everything else about this product is fine.';
+                } else if (msg && /gift_card_denominations/.test(msg) && /does not exist|schema cache|column/i.test(msg)) {
+                    msg = 'This store has not run migration 0035 yet, so there is nowhere to record the amounts '
+                        + 'this card is offered in. Apply it under Admin → APIs → Database migrations, or clear '
+                        + '“Amounts offered” and save — the card works fine without them, selling at its face value.';
+                } else if (msg && /products_gift_card_denominations_sane/.test(msg)) {
+                    msg = 'Amounts offered must be positive, and there can be at most eight of them.';
                 } else if (msg && /products_gift_card_is_tax_exempt/.test(msg)) {
                     msg = 'A gift card cannot be taxable — tax is charged when the card is SPENT, on whatever '
                         + 'it buys. Set Tax category to “Not taxable”.';
@@ -14443,7 +14517,20 @@ function escapeAttr(value) {
                 const val = document.getElementById('giftCardValue');
                 if (box) box.checked = cents > 0;
                 if (val) val.value = cents > 0 ? (cents / 100).toFixed(2) : '';
+                /* Shown the way it is typed, not the way it is stored. Reading
+                   back "2500, 5000" would be correct and unusable. */
+                const denoms = document.getElementById('giftCardDenominations');
+                if (denoms) {
+                    denoms.value = (Array.isArray(product.gift_card_denominations)
+                        ? product.gift_card_denominations : [])
+                        .map(function (c) {
+                            const n = (Number(c) || 0) / 100;
+                            return Number.isInteger(n) ? String(n) : n.toFixed(2);
+                        })
+                        .join(', ');
+                }
                 syncGiftCardFields();
+                _renderGiftCardDenomPreview();
             }
             document.getElementById('modelHeight').value = product.model_height || '';
             document.getElementById('modelSizeWorn').value = product.model_size_worn || '';
@@ -14589,6 +14676,9 @@ function escapeAttr(value) {
                card would show the face-value field and a tax control still
                locked to Not taxable — with the box unticked above them. */
             syncGiftCardFields();
+            /* form.reset() empties the box; the chips underneath are drawn by
+               JS and would sit there showing the last card's amounts. */
+            _renderGiftCardDenomPreview();
             _selectedSports.clear(); ensureSportsList().then(renderSportsChips);
             // Start with ONE empty rich media card (identical to "+ Add Media") instead
             // of the old bare .image-row, so the first row matches every other row (and
