@@ -228,7 +228,7 @@ document.documentElement.classList.add('zw-collflash');
   <link rel="canonical" href="https://zuwera.store/drop001.html">
   <script src="preview-mode.js?v=799782ba" defer></script>
   <script src="/zw-data.js?v=b1d82c08" defer></script>
-  <script src="gift-card-buy.js?v=449f2a8f" defer></script>
+  <script src="gift-card-buy.js?v=e5fbe55c" defer></script>
   <script src="/favicon-utils.js?v=64984ef7" defer></script>
   <script src="/flags.js?v=a6453cd7" defer></script>
 <script src="pdp-gallery.js?v=2192736c" defer></script>
@@ -1017,6 +1017,10 @@ document.documentElement.classList.add('zw-collflash');
       min-height:100%;
       display:flex;
       flex-direction:column;
+      /* Centred, so a right-hand column taller than the media band leaves even
+         space above and below rather than stranding the photograph at the top.
+         The media has a max-height and cannot stretch to meet it. */
+      justify-content:center;
       overflow:hidden;
       background:rgb(var(--fg-rgb) / 2.5%);
     }

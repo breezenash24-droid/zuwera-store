@@ -196,6 +196,11 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
   min-height:100%;
   display:flex;
   flex-direction:column;
+  /* Centred, so a right-hand column taller than the media band leaves even
+     space above and below rather than stranding the photograph at the top. The
+     media carries a max-height and cannot stretch to meet it — which is what a
+     gift card's amount row and four fields made visible. */
+  justify-content:center;
   overflow:hidden;
 }
 .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-media{
